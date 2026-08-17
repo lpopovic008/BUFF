@@ -93,8 +93,7 @@ function looksLikePlayerRecord(item: unknown): boolean {
   if (typeof item !== "object" || item === null) return false;
   const obj = item as Record<string, unknown>;
   const hasName = pickString(obj, ["playerName", "name", "full_name", "player_name"]) !== null;
-  const hasValue =
-    pickNumber(obj, ["value", "sf_trade_value", "tradeValue", "trade_value", "sfValue"]) !== null;
+  const hasValue = extractValue(obj) !== null;
   return hasName && hasValue;
 }
 
@@ -115,13 +114,31 @@ function pickNumber(obj: Record<string, unknown>, keys: string[]): number | null
   return null;
 }
 
+/**
+ * KTC's actual record shape (confirmed from a live CI run, not guessed): the
+ * trade value isn't a flat field on the player object — it's nested one level
+ * down under `oneQBValues.value` (1QB leagues, the common case and what this
+ * app assumes) or `superflexValues.value`. Everything else (playerName,
+ * position, team, age) is flat and matched the first guess.
+ */
+function extractValue(obj: Record<string, unknown>): number | null {
+  const flat = pickNumber(obj, ["value", "sf_trade_value", "tradeValue", "trade_value", "sfValue"]);
+  if (flat !== null) return flat;
+  const oneQB = obj["oneQBValues"];
+  if (oneQB && typeof oneQB === "object") {
+    const nested = pickNumber(oneQB as Record<string, unknown>, ["value"]);
+    if (nested !== null) return nested;
+  }
+  return null;
+}
+
 function normalize(raw: unknown[]): PlayerValue[] {
   const rows: PlayerValue[] = [];
   for (const item of raw) {
     if (typeof item !== "object" || item === null) continue;
     const obj = item as Record<string, unknown>;
     const name = pickString(obj, ["playerName", "name", "full_name", "player_name"]);
-    const value = pickNumber(obj, ["value", "sf_trade_value", "tradeValue", "trade_value", "sfValue"]);
+    const value = extractValue(obj);
     if (!name || value === null) continue;
     const position = pickString(obj, ["position", "pos"]) ?? "UNK";
     const team = pickString(obj, ["team", "team_abbrev", "teamAbbrev"]);
