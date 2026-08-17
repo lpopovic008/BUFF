@@ -6,8 +6,10 @@ import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { MatchupCard } from "@/components/MatchupCard";
+import { MoneyBoard } from "@/components/MoneyBoard";
 import { useConfig } from "@/hooks/useConfig";
 import { getLeagueSummary, computeWeekRecap, LeagueSummary, WeekRecapData } from "@/lib/league-data";
+import { loadLeagueMoney, LeagueMoney } from "@/lib/league-money";
 import { getCurrentWeek } from "@/lib/sleeper";
 import { formatPoints, formatRecord, ordinal } from "@/lib/format";
 
@@ -16,6 +18,7 @@ function LeagueDetailContent() {
   const { config, loaded } = useConfig();
   const [summary, setSummary] = useState<LeagueSummary | null>(null);
   const [weekRecap, setWeekRecap] = useState<WeekRecapData | null>(null);
+  const [money, setMoney] = useState<LeagueMoney | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -24,6 +27,7 @@ function LeagueDetailContent() {
     (async () => {
       setSummary(null);
       setWeekRecap(null);
+      setMoney(null);
       setError(null);
       try {
         const week = await getCurrentWeek();
@@ -36,6 +40,9 @@ function LeagueDetailContent() {
         setSummary(s);
         const recap = await computeWeekRecap(leagueId, week);
         if (!cancelled) setWeekRecap(recap);
+        // Only resolves for leagues with a commissioner profile configured.
+        const m = await loadLeagueMoney(leagueId);
+        if (!cancelled) setMoney(m);
       } catch {
         if (!cancelled) setError("Couldn't reach Sleeper's API. Check your connection and try again.");
       }
@@ -84,6 +91,20 @@ function LeagueDetailContent() {
           </Link>
         </div>
       </div>
+
+      {money ? (
+        <section className="flex flex-col gap-4">
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="text-lg font-semibold text-ink-primary">
+              Money · {money.profile.label}
+            </h2>
+            <Link href={`/recap?id=${leagueId}`} className="text-sm font-medium text-series-1 hover:underline">
+              Write this week&rsquo;s recap →
+            </Link>
+          </div>
+          <MoneyBoard money={money} />
+        </section>
+      ) : null}
 
       <Card className="p-5">
         <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-muted">Standings</h2>

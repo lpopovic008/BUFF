@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { computeWeekRecap, WeekRecapData } from "@/lib/league-data";
-import { formatRecapMarkdown } from "@/lib/format-recap";
+import { formatRecapMarkdown, formatCommishRecap } from "@/lib/format-recap";
+import { loadLeagueMoney } from "@/lib/league-money";
 import { getRecap } from "@/lib/localStore";
 import { getCurrentWeek } from "@/lib/sleeper";
 import { RecapEditor } from "./RecapEditor";
@@ -38,17 +39,33 @@ function RecapContent() {
       setRecapData(null);
       setError(null);
     })();
-    computeWeekRecap(leagueId, week)
-      .then((data) => {
+    (async () => {
+      try {
+        const data = await computeWeekRecap(leagueId, week);
         if (cancelled || !data) return;
         setRecapData(data);
+
         const saved = getRecap(leagueId, data.league.season, week);
-        setBody(saved?.body ?? formatRecapMarkdown(data));
-        setSavedAt(saved?.savedAt ?? null);
-      })
-      .catch(() => {
+        if (saved) {
+          setBody(saved.body);
+          setSavedAt(saved.savedAt);
+          return;
+        }
+
+        // Commissioner leagues get the house-style recap with the money blocks
+        // filled in; everything else falls back to the generic markdown.
+        const money = await loadLeagueMoney(leagueId);
+        if (cancelled) return;
+        setBody(
+          money
+            ? formatCommishRecap({ data, ledger: money.ledger, profile: money.profile })
+            : formatRecapMarkdown(data)
+        );
+        setSavedAt(null);
+      } catch {
         if (!cancelled) setError("Couldn't reach Sleeper's API. Check your connection and try again.");
-      });
+      }
+    })();
     return () => {
       cancelled = true;
     };

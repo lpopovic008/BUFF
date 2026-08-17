@@ -1,0 +1,37 @@
+name: Weekly recap
+
+# Tuesdays at 15:00 UTC (~8am Pacific), after Monday Night Football settles.
+on:
+  schedule:
+    - cron: "0 15 * * 2"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: weekly-recap
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsx scripts/weekly-recap.ts
+      - name: Commit any new recaps
+        run: |
+          if [ -z "$(git status --porcelain recaps)" ]; then
+            echo "No new recaps to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add recaps
+          git commit -m "Add weekly recap drafts"
+          git push

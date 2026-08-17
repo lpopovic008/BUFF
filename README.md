@@ -21,6 +21,70 @@ from every linked season. Ships as a static site, hosted for free on
   linked-season chain (`previous_league_id`) to reconstruct career stats per
   manager: record, win%, points, championships, and best finish, across
   every year the league has existed.
+- **Money tracking** — for leagues with a commissioner profile (see below),
+  the league page adds pot accounting, a season earnings leaderboard, a
+  week-by-week payout grid, and a record/high-score table. It replaces
+  keeping this by hand in a spreadsheet.
+
+## Commissioner leagues (payout tracking)
+
+`src/lib/league-config.ts` holds a profile per league you commish: the payout
+rules and a roster-id → real-name map. Epstein Island is configured as:
+
+| Rule | Value |
+| --- | --- |
+| Buy-in | $100 per team ($1,000 pot at 10 teams) |
+| Per win | $10 |
+| Weekly high score | $20, **instead of** the win — never both |
+| Weeks paying commission | 1–14 (playoffs pay nothing) |
+| Final placements | 1st $85, 2nd $45, 3rd $30 |
+
+That balances exactly: 14 weeks × $60 = $840, plus $160 to the top three =
+$1,000. The app checks this every load and shows a warning banner if a rule
+change makes the money stop adding up.
+
+Two details worth knowing:
+
+- **`highScoreStacks`** is `false`, matching how the rules were described and
+  what the source spreadsheet shows (no cell is ever $30). It only changes
+  anything in a week where the high scorer *loses*, which hasn't happened yet —
+  flip it to `true` if the intent is $10 + $10.
+- Profiles are matched on **league name substring**, not league ID, since
+  Sleeper mints a new ID every season. A profile matched on the current season
+  also covers earlier seasons under their old names.
+
+Manager names are keyed by **roster ID** rather than team name, because teams
+in this league get renamed most weeks.
+
+## Weekly automation
+
+`.github/workflows/weekly-recap.yml` runs Tuesdays at 15:00 UTC (after Monday
+Night Football settles) and on demand. It runs `scripts/weekly-recap.ts`, which
+discovers your commissioner leagues from the baked-in username, finds the most
+recent week that actually has scores, generates the recap plus a money snapshot,
+and commits it to `recaps/<league>-<season>/week-NN.md`.
+
+It never overwrites a file that already exists, so once you replace a generated
+draft with your real write-up, the cron leaves it alone. This gives you a
+versioned archive in git that survives clearing browser data.
+
+Run it yourself with `npx tsx scripts/weekly-recap.ts --dry-run` to preview.
+
+## Tests
+
+`npm test` runs the payout engine against the real 2025 Epstein Island season
+(every score transcribed from the spreadsheet) and asserts the output matches
+the recorded totals — $130 Colin, $100 Andres/Karan/Matt Bj, and so on, $840
+across 14 weeks at exactly $60 a week.
+
+Two discrepancies in the hand-kept 2025 records surfaced while writing those
+tests, both documented inline in `src/lib/payouts.test.ts`:
+
+- The week 6 write-up credited Karan $20 when the high scorer was Owen at
+  173.10. That $10 overstatement rode along in the doc's standings from week 6
+  through week 12 before self-correcting by week 13. The spreadsheet is correct.
+- The week 14 seeding list reads "FootballSage07 (7-7)", but its ten records
+  total 71 wins across 70 games. By the scores Sage finished 6-8.
 
 ## How it's hosted
 
