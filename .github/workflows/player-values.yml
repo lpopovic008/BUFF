@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: player-values
@@ -25,6 +26,7 @@ jobs:
       - run: npm ci
       - run: npx tsx scripts/fetch-player-values.ts
       - name: Commit updated values
+        id: commit
         run: |
           if [ -z "$(git status --porcelain src/data/player-values.json)" ]; then
             echo "No change in player values."
@@ -35,3 +37,13 @@ jobs:
           git add src/data/player-values.json
           git commit -m "Update player trade values"
           git push
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+      - name: Trigger deploy
+        # A push made with the default GITHUB_TOKEN does not cascade into
+        # other workflows' `on: push` triggers (GitHub's loop-prevention), so
+        # the commit above would otherwise sit undeployed until the next
+        # unrelated push to main. Dispatch deploy.yml explicitly instead.
+        if: steps.commit.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run deploy.yml --ref main

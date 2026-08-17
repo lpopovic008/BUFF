@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: weekly-recap
@@ -25,6 +26,7 @@ jobs:
       - run: npm ci
       - run: npx tsx scripts/weekly-recap.ts
       - name: Commit any new recaps
+        id: commit
         run: |
           if [ -z "$(git status --porcelain recaps)" ]; then
             echo "No new recaps to commit."
@@ -35,3 +37,13 @@ jobs:
           git add recaps
           git commit -m "Add weekly recap drafts"
           git push
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+      - name: Trigger deploy
+        # See player-values.yml: a push made with the default GITHUB_TOKEN
+        # does not cascade into other workflows' `on: push` triggers, so the
+        # commit above would otherwise sit undeployed until the next
+        # unrelated push to main. Dispatch deploy.yml explicitly instead.
+        if: steps.commit.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run deploy.yml --ref main
