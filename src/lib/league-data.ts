@@ -197,6 +197,64 @@ export function pairMatchups(
   }));
 }
 
+export interface DashboardMatchupTeam {
+  rosterId: number;
+  teamName: string;
+  points: number;
+  /** Starters (falls back to the full roster if starters aren't set yet). */
+  playerIds: string[];
+  /** Live/actual per-player points so far this week, from Sleeper — 0 before kickoff. */
+  playersPoints: Record<string, number>;
+}
+
+export interface DashboardMatchup {
+  matchupId: number;
+  my: DashboardMatchupTeam;
+  /** Null on a bye (odd team count) or if the matchup schedule isn't set yet. */
+  opponent: DashboardMatchupTeam | null;
+}
+
+/** Finds the given roster's matchup for a week's matchups and splits it into "my side" / "opponent side". */
+export function findMyMatchup(
+  matchups: SleeperMatchup[],
+  rosters: SleeperRoster[],
+  users: SleeperLeagueUser[],
+  myRosterId: number
+): DashboardMatchup | null {
+  const mine = matchups.find((m) => m.roster_id === myRosterId);
+  if (!mine) return null;
+
+  const usersById = new Map(users.map((u) => [u.user_id, u]));
+  const rostersById = new Map(rosters.map((r) => [r.roster_id, r]));
+  const teamName = (rosterId: number) => {
+    const roster = rostersById.get(rosterId);
+    const user = roster ? userForRoster(roster, usersById) : undefined;
+    return displayManagerName(user);
+  };
+  const toTeam = (m: SleeperMatchup): DashboardMatchupTeam => {
+    const starters = (m.starters ?? []).filter((id) => id && id !== "0");
+    const roster = (m.players ?? []).filter((id) => id && id !== "0");
+    return {
+      rosterId: m.roster_id,
+      teamName: teamName(m.roster_id),
+      points: m.points,
+      playerIds: starters.length > 0 ? starters : roster,
+      playersPoints: m.players_points ?? {},
+    };
+  };
+
+  const opponent =
+    mine.matchup_id != null
+      ? matchups.find((m) => m.matchup_id === mine.matchup_id && m.roster_id !== myRosterId)
+      : undefined;
+
+  return {
+    matchupId: mine.matchup_id ?? -mine.roster_id,
+    my: toTeam(mine),
+    opponent: opponent ? toTeam(opponent) : null,
+  };
+}
+
 export interface WeekRecapData {
   league: SleeperLeague;
   week: number;

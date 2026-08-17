@@ -47,3 +47,25 @@ export async function resolvePlayerNames(playerIds: string[]): Promise<Record<st
   }
   return out;
 }
+
+export interface ResolvedPlayer {
+  playerId: string;
+  name: string;
+  position: string;
+  team: string | null;
+}
+
+/** Same lookup as resolvePlayerNames but keeps name/position/team separate for cross-referencing against other sources (e.g. KTC values by name). */
+export async function resolvePlayers(playerIds: string[]): Promise<ResolvedPlayer[]> {
+  const unique = Array.from(new Set(playerIds)).filter((id) => id && id !== "0");
+  const players = await loadPlayers();
+  return unique.map((id) => {
+    const record = players?.[id];
+    return {
+      playerId: id,
+      name: record?.full_name || `Player ${id}`,
+      position: record?.position ?? "UNK",
+      team: record?.team ?? null,
+    };
+  });
+}

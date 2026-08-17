@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { StatTile } from "@/components/ui/StatTile";
+import { DashboardMatchupCard } from "@/components/DashboardMatchupCard";
 import { useConfig } from "@/hooks/useConfig";
 import { useNFLState } from "@/hooks/useNFLState";
+import { MatchupTarget, useDashboardMatchups } from "@/hooks/useDashboardMatchups";
 import { getLeagueSummary, LeagueSummary } from "@/lib/league-data";
 import { getCurrentWeek } from "@/lib/sleeper";
 import { TrackedLeague } from "@/lib/localStore";
@@ -21,6 +23,7 @@ export default function DashboardPage() {
   const { config, loaded, bootstrapping } = useConfig();
   const phase = useNFLState();
   const [leagues, setLeagues] = useState<LoadedLeague[] | null>(null);
+  const [week, setWeek] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -34,11 +37,12 @@ export default function DashboardPage() {
       setLeagues(null);
       setError(null);
       try {
-        const week = await getCurrentWeek();
+        const currentWeek = await getCurrentWeek();
         if (cancelled) return;
+        setWeek(currentWeek);
         const summaries = await Promise.all(
           config.leagues.map(async (tracked) => {
-            const summary = await getLeagueSummary(tracked.leagueId, week);
+            const summary = await getLeagueSummary(tracked.leagueId, currentWeek);
             return summary ? { tracked, summary } : null;
           })
         );
@@ -52,6 +56,17 @@ export default function DashboardPage() {
       cancelled = true;
     };
   }, [loaded, config.leagues]);
+
+  const matchupTargets = useMemo<MatchupTarget[]>(() => {
+    if (!leagues) return [];
+    return leagues
+      .map(({ tracked, summary }) => {
+        const myRow = summary.standings.find((r) => r.ownerId === config.sleeperUserId);
+        return myRow ? { leagueId: tracked.leagueId, myRosterId: myRow.rosterId } : null;
+      })
+      .filter((t): t is MatchupTarget => t !== null);
+  }, [leagues, config.sleeperUserId]);
+  const matchups = useDashboardMatchups(matchupTargets, week);
 
   if (bootstrapping) {
     return (
@@ -161,6 +176,8 @@ export default function DashboardPage() {
               ) : (
                 <p className="text-sm text-ink-muted">Your team wasn&rsquo;t found in this league&rsquo;s rosters.</p>
               )}
+
+              {myRow ? <DashboardMatchupCard matchup={matchups[tracked.leagueId]} /> : null}
 
               <div className="flex gap-3 border-t border-grid pt-3 text-sm">
                 <Link href={`/league?id=${tracked.leagueId}`} className="font-medium text-series-1 hover:underline">

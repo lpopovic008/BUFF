@@ -8,7 +8,14 @@ from every linked season. Ships as a static site, hosted for free on
 ## Features
 
 - **Dashboard** (`/`) — every league you're in, at a glance: your record,
-  rank, points, and whether you're the commissioner.
+  rank, points, whether you're the commissioner, and this week's matchup —
+  both team names, current score, and the top 3 players on each side by KTC
+  trade value (name, position, and that player's live points so far this
+  week). Re-polls Sleeper's matchups endpoint every 45s while the tab is
+  open, so scores update the same way Sleeper's own site does during games —
+  no separate "projected points" field, since Sleeper doesn't expose
+  projections through its public API the way it does live scoring, and this
+  app only builds on endpoints that are actually documented.
 - **League page** (`/league?id=...`) — full standings, this week's
   matchups, and recent waiver/trade activity (player names resolved, not
   raw IDs).
@@ -17,7 +24,7 @@ from every linked season. Ships as a static site, hosted for free on
   standings movement, waiver moves) that you can edit and copy straight
   into your league chat. Saved recaps are archived per league
   (`/recap/archive?id=...`).
-- **History** (`/history` and `/league/history?id=...`) — walks Sleeper's
+- **History** (`/league/history?id=...`, one click from inside a league) — walks Sleeper's
   linked-season chain (`previous_league_id`) to reconstruct career stats per
   manager: record, win%, points, championships, and best finish, across
   every year the league has existed. Each season is its own collapsible
