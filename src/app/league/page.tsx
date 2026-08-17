@@ -1,29 +1,61 @@
+"use client";
+
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { MatchupCard } from "@/components/MatchupCard";
-import { getConfig } from "@/lib/store";
-import { getLeagueSummary, computeWeekRecap } from "@/lib/league-data";
-import { getNFLState } from "@/lib/sleeper";
+import { useConfig } from "@/hooks/useConfig";
+import { getLeagueSummary, computeWeekRecap, LeagueSummary, WeekRecapData } from "@/lib/league-data";
+import { getCurrentWeek } from "@/lib/sleeper";
 import { formatPoints, formatRecord, ordinal } from "@/lib/format";
 
-export const dynamic = "force-dynamic";
+function LeagueDetailContent() {
+  const leagueId = useSearchParams().get("id");
+  const { config, loaded } = useConfig();
+  const [summary, setSummary] = useState<LeagueSummary | null>(null);
+  const [weekRecap, setWeekRecap] = useState<WeekRecapData | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-export default async function LeagueDetailPage({
-  params,
-}: {
-  params: Promise<{ leagueId: string }>;
-}) {
-  const { leagueId } = await params;
-  const [config, nflState] = await Promise.all([getConfig(), getNFLState()]);
-  const currentWeek = nflState?.week ?? 1;
+  useEffect(() => {
+    if (!leagueId) return;
+    let cancelled = false;
+    (async () => {
+      setSummary(null);
+      setWeekRecap(null);
+      setError(null);
+      try {
+        const week = await getCurrentWeek();
+        const s = await getLeagueSummary(leagueId, week);
+        if (cancelled) return;
+        if (!s) {
+          setError("League not found.");
+          return;
+        }
+        setSummary(s);
+        const recap = await computeWeekRecap(leagueId, week);
+        if (!cancelled) setWeekRecap(recap);
+      } catch {
+        if (!cancelled) setError("Couldn't reach Sleeper's API. Check your connection and try again.");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [leagueId]);
 
-  const summary = await getLeagueSummary(leagueId, currentWeek);
-  if (!summary) notFound();
+  if (!leagueId) {
+    return <Card className="p-12 text-center text-sm text-ink-secondary">No league selected.</Card>;
+  }
+  if (error) {
+    return <Card className="p-12 text-center text-sm text-status-critical">{error}</Card>;
+  }
+  if (!loaded || !summary) {
+    return <Card className="p-12 text-center text-sm text-ink-secondary">Loading league…</Card>;
+  }
 
   const tracked = config.leagues.find((l) => l.leagueId === leagueId);
-  const weekRecap = currentWeek >= 1 ? await computeWeekRecap(leagueId, currentWeek) : null;
 
   return (
     <div className="flex flex-col gap-8">
@@ -31,21 +63,21 @@ export default async function LeagueDetailPage({
         <div>
           <h1 className="text-2xl font-semibold text-ink-primary">{summary.league.name}</h1>
           <p className="mt-1 text-sm text-ink-secondary">
-            {summary.league.season} season · {summary.rosters.length} teams · Week {currentWeek}
+            {summary.league.season} season · {summary.rosters.length} teams · Week {summary.currentWeek}
           </p>
         </div>
         <div className="flex items-center gap-2">
           {tracked?.isCommish ? <Badge tone="good">Commissioner</Badge> : null}
           {tracked?.isCommish ? (
             <Link
-              href={`/leagues/${leagueId}/recap`}
+              href={`/recap?id=${leagueId}`}
               className="rounded-md bg-series-1 px-4 py-2 text-sm font-medium text-white hover:opacity-90"
             >
               Write weekly recap
             </Link>
           ) : null}
           <Link
-            href={`/leagues/${leagueId}/history`}
+            href={`/league/history?id=${leagueId}`}
             className="rounded-md border border-border px-4 py-2 text-sm font-medium text-ink-secondary hover:bg-page"
           >
             League history
@@ -95,7 +127,7 @@ export default async function LeagueDetailPage({
       {weekRecap && weekRecap.games.length > 0 ? (
         <Card className="p-5">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-muted">
-            Week {currentWeek} matchups
+            Week {weekRecap.week} matchups
           </h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {weekRecap.games.map((game) => (
@@ -118,5 +150,13 @@ export default async function LeagueDetailPage({
         </Card>
       ) : null}
     </div>
+  );
+}
+
+export default function LeagueDetailPage() {
+  return (
+    <Suspense fallback={<Card className="p-12 text-center text-sm text-ink-secondary">Loading…</Card>}>
+      <LeagueDetailContent />
+    </Suspense>
   );
 }

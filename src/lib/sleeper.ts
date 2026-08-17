@@ -1,23 +1,34 @@
 // Typed client for the public Sleeper API (https://docs.sleeper.com/).
 // No API key is required, but every league/user id must be discovered
-// first via username lookup. All requests are read-only.
+// first via username lookup. All requests are read-only, made directly
+// from the browser (Sleeper's API is CORS-open), and de-duplicated /
+// short-cached in memory for the life of the tab so re-rendering the same
+// view doesn't refire the same request.
 
 const BASE = "https://api.sleeper.app/v1";
 
-async function sleeperFetch<T>(
-  path: string,
-  revalidateSeconds: number
-): Promise<T | null> {
-  const res = await fetch(`${BASE}${path}`, {
-    next: { revalidate: revalidateSeconds },
-  });
-  if (res.status === 404) return null;
-  if (!res.ok) {
-    throw new Error(`Sleeper API ${path} failed: ${res.status} ${res.statusText}`);
+const inflight = new Map<string, { expiresAt: number; promise: Promise<unknown> }>();
+
+async function sleeperFetch<T>(path: string, ttlSeconds: number): Promise<T | null> {
+  const cached = inflight.get(path);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.promise as Promise<T | null>;
   }
-  const text = await res.text();
-  if (!text || text === "null") return null;
-  return JSON.parse(text) as T;
+
+  const promise = (async () => {
+    const res = await fetch(`${BASE}${path}`);
+    if (res.status === 404) return null;
+    if (!res.ok) {
+      throw new Error(`Sleeper API ${path} failed: ${res.status} ${res.statusText}`);
+    }
+    const text = await res.text();
+    if (!text || text === "null") return null;
+    return JSON.parse(text) as T;
+  })();
+
+  inflight.set(path, { expiresAt: Date.now() + ttlSeconds * 1000, promise });
+  promise.catch(() => inflight.delete(path)); // don't cache failures
+  return promise as Promise<T | null>;
 }
 
 export interface SleeperUser {

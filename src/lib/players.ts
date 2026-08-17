@@ -1,13 +1,8 @@
-import { promises as fs } from "fs";
-import path from "path";
-
 // The /players/nfl endpoint is a multi-megabyte dump of every NFL player.
 // It only changes with roster moves league-wide (rarely, intraday), so we
-// cache it to disk for a day and resolve names from that cache. Failures
-// (no network, first run offline) degrade gracefully to raw player ids.
-
-const CACHE_PATH = path.join(process.cwd(), "data", "cache", "players.json");
-const TTL_MS = 24 * 60 * 60 * 1000;
+// fetch it once per browser tab and keep it in memory — no disk/localStorage
+// cache, since 5MB+ comfortably blows past typical localStorage quotas.
+// Failures (no network) degrade gracefully to raw player ids.
 
 interface PlayerRecord {
   full_name?: string;
@@ -17,61 +12,33 @@ interface PlayerRecord {
   team?: string | null;
 }
 
-interface PlayersCache {
-  fetchedAt: number;
-  players: Record<string, PlayerRecord>;
-}
+let cache: Record<string, PlayerRecord> | null = null;
+let inflight: Promise<Record<string, PlayerRecord> | null> | null = null;
 
-let memoryCache: PlayersCache | null = null;
-
-async function readDiskCache(): Promise<PlayersCache | null> {
-  try {
-    const raw = await fs.readFile(CACHE_PATH, "utf8");
-    return JSON.parse(raw) as PlayersCache;
-  } catch {
-    return null;
+async function loadPlayers(): Promise<Record<string, PlayerRecord> | null> {
+  if (cache) return cache;
+  if (!inflight) {
+    inflight = fetch("https://api.sleeper.app/v1/players/nfl")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: Record<string, PlayerRecord> | null) => {
+        cache = data;
+        return data;
+      })
+      .catch(() => null)
+      .finally(() => {
+        inflight = null;
+      });
   }
-}
-
-async function writeDiskCache(cache: PlayersCache): Promise<void> {
-  await fs.mkdir(path.dirname(CACHE_PATH), { recursive: true });
-  await fs.writeFile(CACHE_PATH, JSON.stringify(cache));
-}
-
-async function loadPlayers(): Promise<PlayersCache | null> {
-  if (memoryCache && Date.now() - memoryCache.fetchedAt < TTL_MS) {
-    return memoryCache;
-  }
-  const disk = await readDiskCache();
-  if (disk && Date.now() - disk.fetchedAt < TTL_MS) {
-    memoryCache = disk;
-    return disk;
-  }
-  try {
-    const res = await fetch("https://api.sleeper.app/v1/players/nfl", {
-      next: { revalidate: TTL_MS / 1000 },
-    });
-    if (!res.ok) return disk ?? null;
-    const players = (await res.json()) as Record<string, PlayerRecord>;
-    const fresh: PlayersCache = { fetchedAt: Date.now(), players };
-    memoryCache = fresh;
-    await writeDiskCache(fresh).catch(() => {});
-    return fresh;
-  } catch {
-    // Offline or blocked network — fall back to a stale disk cache if we have one.
-    return disk ?? null;
-  }
+  return inflight;
 }
 
 /** Resolves player ids to display names, e.g. "Bijan Robinson (RB)". Falls back to the raw id. */
-export async function resolvePlayerNames(
-  playerIds: string[]
-): Promise<Record<string, string>> {
+export async function resolvePlayerNames(playerIds: string[]): Promise<Record<string, string>> {
   const unique = Array.from(new Set(playerIds));
-  const cache = await loadPlayers();
+  const players = await loadPlayers();
   const out: Record<string, string> = {};
   for (const id of unique) {
-    const record = cache?.players[id];
+    const record = players?.[id];
     if (record?.full_name) {
       out[id] = record.position ? `${record.full_name} (${record.position})` : record.full_name;
     } else {

@@ -1,23 +1,77 @@
 "use client";
 
-import { useActionState } from "react";
-import { discoverLeagues } from "./actions";
+import { useState } from "react";
+import { getUserByUsername, getUserLeagues, getLeagueUsers } from "@/lib/sleeper";
+import { getConfig, saveConfig, TrackedLeague } from "@/lib/localStore";
 
-const initialState: { error?: string } = {};
+export function DiscoverForm({
+  defaultUsername,
+  defaultSeason,
+  onDiscovered,
+}: {
+  defaultUsername: string;
+  defaultSeason: string;
+  onDiscovered: () => void;
+}) {
+  const [username, setUsername] = useState(defaultUsername);
+  const [season, setSeason] = useState(defaultSeason);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, setIsPending] = useState(false);
 
-export function DiscoverForm({ defaultUsername, defaultSeason }: { defaultUsername: string; defaultSeason: string }) {
-  const [state, formAction, isPending] = useActionState(
-    async (_prev: { error?: string }, formData: FormData) => discoverLeagues(formData),
-    initialState
-  );
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!username.trim() || !season.trim()) {
+      setError("Username and season are required.");
+      return;
+    }
+    setIsPending(true);
+    setError(null);
+    try {
+      const user = await getUserByUsername(username.trim());
+      if (!user) {
+        setError(`No Sleeper user found for "${username}".`);
+        return;
+      }
+
+      const sleeperLeagues = await getUserLeagues(user.user_id, season.trim());
+      const existingById = new Map(getConfig().leagues.map((l) => [l.leagueId, l]));
+      const discovered: TrackedLeague[] = [];
+      for (const league of sleeperLeagues) {
+        const existing = existingById.get(league.league_id);
+        if (existing) {
+          discovered.push(existing);
+          continue;
+        }
+        const leagueUsers = await getLeagueUsers(league.league_id);
+        const me = leagueUsers.find((u) => u.user_id === user.user_id);
+        discovered.push({
+          leagueId: league.league_id,
+          nickname: league.name,
+          isCommish: Boolean(me?.is_owner),
+        });
+      }
+
+      saveConfig({
+        sleeperUsername: username.trim(),
+        sleeperUserId: user.user_id,
+        season: season.trim(),
+        leagues: discovered,
+      });
+      onDiscovered();
+    } catch {
+      setError("Couldn't reach Sleeper's API. Check your connection and try again.");
+    } finally {
+      setIsPending(false);
+    }
+  }
 
   return (
-    <form action={formAction} className="flex flex-col gap-4 sm:flex-row sm:items-end">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4 sm:flex-row sm:items-end">
       <label className="flex flex-1 flex-col gap-1">
         <span className="text-sm font-medium text-ink-secondary">Sleeper username</span>
         <input
-          name="username"
-          defaultValue={defaultUsername}
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
           placeholder="e.g. lpopovic008"
           required
           className="rounded-md border border-border bg-page px-3 py-2 text-sm text-ink-primary outline-none focus:border-series-1"
@@ -26,8 +80,8 @@ export function DiscoverForm({ defaultUsername, defaultSeason }: { defaultUserna
       <label className="flex w-32 flex-col gap-1">
         <span className="text-sm font-medium text-ink-secondary">Season</span>
         <input
-          name="season"
-          defaultValue={defaultSeason}
+          value={season}
+          onChange={(e) => setSeason(e.target.value)}
           placeholder="2026"
           required
           className="rounded-md border border-border bg-page px-3 py-2 text-sm text-ink-primary outline-none focus:border-series-1"
@@ -40,7 +94,7 @@ export function DiscoverForm({ defaultUsername, defaultSeason }: { defaultUserna
       >
         {isPending ? "Discovering…" : "Discover leagues"}
       </button>
-      {state.error ? <p className="text-sm text-status-critical sm:basis-full">{state.error}</p> : null}
+      {error ? <p className="text-sm text-status-critical sm:basis-full">{error}</p> : null}
     </form>
   );
 }

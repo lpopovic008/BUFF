@@ -1,15 +1,62 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { StatTile } from "@/components/ui/StatTile";
-import { getConfig } from "@/lib/store";
-import { getLeagueSeasonHistory, aggregateCareerStats } from "@/lib/league-data";
-import { getLeague } from "@/lib/sleeper";
+import { useConfig } from "@/hooks/useConfig";
+import { getLeagueSeasonHistory, aggregateCareerStats, SeasonRecord, ManagerCareerStats } from "@/lib/league-data";
+import { getLeague, SleeperLeague } from "@/lib/sleeper";
+import { TrackedLeague } from "@/lib/localStore";
 import { formatRecord, winPct, formatPct } from "@/lib/format";
 
-export const dynamic = "force-dynamic";
+interface LeagueHistory {
+  tracked: TrackedLeague;
+  league: SleeperLeague | null;
+  seasons: SeasonRecord[];
+  mine: ManagerCareerStats | undefined;
+}
 
-export default async function HistoryOverviewPage() {
-  const config = await getConfig();
+export default function HistoryOverviewPage() {
+  const { config, loaded } = useConfig();
+  const [histories, setHistories] = useState<LeagueHistory[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!loaded) return;
+    let cancelled = false;
+    (async () => {
+      if (config.leagues.length === 0) {
+        setHistories([]);
+        return;
+      }
+      setHistories(null);
+      setError(null);
+      try {
+        const results = await Promise.all(
+          config.leagues.map(async (tracked) => {
+            const league = await getLeague(tracked.leagueId);
+            const seasons = await getLeagueSeasonHistory(tracked.leagueId);
+            const managers = aggregateCareerStats(seasons);
+            const mine = config.sleeperUserId ? managers.find((m) => m.userId === config.sleeperUserId) : undefined;
+            return { tracked, league, seasons, mine };
+          })
+        );
+        if (!cancelled) setHistories(results);
+      } catch {
+        if (!cancelled) setError("Couldn't reach Sleeper's API. Check your connection and try again.");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [loaded, config.leagues, config.sleeperUserId]);
+
+  if (!loaded || histories === null) {
+    return (
+      <Card className="p-12 text-center text-sm text-ink-secondary">{error ?? "Loading history…"}</Card>
+    );
+  }
 
   if (config.leagues.length === 0) {
     return (
@@ -23,21 +70,11 @@ export default async function HistoryOverviewPage() {
     );
   }
 
-  const leagueHistories = await Promise.all(
-    config.leagues.map(async (tracked) => {
-      const league = await getLeague(tracked.leagueId);
-      const seasons = await getLeagueSeasonHistory(tracked.leagueId);
-      const managers = aggregateCareerStats(seasons);
-      const mine = config.sleeperUserId ? managers.find((m) => m.userId === config.sleeperUserId) : undefined;
-      return { tracked, league, seasons, mine };
-    })
-  );
-
-  const totalChampionships = leagueHistories.reduce((sum, l) => sum + (l.mine?.championships ?? 0), 0);
-  const totalSeasons = leagueHistories.reduce((sum, l) => sum + (l.mine?.seasonsPlayed ?? 0), 0);
-  const totalWins = leagueHistories.reduce((sum, l) => sum + (l.mine?.wins ?? 0), 0);
-  const totalLosses = leagueHistories.reduce((sum, l) => sum + (l.mine?.losses ?? 0), 0);
-  const totalTies = leagueHistories.reduce((sum, l) => sum + (l.mine?.ties ?? 0), 0);
+  const totalChampionships = histories.reduce((sum, l) => sum + (l.mine?.championships ?? 0), 0);
+  const totalSeasons = histories.reduce((sum, l) => sum + (l.mine?.seasonsPlayed ?? 0), 0);
+  const totalWins = histories.reduce((sum, l) => sum + (l.mine?.wins ?? 0), 0);
+  const totalLosses = histories.reduce((sum, l) => sum + (l.mine?.losses ?? 0), 0);
+  const totalTies = histories.reduce((sum, l) => sum + (l.mine?.ties ?? 0), 0);
 
   return (
     <div className="flex flex-col gap-8">
@@ -62,7 +99,7 @@ export default async function HistoryOverviewPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {leagueHistories.map(({ tracked, league, seasons, mine }) => (
+        {histories.map(({ tracked, league, seasons, mine }) => (
           <Card key={tracked.leagueId} className="flex flex-col gap-3 p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -72,7 +109,7 @@ export default async function HistoryOverviewPage() {
                 </div>
               </div>
               <Link
-                href={`/leagues/${tracked.leagueId}/history`}
+                href={`/league/history?id=${tracked.leagueId}`}
                 className="shrink-0 text-sm font-medium text-series-1 hover:underline"
               >
                 Full history →

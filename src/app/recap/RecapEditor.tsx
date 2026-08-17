@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { saveRecapAction } from "../actions";
+import { saveRecap } from "@/lib/localStore";
 
 export function RecapEditor({
   leagueId,
@@ -20,6 +20,7 @@ export function RecapEditor({
 }) {
   const [body, setBody] = useState(initialBody);
   const [copied, setCopied] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState(savedAt);
 
   async function handleCopy() {
     await navigator.clipboard.writeText(body);
@@ -27,14 +28,15 @@ export function RecapEditor({
     setTimeout(() => setCopied(false), 2000);
   }
 
-  return (
-    <form action={saveRecapAction} className="flex flex-col gap-3">
-      <input type="hidden" name="leagueId" value={leagueId} />
-      <input type="hidden" name="season" value={season} />
-      <input type="hidden" name="week" value={week} />
-      <input type="hidden" name="title" value={title} />
-      <input type="hidden" name="body" value={body} />
+  function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    const now = new Date().toISOString();
+    saveRecap({ leagueId, season, week, title, body, savedAt: now });
+    setLastSavedAt(now);
+  }
 
+  return (
+    <form onSubmit={handleSave} className="flex flex-col gap-3">
       <textarea
         value={body}
         onChange={(e) => setBody(e.target.value)}
@@ -56,8 +58,8 @@ export function RecapEditor({
         >
           Save to archive
         </button>
-        {savedAt ? (
-          <span className="text-xs text-ink-muted">Last saved {new Date(savedAt).toLocaleString()}</span>
+        {lastSavedAt ? (
+          <span className="text-xs text-ink-muted">Last saved {new Date(lastSavedAt).toLocaleString()}</span>
         ) : (
           <span className="text-xs text-ink-muted">Not saved yet</span>
         )}

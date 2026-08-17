@@ -2,75 +2,88 @@
 
 A personal dashboard for tracking your Sleeper fantasy football leagues: live
 standings, a commissioner weekly-recap generator, and career stats pulled
-from every linked season.
+from every linked season. Ships as a static site, hosted for free on
+**GitHub Pages**.
 
 ## Features
 
 - **Dashboard** (`/`) — every league you're in, at a glance: your record,
   rank, points, and whether you're the commissioner.
-- **League page** (`/leagues/[id]`) — full standings, this week's matchups,
-  and recent waiver/trade activity (player names resolved, not raw IDs).
-- **Weekly recap generator** (`/leagues/[id]/recap`) — for leagues you
-  commish. Auto-drafts a markdown recap (top/low scorer, closest game,
-  blowout, standings movement, waiver moves) that you can edit and copy
-  straight into your league chat. Saved recaps are archived per league
-  (`/leagues/[id]/recaps`) so you have a running record of every week you've
-  sent out.
-- **History** (`/history` and `/leagues/[id]/history`) — walks Sleeper's
+- **League page** (`/league?id=...`) — full standings, this week's
+  matchups, and recent waiver/trade activity (player names resolved, not
+  raw IDs).
+- **Weekly recap generator** (`/recap?id=...`) — for leagues you commish.
+  Auto-drafts a markdown recap (top/low scorer, closest game, blowout,
+  standings movement, waiver moves) that you can edit and copy straight
+  into your league chat. Saved recaps are archived per league
+  (`/recap/archive?id=...`).
+- **History** (`/history` and `/league/history?id=...`) — walks Sleeper's
   linked-season chain (`previous_league_id`) to reconstruct career stats per
   manager: record, win%, points, championships, and best finish, across
   every year the league has existed.
 
-## Getting started
+## How it's hosted
+
+This is a fully static Next.js export (`output: "export"`) — there's no
+server, no API routes, and no build-time secrets. Everything runs **in your
+browser**:
+
+- Every request to Sleeper's public API (`api.sleeper.app`) is made
+  client-side. No API key or login needed — it's read-only and keyed off
+  your Sleeper username.
+- Your settings (linked username, tracked leagues, commish flags) and the
+  recap archive are saved in this **browser's `localStorage`** — there's no
+  backend to write to. That means they're per-browser, not synced across
+  devices. Use **Settings → Export backup** to save a JSON file, and
+  **Import backup** to bring it into another browser/device.
+
+### Deploying
+
+A GitHub Actions workflow (`.github/workflows/deploy.yml`) builds and
+publishes the site to GitHub Pages automatically on every push to `main`.
+One-time setup after merging this branch:
+
+1. In the repo, go to **Settings → Pages**.
+2. Under **Build and deployment → Source**, choose **GitHub Actions**.
+3. Push to `main` (or re-run the workflow from the **Actions** tab) — the
+   site will be published at `https://<your-username>.github.io/BUFF/`.
+
+### Running locally
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000), go to **Settings**,
-enter your Sleeper username and a season (e.g. `2026`), and click **Discover
-leagues**. That pulls in every league you're in for that season and
-auto-detects which ones you commish (Sleeper's `is_owner` flag) — you can
-override that per league from the same page.
+Open [http://localhost:3000](http://localhost:3000) — local dev runs at the
+site root (no `/BUFF` prefix; that's only added for the GitHub Pages build).
 
-No Sleeper API key or login is required — the public Sleeper API is
-read-only and keyed off your username, so this app never writes anything
-back to Sleeper.
+## Getting started
 
-## How data is stored
-
-App data (your linked username, which leagues you track, and the recap
-archive) lives as JSON files under `data/`, which is git-ignored. There's no
-database — this keeps the project dependency-free and easy to self-host, but
-it does mean the app needs a **persistent, writable filesystem**:
-
-- Works great: running locally, a Docker container, a small VPS/home
-  server, or any host that keeps the same disk between requests.
-- Won't persist writes: default serverless deployments (e.g. Vercel without
-  a mounted volume) reset the filesystem between invocations. If you deploy
-  there, swap `src/lib/store.ts` for a real datastore (Vercel KV/Postgres,
-  SQLite on a volume, etc.) — the rest of the app doesn't need to change.
-
-Standings, matchups, and history are always fetched live from Sleeper (with
-short-lived caching), so none of that depends on local storage — only your
-settings and saved recaps do.
+Once the site is open, go to **Settings**, enter your Sleeper username and a
+season (e.g. `2026`), and click **Discover leagues**. That pulls in every
+league you're in for that season and auto-detects which ones you commish
+(Sleeper's `is_owner` flag) — you can override that per league from the
+same page.
 
 ## Notes & limitations
 
+- **CORS**: this relies on Sleeper's API allowing cross-origin browser
+  requests, which is how it's designed to be used by third-party apps. If
+  that ever changes, client-side fetches would need to move behind a proxy
+  (which would mean leaving pure static hosting).
 - **Standings tiebreakers** are approximated as win% then points-for, which
   matches most leagues but may not exactly match custom tiebreaker settings
   (e.g. median scoring) in yours.
 - **Championship / runner-up** are read from the playoff bracket's
   championship match. Everyone else's rank reflects regular-season record,
-  not final playoff placement — Sleeper's public API doesn't expose a full
-  placement bracket in a form worth over-fitting to.
+  not final playoff placement.
 - **Co-owned teams**: only a roster's primary owner is tracked for career
   stats; co-owners aren't split out separately.
 - If Sleeper's API is briefly unreachable (common during Sunday live
-  scoring spikes), pages show a friendly retry screen instead of crashing.
+  scoring spikes), pages show a friendly retry message instead of crashing.
 
 ## Tech
 
-Next.js (App Router) + TypeScript + Tailwind. All data fetching happens
-server-side directly against `https://api.sleeper.app/v1`.
+Next.js (App Router, static export) + TypeScript + Tailwind. No database,
+no server — all data fetching and persistence happens in the browser.

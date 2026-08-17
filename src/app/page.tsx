@@ -1,18 +1,65 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { StatTile } from "@/components/ui/StatTile";
-import { getConfig } from "@/lib/store";
-import { getLeagueSummary } from "@/lib/league-data";
-import { getNFLState } from "@/lib/sleeper";
+import { useConfig } from "@/hooks/useConfig";
+import { getLeagueSummary, LeagueSummary } from "@/lib/league-data";
+import { getCurrentWeek } from "@/lib/sleeper";
+import { TrackedLeague } from "@/lib/localStore";
 import { formatPoints, formatRecord, ordinal } from "@/lib/format";
 
-export const dynamic = "force-dynamic";
+interface LoadedLeague {
+  tracked: TrackedLeague;
+  summary: LeagueSummary;
+}
 
-export default async function DashboardPage() {
-  const config = await getConfig();
-  const nflState = await getNFLState();
-  const currentWeek = nflState?.week ?? 1;
+export default function DashboardPage() {
+  const { config, loaded } = useConfig();
+  const [currentWeek, setCurrentWeek] = useState(1);
+  const [leagues, setLeagues] = useState<LoadedLeague[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!loaded) return;
+    let cancelled = false;
+    (async () => {
+      if (config.leagues.length === 0) {
+        setLeagues([]);
+        return;
+      }
+      setLeagues(null);
+      setError(null);
+      try {
+        const week = await getCurrentWeek();
+        if (cancelled) return;
+        setCurrentWeek(week);
+        const summaries = await Promise.all(
+          config.leagues.map(async (tracked) => {
+            const summary = await getLeagueSummary(tracked.leagueId, week);
+            return summary ? { tracked, summary } : null;
+          })
+        );
+        if (cancelled) return;
+        setLeagues(summaries.filter((s): s is LoadedLeague => s !== null));
+      } catch {
+        if (!cancelled) setError("Couldn't reach Sleeper's API. Check your connection and try again.");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [loaded, config.leagues]);
+
+  if (!loaded || leagues === null) {
+    return (
+      <Card className="p-12 text-center text-sm text-ink-secondary">
+        {error ?? "Loading your leagues…"}
+      </Card>
+    );
+  }
 
   if (config.leagues.length === 0) {
     return (
@@ -31,16 +78,8 @@ export default async function DashboardPage() {
     );
   }
 
-  const summaries = await Promise.all(
-    config.leagues.map(async (tracked) => {
-      const summary = await getLeagueSummary(tracked.leagueId, currentWeek);
-      return summary ? { tracked, summary } : null;
-    })
-  );
-  const valid = summaries.filter((s): s is NonNullable<typeof s> => s !== null);
-
   const commishCount = config.leagues.filter((l) => l.isCommish).length;
-  const myRows = valid
+  const myRows = leagues
     .map(({ summary }) => summary.standings.find((r) => r.ownerId === config.sleeperUserId))
     .filter((r): r is NonNullable<typeof r> => Boolean(r));
   const combinedWins = myRows.reduce((sum, r) => sum + r.wins, 0);
@@ -64,18 +103,18 @@ export default async function DashboardPage() {
           label="Combined record"
           value={myRows.length ? formatRecord(combinedWins, combinedLosses, combinedTies) : "—"}
         />
-        <StatTile label="Current week" value={String(currentWeek)} sublabel={nflState?.season_type} />
+        <StatTile label="Current week" value={String(currentWeek)} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {valid.map(({ tracked, summary }) => {
+        {leagues.map(({ tracked, summary }) => {
           const myRow = summary.standings.find((r) => r.ownerId === config.sleeperUserId);
           return (
             <Card key={tracked.leagueId} className="flex flex-col gap-4 p-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <Link
-                    href={`/leagues/${tracked.leagueId}`}
+                    href={`/league?id=${tracked.leagueId}`}
                     className="truncate text-lg font-semibold text-ink-primary hover:underline"
                   >
                     {summary.league.name}
@@ -113,18 +152,18 @@ export default async function DashboardPage() {
               )}
 
               <div className="flex gap-3 border-t border-grid pt-3 text-sm">
-                <Link href={`/leagues/${tracked.leagueId}`} className="font-medium text-series-1 hover:underline">
+                <Link href={`/league?id=${tracked.leagueId}`} className="font-medium text-series-1 hover:underline">
                   Standings &amp; matchups
                 </Link>
                 {tracked.isCommish ? (
-                  <Link
-                    href={`/leagues/${tracked.leagueId}/recap`}
-                    className="font-medium text-series-1 hover:underline"
-                  >
+                  <Link href={`/recap?id=${tracked.leagueId}`} className="font-medium text-series-1 hover:underline">
                     Weekly recap
                   </Link>
                 ) : null}
-                <Link href={`/leagues/${tracked.leagueId}/history`} className="font-medium text-series-1 hover:underline">
+                <Link
+                  href={`/league/history?id=${tracked.leagueId}`}
+                  className="font-medium text-series-1 hover:underline"
+                >
                   History
                 </Link>
               </div>
