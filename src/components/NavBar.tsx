@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useNFLState } from "@/hooks/useNFLState";
 
 const links = [
   { href: "/", label: "Dashboard" },
@@ -7,11 +10,19 @@ const links = [
 ];
 
 export function NavBar() {
+  const phase = useNFLState();
+
   return (
     <header className="border-b border-border bg-surface-raised">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <Link href="/" className="text-lg font-semibold tracking-tight text-ink-primary">
-          BUFF <span className="font-normal text-ink-muted">/ Fantasy HQ</span>
+        <Link href="/" className="flex items-baseline gap-2 text-lg font-semibold tracking-tight">
+          <span className="text-ink-primary">BUFF</span>
+          {phase.loaded && phase.label ? (
+            <span className="text-ink-secondary">
+              <span className="text-ink-muted">/</span> {phase.label}
+              {phase.season ? <span className="text-ink-muted"> {phase.season}</span> : null}
+            </span>
+          ) : null}
         </Link>
         <nav className="flex items-center gap-1">
           {links.map((link) => (

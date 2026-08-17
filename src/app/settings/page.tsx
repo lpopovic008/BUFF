@@ -4,7 +4,7 @@ import { useRef } from "react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { useConfig } from "@/hooks/useConfig";
-import { saveConfig, removeLeague, exportAllData, importAllData } from "@/lib/localStore";
+import { saveConfig, removeLeague, moveLeague, exportAllData, importAllData } from "@/lib/localStore";
 import { DEFAULT_SLEEPER_USERNAME, defaultSeason } from "@/lib/app-defaults";
 import { DiscoverForm } from "./DiscoverForm";
 
@@ -26,6 +26,11 @@ export default function SettingsPage() {
 
   function handleRemove(leagueId: string) {
     removeLeague(leagueId);
+    refresh();
+  }
+
+  function handleMove(leagueId: string, direction: "up" | "down") {
+    moveLeague(leagueId, direction);
     refresh();
   }
 
@@ -82,44 +87,74 @@ export default function SettingsPage() {
       </Card>
 
       <Card className="p-5">
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-muted">
+        <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-ink-muted">
           Tracked leagues ({config.leagues.length})
         </h2>
         {config.leagues.length === 0 ? (
-          <p className="text-sm text-ink-secondary">
+          <p className="mt-3 text-sm text-ink-secondary">
             No leagues yet. Enter your username and season above and click &ldquo;Discover
             leagues&rdquo;.
           </p>
         ) : (
-          <ul className="divide-y divide-grid">
-            {config.leagues.map((league) => (
-              <li key={league.leagueId} className="flex items-center justify-between gap-4 py-3">
-                <div className="min-w-0">
-                  <div className="truncate font-medium text-ink-primary">
-                    {league.nickname ?? league.leagueId}
+          <>
+            <p className="mb-4 text-xs text-ink-secondary">
+              This order is the order they appear on the dashboard. Re-running discovery keeps it.
+            </p>
+            <ul className="divide-y divide-grid">
+              {config.leagues.map((league, i) => (
+                <li
+                  key={league.leagueId}
+                  className="flex flex-wrap items-center justify-between gap-3 py-3"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex shrink-0 flex-col">
+                      <button
+                        type="button"
+                        onClick={() => handleMove(league.leagueId, "up")}
+                        disabled={i === 0}
+                        aria-label={`Move ${league.nickname ?? league.leagueId} up`}
+                        className="rounded-t-md border border-border px-2 leading-5 text-ink-secondary hover:bg-page disabled:opacity-30 disabled:hover:bg-transparent"
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMove(league.leagueId, "down")}
+                        disabled={i === config.leagues.length - 1}
+                        aria-label={`Move ${league.nickname ?? league.leagueId} down`}
+                        className="-mt-px rounded-b-md border border-border px-2 leading-5 text-ink-secondary hover:bg-page disabled:opacity-30 disabled:hover:bg-transparent"
+                      >
+                        ↓
+                      </button>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="truncate font-medium text-ink-primary">
+                        {league.nickname ?? league.leagueId}
+                      </div>
+                      <div className="truncate text-xs text-ink-muted">{league.leagueId}</div>
+                    </div>
                   </div>
-                  <div className="truncate text-xs text-ink-muted">{league.leagueId}</div>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  {league.isCommish ? <Badge tone="good">Commissioner</Badge> : null}
-                  <button
-                    type="button"
-                    onClick={() => handleToggleCommish(league.leagueId)}
-                    className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-ink-secondary hover:bg-page"
-                  >
-                    {league.isCommish ? "Unmark commish" : "Mark as commish"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleRemove(league.leagueId)}
-                    className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-status-critical hover:bg-status-critical/10"
-                  >
-                    Remove
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {league.isCommish ? <Badge tone="good">Commissioner</Badge> : null}
+                    <button
+                      type="button"
+                      onClick={() => handleToggleCommish(league.leagueId)}
+                      className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-ink-secondary hover:bg-page"
+                    >
+                      {league.isCommish ? "Unmark commish" : "Mark as commish"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleRemove(league.leagueId)}
+                      className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-status-critical hover:bg-status-critical/10"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </Card>
 

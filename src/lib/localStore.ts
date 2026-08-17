@@ -62,6 +62,22 @@ export function removeLeague(leagueId: string): AppConfig {
   return config;
 }
 
+/**
+ * Moves a league one slot up or down. The stored array order is the display
+ * order everywhere, so this is all reordering needs to be.
+ */
+export function moveLeague(leagueId: string, direction: "up" | "down"): AppConfig {
+  const config = getConfig();
+  const from = config.leagues.findIndex((l) => l.leagueId === leagueId);
+  if (from < 0) return config;
+  const to = direction === "up" ? from - 1 : from + 1;
+  if (to < 0 || to >= config.leagues.length) return config;
+  const [moved] = config.leagues.splice(from, 1);
+  config.leagues.splice(to, 0, moved);
+  saveConfig(config);
+  return config;
+}
+
 export interface SavedRecap {
   leagueId: string;
   season: string;

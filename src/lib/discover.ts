@@ -21,15 +21,17 @@ export async function discoverAndSaveLeagues(
   if (!user) throw new UserNotFoundError(username);
 
   const leagues = await getUserLeagues(user.user_id, season);
-  const existingById = new Map(getConfig().leagues.map((l) => [l.leagueId, l]));
+  const stored = getConfig().leagues;
+  const found = new Set(leagues.map((l) => l.league_id));
 
-  const tracked: TrackedLeague[] = [];
+  // Keep leagues we already track in the order the user arranged them, then
+  // append anything newly joined. Re-running discovery must never reshuffle a
+  // hand-picked order back into whatever order Sleeper returned.
+  const tracked: TrackedLeague[] = stored.filter((l) => found.has(l.leagueId));
+  const knownIds = new Set(tracked.map((l) => l.leagueId));
+
   for (const league of leagues) {
-    const existing = existingById.get(league.league_id);
-    if (existing) {
-      tracked.push(existing);
-      continue;
-    }
+    if (knownIds.has(league.league_id)) continue;
     // is_owner is Sleeper's own commissioner flag for this league.
     const leagueUsers = await getLeagueUsers(league.league_id);
     const me = leagueUsers.find((u) => u.user_id === user.user_id);

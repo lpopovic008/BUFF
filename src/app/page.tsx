@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { StatTile } from "@/components/ui/StatTile";
 import { useConfig } from "@/hooks/useConfig";
+import { useNFLState } from "@/hooks/useNFLState";
 import { getLeagueSummary, LeagueSummary } from "@/lib/league-data";
 import { getCurrentWeek } from "@/lib/sleeper";
 import { TrackedLeague } from "@/lib/localStore";
@@ -18,7 +19,7 @@ interface LoadedLeague {
 
 export default function DashboardPage() {
   const { config, loaded, bootstrapping } = useConfig();
-  const [currentWeek, setCurrentWeek] = useState(1);
+  const phase = useNFLState();
   const [leagues, setLeagues] = useState<LoadedLeague[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,7 +36,6 @@ export default function DashboardPage() {
       try {
         const week = await getCurrentWeek();
         if (cancelled) return;
-        setCurrentWeek(week);
         const summaries = await Promise.all(
           config.leagues.map(async (tracked) => {
             const summary = await getLeagueSummary(tracked.leagueId, week);
@@ -95,14 +95,17 @@ export default function DashboardPage() {
   const combinedTies = myRows.reduce((sum, r) => sum + r.ties, 0);
 
   return (
-    <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-2xl font-semibold text-ink-primary">Your leagues</h1>
-        <p className="mt-1 text-sm text-ink-secondary">
-          {config.sleeperUsername ? `Signed in as ${config.sleeperUsername}` : "No Sleeper account linked"} ·
-          Week {currentWeek}, {config.season}
-        </p>
-      </div>
+    <div className="flex flex-col gap-6">
+      <h1 className="sr-only">Dashboard</h1>
+
+      {phase.isPreseason ? (
+        <Card className="border-series-1/25 bg-series-1/5 px-4 py-3">
+          <p className="text-sm text-ink-secondary">
+            <span className="font-semibold text-ink-primary">Preseason.</span> Records and money are
+            still zero until week 1 kicks off — the money board fills in as real games are played.
+          </p>
+        </Card>
+      ) : null}
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatTile label="Leagues tracked" value={String(config.leagues.length)} />
@@ -111,7 +114,7 @@ export default function DashboardPage() {
           label="Combined record"
           value={myRows.length ? formatRecord(combinedWins, combinedLosses, combinedTies) : "—"}
         />
-        <StatTile label="Current week" value={String(currentWeek)} />
+        <StatTile label="Where we're at" value={phase.loaded && phase.label ? phase.label : "—"} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
