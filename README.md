@@ -133,8 +133,14 @@ history is one click from inside each league, so a separate nav entry was
 redundant.
 
 The Values page shows keep/trade/cut trade values from KeepTradeCut, with a
-Dynasty/Fantasy (redraft) toggle, position filter, and search. KeepTradeCut has
-no official public API, so `scripts/fetch-player-values.ts` scrapes it
+Dynasty/Fantasy (redraft) toggle, a 1QB/Superflex toggle, a Standard/TE Premium
+toggle, a multi-select position filter (click a position pill to drop it from
+the list, click again to bring it back — matches KTC's own filter UI), and
+search. All four format combinations (1QB standard, 1QB TEP, Superflex
+standard, Superflex TEP) come from the same KTC fetch — each player record
+already carries all of them, so there's no extra request per toggle, just a
+different field read client-side. KeepTradeCut has no official public API, so
+`scripts/fetch-player-values.ts` scrapes it
 **server-side in GitHub Actions** (`.github/workflows/player-values.yml`, daily
 at 13:00 UTC) rather than from the browser — that sidesteps CORS entirely
 (a plain server-to-server fetch isn't subject to it, whereas a browser fetch

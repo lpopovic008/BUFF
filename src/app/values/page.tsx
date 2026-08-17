@@ -4,13 +4,21 @@ import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { StatTile } from "@/components/ui/StatTile";
 import rawSnapshot from "@/data/player-values.json";
-import { PlayerValue, PlayerValuesSnapshot } from "@/lib/player-values";
+import { LeagueFormat, PlayerValue, PlayerValuesSnapshot, TEPremium, valueFor } from "@/lib/player-values";
 
-const snapshot = rawSnapshot as PlayerValuesSnapshot;
+const snapshot = rawSnapshot as unknown as PlayerValuesSnapshot;
 
-type Format = "dynasty" | "fantasy";
-const POSITIONS = ["ALL", "QB", "RB", "WR", "TE", "PICK"] as const;
-type PositionFilter = (typeof POSITIONS)[number];
+type ListType = "dynasty" | "fantasy";
+
+// QB/RB/WR/TE first (KTC's own order), then whatever else shows up
+// (rookie picks in dynasty; kickers/DST in fantasy) alphabetically.
+const POSITION_PRIORITY = ["QB", "RB", "WR", "TE"];
+function positionSort(a: string, b: string): number {
+  const ai = POSITION_PRIORITY.indexOf(a);
+  const bi = POSITION_PRIORITY.indexOf(b);
+  if (ai !== -1 || bi !== -1) return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+  return a.localeCompare(b);
+}
 
 function formatUpdated(iso: string | null): string {
   if (!iso) return "never";
@@ -22,8 +30,14 @@ function formatUpdated(iso: string | null): string {
   return `${days}d ago`;
 }
 
-function ValueTable({ players, maxValue }: { players: PlayerValue[]; maxValue: number }) {
-  if (players.length === 0) {
+interface Row {
+  player: PlayerValue;
+  value: number;
+  rank: number;
+}
+
+function ValueTable({ rows, maxValue }: { rows: Row[]; maxValue: number }) {
+  if (rows.length === 0) {
     return <p className="py-8 text-center text-sm text-ink-secondary">No players match.</p>;
   }
   return (
@@ -39,9 +53,9 @@ function ValueTable({ players, maxValue }: { players: PlayerValue[]; maxValue: n
           </tr>
         </thead>
         <tbody>
-          {players.map((p) => (
-            <tr key={`${p.rank}-${p.name}`} className="border-b border-grid last:border-0">
-              <td className="py-2 pr-3 tabular-nums text-ink-secondary">{p.rank}</td>
+          {rows.map(({ player: p, value, rank }) => (
+            <tr key={`${p.position}-${p.name}`} className="border-b border-grid last:border-0">
+              <td className="py-2 pr-3 tabular-nums text-ink-secondary">{rank}</td>
               <td className="py-2 pr-3 font-medium text-ink-primary">
                 {p.name}
                 {p.team ? <span className="ml-1.5 text-xs font-normal text-ink-muted">{p.team}</span> : null}
@@ -53,10 +67,10 @@ function ValueTable({ players, maxValue }: { players: PlayerValue[]; maxValue: n
                   <div className="h-2 w-24 overflow-hidden rounded-full bg-page">
                     <div
                       className="h-full rounded-full bg-series-1"
-                      style={{ width: `${Math.max(2, (p.value / maxValue) * 100)}%` }}
+                      style={{ width: `${Math.max(2, (value / maxValue) * 100)}%` }}
                     />
                   </div>
-                  <span className="tabular-nums text-ink-secondary">{p.value}</span>
+                  <span className="tabular-nums text-ink-secondary">{value}</span>
                 </div>
               </td>
             </tr>
@@ -68,23 +82,44 @@ function ValueTable({ players, maxValue }: { players: PlayerValue[]; maxValue: n
 }
 
 export default function ValuesPage() {
-  const [format, setFormat] = useState<Format>("dynasty");
-  const [position, setPosition] = useState<PositionFilter>("ALL");
+  const [listType, setListType] = useState<ListType>("dynasty");
+  const [leagueFormat, setLeagueFormat] = useState<LeagueFormat>("oneQB");
+  const [tep, setTep] = useState<TEPremium>("standard");
+  const [deselectedPositions, setDeselectedPositions] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState("");
 
-  const fullList = format === "dynasty" ? snapshot.dynasty : snapshot.fantasy;
-  const maxValue = useMemo(() => Math.max(1, ...fullList.map((p) => p.value)), [fullList]);
+  const fullList = listType === "dynasty" ? snapshot.dynasty : snapshot.fantasy;
 
-  const filtered = useMemo(() => {
+  const availablePositions = useMemo(
+    () => Array.from(new Set(fullList.map((p) => p.position))).sort(positionSort),
+    [fullList]
+  );
+
+  const maxValue = useMemo(
+    () => Math.max(1, ...fullList.map((p) => valueFor(p, leagueFormat, tep))),
+    [fullList, leagueFormat, tep]
+  );
+
+  const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return fullList.filter((p) => {
-      if (position !== "ALL" && p.position !== position) return false;
-      if (q && !p.name.toLowerCase().includes(q)) return false;
-      return true;
-    });
-  }, [fullList, position, query]);
+    return fullList
+      .filter((p) => !deselectedPositions.has(p.position))
+      .filter((p) => !q || p.name.toLowerCase().includes(q))
+      .map((player) => ({ player, value: valueFor(player, leagueFormat, tep) }))
+      .sort((a, b) => b.value - a.value)
+      .map((row, i) => ({ ...row, rank: i + 1 }));
+  }, [fullList, deselectedPositions, query, leagueFormat, tep]);
 
   const hasData = snapshot.updatedAt !== null;
+  const togglePosition = (pos: string) =>
+    setDeselectedPositions((prev) => {
+      const next = new Set(prev);
+      if (next.has(pos)) next.delete(pos);
+      else next.add(pos);
+      return next;
+    });
+
+  const formatLabel = `${leagueFormat === "superflex" ? "Superflex" : "1QB"}${tep === "tep" ? " · TE Premium" : ""}`;
 
   return (
     <div className="flex flex-col gap-6">
@@ -105,25 +140,23 @@ export default function ValuesPage() {
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <StatTile label="Players tracked" value={String(fullList.length)} />
             <StatTile
-              label={`Top ${format === "dynasty" ? "dynasty" : "redraft"} asset`}
-              value={fullList[0]?.name ?? "—"}
+              label={`Top ${listType === "dynasty" ? "dynasty" : "redraft"} asset`}
+              value={rows[0]?.player.name ?? "—"}
             />
-            <StatTile label="Format" value={format === "dynasty" ? "Dynasty" : "Fantasy"} />
+            <StatTile label="Format" value={formatLabel} />
             <StatTile label="Updated" value={formatUpdated(snapshot.updatedAt)} />
           </div>
 
           <Card className="p-5">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div className="inline-flex rounded-md border border-border p-0.5">
-                {(["dynasty", "fantasy"] as Format[]).map((f) => (
+                {(["dynasty", "fantasy"] as ListType[]).map((f) => (
                   <button
                     key={f}
                     type="button"
-                    onClick={() => setFormat(f)}
+                    onClick={() => setListType(f)}
                     className={`rounded px-3 py-1.5 text-sm font-medium transition-colors ${
-                      format === f
-                        ? "bg-series-1 text-white"
-                        : "text-ink-secondary hover:bg-page"
+                      listType === f ? "bg-series-1 text-white" : "text-ink-secondary hover:bg-page"
                     }`}
                   >
                     {f === "dynasty" ? "Dynasty" : "Fantasy"}
@@ -138,27 +171,71 @@ export default function ValuesPage() {
               />
             </div>
 
-            <div className="mb-4 flex flex-wrap gap-1.5">
-              {POSITIONS.map((pos) => (
-                <button
-                  key={pos}
-                  type="button"
-                  onClick={() => setPosition(pos)}
-                  className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                    position === pos
-                      ? "border-series-1 bg-series-1/10 text-series-1"
-                      : "border-border text-ink-secondary hover:bg-page"
-                  }`}
-                >
-                  {pos}
-                </button>
-              ))}
+            <div className="mb-4 flex flex-wrap items-center gap-3">
+              <div className="inline-flex rounded-md border border-border p-0.5">
+                {(["oneQB", "superflex"] as LeagueFormat[]).map((f) => (
+                  <button
+                    key={f}
+                    type="button"
+                    onClick={() => setLeagueFormat(f)}
+                    className={`rounded px-3 py-1.5 text-sm font-medium transition-colors ${
+                      leagueFormat === f ? "bg-series-1 text-white" : "text-ink-secondary hover:bg-page"
+                    }`}
+                  >
+                    {f === "oneQB" ? "1QB" : "Superflex"}
+                  </button>
+                ))}
+              </div>
+              <div className="inline-flex rounded-md border border-border p-0.5">
+                {(["standard", "tep"] as TEPremium[]).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setTep(t)}
+                    className={`rounded px-3 py-1.5 text-sm font-medium transition-colors ${
+                      tep === t ? "bg-series-1 text-white" : "text-ink-secondary hover:bg-page"
+                    }`}
+                  >
+                    {t === "standard" ? "Standard" : "TE Premium"}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <ValueTable players={filtered.slice(0, 300)} maxValue={maxValue} />
-            {filtered.length > 300 ? (
+            <div className="mb-4 flex flex-wrap items-center gap-1.5">
+              {availablePositions.map((pos) => {
+                const active = !deselectedPositions.has(pos);
+                return (
+                  <button
+                    key={pos}
+                    type="button"
+                    onClick={() => togglePosition(pos)}
+                    aria-pressed={active}
+                    className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                      active
+                        ? "border-series-1 bg-series-1/10 text-series-1"
+                        : "border-border text-ink-muted line-through hover:bg-page"
+                    }`}
+                  >
+                    {pos}
+                  </button>
+                );
+              })}
+              {deselectedPositions.size > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setDeselectedPositions(new Set())}
+                  className="rounded-full px-3 py-1 text-xs font-medium text-ink-muted underline-offset-2 hover:underline"
+                >
+                  Reset
+                </button>
+              ) : null}
+            </div>
+
+            <ValueTable rows={rows.slice(0, 300)} maxValue={maxValue} />
+            {rows.length > 300 ? (
               <p className="mt-3 text-xs text-ink-muted">
-                Showing the top 300 of {filtered.length} matches — narrow your search to see more.
+                Showing the top 300 of {rows.length} matches — narrow your search to see more.
               </p>
             ) : null}
           </Card>

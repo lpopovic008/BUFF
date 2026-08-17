@@ -93,7 +93,7 @@ function looksLikePlayerRecord(item: unknown): boolean {
   if (typeof item !== "object" || item === null) return false;
   const obj = item as Record<string, unknown>;
   const hasName = pickString(obj, ["playerName", "name", "full_name", "player_name"]) !== null;
-  const hasValue = extractValue(obj) !== null;
+  const hasValue = extractAllValues(obj) !== null;
   return hasName && hasValue;
 }
 
@@ -114,20 +114,57 @@ function pickNumber(obj: Record<string, unknown>, keys: string[]): number | null
   return null;
 }
 
+interface ValueSet {
+  oneQBStandard: number;
+  oneQBTep: number;
+  superflexStandard: number;
+  superflexTep: number;
+}
+
 /**
  * KTC's actual record shape (confirmed from a live CI run, not guessed): the
  * trade value isn't a flat field on the player object — it's nested one level
- * down under `oneQBValues.value` (1QB leagues, the common case and what this
- * app assumes) or `superflexValues.value`. Everything else (playerName,
- * position, team, age) is flat and matched the first guess.
+ * down under `oneQBValues.value` (1QB leagues) or `superflexValues.value`
+ * (superflex), and each of those in turn carries a `tep` sub-object for the
+ * TE-premium value in that same format (`oneQBValues.tep.value`,
+ * `superflexValues.tep.value`). Everything else (playerName, position, team,
+ * age) is flat and matched the first guess.
+ *
+ * The generic fallback strategies (__NEXT_DATA__, raw script-tag hunting)
+ * don't know this nested shape, so they only ever find a flat `value` — in
+ * that case every format/TEP combination collapses to that one number rather
+ * than failing outright.
  */
-function extractValue(obj: Record<string, unknown>): number | null {
-  const flat = pickNumber(obj, ["value", "sf_trade_value", "tradeValue", "trade_value", "sfValue"]);
-  if (flat !== null) return flat;
+function extractAllValues(obj: Record<string, unknown>): ValueSet | null {
   const oneQB = obj["oneQBValues"];
   if (oneQB && typeof oneQB === "object") {
-    const nested = pickNumber(oneQB as Record<string, unknown>, ["value"]);
-    if (nested !== null) return nested;
+    const oneQBObj = oneQB as Record<string, unknown>;
+    const oneQBStandard = pickNumber(oneQBObj, ["value"]);
+    if (oneQBStandard === null) return null;
+    const oneQBTep = extractNestedValue(oneQBObj, "tep") ?? oneQBStandard;
+
+    const superflex = obj["superflexValues"];
+    let superflexStandard = oneQBStandard;
+    let superflexTep = oneQBTep;
+    if (superflex && typeof superflex === "object") {
+      const sfObj = superflex as Record<string, unknown>;
+      superflexStandard = pickNumber(sfObj, ["value"]) ?? oneQBStandard;
+      superflexTep = extractNestedValue(sfObj, "tep") ?? superflexStandard;
+    }
+    return { oneQBStandard, oneQBTep, superflexStandard, superflexTep };
+  }
+
+  const flat = pickNumber(obj, ["value", "sf_trade_value", "tradeValue", "trade_value", "sfValue"]);
+  if (flat !== null) {
+    return { oneQBStandard: flat, oneQBTep: flat, superflexStandard: flat, superflexTep: flat };
+  }
+  return null;
+}
+
+function extractNestedValue(obj: Record<string, unknown>, key: string): number | null {
+  const nested = obj[key];
+  if (nested && typeof nested === "object") {
+    return pickNumber(nested as Record<string, unknown>, ["value"]);
   }
   return null;
 }
@@ -138,15 +175,14 @@ function normalize(raw: unknown[]): PlayerValue[] {
     if (typeof item !== "object" || item === null) continue;
     const obj = item as Record<string, unknown>;
     const name = pickString(obj, ["playerName", "name", "full_name", "player_name"]);
-    const value = extractValue(obj);
-    if (!name || value === null) continue;
+    const values = extractAllValues(obj);
+    if (!name || values === null) continue;
     const position = pickString(obj, ["position", "pos"]) ?? "UNK";
     const team = pickString(obj, ["team", "team_abbrev", "teamAbbrev"]);
     const age = pickNumber(obj, ["age"]);
-    rows.push({ name, position, team, age, value, rank: 0 });
+    rows.push({ name, position, team, age, values });
   }
-  rows.sort((a, b) => b.value - a.value);
-  rows.forEach((r, i) => (r.rank = i + 1));
+  rows.sort((a, b) => b.values.oneQBStandard - a.values.oneQBStandard);
   return rows;
 }
 
