@@ -17,7 +17,7 @@ interface LoadedLeague {
 }
 
 export default function DashboardPage() {
-  const { config, loaded } = useConfig();
+  const { config, loaded, bootstrapping } = useConfig();
   const [currentWeek, setCurrentWeek] = useState(1);
   const [leagues, setLeagues] = useState<LoadedLeague[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +52,14 @@ export default function DashboardPage() {
       cancelled = true;
     };
   }, [loaded, config.leagues]);
+
+  if (bootstrapping) {
+    return (
+      <Card className="p-12 text-center text-sm text-ink-secondary">
+        Finding your Sleeper leagues…
+      </Card>
+    );
+  }
 
   if (!loaded || leagues === null) {
     return (

@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { useConfig } from "@/hooks/useConfig";
 import { saveConfig, removeLeague, exportAllData, importAllData } from "@/lib/localStore";
+import { DEFAULT_SLEEPER_USERNAME, defaultSeason } from "@/lib/app-defaults";
 import { DiscoverForm } from "./DiscoverForm";
 
 export default function SettingsPage() {
@@ -66,9 +67,16 @@ export default function SettingsPage() {
         <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-muted">
           Sleeper account
         </h2>
+        {DEFAULT_SLEEPER_USERNAME ? (
+          <p className="mb-4 text-sm text-ink-secondary">
+            <span className="font-medium text-ink-primary">{DEFAULT_SLEEPER_USERNAME}</span> is built
+            into this build, so leagues load automatically on any device. Re-run discovery below to
+            pick up a new season or a league you just joined.
+          </p>
+        ) : null}
         <DiscoverForm
-          defaultUsername={config.sleeperUsername ?? ""}
-          defaultSeason={config.season}
+          defaultUsername={config.sleeperUsername ?? DEFAULT_SLEEPER_USERNAME}
+          defaultSeason={config.season || defaultSeason()}
           onDiscovered={refresh}
         />
       </Card>

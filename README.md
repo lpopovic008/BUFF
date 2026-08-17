@@ -60,11 +60,21 @@ site root (no `/BUFF` prefix; that's only added for the GitHub Pages build).
 
 ## Getting started
 
-Once the site is open, go to **Settings**, enter your Sleeper username and a
-season (e.g. `2026`), and click **Discover leagues**. That pulls in every
-league you're in for that season and auto-detects which ones you commish
-(Sleeper's `is_owner` flag) — you can override that per league from the
-same page.
+Nothing to set up: the Sleeper username is baked into the build
+(`DEFAULT_SLEEPER_USERNAME` in `src/lib/app-defaults.ts`), so opening the site
+on any device auto-discovers that user's leagues on first load and flags the
+ones they commish via Sleeper's `is_owner`.
+
+Note this is the *username*, not league IDs — deliberately. Sleeper mints a new
+`league_id` for every league every season (years are chained via
+`previous_league_id`), so hard-coded league IDs would go stale each August,
+whereas a username re-discovers the current season automatically.
+
+**Settings** is still there for the rest: re-run discovery to pick up a new
+season or a newly joined league, override a commish flag Sleeper got wrong,
+drop a league you don't want on the dashboard, or export/import your data.
+Setting `DEFAULT_SLEEPER_USERNAME` back to `""` disables auto-setup entirely
+and makes Settings the only entry point.
 
 ## Notes & limitations
 

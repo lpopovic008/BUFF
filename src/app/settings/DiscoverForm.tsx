@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { getUserByUsername, getUserLeagues, getLeagueUsers } from "@/lib/sleeper";
-import { getConfig, saveConfig, TrackedLeague } from "@/lib/localStore";
+import { discoverAndSaveLeagues, UserNotFoundError } from "@/lib/discover";
 
 export function DiscoverForm({
   defaultUsername,
@@ -27,39 +26,14 @@ export function DiscoverForm({
     setIsPending(true);
     setError(null);
     try {
-      const user = await getUserByUsername(username.trim());
-      if (!user) {
-        setError(`No Sleeper user found for "${username}".`);
-        return;
-      }
-
-      const sleeperLeagues = await getUserLeagues(user.user_id, season.trim());
-      const existingById = new Map(getConfig().leagues.map((l) => [l.leagueId, l]));
-      const discovered: TrackedLeague[] = [];
-      for (const league of sleeperLeagues) {
-        const existing = existingById.get(league.league_id);
-        if (existing) {
-          discovered.push(existing);
-          continue;
-        }
-        const leagueUsers = await getLeagueUsers(league.league_id);
-        const me = leagueUsers.find((u) => u.user_id === user.user_id);
-        discovered.push({
-          leagueId: league.league_id,
-          nickname: league.name,
-          isCommish: Boolean(me?.is_owner),
-        });
-      }
-
-      saveConfig({
-        sleeperUsername: username.trim(),
-        sleeperUserId: user.user_id,
-        season: season.trim(),
-        leagues: discovered,
-      });
+      await discoverAndSaveLeagues(username.trim(), season.trim());
       onDiscovered();
-    } catch {
-      setError("Couldn't reach Sleeper's API. Check your connection and try again.");
+    } catch (err) {
+      setError(
+        err instanceof UserNotFoundError
+          ? err.message
+          : "Couldn't reach Sleeper's API. Check your connection and try again."
+      );
     } finally {
       setIsPending(false);
     }
@@ -72,7 +46,7 @@ export function DiscoverForm({
         <input
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          placeholder="e.g. lpopovic008"
+          placeholder="your Sleeper username"
           required
           className="rounded-md border border-border bg-page px-3 py-2 text-sm text-ink-primary outline-none focus:border-series-1"
         />
