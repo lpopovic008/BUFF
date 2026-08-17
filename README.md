@@ -8,15 +8,18 @@ from every linked season. Ships as a static site, hosted for free on
 ## Features
 
 - **Dashboard** (`/`) — every league you're in, at a glance: your record,
-  rank, points, whether you're the commissioner, and this week's matchup —
-  both team names, current score, and the top 3 players on each side by KTC
-  trade value, headshot included (Sleeper's player-photo CDN, same convention
-  as its avatar CDN — falls back to a plain circle for players without a real
+  rank, points, and this week's matchup — team names and score left vs. right,
+  and the top 3 players on each side by KTC trade value, faces lined up
+  across from each other (Sleeper's player-photo CDN, same convention as its
+  avatar CDN — falls back to a plain circle for players without a real
   photo). Re-polls Sleeper's matchups endpoint every 45s while the tab is
-  open, so scores update the same way Sleeper's own site does during games —
-  no separate "projected points" field, since Sleeper doesn't expose
+  open, so the score updates the same way Sleeper's own site does during
+  games — no separate "projected points" field, since Sleeper doesn't expose
   projections through its public API the way it does live scoring, and this
-  app only builds on endpoints that are actually documented.
+  app only builds on endpoints that are actually documented. During the NFL
+  preseason there's no real fantasy schedule yet, so this previews regular
+  season week 1 rather than misreading the preseason's own week counter as a
+  fantasy week.
 - **League page** (`/league?id=...`) — full standings, this week's
   matchups, and recent waiver/trade activity (player names resolved, not
   raw IDs).

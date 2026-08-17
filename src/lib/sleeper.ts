@@ -199,10 +199,18 @@ export async function getNFLState(): Promise<SleeperNFLState | null> {
   }
 }
 
-/** Current NFL week, defaulting to 1 if Sleeper is unreachable. */
+/**
+ * The fantasy week to show matchups/standings for. During the NFL preseason,
+ * Sleeper's `week` field counts preseason weeks (1, 2, 3...), not fantasy
+ * weeks — fantasy schedules don't start until the regular season, so using
+ * that number directly would fetch/display a nonexistent or wrong week.
+ * Preview regular season week 1 instead until the real season begins.
+ */
 export async function getCurrentWeek(): Promise<number> {
   const state = await getNFLState();
-  return state?.week && state.week >= 1 ? state.week : 1;
+  if (!state) return 1;
+  if (state.season_type === "pre") return 1;
+  return state.week && state.week >= 1 ? state.week : 1;
 }
 
 export function avatarUrl(avatarId: string | null | undefined): string | null {

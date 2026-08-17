@@ -3,11 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
 import { StatTile } from "@/components/ui/StatTile";
 import { DashboardMatchupCard } from "@/components/DashboardMatchupCard";
 import { useConfig } from "@/hooks/useConfig";
-import { useNFLState } from "@/hooks/useNFLState";
 import { MatchupTarget, useDashboardMatchups } from "@/hooks/useDashboardMatchups";
 import { getLeagueSummary, LeagueSummary } from "@/lib/league-data";
 import { getCurrentWeek } from "@/lib/sleeper";
@@ -21,7 +19,6 @@ interface LoadedLeague {
 
 export default function DashboardPage() {
   const { config, loaded, bootstrapping } = useConfig();
-  const phase = useNFLState();
   const [leagues, setLeagues] = useState<LoadedLeague[] | null>(null);
   const [week, setWeek] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -101,7 +98,6 @@ export default function DashboardPage() {
     );
   }
 
-  const commishCount = config.leagues.filter((l) => l.isCommish).length;
   const myRows = leagues
     .map(({ summary }) => summary.standings.find((r) => r.ownerId === config.sleeperUserId))
     .filter((r): r is NonNullable<typeof r> => Boolean(r));
@@ -113,23 +109,11 @@ export default function DashboardPage() {
     <div className="flex flex-col gap-6">
       <h1 className="sr-only">Dashboard</h1>
 
-      {phase.isPreseason ? (
-        <Card className="border-series-1/25 bg-series-1/5 px-4 py-3">
-          <p className="text-sm text-ink-secondary">
-            <span className="font-semibold text-ink-primary">Preseason.</span> Records and money are
-            still zero until week 1 kicks off — the money board fills in as real games are played.
-          </p>
-        </Card>
-      ) : null}
-
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatTile label="Leagues tracked" value={String(config.leagues.length)} />
-        <StatTile label="You commish" value={String(commishCount)} />
+      <div className="w-fit">
         <StatTile
           label="Combined record"
           value={myRows.length ? formatRecord(combinedWins, combinedLosses, combinedTies) : "—"}
         />
-        <StatTile label="Where we're at" value={phase.loaded && phase.label ? phase.label : "—"} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -137,23 +121,16 @@ export default function DashboardPage() {
           const myRow = summary.standings.find((r) => r.ownerId === config.sleeperUserId);
           return (
             <Card key={tracked.leagueId} className="flex flex-col gap-4 p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <Link
-                    href={`/league?id=${tracked.leagueId}`}
-                    className="block truncate text-lg font-semibold text-ink-primary hover:underline"
-                  >
-                    {summary.league.name}
-                  </Link>
-                  <div className="mt-0.5 text-xs text-ink-muted">
-                    {summary.league.season} season · {summary.rosters.length} teams
-                  </div>
+              <div className="min-w-0">
+                <Link
+                  href={`/league?id=${tracked.leagueId}`}
+                  className="block truncate text-lg font-semibold text-ink-primary hover:underline"
+                >
+                  {summary.league.name}
+                </Link>
+                <div className="mt-0.5 text-xs text-ink-muted">
+                  {summary.league.season} season · {summary.rosters.length} teams
                 </div>
-                {tracked.isCommish ? (
-                  <span className="shrink-0">
-                    <Badge tone="good">Commissioner</Badge>
-                  </span>
-                ) : null}
               </div>
 
               {myRow ? (

@@ -26,7 +26,13 @@ function describe(state: SleeperNFLState | null): NFLPhase {
   const week = state.week ?? 0;
   switch (state.season_type) {
     case "pre":
-      return { label: "Preseason", isPreseason: true, week, season: state.season, loaded: true };
+      return {
+        label: week > 0 ? `Preseason · Week ${week}` : "Preseason",
+        isPreseason: true,
+        week,
+        season: state.season,
+        loaded: true,
+      };
     case "post":
       return {
         label: week > 0 ? `Playoffs · Week ${week}` : "Playoffs",
