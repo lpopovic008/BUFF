@@ -158,7 +158,9 @@ export default function DashboardPage() {
                 <p className="text-sm text-ink-muted">Your team wasn&rsquo;t found in this league&rsquo;s rosters.</p>
               )}
 
-              {myRow ? <DashboardMatchupCard matchup={matchups[tracked.leagueId]} /> : null}
+              {myRow ? (
+                <DashboardMatchupCard leagueId={tracked.leagueId} matchup={matchups[tracked.leagueId]} />
+              ) : null}
 
               <div className="flex flex-wrap gap-x-4 gap-y-1 border-t border-grid pt-3 text-sm">
                 <Link

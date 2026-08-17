@@ -1,41 +1,27 @@
-"use client";
-
-import { useState } from "react";
+import Link from "next/link";
 import { DashboardMatchupView } from "@/hooks/useDashboardMatchups";
 import { RankedPlayer } from "@/lib/matchup-players";
 import { formatPoints } from "@/lib/format";
-import { playerHeadshotUrl } from "@/lib/sleeper";
-
-function PlayerHeadshot({ playerId }: { playerId: string }) {
-  const [failed, setFailed] = useState(false);
-  if (failed) {
-    return <span className="h-10 w-10 shrink-0 rounded-full bg-page" aria-hidden />;
-  }
-  return (
-    // Sleeper's CDN, not every player has a real photo — fall back to a plain circle rather than a broken image icon.
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={playerHeadshotUrl(playerId)}
-      alt=""
-      loading="lazy"
-      onError={() => setFailed(true)}
-      className="h-10 w-10 shrink-0 rounded-full bg-page object-cover"
-    />
-  );
-}
+import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 
 function PlayerFace({ player, flip }: { player: RankedPlayer | undefined; flip?: boolean }) {
   if (!player) return <div />;
   return (
     <div className={`flex min-w-0 items-center gap-2 ${flip ? "flex-row-reverse text-right" : ""}`}>
-      <PlayerHeadshot playerId={player.playerId} />
+      <PlayerHeadshot playerId={player.playerId} size={40} />
       <span className="min-w-0 truncate text-xs text-ink-secondary">{player.name}</span>
     </div>
   );
 }
 
 /** The dashboard's per-league matchup section: team names + score left/right, and each side's top 3 players by KTC value facing off row by row. */
-export function DashboardMatchupCard({ matchup }: { matchup: DashboardMatchupView | null | undefined }) {
+export function DashboardMatchupCard({
+  leagueId,
+  matchup,
+}: {
+  leagueId: string;
+  matchup: DashboardMatchupView | null | undefined;
+}) {
   if (!matchup) return null;
 
   const rows = matchup.opponent
@@ -45,11 +31,19 @@ export function DashboardMatchupCard({ matchup }: { matchup: DashboardMatchupVie
   return (
     <div className="flex flex-col gap-3 border-t border-grid pt-3">
       <div className="flex items-baseline justify-between gap-3">
-        <span className="min-w-0 truncate text-sm font-medium text-series-1">{matchup.my.teamName}</span>
+        <Link
+          href={`/team?league=${leagueId}&roster=${matchup.my.rosterId}`}
+          className="min-w-0 truncate text-sm font-medium text-series-1 hover:underline"
+        >
+          {matchup.my.teamName}
+        </Link>
         {matchup.opponent ? (
-          <span className="min-w-0 truncate text-right text-sm font-medium text-ink-primary">
+          <Link
+            href={`/team?league=${leagueId}&roster=${matchup.opponent.rosterId}`}
+            className="min-w-0 truncate text-right text-sm font-medium text-ink-primary hover:underline"
+          >
             {matchup.opponent.teamName}
-          </span>
+          </Link>
         ) : null}
       </div>
       <div className="flex items-baseline justify-between gap-3 text-lg font-semibold tabular-nums text-ink-primary">

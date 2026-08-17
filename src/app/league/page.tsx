@@ -5,9 +5,10 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { MatchupCard } from "@/components/MatchupCard";
+import { LeagueMatchupCarousel } from "@/components/LeagueMatchupCarousel";
 import { MoneyBoard } from "@/components/MoneyBoard";
 import { useConfig } from "@/hooks/useConfig";
+import { useLeagueMatchupCarousel } from "@/hooks/useLeagueMatchupCarousel";
 import { getLeagueSummary, computeWeekRecap, LeagueSummary, WeekRecapData } from "@/lib/league-data";
 import { loadLeagueMoney, LeagueMoney } from "@/lib/league-money";
 import { getCurrentWeek } from "@/lib/sleeper";
@@ -17,6 +18,7 @@ function LeagueDetailContent() {
   const leagueId = useSearchParams().get("id");
   const { config, loaded } = useConfig();
   const [summary, setSummary] = useState<LeagueSummary | null>(null);
+  const [week, setWeek] = useState<number | null>(null);
   const [weekRecap, setWeekRecap] = useState<WeekRecapData | null>(null);
   const [money, setMoney] = useState<LeagueMoney | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -30,15 +32,16 @@ function LeagueDetailContent() {
       setMoney(null);
       setError(null);
       try {
-        const week = await getCurrentWeek();
-        const s = await getLeagueSummary(leagueId, week);
+        const currentWeek = await getCurrentWeek();
+        const s = await getLeagueSummary(leagueId, currentWeek);
         if (cancelled) return;
         if (!s) {
           setError("League not found.");
           return;
         }
         setSummary(s);
-        const recap = await computeWeekRecap(leagueId, week);
+        setWeek(currentWeek);
+        const recap = await computeWeekRecap(leagueId, currentWeek);
         if (!cancelled) setWeekRecap(recap);
         // Only resolves for leagues with a commissioner profile configured.
         const m = await loadLeagueMoney(leagueId);
@@ -51,6 +54,9 @@ function LeagueDetailContent() {
       cancelled = true;
     };
   }, [leagueId]);
+
+  const myRow = summary?.standings.find((r) => r.ownerId === config.sleeperUserId) ?? null;
+  const carouselGames = useLeagueMatchupCarousel(leagueId, week);
 
   if (!leagueId) {
     return <Card className="p-12 text-center text-sm text-ink-secondary">No league selected.</Card>;
@@ -77,6 +83,14 @@ function LeagueDetailContent() {
           {tracked?.isCommish ? <Badge tone="good">Commissioner</Badge> : null}
           {tracked?.isCommish ? (
             <Link
+              href={`/recap?id=${leagueId}&week=0`}
+              className="rounded-md border border-border px-4 py-2 text-sm font-medium text-ink-secondary hover:bg-page"
+            >
+              Preseason write-up
+            </Link>
+          ) : null}
+          {tracked?.isCommish ? (
+            <Link
               href={`/recap?id=${leagueId}`}
               className="rounded-md bg-series-1 px-4 py-2 text-sm font-medium text-white hover:opacity-90"
             >
@@ -91,6 +105,12 @@ function LeagueDetailContent() {
           </Link>
         </div>
       </div>
+
+      {carouselGames && carouselGames.length > 0 ? (
+        <Card className="p-5">
+          <LeagueMatchupCarousel leagueId={leagueId} games={carouselGames} myRosterId={myRow?.rosterId ?? null} />
+        </Card>
+      ) : null}
 
       {money ? (
         <section className="flex flex-col gap-4">
@@ -128,7 +148,11 @@ function LeagueDetailContent() {
                   }`}
                 >
                   <td className="py-2 pr-3 tabular-nums text-ink-secondary">{ordinal(row.rank)}</td>
-                  <td className="py-2 pr-3 font-medium text-ink-primary">{row.teamName}</td>
+                  <td className="py-2 pr-3 font-medium text-ink-primary">
+                    <Link href={`/team?league=${leagueId}&roster=${row.rosterId}`} className="hover:underline">
+                      {row.teamName}
+                    </Link>
+                  </td>
                   <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">
                     {formatRecord(row.wins, row.losses, row.ties)}
                   </td>
@@ -144,19 +168,6 @@ function LeagueDetailContent() {
           </table>
         </div>
       </Card>
-
-      {weekRecap && weekRecap.games.length > 0 ? (
-        <Card className="p-5">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-muted">
-            Week {weekRecap.week} matchups
-          </h2>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {weekRecap.games.map((game) => (
-              <MatchupCard key={game.matchupId} game={game} />
-            ))}
-          </div>
-        </Card>
-      ) : null}
 
       {weekRecap && weekRecap.transactionSummaries.length > 0 ? (
         <Card className="p-5">

@@ -126,7 +126,9 @@ function SeasonAccordion({
                 <tr key={row.rosterId} className="border-b border-grid last:border-0">
                   <td className="py-2 pr-3 tabular-nums text-ink-secondary">{ordinal(row.rank)}</td>
                   <td className="py-2 pr-3 font-medium text-ink-primary">
-                    {row.teamName}
+                    <Link href={`/team?league=${season.leagueId}&roster=${row.rosterId}`} className="hover:underline">
+                      {row.teamName}
+                    </Link>
                     {season.champion?.rosterId === row.rosterId ? (
                       <span className="ml-2 text-xs text-status-good">Champion</span>
                     ) : season.runnerUp?.rosterId === row.rosterId ? (

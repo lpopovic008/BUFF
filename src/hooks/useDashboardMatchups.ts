@@ -17,6 +17,7 @@ const snapshot = rawSnapshot as unknown as PlayerValuesSnapshot;
 const REFRESH_MS = 45_000;
 
 export interface DashboardMatchupSide {
+  rosterId: number;
   teamName: string;
   points: number;
   topPlayers: RankedPlayer[];
@@ -46,6 +47,7 @@ async function loadOne(target: MatchupTarget, week: number): Promise<[string, Da
   const byId = new Map(resolved.map((p) => [p.playerId, p]));
 
   const sideView = (side: DashboardMatchupTeam): DashboardMatchupSide => ({
+    rosterId: side.rosterId,
     teamName: side.teamName,
     points: side.points,
     topPlayers: topPlayersByValue(

@@ -8,16 +8,33 @@ import { computeWeekRecap, WeekRecapData } from "@/lib/league-data";
 import { formatRecapMarkdown, formatCommishRecap } from "@/lib/format-recap";
 import { loadLeagueMoney } from "@/lib/league-money";
 import { getRecap } from "@/lib/localStore";
-import { getCurrentWeek } from "@/lib/sleeper";
+import { getCurrentWeek, getLeague } from "@/lib/sleeper";
 import { RecapEditor } from "./RecapEditor";
+
+// week=0 is a sentinel for the preseason write-up — a free-write space that
+// exists before there's any real matchup data to auto-generate a recap from.
+const PRESEASON_WEEK = 0;
+
+function preseasonTemplate(leagueName: string, season: string): string {
+  return [`🚨🏈 ${leagueName} — ${season} Preseason`, "", "[Write your season preview here.]", ""].join("\n");
+}
+
+interface RecapHeader {
+  title: string;
+  season: string;
+  subtitle: string;
+}
 
 function RecapContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const leagueId = searchParams.get("id");
   const weekParam = searchParams.get("week");
+  const week = weekParam !== null ? Number(weekParam) : null;
+  const isPreseason = week === PRESEASON_WEEK;
 
   const [recapData, setRecapData] = useState<WeekRecapData | null>(null);
+  const [header, setHeader] = useState<RecapHeader | null>(null);
   const [body, setBody] = useState("");
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -25,25 +42,39 @@ function RecapContent() {
   // No week in the URL yet — resolve the current NFL week and pin it into the URL so the recap is bookmarkable.
   useEffect(() => {
     if (!leagueId || weekParam) return;
-    getCurrentWeek().then((week) => {
-      router.replace(`/recap?id=${leagueId}&week=${week}`);
+    getCurrentWeek().then((currentWeek) => {
+      router.replace(`/recap?id=${leagueId}&week=${currentWeek}`);
     });
   }, [leagueId, weekParam, router]);
 
   useEffect(() => {
-    if (!leagueId || !weekParam) return;
-    const week = Number(weekParam);
-    if (!Number.isFinite(week) || week < 1) return;
+    if (!leagueId || week === null || !Number.isFinite(week) || week < PRESEASON_WEEK) return;
     let cancelled = false;
-    (() => {
-      setRecapData(null);
-      setError(null);
-    })();
+
     (async () => {
+      setRecapData(null);
+      setHeader(null);
+      setError(null);
       try {
+        if (week === PRESEASON_WEEK) {
+          const league = await getLeague(leagueId);
+          if (cancelled || !league) return;
+          const title = `${league.name} — Preseason`;
+          setHeader({ title, season: league.season, subtitle: "Free-write — nothing to auto-generate yet." });
+          const saved = getRecap(leagueId, league.season, PRESEASON_WEEK);
+          setBody(saved ? saved.body : preseasonTemplate(league.name, league.season));
+          setSavedAt(saved ? saved.savedAt : null);
+          return;
+        }
+
         const data = await computeWeekRecap(leagueId, week);
         if (cancelled || !data) return;
         setRecapData(data);
+        setHeader({
+          title: `${data.league.name} — Week ${week} Recap`,
+          season: data.league.season,
+          subtitle: "Auto-generated from Sleeper data. Edit freely before copying it out to your group chat.",
+        });
 
         const saved = getRecap(leagueId, data.league.season, week);
         if (saved) {
@@ -69,7 +100,7 @@ function RecapContent() {
     return () => {
       cancelled = true;
     };
-  }, [leagueId, weekParam]);
+  }, [leagueId, week]);
 
   if (!leagueId) {
     return <Card className="p-12 text-center text-sm text-ink-secondary">No league selected.</Card>;
@@ -77,24 +108,19 @@ function RecapContent() {
   if (error) {
     return <Card className="p-12 text-center text-sm text-status-critical">{error}</Card>;
   }
-  if (!weekParam || !recapData) {
+  if (week === null || !header || (!isPreseason && !recapData)) {
     return <Card className="p-12 text-center text-sm text-ink-secondary">Loading recap…</Card>;
   }
-
-  const week = recapData.week;
-  const title = `${recapData.league.name} — Week ${week} Recap`;
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-ink-primary">{title}</h1>
-          <p className="mt-1 text-sm text-ink-secondary">
-            Auto-generated from Sleeper data. Edit freely before copying it out to your group chat.
-          </p>
+          <h1 className="text-2xl font-semibold text-ink-primary">{header.title}</h1>
+          <p className="mt-1 text-sm text-ink-secondary">{header.subtitle}</p>
         </div>
         <div className="flex items-center gap-2 text-sm">
-          {week > 1 ? (
+          {week > PRESEASON_WEEK + 1 ? (
             <Link
               href={`/recap?id=${leagueId}&week=${week - 1}`}
               className="rounded-md border border-border px-3 py-1.5 font-medium text-ink-secondary hover:bg-page"
@@ -102,11 +128,19 @@ function RecapContent() {
               ← Week {week - 1}
             </Link>
           ) : null}
+          {week === PRESEASON_WEEK + 1 ? (
+            <Link
+              href={`/recap?id=${leagueId}&week=${PRESEASON_WEEK}`}
+              className="rounded-md border border-border px-3 py-1.5 font-medium text-ink-secondary hover:bg-page"
+            >
+              ← Preseason
+            </Link>
+          ) : null}
           <Link
             href={`/recap?id=${leagueId}&week=${week + 1}`}
             className="rounded-md border border-border px-3 py-1.5 font-medium text-ink-secondary hover:bg-page"
           >
-            Week {week + 1} →
+            {isPreseason ? "Week 1" : `Week ${week + 1}`} →
           </Link>
           <Link
             href={`/recap/archive?id=${leagueId}`}
@@ -121,9 +155,9 @@ function RecapContent() {
         <RecapEditor
           key={`${leagueId}-${week}`}
           leagueId={leagueId}
-          season={recapData.league.season}
+          season={header.season}
           week={week}
-          title={title}
+          title={header.title}
           initialBody={body}
           savedAt={savedAt}
         />

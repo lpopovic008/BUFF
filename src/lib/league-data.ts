@@ -197,6 +197,72 @@ export function pairMatchups(
   }));
 }
 
+const BENCH_SLOTS = new Set(["BN", "IR", "TAXI"]);
+
+export interface LineupSlot {
+  slot: string;
+  playerId: string | null;
+}
+
+/** Zips a team's starters against the league's roster_positions to get labeled starting-lineup slots (QB, RB, FLEX, ...) in Sleeper's own slot order — `starters` is always positionally aligned to the non-bench entries of roster_positions. */
+export function buildLineupSlots(
+  rosterPositions: string[] | undefined,
+  starters: string[] | null | undefined
+): LineupSlot[] {
+  const starterSlots = (rosterPositions ?? []).filter((p) => !BENCH_SLOTS.has(p));
+  const ids = starters ?? [];
+  return starterSlots.map((slot, i) => ({
+    slot,
+    playerId: ids[i] && ids[i] !== "0" ? ids[i] : null,
+  }));
+}
+
+export interface LeagueMatchupTeam {
+  rosterId: number;
+  teamName: string;
+  points: number;
+  slots: LineupSlot[];
+  playersPoints: Record<string, number>;
+}
+
+export interface LeagueMatchupGame {
+  matchupId: number;
+  teams: LeagueMatchupTeam[];
+}
+
+/** Every matchup for a week, each side's full starting lineup broken out by slot — the data behind the league page's Sleeper-style matchup carousel. */
+export function buildLeagueMatchups(
+  league: SleeperLeague,
+  matchups: SleeperMatchup[],
+  rosters: SleeperRoster[],
+  users: SleeperLeagueUser[]
+): LeagueMatchupGame[] {
+  const usersById = new Map(users.map((u) => [u.user_id, u]));
+  const rostersById = new Map(rosters.map((r) => [r.roster_id, r]));
+  const teamName = (rosterId: number) => {
+    const roster = rostersById.get(rosterId);
+    const user = roster ? userForRoster(roster, usersById) : undefined;
+    return displayManagerName(user);
+  };
+  const byMatchupId = new Map<number, SleeperMatchup[]>();
+  for (const m of matchups) {
+    const id = m.matchup_id ?? -m.roster_id;
+    const list = byMatchupId.get(id) ?? [];
+    list.push(m);
+    byMatchupId.set(id, list);
+  }
+  return Array.from(byMatchupId.entries()).map(([matchupId, teams]) => ({
+    matchupId,
+    teams: teams.map((m) => ({
+      rosterId: m.roster_id,
+      teamName: teamName(m.roster_id),
+      points: m.points,
+      slots: buildLineupSlots(league.roster_positions, m.starters),
+      playersPoints: m.players_points ?? {},
+    })),
+  }));
+}
+
 export interface DashboardMatchupTeam {
   rosterId: number;
   teamName: string;

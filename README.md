@@ -20,14 +20,21 @@ from every linked season. Ships as a static site, hosted for free on
   preseason there's no real fantasy schedule yet, so this previews regular
   season week 1 rather than misreading the preseason's own week counter as a
   fantasy week.
-- **League page** (`/league?id=...`) — full standings, this week's
-  matchups, and recent waiver/trade activity (player names resolved, not
-  raw IDs).
+- **League page** (`/league?id=...`) — above everything else, a Sleeper-style
+  matchup view: your full starting lineup against your opponent's, slot by
+  slot (QB, RB, FLEX, ...), with live points — swipe or use the arrows to
+  page through every other matchup that week. Below that, standings and
+  recent waiver/trade activity (player names resolved, not raw IDs). Every
+  team name throughout the app (standings, matchups, the dashboard) links to
+  that team's full roster with KTC trade values for every player
+  (`/team?league=...&roster=...`).
 - **Weekly recap generator** (`/recap?id=...`) — for leagues you commish.
   Auto-drafts a markdown recap (top/low scorer, closest game, blowout,
   standings movement, waiver moves) that you can edit and copy straight
   into your league chat. Saved recaps are archived per league
-  (`/recap/archive?id=...`).
+  (`/recap/archive?id=...`). Before Week 1, there's also a free-write
+  **Preseason** entry (`/recap?id=...&week=0`) for a season-preview
+  write-up, since there's no matchup data yet to auto-generate one from.
 - **History** (`/league/history?id=...`, one click from inside a league) — walks Sleeper's
   linked-season chain (`previous_league_id`) to reconstruct career stats per
   manager: record, win%, points, championships, and best finish, across

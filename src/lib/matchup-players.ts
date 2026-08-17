@@ -41,12 +41,11 @@ export interface RankedPlayer extends ResolvedPlayer {
   livePoints: number;
 }
 
-/** Ranks players by KTC value (highest first) and returns the top `count`. Unmatched players sort last. */
-export function topPlayersByValue(
+/** Ranks every player by KTC value (highest first); unmatched players (kickers, DST, etc.) sort last. */
+export function rankPlayersByValue(
   players: ResolvedPlayer[],
   livePointsById: Record<string, number>,
-  snapshot: PlayerValuesSnapshot,
-  count: number
+  snapshot: PlayerValuesSnapshot
 ): RankedPlayer[] {
   const idx = valueIndexFor(snapshot);
   return players
@@ -55,6 +54,15 @@ export function topPlayersByValue(
       ktcValue: idx.get(normalizeName(p.name)) ?? null,
       livePoints: livePointsById[p.playerId] ?? 0,
     }))
-    .sort((a, b) => (b.ktcValue ?? -1) - (a.ktcValue ?? -1))
-    .slice(0, count);
+    .sort((a, b) => (b.ktcValue ?? -1) - (a.ktcValue ?? -1));
+}
+
+/** Same ranking, trimmed to the top `count` — used where only a preview is shown (e.g. the dashboard matchup card). */
+export function topPlayersByValue(
+  players: ResolvedPlayer[],
+  livePointsById: Record<string, number>,
+  snapshot: PlayerValuesSnapshot,
+  count: number
+): RankedPlayer[] {
+  return rankPlayersByValue(players, livePointsById, snapshot).slice(0, count);
 }
