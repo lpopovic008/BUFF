@@ -126,6 +126,30 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000) — local dev runs at the
 site root (no `/BUFF` prefix; that's only added for the GitHub Pages build).
 
+## Player values
+
+**Values** in the nav replaces the old top-level **History** button — per-league
+history is one click from inside each league, so a separate nav entry was
+redundant.
+
+The Values page shows keep/trade/cut trade values from KeepTradeCut, with a
+Dynasty/Fantasy (redraft) toggle, position filter, and search. KeepTradeCut has
+no official public API, so `scripts/fetch-player-values.ts` scrapes it
+**server-side in GitHub Actions** (`.github/workflows/player-values.yml`, daily
+at 13:00 UTC) rather than from the browser — that sidesteps CORS entirely
+(a plain server-to-server fetch isn't subject to it, whereas a browser fetch
+would be at the mercy of whatever cross-origin policy KTC happens to send) and
+means the page never depends on KTC being reachable from the visitor's
+network. The result is committed to `src/data/player-values.json` and
+imported directly into the page at build time — no runtime fetch, no CORS
+surface, nothing to break for a viewer.
+
+Because KTC's page structure isn't documented, the fetch script tries a few
+scraping strategies in order (a known `playersArray` literal, a Next.js
+`__NEXT_DATA__` blob, then a generic "find an array that looks like player
+records" walk) and, on failure, leaves the existing file untouched rather than
+committing anything — see the script's comments for the fallback chain.
+
 ## Getting started
 
 Nothing to set up: the Sleeper username is baked into the build

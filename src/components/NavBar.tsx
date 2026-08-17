@@ -5,7 +5,7 @@ import { useNFLState } from "@/hooks/useNFLState";
 
 const links = [
   { href: "/", label: "Dashboard" },
-  { href: "/history", label: "History" },
+  { href: "/values", label: "Values" },
   { href: "/settings", label: "Settings" },
 ];
 

@@ -1,0 +1,37 @@
+name: Update player values
+
+# Daily at 13:00 UTC (~6am Pacific) and on demand.
+on:
+  schedule:
+    - cron: "0 13 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: player-values
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsx scripts/fetch-player-values.ts
+      - name: Commit updated values
+        run: |
+          if [ -z "$(git status --porcelain src/data/player-values.json)" ]; then
+            echo "No change in player values."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/data/player-values.json
+          git commit -m "Update player trade values"
+          git push
