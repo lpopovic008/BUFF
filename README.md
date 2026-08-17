@@ -20,7 +20,11 @@ from every linked season. Ships as a static site, hosted for free on
 - **History** (`/history` and `/league/history?id=...`) — walks Sleeper's
   linked-season chain (`previous_league_id`) to reconstruct career stats per
   manager: record, win%, points, championships, and best finish, across
-  every year the league has existed.
+  every year the league has existed. Each season is its own collapsible
+  section (most recent open by default) with that year's standings, and —
+  for leagues with a payout profile — a cumulative money-paid-out chart
+  mirroring the running totals in the source spreadsheet, plus a
+  win/high-score/earnings breakdown for that year specifically.
 - **Money tracking** — for leagues with a commissioner profile (see below),
   the league page adds pot accounting, a season earnings leaderboard, a
   week-by-week payout grid, and a record/high-score table. It replaces

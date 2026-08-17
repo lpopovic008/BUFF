@@ -336,6 +336,7 @@ async function buildTransactionSummaries(
 export interface SeasonRecord {
   season: string;
   leagueId: string;
+  leagueName: string;
   standings: StandingsRow[];
   champion: StandingsRow | null;
   runnerUp: StandingsRow | null;
@@ -373,7 +374,14 @@ export async function getLeagueSeasonHistory(leagueId: string): Promise<SeasonRe
     ]);
     const standings = buildLiveStandings(rosters, users);
     const { champion, runnerUp } = deriveChampionship(bracket, standings);
-    seasons.push({ season: league.season, leagueId: currentId, standings, champion, runnerUp });
+    seasons.push({
+      season: league.season,
+      leagueId: currentId,
+      leagueName: league.name,
+      standings,
+      champion,
+      runnerUp,
+    });
     currentId = league.previous_league_id || null;
   }
   return seasons;

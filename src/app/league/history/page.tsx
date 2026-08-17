@@ -5,8 +5,154 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { CareerLeaderboard } from "@/components/CareerLeaderboard";
-import { getLeagueSeasonHistory, aggregateCareerStats, SeasonRecord, ManagerCareerStats } from "@/lib/league-data";
-import { formatRecord, ordinal } from "@/lib/format";
+import { MoneyLineChart } from "@/components/MoneyLineChart";
+import {
+  getLeagueSeasonHistory,
+  aggregateCareerStats,
+  SeasonRecord,
+  ManagerCareerStats,
+} from "@/lib/league-data";
+import { loadLeagueMoney, LeagueMoney } from "@/lib/league-money";
+import { findLeagueProfile, LeagueProfile } from "@/lib/league-config";
+import { cumulativeSeriesByManager } from "@/lib/payouts";
+import { formatRecord, formatPoints, ordinal } from "@/lib/format";
+
+function SeasonMoney({ leagueId, profile }: { leagueId: string; profile: LeagueProfile }) {
+  const [money, setMoney] = useState<LeagueMoney | null | undefined>(undefined);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadLeagueMoney(leagueId, profile).then((m) => {
+      if (!cancelled) setMoney(m);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [leagueId, profile]);
+
+  if (money === undefined) {
+    return <p className="text-sm text-ink-muted">Loading money data…</p>;
+  }
+  if (!money || money.ledger.weeksPlayed.length === 0) {
+    return null;
+  }
+
+  const series = cumulativeSeriesByManager(money.ledger);
+
+  return (
+    <div className="flex flex-col gap-4 border-t border-grid pt-4">
+      <div className="flex items-baseline justify-between gap-3">
+        <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+          Money paid out
+        </h4>
+        <span className="text-xs text-ink-secondary">
+          ${money.ledger.paidToDate} through week {money.ledger.weeksPlayed.at(-1)}
+        </span>
+      </div>
+      <MoneyLineChart series={series} />
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[420px] text-sm">
+          <thead>
+            <tr className="border-b border-grid text-left text-xs uppercase tracking-wide text-ink-muted">
+              <th className="py-2 pr-3 font-medium">Manager</th>
+              <th className="py-2 pr-3 text-right font-medium">Wins</th>
+              <th className="py-2 pr-3 text-right font-medium">High-score weeks</th>
+              <th className="py-2 pr-3 text-right font-medium">Earned</th>
+            </tr>
+          </thead>
+          <tbody>
+            {money.ledger.managers.map((m) => (
+              <tr key={m.rosterId} className="border-b border-grid last:border-0">
+                <td className="py-2 pr-3 font-medium text-ink-primary">{m.name}</td>
+                <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">{m.wins}</td>
+                <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">
+                  {m.highScoreWeeks.length}
+                </td>
+                <td className="py-2 pr-3 text-right font-semibold tabular-nums text-ink-primary">
+                  ${m.total}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function SeasonAccordion({
+  season,
+  profile,
+  defaultOpen,
+}: {
+  season: SeasonRecord;
+  profile: LeagueProfile | null;
+  defaultOpen: boolean;
+}) {
+  return (
+    <details
+      open={defaultOpen}
+      className="group rounded-lg border border-border bg-surface-raised open:pb-5"
+    >
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
+        <div className="flex items-baseline gap-3">
+          <span className="text-base font-semibold text-ink-primary">{season.season}</span>
+          <span className="text-sm text-ink-secondary">{season.leagueName}</span>
+        </div>
+        <div className="flex items-center gap-3 text-sm text-ink-secondary">
+          {season.champion ? (
+            <span>
+              🏆 <span className="font-medium text-ink-primary">{season.champion.teamName}</span>
+            </span>
+          ) : null}
+          <span className="text-ink-muted transition-transform group-open:rotate-180">▾</span>
+        </div>
+      </summary>
+
+      <div className="flex flex-col gap-4 px-5">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[480px] text-sm">
+            <thead>
+              <tr className="border-b border-grid text-left text-xs uppercase tracking-wide text-ink-muted">
+                <th className="py-2 pr-3 font-medium">Rank</th>
+                <th className="py-2 pr-3 font-medium">Team</th>
+                <th className="py-2 pr-3 text-right font-medium">Record</th>
+                <th className="py-2 pr-3 text-right font-medium">PF</th>
+                <th className="py-2 pr-3 text-right font-medium">PA</th>
+              </tr>
+            </thead>
+            <tbody>
+              {season.standings.map((row) => (
+                <tr key={row.rosterId} className="border-b border-grid last:border-0">
+                  <td className="py-2 pr-3 tabular-nums text-ink-secondary">{ordinal(row.rank)}</td>
+                  <td className="py-2 pr-3 font-medium text-ink-primary">
+                    {row.teamName}
+                    {season.champion?.rosterId === row.rosterId ? (
+                      <span className="ml-2 text-xs text-status-good">Champion</span>
+                    ) : season.runnerUp?.rosterId === row.rosterId ? (
+                      <span className="ml-2 text-xs text-ink-muted">Runner-up</span>
+                    ) : null}
+                  </td>
+                  <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">
+                    {formatRecord(row.wins, row.losses, row.ties)}
+                  </td>
+                  <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">
+                    {formatPoints(row.pointsFor)}
+                  </td>
+                  <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">
+                    {formatPoints(row.pointsAgainst)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {profile ? <SeasonMoney leagueId={season.leagueId} profile={profile} /> : null}
+      </div>
+    </details>
+  );
+}
 
 function LeagueHistoryContent() {
   const leagueId = useSearchParams().get("id");
@@ -46,6 +192,10 @@ function LeagueHistoryContent() {
   }
 
   const managers: ManagerCareerStats[] = aggregateCareerStats(seasons);
+  // Determined once from whichever season's name matches, then applied to every
+  // linked season — a league can get renamed year to year but stays the same
+  // pot and the same rules.
+  const profile = seasons.map((s) => findLeagueProfile(s.leagueName)).find((p) => p !== null) ?? null;
 
   return (
     <div className="flex flex-col gap-8">
@@ -64,68 +214,17 @@ function LeagueHistoryContent() {
         <CareerLeaderboard managers={managers} />
       </Card>
 
-      <Card className="p-5">
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-muted">Season by season</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[560px] text-sm">
-            <thead>
-              <tr className="border-b border-grid text-left text-xs uppercase tracking-wide text-ink-muted">
-                <th className="py-2 pr-3 font-medium">Season</th>
-                <th className="py-2 pr-3 font-medium">Champion</th>
-                <th className="py-2 pr-3 font-medium">Runner-up</th>
-                <th className="py-2 pr-3 font-medium text-right">Teams</th>
-              </tr>
-            </thead>
-            <tbody>
-              {seasons.map((s) => (
-                <tr key={s.leagueId} className="border-b border-grid last:border-0">
-                  <td className="py-2 pr-3 font-medium text-ink-primary">{s.season}</td>
-                  <td className="py-2 pr-3 text-ink-secondary">
-                    {s.champion
-                      ? `${s.champion.teamName} (${formatRecord(s.champion.wins, s.champion.losses, s.champion.ties)})`
-                      : "—"}
-                  </td>
-                  <td className="py-2 pr-3 text-ink-secondary">{s.runnerUp ? s.runnerUp.teamName : "—"}</td>
-                  <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">{s.standings.length}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <p className="mt-3 text-xs text-ink-muted">
-          Champion/runner-up come from the playoff bracket&rsquo;s championship match. Rank shown elsewhere reflects
-          regular-season record (wins, then points for) and may not match the exact tiebreakers your league uses.
-        </p>
-      </Card>
+      <div className="flex flex-col gap-3">
+        {seasons.map((season, i) => (
+          <SeasonAccordion key={season.leagueId} season={season} profile={profile} defaultOpen={i === 0} />
+        ))}
+      </div>
 
-      {managers.length > 0 ? (
-        <Card className="p-5">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-muted">Manager finishes</h2>
-          <div className="flex flex-col gap-4">
-            {managers.map((m) => (
-              <div key={m.userId} className="flex flex-wrap items-center gap-2 text-sm">
-                <span className="w-40 shrink-0 font-medium text-ink-primary">{m.displayName}</span>
-                {m.seasons
-                  .slice()
-                  .reverse()
-                  .map((s) => (
-                    <span
-                      key={s.season}
-                      className={`rounded-md border px-2 py-1 text-xs ${
-                        s.champion
-                          ? "border-status-good/30 bg-status-good/10 text-status-good"
-                          : "border-border text-ink-secondary"
-                      }`}
-                      title={`${s.season}: ${s.record}`}
-                    >
-                      {s.season} · {ordinal(s.rank)}
-                    </span>
-                  ))}
-              </div>
-            ))}
-          </div>
-        </Card>
-      ) : null}
+      <p className="text-xs text-ink-muted">
+        Champion/runner-up come from the playoff bracket&rsquo;s championship match. Rank reflects
+        regular-season record (wins, then points for) and may not match the exact tiebreakers your
+        league uses.
+      </p>
     </div>
   );
 }

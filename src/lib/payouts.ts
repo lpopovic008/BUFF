@@ -242,3 +242,29 @@ export function standingsThroughWeek(
     })
     .sort((a, b) => b.amount - a.amount || a.name.localeCompare(b.name));
 }
+
+export interface CumulativeSeries {
+  rosterId: number;
+  name: string;
+  /** One point per played week, running total through that week. */
+  points: { week: number; amount: number }[];
+  finalAmount: number;
+}
+
+/**
+ * Each manager's running earnings by week — the line-chart equivalent of the
+ * sheet's cumulative "Total" column. Sorted richest-final-total first, which
+ * is also the order end-of-line labels should stack top to bottom.
+ */
+export function cumulativeSeriesByManager(ledger: PayoutLedger): CumulativeSeries[] {
+  return ledger.managers
+    .map((m) => {
+      let running = 0;
+      const points = ledger.weeksPlayed.map((week) => {
+        running += m.weekly[week] ?? 0;
+        return { week, amount: running };
+      });
+      return { rosterId: m.rosterId, name: m.name, points, finalAmount: running };
+    })
+    .sort((a, b) => b.finalAmount - a.finalAmount);
+}
