@@ -210,6 +210,11 @@ export function avatarUrl(avatarId: string | null | undefined): string | null {
   return `https://sleepercdn.com/avatars/thumbs/${avatarId}`;
 }
 
+/** Sleeper's player headshot CDN — same convention as avatarUrl, keyed by player id instead of avatar id. Not every player has a real photo; callers should handle a broken image. */
+export function playerHeadshotUrl(playerId: string): string {
+  return `https://sleepercdn.com/content/nfl/players/thumb/${playerId}.jpg`;
+}
+
 /** Walks the previous_league_id chain to find every linked season, newest first. */
 export async function getLeagueHistoryChain(leagueId: string): Promise<SleeperLeague[]> {
   const chain: SleeperLeague[] = [];

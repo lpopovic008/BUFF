@@ -10,8 +10,9 @@ from every linked season. Ships as a static site, hosted for free on
 - **Dashboard** (`/`) — every league you're in, at a glance: your record,
   rank, points, whether you're the commissioner, and this week's matchup —
   both team names, current score, and the top 3 players on each side by KTC
-  trade value (name, position, and that player's live points so far this
-  week). Re-polls Sleeper's matchups endpoint every 45s while the tab is
+  trade value, headshot included (Sleeper's player-photo CDN, same convention
+  as its avatar CDN — falls back to a plain circle for players without a real
+  photo). Re-polls Sleeper's matchups endpoint every 45s while the tab is
   open, so scores update the same way Sleeper's own site does during games —
   no separate "projected points" field, since Sleeper doesn't expose
   projections through its public API the way it does live scoring, and this

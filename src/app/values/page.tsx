@@ -42,13 +42,13 @@ function ValueTable({ rows, maxValue }: { rows: Row[]; maxValue: number }) {
   }
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[560px] text-sm">
+      <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-grid text-left text-xs uppercase tracking-wide text-ink-muted">
             <th className="py-2 pr-3 font-medium">Rank</th>
             <th className="py-2 pr-3 font-medium">Player</th>
-            <th className="py-2 pr-3 font-medium">Pos</th>
-            <th className="py-2 pr-3 text-right font-medium">Age</th>
+            <th className="hidden py-2 pr-3 font-medium sm:table-cell">Pos</th>
+            <th className="hidden py-2 pr-3 text-right font-medium sm:table-cell">Age</th>
             <th className="py-2 pr-3 font-medium">Value</th>
           </tr>
         </thead>
@@ -56,21 +56,27 @@ function ValueTable({ rows, maxValue }: { rows: Row[]; maxValue: number }) {
           {rows.map(({ player: p, value, rank }) => (
             <tr key={`${p.position}-${p.name}`} className="border-b border-grid last:border-0">
               <td className="py-2 pr-3 tabular-nums text-ink-secondary">{rank}</td>
-              <td className="py-2 pr-3 font-medium text-ink-primary">
-                {p.name}
-                {p.team ? <span className="ml-1.5 text-xs font-normal text-ink-muted">{p.team}</span> : null}
+              <td className="max-w-[7rem] py-2 pr-3 font-medium text-ink-primary sm:max-w-none">
+                <span className="block truncate">{p.name}</span>
+                <span className="block text-xs font-normal text-ink-muted sm:hidden">
+                  {p.position}
+                  {p.team ? ` · ${p.team}` : ""}
+                </span>
+                {p.team ? <span className="ml-1.5 hidden text-xs font-normal text-ink-muted sm:inline">{p.team}</span> : null}
               </td>
-              <td className="py-2 pr-3 text-ink-secondary">{p.position}</td>
-              <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">{p.age ?? "—"}</td>
+              <td className="hidden py-2 pr-3 text-ink-secondary sm:table-cell">{p.position}</td>
+              <td className="hidden py-2 pr-3 text-right tabular-nums text-ink-secondary sm:table-cell">
+                {p.age ?? "—"}
+              </td>
               <td className="py-2 pr-3">
                 <div className="flex items-center gap-2">
-                  <div className="h-2 w-24 overflow-hidden rounded-full bg-page">
+                  <div className="h-2 w-10 shrink-0 overflow-hidden rounded-full bg-page sm:w-24">
                     <div
                       className="h-full rounded-full bg-series-1"
                       style={{ width: `${Math.max(2, (value / maxValue) * 100)}%` }}
                     />
                   </div>
-                  <span className="tabular-nums text-ink-secondary">{value}</span>
+                  <span className="shrink-0 tabular-nums text-ink-secondary">{value}</span>
                 </div>
               </td>
             </tr>

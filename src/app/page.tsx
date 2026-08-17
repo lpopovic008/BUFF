@@ -141,7 +141,7 @@ export default function DashboardPage() {
                 <div className="min-w-0">
                   <Link
                     href={`/league?id=${tracked.leagueId}`}
-                    className="truncate text-lg font-semibold text-ink-primary hover:underline"
+                    className="block truncate text-lg font-semibold text-ink-primary hover:underline"
                   >
                     {summary.league.name}
                   </Link>
@@ -149,7 +149,11 @@ export default function DashboardPage() {
                     {summary.league.season} season · {summary.rosters.length} teams
                   </div>
                 </div>
-                {tracked.isCommish ? <Badge tone="good">Commissioner</Badge> : null}
+                {tracked.isCommish ? (
+                  <span className="shrink-0">
+                    <Badge tone="good">Commissioner</Badge>
+                  </span>
+                ) : null}
               </div>
 
               {myRow ? (
@@ -179,18 +183,24 @@ export default function DashboardPage() {
 
               {myRow ? <DashboardMatchupCard matchup={matchups[tracked.leagueId]} /> : null}
 
-              <div className="flex gap-3 border-t border-grid pt-3 text-sm">
-                <Link href={`/league?id=${tracked.leagueId}`} className="font-medium text-series-1 hover:underline">
+              <div className="flex flex-wrap gap-x-4 gap-y-1 border-t border-grid pt-3 text-sm">
+                <Link
+                  href={`/league?id=${tracked.leagueId}`}
+                  className="whitespace-nowrap font-medium text-series-1 hover:underline"
+                >
                   Standings &amp; matchups
                 </Link>
                 {tracked.isCommish ? (
-                  <Link href={`/recap?id=${tracked.leagueId}`} className="font-medium text-series-1 hover:underline">
+                  <Link
+                    href={`/recap?id=${tracked.leagueId}`}
+                    className="whitespace-nowrap font-medium text-series-1 hover:underline"
+                  >
                     Weekly recap
                   </Link>
                 ) : null}
                 <Link
                   href={`/league/history?id=${tracked.leagueId}`}
-                  className="font-medium text-series-1 hover:underline"
+                  className="whitespace-nowrap font-medium text-series-1 hover:underline"
                 >
                   History
                 </Link>
