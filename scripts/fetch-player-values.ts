@@ -143,6 +143,10 @@ async function fetchRanking(url: string, label: string): Promise<PlayerValue[]> 
     console.log(`  found playersArray literal with ${literal.length} entries`);
     const normalized = normalize(literal);
     if (normalized.length > 0) return normalized;
+    // Our guessed field names didn't match anything — dump a real record so
+    // the actual keys are visible in the CI log instead of guessing again blind.
+    console.log(`  normalize() found 0 valid rows; sample raw entry:`);
+    console.log(JSON.stringify(literal[0], null, 2));
   }
 
   const nextData = extractNextData(html);
