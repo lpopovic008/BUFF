@@ -121,21 +121,15 @@ export default function DashboardPage() {
               </div>
 
               {myRow ? (
-                <div className="flex items-center gap-6">
-                  <div>
-                    <div className="text-xs uppercase tracking-wide text-ink-muted">Your record</div>
-                    <div className="text-xl font-semibold tabular-nums text-ink-primary">
-                      {formatRecord(myRow.wins, myRow.losses, myRow.ties)}
-                    </div>
+                <div className="flex items-end gap-6">
+                  <div className="text-xl font-semibold tabular-nums text-ink-primary">
+                    {ordinal(myRow.rank)}
+                  </div>
+                  <div className="text-xl font-semibold tabular-nums text-ink-primary">
+                    {formatRecord(myRow.wins, myRow.losses, myRow.ties)}
                   </div>
                   <div>
-                    <div className="text-xs uppercase tracking-wide text-ink-muted">Rank</div>
-                    <div className="text-xl font-semibold tabular-nums text-ink-primary">
-                      {ordinal(myRow.rank)}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs uppercase tracking-wide text-ink-muted">Points for</div>
+                    <div className="text-xs uppercase tracking-wide text-ink-muted">PF</div>
                     <div className="text-xl font-semibold tabular-nums text-ink-primary">
                       {formatPoints(myRow.pointsFor)}
                     </div>
