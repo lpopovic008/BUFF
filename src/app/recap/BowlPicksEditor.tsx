@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { LeagueTeamOption } from "@/hooks/useLeagueTeams";
 import { BowlGamePick, RecapBowlPicks, saveBowlPicks } from "@/lib/localStore";
+import { IconButton } from "@/components/ui/IconButton";
+import { SaveIcon, CheckIcon } from "@/components/ui/Icon";
 
 function TeamSelect({
   value,
@@ -121,13 +123,12 @@ export function BowlPicksEditor({
       </div>
 
       <div>
-        <button
-          type="button"
+        <IconButton
+          icon={saved ? <CheckIcon /> : <SaveIcon />}
+          label={saved ? "Saved" : "Save picks & update write-up"}
           onClick={handleSave}
-          className="rounded-md bg-series-1 px-4 py-2 text-sm font-medium text-white hover:opacity-90"
-        >
-          {saved ? "Saved!" : "Save picks & update write-up"}
-        </button>
+          variant="primary"
+        />
       </div>
     </div>
   );

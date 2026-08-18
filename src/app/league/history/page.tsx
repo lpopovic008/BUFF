@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
+import { ChevronLeftIcon, ChevronDownIcon } from "@/components/ui/Icon";
 import { CareerLeaderboard } from "@/components/CareerLeaderboard";
 import { MoneyLineChart } from "@/components/MoneyLineChart";
 import {
@@ -105,7 +106,7 @@ function SeasonAccordion({
               🏆 <span className="font-medium text-ink-primary">{season.champion.teamName}</span>
             </span>
           ) : null}
-          <span className="text-ink-muted transition-transform group-open:rotate-180">▾</span>
+          <ChevronDownIcon className="h-4 w-4 shrink-0 text-ink-muted transition-transform group-open:rotate-180" />
         </div>
       </summary>
 
@@ -202,8 +203,11 @@ function LeagueHistoryContent() {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <Link href={`/league?id=${leagueId}`} className="text-sm font-medium text-series-1 hover:underline">
-          ← Back to league
+        <Link
+          href={`/league?id=${leagueId}`}
+          className="flex items-center gap-1 text-sm font-medium text-series-1 hover:underline"
+        >
+          <ChevronLeftIcon className="h-4 w-4" /> Back to league
         </Link>
         <h1 className="mt-1 text-2xl font-semibold text-ink-primary">League history</h1>
         <p className="mt-1 text-sm text-ink-secondary">

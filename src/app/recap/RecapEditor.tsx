@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { saveRecap } from "@/lib/localStore";
 import { buildRecapClipboardHtml } from "@/lib/format-recap";
+import { IconButton } from "@/components/ui/IconButton";
+import { CopyIcon, CopyStyledIcon, SaveIcon, CheckIcon } from "@/components/ui/Icon";
 
 export function RecapEditor({
   leagueId,
@@ -66,29 +68,20 @@ export function RecapEditor({
         className="w-full rounded-md border border-border bg-page p-4 font-mono text-sm text-ink-primary outline-none focus:border-series-1"
       />
 
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="button"
+      <div className="flex flex-wrap items-center gap-2">
+        <IconButton
+          icon={copiedFormatted ? <CheckIcon /> : <CopyStyledIcon />}
+          label={copiedFormatted ? "Copied formatted" : "Copy formatted"}
           onClick={handleCopyFormatted}
-          className="rounded-md border border-border px-4 py-2 text-sm font-medium text-ink-secondary hover:bg-page"
-        >
-          {copiedFormatted ? "Copied!" : "Copy formatted"}
-        </button>
-        <button
-          type="button"
+        />
+        <IconButton
+          icon={copied ? <CheckIcon /> : <CopyIcon />}
+          label={copied ? "Copied plain text" : "Copy plain text"}
           onClick={handleCopy}
-          className="rounded-md border border-border px-4 py-2 text-sm font-medium text-ink-secondary hover:bg-page"
-        >
-          {copied ? "Copied!" : "Copy plain text"}
-        </button>
-        <button
-          type="submit"
-          className="rounded-md bg-series-1 px-4 py-2 text-sm font-medium text-white hover:opacity-90"
-        >
-          Save to archive
-        </button>
+        />
+        <IconButton icon={<SaveIcon />} label="Save to archive" type="submit" variant="primary" />
         {lastSavedAt ? (
-          <span className="text-xs text-ink-muted">Last saved {new Date(lastSavedAt).toLocaleString()}</span>
+          <span className="text-xs text-ink-muted">Saved {new Date(lastSavedAt).toLocaleString()}</span>
         ) : (
           <span className="text-xs text-ink-muted">Not saved yet</span>
         )}

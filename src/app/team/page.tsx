@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
+import { ChevronLeftIcon } from "@/components/ui/Icon";
 import { RosterValueTable } from "@/components/RosterValueTable";
 import {
   getLeague,
@@ -86,8 +87,11 @@ function TeamContent() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Link href={`/league?id=${leagueId}`} className="text-sm font-medium text-series-1 hover:underline">
-          ← {league.name}
+        <Link
+          href={`/league?id=${leagueId}`}
+          className="flex items-center gap-1 text-sm font-medium text-series-1 hover:underline"
+        >
+          <ChevronLeftIcon className="h-4 w-4" /> {league.name}
         </Link>
         <h1 className="mt-2 text-2xl font-semibold text-ink-primary">{managerName}</h1>
         <p className="mt-1 text-sm text-ink-secondary">

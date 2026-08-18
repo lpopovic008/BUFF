@@ -4,6 +4,8 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
+import { IconLink } from "@/components/ui/IconButton";
+import { ChevronLeftIcon, ChevronRightIcon, DocumentIcon } from "@/components/ui/Icon";
 import { computeWeekRecap, WeekRecapData } from "@/lib/league-data";
 import {
   formatRecapMarkdown,
@@ -252,31 +254,26 @@ function RecapContent() {
           {week > PRESEASON_WEEK + 1 ? (
             <Link
               href={`/recap?id=${leagueId}&week=${week - 1}`}
-              className="rounded-md border border-border px-3 py-1.5 font-medium text-ink-secondary hover:bg-page"
+              className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 font-medium text-ink-secondary hover:bg-page"
             >
-              ← Week {week - 1}
+              <ChevronLeftIcon className="h-4 w-4" /> Week {week - 1}
             </Link>
           ) : null}
           {week === PRESEASON_WEEK + 1 ? (
             <Link
               href={`/recap?id=${leagueId}&week=${PRESEASON_WEEK}`}
-              className="rounded-md border border-border px-3 py-1.5 font-medium text-ink-secondary hover:bg-page"
+              className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 font-medium text-ink-secondary hover:bg-page"
             >
-              ← Preseason
+              <ChevronLeftIcon className="h-4 w-4" /> Preseason
             </Link>
           ) : null}
           <Link
             href={`/recap?id=${leagueId}&week=${week + 1}`}
-            className="rounded-md border border-border px-3 py-1.5 font-medium text-ink-secondary hover:bg-page"
+            className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 font-medium text-ink-secondary hover:bg-page"
           >
-            {isPreseason ? "Week 1" : `Week ${week + 1}`} →
+            {isPreseason ? "Week 1" : `Week ${week + 1}`} <ChevronRightIcon className="h-4 w-4" />
           </Link>
-          <Link
-            href={`/recap/archive?id=${leagueId}`}
-            className="rounded-md border border-border px-3 py-1.5 font-medium text-ink-secondary hover:bg-page"
-          >
-            Archive
-          </Link>
+          <IconLink href={`/recap/archive?id=${leagueId}`} icon={<DocumentIcon />} label="Recap archive" />
         </div>
       </div>
 

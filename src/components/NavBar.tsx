@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useNFLState } from "@/hooks/useNFLState";
 import { useCombinedRecord } from "@/hooks/useCombinedRecord";
+import { IconButton } from "@/components/ui/IconButton";
+import { MenuIcon } from "@/components/ui/Icon";
 
 const links = [
   { href: "/", label: "Dashboard" },
@@ -39,19 +41,12 @@ export function NavBar() {
               <span className="text-ink-muted">Record</span> <span className="text-ink-primary">{record}</span>
             </span>
           ) : null}
-          <button
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-            aria-label="Menu"
+          <IconButton
+            icon={<MenuIcon />}
+            label="Menu"
             aria-expanded={open}
-            className="flex h-9 w-9 items-center justify-center rounded-md text-ink-secondary transition-colors hover:bg-page hover:text-ink-primary"
-          >
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round">
-              <line x1="3" y1="5" x2="17" y2="5" />
-              <line x1="3" y1="10" x2="17" y2="10" />
-              <line x1="3" y1="15" x2="17" y2="15" />
-            </svg>
-          </button>
+            onClick={() => setOpen((v) => !v)}
+          />
         </div>
       </div>
       {open ? (

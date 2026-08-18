@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getLeagueRosters, getLeagueUsers, getMatchups } from "@/lib/sleeper";
+import { getLeague, getLeagueRosters, getLeagueUsers, getMatchups, isDynastyLeague, leagueQBFormat } from "@/lib/sleeper";
 import { DashboardMatchupTeam, findMyMatchup } from "@/lib/league-data";
 import { resolvePlayers } from "@/lib/players";
-import { RankedPlayer, topPlayersByValue } from "@/lib/matchup-players";
+import { RankedPlayer, topPlayersByValue, ValueMetric } from "@/lib/matchup-players";
 import rawSnapshot from "@/data/player-values.json";
 import { PlayerValuesSnapshot } from "@/lib/player-values";
 
@@ -34,13 +34,18 @@ export interface MatchupTarget {
 }
 
 async function loadOne(target: MatchupTarget, week: number): Promise<[string, DashboardMatchupView | null]> {
-  const [matchups, rosters, users] = await Promise.all([
+  const [matchups, rosters, users, league] = await Promise.all([
     getMatchups(target.leagueId, week),
     getLeagueRosters(target.leagueId),
     getLeagueUsers(target.leagueId),
+    getLeague(target.leagueId),
   ]);
   const matchup = findMyMatchup(matchups, rosters, users, target.myRosterId);
   if (!matchup) return [target.leagueId, null];
+
+  const metric: ValueMetric | undefined = league
+    ? { listType: isDynastyLeague(league) ? "dynasty" : "fantasy", format: leagueQBFormat(league), tep: "standard" }
+    : undefined;
 
   const allIds = [...matchup.my.playerIds, ...(matchup.opponent?.playerIds ?? [])];
   const resolved = await resolvePlayers(allIds);
@@ -54,7 +59,8 @@ async function loadOne(target: MatchupTarget, week: number): Promise<[string, Da
       side.playerIds.map((id) => byId.get(id)).filter((p): p is NonNullable<typeof p> => Boolean(p)),
       side.playersPoints,
       snapshot,
-      3
+      3,
+      metric
     ),
   });
 
@@ -64,7 +70,12 @@ async function loadOne(target: MatchupTarget, week: number): Promise<[string, Da
   ];
 }
 
-/** Loads each league's current matchup + top-3-by-KTC-value players per side, and re-polls Sleeper while mounted so scores update live during games. */
+/**
+ * Loads each league's current matchup + top-3-by-KTC-value players per side
+ * (ranked using that league's own dynasty/redraft and 1QB/superflex value
+ * metric, same as the Values tab), and re-polls Sleeper while mounted so
+ * scores update live during games.
+ */
 export function useDashboardMatchups(
   targets: MatchupTarget[],
   week: number | null

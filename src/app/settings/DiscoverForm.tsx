@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { discoverAndSaveLeagues, UserNotFoundError } from "@/lib/discover";
+import { IconButton } from "@/components/ui/IconButton";
+import { SearchIcon } from "@/components/ui/Icon";
 
 export function DiscoverForm({
   defaultUsername,
@@ -61,13 +63,13 @@ export function DiscoverForm({
           className="rounded-md border border-border bg-page px-3 py-2 text-sm text-ink-primary outline-none focus:border-series-1"
         />
       </label>
-      <button
+      <IconButton
+        icon={<SearchIcon />}
+        label={isPending ? "Discovering…" : "Discover leagues"}
         type="submit"
         disabled={isPending}
-        className="rounded-md bg-series-1 px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-      >
-        {isPending ? "Discovering…" : "Discover leagues"}
-      </button>
+        variant="primary"
+      />
       {error ? <p className="text-sm text-status-critical sm:basis-full">{error}</p> : null}
     </form>
   );

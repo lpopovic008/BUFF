@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
+import { IconLink } from "@/components/ui/IconButton";
+import { StandingsIcon, DocumentIcon, ClockIcon } from "@/components/ui/Icon";
 import { DashboardMatchupCard } from "@/components/DashboardMatchupCard";
 import { useConfig } from "@/hooks/useConfig";
 import { MatchupTarget, useDashboardMatchups } from "@/hooks/useDashboardMatchups";
@@ -147,27 +149,25 @@ export default function DashboardPage() {
                 <DashboardMatchupCard leagueId={tracked.leagueId} matchup={matchups[tracked.leagueId]} />
               ) : null}
 
-              <div className="flex flex-wrap gap-x-4 gap-y-1 border-t border-grid pt-3 text-sm">
-                <Link
+              <div className="flex items-center gap-2 border-t border-grid pt-3">
+                <IconLink
                   href={`/league?id=${tracked.leagueId}`}
-                  className="whitespace-nowrap font-medium text-series-1 hover:underline"
-                >
-                  Standings &amp; matchups
-                </Link>
+                  icon={<StandingsIcon />}
+                  label="Standings & matchups"
+                  variant="primary"
+                />
                 {tracked.isCommish ? (
-                  <Link
+                  <IconLink
                     href={`/recap?id=${tracked.leagueId}`}
-                    className="whitespace-nowrap font-medium text-series-1 hover:underline"
-                  >
-                    Weekly recap
-                  </Link>
+                    icon={<DocumentIcon />}
+                    label="Weekly recap"
+                  />
                 ) : null}
-                <Link
+                <IconLink
                   href={`/league/history?id=${tracked.leagueId}`}
-                  className="whitespace-nowrap font-medium text-series-1 hover:underline"
-                >
-                  History
-                </Link>
+                  icon={<ClockIcon />}
+                  label="History"
+                />
               </div>
             </Card>
           );

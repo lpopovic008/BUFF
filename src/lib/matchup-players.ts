@@ -25,10 +25,11 @@ export interface ValueMetric {
   tep: TEPremium;
 }
 
-// Redraft ("fantasy") 1QB standard values by default, not dynasty — a matchup
-// card is about this week's quality, not long-term asset value. Callers that
-// care about full-roster asset value (My Teams, /team) pass the league's own
-// metric instead (see sleeper.ts's isDynastyLeague/leagueQBFormat).
+// Fallback only, used when a caller can't resolve the league's own settings
+// (e.g. the league fetch failed). Real callers pass each league's actual
+// metric — dynasty/fantasy and 1QB/superflex — derived via sleeper.ts's
+// isDynastyLeague/leagueQBFormat, so rankings match what that league's own
+// format actually values.
 export const DEFAULT_VALUE_METRIC: ValueMetric = { listType: "fantasy", format: "oneQB", tep: "standard" };
 
 const valueIndexCache = new Map<string, Map<string, number>>();

@@ -3,6 +3,8 @@
 import { useRef } from "react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { IconButton } from "@/components/ui/IconButton";
+import { ChevronUpIcon, ChevronDownIcon, StarIcon, TrashIcon, DownloadIcon, UploadIcon } from "@/components/ui/Icon";
 import { useConfig } from "@/hooks/useConfig";
 import { saveConfig, removeLeague, moveLeague, exportAllData, importAllData } from "@/lib/localStore";
 import { DEFAULT_SLEEPER_USERNAME, defaultSeason } from "@/lib/app-defaults";
@@ -108,24 +110,22 @@ export default function SettingsPage() {
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <div className="flex shrink-0 flex-col">
-                      <button
-                        type="button"
+                      <IconButton
+                        icon={<ChevronUpIcon className="h-4 w-4" />}
+                        label={`Move ${league.nickname ?? league.leagueId} up`}
                         onClick={() => handleMove(league.leagueId, "up")}
                         disabled={i === 0}
-                        aria-label={`Move ${league.nickname ?? league.leagueId} up`}
-                        className="rounded-t-md border border-border px-2 leading-5 text-ink-secondary hover:bg-page disabled:opacity-30 disabled:hover:bg-transparent"
-                      >
-                        ↑
-                      </button>
-                      <button
-                        type="button"
+                        size="sm"
+                        className="rounded-b-none"
+                      />
+                      <IconButton
+                        icon={<ChevronDownIcon className="h-4 w-4" />}
+                        label={`Move ${league.nickname ?? league.leagueId} down`}
                         onClick={() => handleMove(league.leagueId, "down")}
                         disabled={i === config.leagues.length - 1}
-                        aria-label={`Move ${league.nickname ?? league.leagueId} down`}
-                        className="-mt-px rounded-b-md border border-border px-2 leading-5 text-ink-secondary hover:bg-page disabled:opacity-30 disabled:hover:bg-transparent"
-                      >
-                        ↓
-                      </button>
+                        size="sm"
+                        className="-mt-px rounded-t-none"
+                      />
                     </div>
                     <div className="min-w-0">
                       <div className="truncate font-medium text-ink-primary">
@@ -136,20 +136,17 @@ export default function SettingsPage() {
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     {league.isCommish ? <Badge tone="good">Commissioner</Badge> : null}
-                    <button
-                      type="button"
+                    <IconButton
+                      icon={<StarIcon filled={league.isCommish} />}
+                      label={league.isCommish ? "Unmark commish" : "Mark as commish"}
                       onClick={() => handleToggleCommish(league.leagueId)}
-                      className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-ink-secondary hover:bg-page"
-                    >
-                      {league.isCommish ? "Unmark commish" : "Mark as commish"}
-                    </button>
-                    <button
-                      type="button"
+                    />
+                    <IconButton
+                      icon={<TrashIcon />}
+                      label="Remove league"
                       onClick={() => handleRemove(league.leagueId)}
-                      className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-status-critical hover:bg-status-critical/10"
-                    >
-                      Remove
-                    </button>
+                      variant="danger"
+                    />
                   </div>
                 </li>
               ))}
@@ -166,21 +163,9 @@ export default function SettingsPage() {
           Your settings and saved recaps live only in this browser. Export a backup before clearing
           browser data, or import it on another device/browser to carry everything over.
         </p>
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={handleExport}
-            className="rounded-md border border-border px-4 py-2 text-sm font-medium text-ink-secondary hover:bg-page"
-          >
-            Export backup
-          </button>
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="rounded-md border border-border px-4 py-2 text-sm font-medium text-ink-secondary hover:bg-page"
-          >
-            Import backup
-          </button>
+        <div className="flex gap-2">
+          <IconButton icon={<DownloadIcon />} label="Export backup" onClick={handleExport} />
+          <IconButton icon={<UploadIcon />} label="Import backup" onClick={() => fileInputRef.current?.click()} />
           <input
             ref={fileInputRef}
             type="file"

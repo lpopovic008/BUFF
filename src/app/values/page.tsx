@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/Card";
+import { SearchIcon } from "@/components/ui/Icon";
 import { LeagueRosterCarousel } from "@/components/LeagueRosterCarousel";
 import { useConfig } from "@/hooks/useConfig";
 import { useMyLeagues } from "@/hooks/useMyLeagues";
@@ -188,12 +189,16 @@ export default function ValuesPage() {
                 </button>
               ))}
             </div>
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search a player…"
-              className="w-full max-w-[220px] rounded-md border border-border bg-page px-3 py-1.5 text-sm text-ink-primary outline-none focus:border-series-1"
-            />
+            <div className="relative w-full max-w-[220px]">
+              <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search a player…"
+                aria-label="Search a player"
+                className="w-full rounded-md border border-border bg-page py-1.5 pl-8 pr-3 text-sm text-ink-primary outline-none focus:border-series-1"
+              />
+            </div>
           </div>
 
           <div className="mb-4 flex flex-wrap items-center gap-3">

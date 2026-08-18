@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ResolvedMatchupGame, ResolvedSlot } from "@/hooks/useLeagueMatchupCarousel";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
+import { IconButton } from "@/components/ui/IconButton";
+import { ChevronLeftIcon, ChevronRightIcon } from "@/components/ui/Icon";
 import { formatPoints } from "@/lib/format";
 
 function MySlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
@@ -150,27 +152,21 @@ export function LeagueMatchupCarousel({
       </div>
       {games.length > 1 ? (
         <div className="flex items-center justify-center gap-3 text-xs text-ink-muted">
-          <button
-            type="button"
+          <IconButton
+            icon={<ChevronLeftIcon />}
+            label="Previous matchup"
             onClick={() => scrollToIndex(index - 1)}
             disabled={index === 0}
-            aria-label="Previous matchup"
-            className="rounded-md border border-border px-2 py-1 disabled:opacity-30"
-          >
-            ←
-          </button>
+          />
           <span className="tabular-nums">
-            Matchup {index + 1} of {games.length}
+            {index + 1} / {games.length}
           </span>
-          <button
-            type="button"
+          <IconButton
+            icon={<ChevronRightIcon />}
+            label="Next matchup"
             onClick={() => scrollToIndex(index + 1)}
             disabled={index === games.length - 1}
-            aria-label="Next matchup"
-            className="rounded-md border border-border px-2 py-1 disabled:opacity-30"
-          >
-            →
-          </button>
+          />
         </div>
       ) : null}
     </div>

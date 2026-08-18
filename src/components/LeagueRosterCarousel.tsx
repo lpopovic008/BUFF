@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { TeamRosterView } from "@/hooks/useLeagueTeamRosters";
 import { RosterValueTable } from "@/components/RosterValueTable";
+import { IconButton } from "@/components/ui/IconButton";
+import { ChevronLeftIcon, ChevronRightIcon } from "@/components/ui/Icon";
 
 function TeamSlide({ leagueId, team }: { leagueId: string; team: TeamRosterView }) {
   return (
@@ -72,27 +74,21 @@ export function LeagueRosterCarousel({
       </div>
       {teams.length > 1 ? (
         <div className="flex items-center justify-center gap-3 text-xs text-ink-muted">
-          <button
-            type="button"
+          <IconButton
+            icon={<ChevronLeftIcon />}
+            label="Previous team"
             onClick={() => scrollToIndex(index - 1)}
             disabled={index === 0}
-            aria-label="Previous team"
-            className="rounded-md border border-border px-2 py-1 disabled:opacity-30"
-          >
-            ←
-          </button>
+          />
           <span className="tabular-nums">
-            Team {index + 1} of {teams.length}
+            {index + 1} / {teams.length}
           </span>
-          <button
-            type="button"
+          <IconButton
+            icon={<ChevronRightIcon />}
+            label="Next team"
             onClick={() => scrollToIndex(index + 1)}
             disabled={index === teams.length - 1}
-            aria-label="Next team"
-            className="rounded-md border border-border px-2 py-1 disabled:opacity-30"
-          >
-            →
-          </button>
+          />
         </div>
       ) : null}
     </div>

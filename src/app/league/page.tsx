@@ -4,6 +4,8 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
+import { IconLink } from "@/components/ui/IconButton";
+import { DocumentIcon, ClockIcon } from "@/components/ui/Icon";
 import { LeagueMatchupCarousel } from "@/components/LeagueMatchupCarousel";
 import { MoneyBoard } from "@/components/MoneyBoard";
 import { useConfig } from "@/hooks/useConfig";
@@ -98,19 +100,9 @@ function LeagueDetailContent() {
         </div>
         <div className="flex items-center gap-2">
           {tracked?.isCommish ? (
-            <Link
-              href={`/recap?id=${leagueId}`}
-              className="rounded-md bg-series-1 px-4 py-2 text-sm font-medium text-white hover:opacity-90"
-            >
-              Write recap
-            </Link>
+            <IconLink href={`/recap?id=${leagueId}`} icon={<DocumentIcon />} label="Write recap" variant="primary" />
           ) : null}
-          <Link
-            href={`/league/history?id=${leagueId}`}
-            className="rounded-md border border-border px-4 py-2 text-sm font-medium text-ink-secondary hover:bg-page"
-          >
-            League history
-          </Link>
+          <IconLink href={`/league/history?id=${leagueId}`} icon={<ClockIcon />} label="League history" />
         </div>
       </div>
 
