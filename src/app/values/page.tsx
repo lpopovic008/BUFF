@@ -1,8 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { Card } from "@/components/ui/Card";
-import { StatTile } from "@/components/ui/StatTile";
+import { RosterValueTable } from "@/components/RosterValueTable";
+import { useConfig } from "@/hooks/useConfig";
+import { useMyRosters } from "@/hooks/useMyRosters";
 import rawSnapshot from "@/data/player-values.json";
 import { LeagueFormat, PlayerValue, PlayerValuesSnapshot, TEPremium, valueFor } from "@/lib/player-values";
 
@@ -18,16 +21,6 @@ function positionSort(a: string, b: string): number {
   const bi = POSITION_PRIORITY.indexOf(b);
   if (ai !== -1 || bi !== -1) return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
   return a.localeCompare(b);
-}
-
-function formatUpdated(iso: string | null): string {
-  if (!iso) return "never";
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const hours = Math.round(diffMs / 3_600_000);
-  if (hours < 1) return "just now";
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.round(hours / 24);
-  return `${days}d ago`;
 }
 
 interface Row {
@@ -88,11 +81,15 @@ function ValueTable({ rows, maxValue }: { rows: Row[]; maxValue: number }) {
 }
 
 export default function ValuesPage() {
+  const { config } = useConfig();
   const [listType, setListType] = useState<ListType>("dynasty");
   const [leagueFormat, setLeagueFormat] = useState<LeagueFormat>("oneQB");
   const [tep, setTep] = useState<TEPremium>("standard");
   const [deselectedPositions, setDeselectedPositions] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState("");
+
+  const leagueIds = useMemo(() => config.leagues.map((l) => l.leagueId), [config.leagues]);
+  const myRosters = useMyRosters(leagueIds, config.sleeperUserId);
 
   const fullList = listType === "dynasty" ? snapshot.dynasty : snapshot.fantasy;
 
@@ -125,16 +122,27 @@ export default function ValuesPage() {
       return next;
     });
 
-  const formatLabel = `${leagueFormat === "superflex" ? "Superflex" : "1QB"}${tep === "tep" ? " · TE Premium" : ""}`;
-
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-ink-primary">Player values</h1>
-        <p className="mt-1 text-sm text-ink-secondary">
-          Keep/trade/cut trade values from KeepTradeCut, for dynasty and redraft.
-        </p>
-      </div>
+      <h1 className="sr-only">Values</h1>
+
+      {myRosters && myRosters.length > 0 ? (
+        <div className="flex flex-col gap-4">
+          {myRosters.map((r) => (
+            <Card key={r.leagueId} className="p-5">
+              <Link
+                href={`/team?league=${r.leagueId}&roster=${r.rosterId}`}
+                className="text-sm font-medium text-series-1 hover:underline"
+              >
+                {r.leagueName}
+              </Link>
+              <div className="mt-3">
+                <RosterValueTable players={r.players} />
+              </div>
+            </Card>
+          ))}
+        </div>
+      ) : null}
 
       {!hasData ? (
         <Card className="p-8 text-center text-sm text-ink-secondary">
@@ -142,110 +150,98 @@ export default function ValuesPage() {
           player-values workflow runs — no action needed.
         </Card>
       ) : (
-        <>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <StatTile label="Players tracked" value={String(fullList.length)} />
-            <StatTile
-              label={`Top ${listType === "dynasty" ? "dynasty" : "redraft"} asset`}
-              value={rows[0]?.player.name ?? "—"}
+        <Card className="p-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="inline-flex rounded-md border border-border p-0.5">
+              {(["dynasty", "fantasy"] as ListType[]).map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => setListType(f)}
+                  className={`rounded px-3 py-1.5 text-sm font-medium transition-colors ${
+                    listType === f ? "bg-series-1 text-white" : "text-ink-secondary hover:bg-page"
+                  }`}
+                >
+                  {f === "dynasty" ? "Dynasty" : "Fantasy"}
+                </button>
+              ))}
+            </div>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search a player…"
+              className="w-full max-w-[220px] rounded-md border border-border bg-page px-3 py-1.5 text-sm text-ink-primary outline-none focus:border-series-1"
             />
-            <StatTile label="Format" value={formatLabel} />
-            <StatTile label="Updated" value={formatUpdated(snapshot.updatedAt)} />
           </div>
 
-          <Card className="p-5">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="inline-flex rounded-md border border-border p-0.5">
-                {(["dynasty", "fantasy"] as ListType[]).map((f) => (
-                  <button
-                    key={f}
-                    type="button"
-                    onClick={() => setListType(f)}
-                    className={`rounded px-3 py-1.5 text-sm font-medium transition-colors ${
-                      listType === f ? "bg-series-1 text-white" : "text-ink-secondary hover:bg-page"
-                    }`}
-                  >
-                    {f === "dynasty" ? "Dynasty" : "Fantasy"}
-                  </button>
-                ))}
-              </div>
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search a player…"
-                className="w-full max-w-[220px] rounded-md border border-border bg-page px-3 py-1.5 text-sm text-ink-primary outline-none focus:border-series-1"
-              />
-            </div>
-
-            <div className="mb-4 flex flex-wrap items-center gap-3">
-              <div className="inline-flex rounded-md border border-border p-0.5">
-                {(["oneQB", "superflex"] as LeagueFormat[]).map((f) => (
-                  <button
-                    key={f}
-                    type="button"
-                    onClick={() => setLeagueFormat(f)}
-                    className={`rounded px-3 py-1.5 text-sm font-medium transition-colors ${
-                      leagueFormat === f ? "bg-series-1 text-white" : "text-ink-secondary hover:bg-page"
-                    }`}
-                  >
-                    {f === "oneQB" ? "1QB" : "Superflex"}
-                  </button>
-                ))}
-              </div>
-              <div className="inline-flex rounded-md border border-border p-0.5">
-                {(["standard", "tep"] as TEPremium[]).map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => setTep(t)}
-                    className={`rounded px-3 py-1.5 text-sm font-medium transition-colors ${
-                      tep === t ? "bg-series-1 text-white" : "text-ink-secondary hover:bg-page"
-                    }`}
-                  >
-                    {t === "standard" ? "Standard" : "TE Premium"}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="mb-4 flex flex-wrap items-center gap-1.5">
-              {availablePositions.map((pos) => {
-                const active = !deselectedPositions.has(pos);
-                return (
-                  <button
-                    key={pos}
-                    type="button"
-                    onClick={() => togglePosition(pos)}
-                    aria-pressed={active}
-                    className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                      active
-                        ? "border-series-1 bg-series-1/10 text-series-1"
-                        : "border-border text-ink-muted line-through hover:bg-page"
-                    }`}
-                  >
-                    {pos}
-                  </button>
-                );
-              })}
-              {deselectedPositions.size > 0 ? (
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            <div className="inline-flex rounded-md border border-border p-0.5">
+              {(["oneQB", "superflex"] as LeagueFormat[]).map((f) => (
                 <button
+                  key={f}
                   type="button"
-                  onClick={() => setDeselectedPositions(new Set())}
-                  className="rounded-full px-3 py-1 text-xs font-medium text-ink-muted underline-offset-2 hover:underline"
+                  onClick={() => setLeagueFormat(f)}
+                  className={`rounded px-3 py-1.5 text-sm font-medium transition-colors ${
+                    leagueFormat === f ? "bg-series-1 text-white" : "text-ink-secondary hover:bg-page"
+                  }`}
                 >
-                  Reset
+                  {f === "oneQB" ? "1QB" : "Superflex"}
                 </button>
-              ) : null}
+              ))}
             </div>
+            <div className="inline-flex rounded-md border border-border p-0.5">
+              {(["standard", "tep"] as TEPremium[]).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setTep(t)}
+                  className={`rounded px-3 py-1.5 text-sm font-medium transition-colors ${
+                    tep === t ? "bg-series-1 text-white" : "text-ink-secondary hover:bg-page"
+                  }`}
+                >
+                  {t === "standard" ? "Standard" : "TE Premium"}
+                </button>
+              ))}
+            </div>
+          </div>
 
-            <ValueTable rows={rows.slice(0, 300)} maxValue={maxValue} />
-            {rows.length > 300 ? (
-              <p className="mt-3 text-xs text-ink-muted">
-                Showing the top 300 of {rows.length} matches — narrow your search to see more.
-              </p>
+          <div className="mb-4 flex flex-wrap items-center gap-1.5">
+            {availablePositions.map((pos) => {
+              const active = !deselectedPositions.has(pos);
+              return (
+                <button
+                  key={pos}
+                  type="button"
+                  onClick={() => togglePosition(pos)}
+                  aria-pressed={active}
+                  className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                    active
+                      ? "border-series-1 bg-series-1/10 text-series-1"
+                      : "border-border text-ink-muted line-through hover:bg-page"
+                  }`}
+                >
+                  {pos}
+                </button>
+              );
+            })}
+            {deselectedPositions.size > 0 ? (
+              <button
+                type="button"
+                onClick={() => setDeselectedPositions(new Set())}
+                className="rounded-full px-3 py-1 text-xs font-medium text-ink-muted underline-offset-2 hover:underline"
+              >
+                Reset
+              </button>
             ) : null}
-          </Card>
-        </>
+          </div>
+
+          <ValueTable rows={rows.slice(0, 300)} maxValue={maxValue} />
+          {rows.length > 300 ? (
+            <p className="mt-3 text-xs text-ink-muted">
+              Showing the top 300 of {rows.length} matches — narrow your search to see more.
+            </p>
+          ) : null}
+        </Card>
       )}
     </div>
   );

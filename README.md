@@ -150,7 +150,13 @@ site root (no `/BUFF` prefix; that's only added for the GitHub Pages build).
 history is one click from inside each league, so a separate nav entry was
 redundant.
 
-The Values page shows keep/trade/cut trade values from KeepTradeCut, with a
+Above everything else, one card per league you're in with your own full
+roster and every player's KTC value (`/team?league=...&roster=...` is the
+same view, one click from any team name elsewhere in the app) — this is
+where "what are my assets actually worth" lives, without digging through the
+full player list below to find your own guys.
+
+Below that, the full keep/trade/cut trade values from KeepTradeCut, with a
 Dynasty/Fantasy (redraft) toggle, a 1QB/Superflex toggle, a Standard/TE Premium
 toggle, a multi-select position filter (click a position pill to drop it from
 the list, click again to bring it back — matches KTC's own filter UI), and
