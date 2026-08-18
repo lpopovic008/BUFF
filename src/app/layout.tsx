@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { Azeret_Mono } from "next/font/google";
+import { Julius_Sans_One } from "next/font/google";
 import { NavBar } from "@/components/NavBar";
 import "./globals.css";
 
-const azeretMono = Azeret_Mono({
-  variable: "--font-azeret-mono",
+const juliusSansOne = Julius_Sans_One({
+  variable: "--font-julius-sans-one",
+  weight: "400",
   subsets: ["latin"],
 });
 
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${azeretMono.variable} h-full antialiased`}>
+    <html lang="en" className={`${juliusSansOne.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-page">
         <NavBar />
         <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">{children}</main>

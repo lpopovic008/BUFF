@@ -82,14 +82,14 @@
   --color-status-critical: var(--status-critical);
   --color-success-text: var(--success-text);
 
-  --font-sans: var(--font-azeret-mono);
-  --font-mono: var(--font-azeret-mono);
+  --font-sans: var(--font-julius-sans-one);
+  --font-mono: var(--font-julius-sans-one);
 }
 
 body {
   background: var(--color-page);
   color: var(--color-ink-primary);
-  font-family: var(--font-sans), ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+  font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 ::selection {
