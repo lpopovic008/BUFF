@@ -114,11 +114,12 @@ export function BowlPicksEditor({
     <div className="flex flex-col gap-5">
       <div>
         <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">
-          Matchup of the Week picks
+          Upcoming Week {week} matchup picks
         </h2>
         <p className="mt-1 text-xs text-ink-secondary">
-          Name the marquee matchup(s) and pick up to 2 players to build the write-up around — save here
-          and next week&rsquo;s recap will auto-fill who actually won.
+          Name the marquee matchup(s) and pick one player from each side, just so the app knows which two
+          teams are playing — save here and this week&rsquo;s write-up previews it, then next week&rsquo;s
+          auto-fills who actually won.
         </p>
       </div>
 

@@ -33,30 +33,29 @@ from every linked season. Ships as a static site, hosted for free on
   be open right now — the free-write **Preseason** entry before Week 1, then
   each week's recap once the season starts, holding on the just-finished week
   through Tuesday night (so there's still a recap to write) before rolling to
-  the next week at Wednesday 12am. Auto-drafts a markdown recap (top/low
-  scorer, closest game, blowout, standings movement, waiver moves) that you
-  can edit and copy straight into your league chat — commissioner leagues get
-  the house-style recap with the money blocks filled in, a highest-scoring-team
-  callout (with the team's own top-scoring starter named as who led it), and a
-  **Matchup of the Week** section that's fully auto-written from a **Bowl of
-  the Week**/**Honorable Bowl of the Week** pick: name the marquee matchup(s)
-  and pick 2 players (searchable by team) below the write-up, and the app
-  fills in the preview (the two teams' PF/PA ranks, who's picked to carry
-  them) for the current week, then next week auto-writes the result — who
-  actually won and how the picked players scored — pulled straight from
-  Sleeper. Nothing picked yet, or the game hasn't been played? The template
-  still shows the full shape of the write-up with brackets standing in for
-  whatever's missing (`[team] won [Week 1 Bowl Game Name]`), so it's always
-  obvious what's left to fill in. A **Load last week's template** button
-  separately starts from last week's saved write-up, with the parts that can
-  be recomputed (title, scoreboard, standings, money) refreshed for the
-  current week and anything else carried over as-is. **Copy formatted**
-  copies both a plain-text and a rich-text (HTML) version to the clipboard in
-  one go — paste targets that keep formatting (Messages/Notes/Mail on Mac,
-  most iOS apps) pick up bold section headers and dollar amounts, an
-  underlined high-scorer callout, and italicized narrative lines, instead of
-  one flat block of plain text; anything else just gets the plain fallback.
-  Saved recaps are archived per league (`/recap/archive?id=...`).
+  the next week at Wednesday 12am. Commissioner leagues get a fixed house-style
+  template — title, who won last week's marquee matchup(s), a highest-scoring-
+  team callout naming the two teammates who led the scoring, the commission
+  list, a full scoreboard, running money standings, and a preview of next
+  week's marquee matchup(s) — that's always fully present, mechanical parts
+  auto-computed and free-write "`<Detail>`" lines left for commentary. Below
+  the write-up, name a **Bowl of the Week**/**Honorable Bowl of the Week** for
+  the *upcoming* week and pick one player from each side (searchable by team,
+  just so the app knows who's playing) — save it and this week's preview fills
+  in with the two teams' season PF/PA and league rank; the following week, the
+  same pick resolves into the result: who actually won, pulled straight from
+  Sleeper. Nothing picked yet? Every field still shows its bracket placeholder
+  (`[team] won the [Week 1 Bowl Game Name]`) so the shape of the write-up is
+  always there. Saving a pick regenerates the mechanical parts of the current
+  draft in place, keeping every `<Detail>` line exactly as written. **Copy
+  formatted** copies both a plain-text and a rich-text (HTML) version to the
+  clipboard in one go — paste targets that keep formatting (Messages/Notes/Mail
+  on Mac, most iOS apps) render bold section headers/dollar amounts, an
+  underlined high-scorer line, and italicized commentary, instead of one flat
+  block of plain text; anything else just gets the plain fallback. Leagues
+  without a commissioner profile get a plain generic markdown recap instead —
+  no bowl-game concept. Saved recaps are archived per league
+  (`/recap/archive?id=...`).
 - **History** (`/league/history?id=...`, one click from inside a league) — walks Sleeper's
   linked-season chain (`previous_league_id`) to reconstruct career stats per
   manager: record, win%, points, championships, and best finish, across

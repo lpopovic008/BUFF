@@ -1,42 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { saveRecap } from "@/lib/localStore";
-import { buildRecapClipboardHtml, carryForwardRecapTemplate, refreshBowlSections } from "@/lib/format-recap";
+import { buildRecapClipboardHtml } from "@/lib/format-recap";
 
 export function RecapEditor({
   leagueId,
   season,
   week,
   title,
-  initialBody,
+  body,
+  onBodyChange,
   savedAt,
-  freshTemplate,
-  previousBody,
-  bowlRefresh,
 }: {
   leagueId: string;
   season: string;
   week: number;
   title: string;
-  initialBody: string;
+  body: string;
+  onBodyChange: (body: string) => void;
   savedAt: string | null;
-  freshTemplate?: string | null;
-  previousBody?: string | null;
-  /** Set (to a freshly regenerated template) only right after the commish saves a bowl-game
-   * pick — splices just the "Matchup of the Week" blocks it recomputed into whatever's
-   * currently in the box, leaving the rest of their edits alone. Never fires on its own. */
-  bowlRefresh?: string | null;
 }) {
-  const [body, setBody] = useState(initialBody);
   const [copied, setCopied] = useState(false);
   const [copiedFormatted, setCopiedFormatted] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState(savedAt);
-
-  useEffect(() => {
-    if (!bowlRefresh) return;
-    queueMicrotask(() => setBody((prev) => refreshBowlSections(prev, bowlRefresh)));
-  }, [bowlRefresh]);
 
   async function handleCopy() {
     await navigator.clipboard.writeText(body);
@@ -63,11 +50,6 @@ export function RecapEditor({
     setTimeout(() => setCopiedFormatted(false), 2000);
   }
 
-  function handleLoadTemplate() {
-    if (!previousBody || !freshTemplate) return;
-    setBody(carryForwardRecapTemplate(previousBody, freshTemplate));
-  }
-
   function handleSave(e: React.FormEvent) {
     e.preventDefault();
     const now = new Date().toISOString();
@@ -79,21 +61,12 @@ export function RecapEditor({
     <form onSubmit={handleSave} className="flex flex-col gap-3">
       <textarea
         value={body}
-        onChange={(e) => setBody(e.target.value)}
+        onChange={(e) => onBodyChange(e.target.value)}
         rows={20}
         className="w-full rounded-md border border-border bg-page p-4 font-mono text-sm text-ink-primary outline-none focus:border-series-1"
       />
 
       <div className="flex flex-wrap items-center gap-3">
-        {previousBody && freshTemplate ? (
-          <button
-            type="button"
-            onClick={handleLoadTemplate}
-            className="rounded-md border border-border px-4 py-2 text-sm font-medium text-ink-secondary hover:bg-page"
-          >
-            Load last week&rsquo;s template
-          </button>
-        ) : null}
         <button
           type="button"
           onClick={handleCopyFormatted}

@@ -1,21 +1,22 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
+import { computeWeekRecap, WeekRecapData } from "@/lib/league-data";
 import {
-  computeWeekRecap,
-  pairMatchups,
-  MatchupGame,
-  WeekRecapData,
-} from "@/lib/league-data";
-import { formatRecapMarkdown, formatCommishRecap, findWeekTopStarter } from "@/lib/format-recap";
-import { formatBowlPreview, formatBowlResult } from "@/lib/bowl-narrative";
+  formatRecapMarkdown,
+  formatCommishRecap,
+  formatPreseasonTemplate,
+  findWeekTopStarters,
+  extractRecapDetails,
+} from "@/lib/format-recap";
+import { formatBowlResultLine, formatUpcomingBowlBlock, formatUpcomingHonorableBlock } from "@/lib/bowl-narrative";
 import { loadLeagueMoney, LeagueMoney } from "@/lib/league-money";
 import { summarizeWeek } from "@/lib/payouts";
 import { getRecap, getBowlPicks, RecapBowlPicks } from "@/lib/localStore";
-import { getRecapWeek, getLeague, getLeagueRosters, getLeagueUsers, getMatchups } from "@/lib/sleeper";
+import { getRecapWeek, getLeague } from "@/lib/sleeper";
 import { resolvePlayers } from "@/lib/players";
 import { useLeagueRosterPlayers } from "@/hooks/useLeagueRosterPlayers";
 import { RecapEditor } from "./RecapEditor";
@@ -25,19 +26,15 @@ import { BowlPicksEditor } from "./BowlPicksEditor";
 // exists before there's any real matchup data to auto-generate a recap from.
 const PRESEASON_WEEK = 0;
 
-function preseasonTemplate(leagueName: string, season: string): string {
-  return [`🚨🏈 ${leagueName} — ${season} Preseason`, "", "[Write your season preview here.]", ""].join("\n");
+function simplePreseasonTemplate(leagueName: string, season: string): string {
+  return [`🚨📋 ${leagueName} — ${season} Preseason`, "", "[Write your season preview here.]", ""].join("\n");
 }
 
 interface RecapHeader {
   title: string;
+  leagueName: string;
   season: string;
   subtitle: string;
-}
-
-function bowlPickIds(picks: RecapBowlPicks | null): string[] {
-  if (!picks) return [];
-  return [...picks.bowlOfWeek.playerIds, ...picks.honorableBowl.playerIds];
 }
 
 function RecapContent() {
@@ -51,29 +48,17 @@ function RecapContent() {
   const [recapData, setRecapData] = useState<WeekRecapData | null>(null);
   const [header, setHeader] = useState<RecapHeader | null>(null);
   const [body, setBody] = useState("");
-  const [freshTemplate, setFreshTemplate] = useState<string | null>(null);
-  const [bowlRefresh, setBowlRefresh] = useState<string | null>(null);
-  const [previousBody, setPreviousBody] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [money, setMoney] = useState<LeagueMoney | null>(null);
-  const [thisWeekPicks, setThisWeekPicks] = useState<RecapBowlPicks | null>(null);
-  const [previousWeekBowl, setPreviousWeekBowl] = useState<{ pick: RecapBowlPicks; games: MatchupGame[] } | null>(
-    null
-  );
+  const [upcomingPicks, setUpcomingPicks] = useState<RecapBowlPicks | null>(null);
+  const [highScorerNames, setHighScorerNames] = useState<Record<string, string>>({});
 
-  // The full-roster options feed the picker UI's dropdowns (lazy is fine there —
-  // it shows "Loading roster…" until ready) and, once loaded, back up player-name
-  // resolution for later pick saves. The *initial* template generation below
-  // resolves names for just the already-picked players directly, so it doesn't
-  // have to wait on this broader fetch and can't race it into stomping a saved draft.
-  const playerOptions = useLeagueRosterPlayers(!isPreseason ? leagueId : null);
-  const rosterPlayerNames = useMemo(() => {
-    const map: Record<string, string> = {};
-    for (const p of playerOptions ?? []) map[p.playerId] = p.name;
-    return map;
-  }, [playerOptions]);
+  // Feeds the bowl-pick player selects — a league-wide roster dump, loaded lazily
+  // (the picker shows "Loading roster…" until ready) and needed for both regular
+  // weeks and the Preseason page's own "Upcoming Week 1" picker.
+  const playerOptions = useLeagueRosterPlayers(leagueId);
 
   // No week in the URL yet — resolve which week's write-up should be open and pin it into the URL so the recap is bookmarkable.
   useEffect(() => {
@@ -90,21 +75,38 @@ function RecapContent() {
     (async () => {
       setRecapData(null);
       setHeader(null);
-      setFreshTemplate(null);
-      setBowlRefresh(null);
-      setPreviousBody(null);
       setMoney(null);
-      setThisWeekPicks(null);
-      setPreviousWeekBowl(null);
+      setUpcomingPicks(null);
+      setHighScorerNames({});
       setError(null);
       try {
         if (week === PRESEASON_WEEK) {
           const league = await getLeague(leagueId);
           if (cancelled || !league) return;
-          const title = `${league.name} — Preseason`;
-          setHeader({ title, season: league.season, subtitle: "Free-write — nothing to auto-generate yet." });
-          const fresh = preseasonTemplate(league.name, league.season);
-          setFreshTemplate(fresh);
+          const leagueMoney = await loadLeagueMoney(leagueId);
+          if (cancelled) return;
+          setMoney(leagueMoney);
+          setHeader({
+            title: `${league.name} — Preseason`,
+            leagueName: league.name,
+            season: league.season,
+            subtitle: "Free-write — nothing to auto-generate yet.",
+          });
+
+          let fresh: string;
+          if (leagueMoney) {
+            const upcoming = getBowlPicks(leagueId, league.season, PRESEASON_WEEK + 1);
+            setUpcomingPicks(upcoming);
+            fresh = formatPreseasonTemplate({
+              leagueName: league.name,
+              season: league.season,
+              upcomingBowlLines: formatUpcomingBowlBlock(upcoming.bowlOfWeek, PRESEASON_WEEK + 1, [], []),
+              upcomingHonorableLines: formatUpcomingHonorableBlock(upcoming.honorableBowl, PRESEASON_WEEK + 1, []),
+            });
+          } else {
+            fresh = simplePreseasonTemplate(league.name, league.season);
+          }
+
           const saved = getRecap(leagueId, league.season, PRESEASON_WEEK);
           setBody(saved ? saved.body : fresh);
           setSavedAt(saved ? saved.savedAt : null);
@@ -116,88 +118,49 @@ function RecapContent() {
         setRecapData(data);
         setHeader({
           title: `${data.league.name} — Week ${week} Recap`,
+          leagueName: data.league.name,
           season: data.league.season,
           subtitle: "Auto-generated from Sleeper data. Edit freely before copying it out to your group chat.",
         });
 
-        // Commissioner leagues get the house-style recap with the money blocks
-        // and Matchup of the Week narrative filled in; everything else falls
-        // back to the generic markdown, which has no bowl-game concept.
+        // Commissioner leagues get the house-style recap with the money blocks,
+        // last week's bowl-game result, and next week's marquee-matchup preview
+        // filled in; everything else falls back to the generic markdown, which
+        // has no bowl-game concept.
         const leagueMoney = await loadLeagueMoney(leagueId);
         if (cancelled) return;
         setMoney(leagueMoney);
 
-        const thisWeek = leagueMoney ? getBowlPicks(leagueId, data.league.season, week) : null;
-        setThisWeekPicks(thisWeek);
-
-        let previousBowl: { pick: RecapBowlPicks; games: MatchupGame[] } | null = null;
-        if (leagueMoney && week > PRESEASON_WEEK + 1) {
-          const previousPick = getBowlPicks(leagueId, data.league.season, week - 1);
-          if (previousPick.bowlOfWeek.name.trim() || previousPick.bowlOfWeek.playerIds.length > 0) {
-            const [prevRosters, prevUsers, prevMatchups] = await Promise.all([
-              getLeagueRosters(leagueId),
-              getLeagueUsers(leagueId),
-              getMatchups(leagueId, week - 1),
-            ]);
-            if (cancelled) return;
-            previousBowl = { pick: previousPick, games: pairMatchups(prevMatchups, prevRosters, prevUsers) };
-          }
-        }
-        setPreviousWeekBowl(previousBowl);
-
         let fresh: string;
         if (leagueMoney) {
-          // Resolve names for just the players already picked plus whoever led the
-          // high scorer's lineup (fast, small) rather than waiting on the full-roster
-          // hook above — keeps the first paint correct even if that broader fetch is
-          // still in flight.
+          // This week's own bowl pick (set on last week's page) resolves against
+          // this week's now-final matchups; next week's pick (being set on THIS
+          // page, below) previews using standings through this week.
+          const resultPick = getBowlPicks(leagueId, data.league.season, week);
+          const upcoming = getBowlPicks(leagueId, data.league.season, week + 1);
+          setUpcomingPicks(upcoming);
+
           const summary = summarizeWeek(leagueMoney.ledger, week);
-          const topStarter = summary?.highScorer ? findWeekTopStarter(summary.highScorer.rosterId, data.games) : null;
-          const pickedIds = [
-            ...bowlPickIds(thisWeek),
-            ...(previousBowl?.pick.bowlOfWeek.playerIds ?? []),
-            ...(topStarter ? [topStarter.playerId] : []),
-          ];
-          const resolved = await resolvePlayers(pickedIds);
+          const leaderIds = summary?.highScorer
+            ? findWeekTopStarters(summary.highScorer.rosterId, data.games).map((l) => l.playerId)
+            : [];
+          const resolved = leaderIds.length > 0 ? await resolvePlayers(leaderIds) : [];
           if (cancelled) return;
           const playerNames: Record<string, string> = {};
           for (const p of resolved) playerNames[p.playerId] = p.name;
+          setHighScorerNames(playerNames);
 
           fresh = formatCommishRecap({
             data,
             ledger: leagueMoney.ledger,
             playerNames,
-            matchupResultBlock: formatBowlResult(
-              week - 1,
-              previousBowl?.pick.bowlOfWeek,
-              previousBowl?.games ?? [],
-              playerNames
-            ),
-            bowlOfWeekBlock: formatBowlPreview(
-              "🔥 Matchup of the Week",
-              week,
-              thisWeek?.bowlOfWeek,
-              data.games,
-              data.standingsBefore,
-              playerNames
-            ),
-            honorableMentionBlock: formatBowlPreview(
-              "🥈 Honorable Mention",
-              week,
-              thisWeek?.honorableBowl,
-              data.games,
-              data.standingsBefore,
-              playerNames
-            ),
+            bowlResultLine: formatBowlResultLine("👑", resultPick.bowlOfWeek, data.games),
+            honorableResultLine: formatBowlResultLine("🏆", resultPick.honorableBowl, data.games),
+            upcomingBowlLines: formatUpcomingBowlBlock(upcoming.bowlOfWeek, week + 1, data.games, data.standingsAfter),
+            upcomingHonorableLines: formatUpcomingHonorableBlock(upcoming.honorableBowl, week + 1, data.games),
           });
         } else {
           fresh = formatRecapMarkdown(data);
-        }
-        setFreshTemplate(fresh);
-
-        if (week > PRESEASON_WEEK + 1) {
-          const previous = getRecap(leagueId, data.league.season, week - 1);
-          setPreviousBody(previous ? previous.body : null);
         }
 
         const saved = getRecap(leagueId, data.league.season, week);
@@ -213,37 +176,36 @@ function RecapContent() {
   }, [leagueId, week]);
 
   function handlePicksSaved(picks: RecapBowlPicks) {
-    setThisWeekPicks(picks);
-    if (!recapData || !money || week === null) return;
-    const fresh = formatCommishRecap({
-      data: recapData,
-      ledger: money.ledger,
-      playerNames: rosterPlayerNames,
-      matchupResultBlock: formatBowlResult(
-        week - 1,
-        previousWeekBowl?.pick.bowlOfWeek,
-        previousWeekBowl?.games ?? [],
-        rosterPlayerNames
-      ),
-      bowlOfWeekBlock: formatBowlPreview(
-        "🔥 Matchup of the Week",
-        week,
-        picks.bowlOfWeek,
-        recapData.games,
-        recapData.standingsBefore,
-        rosterPlayerNames
-      ),
-      honorableMentionBlock: formatBowlPreview(
-        "🥈 Honorable Mention",
-        week,
-        picks.honorableBowl,
-        recapData.games,
-        recapData.standingsBefore,
-        rosterPlayerNames
-      ),
-    });
-    setFreshTemplate(fresh);
-    setBowlRefresh(fresh);
+    setUpcomingPicks(picks);
+    if (!money || !header || !leagueId || week === null) return;
+
+    if (week === PRESEASON_WEEK) {
+      setBody((currentBody) =>
+        formatPreseasonTemplate({
+          leagueName: header.leagueName,
+          season: header.season,
+          upcomingBowlLines: formatUpcomingBowlBlock(picks.bowlOfWeek, PRESEASON_WEEK + 1, [], []),
+          upcomingHonorableLines: formatUpcomingHonorableBlock(picks.honorableBowl, PRESEASON_WEEK + 1, []),
+          details: extractRecapDetails(currentBody),
+        })
+      );
+      return;
+    }
+
+    if (!recapData) return;
+    const resultPick = getBowlPicks(leagueId, header.season, week);
+    setBody((currentBody) =>
+      formatCommishRecap({
+        data: recapData,
+        ledger: money.ledger,
+        playerNames: highScorerNames,
+        bowlResultLine: formatBowlResultLine("👑", resultPick.bowlOfWeek, recapData.games),
+        honorableResultLine: formatBowlResultLine("🏆", resultPick.honorableBowl, recapData.games),
+        upcomingBowlLines: formatUpcomingBowlBlock(picks.bowlOfWeek, week + 1, recapData.games, recapData.standingsAfter),
+        upcomingHonorableLines: formatUpcomingHonorableBlock(picks.honorableBowl, week + 1, recapData.games),
+        details: extractRecapDetails(currentBody),
+      })
+    );
   }
 
   if (!leagueId) {
@@ -302,22 +264,20 @@ function RecapContent() {
           season={header.season}
           week={week}
           title={header.title}
-          initialBody={body}
+          body={body}
+          onBodyChange={setBody}
           savedAt={savedAt}
-          freshTemplate={freshTemplate}
-          previousBody={previousBody}
-          bowlRefresh={bowlRefresh}
         />
       </Card>
 
-      {!isPreseason && money && thisWeekPicks ? (
+      {money && upcomingPicks ? (
         <Card className="p-5">
           <BowlPicksEditor
-            key={`${leagueId}-${week}-picks`}
+            key={`${leagueId}-${week + 1}-picks`}
             leagueId={leagueId}
             season={header.season}
-            week={week}
-            initialPicks={thisWeekPicks}
+            week={week + 1}
+            initialPicks={upcomingPicks}
             playerOptions={playerOptions}
             onSaved={handlePicksSaved}
           />
