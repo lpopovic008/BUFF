@@ -83,6 +83,33 @@ export function formatCommishRecap({
   return lines.join("\n");
 }
 
+// The three narrative beats in formatCommishRecap() that are hand-written each
+// week (the cup name, the trash talk, the storylines) rather than mechanically
+// derived from Sleeper/money data — identified by their fixed emoji header.
+const CARRY_FORWARD_HEADERS = [
+  "🏆 Matchup of the Week result:",
+  "🔥 Matchup of the Week:",
+  "🥈 Honorable Mention:",
+];
+
+/**
+ * Starts from this week's freshly generated recap (title, scoreboard, standings,
+ * money — all mechanical) and swaps in last week's hand-written narrative blocks
+ * as a starting draft, so last week's write-up carries forward as a reminder of
+ * what to write about, while everything that can be computed is already current.
+ */
+export function carryForwardRecapTemplate(previousBody: string, freshTemplate: string): string {
+  const previousBlocks = previousBody.split(/\n\n+/);
+  return freshTemplate
+    .split(/\n\n+/)
+    .map((block) => {
+      const header = CARRY_FORWARD_HEADERS.find((h) => block.startsWith(h));
+      if (!header) return block;
+      return previousBlocks.find((b) => b.startsWith(header)) ?? block;
+    })
+    .join("\n\n");
+}
+
 /** Generic recap for leagues without a commissioner profile configured. */
 export function formatRecapMarkdown(data: WeekRecapData): string {
   const lines: string[] = [];

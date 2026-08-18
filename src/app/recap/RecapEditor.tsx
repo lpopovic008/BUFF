@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { saveRecap } from "@/lib/localStore";
+import { carryForwardRecapTemplate } from "@/lib/format-recap";
 
 export function RecapEditor({
   leagueId,
@@ -10,6 +11,8 @@ export function RecapEditor({
   title,
   initialBody,
   savedAt,
+  freshTemplate,
+  previousBody,
 }: {
   leagueId: string;
   season: string;
@@ -17,6 +20,8 @@ export function RecapEditor({
   title: string;
   initialBody: string;
   savedAt: string | null;
+  freshTemplate?: string | null;
+  previousBody?: string | null;
 }) {
   const [body, setBody] = useState(initialBody);
   const [copied, setCopied] = useState(false);
@@ -26,6 +31,11 @@ export function RecapEditor({
     await navigator.clipboard.writeText(body);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  function handleLoadTemplate() {
+    if (!previousBody || !freshTemplate) return;
+    setBody(carryForwardRecapTemplate(previousBody, freshTemplate));
   }
 
   function handleSave(e: React.FormEvent) {
@@ -45,6 +55,15 @@ export function RecapEditor({
       />
 
       <div className="flex flex-wrap items-center gap-3">
+        {previousBody && freshTemplate ? (
+          <button
+            type="button"
+            onClick={handleLoadTemplate}
+            className="rounded-md border border-border px-4 py-2 text-sm font-medium text-ink-secondary hover:bg-page"
+          >
+            Load last week&rsquo;s template
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={handleCopy}

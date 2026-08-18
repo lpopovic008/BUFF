@@ -4,7 +4,6 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
 import { LeagueMatchupCarousel } from "@/components/LeagueMatchupCarousel";
 import { MoneyBoard } from "@/components/MoneyBoard";
 import { useConfig } from "@/hooks/useConfig";
@@ -74,27 +73,36 @@ function LeagueDetailContent() {
     <div className="flex flex-col gap-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-ink-primary">{summary.league.name}</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-semibold text-ink-primary">
+            {summary.league.name}
+            {tracked?.isCommish ? (
+              <svg
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className="h-4 w-4 shrink-0 text-status-good"
+                role="img"
+                aria-label="You're the commissioner"
+              >
+                <title>You&rsquo;re the commissioner</title>
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16Zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5Z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            ) : null}
+          </h1>
           <p className="mt-1 text-sm text-ink-secondary">
             {summary.league.season} season · {summary.rosters.length} teams · Week {summary.currentWeek}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {tracked?.isCommish ? <Badge tone="good">Commissioner</Badge> : null}
-          {tracked?.isCommish ? (
-            <Link
-              href={`/recap?id=${leagueId}&week=0`}
-              className="rounded-md border border-border px-4 py-2 text-sm font-medium text-ink-secondary hover:bg-page"
-            >
-              Preseason write-up
-            </Link>
-          ) : null}
           {tracked?.isCommish ? (
             <Link
               href={`/recap?id=${leagueId}`}
               className="rounded-md bg-series-1 px-4 py-2 text-sm font-medium text-white hover:opacity-90"
             >
-              Write weekly recap
+              Write recap
             </Link>
           ) : null}
           <Link

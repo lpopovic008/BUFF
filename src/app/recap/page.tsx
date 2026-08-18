@@ -8,7 +8,7 @@ import { computeWeekRecap, WeekRecapData } from "@/lib/league-data";
 import { formatRecapMarkdown, formatCommishRecap } from "@/lib/format-recap";
 import { loadLeagueMoney } from "@/lib/league-money";
 import { getRecap } from "@/lib/localStore";
-import { getCurrentWeek, getLeague } from "@/lib/sleeper";
+import { getRecapWeek, getLeague } from "@/lib/sleeper";
 import { RecapEditor } from "./RecapEditor";
 
 // week=0 is a sentinel for the preseason write-up — a free-write space that
@@ -36,14 +36,16 @@ function RecapContent() {
   const [recapData, setRecapData] = useState<WeekRecapData | null>(null);
   const [header, setHeader] = useState<RecapHeader | null>(null);
   const [body, setBody] = useState("");
+  const [freshTemplate, setFreshTemplate] = useState<string | null>(null);
+  const [previousBody, setPreviousBody] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // No week in the URL yet — resolve the current NFL week and pin it into the URL so the recap is bookmarkable.
+  // No week in the URL yet — resolve which week's write-up should be open and pin it into the URL so the recap is bookmarkable.
   useEffect(() => {
     if (!leagueId || weekParam) return;
-    getCurrentWeek().then((currentWeek) => {
-      router.replace(`/recap?id=${leagueId}&week=${currentWeek}`);
+    getRecapWeek().then((recapWeek) => {
+      router.replace(`/recap?id=${leagueId}&week=${recapWeek}`);
     });
   }, [leagueId, weekParam, router]);
 
@@ -54,6 +56,8 @@ function RecapContent() {
     (async () => {
       setRecapData(null);
       setHeader(null);
+      setFreshTemplate(null);
+      setPreviousBody(null);
       setError(null);
       try {
         if (week === PRESEASON_WEEK) {
@@ -61,8 +65,10 @@ function RecapContent() {
           if (cancelled || !league) return;
           const title = `${league.name} — Preseason`;
           setHeader({ title, season: league.season, subtitle: "Free-write — nothing to auto-generate yet." });
+          const fresh = preseasonTemplate(league.name, league.season);
+          setFreshTemplate(fresh);
           const saved = getRecap(leagueId, league.season, PRESEASON_WEEK);
-          setBody(saved ? saved.body : preseasonTemplate(league.name, league.season));
+          setBody(saved ? saved.body : fresh);
           setSavedAt(saved ? saved.savedAt : null);
           return;
         }
@@ -76,23 +82,25 @@ function RecapContent() {
           subtitle: "Auto-generated from Sleeper data. Edit freely before copying it out to your group chat.",
         });
 
-        const saved = getRecap(leagueId, data.league.season, week);
-        if (saved) {
-          setBody(saved.body);
-          setSavedAt(saved.savedAt);
-          return;
-        }
-
         // Commissioner leagues get the house-style recap with the money blocks
-        // filled in; everything else falls back to the generic markdown.
+        // filled in; everything else falls back to the generic markdown. Always
+        // computed (even if there's already a saved draft) so "Load last week's
+        // template" has this week's fresh standings/money to merge into.
         const money = await loadLeagueMoney(leagueId);
         if (cancelled) return;
-        setBody(
-          money
-            ? formatCommishRecap({ data, ledger: money.ledger, profile: money.profile })
-            : formatRecapMarkdown(data)
-        );
-        setSavedAt(null);
+        const fresh = money
+          ? formatCommishRecap({ data, ledger: money.ledger, profile: money.profile })
+          : formatRecapMarkdown(data);
+        setFreshTemplate(fresh);
+
+        if (week > PRESEASON_WEEK + 1) {
+          const previous = getRecap(leagueId, data.league.season, week - 1);
+          setPreviousBody(previous ? previous.body : null);
+        }
+
+        const saved = getRecap(leagueId, data.league.season, week);
+        setBody(saved ? saved.body : fresh);
+        setSavedAt(saved ? saved.savedAt : null);
       } catch {
         if (!cancelled) setError("Couldn't reach Sleeper's API. Check your connection and try again.");
       }
@@ -160,6 +168,8 @@ function RecapContent() {
           title={header.title}
           initialBody={body}
           savedAt={savedAt}
+          freshTemplate={freshTemplate}
+          previousBody={previousBody}
         />
       </Card>
     </div>

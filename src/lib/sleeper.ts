@@ -213,6 +213,23 @@ export async function getCurrentWeek(): Promise<number> {
   return state.week && state.week >= 1 ? state.week : 1;
 }
 
+/**
+ * Which week's recap write-up should be open right now. Unlike `getCurrentWeek`,
+ * this is 0 during the preseason (the free-write "Preseason" slot) and, once the
+ * season starts, holds on the just-finished week through Tuesday night — Sleeper's
+ * own `week` counter flips over on Tuesday, right when Monday Night Football has
+ * just settled and there's a recap left to write — before advancing to the next
+ * week's slot at Wednesday 12am.
+ */
+export async function getRecapWeek(): Promise<number> {
+  const state = await getNFLState();
+  if (!state) return 0;
+  if (state.season_type === "pre") return 0;
+  const week = state.week && state.week >= 1 ? state.week : 1;
+  const isTuesday = new Date().getDay() === 2;
+  return isTuesday && week > 1 ? week - 1 : week;
+}
+
 export function avatarUrl(avatarId: string | null | undefined): string | null {
   if (!avatarId) return null;
   return `https://sleepercdn.com/avatars/thumbs/${avatarId}`;

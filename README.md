@@ -28,13 +28,20 @@ from every linked season. Ships as a static site, hosted for free on
   team name throughout the app (standings, matchups, the dashboard) links to
   that team's full roster with KTC trade values for every player
   (`/team?league=...&roster=...`).
-- **Weekly recap generator** (`/recap?id=...`) — for leagues you commish.
-  Auto-drafts a markdown recap (top/low scorer, closest game, blowout,
-  standings movement, waiver moves) that you can edit and copy straight
-  into your league chat. Saved recaps are archived per league
-  (`/recap/archive?id=...`). Before Week 1, there's also a free-write
-  **Preseason** entry (`/recap?id=...&week=0`) for a season-preview
-  write-up, since there's no matchup data yet to auto-generate one from.
+- **Weekly recap generator** (`/recap?id=...`) — for leagues you commish. One
+  "Write recap" button, no week to pick: it opens to whichever write-up should
+  be open right now — the free-write **Preseason** entry before Week 1, then
+  each week's recap once the season starts, holding on the just-finished week
+  through Tuesday night (so there's still a recap to write) before rolling to
+  the next week at Wednesday 12am. Auto-drafts a markdown recap (top/low
+  scorer, closest game, blowout, standings movement, waiver moves) that you
+  can edit and copy straight into your league chat — commissioner leagues get
+  the house-style recap with the money blocks filled in and a **Load last
+  week's template** button that starts from last week's saved write-up, with
+  the parts that can be recomputed (title, scoreboard, standings, money)
+  refreshed for the current week and everything hand-written (the matchup
+  storylines) carried over as-is, so you know what's left to update. Saved
+  recaps are archived per league (`/recap/archive?id=...`).
 - **History** (`/league/history?id=...`, one click from inside a league) — walks Sleeper's
   linked-season chain (`previous_league_id`) to reconstruct career stats per
   manager: record, win%, points, championships, and best finish, across
