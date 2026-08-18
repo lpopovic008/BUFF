@@ -131,10 +131,10 @@ export function deleteRecap(leagueId: string, season: string, week: number): voi
   writeRecaps(recaps);
 }
 
-/** The commish's picks for a week's marquee matchup(s) — a name plus up to 4 players to build the recap's "Matchup of the Week"/"Honorable Mention" narrative around. */
+/** The commish's picks for a week's marquee matchup(s) — a name plus the two teams (by roster id) it's between, to build the recap's "Matchup of the Week"/"Honorable Mention" narrative around. */
 export interface BowlGamePick {
   name: string;
-  playerIds: string[];
+  rosterIds: number[];
 }
 
 export interface RecapBowlPicks {
@@ -142,7 +142,7 @@ export interface RecapBowlPicks {
   honorableBowl: BowlGamePick;
 }
 
-const EMPTY_BOWL_PICK: BowlGamePick = { name: "", playerIds: [] };
+const EMPTY_BOWL_PICK: BowlGamePick = { name: "", rosterIds: [] };
 const EMPTY_BOWL_PICKS: RecapBowlPicks = { bowlOfWeek: { ...EMPTY_BOWL_PICK }, honorableBowl: { ...EMPTY_BOWL_PICK } };
 
 function readBowlPicks(): Record<string, RecapBowlPicks> {

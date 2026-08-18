@@ -95,10 +95,10 @@ async function main() {
       data,
       ledger: money.ledger,
       playerNames,
-      bowlResultLine: formatBowlResultLine("👑", null, data.games),
-      honorableResultLine: formatBowlResultLine("🏆", null, data.games),
-      upcomingBowlLines: formatUpcomingBowlBlock(null, week + 1, data.games, data.standingsAfter),
-      upcomingHonorableLines: formatUpcomingHonorableBlock(null, week + 1, data.games),
+      bowlResultLine: formatBowlResultLine("👑", null, {}, data.games),
+      honorableResultLine: formatBowlResultLine("🏆", null, {}, data.games),
+      upcomingBowlLines: formatUpcomingBowlBlock(null, week + 1, {}, data.standingsAfter),
+      upcomingHonorableLines: formatUpcomingHonorableBlock(null, week + 1, {}),
     });
     const standings = standingsThroughWeek(money.ledger, week);
 

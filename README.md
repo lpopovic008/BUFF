@@ -40,9 +40,8 @@ from every linked season. Ships as a static site, hosted for free on
   week's marquee matchup(s) — that's always fully present, mechanical parts
   auto-computed and free-write "`<Detail>`" lines left for commentary. Below
   the write-up, name a **Bowl of the Week**/**Honorable Bowl of the Week** for
-  the *upcoming* week and pick one player from each side (searchable by team,
-  just so the app knows who's playing) — save it and this week's preview fills
-  in with the two teams' season PF/PA and league rank; the following week, the
+  the *upcoming* week and pick the two teams playing — save it and this week's
+  preview fills in with the two teams' season PF/PA and league rank; the following week, the
   same pick resolves into the result: who actually won, pulled straight from
   Sleeper. Nothing picked yet? Every field still shows its bracket placeholder
   (`[team] won the [Week 1 Bowl Game Name]`) so the shape of the write-up is
