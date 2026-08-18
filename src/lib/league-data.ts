@@ -496,7 +496,7 @@ export async function getLeagueSeasonHistory(leagueId: string): Promise<SeasonRe
       getLeagueUsers(currentId),
       getWinnersBracket(currentId),
     ]);
-    const standings = buildLiveStandings(rosters, users);
+    const standings = applyBracketPlacements(buildLiveStandings(rosters, users), bracket);
     const { champion, runnerUp } = deriveChampionship(bracket, standings);
     seasons.push({
       season: league.season,
@@ -509,6 +509,30 @@ export async function getLeagueSeasonHistory(leagueId: string): Promise<SeasonRe
     currentId = league.previous_league_id || null;
   }
   return seasons;
+}
+
+/**
+ * Regular-season win%/points order only reflects seeding (i.e. next year's draft slot),
+ * not who actually won the playoffs. Overlays the winners bracket's placement games
+ * (`p`: 1 = championship, 3 = 3rd place game, ...) onto final rank, so "best finish"
+ * reflects what actually happened in the bracket. Teams with no placement game (missed
+ * the playoffs, or the bracket has no 3rd-place/consolation game) keep their relative
+ * regular-season order, slotted in after every team with a bracket placement.
+ */
+function applyBracketPlacements(standings: StandingsRow[], bracket: SleeperBracketMatch[]): StandingsRow[] {
+  const placementByRoster = new Map<number, number>();
+  for (const match of bracket) {
+    if (match.p == null) continue;
+    if (match.w != null) placementByRoster.set(match.w, match.p);
+    if (match.l != null) placementByRoster.set(match.l, match.p + 1);
+  }
+  if (placementByRoster.size === 0) return standings;
+
+  const placed = standings
+    .filter((row) => placementByRoster.has(row.rosterId))
+    .sort((a, b) => placementByRoster.get(a.rosterId)! - placementByRoster.get(b.rosterId)!);
+  const unplaced = standings.filter((row) => !placementByRoster.has(row.rosterId));
+  return [...placed, ...unplaced].map((row, i) => ({ ...row, rank: i + 1 }));
 }
 
 function deriveChampionship(
