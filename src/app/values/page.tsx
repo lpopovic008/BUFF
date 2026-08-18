@@ -2,11 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/Card";
-import { SearchIcon } from "@/components/ui/Icon";
-import { LeagueRosterCarousel } from "@/components/LeagueRosterCarousel";
+import { SearchIcon, CrownIcon, CalendarIcon, SuperflexIcon, OneQBIcon, PlusCircleIcon, DotIcon } from "@/components/ui/Icon";
+import { IconButton } from "@/components/ui/IconButton";
+import { LeagueAccordion } from "@/components/LeagueAccordion";
 import { useConfig } from "@/hooks/useConfig";
 import { useMyLeagues } from "@/hooks/useMyLeagues";
-import { useLeagueTeamRosters } from "@/hooks/useLeagueTeamRosters";
 import rawSnapshot from "@/data/player-values.json";
 import { LeagueFormat, PlayerValue, PlayerValuesSnapshot, TEPremium, valueFor } from "@/lib/player-values";
 
@@ -64,9 +64,9 @@ function ValueTable({ rows, maxValue }: { rows: Row[]; maxValue: number }) {
               </td>
               <td className="py-2 pr-3">
                 <div className="flex items-center gap-2">
-                  <div className="h-2 w-10 shrink-0 overflow-hidden rounded-full bg-page sm:w-24">
+                  <div className="h-2 w-10 shrink-0 overflow-hidden bg-page sm:w-24">
                     <div
-                      className="h-full rounded-full bg-series-1"
+                      className="h-full bg-series-1"
                       style={{ width: `${Math.max(2, (value / maxValue) * 100)}%` }}
                     />
                   </div>
@@ -88,12 +88,10 @@ export default function ValuesPage() {
   const [tep, setTep] = useState<TEPremium>("standard");
   const [deselectedPositions, setDeselectedPositions] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState("");
-  const [selectedLeagueId, setSelectedLeagueId] = useState<string | null>(null);
+  const [expandedLeagueId, setExpandedLeagueId] = useState<string | null>(null);
 
   const leagueIds = useMemo(() => config.leagues.map((l) => l.leagueId), [config.leagues]);
   const myLeagues = useMyLeagues(leagueIds, config.sleeperUserId);
-  const activeLeagueId = selectedLeagueId ?? myLeagues?.[0]?.leagueId ?? null;
-  const activeRosters = useLeagueTeamRosters(activeLeagueId, config.sleeperUserId);
 
   const fullList = listType === "dynasty" ? snapshot.dynasty : snapshot.fantasy;
 
@@ -131,105 +129,82 @@ export default function ValuesPage() {
       <h1 className="sr-only">Values</h1>
 
       {myLeagues && myLeagues.length > 0 ? (
-        <Card className="p-5">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">My Teams</h2>
-            <select
-              value={activeLeagueId ?? ""}
-              onChange={(e) => setSelectedLeagueId(e.target.value)}
-              className="rounded-md border border-border bg-page px-3 py-1.5 text-sm text-ink-primary outline-none focus:border-series-1"
-            >
-              {myLeagues.map((l) => (
-                <option key={l.leagueId} value={l.leagueId}>
-                  {l.leagueName}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {activeRosters ? (
-            <>
-              <p className="mb-3 text-xs text-ink-muted">
-                {activeRosters.metric.listType === "dynasty" ? "Dynasty" : "Fantasy"} ·{" "}
-                {activeRosters.metric.format === "superflex" ? "Superflex" : "1QB"} values — swipe to see
-                other teams
-              </p>
-              <LeagueRosterCarousel
-                key={activeRosters.leagueId}
-                leagueId={activeRosters.leagueId}
-                teams={activeRosters.teams}
-                myRosterId={activeRosters.myRosterId}
-              />
-            </>
-          ) : (
-            <p className="py-8 text-center text-sm text-ink-secondary">Loading roster…</p>
-          )}
+        <Card className="px-5">
+          {myLeagues.map((l) => (
+            <LeagueAccordion
+              key={l.leagueId}
+              leagueId={l.leagueId}
+              leagueName={l.leagueName}
+              sleeperUserId={config.sleeperUserId}
+              isOpen={expandedLeagueId === l.leagueId}
+              onToggle={() => setExpandedLeagueId((cur) => (cur === l.leagueId ? null : l.leagueId))}
+            />
+          ))}
         </Card>
       ) : null}
 
       {!hasData ? (
         <Card className="p-8 text-center text-sm text-ink-secondary">
-          Values haven&rsquo;t been fetched yet. This page fills in automatically once the daily
-          player-values workflow runs — no action needed.
+          Values haven&rsquo;t been fetched yet.
         </Card>
       ) : (
-        <Card className="p-5">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="inline-flex rounded-md border border-border p-0.5">
-              {(["dynasty", "fantasy"] as ListType[]).map((f) => (
-                <button
-                  key={f}
-                  type="button"
-                  onClick={() => setListType(f)}
-                  className={`rounded px-3 py-1.5 text-sm font-medium transition-colors ${
-                    listType === f ? "bg-series-1 text-white" : "text-ink-secondary hover:bg-page"
-                  }`}
-                >
-                  {f === "dynasty" ? "Dynasty" : "Fantasy"}
-                </button>
-              ))}
-            </div>
-            <div className="relative w-full max-w-[220px]">
-              <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search a player…"
-                aria-label="Search a player"
-                className="w-full rounded-md border border-border bg-page py-1.5 pl-8 pr-3 text-sm text-ink-primary outline-none focus:border-series-1"
-              />
-            </div>
+        <Card className="p-3 sm:p-5">
+          <div className="relative mb-4">
+            <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search a player…"
+              aria-label="Search a player"
+              className="w-full border border-border bg-page py-1.5 pl-8 pr-3 text-sm text-ink-primary outline-none transition-colors focus:border-series-1"
+            />
           </div>
 
-          <div className="mb-4 flex flex-wrap items-center gap-3">
-            <div className="inline-flex rounded-md border border-border p-0.5">
-              {(["oneQB", "superflex"] as LeagueFormat[]).map((f) => (
-                <button
-                  key={f}
-                  type="button"
-                  onClick={() => setLeagueFormat(f)}
-                  className={`rounded px-3 py-1.5 text-sm font-medium transition-colors ${
-                    leagueFormat === f ? "bg-series-1 text-white" : "text-ink-secondary hover:bg-page"
-                  }`}
-                >
-                  {f === "oneQB" ? "1QB" : "Superflex"}
-                </button>
-              ))}
-            </div>
-            <div className="inline-flex rounded-md border border-border p-0.5">
-              {(["standard", "tep"] as TEPremium[]).map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setTep(t)}
-                  className={`rounded px-3 py-1.5 text-sm font-medium transition-colors ${
-                    tep === t ? "bg-series-1 text-white" : "text-ink-secondary hover:bg-page"
-                  }`}
-                >
-                  {t === "standard" ? "Standard" : "TE Premium"}
-                </button>
-              ))}
-            </div>
+          <div className="mb-4 flex items-center gap-1">
+            <IconButton
+              icon={<CrownIcon />}
+              label="Dynasty"
+              size="sm"
+              variant={listType === "dynasty" ? "primary" : "default"}
+              onClick={() => setListType("dynasty")}
+            />
+            <IconButton
+              icon={<CalendarIcon />}
+              label="Fantasy (redraft)"
+              size="sm"
+              variant={listType === "fantasy" ? "primary" : "default"}
+              onClick={() => setListType("fantasy")}
+            />
+            <span className="h-5 w-px shrink-0 bg-border" aria-hidden />
+            <IconButton
+              icon={<SuperflexIcon />}
+              label="Superflex"
+              size="sm"
+              variant={leagueFormat === "superflex" ? "primary" : "default"}
+              onClick={() => setLeagueFormat("superflex")}
+            />
+            <IconButton
+              icon={<OneQBIcon />}
+              label="1QB"
+              size="sm"
+              variant={leagueFormat === "oneQB" ? "primary" : "default"}
+              onClick={() => setLeagueFormat("oneQB")}
+            />
+            <span className="h-5 w-px shrink-0 bg-border" aria-hidden />
+            <IconButton
+              icon={<DotIcon />}
+              label="Standard scoring"
+              size="sm"
+              variant={tep === "standard" ? "primary" : "default"}
+              onClick={() => setTep("standard")}
+            />
+            <IconButton
+              icon={<PlusCircleIcon />}
+              label="TE Premium"
+              size="sm"
+              variant={tep === "tep" ? "primary" : "default"}
+              onClick={() => setTep("tep")}
+            />
           </div>
 
           <div className="mb-4 flex flex-wrap items-center gap-1.5">
@@ -241,7 +216,7 @@ export default function ValuesPage() {
                   type="button"
                   onClick={() => togglePosition(pos)}
                   aria-pressed={active}
-                  className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                  className={`border px-3 py-1 text-xs font-medium transition-colors ${
                     active
                       ? "border-series-1 bg-series-1/10 text-series-1"
                       : "border-border text-ink-muted line-through hover:bg-page"
@@ -255,7 +230,7 @@ export default function ValuesPage() {
               <button
                 type="button"
                 onClick={() => setDeselectedPositions(new Set())}
-                className="rounded-full px-3 py-1 text-xs font-medium text-ink-muted underline-offset-2 hover:underline"
+                className="px-3 py-1 text-xs font-medium text-ink-muted underline-offset-2 hover:underline"
               >
                 Reset
               </button>

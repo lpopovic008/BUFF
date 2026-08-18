@@ -37,9 +37,7 @@ export function NavBar() {
 
         <div className="flex items-center justify-self-end gap-4">
           {record ? (
-            <span className="hidden text-lg font-semibold tracking-tight sm:inline">
-              <span className="text-ink-muted">Record</span> <span className="text-ink-primary">{record}</span>
-            </span>
+            <span className="hidden text-lg font-semibold tracking-tight text-ink-primary sm:inline">{record}</span>
           ) : null}
           <IconButton
             icon={<MenuIcon />}
@@ -50,7 +48,7 @@ export function NavBar() {
         </div>
       </div>
       {open ? (
-        <nav className="absolute right-6 top-full z-20 mt-1 flex w-40 flex-col overflow-hidden rounded-md border border-border bg-surface-raised shadow-md">
+        <nav className="absolute right-6 top-full z-20 mt-1 flex w-40 flex-col overflow-hidden border border-border bg-surface-raised shadow-md animate-[dropdown_0.15s_ease-out]">
           {links.map((link) => (
             <Link
               key={link.href}

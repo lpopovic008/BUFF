@@ -4,17 +4,17 @@ import { RankedPlayer } from "@/lib/matchup-players";
 import { formatPoints } from "@/lib/format";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 
-function PlayerFace({ player, flip }: { player: RankedPlayer | undefined; flip?: boolean }) {
-  if (!player) return <div />;
+function PlayerFaces({ players }: { players: RankedPlayer[] }) {
   return (
-    <div className={`flex min-w-0 items-center gap-2 ${flip ? "flex-row-reverse text-right" : ""}`}>
-      <PlayerHeadshot playerId={player.playerId} size={40} />
-      <span className="min-w-0 truncate text-xs text-ink-secondary">{player.name}</span>
+    <div className="flex gap-1.5">
+      {players.map((p) => (
+        <PlayerHeadshot key={p.playerId} playerId={p.playerId} size={36} />
+      ))}
     </div>
   );
 }
 
-/** The dashboard's per-league matchup section: team names + score left/right, and each side's top 3 players by KTC value facing off row by row. */
+/** The dashboard's per-league matchup section: team names + score left/right, and each side's top 3 players pictured. */
 export function DashboardMatchupCard({
   leagueId,
   matchup,
@@ -23,10 +23,6 @@ export function DashboardMatchupCard({
   matchup: DashboardMatchupView | null | undefined;
 }) {
   if (!matchup) return null;
-
-  const rows = matchup.opponent
-    ? Math.max(matchup.my.topPlayers.length, matchup.opponent.topPlayers.length)
-    : 0;
 
   return (
     <div className="flex flex-col gap-3 border-t border-grid pt-3">
@@ -50,14 +46,10 @@ export function DashboardMatchupCard({
         <span>{formatPoints(matchup.my.points)}</span>
         {matchup.opponent ? <span>{formatPoints(matchup.opponent.points)}</span> : null}
       </div>
-      {rows > 0 ? (
-        <div className="flex flex-col gap-2">
-          {Array.from({ length: rows }, (_, i) => (
-            <div key={i} className="flex items-center justify-between gap-3">
-              <PlayerFace player={matchup.my.topPlayers[i]} />
-              <PlayerFace player={matchup.opponent?.topPlayers[i]} flip />
-            </div>
-          ))}
+      {matchup.my.topPlayers.length > 0 || matchup.opponent?.topPlayers.length ? (
+        <div className="flex items-center justify-between gap-3">
+          <PlayerFaces players={matchup.my.topPlayers} />
+          {matchup.opponent ? <PlayerFaces players={matchup.opponent.topPlayers} /> : null}
         </div>
       ) : null}
     </div>

@@ -36,9 +36,9 @@ export function CareerLeaderboard({ managers }: { managers: ManagerCareerStats[]
               </td>
               <td className="py-2 pr-3">
                 <div className="flex items-center gap-2">
-                  <div className="h-2 w-24 overflow-hidden rounded-full bg-page">
+                  <div className="h-2 w-24 overflow-hidden bg-page">
                     <div
-                      className="h-full rounded-full bg-series-1"
+                      className="h-full bg-series-1 transition-[width] duration-500"
                       style={{ width: `${(m.championships / maxChampionships) * 100}%` }}
                     />
                   </div>

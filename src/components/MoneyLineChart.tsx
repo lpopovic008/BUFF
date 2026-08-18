@@ -230,7 +230,7 @@ export function MoneyLineChart({ series }: { series: CumulativeSeries[] }) {
 
       {hoverWeek != null ? (
         <div
-          className="pointer-events-none absolute top-2 z-10 rounded-md border border-border bg-surface-raised px-3 py-2 text-xs shadow-md"
+          className="pointer-events-none absolute top-2 z-10 border border-border bg-surface-raised px-3 py-2 text-xs shadow-md animate-[fade-in_0.1s_ease-out]"
           style={{
             left: `${(xFor(hoverWeek) / WIDTH) * 100}%`,
             transform: xFor(hoverWeek) > WIDTH * 0.6 ? "translateX(-105%)" : "translateX(10px)",

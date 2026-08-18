@@ -19,7 +19,7 @@ function TeamSelect({
     <select
       value={value}
       onChange={(e) => onChange(e.target.value ? Number(e.target.value) : "")}
-      className="w-full rounded-md border border-border bg-page px-2 py-1.5 text-sm text-ink-primary outline-none focus:border-series-1"
+      className="w-full border border-border bg-page px-2 py-1.5 text-sm text-ink-primary outline-none focus:border-series-1"
     >
       <option value="">— Select a team —</option>
       {options.map((t) => (
@@ -56,7 +56,7 @@ function BowlPickPanel({
         value={pick.name}
         onChange={(e) => onChange({ ...pick, name: e.target.value })}
         placeholder="Name this matchup…"
-        className="w-full rounded-md border border-border bg-page px-3 py-1.5 text-sm text-ink-primary outline-none focus:border-series-1"
+        className="w-full border border-border bg-page px-3 py-1.5 text-sm text-ink-primary outline-none focus:border-series-1"
       />
       {options ? (
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">

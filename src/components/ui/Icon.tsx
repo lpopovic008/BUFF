@@ -187,3 +187,61 @@ export function ClockIcon(props: IconProps) {
     </svg>
   );
 }
+
+export function CrownIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M3.5 15.5h13l-1-8-3.5 3-2-5.5-2 5.5-3.5-3z" />
+      <line x1="3.5" y1="15.5" x2="16.5" y2="15.5" />
+    </svg>
+  );
+}
+
+export function CalendarIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <rect x="3.5" y="4.5" width="13" height="12" />
+      <line x1="3.5" y1="8" x2="16.5" y2="8" />
+      <line x1="7" y1="3" x2="7" y2="6" />
+      <line x1="13" y1="3" x2="13" y2="6" />
+    </svg>
+  );
+}
+
+export function OneQBIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="10" cy="6.5" r="3" />
+      <path d="M4 17c0-3.3 2.7-6 6-6s6 2.7 6 6" />
+    </svg>
+  );
+}
+
+export function SuperflexIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="7" cy="6.5" r="2.6" />
+      <circle cx="13" cy="6.5" r="2.6" />
+      <path d="M2.5 17c0-2.8 2-5 4.5-5s4.5 2.2 4.5 5" />
+      <path d="M8.5 17c0-2.8 2-5 4.5-5s4.5 2.2 4.5 5" />
+    </svg>
+  );
+}
+
+export function DotIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="10" cy="10.5" r="2" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function PlusCircleIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="10" cy="10.5" r="6.5" />
+      <line x1="10" y1="7.5" x2="10" y2="13.5" />
+      <line x1="7" y1="10.5" x2="13" y2="10.5" />
+    </svg>
+  );
+}

@@ -254,7 +254,7 @@ function RecapContent() {
           {week > PRESEASON_WEEK + 1 ? (
             <Link
               href={`/recap?id=${leagueId}&week=${week - 1}`}
-              className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 font-medium text-ink-secondary hover:bg-page"
+              className="flex items-center gap-1 border border-border px-3 py-1.5 font-medium text-ink-secondary transition-colors hover:bg-page"
             >
               <ChevronLeftIcon className="h-4 w-4" /> Week {week - 1}
             </Link>
@@ -262,14 +262,14 @@ function RecapContent() {
           {week === PRESEASON_WEEK + 1 ? (
             <Link
               href={`/recap?id=${leagueId}&week=${PRESEASON_WEEK}`}
-              className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 font-medium text-ink-secondary hover:bg-page"
+              className="flex items-center gap-1 border border-border px-3 py-1.5 font-medium text-ink-secondary transition-colors hover:bg-page"
             >
               <ChevronLeftIcon className="h-4 w-4" /> Preseason
             </Link>
           ) : null}
           <Link
             href={`/recap?id=${leagueId}&week=${week + 1}`}
-            className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 font-medium text-ink-secondary hover:bg-page"
+            className="flex items-center gap-1 border border-border px-3 py-1.5 font-medium text-ink-secondary transition-colors hover:bg-page"
           >
             {isPreseason ? "Week 1" : `Week ${week + 1}`} <ChevronRightIcon className="h-4 w-4" />
           </Link>

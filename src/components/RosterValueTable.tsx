@@ -1,52 +1,35 @@
 import { RankedPlayer } from "@/lib/matchup-players";
 
-/** Rank/name/position/KTC-value table for a full roster — shared by the team page and the Values tab's per-league sections. */
-export function RosterValueTable({ players }: { players: RankedPlayer[] }) {
-  const maxValue = Math.max(1, ...players.map((p) => p.ktcValue ?? 0));
+const POSITION_COLOR: Record<string, string> = {
+  QB: "text-series-8",
+  RB: "text-series-6",
+  WR: "text-series-1",
+  TE: "text-series-4",
+};
 
+/** Name/position/team/KTC-value rows for a full roster — shared by the team page and the Values tab's per-league sections. */
+export function RosterValueTable({ players }: { players: RankedPlayer[] }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-grid text-left text-xs uppercase tracking-wide text-ink-muted">
-            <th className="py-2 pr-3 font-medium">Rank</th>
-            <th className="py-2 pr-3 font-medium">Player</th>
-            <th className="hidden py-2 pr-3 font-medium sm:table-cell">Pos</th>
-            <th className="py-2 pr-3 font-medium">Value</th>
-          </tr>
-        </thead>
-        <tbody>
-          {players.map((p, i) => (
-            <tr key={p.playerId} className="border-b border-grid last:border-0">
-              <td className="py-2 pr-3 tabular-nums text-ink-secondary">{i + 1}</td>
-              <td className="max-w-[9rem] py-2 pr-3 font-medium text-ink-primary sm:max-w-none">
-                <span className="block truncate">{p.name}</span>
-                <span className="block text-xs font-normal text-ink-muted sm:hidden">
-                  {p.position}
-                  {p.team ? ` · ${p.team}` : ""}
-                </span>
-                {p.team ? <span className="ml-1.5 hidden text-xs font-normal text-ink-muted sm:inline">{p.team}</span> : null}
-              </td>
-              <td className="hidden py-2 pr-3 text-ink-secondary sm:table-cell">{p.position}</td>
-              <td className="py-2 pr-3">
-                {p.ktcValue !== null ? (
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-10 shrink-0 overflow-hidden rounded-full bg-page sm:w-24">
-                      <div
-                        className="h-full rounded-full bg-series-1"
-                        style={{ width: `${Math.max(2, (p.ktcValue / maxValue) * 100)}%` }}
-                      />
-                    </div>
-                    <span className="shrink-0 tabular-nums text-ink-secondary">{p.ktcValue}</span>
-                  </div>
-                ) : (
-                  <span className="text-ink-muted">—</span>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="flex w-full flex-col">
+      {players.map((p) => (
+        <div
+          key={p.playerId}
+          className="flex w-full items-center justify-between gap-3 border-b border-grid py-2.5 last:border-0"
+        >
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className={`w-7 shrink-0 text-xs font-bold ${POSITION_COLOR[p.position] ?? "text-ink-muted"}`}>
+              {p.position}
+            </span>
+            <div className="min-w-0">
+              <div className="truncate text-sm font-medium text-ink-primary">{p.name}</div>
+              {p.team ? <div className="text-xs text-ink-muted">{p.team}</div> : null}
+            </div>
+          </div>
+          <div className="shrink-0 text-sm font-semibold tabular-nums text-ink-primary">
+            {p.ktcValue ?? "—"}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

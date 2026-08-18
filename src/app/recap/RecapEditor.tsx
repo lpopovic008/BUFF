@@ -65,7 +65,7 @@ export function RecapEditor({
         value={body}
         onChange={(e) => onBodyChange(e.target.value)}
         rows={20}
-        className="w-full rounded-md border border-border bg-page p-4 font-mono text-sm text-ink-primary outline-none focus:border-series-1"
+        className="w-full border border-border bg-page p-4 font-mono text-sm text-ink-primary outline-none transition-colors focus:border-series-1"
       />
 
       <div className="flex flex-wrap items-center gap-2">

@@ -8,7 +8,7 @@ export default function GlobalError({
   reset: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-surface-raised p-12 text-center">
+    <div className="flex flex-col items-center gap-3 border border-border bg-surface-raised p-12 text-center">
       <h1 className="text-xl font-semibold text-ink-primary">Couldn&rsquo;t load this page</h1>
       <p className="max-w-md text-sm text-ink-secondary">
         {error.message.includes("Sleeper API")
@@ -17,7 +17,7 @@ export default function GlobalError({
       </p>
       <button
         onClick={reset}
-        className="mt-2 rounded-md bg-series-1 px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+        className="mt-2 bg-series-1 px-4 py-2 text-sm font-medium text-white transition-transform hover:opacity-90 active:scale-95"
       >
         Try again
       </button>

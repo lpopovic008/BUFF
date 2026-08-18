@@ -11,7 +11,7 @@ import { MatchupTarget, useDashboardMatchups } from "@/hooks/useDashboardMatchup
 import { getLeagueSummary, LeagueSummary } from "@/lib/league-data";
 import { getCurrentWeek } from "@/lib/sleeper";
 import { TrackedLeague } from "@/lib/localStore";
-import { formatPoints, formatRecord, ordinal } from "@/lib/format";
+import { formatRecord, ordinal } from "@/lib/format";
 
 interface LoadedLeague {
   tracked: TrackedLeague;
@@ -91,7 +91,7 @@ export default function DashboardPage() {
         </p>
         <Link
           href="/settings"
-          className="mt-2 rounded-md bg-series-1 px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+          className="mt-2 bg-series-1 px-4 py-2 text-sm font-medium text-white transition-transform hover:opacity-90 active:scale-95"
         >
           Go to Settings
         </Link>
@@ -115,29 +115,13 @@ export default function DashboardPage() {
                 >
                   {summary.league.name}
                 </Link>
-                <div className="mt-0.5 text-xs text-ink-muted">
-                  {summary.league.season} season · {summary.rosters.length} teams
-                </div>
               </div>
 
               {myRow ? (
-                <div className="flex items-end gap-6">
-                  <div className="text-xl font-semibold tabular-nums text-ink-primary">
-                    {ordinal(myRow.rank)}
-                  </div>
-                  <div className="text-xl font-semibold tabular-nums text-ink-primary">
-                    {formatRecord(myRow.wins, myRow.losses, myRow.ties)}
-                  </div>
-                  <div>
-                    <div className="text-xs uppercase tracking-wide text-ink-muted">PF</div>
-                    <div className="text-xl font-semibold tabular-nums text-ink-primary">
-                      {formatPoints(myRow.pointsFor)}
-                    </div>
-                  </div>
+                <div className="text-xl font-semibold tabular-nums text-ink-primary">
+                  {ordinal(myRow.rank)}, {formatRecord(myRow.wins, myRow.losses, myRow.ties)}
                 </div>
-              ) : (
-                <p className="text-sm text-ink-muted">Your team wasn&rsquo;t found in this league&rsquo;s rosters.</p>
-              )}
+              ) : null}
 
               {myRow ? (
                 <DashboardMatchupCard leagueId={tracked.leagueId} matchup={matchups[tracked.leagueId]} />

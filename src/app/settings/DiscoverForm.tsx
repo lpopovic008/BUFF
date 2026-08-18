@@ -50,7 +50,7 @@ export function DiscoverForm({
           onChange={(e) => setUsername(e.target.value)}
           placeholder="your Sleeper username"
           required
-          className="rounded-md border border-border bg-page px-3 py-2 text-sm text-ink-primary outline-none focus:border-series-1"
+          className="border border-border bg-page px-3 py-2 text-sm text-ink-primary outline-none focus:border-series-1"
         />
       </label>
       <label className="flex w-32 flex-col gap-1">
@@ -60,7 +60,7 @@ export function DiscoverForm({
           onChange={(e) => setSeason(e.target.value)}
           placeholder="2026"
           required
-          className="rounded-md border border-border bg-page px-3 py-2 text-sm text-ink-primary outline-none focus:border-series-1"
+          className="border border-border bg-page px-3 py-2 text-sm text-ink-primary outline-none focus:border-series-1"
         />
       </label>
       <IconButton

@@ -93,7 +93,7 @@ function SeasonAccordion({
   return (
     <details
       open={defaultOpen}
-      className="group rounded-lg border border-border bg-surface-raised open:pb-5"
+      className="group border border-border bg-surface-raised open:pb-5"
     >
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
         <div className="flex items-baseline gap-3">

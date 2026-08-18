@@ -20,9 +20,9 @@ function EarningsChart({ money: m }: { money: LeagueMoney }) {
             <div className="w-20 shrink-0 truncate text-sm text-ink-secondary" title={mgr.name}>
               {mgr.name}
             </div>
-            <div className="relative h-5 flex-1 overflow-hidden rounded-r bg-page">
+            <div className="relative h-5 flex-1 overflow-hidden bg-page">
               <div
-                className="h-full rounded-r-[4px] bg-series-1"
+                className="h-full bg-series-1 transition-[width] duration-500"
                 style={{ width: `${Math.max(pct, 1.5)}%` }}
               />
             </div>
@@ -81,7 +81,7 @@ function WeekGrid({ money: m }: { money: LeagueMoney }) {
                       {!played ? (
                         <span className="text-ink-muted">·</span>
                       ) : isHigh ? (
-                        <span className="rounded bg-series-1/12 px-1.5 py-0.5 font-semibold text-series-1">
+                        <span className="bg-series-1/12 px-1.5 py-0.5 font-semibold text-series-1">
                           {money(amount)}
                         </span>
                       ) : amount > 0 ? (
@@ -102,7 +102,7 @@ function WeekGrid({ money: m }: { money: LeagueMoney }) {
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-ink-secondary">
         <span className="inline-flex items-center gap-1.5">
-          <span className="rounded bg-series-1/12 px-1.5 py-0.5 font-semibold text-series-1">
+          <span className="bg-series-1/12 px-1.5 py-0.5 font-semibold text-series-1">
             {money(highScore)}
           </span>
           week&rsquo;s high score

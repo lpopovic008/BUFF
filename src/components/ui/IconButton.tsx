@@ -15,7 +15,8 @@ const sizeClasses: Record<Size, string> = {
   sm: "h-6 w-7",
 };
 
-const baseClass = "flex shrink-0 items-center justify-center rounded-md transition-colors disabled:opacity-30 disabled:hover:bg-transparent";
+const baseClass =
+  "flex shrink-0 items-center justify-center transition-all duration-150 disabled:opacity-30 disabled:hover:bg-transparent active:scale-90";
 
 /** A square icon-only button — label doubles as aria-label and a hover tooltip since there's no visible text. */
 export function IconButton({
