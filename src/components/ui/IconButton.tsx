@@ -1,14 +1,13 @@
 import { ButtonHTMLAttributes, ReactNode } from "react";
 import Link, { LinkProps } from "next/link";
 
-type Variant = "default" | "primary" | "danger" | "invert";
+type Variant = "default" | "primary" | "danger";
 type Size = "md" | "sm";
 
 const variantClasses: Record<Variant, string> = {
   default: "border border-border text-ink-secondary hover:bg-page hover:text-ink-primary",
   primary: "bg-series-1 text-white hover:opacity-90",
   danger: "border border-border text-status-critical hover:bg-status-critical/10",
-  invert: "border border-white/25 text-white hover:bg-white/10",
 };
 
 const sizeClasses: Record<Size, string> = {

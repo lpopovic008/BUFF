@@ -36,13 +36,13 @@ export function DashboardMatchupCard({
         {matchup.opponent ? (
           <Link
             href={`/team?league=${leagueId}&roster=${matchup.opponent.rosterId}`}
-            className="min-w-0 truncate text-right text-sm font-medium text-white hover:underline"
+            className="min-w-0 truncate text-right text-sm font-medium text-ink-primary hover:underline"
           >
             {matchup.opponent.teamName}
           </Link>
         ) : null}
       </div>
-      <div className="flex items-baseline justify-between gap-3 text-lg font-semibold tabular-nums text-white">
+      <div className="flex items-baseline justify-between gap-3 text-lg font-semibold tabular-nums text-ink-primary">
         <span>{formatPoints(matchup.my.points)}</span>
         {matchup.opponent ? <span>{formatPoints(matchup.opponent.points)}</span> : null}
       </div>

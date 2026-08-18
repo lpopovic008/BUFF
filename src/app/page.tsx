@@ -107,11 +107,11 @@ export default function DashboardPage() {
         {leagues.map(({ tracked, summary }) => {
           const myRow = summary.standings.find((r) => r.ownerId === config.sleeperUserId);
           return (
-            <div key={tracked.leagueId} className="flex min-w-0 flex-col gap-4 bg-black p-5 text-white">
+            <div key={tracked.leagueId} className="flex min-w-0 flex-col gap-4 border border-border bg-page p-5">
               <div className="min-w-0">
                 <Link
                   href={`/league?id=${tracked.leagueId}`}
-                  className="block truncate text-base font-semibold text-white hover:underline sm:text-lg"
+                  className="block truncate text-base font-semibold text-ink-primary hover:underline sm:text-lg"
                 >
                   {summary.league.name}
                 </Link>
@@ -130,22 +130,20 @@ export default function DashboardPage() {
                       href={`/recap?id=${tracked.leagueId}`}
                       icon={<DocumentIcon />}
                       label="Weekly recap"
-                      variant="invert"
                     />
                   ) : null}
                   <IconLink
                     href={`/league/history?id=${tracked.leagueId}`}
                     icon={<ClockIcon />}
                     label="History"
-                    variant="invert"
                   />
                 </div>
                 {myRow ? (
                   <>
-                    <div className="text-center text-xl font-semibold tabular-nums text-white">
+                    <div className="text-center text-xl font-semibold tabular-nums text-ink-primary">
                       {ordinal(myRow.rank)}
                     </div>
-                    <div className="text-right text-xl font-semibold tabular-nums text-white">
+                    <div className="text-right text-xl font-semibold tabular-nums text-ink-primary">
                       {formatRecord(myRow.wins, myRow.losses, myRow.ties)}
                     </div>
                   </>
