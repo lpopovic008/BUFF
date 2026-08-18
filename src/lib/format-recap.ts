@@ -8,18 +8,25 @@ import { formatPoints, ordinal } from "./format";
  * headers, the high-score callout, the commission list with the high scorer
  * flagged, a full scoreboard with check marks, and the running money standings.
  *
- * Everything here is mechanical and derived from Sleeper. The narrative beats —
- * naming the Matchup of the Week, the trash talk, the storylines — are left as
- * clearly marked prompts, since those are the parts only the commish can write.
+ * Everything here is mechanical and derived from Sleeper — including, now, the
+ * "Matchup of the Week" narrative blocks, built from the commish's bowl-game
+ * picks (see bowl-narrative.ts) and passed in pre-composed, with brackets
+ * filled in for anything not resolvable yet (no pick made, game not played).
  */
 export function formatCommishRecap({
   data,
   ledger,
   profile,
+  matchupResultBlock,
+  bowlOfWeekBlock,
+  honorableMentionBlock,
 }: {
   data: WeekRecapData;
   ledger: PayoutLedger;
   profile: LeagueProfile;
+  matchupResultBlock: string;
+  bowlOfWeekBlock: string;
+  honorableMentionBlock: string;
 }): string {
   const week = data.week;
   const summary = summarizeWeek(ledger, week);
@@ -36,8 +43,14 @@ export function formatCommishRecap({
     lines.push("");
   }
 
-  lines.push("🏆 Matchup of the Week result:");
-  lines.push("<who won the cup you named last week, and which two players carried them>");
+  if (data.topPlayer) {
+    lines.push(
+      `⭐ ${data.topPlayer.name} (${data.topPlayer.teamName}) was the highest-scoring player in the league this week with ${formatPoints(data.topPlayer.points)} points!`
+    );
+    lines.push("");
+  }
+
+  lines.push(matchupResultBlock);
   lines.push("");
 
   if (summary && summary.winners.length > 0) {
@@ -73,41 +86,53 @@ export function formatCommishRecap({
     lines.push("");
   }
 
-  lines.push(`🔥 Matchup of the Week: <NAME THE CUP>`);
-  lines.push("<the two teams, their PF/PA ranks, and why it matters. WHO WILL PREVAIL?!>");
+  lines.push(bowlOfWeekBlock);
   lines.push("");
-  lines.push("🥈 Honorable Mention: <NAME IT>");
-  lines.push("<second matchup worth calling out. Good luck to all!>");
+  lines.push(honorableMentionBlock);
   lines.push("");
 
   return lines.join("\n");
 }
 
-// The three narrative beats in formatCommishRecap() that are hand-written each
-// week (the cup name, the trash talk, the storylines) rather than mechanically
-// derived from Sleeper/money data — identified by their fixed emoji header.
-const CARRY_FORWARD_HEADERS = [
+// The three "Matchup of the Week" narrative blocks in formatCommishRecap() —
+// now auto-composed from bowl-game picks (see bowl-narrative.ts) rather than
+// hand-typed, identified by their fixed emoji header for block-splicing below.
+const BOWL_SECTION_HEADERS = [
   "🏆 Matchup of the Week result:",
   "🔥 Matchup of the Week:",
   "🥈 Honorable Mention:",
 ];
 
-/**
- * Starts from this week's freshly generated recap (title, scoreboard, standings,
- * money — all mechanical) and swaps in last week's hand-written narrative blocks
- * as a starting draft, so last week's write-up carries forward as a reminder of
- * what to write about, while everything that can be computed is already current.
- */
-export function carryForwardRecapTemplate(previousBody: string, freshTemplate: string): string {
-  const previousBlocks = previousBody.split(/\n\n+/);
-  return freshTemplate
+/** Swaps blank-line-separated blocks in `baseBody` for the block with the same header from `replacementBody`, wherever `headers` matches. Blocks with no matching header (or no match found in the replacement) are left untouched. */
+function spliceBlocksByHeader(baseBody: string, replacementBody: string, headers: string[]): string {
+  const replacementBlocks = replacementBody.split(/\n\n+/);
+  return baseBody
     .split(/\n\n+/)
     .map((block) => {
-      const header = CARRY_FORWARD_HEADERS.find((h) => block.startsWith(h));
+      const header = headers.find((h) => block.startsWith(h));
       if (!header) return block;
-      return previousBlocks.find((b) => b.startsWith(header)) ?? block;
+      return replacementBlocks.find((b) => b.startsWith(header)) ?? block;
     })
     .join("\n\n");
+}
+
+/**
+ * Starts from this week's freshly generated recap (title, scoreboard, standings,
+ * money — all mechanical) and swaps in last week's saved narrative blocks as a
+ * starting draft, so last week's write-up carries forward as a reminder of what
+ * changed, while everything that can be computed is already current.
+ */
+export function carryForwardRecapTemplate(previousBody: string, freshTemplate: string): string {
+  return spliceBlocksByHeader(freshTemplate, previousBody, BOWL_SECTION_HEADERS);
+}
+
+/**
+ * Re-runs just the "Matchup of the Week" auto-text into the currently-edited
+ * body (e.g. right after the commish saves/changes a bowl-game pick), without
+ * touching anything else they've already typed.
+ */
+export function refreshBowlSections(currentBody: string, regeneratedTemplate: string): string {
+  return spliceBlocksByHeader(currentBody, regeneratedTemplate, BOWL_SECTION_HEADERS);
 }
 
 /** Generic recap for leagues without a commissioner profile configured. */

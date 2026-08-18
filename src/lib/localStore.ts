@@ -5,6 +5,7 @@
 
 const CONFIG_KEY = "buff:config";
 const RECAPS_KEY = "buff:recaps";
+const BOWL_PICKS_KEY = "buff:bowl-picks";
 
 export interface TrackedLeague {
   leagueId: string;
@@ -130,13 +131,63 @@ export function deleteRecap(leagueId: string, season: string, week: number): voi
   writeRecaps(recaps);
 }
 
+/** The commish's picks for a week's marquee matchup(s) — a name plus up to 4 players to build the recap's "Matchup of the Week"/"Honorable Mention" narrative around. */
+export interface BowlGamePick {
+  name: string;
+  playerIds: string[];
+}
+
+export interface RecapBowlPicks {
+  bowlOfWeek: BowlGamePick;
+  honorableBowl: BowlGamePick;
+}
+
+const EMPTY_BOWL_PICK: BowlGamePick = { name: "", playerIds: [] };
+const EMPTY_BOWL_PICKS: RecapBowlPicks = { bowlOfWeek: { ...EMPTY_BOWL_PICK }, honorableBowl: { ...EMPTY_BOWL_PICK } };
+
+function readBowlPicks(): Record<string, RecapBowlPicks> {
+  if (!isBrowser()) return {};
+  try {
+    const raw = window.localStorage.getItem(BOWL_PICKS_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, RecapBowlPicks>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeBowlPicks(picks: Record<string, RecapBowlPicks>): void {
+  if (!isBrowser()) return;
+  window.localStorage.setItem(BOWL_PICKS_KEY, JSON.stringify(picks));
+}
+
+/** Stored separately from SavedRecap so setting picks doesn't imply a recap draft has been saved. */
+export function getBowlPicks(leagueId: string, season: string, week: number): RecapBowlPicks {
+  const all = readBowlPicks();
+  return all[recapKey(leagueId, season, week)] ?? EMPTY_BOWL_PICKS;
+}
+
+export function saveBowlPicks(leagueId: string, season: string, week: number, picks: RecapBowlPicks): void {
+  const all = readBowlPicks();
+  all[recapKey(leagueId, season, week)] = picks;
+  writeBowlPicks(all);
+}
+
 /** Exports everything as a JSON blob the user can save as a manual backup or move to another browser. */
 export function exportAllData(): string {
-  return JSON.stringify({ config: getConfig(), recaps: readRecaps() }, null, 2);
+  return JSON.stringify(
+    { config: getConfig(), recaps: readRecaps(), bowlPicks: readBowlPicks() },
+    null,
+    2
+  );
 }
 
 export function importAllData(json: string): void {
-  const parsed = JSON.parse(json) as { config?: AppConfig; recaps?: Record<string, SavedRecap> };
+  const parsed = JSON.parse(json) as {
+    config?: AppConfig;
+    recaps?: Record<string, SavedRecap>;
+    bowlPicks?: Record<string, RecapBowlPicks>;
+  };
   if (parsed.config) saveConfig(parsed.config);
   if (parsed.recaps) writeRecaps(parsed.recaps);
+  if (parsed.bowlPicks) writeBowlPicks(parsed.bowlPicks);
 }

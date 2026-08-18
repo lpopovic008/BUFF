@@ -36,12 +36,21 @@ from every linked season. Ships as a static site, hosted for free on
   the next week at Wednesday 12am. Auto-drafts a markdown recap (top/low
   scorer, closest game, blowout, standings movement, waiver moves) that you
   can edit and copy straight into your league chat — commissioner leagues get
-  the house-style recap with the money blocks filled in and a **Load last
-  week's template** button that starts from last week's saved write-up, with
-  the parts that can be recomputed (title, scoreboard, standings, money)
-  refreshed for the current week and everything hand-written (the matchup
-  storylines) carried over as-is, so you know what's left to update. Saved
-  recaps are archived per league (`/recap/archive?id=...`).
+  the house-style recap with the money blocks filled in, a highest-scoring-player
+  callout, and a **Matchup of the Week** section that's fully auto-written from
+  a **Bowl of the Week**/**Honorable Bowl of the Week** pick: name the marquee
+  matchup(s) and pick up to 4 players (searchable by team) below the write-up,
+  and the app fills in the preview (the two teams' PF/PA ranks, who's picked to
+  carry them) for the current week, then next week auto-writes the result —
+  who actually won and how the picked players scored — pulled straight from
+  Sleeper. Nothing picked yet, or the game hasn't been played? The template
+  still shows the full shape of the write-up with brackets standing in for
+  whatever's missing (`[team] won [Week 1 Bowl Game Name]`), so it's always
+  obvious what's left to fill in. A **Load last week's template** button
+  separately starts from last week's saved write-up, with the parts that can
+  be recomputed (title, scoreboard, standings, money) refreshed for the
+  current week and anything else carried over as-is. Saved recaps are
+  archived per league (`/recap/archive?id=...`).
 - **History** (`/league/history?id=...`, one click from inside a league) — walks Sleeper's
   linked-season chain (`previous_league_id`) to reconstruct career stats per
   manager: record, win%, points, championships, and best finish, across

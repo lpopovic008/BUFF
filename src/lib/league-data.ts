@@ -13,7 +13,7 @@ import {
   getWinnersBracket,
 } from "./sleeper";
 import { combinePoints, displayManagerName } from "./format";
-import { resolvePlayerNames } from "./players";
+import { resolvePlayerNames, resolvePlayers } from "./players";
 
 export interface StandingsRow {
   rosterId: number;
@@ -164,6 +164,10 @@ export interface MatchupGame {
     managerName: string;
     avatar: string | null;
     points: number;
+    /** Every rostered player that week (starters + bench), for identifying which team a picked player belongs to before/without scoring. */
+    playerIds: string[];
+    /** Live/final per-player points that week, keyed by player id. */
+    playersPoints: Record<string, number>;
   }[];
 }
 
@@ -192,6 +196,8 @@ export function pairMatchups(
         managerName: user?.display_name || "Unclaimed team",
         avatar: user?.avatar ?? null,
         points: t.points,
+        playerIds: (t.players ?? []).filter((id) => id && id !== "0"),
+        playersPoints: t.players_points ?? {},
       };
     }),
   }));
@@ -331,6 +337,8 @@ export interface WeekRecapData {
   lowScorer: { teamName: string; points: number } | null;
   closestGame: { a: string; b: string; margin: number } | null;
   biggestBlowout: { winner: string; loser: string; margin: number } | null;
+  /** The single highest-scoring individual starter across every roster this week. */
+  topPlayer: { playerId: string; name: string; teamName: string; points: number } | null;
   leagueAverage: number;
   transactions: SleeperTransaction[];
   transactionSummaries: string[];
@@ -384,6 +392,34 @@ export async function computeWeekRecap(leagueId: string, week: number): Promise<
     ? allTeamsScored.reduce((sum, t) => sum + t.points, 0) / allTeamsScored.length
     : 0;
 
+  let topPlayer: WeekRecapData["topPlayer"] = null;
+  {
+    let topPlayerId: string | null = null;
+    let topPlayerPoints = -Infinity;
+    let topPlayerRosterId: number | null = null;
+    for (const m of thisWeekMatchups) {
+      const starters = (m.starters ?? []).filter((id) => id && id !== "0");
+      for (const id of starters) {
+        const pts = m.players_points?.[id];
+        if (pts != null && pts > topPlayerPoints) {
+          topPlayerPoints = pts;
+          topPlayerId = id;
+          topPlayerRosterId = m.roster_id;
+        }
+      }
+    }
+    if (topPlayerId && topPlayerRosterId != null) {
+      const [resolved] = await resolvePlayers([topPlayerId]);
+      const team = allTeamsScored.find((t) => t.rosterId === topPlayerRosterId);
+      topPlayer = {
+        playerId: topPlayerId,
+        name: resolved?.name ?? `Player ${topPlayerId}`,
+        teamName: team?.teamName ?? "Unclaimed team",
+        points: topPlayerPoints,
+      };
+    }
+  }
+
   const completedTxns = transactions.filter((t) => t.status === "complete");
   const transactionSummaries = await buildTransactionSummaries(completedTxns, rosters, users);
 
@@ -397,6 +433,7 @@ export async function computeWeekRecap(leagueId: string, week: number): Promise<
     lowScorer,
     closestGame,
     biggestBlowout,
+    topPlayer,
     leagueAverage,
     transactions: completedTxns,
     transactionSummaries,

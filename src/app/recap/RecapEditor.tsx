@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { saveRecap } from "@/lib/localStore";
-import { carryForwardRecapTemplate } from "@/lib/format-recap";
+import { carryForwardRecapTemplate, refreshBowlSections } from "@/lib/format-recap";
 
 export function RecapEditor({
   leagueId,
@@ -13,6 +13,7 @@ export function RecapEditor({
   savedAt,
   freshTemplate,
   previousBody,
+  bowlRefresh,
 }: {
   leagueId: string;
   season: string;
@@ -22,10 +23,19 @@ export function RecapEditor({
   savedAt: string | null;
   freshTemplate?: string | null;
   previousBody?: string | null;
+  /** Set (to a freshly regenerated template) only right after the commish saves a bowl-game
+   * pick — splices just the "Matchup of the Week" blocks it recomputed into whatever's
+   * currently in the box, leaving the rest of their edits alone. Never fires on its own. */
+  bowlRefresh?: string | null;
 }) {
   const [body, setBody] = useState(initialBody);
   const [copied, setCopied] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState(savedAt);
+
+  useEffect(() => {
+    if (!bowlRefresh) return;
+    queueMicrotask(() => setBody((prev) => refreshBowlSections(prev, bowlRefresh)));
+  }, [bowlRefresh]);
 
   async function handleCopy() {
     await navigator.clipboard.writeText(body);

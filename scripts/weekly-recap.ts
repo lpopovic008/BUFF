@@ -18,6 +18,7 @@ import { findLeagueProfile } from "../src/lib/league-config";
 import { loadLeagueMoney } from "../src/lib/league-money";
 import { computeWeekRecap } from "../src/lib/league-data";
 import { formatCommishRecap } from "../src/lib/format-recap";
+import { formatBowlPreview, formatBowlResult } from "../src/lib/bowl-narrative";
 import { standingsThroughWeek } from "../src/lib/payouts";
 import { DEFAULT_SLEEPER_USERNAME, defaultSeason } from "../src/lib/app-defaults";
 
@@ -76,7 +77,18 @@ async function main() {
       continue;
     }
 
-    const recap = formatCommishRecap({ data, ledger: money.ledger, profile: money.profile });
+    // The commish's "Matchup of the Week" bowl-game picks live in browser
+    // localStorage, unreachable from this CI script — fall back to the same
+    // bracket-placeholder text the app itself shows when no pick has been made,
+    // for the commish to fill in by hand same as before this recap had one.
+    const recap = formatCommishRecap({
+      data,
+      ledger: money.ledger,
+      profile: money.profile,
+      matchupResultBlock: formatBowlResult(week - 1, null, [], {}),
+      bowlOfWeekBlock: formatBowlPreview("🔥 Matchup of the Week", week, null, [], [], {}),
+      honorableMentionBlock: formatBowlPreview("🥈 Honorable Mention", week, null, [], [], {}),
+    });
     const standings = standingsThroughWeek(money.ledger, week);
 
     const body = [
