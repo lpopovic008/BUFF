@@ -42,6 +42,8 @@ export interface SleeperLeagueSettings {
   num_teams?: number;
   playoff_week_start?: number;
   leg?: number;
+  /** 0 = redraft, 1 = keeper, 2 = dynasty. */
+  type?: number;
   [key: string]: unknown;
 }
 
@@ -58,6 +60,16 @@ export interface SleeperLeague {
   settings: SleeperLeagueSettings;
   scoring_settings?: Record<string, number>;
   roster_positions?: string[];
+}
+
+/** Whether player values for this league should be read as dynasty (long-term asset value) rather than redraft/fantasy (this-season-only). */
+export function isDynastyLeague(league: SleeperLeague): boolean {
+  return league.settings.type === 2;
+}
+
+/** "superflex" if any roster slot lets a second QB start (Sleeper's SUPER_FLEX slot code); "oneQB" otherwise. */
+export function leagueQBFormat(league: SleeperLeague): "oneQB" | "superflex" {
+  return (league.roster_positions ?? []).includes("SUPER_FLEX") ? "superflex" : "oneQB";
 }
 
 export interface SleeperRosterSettings {

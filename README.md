@@ -170,16 +170,24 @@ site root (no `/BUFF` prefix; that's only added for the GitHub Pages build).
 history is one click from inside each league, so a separate nav entry was
 redundant.
 
-Above everything else, one card per league you're in with your own full
-roster and every player's KTC value (`/team?league=...&roster=...` is the
-same view, one click from any team name elsewhere in the app) — this is
-where "what are my assets actually worth" lives, without digging through the
-full player list below to find your own guys.
+Above everything else, a **My Teams** card: pick a league from the dropdown
+and swipe (or use the arrows) through every team's full roster and KTC
+value, starting on your own — same view as clicking a team name anywhere
+else in the app (`/team?league=...&roster=...`). Values are scored to match
+how that specific league actually plays rather than one fixed metric:
+dynasty leagues get dynasty values, redraft/keeper get fantasy values, and
+1QB vs. Superflex is read straight from the league's roster slots
+(`isDynastyLeague`/`leagueQBFormat` in `src/lib/sleeper.ts`) — a QB in a
+Superflex dynasty league and a QB in a 1QB redraft league are worth very
+different things, and this is where "what are my assets actually worth"
+lives, without digging through the full player list below to find your own
+guys.
 
 Below that, the full keep/trade/cut trade values from KeepTradeCut, with a
-Dynasty/Fantasy (redraft) toggle, a 1QB/Superflex toggle, a Standard/TE Premium
-toggle, a multi-select position filter (click a position pill to drop it from
-the list, click again to bring it back — matches KTC's own filter UI), and
+Dynasty/Fantasy (redraft) toggle, a 1QB/Superflex toggle (Superflex by
+default — most dynasty leagues run it), a Standard/TE Premium toggle, a
+multi-select position filter (click a position pill to drop it from the
+list, click again to bring it back — matches KTC's own filter UI), and
 search. All four format combinations (1QB standard, 1QB TEP, Superflex
 standard, Superflex TEP) come from the same KTC fetch — each player record
 already carries all of them, so there's no extra request per toggle, just a

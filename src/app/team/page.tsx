@@ -5,9 +5,17 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { RosterValueTable } from "@/components/RosterValueTable";
-import { getLeague, getLeagueRosters, getLeagueUsers, SleeperLeague, SleeperRoster } from "@/lib/sleeper";
+import {
+  getLeague,
+  getLeagueRosters,
+  getLeagueUsers,
+  isDynastyLeague,
+  leagueQBFormat,
+  SleeperLeague,
+  SleeperRoster,
+} from "@/lib/sleeper";
 import { resolvePlayers } from "@/lib/players";
-import { RankedPlayer, rankPlayersByValue } from "@/lib/matchup-players";
+import { RankedPlayer, ValueMetric, rankPlayersByValue } from "@/lib/matchup-players";
 import { displayManagerName, formatRecord } from "@/lib/format";
 import rawSnapshot from "@/data/player-values.json";
 import { PlayerValuesSnapshot } from "@/lib/player-values";
@@ -48,9 +56,14 @@ function TeamContent() {
         const user = users.find((u) => u.user_id === targetRoster.owner_id);
         setManagerName(displayManagerName(user));
 
+        const metric: ValueMetric = {
+          listType: isDynastyLeague(leagueData) ? "dynasty" : "fantasy",
+          format: leagueQBFormat(leagueData),
+          tep: "standard",
+        };
         const resolved = await resolvePlayers(targetRoster.players ?? []);
         if (cancelled) return;
-        setPlayers(rankPlayersByValue(resolved, {}, snapshot));
+        setPlayers(rankPlayersByValue(resolved, {}, snapshot, metric));
       } catch {
         if (!cancelled) setError("Couldn't reach Sleeper's API. Check your connection and try again.");
       }

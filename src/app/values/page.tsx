@@ -1,11 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { Card } from "@/components/ui/Card";
-import { RosterValueTable } from "@/components/RosterValueTable";
+import { LeagueRosterCarousel } from "@/components/LeagueRosterCarousel";
 import { useConfig } from "@/hooks/useConfig";
-import { useMyRosters } from "@/hooks/useMyRosters";
+import { useMyLeagues } from "@/hooks/useMyLeagues";
+import { useLeagueTeamRosters } from "@/hooks/useLeagueTeamRosters";
 import rawSnapshot from "@/data/player-values.json";
 import { LeagueFormat, PlayerValue, PlayerValuesSnapshot, TEPremium, valueFor } from "@/lib/player-values";
 
@@ -83,13 +83,16 @@ function ValueTable({ rows, maxValue }: { rows: Row[]; maxValue: number }) {
 export default function ValuesPage() {
   const { config } = useConfig();
   const [listType, setListType] = useState<ListType>("dynasty");
-  const [leagueFormat, setLeagueFormat] = useState<LeagueFormat>("oneQB");
+  const [leagueFormat, setLeagueFormat] = useState<LeagueFormat>("superflex");
   const [tep, setTep] = useState<TEPremium>("standard");
   const [deselectedPositions, setDeselectedPositions] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState("");
+  const [selectedLeagueId, setSelectedLeagueId] = useState<string | null>(null);
 
   const leagueIds = useMemo(() => config.leagues.map((l) => l.leagueId), [config.leagues]);
-  const myRosters = useMyRosters(leagueIds, config.sleeperUserId);
+  const myLeagues = useMyLeagues(leagueIds, config.sleeperUserId);
+  const activeLeagueId = selectedLeagueId ?? myLeagues?.[0]?.leagueId ?? null;
+  const activeRosters = useLeagueTeamRosters(activeLeagueId, config.sleeperUserId);
 
   const fullList = listType === "dynasty" ? snapshot.dynasty : snapshot.fantasy;
 
@@ -126,22 +129,41 @@ export default function ValuesPage() {
     <div className="flex flex-col gap-6">
       <h1 className="sr-only">Values</h1>
 
-      {myRosters && myRosters.length > 0 ? (
-        <div className="flex flex-col gap-4">
-          {myRosters.map((r) => (
-            <Card key={r.leagueId} className="p-5">
-              <Link
-                href={`/team?league=${r.leagueId}&roster=${r.rosterId}`}
-                className="text-sm font-medium text-series-1 hover:underline"
-              >
-                {r.leagueName}
-              </Link>
-              <div className="mt-3">
-                <RosterValueTable players={r.players} />
-              </div>
-            </Card>
-          ))}
-        </div>
+      {myLeagues && myLeagues.length > 0 ? (
+        <Card className="p-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">My Teams</h2>
+            <select
+              value={activeLeagueId ?? ""}
+              onChange={(e) => setSelectedLeagueId(e.target.value)}
+              className="rounded-md border border-border bg-page px-3 py-1.5 text-sm text-ink-primary outline-none focus:border-series-1"
+            >
+              {myLeagues.map((l) => (
+                <option key={l.leagueId} value={l.leagueId}>
+                  {l.leagueName}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {activeRosters ? (
+            <>
+              <p className="mb-3 text-xs text-ink-muted">
+                {activeRosters.metric.listType === "dynasty" ? "Dynasty" : "Fantasy"} ·{" "}
+                {activeRosters.metric.format === "superflex" ? "Superflex" : "1QB"} values — swipe to see
+                other teams
+              </p>
+              <LeagueRosterCarousel
+                key={activeRosters.leagueId}
+                leagueId={activeRosters.leagueId}
+                teams={activeRosters.teams}
+                myRosterId={activeRosters.myRosterId}
+              />
+            </>
+          ) : (
+            <p className="py-8 text-center text-sm text-ink-secondary">Loading roster…</p>
+          )}
+        </Card>
       ) : null}
 
       {!hasData ? (
