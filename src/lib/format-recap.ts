@@ -1,7 +1,25 @@
-import { WeekRecapData } from "./league-data";
+import { WeekRecapData, MatchupGame } from "./league-data";
 import { PayoutLedger, summarizeWeek, standingsThroughWeek } from "./payouts";
-import { LeagueProfile } from "./league-config";
 import { formatPoints, ordinal } from "./format";
+
+/** The high-scoring team's own top-scoring starter — who "led the scoring" for that team this week. */
+export function findWeekTopStarter(
+  rosterId: number,
+  games: MatchupGame[]
+): { playerId: string; points: number } | null {
+  const team = games.flatMap((g) => g.teams).find((t) => t.rosterId === rosterId);
+  if (!team) return null;
+  let leaderId: string | null = null;
+  let leaderPoints = -Infinity;
+  for (const id of team.starterIds) {
+    const pts = team.playersPoints[id];
+    if (pts != null && pts > leaderPoints) {
+      leaderPoints = pts;
+      leaderId = id;
+    }
+  }
+  return leaderId ? { playerId: leaderId, points: leaderPoints } : null;
+}
 
 /**
  * Weekly recap in the house style of the Dynasty Write-ups doc: emoji section
@@ -16,14 +34,15 @@ import { formatPoints, ordinal } from "./format";
 export function formatCommishRecap({
   data,
   ledger,
-  profile,
+  playerNames,
   matchupResultBlock,
   bowlOfWeekBlock,
   honorableMentionBlock,
 }: {
   data: WeekRecapData;
   ledger: PayoutLedger;
-  profile: LeagueProfile;
+  /** Resolved names for the high scorer's top starter — see findWeekTopStarter. */
+  playerNames: Record<string, string>;
   matchupResultBlock: string;
   bowlOfWeekBlock: string;
   honorableMentionBlock: string;
@@ -37,15 +56,12 @@ export function formatCommishRecap({
 
   if (summary?.highScorer) {
     const hs = summary.highScorer;
+    const leader = findWeekTopStarter(hs.rosterId, data.games);
+    const leaderText = leader
+      ? `${playerNames[leader.playerId] ?? "[player]"}, who put up ${formatPoints(leader.points)} points`
+      : "[player]";
     lines.push(
-      `📈 ${hs.name} outperformed the league this week by scoring ${formatPoints(hs.points)} points!`
-    );
-    lines.push("");
-  }
-
-  if (data.topPlayer) {
-    lines.push(
-      `⭐ ${data.topPlayer.name} (${data.topPlayer.teamName}) was the highest-scoring player in the league this week with ${formatPoints(data.topPlayer.points)} points!`
+      `📈 ${hs.name} was the highest scoring team this week with ${formatPoints(hs.points)} points! The scoring was led by ${leaderText}.`
     );
     lines.push("");
   }
@@ -76,22 +92,56 @@ export function formatCommishRecap({
   }
   lines.push("");
 
-  const potLeft =
-    ledger.reconciliation.pot - ledger.reconciliation.finalTotal - ledger.paidToDate;
-  const weeksLeft = profile.payouts.regularSeasonWeeks - ledger.weeksPlayed.length;
-  if (weeksLeft > 0) {
-    lines.push(
-      `(${weeksLeft} regular-season week${weeksLeft === 1 ? "" : "s"} left · $${potLeft} of weekly commission still to pay out · $${ledger.reconciliation.finalTotal} held for the top 3)`
-    );
-    lines.push("");
-  }
-
   lines.push(bowlOfWeekBlock);
   lines.push("");
   lines.push(honorableMentionBlock);
   lines.push("");
 
   return lines.join("\n");
+}
+
+// Lines starting with one of these get bolded as a section header when copying
+// formatted; 📈 gets underlined instead (see buildRecapClipboardHtml) since it's
+// the standout stat callout, not a section boundary.
+const BOLD_HEADER_EMOJIS = ["🚨🏈", "🏆", "🤝", "👁️", "💰", "🔥", "🥈"];
+// Headers whose very next (non-blank) line is prose worth setting off in italics,
+// rather than another list/data line.
+const NARRATIVE_HEADER_EMOJIS = ["🏆", "🔥", "🥈"];
+
+function escapeHtml(text: string): string {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/**
+ * Rich-text (HTML) rendering of a recap body for copying into apps that keep
+ * formatting on paste — Messages and Notes on Mac, Mail, and similar — so it
+ * reads as headers and callouts instead of one flat block of plain text.
+ * Bolds each section header and dollar amount, underlines the high-scorer
+ * line, and italicizes the narrative line right under a Matchup of the Week
+ * header. Pair with a plain-text fallback for paste targets that don't keep
+ * rich content (see RecapEditor's copy-formatted handler).
+ */
+export function buildRecapClipboardHtml(body: string): string {
+  let previousWasNarrativeHeader = false;
+  return body
+    .split("\n")
+    .map((rawLine) => {
+      const withMoneyBold = escapeHtml(rawLine).replace(/\$\d+(\.\d+)?/g, (m) => `<b>${m}</b>`);
+      const isNarrativeHeader = NARRATIVE_HEADER_EMOJIS.some((e) => rawLine.startsWith(e));
+      let html: string;
+      if (rawLine.startsWith("📈")) {
+        html = `<u>${withMoneyBold}</u>`;
+      } else if (BOLD_HEADER_EMOJIS.some((e) => rawLine.startsWith(e))) {
+        html = `<b>${withMoneyBold}</b>`;
+      } else if (previousWasNarrativeHeader && rawLine.trim()) {
+        html = `<i>${withMoneyBold}</i>`;
+      } else {
+        html = withMoneyBold;
+      }
+      previousWasNarrativeHeader = isNarrativeHeader;
+      return html;
+    })
+    .join("<br>");
 }
 
 // The three "Matchup of the Week" narrative blocks in formatCommishRecap() —

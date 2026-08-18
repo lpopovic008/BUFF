@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { saveRecap } from "@/lib/localStore";
-import { carryForwardRecapTemplate, refreshBowlSections } from "@/lib/format-recap";
+import { buildRecapClipboardHtml, carryForwardRecapTemplate, refreshBowlSections } from "@/lib/format-recap";
 
 export function RecapEditor({
   leagueId,
@@ -30,6 +30,7 @@ export function RecapEditor({
 }) {
   const [body, setBody] = useState(initialBody);
   const [copied, setCopied] = useState(false);
+  const [copiedFormatted, setCopiedFormatted] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState(savedAt);
 
   useEffect(() => {
@@ -41,6 +42,25 @@ export function RecapEditor({
     await navigator.clipboard.writeText(body);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  /** Copies both plain text and HTML representations — apps that keep formatting on
+   * paste (Messages/Notes/Mail on Mac, and most iOS paste targets) pick up the bold
+   * headers/underlined callout/italic narrative; anything else just gets plain text. */
+  async function handleCopyFormatted() {
+    try {
+      const html = buildRecapClipboardHtml(body);
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          "text/plain": new Blob([body], { type: "text/plain" }),
+          "text/html": new Blob([html], { type: "text/html" }),
+        }),
+      ]);
+    } catch {
+      await navigator.clipboard.writeText(body);
+    }
+    setCopiedFormatted(true);
+    setTimeout(() => setCopiedFormatted(false), 2000);
   }
 
   function handleLoadTemplate() {
@@ -76,10 +96,17 @@ export function RecapEditor({
         ) : null}
         <button
           type="button"
+          onClick={handleCopyFormatted}
+          className="rounded-md border border-border px-4 py-2 text-sm font-medium text-ink-secondary hover:bg-page"
+        >
+          {copiedFormatted ? "Copied!" : "Copy formatted"}
+        </button>
+        <button
+          type="button"
           onClick={handleCopy}
           className="rounded-md border border-border px-4 py-2 text-sm font-medium text-ink-secondary hover:bg-page"
         >
-          {copied ? "Copied!" : "Copy to clipboard"}
+          {copied ? "Copied!" : "Copy plain text"}
         </button>
         <button
           type="submit"

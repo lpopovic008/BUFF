@@ -4,7 +4,7 @@ import { useState } from "react";
 import { RosterPlayerOption } from "@/hooks/useLeagueRosterPlayers";
 import { BowlGamePick, RecapBowlPicks, saveBowlPicks } from "@/lib/localStore";
 
-const PLAYER_SLOTS = [0, 1, 2, 3];
+const PLAYER_SLOTS = [0, 1];
 
 function PlayerSelect({
   value,
@@ -117,7 +117,7 @@ export function BowlPicksEditor({
           Matchup of the Week picks
         </h2>
         <p className="mt-1 text-xs text-ink-secondary">
-          Name the marquee matchup(s) and pick up to 4 players to build the write-up around — save here
+          Name the marquee matchup(s) and pick up to 2 players to build the write-up around — save here
           and next week&rsquo;s recap will auto-fill who actually won.
         </p>
       </div>

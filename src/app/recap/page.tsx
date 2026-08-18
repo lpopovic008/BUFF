@@ -10,9 +10,10 @@ import {
   MatchupGame,
   WeekRecapData,
 } from "@/lib/league-data";
-import { formatRecapMarkdown, formatCommishRecap } from "@/lib/format-recap";
+import { formatRecapMarkdown, formatCommishRecap, findWeekTopStarter } from "@/lib/format-recap";
 import { formatBowlPreview, formatBowlResult } from "@/lib/bowl-narrative";
 import { loadLeagueMoney, LeagueMoney } from "@/lib/league-money";
+import { summarizeWeek } from "@/lib/payouts";
 import { getRecap, getBowlPicks, RecapBowlPicks } from "@/lib/localStore";
 import { getRecapWeek, getLeague, getLeagueRosters, getLeagueUsers, getMatchups } from "@/lib/sleeper";
 import { resolvePlayers } from "@/lib/players";
@@ -146,10 +147,17 @@ function RecapContent() {
 
         let fresh: string;
         if (leagueMoney) {
-          // Resolve names for just the players already picked (fast, small) rather
-          // than waiting on the full-roster hook above — keeps the first paint
-          // correct even if that broader fetch is still in flight.
-          const pickedIds = [...bowlPickIds(thisWeek), ...(previousBowl?.pick.bowlOfWeek.playerIds ?? [])];
+          // Resolve names for just the players already picked plus whoever led the
+          // high scorer's lineup (fast, small) rather than waiting on the full-roster
+          // hook above — keeps the first paint correct even if that broader fetch is
+          // still in flight.
+          const summary = summarizeWeek(leagueMoney.ledger, week);
+          const topStarter = summary?.highScorer ? findWeekTopStarter(summary.highScorer.rosterId, data.games) : null;
+          const pickedIds = [
+            ...bowlPickIds(thisWeek),
+            ...(previousBowl?.pick.bowlOfWeek.playerIds ?? []),
+            ...(topStarter ? [topStarter.playerId] : []),
+          ];
           const resolved = await resolvePlayers(pickedIds);
           if (cancelled) return;
           const playerNames: Record<string, string> = {};
@@ -158,7 +166,7 @@ function RecapContent() {
           fresh = formatCommishRecap({
             data,
             ledger: leagueMoney.ledger,
-            profile: leagueMoney.profile,
+            playerNames,
             matchupResultBlock: formatBowlResult(
               week - 1,
               previousBowl?.pick.bowlOfWeek,
@@ -210,7 +218,7 @@ function RecapContent() {
     const fresh = formatCommishRecap({
       data: recapData,
       ledger: money.ledger,
-      profile: money.profile,
+      playerNames: rosterPlayerNames,
       matchupResultBlock: formatBowlResult(
         week - 1,
         previousWeekBowl?.pick.bowlOfWeek,

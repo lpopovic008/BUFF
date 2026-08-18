@@ -166,6 +166,8 @@ export interface MatchupGame {
     points: number;
     /** Every rostered player that week (starters + bench), for identifying which team a picked player belongs to before/without scoring. */
     playerIds: string[];
+    /** Just the starting lineup — for "who led the scoring" callouts, where crediting a bench player would be misleading. */
+    starterIds: string[];
     /** Live/final per-player points that week, keyed by player id. */
     playersPoints: Record<string, number>;
   }[];
@@ -197,6 +199,7 @@ export function pairMatchups(
         avatar: user?.avatar ?? null,
         points: t.points,
         playerIds: (t.players ?? []).filter((id) => id && id !== "0"),
+        starterIds: (t.starters ?? []).filter((id) => id && id !== "0"),
         playersPoints: t.players_points ?? {},
       };
     }),

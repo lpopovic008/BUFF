@@ -17,9 +17,10 @@ import { getNFLState, getUserByUsername, getUserLeagues } from "../src/lib/sleep
 import { findLeagueProfile } from "../src/lib/league-config";
 import { loadLeagueMoney } from "../src/lib/league-money";
 import { computeWeekRecap } from "../src/lib/league-data";
-import { formatCommishRecap } from "../src/lib/format-recap";
+import { formatCommishRecap, findWeekTopStarter } from "../src/lib/format-recap";
 import { formatBowlPreview, formatBowlResult } from "../src/lib/bowl-narrative";
-import { standingsThroughWeek } from "../src/lib/payouts";
+import { standingsThroughWeek, summarizeWeek } from "../src/lib/payouts";
+import { resolvePlayers } from "../src/lib/players";
 import { DEFAULT_SLEEPER_USERNAME, defaultSeason } from "../src/lib/app-defaults";
 
 const DRY_RUN = process.argv.includes("--dry-run");
@@ -77,14 +78,21 @@ async function main() {
       continue;
     }
 
-    // The commish's "Matchup of the Week" bowl-game picks live in browser
-    // localStorage, unreachable from this CI script — fall back to the same
-    // bracket-placeholder text the app itself shows when no pick has been made,
-    // for the commish to fill in by hand same as before this recap had one.
+    // The high scorer's top starter is fully derivable from Sleeper, so resolve
+    // their name here same as the app does. The "Matchup of the Week" bowl-game
+    // picks live in browser localStorage, unreachable from this CI script — those
+    // fall back to the same bracket-placeholder text the app shows when no pick
+    // has been made, for the commish to fill in by hand.
+    const summary = summarizeWeek(money.ledger, week);
+    const topStarter = summary?.highScorer ? findWeekTopStarter(summary.highScorer.rosterId, data.games) : null;
+    const resolved = topStarter ? await resolvePlayers([topStarter.playerId]) : [];
+    const playerNames: Record<string, string> = {};
+    for (const p of resolved) playerNames[p.playerId] = p.name;
+
     const recap = formatCommishRecap({
       data,
       ledger: money.ledger,
-      profile: money.profile,
+      playerNames,
       matchupResultBlock: formatBowlResult(week - 1, null, [], {}),
       bowlOfWeekBlock: formatBowlPreview("🔥 Matchup of the Week", week, null, [], [], {}),
       honorableMentionBlock: formatBowlPreview("🥈 Honorable Mention", week, null, [], [], {}),
