@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --page: #f9f9f7;
+  --page: #ffffff;
   --surface: #fcfcfb;
   --surface-raised: #ffffff;
   --ink-primary: #0b0b0b;
@@ -136,6 +136,11 @@ h4 {
   }
 }
 
-* {
-  border-radius: 0;
+/* Base-layer reset so explicit utilities like rounded-full (avatars, legend
+   dots) still win — unlayered rules would otherwise beat them regardless of
+   specificity, since Tailwind's own utilities are layered. */
+@layer base {
+  * {
+    border-radius: 0;
+  }
 }

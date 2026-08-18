@@ -25,7 +25,7 @@ export function DashboardMatchupCard({
   if (!matchup) return null;
 
   return (
-    <div className="flex flex-col gap-3 border-t border-grid pt-3">
+    <div className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between gap-3">
         <Link
           href={`/team?league=${leagueId}&roster=${matchup.my.rosterId}`}
@@ -36,13 +36,13 @@ export function DashboardMatchupCard({
         {matchup.opponent ? (
           <Link
             href={`/team?league=${leagueId}&roster=${matchup.opponent.rosterId}`}
-            className="min-w-0 truncate text-right text-sm font-medium text-ink-primary hover:underline"
+            className="min-w-0 truncate text-right text-sm font-medium text-white hover:underline"
           >
             {matchup.opponent.teamName}
           </Link>
         ) : null}
       </div>
-      <div className="flex items-baseline justify-between gap-3 text-lg font-semibold tabular-nums text-ink-primary">
+      <div className="flex items-baseline justify-between gap-3 text-lg font-semibold tabular-nums text-white">
         <span>{formatPoints(matchup.my.points)}</span>
         {matchup.opponent ? <span>{formatPoints(matchup.opponent.points)}</span> : null}
       </div>
