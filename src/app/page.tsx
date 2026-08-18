@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
-import { StatTile } from "@/components/ui/StatTile";
 import { DashboardMatchupCard } from "@/components/DashboardMatchupCard";
 import { useConfig } from "@/hooks/useConfig";
 import { MatchupTarget, useDashboardMatchups } from "@/hooks/useDashboardMatchups";
@@ -98,23 +97,9 @@ export default function DashboardPage() {
     );
   }
 
-  const myRows = leagues
-    .map(({ summary }) => summary.standings.find((r) => r.ownerId === config.sleeperUserId))
-    .filter((r): r is NonNullable<typeof r> => Boolean(r));
-  const combinedWins = myRows.reduce((sum, r) => sum + r.wins, 0);
-  const combinedLosses = myRows.reduce((sum, r) => sum + r.losses, 0);
-  const combinedTies = myRows.reduce((sum, r) => sum + r.ties, 0);
-
   return (
     <div className="flex flex-col gap-6">
       <h1 className="sr-only">Dashboard</h1>
-
-      <div className="w-fit">
-        <StatTile
-          label="Combined record"
-          value={myRows.length ? formatRecord(combinedWins, combinedLosses, combinedTies) : "—"}
-        />
-      </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {leagues.map(({ tracked, summary }) => {
