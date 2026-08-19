@@ -7,6 +7,12 @@ import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { IconButton } from "@/components/ui/IconButton";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/ui/Icon";
 import { formatPoints } from "@/lib/format";
+import { POSITION_SOFT_BG } from "@/lib/position-colors";
+
+// Sleeper's own slot code — abbreviate the one that's spelled out.
+function slotLabel(slot: string): string {
+  return slot === "SUPER_FLEX" ? "SF" : slot;
+}
 
 function MySlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
   if (!resolved.player) {
@@ -47,10 +53,17 @@ function TheirSlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
 }
 
 function SlotRow({ slot, my, their }: { slot: string; my: ResolvedSlot; their: ResolvedSlot | undefined }) {
+  const colorClasses = POSITION_SOFT_BG[slot];
   return (
     <div className="grid grid-cols-[1fr_2rem_1fr] items-center gap-2">
       <MySlotPlayer resolved={my} />
-      <span className="text-center text-[10px] font-medium uppercase text-ink-muted">{slot}</span>
+      <span
+        className={`px-1 py-0.5 text-center text-[10px] font-medium uppercase ${
+          colorClasses ?? "text-ink-muted"
+        }`}
+      >
+        {slotLabel(slot)}
+      </span>
       {their ? <TheirSlotPlayer resolved={their} /> : <div />}
     </div>
   );

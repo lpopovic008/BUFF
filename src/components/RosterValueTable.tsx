@@ -1,11 +1,5 @@
 import { RankedPlayer } from "@/lib/matchup-players";
-
-const POSITION_COLOR: Record<string, string> = {
-  QB: "text-series-8",
-  RB: "text-series-6",
-  WR: "text-series-1",
-  TE: "text-series-4",
-};
+import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 
 /** Name/position/team/KTC-value rows for a full roster — shared by the team page and the Values tab's per-league sections. */
 export function RosterValueTable({ players }: { players: RankedPlayer[] }) {
@@ -17,7 +11,7 @@ export function RosterValueTable({ players }: { players: RankedPlayer[] }) {
           className="flex w-full items-center justify-between gap-3 border-b border-grid py-2.5 last:border-0"
         >
           <div className="flex min-w-0 items-center gap-2.5">
-            <span className={`w-7 shrink-0 text-xs font-bold ${POSITION_COLOR[p.position] ?? "text-ink-muted"}`}>
+            <span className={`w-7 shrink-0 text-xs font-bold ${POSITION_TEXT_COLOR[p.position] ?? "text-ink-muted"}`}>
               {p.position}
             </span>
             <div className="min-w-0">
