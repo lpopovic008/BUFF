@@ -20,11 +20,11 @@ export function DashboardMatchupCard({ matchup }: { matchup: DashboardMatchupVie
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-start justify-between gap-3">
-        <div className="line-clamp-2 min-w-0 text-balance text-sm font-medium text-series-1 sm:line-clamp-1 sm:truncate">
+        <div className="line-clamp-2 min-h-[2.5rem] min-w-0 text-balance text-sm font-medium text-series-1 sm:min-h-0 sm:line-clamp-1 sm:truncate">
           {matchup.my.teamName}
         </div>
         {matchup.opponent ? (
-          <div className="line-clamp-2 min-w-0 text-balance text-right text-sm font-medium text-ink-primary sm:line-clamp-1 sm:truncate">
+          <div className="line-clamp-2 min-h-[2.5rem] min-w-0 text-balance text-right text-sm font-medium text-ink-primary sm:min-h-0 sm:line-clamp-1 sm:truncate">
             {matchup.opponent.teamName}
           </div>
         ) : null}
