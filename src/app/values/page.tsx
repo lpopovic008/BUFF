@@ -125,7 +125,7 @@ export default function ValuesPage() {
     });
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 animate-[rise_0.5s_ease-out_backwards]">
       <h1 className="sr-only">Values</h1>
 
       {myLeagues && myLeagues.length > 0 ? (

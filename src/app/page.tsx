@@ -104,7 +104,7 @@ export default function DashboardPage() {
       <h1 className="sr-only">Dashboard</h1>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {leagues.map(({ tracked, summary }) => {
+        {leagues.map(({ tracked, summary }, i) => {
           const myRow = summary.standings.find((r) => r.ownerId === config.sleeperUserId);
           const matchup = matchups[tracked.leagueId];
           const opponentRank = matchup?.opponent
@@ -114,7 +114,8 @@ export default function DashboardPage() {
             <ViewTransitionLink
               key={tracked.leagueId}
               href={`/league?id=${tracked.leagueId}`}
-              className="flex min-w-0 flex-col gap-4 border border-border bg-page p-5 transition-colors hover:border-ink-primary/40"
+              className="flex min-w-0 flex-col gap-4 border border-border bg-page p-5 transition-colors animate-[rise_0.5s_ease-out_backwards] hover:border-ink-primary/40"
+              style={{ animationDelay: `${i * 70}ms` }}
             >
               <div className="flex items-start justify-between gap-2">
                 <div

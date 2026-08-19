@@ -30,7 +30,7 @@ function RecapArchiveContent() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 animate-[rise_0.5s_ease-out_backwards]">
       <div>
         <h1 className="text-2xl font-semibold text-ink-primary">
           {league?.name ?? "League"} — Recap archive

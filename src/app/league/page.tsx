@@ -74,7 +74,7 @@ function LeagueDetailContent() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-4 animate-[rise_0.5s_ease-out_backwards]">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-semibold text-ink-primary">
             <span style={{ viewTransitionName: leagueTitleTransitionName(leagueId) }}>{summary.league.name}</span>
@@ -108,13 +108,13 @@ function LeagueDetailContent() {
       </div>
 
       {carouselGames && carouselGames.length > 0 ? (
-        <Card className="p-3 sm:p-5">
+        <Card className="p-3 animate-[rise_0.5s_ease-out_backwards] [animation-delay:80ms] sm:p-5">
           <LeagueMatchupCarousel leagueId={leagueId} games={carouselGames} myRosterId={myRow?.rosterId ?? null} />
         </Card>
       ) : null}
 
       {money ? (
-        <section className="flex flex-col gap-4">
+        <section className="flex flex-col gap-4 animate-[rise_0.5s_ease-out_backwards] [animation-delay:150ms]">
           <div className="flex items-baseline justify-between gap-3">
             <h2 className="text-lg font-semibold text-ink-primary">
               Money · {money.profile.label}
@@ -127,7 +127,7 @@ function LeagueDetailContent() {
         </section>
       ) : null}
 
-      <Card className="p-5">
+      <Card className="animate-[rise_0.5s_ease-out_backwards] p-5 [animation-delay:210ms]">
         <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-muted">Standings</h2>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[480px] text-sm">
@@ -171,7 +171,7 @@ function LeagueDetailContent() {
       </Card>
 
       {weekRecap && weekRecap.transactionSummaries.length > 0 ? (
-        <Card className="p-5">
+        <Card className="animate-[rise_0.5s_ease-out_backwards] p-5 [animation-delay:270ms]">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-muted">
             Recent waiver &amp; trade activity
           </h2>

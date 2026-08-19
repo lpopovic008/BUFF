@@ -85,7 +85,7 @@ function TeamContent() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 animate-[rise_0.5s_ease-out_backwards]">
       <div>
         <Link
           href={`/league?id=${leagueId}`}

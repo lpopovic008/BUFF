@@ -201,7 +201,7 @@ function LeagueHistoryContent() {
   const profile = seasons.map((s) => findLeagueProfile(s.leagueName)).find((p) => p !== null) ?? null;
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8 animate-[rise_0.5s_ease-out_backwards]">
       <div>
         <Link
           href={`/league?id=${leagueId}`}

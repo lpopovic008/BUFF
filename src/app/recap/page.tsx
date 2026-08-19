@@ -244,7 +244,7 @@ function RecapContent() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 animate-[rise_0.5s_ease-out_backwards]">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-ink-primary">{header.title}</h1>

@@ -59,7 +59,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8 animate-[rise_0.5s_ease-out_backwards]">
       <div>
         <h1 className="text-2xl font-semibold text-ink-primary">Settings</h1>
       </div>
