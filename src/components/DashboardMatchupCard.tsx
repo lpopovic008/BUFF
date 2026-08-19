@@ -1,6 +1,6 @@
 import { DashboardMatchupView } from "@/hooks/useDashboardMatchups";
 import { RankedPlayer } from "@/lib/matchup-players";
-import { formatPoints } from "@/lib/format";
+import { formatPoints, ordinal, splitNameTwoLines } from "@/lib/format";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 
 function PlayerFaces({ players }: { players: RankedPlayer[] }) {
@@ -13,20 +13,69 @@ function PlayerFaces({ players }: { players: RankedPlayer[] }) {
   );
 }
 
+/**
+ * A team's name, with an optional colored rank suffix. On mobile, any name
+ * with at least one space is forced onto two lines split as evenly as
+ * possible; a single word stays on one line. Desktop always stays single
+ * line (truncating if it has to).
+ */
+function TeamNameLabel({
+  name,
+  rank,
+  align,
+  colorClass,
+}: {
+  name: string;
+  rank?: number;
+  align: "left" | "right";
+  colorClass: string;
+}) {
+  const split = splitNameTwoLines(name);
+  const rankSuffix = rank != null ? <span className="text-series-4"> · {ordinal(rank)}</span> : null;
+  const alignClass = align === "right" ? "text-right" : "";
+
+  return (
+    <div className={`min-w-0 min-h-[2.5rem] text-sm font-medium ${colorClass} ${alignClass} sm:min-h-0`}>
+      <div className="sm:hidden">
+        {split ? (
+          <>
+            <div>{split[0]}</div>
+            <div>
+              {split[1]}
+              {rankSuffix}
+            </div>
+          </>
+        ) : (
+          <div>
+            {name}
+            {rankSuffix}
+          </div>
+        )}
+      </div>
+      <div className="hidden truncate sm:block">
+        {name}
+        {rankSuffix}
+      </div>
+    </div>
+  );
+}
+
 /** The dashboard's per-league matchup section: team names + score left/right, and each side's top 3 players pictured. Sits inside a whole-box link, so team names are plain text rather than their own nested links. */
-export function DashboardMatchupCard({ matchup }: { matchup: DashboardMatchupView | null | undefined }) {
+export function DashboardMatchupCard({
+  matchup,
+  myRank,
+}: {
+  matchup: DashboardMatchupView | null | undefined;
+  myRank: number;
+}) {
   if (!matchup) return null;
 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-start justify-between gap-3">
-        <div className="line-clamp-2 min-h-[2.5rem] min-w-0 text-balance text-sm font-medium text-series-1 sm:min-h-0 sm:line-clamp-1 sm:truncate">
-          {matchup.my.teamName}
-        </div>
+        <TeamNameLabel name={matchup.my.teamName} rank={myRank} align="left" colorClass="text-series-1" />
         {matchup.opponent ? (
-          <div className="line-clamp-2 min-h-[2.5rem] min-w-0 text-balance text-right text-sm font-medium text-ink-primary sm:min-h-0 sm:line-clamp-1 sm:truncate">
-            {matchup.opponent.teamName}
-          </div>
+          <TeamNameLabel name={matchup.opponent.teamName} align="right" colorClass="text-ink-primary" />
         ) : null}
       </div>
       <div className="flex items-baseline justify-between gap-3 text-lg font-semibold tabular-nums text-ink-primary">

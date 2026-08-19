@@ -9,7 +9,7 @@ import { MatchupTarget, useDashboardMatchups } from "@/hooks/useDashboardMatchup
 import { getLeagueSummary, LeagueSummary } from "@/lib/league-data";
 import { getCurrentWeek } from "@/lib/sleeper";
 import { TrackedLeague } from "@/lib/localStore";
-import { formatRecord, ordinal } from "@/lib/format";
+import { formatRecord } from "@/lib/format";
 
 interface LoadedLeague {
   tracked: TrackedLeague;
@@ -110,21 +110,19 @@ export default function DashboardPage() {
               href={`/league?id=${tracked.leagueId}`}
               className="flex min-w-0 flex-col gap-4 border border-border bg-page p-5 transition-colors hover:border-ink-primary/40"
             >
-              <div className="min-w-0 truncate text-base font-semibold text-ink-primary sm:text-lg">
-                {summary.league.name}
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 text-balance text-base font-semibold text-ink-primary sm:truncate sm:text-lg">
+                  {summary.league.name}
+                </div>
+                {myRow ? (
+                  <div className="shrink-0 text-lg font-semibold tabular-nums text-ink-primary">
+                    {formatRecord(myRow.wins, myRow.losses, myRow.ties)}
+                  </div>
+                ) : null}
               </div>
 
               {myRow ? (
-                <div className="flex items-center justify-between gap-2">
-                  <div className="text-xl font-semibold tabular-nums text-ink-primary">{ordinal(myRow.rank)}</div>
-                  <div className="text-xl font-semibold tabular-nums text-ink-primary">
-                    {formatRecord(myRow.wins, myRow.losses, myRow.ties)}
-                  </div>
-                </div>
-              ) : null}
-
-              {myRow ? (
-                <DashboardMatchupCard matchup={matchups[tracked.leagueId]} />
+                <DashboardMatchupCard matchup={matchups[tracked.leagueId]} myRank={myRow.rank} />
               ) : null}
             </Link>
           );

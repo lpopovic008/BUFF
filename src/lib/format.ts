@@ -38,3 +38,21 @@ export function formatPct(pct: number): string {
 export function displayManagerName(user: { display_name?: string; metadata?: { team_name?: string } | null } | undefined): string {
   return user?.metadata?.team_name || user?.display_name || "Unclaimed team";
 }
+
+/** Splits a name into two lines at the space closest to the midpoint, so both lines come out as close to equal length as possible. Returns null for a single word — there's no space to break on. */
+export function splitNameTwoLines(name: string): [string, string] | null {
+  const trimmed = name.trim();
+  const mid = trimmed.length / 2;
+  let bestIndex = -1;
+  let bestDist = Infinity;
+  for (let i = 0; i < trimmed.length; i++) {
+    if (trimmed[i] !== " ") continue;
+    const dist = Math.abs(i - mid);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestIndex = i;
+    }
+  }
+  if (bestIndex === -1) return null;
+  return [trimmed.slice(0, bestIndex).trim(), trimmed.slice(bestIndex + 1).trim()];
+}
