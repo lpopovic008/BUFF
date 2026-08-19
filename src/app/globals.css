@@ -136,3 +136,18 @@ body {
     border-radius: 0;
   }
 }
+
+/* Tuning for the native View Transitions API (see ViewTransitionLink):
+   the browser default is a flat 250ms cross-fade for everything, which
+   reads as an abrupt cut. A slightly longer duration with an ease-out-expo
+   curve gives named elements (title, team names) room to visibly slide/
+   resize into their new spot, while the rest of the page cross-fades. */
+::view-transition-group(*) {
+  animation-duration: 0.45s;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.3s;
+}

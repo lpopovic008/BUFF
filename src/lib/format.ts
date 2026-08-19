@@ -39,10 +39,19 @@ export function displayManagerName(user: { display_name?: string; metadata?: { t
   return user?.metadata?.team_name || user?.display_name || "Unclaimed team";
 }
 
-/** Splits a name into two lines at the space closest to the midpoint, so both lines come out as close to equal length as possible. Returns null for a single word — there's no space to break on. */
-export function splitNameTwoLines(name: string): [string, string] | null {
+/**
+ * Splits a name into two lines at the space closest to the midpoint, so both
+ * lines come out as close to equal length as possible. Returns null for a
+ * single word — there's no space to break on.
+ *
+ * `tailWeight` accounts for extra text appended after the name on line two
+ * (e.g. a colored rank suffix) that isn't part of `name` itself but still
+ * needs to be weighed in — otherwise the split looks balanced on the raw
+ * name alone but lopsided once that suffix lands on the second line.
+ */
+export function splitNameTwoLines(name: string, tailWeight = 0): [string, string] | null {
   const trimmed = name.trim();
-  const mid = trimmed.length / 2;
+  const mid = (trimmed.length + tailWeight) / 2;
   let bestIndex = -1;
   let bestDist = Infinity;
   for (let i = 0; i < trimmed.length; i++) {

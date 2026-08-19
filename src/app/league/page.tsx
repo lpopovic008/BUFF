@@ -14,6 +14,7 @@ import { getLeagueSummary, computeWeekRecap, LeagueSummary, WeekRecapData } from
 import { loadLeagueMoney, LeagueMoney } from "@/lib/league-money";
 import { getCurrentWeek } from "@/lib/sleeper";
 import { formatPoints, formatRecord, ordinal } from "@/lib/format";
+import { leagueTitleTransitionName } from "@/lib/view-transitions";
 
 function LeagueDetailContent() {
   const leagueId = useSearchParams().get("id");
@@ -76,7 +77,7 @@ function LeagueDetailContent() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-semibold text-ink-primary">
-            {summary.league.name}
+            <span style={{ viewTransitionName: leagueTitleTransitionName(leagueId) }}>{summary.league.name}</span>
             {tracked?.isCommish ? (
               <svg
                 viewBox="0 0 20 20"

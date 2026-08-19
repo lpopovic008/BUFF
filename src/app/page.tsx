@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
+import { ViewTransitionLink } from "@/components/ui/ViewTransitionLink";
 import { DashboardMatchupCard } from "@/components/DashboardMatchupCard";
+import { leagueTitleTransitionName } from "@/lib/view-transitions";
 import { useConfig } from "@/hooks/useConfig";
 import { MatchupTarget, useDashboardMatchups } from "@/hooks/useDashboardMatchups";
 import { getLeagueSummary, LeagueSummary } from "@/lib/league-data";
@@ -109,13 +111,16 @@ export default function DashboardPage() {
             ? summary.standings.find((r) => r.rosterId === matchup.opponent!.rosterId)?.rank
             : undefined;
           return (
-            <Link
+            <ViewTransitionLink
               key={tracked.leagueId}
               href={`/league?id=${tracked.leagueId}`}
               className="flex min-w-0 flex-col gap-4 border border-border bg-page p-5 transition-colors hover:border-ink-primary/40"
             >
               <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0 text-balance text-base font-semibold text-ink-primary sm:truncate sm:text-lg">
+                <div
+                  className="min-w-0 text-balance text-base font-semibold text-ink-primary sm:truncate sm:text-lg"
+                  style={{ viewTransitionName: leagueTitleTransitionName(tracked.leagueId) }}
+                >
                   {summary.league.name}
                 </div>
                 {myRow ? (
@@ -126,9 +131,14 @@ export default function DashboardPage() {
               </div>
 
               {myRow ? (
-                <DashboardMatchupCard matchup={matchup} myRank={myRow.rank} opponentRank={opponentRank} />
+                <DashboardMatchupCard
+                  leagueId={tracked.leagueId}
+                  matchup={matchup}
+                  myRank={myRow.rank}
+                  opponentRank={opponentRank}
+                />
               ) : null}
-            </Link>
+            </ViewTransitionLink>
           );
         })}
       </div>
