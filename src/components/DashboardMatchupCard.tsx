@@ -1,7 +1,6 @@
 import { DashboardMatchupView } from "@/hooks/useDashboardMatchups";
 import { RankedPlayer } from "@/lib/matchup-players";
 import { formatPoints, ordinal, splitNameTwoLines } from "@/lib/format";
-import { myTeamNameTransitionName, opponentTeamNameTransitionName } from "@/lib/view-transitions";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 
 function PlayerFaces({ players }: { players: RankedPlayer[] }) {
@@ -26,13 +25,11 @@ function TeamNameLabel({
   rank,
   align,
   colorClass,
-  transitionName,
 }: {
   name: string;
   rank?: number;
   align: "left" | "right";
   colorClass: string;
-  transitionName?: string;
 }) {
   const rankText = rank != null ? ` · ${ordinal(rank)}` : "";
   const split = splitNameTwoLines(name, rankText.length);
@@ -40,10 +37,7 @@ function TeamNameLabel({
   const alignClass = align === "right" ? "text-right" : "";
 
   return (
-    <div
-      className={`min-w-0 min-h-[2.5rem] text-sm font-medium ${colorClass} ${alignClass} sm:min-h-0`}
-      style={transitionName ? { viewTransitionName: transitionName } : undefined}
-    >
+    <div className={`min-w-0 min-h-[2.5rem] text-sm font-medium ${colorClass} ${alignClass} sm:min-h-0`}>
       <div className="sm:hidden">
         {split ? (
           <>
@@ -70,12 +64,10 @@ function TeamNameLabel({
 
 /** The dashboard's per-league matchup section: team names + score left/right, and each side's top 3 players pictured. Sits inside a whole-box link, so team names are plain text rather than their own nested links. */
 export function DashboardMatchupCard({
-  leagueId,
   matchup,
   myRank,
   opponentRank,
 }: {
-  leagueId: string;
   matchup: DashboardMatchupView | null | undefined;
   myRank: number;
   opponentRank?: number;
@@ -85,20 +77,13 @@ export function DashboardMatchupCard({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-start justify-between gap-3">
-        <TeamNameLabel
-          name={matchup.my.teamName}
-          rank={myRank}
-          align="left"
-          colorClass="text-series-1"
-          transitionName={myTeamNameTransitionName(leagueId)}
-        />
+        <TeamNameLabel name={matchup.my.teamName} rank={myRank} align="left" colorClass="text-series-1" />
         {matchup.opponent ? (
           <TeamNameLabel
             name={matchup.opponent.teamName}
             rank={opponentRank}
             align="right"
             colorClass="text-ink-primary"
-            transitionName={opponentTeamNameTransitionName(leagueId)}
           />
         ) : null}
       </div>

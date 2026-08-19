@@ -3,9 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
-import { ViewTransitionLink } from "@/components/ui/ViewTransitionLink";
 import { DashboardMatchupCard } from "@/components/DashboardMatchupCard";
-import { leagueTitleTransitionName } from "@/lib/view-transitions";
 import { useConfig } from "@/hooks/useConfig";
 import { MatchupTarget, useDashboardMatchups } from "@/hooks/useDashboardMatchups";
 import { getLeagueSummary, LeagueSummary } from "@/lib/league-data";
@@ -111,17 +109,14 @@ export default function DashboardPage() {
             ? summary.standings.find((r) => r.rosterId === matchup.opponent!.rosterId)?.rank
             : undefined;
           return (
-            <ViewTransitionLink
+            <Link
               key={tracked.leagueId}
               href={`/league?id=${tracked.leagueId}`}
-              className="flex min-w-0 flex-col gap-4 border border-border bg-page p-5 transition-colors animate-[fade_0.5s_ease-out_backwards] hover:border-ink-primary/40"
+              className="flex min-w-0 flex-col gap-4 border border-border bg-page p-5 transition-colors animate-[rise_0.5s_ease-out_backwards] hover:border-ink-primary/40"
               style={{ animationDelay: `${i * 70}ms` }}
             >
               <div className="flex items-start justify-between gap-2">
-                <div
-                  className="min-w-0 text-balance text-base font-semibold text-ink-primary sm:truncate sm:text-lg"
-                  style={{ viewTransitionName: leagueTitleTransitionName(tracked.leagueId) }}
-                >
+                <div className="min-w-0 text-balance text-base font-semibold text-ink-primary sm:truncate sm:text-lg">
                   {summary.league.name}
                 </div>
                 {myRow ? (
@@ -132,14 +127,9 @@ export default function DashboardPage() {
               </div>
 
               {myRow ? (
-                <DashboardMatchupCard
-                  leagueId={tracked.leagueId}
-                  matchup={matchup}
-                  myRank={myRow.rank}
-                  opponentRank={opponentRank}
-                />
+                <DashboardMatchupCard matchup={matchup} myRank={myRow.rank} opponentRank={opponentRank} />
               ) : null}
-            </ViewTransitionLink>
+            </Link>
           );
         })}
       </div>

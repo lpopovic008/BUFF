@@ -14,7 +14,6 @@ import { getLeagueSummary, computeWeekRecap, LeagueSummary, WeekRecapData } from
 import { loadLeagueMoney, LeagueMoney } from "@/lib/league-money";
 import { getCurrentWeek } from "@/lib/sleeper";
 import { formatPoints, formatRecord, ordinal } from "@/lib/format";
-import { leagueTitleTransitionName } from "@/lib/view-transitions";
 
 function LeagueDetailContent() {
   const leagueId = useSearchParams().get("id");
@@ -74,10 +73,10 @@ function LeagueDetailContent() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex flex-wrap items-start justify-between gap-4 animate-[fade_0.5s_ease-out_backwards]">
+      <div className="flex flex-wrap items-start justify-between gap-4 animate-[rise_0.5s_ease-out_backwards]">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-semibold text-ink-primary">
-            <span style={{ viewTransitionName: leagueTitleTransitionName(leagueId) }}>{summary.league.name}</span>
+            <span>{summary.league.name}</span>
             {tracked?.isCommish ? (
               <svg
                 viewBox="0 0 20 20"
@@ -108,7 +107,7 @@ function LeagueDetailContent() {
       </div>
 
       {carouselGames && carouselGames.length > 0 ? (
-        <Card className="p-3 animate-[fade_0.5s_ease-out_backwards] [animation-delay:80ms] sm:p-5">
+        <Card className="p-3 animate-[rise_0.5s_ease-out_backwards] [animation-delay:80ms] sm:p-5">
           <LeagueMatchupCarousel leagueId={leagueId} games={carouselGames} myRosterId={myRow?.rosterId ?? null} />
         </Card>
       ) : null}

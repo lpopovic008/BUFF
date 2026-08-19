@@ -8,7 +8,6 @@ import { IconButton } from "@/components/ui/IconButton";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/ui/Icon";
 import { formatPoints } from "@/lib/format";
 import { POSITION_SOFT_BG } from "@/lib/position-colors";
-import { myTeamNameTransitionName, opponentTeamNameTransitionName } from "@/lib/view-transitions";
 
 // Sleeper's own slot code — abbreviate the one that's spelled out.
 function slotLabel(slot: string): string {
@@ -81,9 +80,6 @@ function MatchupSlide({
 }) {
   const mine = game.teams.find((t) => t.rosterId === myRosterId) ?? game.teams[0];
   const other = game.teams.find((t) => t.rosterId !== mine.rosterId);
-  // Only the slide matching the dashboard's own matchup gets transition
-  // names — the box's team names morph into these instead of every slide's.
-  const isMyMatchup = myRosterId != null && mine.rosterId === myRosterId;
 
   return (
     <div className="w-full shrink-0 snap-center px-0.5">
@@ -92,7 +88,6 @@ function MatchupSlide({
           <Link
             href={`/team?league=${leagueId}&roster=${mine.rosterId}`}
             className="min-w-0 truncate text-sm font-medium text-series-1 hover:underline"
-            style={isMyMatchup ? { viewTransitionName: myTeamNameTransitionName(leagueId) } : undefined}
           >
             {mine.teamName}
           </Link>
@@ -100,7 +95,6 @@ function MatchupSlide({
             <Link
               href={`/team?league=${leagueId}&roster=${other.rosterId}`}
               className="min-w-0 truncate text-right text-sm font-medium text-ink-primary hover:underline"
-              style={isMyMatchup ? { viewTransitionName: opponentTeamNameTransitionName(leagueId) } : undefined}
             >
               {other.teamName}
             </Link>
