@@ -64,9 +64,11 @@ function TeamNameLabel({
 export function DashboardMatchupCard({
   matchup,
   myRank,
+  opponentRank,
 }: {
   matchup: DashboardMatchupView | null | undefined;
   myRank: number;
+  opponentRank?: number;
 }) {
   if (!matchup) return null;
 
@@ -75,7 +77,12 @@ export function DashboardMatchupCard({
       <div className="flex items-start justify-between gap-3">
         <TeamNameLabel name={matchup.my.teamName} rank={myRank} align="left" colorClass="text-series-1" />
         {matchup.opponent ? (
-          <TeamNameLabel name={matchup.opponent.teamName} align="right" colorClass="text-ink-primary" />
+          <TeamNameLabel
+            name={matchup.opponent.teamName}
+            rank={opponentRank}
+            align="right"
+            colorClass="text-ink-primary"
+          />
         ) : null}
       </div>
       <div className="flex items-baseline justify-between gap-3 text-lg font-semibold tabular-nums text-ink-primary">

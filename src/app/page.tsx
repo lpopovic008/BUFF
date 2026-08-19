@@ -104,6 +104,10 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {leagues.map(({ tracked, summary }) => {
           const myRow = summary.standings.find((r) => r.ownerId === config.sleeperUserId);
+          const matchup = matchups[tracked.leagueId];
+          const opponentRank = matchup?.opponent
+            ? summary.standings.find((r) => r.rosterId === matchup.opponent!.rosterId)?.rank
+            : undefined;
           return (
             <Link
               key={tracked.leagueId}
@@ -122,7 +126,7 @@ export default function DashboardPage() {
               </div>
 
               {myRow ? (
-                <DashboardMatchupCard matchup={matchups[tracked.leagueId]} myRank={myRow.rank} />
+                <DashboardMatchupCard matchup={matchup} myRank={myRow.rank} opponentRank={opponentRank} />
               ) : null}
             </Link>
           );
