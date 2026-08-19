@@ -107,7 +107,7 @@ function LeagueDetailContent() {
       </div>
 
       {carouselGames && carouselGames.length > 0 ? (
-        <Card className="p-5">
+        <Card className="p-3 sm:p-5">
           <LeagueMatchupCarousel leagueId={leagueId} games={carouselGames} myRosterId={myRow?.rosterId ?? null} />
         </Card>
       ) : null}

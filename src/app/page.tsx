@@ -3,8 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
-import { IconLink } from "@/components/ui/IconButton";
-import { StandingsIcon, DocumentIcon, ClockIcon } from "@/components/ui/Icon";
 import { DashboardMatchupCard } from "@/components/DashboardMatchupCard";
 import { useConfig } from "@/hooks/useConfig";
 import { MatchupTarget, useDashboardMatchups } from "@/hooks/useDashboardMatchups";
@@ -107,58 +105,28 @@ export default function DashboardPage() {
         {leagues.map(({ tracked, summary }) => {
           const myRow = summary.standings.find((r) => r.ownerId === config.sleeperUserId);
           return (
-            <div key={tracked.leagueId} className="flex min-w-0 flex-col gap-4 border border-border bg-page p-5">
-              <div className="min-w-0">
-                <Link
-                  href={`/league?id=${tracked.leagueId}`}
-                  className="block truncate text-base font-semibold text-ink-primary hover:underline sm:text-lg"
-                >
-                  {summary.league.name}
-                </Link>
-              </div>
-
-              <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
-                <div className="flex items-center gap-2">
-                  <IconLink
-                    href={`/league?id=${tracked.leagueId}`}
-                    icon={<StandingsIcon />}
-                    label="Standings & matchups"
-                    variant="primary"
-                  />
-                  {tracked.isCommish ? (
-                    <IconLink
-                      href={`/recap?id=${tracked.leagueId}`}
-                      icon={<DocumentIcon />}
-                      label="Weekly recap"
-                    />
-                  ) : null}
-                  <IconLink
-                    href={`/league/history?id=${tracked.leagueId}`}
-                    icon={<ClockIcon />}
-                    label="History"
-                  />
-                </div>
-                {myRow ? (
-                  <>
-                    <div className="text-center text-xl font-semibold tabular-nums text-ink-primary">
-                      {ordinal(myRow.rank)}
-                    </div>
-                    <div className="text-right text-xl font-semibold tabular-nums text-ink-primary">
-                      {formatRecord(myRow.wins, myRow.losses, myRow.ties)}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div />
-                    <div />
-                  </>
-                )}
+            <Link
+              key={tracked.leagueId}
+              href={`/league?id=${tracked.leagueId}`}
+              className="flex min-w-0 flex-col gap-4 border border-border bg-page p-5 transition-colors hover:border-ink-primary/40"
+            >
+              <div className="min-w-0 truncate text-base font-semibold text-ink-primary sm:text-lg">
+                {summary.league.name}
               </div>
 
               {myRow ? (
-                <DashboardMatchupCard leagueId={tracked.leagueId} matchup={matchups[tracked.leagueId]} />
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-xl font-semibold tabular-nums text-ink-primary">{ordinal(myRow.rank)}</div>
+                  <div className="text-xl font-semibold tabular-nums text-ink-primary">
+                    {formatRecord(myRow.wins, myRow.losses, myRow.ties)}
+                  </div>
+                </div>
               ) : null}
-            </div>
+
+              {myRow ? (
+                <DashboardMatchupCard matchup={matchups[tracked.leagueId]} />
+              ) : null}
+            </Link>
           );
         })}
       </div>

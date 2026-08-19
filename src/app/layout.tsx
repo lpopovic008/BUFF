@@ -19,7 +19,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className={`${juliusSansOne.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-page">
         <NavBar />
-        <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">{children}</main>
+        <main className="mx-auto w-full max-w-6xl flex-1 px-3 py-8 sm:px-6">{children}</main>
       </body>
     </html>
   );

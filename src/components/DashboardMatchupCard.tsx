@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { DashboardMatchupView } from "@/hooks/useDashboardMatchups";
 import { RankedPlayer } from "@/lib/matchup-players";
 import { formatPoints } from "@/lib/format";
@@ -14,32 +13,20 @@ function PlayerFaces({ players }: { players: RankedPlayer[] }) {
   );
 }
 
-/** The dashboard's per-league matchup section: team names + score left/right, and each side's top 3 players pictured. */
-export function DashboardMatchupCard({
-  leagueId,
-  matchup,
-}: {
-  leagueId: string;
-  matchup: DashboardMatchupView | null | undefined;
-}) {
+/** The dashboard's per-league matchup section: team names + score left/right, and each side's top 3 players pictured. Sits inside a whole-box link, so team names are plain text rather than their own nested links. */
+export function DashboardMatchupCard({ matchup }: { matchup: DashboardMatchupView | null | undefined }) {
   if (!matchup) return null;
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-baseline justify-between gap-3">
-        <Link
-          href={`/team?league=${leagueId}&roster=${matchup.my.rosterId}`}
-          className="min-w-0 truncate text-sm font-medium text-series-1 hover:underline"
-        >
+      <div className="flex items-start justify-between gap-3">
+        <div className="line-clamp-2 min-w-0 text-balance text-sm font-medium text-series-1 sm:line-clamp-1 sm:truncate">
           {matchup.my.teamName}
-        </Link>
+        </div>
         {matchup.opponent ? (
-          <Link
-            href={`/team?league=${leagueId}&roster=${matchup.opponent.rosterId}`}
-            className="min-w-0 truncate text-right text-sm font-medium text-ink-primary hover:underline"
-          >
+          <div className="line-clamp-2 min-w-0 text-balance text-right text-sm font-medium text-ink-primary sm:line-clamp-1 sm:truncate">
             {matchup.opponent.teamName}
-          </Link>
+          </div>
         ) : null}
       </div>
       <div className="flex items-baseline justify-between gap-3 text-lg font-semibold tabular-nums text-ink-primary">
