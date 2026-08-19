@@ -143,6 +143,22 @@ body {
   }
 }
 
+/* Opacity-only sibling of `rise`, for wrappers that contain a
+   view-transition-named element or an overflow-clipped scroll container.
+   WebKit reparents/repositions those during an active view transition based
+   on the ancestor's live geometry (WebKit bugs 299578, 290923); an ancestor
+   still mid-transform when that capture happens throws the shared-element
+   morph off (wrong position, or clipped away entirely) on Safari. Opacity
+   doesn't trigger that reparenting, so it's the safe choice for those spots. */
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 /* Base-layer reset so explicit utilities like rounded-full (avatars, legend
    dots) still win — unlayered rules would otherwise beat them regardless of
    specificity, since Tailwind's own utilities are layered. */

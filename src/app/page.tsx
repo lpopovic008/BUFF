@@ -114,7 +114,7 @@ export default function DashboardPage() {
             <ViewTransitionLink
               key={tracked.leagueId}
               href={`/league?id=${tracked.leagueId}`}
-              className="flex min-w-0 flex-col gap-4 border border-border bg-page p-5 transition-colors animate-[rise_0.5s_ease-out_backwards] hover:border-ink-primary/40"
+              className="flex min-w-0 flex-col gap-4 border border-border bg-page p-5 transition-colors animate-[fade_0.5s_ease-out_backwards] hover:border-ink-primary/40"
               style={{ animationDelay: `${i * 70}ms` }}
             >
               <div className="flex items-start justify-between gap-2">
