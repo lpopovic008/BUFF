@@ -10,6 +10,16 @@ import { AnchorHTMLAttributes, MouseEvent, ReactNode } from "react";
  * Without this, document.startViewTransition() captures its "after"
  * snapshot before React has re-rendered anything, so old and new look
  * identical and no animation is visible even though the API ran fine.
+ *
+ * While this promise is pending, startViewTransition freezes the page on a
+ * static screenshot of the old state — nothing visibly responds. That's
+ * invisible when the destination route is already prefetched (mutation
+ * lands within a couple of frames), but if it isn't — no hover-prefetch on
+ * touch devices, a slow connection — router.push has to fetch the route's
+ * chunk over the network first, and nothing mutates until it lands. The
+ * cap below has to stay short: it's not a rare safety net, it's the ceiling
+ * on how long the whole app can look frozen. Missing it just means this one
+ * navigation skips the morph and falls through to a normal, unfrozen load.
  */
 function waitForRender(): Promise<void> {
   return new Promise((resolve) => {
@@ -25,8 +35,7 @@ function waitForRender(): Promise<void> {
     };
     const observer = new MutationObserver(finish);
     observer.observe(document.body, { childList: true, subtree: true });
-    // Safety net: never hang the transition if nothing mutates.
-    const timeout = setTimeout(finish, 1500);
+    const timeout = setTimeout(finish, 200);
   });
 }
 
