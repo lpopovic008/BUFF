@@ -35,7 +35,16 @@ export interface LeagueProfile {
   matchNames: string[];
   /** Short label for UI, in case the Sleeper league name is unwieldy. */
   label: string;
+  /** Default rules — used for any season without an entry in payoutsBySeason. */
   payouts: PayoutRules;
+  /**
+   * Overrides for specific past seasons whose rules differed from the
+   * default, keyed by Sleeper's `season` string (e.g. "2025"). Needed
+   * because one LeagueProfile applies to every season in the league's
+   * previous_league_id chain — without an override, a rule change made for
+   * the current season would silently rewrite prior seasons' history too.
+   */
+  payoutsBySeason?: Record<string, PayoutRules>;
   /**
    * roster_id → the manager's real name. Roster IDs are stable within a season
    * and normally carry across seasons, which makes them a far better key than
@@ -47,17 +56,35 @@ export interface LeagueProfile {
 export const EPSTEIN_ISLAND: LeagueProfile = {
   matchNames: ["epstein island", "epstein", "pigskin pioneer"],
   label: "Epstein Island",
+  // Current rules: buy-in went from $100 to $150 starting the 2026 season,
+  // same structure scaled 1.5x throughout.
   payouts: {
-    buyIn: 100,
-    perWin: 10,
-    weeklyHighScore: 20,
+    buyIn: 150,
+    perWin: 15,
+    weeklyHighScore: 30,
     highScoreStacks: false,
     regularSeasonWeeks: 14,
     finalPayouts: [
-      { place: 1, amount: 85 },
-      { place: 2, amount: 45 },
-      { place: 3, amount: 30 },
+      { place: 1, amount: 127.5 },
+      { place: 2, amount: 67.5 },
+      { place: 3, amount: 45 },
     ],
+  },
+  payoutsBySeason: {
+    // 2025 was played at the original $100 buy-in — pinned here so its
+    // history stays accurate after the 2026 bump.
+    "2025": {
+      buyIn: 100,
+      perWin: 10,
+      weeklyHighScore: 20,
+      highScoreStacks: false,
+      regularSeasonWeeks: 14,
+      finalPayouts: [
+        { place: 1, amount: 85 },
+        { place: 2, amount: 45 },
+        { place: 3, amount: 30 },
+      ],
+    },
   },
   // Mapping taken from the Dynasty sheet's payout tables.
   managerNamesByRosterId: {
@@ -80,6 +107,11 @@ export function findLeagueProfile(leagueName: string | undefined): LeagueProfile
   if (!leagueName) return null;
   const needle = leagueName.toLowerCase();
   return LEAGUE_PROFILES.find((p) => p.matchNames.some((m) => needle.includes(m))) ?? null;
+}
+
+/** The rules in force for a given season: its override if one exists, else the default. */
+export function payoutsForSeason(profile: LeagueProfile, season: string): PayoutRules {
+  return profile.payoutsBySeason?.[season] ?? profile.payouts;
 }
 
 /** Real name for a roster when the profile knows one, else the Sleeper team/display name. */

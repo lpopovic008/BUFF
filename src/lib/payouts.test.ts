@@ -1,8 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { computePayoutLedger, reconcilePot, summarizeWeek, standingsThroughWeek } from "./payouts";
-import { EPSTEIN_ISLAND } from "./league-config";
+import { EPSTEIN_ISLAND, payoutsForSeason } from "./league-config";
 import type { SleeperMatchup } from "./sleeper";
+
+// 2025 was played at the original $100 buy-in; EPSTEIN_ISLAND.payouts now
+// reflects the current (bumped) rules, so this season's real numbers are
+// tested against its pinned 2025 override rather than the default.
+const EPSTEIN_ISLAND_2025 = { ...EPSTEIN_ISLAND, payouts: payoutsForSeason(EPSTEIN_ISLAND, "2025") };
 
 // Real Epstein Island 2025 regular season, transcribed from the Dynasty sheet.
 // Each entry is one game: [rosterA, pointsA, rosterB, pointsB].
@@ -129,7 +134,7 @@ function ledger() {
   return computePayoutLedger({
     matchupsByWeek: buildMatchups(),
     rosterNames,
-    profile: EPSTEIN_ISLAND,
+    profile: EPSTEIN_ISLAND_2025,
     teamCount: 10,
   });
 }
@@ -232,11 +237,20 @@ test("running standings through week 7 match the sheet's cumulative column", () 
   );
 });
 
-test("the pot balances exactly", () => {
-  const r = reconcilePot(EPSTEIN_ISLAND.payouts, 10);
+test("the pot balances exactly for the 2025 ($100 buy-in) rules", () => {
+  const r = reconcilePot(EPSTEIN_ISLAND_2025.payouts, 10);
   assert.equal(r.pot, 1000);
   assert.equal(r.projectedWeekly, 840);
   assert.equal(r.finalTotal, 160);
+  assert.equal(r.unallocated, 0);
+  assert.equal(r.balances, true);
+});
+
+test("the pot balances exactly for the current ($150 buy-in) rules", () => {
+  const r = reconcilePot(EPSTEIN_ISLAND.payouts, 10);
+  assert.equal(r.pot, 1500);
+  assert.equal(r.projectedWeekly, 1260);
+  assert.equal(r.finalTotal, 240);
   assert.equal(r.unallocated, 0);
   assert.equal(r.balances, true);
 });

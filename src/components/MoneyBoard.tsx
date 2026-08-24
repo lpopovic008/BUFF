@@ -4,7 +4,7 @@ import { LeagueMoney } from "@/lib/league-money";
 import { formatRecord } from "@/lib/format";
 
 function money(n: number): string {
-  return `$${n}`;
+  return Number.isInteger(n) ? `$${n}` : `$${n.toFixed(2)}`;
 }
 
 /** Earnings leaderboard. One series, so the title names it and no legend is needed. */

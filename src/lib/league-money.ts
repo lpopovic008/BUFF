@@ -1,5 +1,5 @@
 import { getLeague, getLeagueRosters, getLeagueUsers, getMatchups, SleeperMatchup } from "./sleeper";
-import { findLeagueProfile, LeagueProfile } from "./league-config";
+import { findLeagueProfile, payoutsForSeason, LeagueProfile } from "./league-config";
 import { computePayoutLedger, PayoutLedger } from "./payouts";
 import { displayManagerName } from "./format";
 
@@ -22,8 +22,12 @@ export async function loadLeagueMoney(
   const league = await getLeague(leagueId);
   if (!league) return null;
 
-  const profile = profileOverride ?? findLeagueProfile(league.name);
-  if (!profile) return null;
+  const baseProfile = profileOverride ?? findLeagueProfile(league.name);
+  if (!baseProfile) return null;
+  // Resolve this season's rules once, up front, so everything downstream
+  // (the ledger engine, MoneyBoard) can keep reading profile.payouts as
+  // before without knowing seasons can have different rules.
+  const profile: LeagueProfile = { ...baseProfile, payouts: payoutsForSeason(baseProfile, league.season) };
 
   const [rosters, users] = await Promise.all([getLeagueRosters(leagueId), getLeagueUsers(leagueId)]);
   const usersById = new Map(users.map((u) => [u.user_id, u]));
