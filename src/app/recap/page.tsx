@@ -287,6 +287,7 @@ function RecapContent() {
           body={body}
           onBodyChange={setBody}
           savedAt={savedAt}
+          writeupDocId={money?.profile.writeupDocId}
         />
       </Card>
 

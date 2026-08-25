@@ -51,11 +51,19 @@ export interface LeagueProfile {
    * team names — this league renames teams almost every week.
    */
   managerNamesByRosterId: Record<number, string>;
+  /**
+   * Google Doc ID for the commish's running write-up doc (the part of a Docs
+   * URL between /d/ and /edit), if this league keeps one. When set, the recap
+   * editor's "Save to Doc" button appends the current write-up there.
+   */
+  writeupDocId?: string;
 }
 
 export const EPSTEIN_ISLAND: LeagueProfile = {
   matchNames: ["epstein island", "epstein", "pigskin pioneer"],
   label: "Epstein Island",
+  // The "Dynasty Write-ups" doc the commish has been pasting recaps into by hand.
+  writeupDocId: "1wY4CExLvdGsrDVGYi-FsGfdrXA1ihnoz6oTw6O5RzA8",
   // Current rules: buy-in went from $100 to $150 starting the 2026 season,
   // same structure scaled 1.5x throughout.
   payouts: {

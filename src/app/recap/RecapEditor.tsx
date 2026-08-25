@@ -3,8 +3,11 @@
 import { useState } from "react";
 import { saveRecap } from "@/lib/localStore";
 import { buildRecapClipboardHtml } from "@/lib/format-recap";
+import { getGoogleAccessToken } from "@/lib/google-auth";
+import { appendWriteupToDoc, DOCS_SCOPE } from "@/lib/google-docs";
+import { GOOGLE_CLIENT_ID } from "@/lib/google-config";
 import { IconButton } from "@/components/ui/IconButton";
-import { CopyIcon, CopyStyledIcon, SaveIcon, CheckIcon } from "@/components/ui/Icon";
+import { CopyIcon, CopyStyledIcon, SaveIcon, CheckIcon, UploadIcon } from "@/components/ui/Icon";
 
 export function RecapEditor({
   leagueId,
@@ -14,6 +17,7 @@ export function RecapEditor({
   body,
   onBodyChange,
   savedAt,
+  writeupDocId,
 }: {
   leagueId: string;
   season: string;
@@ -22,10 +26,13 @@ export function RecapEditor({
   body: string;
   onBodyChange: (body: string) => void;
   savedAt: string | null;
+  writeupDocId?: string;
 }) {
   const [copied, setCopied] = useState(false);
   const [copiedFormatted, setCopiedFormatted] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState(savedAt);
+  const [docStatus, setDocStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [docError, setDocError] = useState<string | null>(null);
 
   async function handleCopy() {
     await navigator.clipboard.writeText(body);
@@ -59,6 +66,22 @@ export function RecapEditor({
     setLastSavedAt(now);
   }
 
+  /** Appends the write-up currently in the textarea to the commish's Google Doc — whatever's been hand-edited, not the auto-generated draft. Prompts a Google sign-in popup the first time (or once the cached token expires). */
+  async function handleSaveToDoc() {
+    if (!writeupDocId || !GOOGLE_CLIENT_ID) return;
+    setDocStatus("saving");
+    setDocError(null);
+    try {
+      const accessToken = await getGoogleAccessToken(GOOGLE_CLIENT_ID, DOCS_SCOPE);
+      await appendWriteupToDoc(writeupDocId, body, accessToken);
+      setDocStatus("saved");
+      setTimeout(() => setDocStatus("idle"), 2500);
+    } catch (err) {
+      setDocStatus("error");
+      setDocError(err instanceof Error ? err.message : "Something went wrong.");
+    }
+  }
+
   return (
     <form onSubmit={handleSave} className="flex flex-col gap-3">
       <textarea
@@ -80,11 +103,22 @@ export function RecapEditor({
           onClick={handleCopy}
         />
         <IconButton icon={<SaveIcon />} label="Save to archive" type="submit" variant="primary" />
+        {writeupDocId && GOOGLE_CLIENT_ID ? (
+          <IconButton
+            icon={docStatus === "saved" ? <CheckIcon /> : <UploadIcon />}
+            label={docStatus === "saving" ? "Saving to Doc…" : docStatus === "saved" ? "Saved to Doc" : "Save to Doc"}
+            onClick={handleSaveToDoc}
+            disabled={docStatus === "saving"}
+          />
+        ) : null}
         {lastSavedAt ? (
           <span className="text-xs text-ink-muted">Saved {new Date(lastSavedAt).toLocaleString()}</span>
         ) : (
           <span className="text-xs text-ink-muted">Not saved yet</span>
         )}
+        {docStatus === "error" && docError ? (
+          <span className="text-xs text-status-critical">Google Doc save failed: {docError}</span>
+        ) : null}
       </div>
     </form>
   );

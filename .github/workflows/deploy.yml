@@ -26,6 +26,12 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+        env:
+          # Public OAuth client ID for Save-to-Doc (see src/lib/google-config.ts) —
+          # not a secret, but kept out of source so it's easy to rotate. Unset
+          # until the repo has a "GOOGLE_CLIENT_ID" Actions variable configured;
+          # the button stays hidden in the meantime.
+          NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
         # Requires Pages to already be enabled on the repo with Source set to
         # "GitHub Actions" (Settings → Pages). That is a one-time manual step:
         # the workflow's GITHUB_TOKEN is not permitted to create a Pages site,
