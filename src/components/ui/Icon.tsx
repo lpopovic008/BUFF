@@ -188,6 +188,16 @@ export function ClockIcon(props: IconProps) {
   );
 }
 
+export function RadarIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="10" cy="10" r="7" />
+      <circle cx="10" cy="10" r="3.5" />
+      <circle cx="10" cy="10" r="0.75" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 export function CrownIcon(props: IconProps) {
   return (
     <svg {...base(props)}>

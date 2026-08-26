@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { IconLink } from "@/components/ui/IconButton";
-import { DocumentIcon, ClockIcon } from "@/components/ui/Icon";
+import { DocumentIcon, ClockIcon, RadarIcon } from "@/components/ui/Icon";
 import { LeagueMatchupCarousel } from "@/components/LeagueMatchupCarousel";
 import { MoneyBoard } from "@/components/MoneyBoard";
 import { useConfig } from "@/hooks/useConfig";
@@ -102,6 +102,7 @@ function LeagueDetailContent() {
           {tracked?.isCommish ? (
             <IconLink href={`/recap?id=${leagueId}`} icon={<DocumentIcon />} label="Write recap" variant="primary" />
           ) : null}
+          <IconLink href={`/warroom?id=${leagueId}`} icon={<RadarIcon />} label="War Room" />
           <IconLink href={`/league/history?id=${leagueId}`} icon={<ClockIcon />} label="League history" />
         </div>
       </div>
