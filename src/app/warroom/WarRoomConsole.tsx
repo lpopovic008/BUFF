@@ -251,10 +251,7 @@ export function WarRoomConsole({ data }: { data: WarRoomData }) {
                   </button>
                 </div>
               </div>
-              <p className="card-note">
-                Your stats stay on screen always. Whoever you flip to becomes the cyan overlay everywhere below marked
-                ↔ COMPARES.
-              </p>
+              <p className="card-note">Flip managers to compare them below.</p>
             </article>
 
             <article className="card">
@@ -271,10 +268,7 @@ export function WarRoomConsole({ data }: { data: WarRoomData }) {
                 <GaugeDial label="WIN CHANCE" youVal={you.winChance} cmpVal={selected.winChance} />
                 <GaugeDial label="TOP SCORER" youVal={you.topScorerChance} cmpVal={selected.topScorerChance} />
               </div>
-              <p className="card-note">
-                Live points against your own season-average pace, an estimated live win chance from the current
-                matchup margin, and estimated odds of leading the whole league in scoring this week.
-              </p>
+              <p className="card-note">Pace, win chance, and top-score odds — estimated from live scores.</p>
             </article>
 
             <article className="card">
@@ -305,7 +299,7 @@ export function WarRoomConsole({ data }: { data: WarRoomData }) {
                   </div>
                 ))}
               </div>
-              <p className="card-note">Green = beating their own season pace, amber = on pace, red = falling short.</p>
+              <p className="card-note">Green = ahead of season pace, amber = on pace, red = behind.</p>
             </article>
           </div>
 
@@ -337,10 +331,7 @@ export function WarRoomConsole({ data }: { data: WarRoomData }) {
                 <span className="you">YOU — point differential vs your opponent</span>
                 <span className="cmp">{selected.name.toUpperCase()} — point differential vs their opponent</span>
               </div>
-              <p className="card-note">
-                A straight line from kickoff (0) to the current margin — Sleeper has no historical intra-week
-                snapshots to trace the real path. Above the line = winning, below = losing.
-              </p>
+              <p className="card-note">Kickoff to now&rsquo;s margin. Above = winning, below = losing.</p>
             </article>
 
             <article className="card span-5">
@@ -365,7 +356,7 @@ export function WarRoomConsole({ data }: { data: WarRoomData }) {
                   );
                 })}
               </div>
-              <p className="card-note">Every team&rsquo;s current point total. Cyan outline marks whoever&rsquo;s selected in the Dossier.</p>
+              <p className="card-note">Live team totals. Cyan = selected manager.</p>
             </article>
 
             <article className="card span-4">
@@ -384,7 +375,7 @@ export function WarRoomConsole({ data }: { data: WarRoomData }) {
                   data.transactionSummaries.slice(0, 6).map((line, i) => <div key={i}>{line}</div>)
                 )}
               </div>
-              <p className="card-note">Real waiver, free-agent, and trade activity from this week — Sleeper has no play-by-play feed to read live scoring plays from.</p>
+              <p className="card-note">This week&rsquo;s waiver, free-agent, and trade moves.</p>
             </article>
 
             <article className="card span-4">
@@ -426,7 +417,7 @@ export function WarRoomConsole({ data }: { data: WarRoomData }) {
                   );
                 })}
               </svg>
-              <p className="card-note">League-wide radar for this week&rsquo;s closest live games — blips are current margins, in points.</p>
+              <p className="card-note">This week&rsquo;s closest live games. Blips are point margins.</p>
             </article>
 
             <article className="card span-5">
@@ -462,10 +453,7 @@ export function WarRoomConsole({ data }: { data: WarRoomData }) {
                   );
                 })}
               </svg>
-              <p className="card-note">
-                League percentile by position, from KTC values. Solid amber is your roster; dashed cyan overlays
-                whoever&rsquo;s selected.
-              </p>
+              <p className="card-note">Position value percentile (KTC). Amber = you, cyan = selected.</p>
             </article>
 
             <article className="card span-9">
@@ -499,7 +487,7 @@ export function WarRoomConsole({ data }: { data: WarRoomData }) {
                 <span className="you">Your players&rsquo; game cities this week</span>
                 <span className="cmp">{selected.name}&rsquo;s players&rsquo; game cities</span>
               </div>
-              <p className="card-note">Hover a dot for the player and city. Outline and state borders traced from real U.S. Census Bureau boundary data.</p>
+              <p className="card-note">Where each starter plays this week.</p>
             </article>
 
             <article className="card span-4">
@@ -560,10 +548,7 @@ export function WarRoomConsole({ data }: { data: WarRoomData }) {
                 </g>
               </svg>
               <div className="rivalry-readout">{headToHeadReadout(you, selected)}</div>
-              <p className="card-note">
-                Every result played this season, arrow pointing loser-ward. Bigger dot = more wins. Your head-to-head
-                with whoever&rsquo;s selected highlights in cyan.
-              </p>
+              <p className="card-note">Arrow points to the loser. Bigger dot = more wins.</p>
             </article>
 
             <article className="card span-5">
@@ -601,7 +586,7 @@ export function WarRoomConsole({ data }: { data: WarRoomData }) {
                   })}
                 </div>
               </div>
-              <p className="card-note">Cumulative win% through each completed week — a slow trend line, not a noisy one, since one result only nudges the average.</p>
+              <p className="card-note">Cumulative win% by week.</p>
             </article>
           </div>
         </div>
@@ -649,7 +634,7 @@ export function WarRoomConsole({ data }: { data: WarRoomData }) {
               );
             })}
           </div>
-          <p className="card-note">Every team&rsquo;s estimated live win chance, from the current matchup margin — more frequent, taller bumps mean a higher estimate.</p>
+          <p className="card-note">Estimated live win chance — taller, faster pulse = higher.</p>
         </article>
       </div>
     </div>
