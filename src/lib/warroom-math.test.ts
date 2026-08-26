@@ -49,11 +49,17 @@ test("gaugeDeg maps 0/50/100 onto the dial's 135deg-405deg sweep", () => {
   assert.equal(gaugeDeg(100), 405);
 });
 
-test("ledClass reads exceeding/on-pace/short against a player's own season average", () => {
-  assert.equal(ledClass(20, 25), "good"); // 1.25x
-  assert.equal(ledClass(20, 20), "warn"); // 1.0x
-  assert.equal(ledClass(20, 10), "critical"); // 0.5x
-  assert.equal(ledClass(0, 5), "warn"); // no history yet -> neutral, not a divide-by-zero crash
+test("ledClass reads exceeding/on-pace/short against a player's expected points", () => {
+  assert.equal(ledClass(20, 25, true), "good"); // 1.25x
+  assert.equal(ledClass(20, 20, true), "warn"); // 1.0x
+  assert.equal(ledClass(20, 10, true), "critical"); // 0.5x, game in progress
+  assert.equal(ledClass(0, 5, true), "warn"); // no expectation set -> neutral, not a divide-by-zero crash
+});
+
+test("ledClass never reads critical before the player's game has started", () => {
+  assert.equal(ledClass(20, 0, false), "warn"); // pregame: 0 actual vs a real projection isn't "behind" yet
+  assert.equal(ledClass(20, 10, false), "warn"); // would be critical mid-game (0.5x), but hasStarted is false
+  assert.equal(ledClass(20, 25, false), "good"); // already exceeding is still worth celebrating regardless
 });
 
 test("heartbeatTile starts and ends each tile on the baseline so two tiles loop seamlessly", () => {

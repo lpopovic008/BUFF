@@ -48,11 +48,17 @@ export function gaugeDeg(value: number): number {
   return 135 + (clamp(value, 0, 100) / 100) * 270;
 }
 
-/** good/warn/critical against a team's own season-average pace for that player. */
-export function ledClass(seasonAvg: number, actual: number): "good" | "warn" | "critical" {
-  const ratio = seasonAvg > 0 ? actual / seasonAvg : 1;
+/**
+ * good/warn/critical against a player's expected points for the week.
+ * `hasStarted` gates the critical (red) case only — a player who hasn't
+ * kicked off yet reads 0 actual against a real projection, which isn't
+ * "behind" so much as "hasn't had the chance yet," so that stays neutral
+ * (warn) instead of a false red.
+ */
+export function ledClass(expected: number, actual: number, hasStarted: boolean): "good" | "warn" | "critical" {
+  const ratio = expected > 0 ? actual / expected : 1;
   if (ratio >= 1.1) return "good";
-  if (ratio <= 0.85) return "critical";
+  if (hasStarted && ratio <= 0.85) return "critical";
   return "warn";
 }
 

@@ -32,6 +32,15 @@ import { PlayerValuesSnapshot } from "./player-values";
 
 const snapshot = rawSnapshot as unknown as PlayerValuesSnapshot;
 
+/**
+ * Standard deviation (points) used to turn a projected-final margin into a
+ * win probability via a logistic curve — a ~10 point lead reads as a lean,
+ * not a lock, matching how much a full lineup's projection typically misses
+ * by in either direction. This is our own model; Sleeper has no published
+ * fantasy-matchup win-probability field to read the number from directly.
+ */
+const WIN_PROB_SIGMA = 20;
+
 const RADAR_POSITIONS = ["QB", "RB", "WR", "TE"] as const;
 export type RadarPosition = (typeof RADAR_POSITIONS)[number];
 
@@ -69,18 +78,28 @@ export interface WarRoomManager {
   wins: number;
   losses: number;
   ties: number;
-  /** Percentile (0-100) of this roster's KTC value at QB/RB/WR/TE vs the rest of the league. */
+  /**
+   * 0-100 per position (QB/RB/WR/TE) — this roster's league rank by summed
+   * KTC value at that position, plotted so 1st place sits at the radar's
+   * outer edge (100) and last place still sits 1/n of the way out rather
+   * than collapsing to the center; every rank in between steps evenly
+   * along that same scale.
+   */
   radar: Record<RadarPosition, number>;
   livePoints: number;
+  /** This team's likely final score: already-scored points plus each unfinished starter's remaining projected points. */
+  projectedFinal: number;
   opponentRosterId: number | null;
   opponentLivePoints: number | null;
   lineup: WarRoomLineupPlayer[];
   /**
-   * 0-100 — Sleeper publishes no win-probability field, so this is derived
-   * from each team's projected final score (already-scored points plus
-   * each unfinished starter's remaining expected points). Before kickoff
-   * this reads as the pure projection matchup; it converges to the live
-   * margin by the time every starter's actual catches up to their projection.
+   * 0-100 — Sleeper publishes no win-probability field for a fantasy
+   * matchup, so this is modeled the way real projection-based win
+   * probability tools do it: a logistic curve over the projected-final
+   * margin (see WIN_PROB_SIGMA), rather than treating every point of
+   * margin as equally decisive. Before kickoff this reads as the pure
+   * projection matchup; it converges toward 0/100 as the live margin
+   * grows and every starter's actual catches up to their projection.
    */
   winChance: number;
   /** 0-100, derived from the gap to this week's current league-high score. */
@@ -120,11 +139,19 @@ function initialOf(name: string): string {
   return name.trim().charAt(0).toUpperCase() || "?";
 }
 
-function percentileRank(values: number[], value: number): number {
-  if (values.length <= 1) return 50;
-  const sorted = [...values].sort((a, b) => a - b);
-  const rank = sorted.filter((v) => v < value).length;
-  return Math.round((rank / (sorted.length - 1)) * 100);
+/**
+ * Radar axis distance from a league rank (1 = highest KTC value at that
+ * position). Rank 1 plots at the outer edge (100); worst plots at 1/n of
+ * the way out, never at the dead center, so a last-place axis still reads
+ * as a visible point instead of collapsing to the origin — every rank in
+ * between steps evenly along that same 1/n scale.
+ */
+function radarRankScore(values: number[], value: number): number {
+  const n = values.length;
+  if (n <= 1) return 100;
+  const rank = values.filter((v) => v > value).length + 1;
+  const reverseRank = n - rank + 1;
+  return Math.round((reverseRank / n) * 100);
 }
 
 /** Sum of a roster's KTC value at one position group. Unranked players (K, DST, etc.) don't count toward any axis. */
@@ -292,7 +319,7 @@ export async function loadWarRoomData(
     const seasonAvgTotal = seasonAvgTotalFor(roster.roster_id, livePoints || 1);
     const vsPaceGauge = clamp(Math.round((livePoints / (seasonAvgTotal || 1) - 0.5) * 100), 0, 100);
     const projectedMargin = projectedFinalFor(current) - projectedFinalFor(opponent);
-    const winChance = clamp(Math.round(50 + projectedMargin * 2.5), 1, 99);
+    const winChance = clamp(Math.round(100 / (1 + Math.exp(-projectedMargin / WIN_PROB_SIGMA))), 1, 99);
     const gapToLead = Math.max(0, highestLiveScore - livePoints);
     const topScorerChance = clamp(Math.round(100 - gapToLead * 4), 2, 96);
 
@@ -300,7 +327,7 @@ export async function loadWarRoomData(
     const radar = Object.fromEntries(
       RADAR_POSITIONS.map((pos) => [
         pos,
-        percentileRank(rosters.map((r) => positionSumsByRoster.get(r.roster_id)?.[pos] ?? 0), radarSums[pos]),
+        radarRankScore(rosters.map((r) => positionSumsByRoster.get(r.roster_id)?.[pos] ?? 0), radarSums[pos]),
       ])
     ) as Record<RadarPosition, number>;
 
@@ -316,6 +343,7 @@ export async function loadWarRoomData(
       ties: roster.settings.ties ?? 0,
       radar,
       livePoints,
+      projectedFinal: projectedFinalFor(current),
       opponentRosterId: opponent?.roster_id ?? null,
       opponentLivePoints: opponent?.points ?? null,
       lineup,

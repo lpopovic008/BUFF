@@ -156,7 +156,7 @@ export function WarRoomConsole({ data, leagueOptions, currentLeagueId, onLeagueC
   }
 
   const allManagers = [you, ...others];
-  const scoreboardMax = Math.max(1, ...allManagers.map((m) => m.livePoints));
+  const scoreboardMax = Math.max(1, ...allManagers.flatMap((m) => [m.livePoints, m.projectedFinal]));
   const ledList = ledShowingYou ? you.lineup : selected.lineup;
   const heatWeekCount = you.seasonForm.length;
 
@@ -346,7 +346,7 @@ export function WarRoomConsole({ data, leagueOptions, currentLeagueId, onLeagueC
               <div className="led-rows">
                 {ledList.map((row, i) => (
                   <div className="led-row" key={i}>
-                    <span className={`led-dot ${ledClass(row.expected, row.actual)}`} />
+                    <span className={`led-dot ${ledClass(row.expected, row.actual, row.actual > 0)}`} />
                     <span className="led-slot">{row.slot}</span>
                     <span className="led-name">{row.name}</span>
                     <span className="led-nums">{row.expected.toFixed(1)}</span>
@@ -354,7 +354,7 @@ export function WarRoomConsole({ data, leagueOptions, currentLeagueId, onLeagueC
                   </div>
                 ))}
               </div>
-              <p className="card-note">Green = beating projection, amber = on pace, red = behind.</p>
+              <p className="card-note">Green = beating projection, amber = on pace or not started, red = behind since kickoff.</p>
             </article>
           </div>
 
@@ -404,14 +404,17 @@ export function WarRoomConsole({ data, leagueOptions, currentLeagueId, onLeagueC
                   const isSel = !isYou && i - 1 === selectedIdx;
                   return (
                     <div className={`score-col${isYou ? " you" : ""}${isSel ? " selected" : ""}`} key={m.rosterId}>
-                      <div className="score-bar" style={{ height: `${(m.livePoints / scoreboardMax) * 100}%` }} />
+                      <div className="score-track">
+                        <div className="score-bar" style={{ height: `${(m.livePoints / scoreboardMax) * 100}%` }} />
+                        <div className="score-target" style={{ bottom: `${(m.projectedFinal / scoreboardMax) * 100}%` }} />
+                      </div>
                       <div className="score-val">{m.livePoints.toFixed(1)}</div>
                       <div className="score-name">{isYou ? "YOU" : abbreviateTeamName(m.name)}</div>
                     </div>
                   );
                 })}
               </div>
-              <p className="card-note">Live team totals. Cyan = selected manager.</p>
+              <p className="card-note">Live totals; dashed line marks each team&rsquo;s projected final. Cyan = selected manager.</p>
             </article>
 
             <article className="card span-4">
@@ -508,7 +511,7 @@ export function WarRoomConsole({ data, leagueOptions, currentLeagueId, onLeagueC
                   );
                 })}
               </svg>
-              <p className="card-note">Position value percentile (KTC). Amber = you, cyan = selected.</p>
+              <p className="card-note">League rank by KTC value at each position, 1st = outer edge. Amber = you, cyan = selected.</p>
             </article>
 
             <article className="card span-9">
