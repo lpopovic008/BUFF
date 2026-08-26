@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { HeadToHeadRecord, WarRoomData, WarRoomManager } from "@/lib/warroom-data";
 import {
+  abbreviateTeamName,
   circlePoints,
   clamp,
   formClass,
@@ -351,7 +352,7 @@ export function WarRoomConsole({ data }: { data: WarRoomData }) {
                     <div className={`score-col${isYou ? " you" : ""}${isSel ? " selected" : ""}`} key={m.rosterId}>
                       <div className="score-bar" style={{ height: `${(m.livePoints / scoreboardMax) * 100}%` }} />
                       <div className="score-val">{m.livePoints.toFixed(1)}</div>
-                      <div className="score-name">{isYou ? "YOU" : m.name}</div>
+                      <div className="score-name">{isYou ? "YOU" : abbreviateTeamName(m.name)}</div>
                     </div>
                   );
                 })}

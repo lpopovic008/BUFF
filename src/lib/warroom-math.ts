@@ -5,6 +5,23 @@ export function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
 }
 
+/**
+ * A short, fixed-width label for a team/manager name — initials for a
+ * multi-word name ("Matt Ly" -> "ML"), a 3-letter truncation for a single
+ * word ("Karan" -> "KAR") — so a row of these never varies enough in width
+ * to force a scoreboard column wider than its neighbors.
+ */
+export function abbreviateTeamName(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "";
+  if (words.length === 1) return words[0].slice(0, 3).toUpperCase();
+  return words
+    .slice(0, 3)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
+}
+
 // Evenly spaced diamond: QB top, RB right, WR bottom, TE left.
 const RADAR_ANGLES = [-90, 0, 90, 180].map((d) => (d * Math.PI) / 180);
 

@@ -1,6 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { clamp, gaugeDeg, jitterCityDots, ledClass, heartbeatTile, formClass } from "./warroom-math";
+import { abbreviateTeamName, clamp, gaugeDeg, jitterCityDots, ledClass, heartbeatTile, formClass } from "./warroom-math";
+
+test("abbreviateTeamName keeps every label short and fixed-width-ish so scoreboard columns never spill", () => {
+  assert.equal(abbreviateTeamName("Karan"), "KAR");
+  assert.equal(abbreviateTeamName("Matt Ly"), "ML");
+  assert.equal(abbreviateTeamName("Nabers in Paris"), "NIP");
+  assert.equal(abbreviateTeamName("The Greatest Dynasty Team Ever"), "TGD");
+  assert.equal(abbreviateTeamName(""), "");
+});
 
 test("jitterCityDots looks positions up by team code, not by display city name", () => {
   const cityPos = {
