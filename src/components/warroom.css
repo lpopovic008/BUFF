@@ -65,18 +65,21 @@
   .warroom-console h3 { font-family: var(--display); font-weight: 700; margin: 0; text-wrap: balance; }
 
   .warroom-console .console-head-top {
-    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    display: flex; flex-wrap: nowrap; align-items: center; justify-content: space-between;
     gap: 10px 24px; padding-bottom: 12px; margin-bottom: 14px; border-bottom: 1px solid var(--line);
   }
   .warroom-console .badge {
     font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; color: var(--amber);
-    border: 1px solid var(--amber-dim); padding: 5px 10px;
+    border: 1px solid var(--amber-dim); padding: 5px 10px; flex-shrink: 0;
   }
-  .warroom-console .status-strip { font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; color: var(--ink-dim); }
+  .warroom-console .status-strip {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; color: var(--ink-dim);
+    min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
   .warroom-console .status-strip strong { color: var(--cyan); font-weight: 600; }
-  .warroom-console .console-head-left { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px; }
+  .warroom-console .console-head-left { display: flex; flex-wrap: nowrap; align-items: center; gap: 10px 24px; min-width: 0; flex: 1 1 auto; }
 
-  .warroom-console .console-menu { position: relative; }
+  .warroom-console .console-menu { position: relative; flex-shrink: 0; }
   .warroom-console .console-menu-btn {
     display: flex; align-items: center; justify-content: center; width: 30px; height: 30px;
     background: transparent; color: var(--ink); border: 1px solid var(--line-bright); cursor: pointer;
@@ -120,16 +123,18 @@
 
   /* ---------- macro layout: left wall + main area ---------- */
 
-  .warroom-console .console-body { display: grid; grid-template-columns: minmax(260px, 300px) 1fr; gap: 12px; align-items: start; }
-  .warroom-console .left-wall { display: flex; flex-direction: column; gap: 12px; }
-  .warroom-console .main-area { display: grid; grid-template-columns: repeat(9, 1fr); grid-auto-flow: dense; gap: 12px; align-items: start; }
+  .warroom-console .console-body { display: grid; grid-template-columns: minmax(260px, 300px) 1fr; gap: 12px; align-items: start; min-width: 0; }
+  .warroom-console .left-wall { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .warroom-console .main-area { display: grid; grid-template-columns: repeat(9, 1fr); grid-auto-flow: dense; gap: 12px; align-items: start; min-width: 0; }
   .warroom-console .span-4 { grid-column: span 4; } .warroom-console .span-5 { grid-column: span 5; } .warroom-console .span-9 { grid-column: span 9; }
+  .warroom-console .card { min-width: 0; }
   @media (max-width: 900px) {
     .warroom-console .console-body { grid-template-columns: 1fr; }
     .warroom-console .main-area { grid-template-columns: 1fr; }
     .warroom-console .span-4,
   .warroom-console .span-5,
-  .warroom-console .span-9 { grid-column: span 1; }
+  .warroom-console .span-9,
+  .warroom-console .vitals-bay { grid-column: span 1; }
   }
 
   /* ---------- card shell ---------- */
@@ -312,7 +317,7 @@
 
   /* ---------- bottom vitals bay ---------- */
 
-  .warroom-console .vitals-bay { grid-column: span 12; }
+  .warroom-console .vitals-bay { grid-column: span 9; }
   .warroom-console .vitals-strip-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; }
   .warroom-console .vitals-strip { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 6px; background: var(--panel-inset); border: 1px solid var(--line); }
   .warroom-console .vitals-strip.you { border-color: var(--amber-dim); }
