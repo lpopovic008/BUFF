@@ -363,25 +363,6 @@ export function WarRoomConsole({ data }: { data: WarRoomData }) {
               <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
               <div className="card-head">
                 <div className="card-head-left">
-                  <span className="card-index">VIT-03</span>
-                  <span className="card-title">Transaction Feed</span>
-                </div>
-                <div className="card-flags"><span className="flag live">LIVE</span></div>
-              </div>
-              <div className="terminal">
-                {data.transactionSummaries.length === 0 ? (
-                  <div>No moves logged yet this week<span className="cursor" /></div>
-                ) : (
-                  data.transactionSummaries.slice(0, 6).map((line, i) => <div key={i}>{line}</div>)
-                )}
-              </div>
-              <p className="card-note">This week&rsquo;s waiver, free-agent, and trade moves.</p>
-            </article>
-
-            <article className="card span-4">
-              <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
-              <div className="card-head">
-                <div className="card-head-left">
                   <span className="card-index">SIG-04</span>
                   <span className="card-title">Threat Sweep</span>
                 </div>
@@ -418,6 +399,25 @@ export function WarRoomConsole({ data }: { data: WarRoomData }) {
                 })}
               </svg>
               <p className="card-note">This week&rsquo;s closest live games. Blips are point margins.</p>
+            </article>
+
+            <article className="card span-9">
+              <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
+              <div className="card-head">
+                <div className="card-head-left">
+                  <span className="card-index">VIT-03</span>
+                  <span className="card-title">Transaction Feed</span>
+                </div>
+                <div className="card-flags"><span className="flag live">LIVE</span></div>
+              </div>
+              <div className="terminal">
+                {data.transactionSummaries.length === 0 ? (
+                  <div>No moves logged yet this week<span className="cursor" /></div>
+                ) : (
+                  data.transactionSummaries.slice(0, 6).map((line, i) => <div key={i}>{line}</div>)
+                )}
+              </div>
+              <p className="card-note">This week&rsquo;s waiver, free-agent, and trade moves.</p>
             </article>
 
             <article className="card span-5">
