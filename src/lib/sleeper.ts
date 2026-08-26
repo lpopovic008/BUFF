@@ -99,7 +99,7 @@ export interface SleeperLeagueUser {
   display_name: string;
   avatar: string | null;
   is_owner?: boolean;
-  metadata?: { team_name?: string; [key: string]: unknown } | null;
+  metadata?: { team_name?: string; avatar?: string | null; [key: string]: unknown } | null;
 }
 
 export interface SleeperMatchup {
@@ -292,6 +292,19 @@ export async function getRecapWeek(): Promise<number> {
 export function avatarUrl(avatarId: string | null | undefined): string | null {
   if (!avatarId) return null;
   return `https://sleepercdn.com/avatars/thumbs/${avatarId}`;
+}
+
+/**
+ * A manager's team-branded picture for this league — the custom image they
+ * set on their roster (Sleeper stores it as `metadata.avatar`, already a
+ * full CDN URL for a custom upload) — rather than their personal Sleeper
+ * account avatar. Falls back to the account avatar only if no team picture
+ * was set, same as Sleeper's own app does.
+ */
+export function teamAvatarUrl(user: SleeperLeagueUser | undefined | null): string | null {
+  const teamAvatar = user?.metadata?.avatar;
+  if (teamAvatar) return teamAvatar.startsWith("http") ? teamAvatar : avatarUrl(teamAvatar);
+  return avatarUrl(user?.avatar);
 }
 
 /** Sleeper's player headshot CDN — same convention as avatarUrl, keyed by player id instead of avatar id. Not every player has a real photo; callers should handle a broken image. */

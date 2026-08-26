@@ -14,7 +14,6 @@ import {
   SleeperLeagueUser,
   SleeperMatchup,
   SleeperRoster,
-  avatarUrl,
   getLeague,
   getLeagueRosters,
   getLeagueUsers,
@@ -23,6 +22,7 @@ import {
   getWeeklyProjections,
   isDynastyLeague,
   leagueQBFormat,
+  teamAvatarUrl,
 } from "./sleeper";
 import { buildLineupSlots, buildStandingsThroughWeek } from "./league-data";
 import { displayManagerName } from "./format";
@@ -76,7 +76,7 @@ export interface WarRoomManager {
   ownerId: string | null;
   name: string;
   initial: string;
-  /** Manager's Sleeper profile photo — null falls back to `initial` (no photo set, or Sleeper's CDN fails to load). */
+  /** The picture this manager designated for their team in this league — null falls back to `initial` (no team or account photo set, or Sleeper's CDN fails to load). */
   avatarUrl: string | null;
   wins: number;
   losses: number;
@@ -341,7 +341,7 @@ export async function loadWarRoomData(
       ownerId: roster.owner_id,
       name,
       initial: initialOf(name),
-      avatarUrl: avatarUrl(user?.avatar),
+      avatarUrl: teamAvatarUrl(user),
       wins: roster.settings.wins ?? 0,
       losses: roster.settings.losses ?? 0,
       ties: roster.settings.ties ?? 0,
