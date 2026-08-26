@@ -125,9 +125,20 @@ export interface WarRoomConsoleProps {
   leagueOptions: LeagueOption[];
   currentLeagueId: string;
   onLeagueChange: (leagueId: string) => void;
+  /** True during the NFL preseason, when there's no real fantasy week to show yet. */
+  isPreseason: boolean;
+  /** Your record summed across every league tracked in Settings, not just the one showing. */
+  totalRecord: { wins: number; losses: number; ties: number };
 }
 
-export function WarRoomConsole({ data, leagueOptions, currentLeagueId, onLeagueChange }: WarRoomConsoleProps) {
+export function WarRoomConsole({
+  data,
+  leagueOptions,
+  currentLeagueId,
+  onLeagueChange,
+  isPreseason,
+  totalRecord,
+}: WarRoomConsoleProps) {
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [ledShowingYou, setLedShowingYou] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -203,11 +214,13 @@ export function WarRoomConsole({ data, leagueOptions, currentLeagueId, onLeagueC
         <header className="console-head-top">
           <div className="console-head-left">
             <span className="badge">BUFF WAR ROOM</span>
-            <span className="status-strip">
-              {data.leagueName.toUpperCase()} · WEEK <strong>{data.week}</strong>
-            </span>
           </div>
           <div className="console-menu">
+            <span className="status-strip">
+              <strong>{isPreseason ? "PRE" : `WEEK ${data.week}`}</strong> ·{" "}
+              {totalRecord.wins}-{totalRecord.losses}
+              {totalRecord.ties ? `-${totalRecord.ties}` : ""}
+            </span>
             <button
               className="console-menu-btn"
               aria-label="Menu"

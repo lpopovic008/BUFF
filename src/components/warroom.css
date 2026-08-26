@@ -79,7 +79,7 @@
   .warroom-console .status-strip strong { color: var(--cyan); font-weight: 600; }
   .warroom-console .console-head-left { display: flex; flex-wrap: nowrap; align-items: center; gap: 10px 24px; min-width: 0; flex: 1 1 auto; }
 
-  .warroom-console .console-menu { position: relative; flex-shrink: 0; }
+  .warroom-console .console-menu { position: relative; flex-shrink: 0; display: flex; align-items: center; gap: 12px; }
   .warroom-console .console-menu-btn {
     display: flex; align-items: center; justify-content: center; width: 30px; height: 30px;
     background: transparent; color: var(--ink); border: 1px solid var(--line-bright); cursor: pointer;

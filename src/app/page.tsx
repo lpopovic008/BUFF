@@ -9,7 +9,7 @@ import { useConfig } from "@/hooks/useConfig";
 import { useMyLeagues } from "@/hooks/useMyLeagues";
 import { WarRoomConsole } from "@/components/WarRoomConsole";
 import { loadWarRoomData, WarRoomData } from "@/lib/warroom-data";
-import { getCurrentWeek } from "@/lib/sleeper";
+import { getCurrentWeek, getNFLState } from "@/lib/sleeper";
 
 const oxanium = Oxanium({ subsets: ["latin"], variable: "--font-oxanium" });
 const titilliumWeb = Titillium_Web({ subsets: ["latin"], weight: ["400", "600", "700"], variable: "--font-titillium-web" });
@@ -28,6 +28,17 @@ function WarRoomHome() {
   const [explicitLeagueId, setExplicitLeagueId] = useState<string | null>(null);
   const [data, setData] = useState<WarRoomData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isPreseason, setIsPreseason] = useState(false);
+
+  const totalRecord = useMemo(() => {
+    const totals = { wins: 0, losses: 0, ties: 0 };
+    for (const l of myLeagues ?? []) {
+      totals.wins += l.wins;
+      totals.losses += l.losses;
+      totals.ties += l.ties;
+    }
+    return totals;
+  }, [myLeagues]);
 
   const defaultLeagueId = loaded
     ? (idParam && config.leagues.some((l) => l.leagueId === idParam) ? idParam : config.leagues[0]?.leagueId) ?? null
@@ -41,9 +52,10 @@ function WarRoomHome() {
       setData(null);
       setError(null);
       try {
-        const currentWeek = await getCurrentWeek();
+        const [currentWeek, nflState] = await Promise.all([getCurrentWeek(), getNFLState()]);
         const result = await loadWarRoomData(leagueId, config.sleeperUserId, currentWeek);
         if (cancelled) return;
+        setIsPreseason(nflState?.season_type === "pre");
         if (!result) {
           setError("Couldn't find your team in this league.");
           return;
@@ -94,6 +106,8 @@ function WarRoomHome() {
         leagueOptions={myLeagues}
         currentLeagueId={leagueId}
         onLeagueChange={setExplicitLeagueId}
+        isPreseason={isPreseason}
+        totalRecord={totalRecord}
       />
     </div>
   );
