@@ -113,7 +113,19 @@ function vsYouTag(you: WarRoomManager, selected: WarRoomManager): string {
   return `VS YOU: ${rec.wins}-${rec.losses}`;
 }
 
-export function WarRoomConsole({ data }: { data: WarRoomData }) {
+export interface LeagueOption {
+  leagueId: string;
+  leagueName: string;
+}
+
+export interface WarRoomConsoleProps {
+  data: WarRoomData;
+  leagueOptions: LeagueOption[];
+  currentLeagueId: string;
+  onLeagueChange: (leagueId: string) => void;
+}
+
+export function WarRoomConsole({ data, leagueOptions, currentLeagueId, onLeagueChange }: WarRoomConsoleProps) {
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [ledShowingYou, setLedShowingYou] = useState(true);
   // Deferred to an effect (rather than a lazy initializer) so the initial
@@ -217,6 +229,20 @@ export function WarRoomConsole({ data }: { data: WarRoomData }) {
                 </div>
                 <div className="card-flags"><span className="flag cmp">↔ DRIVES COMPARE</span></div>
               </div>
+              <div className="league-picker">
+                <span className="league-picker-label">LEAGUE</span>
+                <select
+                  className="league-select"
+                  value={currentLeagueId}
+                  onChange={(e) => onLeagueChange(e.target.value)}
+                >
+                  {leagueOptions.map((opt) => (
+                    <option key={opt.leagueId} value={opt.leagueId}>
+                      {opt.leagueName}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="dossier-panes">
                 <div className="dossier-pane you">
                   <div className="dossier-photo">{you.initial}</div>
@@ -252,7 +278,7 @@ export function WarRoomConsole({ data }: { data: WarRoomData }) {
                   </button>
                 </div>
               </div>
-              <p className="card-note">Flip managers to compare them below.</p>
+              <p className="card-note">Pick a league above; flip managers to compare them below.</p>
             </article>
 
             <article className="card">

@@ -135,6 +135,17 @@
 
   /* ---------- IDT-01 dossier ---------- */
 
+  .warroom-console .league-picker { display: flex; align-items: center; gap: 8px; }
+  .warroom-console .league-picker-label { font-family: var(--mono); font-size: 9.5px; color: var(--ink-dim); letter-spacing: 0.06em; white-space: nowrap; }
+  .warroom-console .league-select {
+    flex: 1; min-width: 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.02em;
+    background: var(--panel-inset); color: var(--amber); border: 1px solid var(--amber-dim);
+    padding: 5px 8px; cursor: pointer; transition: border-color 150ms, color 150ms;
+  }
+  .warroom-console .league-select:hover { border-color: var(--cyan); color: var(--cyan); }
+  .warroom-console .league-select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+  .warroom-console .league-select option { background: var(--panel); color: var(--ink); }
+
   .warroom-console .dossier-panes { display: flex; flex-direction: column; gap: 8px; }
   .warroom-console .dossier-pane { display: flex; gap: 9px; align-items: flex-start; padding: 8px; background: var(--panel-inset); border-left: 2px solid var(--amber-dim); }
   .warroom-console .dossier-pane.cmp { border-left-color: var(--cyan-dim); }

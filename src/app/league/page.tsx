@@ -102,7 +102,7 @@ function LeagueDetailContent() {
           {tracked?.isCommish ? (
             <IconLink href={`/recap?id=${leagueId}`} icon={<DocumentIcon />} label="Write recap" variant="primary" />
           ) : null}
-          <IconLink href={`/warroom?id=${leagueId}`} icon={<RadarIcon />} label="War Room" />
+          <IconLink href={`/?id=${leagueId}`} icon={<RadarIcon />} label="War Room" />
           <IconLink href={`/league/history?id=${leagueId}`} icon={<ClockIcon />} label="League history" />
         </div>
       </div>

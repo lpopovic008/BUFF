@@ -8,7 +8,7 @@ import { IconButton } from "@/components/ui/IconButton";
 import { MenuIcon } from "@/components/ui/Icon";
 
 const links = [
-  { href: "/", label: "Dashboard" },
+  { href: "/", label: "War Room" },
   { href: "/values", label: "Values" },
   { href: "/settings", label: "Settings" },
 ];
