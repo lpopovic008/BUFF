@@ -203,33 +203,33 @@ export function WarRoomConsole({ data, leagueOptions, currentLeagueId, onLeagueC
         <header className="console-head-top">
           <div className="console-head-left">
             <span className="badge">BUFF WAR ROOM</span>
-            <div className="console-menu">
-              <button
-                className="console-menu-btn"
-                aria-label="Menu"
-                aria-expanded={menuOpen}
-                onClick={() => setMenuOpen((v) => !v)}
-              >
-                <MenuIcon />
-              </button>
-              {menuOpen ? (
-                <nav className="console-menu-dropdown">
-                  <Link href={`/league?id=${data.leagueId}`} onClick={() => setMenuOpen(false)}>
-                    League
-                  </Link>
-                  <Link href="/values" onClick={() => setMenuOpen(false)}>
-                    Values
-                  </Link>
-                  <Link href="/settings" onClick={() => setMenuOpen(false)}>
-                    Settings
-                  </Link>
-                </nav>
-              ) : null}
-            </div>
+            <span className="status-strip">
+              {data.leagueName.toUpperCase()} · WEEK <strong>{data.week}</strong>
+            </span>
           </div>
-          <span className="status-strip">
-            {data.leagueName.toUpperCase()} · WEEK <strong>{data.week}</strong>
-          </span>
+          <div className="console-menu">
+            <button
+              className="console-menu-btn"
+              aria-label="Menu"
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((v) => !v)}
+            >
+              <MenuIcon />
+            </button>
+            {menuOpen ? (
+              <nav className="console-menu-dropdown">
+                <Link href={`/league?id=${data.leagueId}`} onClick={() => setMenuOpen(false)}>
+                  League
+                </Link>
+                <Link href="/values" onClick={() => setMenuOpen(false)}>
+                  Values
+                </Link>
+                <Link href="/settings" onClick={() => setMenuOpen(false)}>
+                  Settings
+                </Link>
+              </nav>
+            ) : null}
+          </div>
         </header>
 
         <div className="clock-banner">
