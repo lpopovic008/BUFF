@@ -64,17 +64,20 @@
   .warroom-console h2,
   .warroom-console h3 { font-family: var(--display); font-weight: 700; margin: 0; text-wrap: balance; }
 
+  /* Same two-column split as .console-body below it, so this row's left
+     cell — the badge + menu — sits fixed directly above the left wall,
+     and the right cell (status strip) sits above the main area. */
   .warroom-console .console-head-top {
-    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    display: grid; grid-template-columns: minmax(260px, 300px) 1fr; align-items: center;
     gap: 10px 24px; padding-bottom: 12px; margin-bottom: 14px; border-bottom: 1px solid var(--line);
   }
   .warroom-console .badge {
     font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; color: var(--amber);
     border: 1px solid var(--amber-dim); padding: 5px 10px;
   }
-  .warroom-console .status-strip { font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; color: var(--ink-dim); }
+  .warroom-console .status-strip { font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; color: var(--ink-dim); text-align: right; }
   .warroom-console .status-strip strong { color: var(--cyan); font-weight: 600; }
-  .warroom-console .console-head-left { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px; }
+  .warroom-console .console-head-left { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; }
 
   .warroom-console .console-menu { position: relative; }
   .warroom-console .console-menu-btn {
@@ -125,6 +128,8 @@
   .warroom-console .main-area { display: grid; grid-template-columns: repeat(9, 1fr); grid-auto-flow: dense; gap: 12px; align-items: start; }
   .warroom-console .span-4 { grid-column: span 4; } .warroom-console .span-5 { grid-column: span 5; } .warroom-console .span-9 { grid-column: span 9; }
   @media (max-width: 900px) {
+    .warroom-console .console-head-top { grid-template-columns: 1fr; }
+    .warroom-console .status-strip { text-align: left; }
     .warroom-console .console-body { grid-template-columns: 1fr; }
     .warroom-console .main-area { grid-template-columns: 1fr; }
     .warroom-console .span-4,
