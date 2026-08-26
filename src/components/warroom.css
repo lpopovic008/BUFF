@@ -175,7 +175,7 @@
   .warroom-console .league-select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
   .warroom-console .league-select option { background: var(--panel); color: var(--ink); }
 
-  .warroom-console .dossier-panes { display: flex; flex-direction: column; gap: 8px; }
+  .warroom-console .dossier-panes { display: flex; flex-direction: column; justify-content: center; gap: 8px; flex: 1 1 auto; }
   .warroom-console .dossier-pane { display: flex; gap: 9px; align-items: flex-start; padding: 8px; background: var(--panel-inset); border-left: 2px solid var(--amber-dim); }
   .warroom-console .dossier-pane.cmp { border-left-color: var(--cyan-dim); }
   .warroom-console .dossier-photo { width: 36px; height: 36px; flex-shrink: 0; background: var(--panel); border: 1px solid var(--line-bright); display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 14px; color: var(--ink-dim); object-fit: cover; }
@@ -200,7 +200,7 @@
 
   /* ---------- SIG-01 gauges (left wall) ---------- */
 
-  .warroom-console .gauges { display: flex; gap: 8px; width: 100%; justify-content: space-between; }
+  .warroom-console .gauges { display: flex; gap: 8px; width: 100%; justify-content: space-between; align-items: center; flex: 1 1 auto; }
   .warroom-console .gauge { display: flex; flex-direction: column; align-items: center; gap: 2px; }
   .warroom-console .gauge-svg { width: 72px; height: 72px; }
   .warroom-console .gauge-track { fill: none; stroke: var(--line-bright); stroke-width: 6; stroke-linecap: round; }
@@ -215,7 +215,7 @@
   .warroom-console .led-header { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 9px; letter-spacing: 0.05em; }
   .warroom-console .led-header .you { color: var(--amber); }
   .warroom-console .led-header .cmp { color: var(--cyan); }
-  .warroom-console .led-rows { display: flex; flex-direction: column; gap: 5px; }
+  .warroom-console .led-rows { display: flex; flex-direction: column; justify-content: center; gap: 5px; flex: 1 1 auto; }
   .warroom-console .led-row { display: grid; grid-template-columns: 10px 1fr 28px 28px 34px 28px 28px 1fr 10px; gap: 6px; align-items: center; font-family: var(--mono); font-size: 10px; }
   .warroom-console .led-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
   .warroom-console .led-dot.good { background: var(--good); box-shadow: 0 0 6px var(--good); }
@@ -230,7 +230,7 @@
 
   /* ---------- VIT momentum line ---------- */
 
-  .warroom-console .momentum-svg { width: 100%; height: 140px; }
+  .warroom-console .momentum-svg { width: 100%; flex: 1 1 auto; min-height: 140px; }
   .warroom-console .momentum-zero { stroke: var(--line-bright); stroke-width: 1; stroke-dasharray: 3 3; }
   .warroom-console .momentum-you { fill: none; stroke: var(--good); stroke-width: 2.25; stroke-linejoin: round; }
   .warroom-console .momentum-you.losing { stroke: var(--critical); }
@@ -244,7 +244,7 @@
 
   /* ---------- VIT-02 scoreboard ---------- */
 
-  .warroom-console .scoreboard { display: flex; align-items: flex-end; gap: 6px; width: 100%; height: 118px; overflow: hidden; }
+  .warroom-console .scoreboard { display: flex; align-items: flex-end; gap: 6px; width: 100%; flex: 1 1 auto; min-height: 118px; overflow: hidden; }
   .warroom-console .score-col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
   .warroom-console .score-track { position: relative; width: 100%; flex: 1 1 auto; display: flex; align-items: flex-end; }
   .warroom-console .score-bar { width: 100%; background: linear-gradient(to top, var(--amber-dim), var(--amber)); transition: height 400ms ease; }
@@ -258,7 +258,7 @@
 
   /* ---------- VIT-03 terminal ---------- */
 
-  .warroom-console .terminal { width: 100%; font-family: var(--mono); font-size: 11px; line-height: 1.7; color: var(--good); text-align: left; }
+  .warroom-console .terminal { display: flex; flex-direction: column; justify-content: center; flex: 1 1 auto; width: 100%; font-family: var(--mono); font-size: 11px; line-height: 1.7; color: var(--good); text-align: left; }
   .warroom-console .terminal .t-time { color: var(--ink-dim); }
   .warroom-console .terminal .t-cmp { color: var(--cyan); }
   .warroom-console .terminal .cursor { display: inline-block; width: 6px; height: 11px; background: var(--good); vertical-align: middle; margin-left: 2px; }
@@ -267,7 +267,7 @@
 
   /* ---------- SIG-04 sonar ---------- */
 
-  .warroom-console .sonar-svg { width: 100%; height: 175px; }
+  .warroom-console .sonar-svg { width: 100%; flex: 1 1 auto; min-height: 175px; }
   .warroom-console .sonar-ring { fill: none; stroke: var(--line-bright); stroke-width: 1; }
   .warroom-console .sonar-blip { fill: var(--cyan); }
   .warroom-console .sonar-blip-label { font-family: var(--mono); font-size: 7px; fill: var(--ink-dim); }
@@ -277,7 +277,7 @@
 
   /* ---------- SIG-02 radar ---------- */
 
-  .warroom-console .radar-svg { width: 100%; height: 175px; }
+  .warroom-console .radar-svg { width: 100%; flex: 1 1 auto; min-height: 175px; }
   .warroom-console .radar-ring { fill: none; stroke: var(--line-bright); stroke-width: 1; }
   .warroom-console .radar-axis { stroke: var(--line-bright); stroke-width: 1; }
   .warroom-console .radar-fill.you { fill: rgba(232,163,61,0.16); stroke: var(--amber); stroke-width: 2; stroke-linejoin: round; }
@@ -286,7 +286,7 @@
 
   /* ---------- TER-01 territory map ---------- */
 
-  .warroom-console .usmap-svg { width: 100%; height: 230px; }
+  .warroom-console .usmap-svg { width: 100%; flex: 1 1 auto; min-height: 230px; }
   .warroom-console .usmap-outline { fill: rgba(107, 154, 73, 0.08); stroke: var(--node-neutral); stroke-width: 1.4; stroke-linejoin: round; stroke-linecap: round; }
   .warroom-console .usmap-state-line { fill: none; stroke: var(--line-bright); stroke-width: 0.5; opacity: 0.75; }
   .warroom-console .usmap-dot { cursor: default; }
@@ -299,7 +299,7 @@
 
   /* ---------- TER-02 season form heat ---------- */
 
-  .warroom-console .heat-wrap { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+  .warroom-console .heat-wrap { display: flex; flex-direction: column; justify-content: center; gap: 4px; width: 100%; flex: 1 1 auto; }
   .warroom-console .heat-row { display: grid; grid-template-columns: 58px repeat(10, 1fr); gap: 3px; align-items: center; }
   .warroom-console .heat-row.selected .heat-name { color: var(--cyan); }
   .warroom-console .heat-row.you .heat-name { color: var(--amber); }
@@ -315,7 +315,7 @@
 
   /* ---------- SIG-03 trade network ---------- */
 
-  .warroom-console .web-svg { width: 100%; height: 175px; }
+  .warroom-console .web-svg { width: 100%; flex: 1 1 auto; min-height: 175px; }
   .warroom-console .web-edge { stroke: var(--line-bright); }
   .warroom-console .web-edge.active { stroke: var(--cyan); }
   .warroom-console .web-node { fill: var(--node-neutral); }
@@ -325,7 +325,7 @@
 
   /* ---------- bottom vitals bay ---------- */
 
-  .warroom-console .vitals-strip-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; }
+  .warroom-console .vitals-strip-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); align-content: center; gap: 10px; flex: 1 1 auto; }
   .warroom-console .vitals-strip { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 6px; background: var(--panel-inset); border: 1px solid var(--line); }
   .warroom-console .vitals-strip.you { border-color: var(--amber-dim); }
   .warroom-console .vitals-strip.selected { border-color: var(--cyan); }
