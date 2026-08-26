@@ -225,9 +225,11 @@ export function WarRoomConsole({
           <div className="console-head-left">
             <span className="badge">BUFF WAR ROOM</span>
           </div>
+          <div className="console-head-center">
+            <span className="week-badge">{isPreseason ? "PRE" : `WEEK ${data.week}`}</span>
+          </div>
           <div className="console-menu">
             <span className="status-strip">
-              <strong>{isPreseason ? "PRE" : `WEEK ${data.week}`}</strong> ·{" "}
               {totalRecord.wins}-{totalRecord.losses}
               {totalRecord.ties ? `-${totalRecord.ties}` : ""}
             </span>

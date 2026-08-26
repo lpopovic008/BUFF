@@ -65,21 +65,25 @@
   .warroom-console h3 { font-family: var(--display); font-weight: 700; margin: 0; text-wrap: balance; }
 
   .warroom-console .console-head-top {
-    display: flex; flex-wrap: nowrap; align-items: center; justify-content: space-between;
-    gap: 10px 24px; padding-bottom: 12px; margin-bottom: 14px; border-bottom: 1px solid var(--line);
+    display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+    gap: 10px 16px; padding-bottom: 12px; margin-bottom: 14px; border-bottom: 1px solid var(--line);
   }
   .warroom-console .badge {
     font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; color: var(--amber);
     border: 1px solid var(--amber-dim); padding: 5px 10px; flex-shrink: 0;
   }
+  .warroom-console .console-head-left { display: flex; flex-wrap: nowrap; align-items: center; gap: 10px 24px; min-width: 0; }
+  .warroom-console .console-head-center { display: flex; justify-content: center; min-width: 0; }
+  .warroom-console .week-badge {
+    font-family: var(--mono); font-size: 13px; letter-spacing: 0.12em; color: var(--amber); font-weight: 600;
+    white-space: nowrap;
+  }
   .warroom-console .status-strip {
     font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; color: var(--ink-dim);
     min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .warroom-console .status-strip strong { color: var(--cyan); font-weight: 600; }
-  .warroom-console .console-head-left { display: flex; flex-wrap: nowrap; align-items: center; gap: 10px 24px; min-width: 0; flex: 1 1 auto; }
 
-  .warroom-console .console-menu { position: relative; flex-shrink: 0; display: flex; align-items: center; gap: 12px; }
+  .warroom-console .console-menu { position: relative; flex-shrink: 0; display: flex; align-items: center; gap: 12px; justify-self: end; }
   .warroom-console .console-menu-btn {
     display: flex; align-items: center; justify-content: center; width: 30px; height: 30px;
     background: transparent; color: var(--ink); border: 1px solid var(--line-bright); cursor: pointer;
