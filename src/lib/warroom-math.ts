@@ -48,6 +48,11 @@ export function gaugeDeg(value: number): number {
   return 135 + (clamp(value, 0, 100) / 100) * 270;
 }
 
+/** Sleeper's own slot code — abbreviate the one that's spelled out. */
+export function slotLabel(slot: string): string {
+  return slot === "SUPER_FLEX" ? "SF" : slot;
+}
+
 /**
  * good/warn/critical against a player's expected points for the week.
  * `hasStarted` gates the critical (red) case only — a player who hasn't

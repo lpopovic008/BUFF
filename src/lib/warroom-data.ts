@@ -14,6 +14,7 @@ import {
   SleeperLeagueUser,
   SleeperMatchup,
   SleeperRoster,
+  avatarUrl,
   getLeague,
   getLeagueRosters,
   getLeagueUsers,
@@ -75,6 +76,8 @@ export interface WarRoomManager {
   ownerId: string | null;
   name: string;
   initial: string;
+  /** Manager's Sleeper profile photo — null falls back to `initial` (no photo set, or Sleeper's CDN fails to load). */
+  avatarUrl: string | null;
   wins: number;
   losses: number;
   ties: number;
@@ -338,6 +341,7 @@ export async function loadWarRoomData(
       ownerId: roster.owner_id,
       name,
       initial: initialOf(name),
+      avatarUrl: avatarUrl(user?.avatar),
       wins: roster.settings.wins ?? 0,
       losses: roster.settings.losses ?? 0,
       ties: roster.settings.ties ?? 0,

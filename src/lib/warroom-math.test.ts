@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { abbreviateTeamName, clamp, gaugeDeg, jitterCityDots, ledClass, heartbeatTile, formClass } from "./warroom-math";
+import { abbreviateTeamName, clamp, gaugeDeg, jitterCityDots, ledClass, heartbeatTile, formClass, slotLabel } from "./warroom-math";
 
 test("abbreviateTeamName keeps every label short and fixed-width-ish so scoreboard columns never spill", () => {
   assert.equal(abbreviateTeamName("Karan"), "KAR");
@@ -60,6 +60,12 @@ test("ledClass never reads critical before the player's game has started", () =>
   assert.equal(ledClass(20, 0, false), "warn"); // pregame: 0 actual vs a real projection isn't "behind" yet
   assert.equal(ledClass(20, 10, false), "warn"); // would be critical mid-game (0.5x), but hasStarted is false
   assert.equal(ledClass(20, 25, false), "good"); // already exceeding is still worth celebrating regardless
+});
+
+test("slotLabel abbreviates SUPER_FLEX to SF and leaves every other slot code as-is", () => {
+  assert.equal(slotLabel("SUPER_FLEX"), "SF");
+  assert.equal(slotLabel("QB"), "QB");
+  assert.equal(slotLabel("FLEX"), "FLEX");
 });
 
 test("heartbeatTile starts and ends each tile on the baseline so two tiles loop seamlessly", () => {

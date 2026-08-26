@@ -5,7 +5,6 @@ import Link from "next/link";
 import { MenuIcon } from "@/components/ui/Icon";
 import { HeadToHeadRecord, WarRoomData, WarRoomManager } from "@/lib/warroom-data";
 import {
-  abbreviateTeamName,
   circlePoints,
   clamp,
   formClass,
@@ -16,6 +15,7 @@ import {
   momentumPoints,
   radarAxisPoint,
   radarPoints,
+  slotLabel,
   tileToPoints,
   vitalsColorVar,
 } from "@/lib/warroom-math";
@@ -58,6 +58,18 @@ function buildWindows(mountedAt: Date): { label: string; at: number }[] {
 
 function pad(n: number): string {
   return String(n).padStart(2, "0");
+}
+
+/** A manager's Sleeper profile photo — falls back to their initial (no avatar set, or the CDN image fails to load) inside the same styled square, whatever `className` is passed. */
+function ManagerAvatar({ url, initial, name, className }: { url: string | null; initial: string; name: string; className: string }) {
+  const [failed, setFailed] = useState(false);
+  if (!url || failed) {
+    return <div className={className}>{initial}</div>;
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={url} alt={name} loading="lazy" onError={() => setFailed(true)} className={className} />
+  );
 }
 
 function GaugeDial({ label, youVal, cmpVal }: { label: string; youVal: number; cmpVal: number }) {
@@ -140,7 +152,6 @@ export function WarRoomConsole({
   totalRecord,
 }: WarRoomConsoleProps) {
   const [selectedIdx, setSelectedIdx] = useState(0);
-  const [ledShowingYou, setLedShowingYou] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   // Deferred to an effect (rather than a lazy initializer) so the initial
   // static-export prerender and the first client render agree on markup —
@@ -168,7 +179,6 @@ export function WarRoomConsole({
 
   const allManagers = [you, ...others];
   const scoreboardMax = Math.max(1, ...allManagers.flatMap((m) => [m.livePoints, m.projectedFinal]));
-  const ledList = ledShowingYou ? you.lineup : selected.lineup;
   const heatWeekCount = you.seasonForm.length;
 
   let wIndex = 0;
@@ -260,7 +270,7 @@ export function WarRoomConsole({
         </div>
 
         <div className="console-body">
-          <article className="card span-4">
+          <article className="card span-3">
             <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
             <div className="card-head">
               <div className="card-head-left">
@@ -285,7 +295,7 @@ export function WarRoomConsole({
             </div>
             <div className="dossier-panes">
               <div className="dossier-pane you">
-                <div className="dossier-photo">{you.initial}</div>
+                <ManagerAvatar url={you.avatarUrl} initial={you.initial} name={you.name} className="dossier-photo" />
                 <div className="dossier-info">
                   <span className="name">{you.name}</span>
                   <span>{you.wins}-{you.losses}{you.ties ? `-${you.ties}` : ""}</span>
@@ -293,7 +303,7 @@ export function WarRoomConsole({
                 </div>
               </div>
               <div className="dossier-pane cmp">
-                <div className="dossier-photo">{selected.initial}</div>
+                <ManagerAvatar url={selected.avatarUrl} initial={selected.initial} name={selected.name} className="dossier-photo" />
                 <div className="dossier-info">
                   <span className="name">{selected.name}</span>
                   <span>{selected.wins}-{selected.losses}{selected.ties ? `-${selected.ties}` : ""}</span>
@@ -321,7 +331,7 @@ export function WarRoomConsole({
             <p className="card-note">Pick a league above; flip managers to compare them below.</p>
           </article>
 
-          <article className="card span-5">
+          <article className="card span-6">
             <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
             <div className="card-head">
               <div className="card-head-left">
@@ -351,38 +361,41 @@ export function WarRoomConsole({
             <p className="card-note">Kickoff to now&rsquo;s margin. Above = winning, below = losing.</p>
           </article>
 
-          <article className="card span-4">
+          <article className="card span-6">
             <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
             <div className="card-head">
               <div className="card-head-left">
                 <span className="card-index">IDT-03</span>
                 <span className="card-title">Lineup Status</span>
               </div>
-              <div className="card-flags"><span className="flag live">LIVE</span><span className="flag cmp">↔ TOGGLES</span></div>
+              <div className="card-flags"><span className="flag live">LIVE</span><span className="flag cmp">↔ COMPARES</span></div>
             </div>
-            <div className="led-toggle">
-              <button className={`ctrl-btn${ledShowingYou ? " active" : ""}`} onClick={() => setLedShowingYou(true)}>
-                MINE
-              </button>
-              <button className={`ctrl-btn${!ledShowingYou ? " active" : ""}`} onClick={() => setLedShowingYou(false)}>
-                THEIRS
-              </button>
+            <div className="led-header">
+              <span className="you">YOU</span>
+              <span className="cmp">{selected.name.toUpperCase()}</span>
             </div>
             <div className="led-rows">
-              {ledList.map((row, i) => (
-                <div className="led-row" key={i}>
-                  <span className={`led-dot ${ledClass(row.expected, row.actual, row.actual > 0)}`} />
-                  <span className="led-slot">{row.slot}</span>
-                  <span className="led-name">{row.name}</span>
-                  <span className="led-nums">{row.expected.toFixed(1)}</span>
-                  <span className="led-nums"><strong>{row.actual.toFixed(1)}</strong></span>
-                </div>
-              ))}
+              {you.lineup.map((mine, i) => {
+                const theirs = selected.lineup[i];
+                return (
+                  <div className="led-row" key={i}>
+                    <span className={`led-dot ${ledClass(mine.expected, mine.actual, mine.actual > 0)}`} />
+                    <span className="led-name">{mine.name}</span>
+                    <span className="led-nums">{mine.expected.toFixed(1)}</span>
+                    <span className="led-nums"><strong>{mine.actual.toFixed(1)}</strong></span>
+                    <span className="led-slot">{slotLabel(mine.slot)}</span>
+                    <span className="led-nums opp"><strong>{theirs.actual.toFixed(1)}</strong></span>
+                    <span className="led-nums opp">{theirs.expected.toFixed(1)}</span>
+                    <span className="led-name opp">{theirs.name}</span>
+                    <span className={`led-dot ${ledClass(theirs.expected, theirs.actual, theirs.actual > 0)}`} />
+                  </div>
+                );
+              })}
             </div>
             <p className="card-note">Green = beating projection, amber = on pace or not started, red = behind since kickoff.</p>
           </article>
 
-          <article className="card span-5">
+          <article className="card span-3">
             <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
             <div className="card-head">
               <div className="card-head-left">
@@ -402,7 +415,7 @@ export function WarRoomConsole({
                       <div className="score-target" style={{ bottom: `${(m.projectedFinal / scoreboardMax) * 100}%` }} />
                     </div>
                     <div className="score-val">{m.livePoints.toFixed(1)}</div>
-                    <div className="score-name">{isYou ? "YOU" : abbreviateTeamName(m.name)}</div>
+                    <ManagerAvatar url={m.avatarUrl} initial={m.initial} name={isYou ? "You" : m.name} className="score-photo" />
                   </div>
                 );
               })}
@@ -410,7 +423,7 @@ export function WarRoomConsole({
             <p className="card-note">Live totals; dashed line marks each team&rsquo;s projected final. Cyan = selected manager.</p>
           </article>
 
-          <article className="card span-4">
+          <article className="card span-3">
             <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
             <div className="card-head">
               <div className="card-head-left">
@@ -452,7 +465,7 @@ export function WarRoomConsole({
             <p className="card-note">This week&rsquo;s closest live games. Blips are point margins.</p>
           </article>
 
-          <article className="card span-5">
+          <article className="card span-6">
             <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
             <div className="card-head">
               <div className="card-head-left">
@@ -471,7 +484,7 @@ export function WarRoomConsole({
             <p className="card-note">This week&rsquo;s waiver, free-agent, and trade moves.</p>
           </article>
 
-          <article className="card span-9">
+          <article className="card span-6">
             <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
             <div className="card-head">
               <div className="card-head-left">
@@ -505,60 +518,7 @@ export function WarRoomConsole({
             <p className="card-note">Where each starter plays this week.</p>
           </article>
 
-          <article className="card span-4">
-            <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
-            <div className="card-head">
-              <div className="card-head-left">
-                <span className="card-index">SIG-01</span>
-                <span className="card-title">Live Performance</span>
-              </div>
-              <div className="card-flags"><span className="flag live">LIVE</span><span className="flag cmp">↔ COMPARES</span></div>
-            </div>
-            <div className="gauges">
-              <GaugeDial label="VS PACE" youVal={you.vsPaceGauge} cmpVal={selected.vsPaceGauge} />
-              <GaugeDial label="WIN CHANCE" youVal={you.winChance} cmpVal={selected.winChance} />
-              <GaugeDial label="TOP SCORER" youVal={you.topScorerChance} cmpVal={selected.topScorerChance} />
-            </div>
-            <p className="card-note">Pace vs your average, win chance from projected final scores, top-score odds from live scores.</p>
-          </article>
-
-          <article className="card span-5">
-            <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
-            <div className="card-head">
-              <div className="card-head-left">
-                <span className="card-index">SIG-02</span>
-                <span className="card-title">Positional Value</span>
-              </div>
-              <div className="card-flags"><span className="flag cmp">↔ COMPARES</span></div>
-            </div>
-            <svg className="radar-svg" viewBox="0 0 140 140" aria-hidden="true">
-              <polygon className="radar-ring" points={radarPoints([100, 100, 100, 100], 55, 70, 70)} />
-              <polygon className="radar-ring" points={radarPoints([50, 50, 50, 50], 55, 70, 70)} />
-              {RADAR_LABELS.map((_, i) => {
-                const [x, y] = radarAxisPoint(55, 70, 70, i);
-                return <line key={i} className="radar-axis" x1="70" y1="70" x2={x} y2={y} />;
-              })}
-              <polygon
-                className="radar-fill cmp"
-                points={radarPoints(RADAR_LABELS.map((p) => selected.radar[p]), 55, 70, 70)}
-              />
-              <polygon
-                className="radar-fill you"
-                points={radarPoints(RADAR_LABELS.map((p) => you.radar[p]), 55, 70, 70)}
-              />
-              {RADAR_LABELS.map((label, i) => {
-                const [x, y] = radarAxisPoint(65, 70, 70, i);
-                return (
-                  <text key={label} className="radar-label" x={x} y={y}>
-                    {label}
-                  </text>
-                );
-              })}
-            </svg>
-            <p className="card-note">League rank by KTC value at each position, 1st = outer edge. Amber = you, cyan = selected.</p>
-          </article>
-
-          <article className="card span-4">
+          <article className="card span-3">
             <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
             <div className="card-head">
               <div className="card-head-left">
@@ -619,7 +579,60 @@ export function WarRoomConsole({
             <p className="card-note">Arrow points to the loser. Bigger dot = more wins.</p>
           </article>
 
+          <article className="card span-4">
+            <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
+            <div className="card-head">
+              <div className="card-head-left">
+                <span className="card-index">SIG-01</span>
+                <span className="card-title">Live Performance</span>
+              </div>
+              <div className="card-flags"><span className="flag live">LIVE</span><span className="flag cmp">↔ COMPARES</span></div>
+            </div>
+            <div className="gauges">
+              <GaugeDial label="VS PACE" youVal={you.vsPaceGauge} cmpVal={selected.vsPaceGauge} />
+              <GaugeDial label="WIN CHANCE" youVal={you.winChance} cmpVal={selected.winChance} />
+              <GaugeDial label="TOP SCORER" youVal={you.topScorerChance} cmpVal={selected.topScorerChance} />
+            </div>
+            <p className="card-note">Pace vs your average, win chance from projected final scores, top-score odds from live scores.</p>
+          </article>
+
           <article className="card span-5">
+            <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
+            <div className="card-head">
+              <div className="card-head-left">
+                <span className="card-index">SIG-02</span>
+                <span className="card-title">Positional Value</span>
+              </div>
+              <div className="card-flags"><span className="flag cmp">↔ COMPARES</span></div>
+            </div>
+            <svg className="radar-svg" viewBox="0 0 140 140" aria-hidden="true">
+              <polygon className="radar-ring" points={radarPoints([100, 100, 100, 100], 55, 70, 70)} />
+              <polygon className="radar-ring" points={radarPoints([50, 50, 50, 50], 55, 70, 70)} />
+              {RADAR_LABELS.map((_, i) => {
+                const [x, y] = radarAxisPoint(55, 70, 70, i);
+                return <line key={i} className="radar-axis" x1="70" y1="70" x2={x} y2={y} />;
+              })}
+              <polygon
+                className="radar-fill cmp"
+                points={radarPoints(RADAR_LABELS.map((p) => selected.radar[p]), 55, 70, 70)}
+              />
+              <polygon
+                className="radar-fill you"
+                points={radarPoints(RADAR_LABELS.map((p) => you.radar[p]), 55, 70, 70)}
+              />
+              {RADAR_LABELS.map((label, i) => {
+                const [x, y] = radarAxisPoint(65, 70, 70, i);
+                return (
+                  <text key={label} className="radar-label" x={x} y={y}>
+                    {label}
+                  </text>
+                );
+              })}
+            </svg>
+            <p className="card-note">League rank by KTC value at each position, 1st = outer edge. Amber = you, cyan = selected.</p>
+          </article>
+
+          <article className="card span-9">
             <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
             <div className="card-head">
               <div className="card-head-left">
@@ -657,7 +670,7 @@ export function WarRoomConsole({
             <p className="card-note">Cumulative win% by week.</p>
           </article>
 
-          <article className="card vitals-bay">
+          <article className="card span-9">
             <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
             <div className="card-head">
               <div className="card-head-left">
