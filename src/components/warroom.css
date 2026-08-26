@@ -121,16 +121,13 @@
   .warroom-console .clock-dot.passed { background: var(--line-bright); }
   .warroom-console .clock-dot.current { background: var(--amber); box-shadow: 0 0 7px var(--amber); }
 
-  /* ---------- macro layout: left wall + main area ---------- */
+  /* ---------- macro layout: one dense-packed grid, rows set by DOM order + span ---------- */
 
-  .warroom-console .console-body { display: grid; grid-template-columns: minmax(260px, 300px) 1fr; gap: 12px; align-items: start; min-width: 0; }
-  .warroom-console .left-wall { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-  .warroom-console .main-area { display: grid; grid-template-columns: repeat(9, 1fr); grid-auto-flow: dense; gap: 12px; align-items: start; min-width: 0; }
+  .warroom-console .console-body { display: grid; grid-template-columns: repeat(9, 1fr); grid-auto-flow: dense; gap: 12px; align-items: start; min-width: 0; }
   .warroom-console .span-4 { grid-column: span 4; } .warroom-console .span-5 { grid-column: span 5; } .warroom-console .span-9 { grid-column: span 9; }
   .warroom-console .card { min-width: 0; }
   @media (max-width: 900px) {
     .warroom-console .console-body { grid-template-columns: 1fr; }
-    .warroom-console .main-area { grid-template-columns: 1fr; }
     .warroom-console .span-4,
   .warroom-console .span-5,
   .warroom-console .span-9,

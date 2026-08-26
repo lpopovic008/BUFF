@@ -260,453 +260,449 @@ export function WarRoomConsole({
         </div>
 
         <div className="console-body">
-          <div className="left-wall">
-            <article className="card">
-              <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
-              <div className="card-head">
-                <div className="card-head-left">
-                  <span className="card-index">IDT-01</span>
-                  <span className="card-title">Manager Dossier</span>
-                </div>
-                <div className="card-flags"><span className="flag cmp">↔ DRIVES COMPARE</span></div>
+          <article className="card span-4">
+            <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
+            <div className="card-head">
+              <div className="card-head-left">
+                <span className="card-index">IDT-01</span>
+                <span className="card-title">Manager Dossier</span>
               </div>
-              <div className="league-picker">
-                <span className="league-picker-label">LEAGUE</span>
-                <select
-                  className="league-select"
-                  value={currentLeagueId}
-                  onChange={(e) => onLeagueChange(e.target.value)}
+              <div className="card-flags"><span className="flag cmp">↔ DRIVES COMPARE</span></div>
+            </div>
+            <div className="league-picker">
+              <span className="league-picker-label">LEAGUE</span>
+              <select
+                className="league-select"
+                value={currentLeagueId}
+                onChange={(e) => onLeagueChange(e.target.value)}
+              >
+                {leagueOptions.map((opt) => (
+                  <option key={opt.leagueId} value={opt.leagueId}>
+                    {opt.leagueName}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="dossier-panes">
+              <div className="dossier-pane you">
+                <div className="dossier-photo">{you.initial}</div>
+                <div className="dossier-info">
+                  <span className="name">{you.name}</span>
+                  <span>{you.wins}-{you.losses}{you.ties ? `-${you.ties}` : ""}</span>
+                  <span className="dossier-tag you">YOU · ALWAYS SHOWN</span>
+                </div>
+              </div>
+              <div className="dossier-pane cmp">
+                <div className="dossier-photo">{selected.initial}</div>
+                <div className="dossier-info">
+                  <span className="name">{selected.name}</span>
+                  <span>{selected.wins}-{selected.losses}{selected.ties ? `-${selected.ties}` : ""}</span>
+                  <span className="dossier-tag cmp">{vsYouTag(you, selected)}</span>
+                </div>
+              </div>
+            </div>
+            <div className="dossier-controls">
+              <span className="flip-label">FLIP THROUGH MANAGERS</span>
+              <div className="ctrl-row">
+                <button
+                  className="ctrl-btn"
+                  onClick={() => setSelectedIdx((i) => (i - 1 + others.length) % others.length)}
                 >
-                  {leagueOptions.map((opt) => (
-                    <option key={opt.leagueId} value={opt.leagueId}>
-                      {opt.leagueName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="dossier-panes">
-                <div className="dossier-pane you">
-                  <div className="dossier-photo">{you.initial}</div>
-                  <div className="dossier-info">
-                    <span className="name">{you.name}</span>
-                    <span>{you.wins}-{you.losses}{you.ties ? `-${you.ties}` : ""}</span>
-                    <span className="dossier-tag you">YOU · ALWAYS SHOWN</span>
-                  </div>
-                </div>
-                <div className="dossier-pane cmp">
-                  <div className="dossier-photo">{selected.initial}</div>
-                  <div className="dossier-info">
-                    <span className="name">{selected.name}</span>
-                    <span>{selected.wins}-{selected.losses}{selected.ties ? `-${selected.ties}` : ""}</span>
-                    <span className="dossier-tag cmp">{vsYouTag(you, selected)}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="dossier-controls">
-                <span className="flip-label">FLIP THROUGH MANAGERS</span>
-                <div className="ctrl-row">
-                  <button
-                    className="ctrl-btn"
-                    onClick={() => setSelectedIdx((i) => (i - 1 + others.length) % others.length)}
-                  >
-                    ‹ PREV
-                  </button>
-                  <button
-                    className="ctrl-btn"
-                    onClick={() => setSelectedIdx((i) => (i + 1) % others.length)}
-                  >
-                    NEXT ›
-                  </button>
-                </div>
-              </div>
-              <p className="card-note">Pick a league above; flip managers to compare them below.</p>
-            </article>
-
-            <article className="card">
-              <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
-              <div className="card-head">
-                <div className="card-head-left">
-                  <span className="card-index">SIG-01</span>
-                  <span className="card-title">Live Performance</span>
-                </div>
-                <div className="card-flags"><span className="flag live">LIVE</span><span className="flag cmp">↔ COMPARES</span></div>
-              </div>
-              <div className="gauges">
-                <GaugeDial label="VS PACE" youVal={you.vsPaceGauge} cmpVal={selected.vsPaceGauge} />
-                <GaugeDial label="WIN CHANCE" youVal={you.winChance} cmpVal={selected.winChance} />
-                <GaugeDial label="TOP SCORER" youVal={you.topScorerChance} cmpVal={selected.topScorerChance} />
-              </div>
-              <p className="card-note">Pace vs your average, win chance from projected final scores, top-score odds from live scores.</p>
-            </article>
-
-            <article className="card">
-              <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
-              <div className="card-head">
-                <div className="card-head-left">
-                  <span className="card-index">IDT-03</span>
-                  <span className="card-title">Lineup Status</span>
-                </div>
-                <div className="card-flags"><span className="flag live">LIVE</span><span className="flag cmp">↔ TOGGLES</span></div>
-              </div>
-              <div className="led-toggle">
-                <button className={`ctrl-btn${ledShowingYou ? " active" : ""}`} onClick={() => setLedShowingYou(true)}>
-                  MINE
+                  ‹ PREV
                 </button>
-                <button className={`ctrl-btn${!ledShowingYou ? " active" : ""}`} onClick={() => setLedShowingYou(false)}>
-                  THEIRS
+                <button
+                  className="ctrl-btn"
+                  onClick={() => setSelectedIdx((i) => (i + 1) % others.length)}
+                >
+                  NEXT ›
                 </button>
               </div>
-              <div className="led-rows">
-                {ledList.map((row, i) => (
-                  <div className="led-row" key={i}>
-                    <span className={`led-dot ${ledClass(row.expected, row.actual, row.actual > 0)}`} />
-                    <span className="led-slot">{row.slot}</span>
-                    <span className="led-name">{row.name}</span>
-                    <span className="led-nums">{row.expected.toFixed(1)}</span>
-                    <span className="led-nums"><strong>{row.actual.toFixed(1)}</strong></span>
+            </div>
+            <p className="card-note">Pick a league above; flip managers to compare them below.</p>
+          </article>
+
+          <article className="card span-5">
+            <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
+            <div className="card-head">
+              <div className="card-head-left">
+                <span className="card-index">VIT-04</span>
+                <span className="card-title">Live Momentum</span>
+              </div>
+              <div className="card-flags"><span className="flag live">LIVE</span><span className="flag cmp">↔ COMPARES</span></div>
+            </div>
+            <svg className="momentum-svg" viewBox="0 0 620 140" preserveAspectRatio="none" aria-hidden="true">
+              <line className="momentum-zero" x1="0" y1="70" x2="620" y2="70" />
+              <polyline className="momentum-cmp" points={momentumPoints(selected.momentum, 620, 140, 3.0)} />
+              <polyline
+                className={`momentum-you${you.momentum.at(-1)! < 0 ? " losing" : ""}`}
+                points={momentumPoints(you.momentum, 620, 140, 3.0)}
+              />
+              <circle
+                className={`momentum-dot${you.momentum.at(-1)! < 0 ? " losing" : ""}`}
+                r="4.5"
+                cx="620"
+                cy={70 - you.momentum.at(-1)! * 3.0}
+              />
+            </svg>
+            <div className="momentum-legend">
+              <span className="you">YOU — point differential vs your opponent</span>
+              <span className="cmp">{selected.name.toUpperCase()} — point differential vs their opponent</span>
+            </div>
+            <p className="card-note">Kickoff to now&rsquo;s margin. Above = winning, below = losing.</p>
+          </article>
+
+          <article className="card span-4">
+            <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
+            <div className="card-head">
+              <div className="card-head-left">
+                <span className="card-index">IDT-03</span>
+                <span className="card-title">Lineup Status</span>
+              </div>
+              <div className="card-flags"><span className="flag live">LIVE</span><span className="flag cmp">↔ TOGGLES</span></div>
+            </div>
+            <div className="led-toggle">
+              <button className={`ctrl-btn${ledShowingYou ? " active" : ""}`} onClick={() => setLedShowingYou(true)}>
+                MINE
+              </button>
+              <button className={`ctrl-btn${!ledShowingYou ? " active" : ""}`} onClick={() => setLedShowingYou(false)}>
+                THEIRS
+              </button>
+            </div>
+            <div className="led-rows">
+              {ledList.map((row, i) => (
+                <div className="led-row" key={i}>
+                  <span className={`led-dot ${ledClass(row.expected, row.actual, row.actual > 0)}`} />
+                  <span className="led-slot">{row.slot}</span>
+                  <span className="led-name">{row.name}</span>
+                  <span className="led-nums">{row.expected.toFixed(1)}</span>
+                  <span className="led-nums"><strong>{row.actual.toFixed(1)}</strong></span>
+                </div>
+              ))}
+            </div>
+            <p className="card-note">Green = beating projection, amber = on pace or not started, red = behind since kickoff.</p>
+          </article>
+
+          <article className="card span-5">
+            <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
+            <div className="card-head">
+              <div className="card-head-left">
+                <span className="card-index">VIT-02</span>
+                <span className="card-title">Live Scoreboard</span>
+              </div>
+              <div className="card-flags"><span className="flag live">LIVE</span><span className="flag cmp">↔ HIGHLIGHTS</span></div>
+            </div>
+            <div className="scoreboard">
+              {allManagers.map((m, i) => {
+                const isYou = i === 0;
+                const isSel = !isYou && i - 1 === selectedIdx;
+                return (
+                  <div className={`score-col${isYou ? " you" : ""}${isSel ? " selected" : ""}`} key={m.rosterId}>
+                    <div className="score-track">
+                      <div className="score-bar" style={{ height: `${(m.livePoints / scoreboardMax) * 100}%` }} />
+                      <div className="score-target" style={{ bottom: `${(m.projectedFinal / scoreboardMax) * 100}%` }} />
+                    </div>
+                    <div className="score-val">{m.livePoints.toFixed(1)}</div>
+                    <div className="score-name">{isYou ? "YOU" : abbreviateTeamName(m.name)}</div>
                   </div>
+                );
+              })}
+            </div>
+            <p className="card-note">Live totals; dashed line marks each team&rsquo;s projected final. Cyan = selected manager.</p>
+          </article>
+
+          <article className="card span-4">
+            <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
+            <div className="card-head">
+              <div className="card-head-left">
+                <span className="card-index">SIG-04</span>
+                <span className="card-title">Threat Sweep</span>
+              </div>
+              <div className="card-flags"><span className="flag live">LIVE</span></div>
+            </div>
+            <svg className="sonar-svg" viewBox="0 0 140 140" aria-hidden="true">
+              <circle className="sonar-ring" cx="70" cy="70" r="20" />
+              <circle className="sonar-ring" cx="70" cy="70" r="38" />
+              <circle className="sonar-ring" cx="70" cy="70" r="55" />
+              <line className="sonar-ring" x1="15" y1="70" x2="125" y2="70" />
+              <line className="sonar-ring" x1="70" y1="15" x2="70" y2="125" />
+              <g className="sonar-sweep-group">
+                <path d="M70,70 L70,15 A55,55 0 0,1 105.4,27.9 Z" fill="url(#sweepFade)" />
+              </g>
+              <defs>
+                <linearGradient id="sweepFade" x1="0%" y1="100%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#4dd2c9" stopOpacity="0.5" />
+                  <stop offset="100%" stopColor="#4dd2c9" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              {data.sonarBlips.map((b, i) => {
+                const angle = (-70 + i * 55) * (Math.PI / 180);
+                const r = clamp(18 + b.margin * 2.2, 15, 58);
+                const x = 70 + r * Math.cos(angle);
+                const y = 70 + r * Math.sin(angle);
+                return (
+                  <g key={i}>
+                    <circle className="sonar-blip" cx={x} cy={y} r={clamp(3.5 - b.margin * 0.08, 1.5, 3.5)}>
+                      <title>{`${b.label} — margin ${b.margin.toFixed(1)}`}</title>
+                    </circle>
+                    <text className="sonar-blip-label" x={x + 4} y={y - 2}>{b.margin.toFixed(1)}</text>
+                  </g>
+                );
+              })}
+            </svg>
+            <p className="card-note">This week&rsquo;s closest live games. Blips are point margins.</p>
+          </article>
+
+          <article className="card span-5">
+            <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
+            <div className="card-head">
+              <div className="card-head-left">
+                <span className="card-index">VIT-03</span>
+                <span className="card-title">Transaction Feed</span>
+              </div>
+              <div className="card-flags"><span className="flag live">LIVE</span></div>
+            </div>
+            <div className="terminal">
+              {data.transactionSummaries.length === 0 ? (
+                <div>No moves logged yet this week<span className="cursor" /></div>
+              ) : (
+                data.transactionSummaries.slice(0, 6).map((line, i) => <div key={i}>{line}</div>)
+              )}
+            </div>
+            <p className="card-note">This week&rsquo;s waiver, free-agent, and trade moves.</p>
+          </article>
+
+          <article className="card span-9">
+            <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
+            <div className="card-head">
+              <div className="card-head-left">
+                <span className="card-index">TER-01</span>
+                <span className="card-title">Territory Map</span>
+              </div>
+              <div className="card-flags"><span className="flag cmp">↔ COMPARES</span></div>
+            </div>
+            <svg className="usmap-svg" viewBox={US_MAP_VIEWBOX} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+              <path className="usmap-outline" d={US_OUTLINE_PATH} />
+              <path className="usmap-state-line" d={US_STATE_LINES_PATH} />
+              <g>
+                {territoryCmpDots.map((p, i) => (
+                  <circle key={i} className="usmap-dot cmp" cx={p.x.toFixed(1)} cy={p.y.toFixed(1)} r={3}>
+                    <title>{`${p.name} — ${p.city}`}</title>
+                  </circle>
+                ))}
+              </g>
+              <g>
+                {territoryYouDots.map((p, i) => (
+                  <circle key={i} className="usmap-dot you" cx={p.x.toFixed(1)} cy={p.y.toFixed(1)} r={3.5}>
+                    <title>{`${p.name} — ${p.city}`}</title>
+                  </circle>
+                ))}
+              </g>
+            </svg>
+            <div className="usmap-legend">
+              <span className="you">Your players&rsquo; game cities this week</span>
+              <span className="cmp">{selected.name}&rsquo;s players&rsquo; game cities</span>
+            </div>
+            <p className="card-note">Where each starter plays this week.</p>
+          </article>
+
+          <article className="card span-4">
+            <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
+            <div className="card-head">
+              <div className="card-head-left">
+                <span className="card-index">SIG-01</span>
+                <span className="card-title">Live Performance</span>
+              </div>
+              <div className="card-flags"><span className="flag live">LIVE</span><span className="flag cmp">↔ COMPARES</span></div>
+            </div>
+            <div className="gauges">
+              <GaugeDial label="VS PACE" youVal={you.vsPaceGauge} cmpVal={selected.vsPaceGauge} />
+              <GaugeDial label="WIN CHANCE" youVal={you.winChance} cmpVal={selected.winChance} />
+              <GaugeDial label="TOP SCORER" youVal={you.topScorerChance} cmpVal={selected.topScorerChance} />
+            </div>
+            <p className="card-note">Pace vs your average, win chance from projected final scores, top-score odds from live scores.</p>
+          </article>
+
+          <article className="card span-5">
+            <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
+            <div className="card-head">
+              <div className="card-head-left">
+                <span className="card-index">SIG-02</span>
+                <span className="card-title">Positional Value</span>
+              </div>
+              <div className="card-flags"><span className="flag cmp">↔ COMPARES</span></div>
+            </div>
+            <svg className="radar-svg" viewBox="0 0 140 140" aria-hidden="true">
+              <polygon className="radar-ring" points={radarPoints([100, 100, 100, 100], 55, 70, 70)} />
+              <polygon className="radar-ring" points={radarPoints([50, 50, 50, 50], 55, 70, 70)} />
+              {RADAR_LABELS.map((_, i) => {
+                const [x, y] = radarAxisPoint(55, 70, 70, i);
+                return <line key={i} className="radar-axis" x1="70" y1="70" x2={x} y2={y} />;
+              })}
+              <polygon
+                className="radar-fill cmp"
+                points={radarPoints(RADAR_LABELS.map((p) => selected.radar[p]), 55, 70, 70)}
+              />
+              <polygon
+                className="radar-fill you"
+                points={radarPoints(RADAR_LABELS.map((p) => you.radar[p]), 55, 70, 70)}
+              />
+              {RADAR_LABELS.map((label, i) => {
+                const [x, y] = radarAxisPoint(65, 70, 70, i);
+                return (
+                  <text key={label} className="radar-label" x={x} y={y}>
+                    {label}
+                  </text>
+                );
+              })}
+            </svg>
+            <p className="card-note">League rank by KTC value at each position, 1st = outer edge. Amber = you, cyan = selected.</p>
+          </article>
+
+          <article className="card span-4">
+            <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
+            <div className="card-head">
+              <div className="card-head-left">
+                <span className="card-index">SIG-03</span>
+                <span className="card-title">Head-to-Head Web</span>
+              </div>
+              <div className="card-flags"><span className="flag cmp">↔ HIGHLIGHTS</span></div>
+            </div>
+            <svg className="web-svg" viewBox="0 0 150 150" aria-hidden="true">
+              <defs>
+                <marker id="arrowNeutral" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                  <path d="M0,0 L10,5 L0,10 z" fill="var(--node-neutral)" />
+                </marker>
+                <marker id="arrowActive" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse">
+                  <path d="M0,0 L10,5 L0,10 z" fill="var(--cyan)" />
+                </marker>
+              </defs>
+              <g>
+                {webEdges.map((e, i) => {
+                  const active = e.involvesYou && e.involvesSel;
+                  return (
+                    <line
+                      key={i}
+                      x1={webNodes[e.a].x}
+                      y1={webNodes[e.a].y}
+                      x2={webNodes[e.b].x}
+                      y2={webNodes[e.b].y}
+                      strokeWidth={0.9 + Math.min(e.margin / 26, 1) * 1.8}
+                      className={`web-edge${active ? " active" : ""}`}
+                      markerEnd={active ? "url(#arrowActive)" : "url(#arrowNeutral)"}
+                      opacity={e.involvesYou || e.involvesSel ? 1 : 0.35}
+                    >
+                      <title>{`${allManagers[e.a].name} beat ${allManagers[e.b].name} by ${e.margin.toFixed(1)}`}</title>
+                    </line>
+                  );
+                })}
+              </g>
+              <g>
+                {webNodes.map((p, i) => {
+                  let cls = "web-node";
+                  if (i === 0) cls += " you";
+                  else if (i === selectedIdx + 1) cls += " active";
+                  return (
+                    <circle
+                      key={i}
+                      cx={p.x}
+                      cy={p.y}
+                      r={4 + (allManagers[i].wins / webMaxWins) * 7}
+                      className={cls}
+                    >
+                      <title>{`${allManagers[i].name} — ${allManagers[i].wins} win${allManagers[i].wins !== 1 ? "s" : ""} this season`}</title>
+                    </circle>
+                  );
+                })}
+              </g>
+            </svg>
+            <div className="rivalry-readout">{headToHeadReadout(you, selected)}</div>
+            <p className="card-note">Arrow points to the loser. Bigger dot = more wins.</p>
+          </article>
+
+          <article className="card span-5">
+            <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
+            <div className="card-head">
+              <div className="card-head-left">
+                <span className="card-index">TER-02</span>
+                <span className="card-title">Season Form</span>
+              </div>
+              <div className="card-flags"><span className="flag cmp">↔ HIGHLIGHTS</span></div>
+            </div>
+            <div className="heat-wrap">
+              <div className="heat-weeks" style={{ gridTemplateColumns: `58px repeat(${heatWeekCount}, 1fr)` }}>
+                <span />
+                {Array.from({ length: heatWeekCount }, (_, i) => (
+                  <span key={i}>W{i + 1}</span>
                 ))}
               </div>
-              <p className="card-note">Green = beating projection, amber = on pace or not started, red = behind since kickoff.</p>
-            </article>
-          </div>
-
-          <div className="main-area">
-            <article className="card span-9">
-              <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
-              <div className="card-head">
-                <div className="card-head-left">
-                  <span className="card-index">VIT-04</span>
-                  <span className="card-title">Live Momentum</span>
-                </div>
-                <div className="card-flags"><span className="flag live">LIVE</span><span className="flag cmp">↔ COMPARES</span></div>
-              </div>
-              <svg className="momentum-svg" viewBox="0 0 620 140" preserveAspectRatio="none" aria-hidden="true">
-                <line className="momentum-zero" x1="0" y1="70" x2="620" y2="70" />
-                <polyline className="momentum-cmp" points={momentumPoints(selected.momentum, 620, 140, 3.0)} />
-                <polyline
-                  className={`momentum-you${you.momentum.at(-1)! < 0 ? " losing" : ""}`}
-                  points={momentumPoints(you.momentum, 620, 140, 3.0)}
-                />
-                <circle
-                  className={`momentum-dot${you.momentum.at(-1)! < 0 ? " losing" : ""}`}
-                  r="4.5"
-                  cx="620"
-                  cy={70 - you.momentum.at(-1)! * 3.0}
-                />
-              </svg>
-              <div className="momentum-legend">
-                <span className="you">YOU — point differential vs your opponent</span>
-                <span className="cmp">{selected.name.toUpperCase()} — point differential vs their opponent</span>
-              </div>
-              <p className="card-note">Kickoff to now&rsquo;s margin. Above = winning, below = losing.</p>
-            </article>
-
-            <article className="card span-5">
-              <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
-              <div className="card-head">
-                <div className="card-head-left">
-                  <span className="card-index">VIT-02</span>
-                  <span className="card-title">Live Scoreboard</span>
-                </div>
-                <div className="card-flags"><span className="flag live">LIVE</span><span className="flag cmp">↔ HIGHLIGHTS</span></div>
-              </div>
-              <div className="scoreboard">
+              <div>
                 {allManagers.map((m, i) => {
                   const isYou = i === 0;
                   const isSel = !isYou && i - 1 === selectedIdx;
                   return (
-                    <div className={`score-col${isYou ? " you" : ""}${isSel ? " selected" : ""}`} key={m.rosterId}>
-                      <div className="score-track">
-                        <div className="score-bar" style={{ height: `${(m.livePoints / scoreboardMax) * 100}%` }} />
-                        <div className="score-target" style={{ bottom: `${(m.projectedFinal / scoreboardMax) * 100}%` }} />
-                      </div>
-                      <div className="score-val">{m.livePoints.toFixed(1)}</div>
-                      <div className="score-name">{isYou ? "YOU" : abbreviateTeamName(m.name)}</div>
+                    <div
+                      key={m.rosterId}
+                      className={`heat-row${isYou ? " you" : ""}${isSel ? " selected" : ""}`}
+                      style={{ gridTemplateColumns: `58px repeat(${heatWeekCount}, 1fr)` }}
+                    >
+                      <span className="heat-name">{isYou ? "YOU" : m.name}</span>
+                      {m.seasonForm.map((pct, w) => (
+                        <div key={w} className={`heat-cell ${formClass(pct)}`} title={`${pct}%`} />
+                      ))}
                     </div>
                   );
                 })}
               </div>
-              <p className="card-note">Live totals; dashed line marks each team&rsquo;s projected final. Cyan = selected manager.</p>
-            </article>
-
-            <article className="card span-4">
-              <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
-              <div className="card-head">
-                <div className="card-head-left">
-                  <span className="card-index">SIG-04</span>
-                  <span className="card-title">Threat Sweep</span>
-                </div>
-                <div className="card-flags"><span className="flag live">LIVE</span></div>
-              </div>
-              <svg className="sonar-svg" viewBox="0 0 140 140" aria-hidden="true">
-                <circle className="sonar-ring" cx="70" cy="70" r="20" />
-                <circle className="sonar-ring" cx="70" cy="70" r="38" />
-                <circle className="sonar-ring" cx="70" cy="70" r="55" />
-                <line className="sonar-ring" x1="15" y1="70" x2="125" y2="70" />
-                <line className="sonar-ring" x1="70" y1="15" x2="70" y2="125" />
-                <g className="sonar-sweep-group">
-                  <path d="M70,70 L70,15 A55,55 0 0,1 105.4,27.9 Z" fill="url(#sweepFade)" />
-                </g>
-                <defs>
-                  <linearGradient id="sweepFade" x1="0%" y1="100%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#4dd2c9" stopOpacity="0.5" />
-                    <stop offset="100%" stopColor="#4dd2c9" stopOpacity="0" />
-                  </linearGradient>
-                </defs>
-                {data.sonarBlips.map((b, i) => {
-                  const angle = (-70 + i * 55) * (Math.PI / 180);
-                  const r = clamp(18 + b.margin * 2.2, 15, 58);
-                  const x = 70 + r * Math.cos(angle);
-                  const y = 70 + r * Math.sin(angle);
-                  return (
-                    <g key={i}>
-                      <circle className="sonar-blip" cx={x} cy={y} r={clamp(3.5 - b.margin * 0.08, 1.5, 3.5)}>
-                        <title>{`${b.label} — margin ${b.margin.toFixed(1)}`}</title>
-                      </circle>
-                      <text className="sonar-blip-label" x={x + 4} y={y - 2}>{b.margin.toFixed(1)}</text>
-                    </g>
-                  );
-                })}
-              </svg>
-              <p className="card-note">This week&rsquo;s closest live games. Blips are point margins.</p>
-            </article>
-
-            <article className="card span-9">
-              <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
-              <div className="card-head">
-                <div className="card-head-left">
-                  <span className="card-index">VIT-03</span>
-                  <span className="card-title">Transaction Feed</span>
-                </div>
-                <div className="card-flags"><span className="flag live">LIVE</span></div>
-              </div>
-              <div className="terminal">
-                {data.transactionSummaries.length === 0 ? (
-                  <div>No moves logged yet this week<span className="cursor" /></div>
-                ) : (
-                  data.transactionSummaries.slice(0, 6).map((line, i) => <div key={i}>{line}</div>)
-                )}
-              </div>
-              <p className="card-note">This week&rsquo;s waiver, free-agent, and trade moves.</p>
-            </article>
-
-            <article className="card span-5">
-              <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
-              <div className="card-head">
-                <div className="card-head-left">
-                  <span className="card-index">SIG-02</span>
-                  <span className="card-title">Positional Value</span>
-                </div>
-                <div className="card-flags"><span className="flag cmp">↔ COMPARES</span></div>
-              </div>
-              <svg className="radar-svg" viewBox="0 0 140 140" aria-hidden="true">
-                <polygon className="radar-ring" points={radarPoints([100, 100, 100, 100], 55, 70, 70)} />
-                <polygon className="radar-ring" points={radarPoints([50, 50, 50, 50], 55, 70, 70)} />
-                {RADAR_LABELS.map((_, i) => {
-                  const [x, y] = radarAxisPoint(55, 70, 70, i);
-                  return <line key={i} className="radar-axis" x1="70" y1="70" x2={x} y2={y} />;
-                })}
-                <polygon
-                  className="radar-fill cmp"
-                  points={radarPoints(RADAR_LABELS.map((p) => selected.radar[p]), 55, 70, 70)}
-                />
-                <polygon
-                  className="radar-fill you"
-                  points={radarPoints(RADAR_LABELS.map((p) => you.radar[p]), 55, 70, 70)}
-                />
-                {RADAR_LABELS.map((label, i) => {
-                  const [x, y] = radarAxisPoint(65, 70, 70, i);
-                  return (
-                    <text key={label} className="radar-label" x={x} y={y}>
-                      {label}
-                    </text>
-                  );
-                })}
-              </svg>
-              <p className="card-note">League rank by KTC value at each position, 1st = outer edge. Amber = you, cyan = selected.</p>
-            </article>
-
-            <article className="card span-9">
-              <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
-              <div className="card-head">
-                <div className="card-head-left">
-                  <span className="card-index">TER-01</span>
-                  <span className="card-title">Territory Map</span>
-                </div>
-                <div className="card-flags"><span className="flag cmp">↔ COMPARES</span></div>
-              </div>
-              <svg className="usmap-svg" viewBox={US_MAP_VIEWBOX} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-                <path className="usmap-outline" d={US_OUTLINE_PATH} />
-                <path className="usmap-state-line" d={US_STATE_LINES_PATH} />
-                <g>
-                  {territoryCmpDots.map((p, i) => (
-                    <circle key={i} className="usmap-dot cmp" cx={p.x.toFixed(1)} cy={p.y.toFixed(1)} r={3}>
-                      <title>{`${p.name} — ${p.city}`}</title>
-                    </circle>
-                  ))}
-                </g>
-                <g>
-                  {territoryYouDots.map((p, i) => (
-                    <circle key={i} className="usmap-dot you" cx={p.x.toFixed(1)} cy={p.y.toFixed(1)} r={3.5}>
-                      <title>{`${p.name} — ${p.city}`}</title>
-                    </circle>
-                  ))}
-                </g>
-              </svg>
-              <div className="usmap-legend">
-                <span className="you">Your players&rsquo; game cities this week</span>
-                <span className="cmp">{selected.name}&rsquo;s players&rsquo; game cities</span>
-              </div>
-              <p className="card-note">Where each starter plays this week.</p>
-            </article>
-
-            <article className="card span-4">
-              <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
-              <div className="card-head">
-                <div className="card-head-left">
-                  <span className="card-index">SIG-03</span>
-                  <span className="card-title">Head-to-Head Web</span>
-                </div>
-                <div className="card-flags"><span className="flag cmp">↔ HIGHLIGHTS</span></div>
-              </div>
-              <svg className="web-svg" viewBox="0 0 150 150" aria-hidden="true">
-                <defs>
-                  <marker id="arrowNeutral" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-                    <path d="M0,0 L10,5 L0,10 z" fill="var(--node-neutral)" />
-                  </marker>
-                  <marker id="arrowActive" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse">
-                    <path d="M0,0 L10,5 L0,10 z" fill="var(--cyan)" />
-                  </marker>
-                </defs>
-                <g>
-                  {webEdges.map((e, i) => {
-                    const active = e.involvesYou && e.involvesSel;
-                    return (
-                      <line
-                        key={i}
-                        x1={webNodes[e.a].x}
-                        y1={webNodes[e.a].y}
-                        x2={webNodes[e.b].x}
-                        y2={webNodes[e.b].y}
-                        strokeWidth={0.9 + Math.min(e.margin / 26, 1) * 1.8}
-                        className={`web-edge${active ? " active" : ""}`}
-                        markerEnd={active ? "url(#arrowActive)" : "url(#arrowNeutral)"}
-                        opacity={e.involvesYou || e.involvesSel ? 1 : 0.35}
-                      >
-                        <title>{`${allManagers[e.a].name} beat ${allManagers[e.b].name} by ${e.margin.toFixed(1)}`}</title>
-                      </line>
-                    );
-                  })}
-                </g>
-                <g>
-                  {webNodes.map((p, i) => {
-                    let cls = "web-node";
-                    if (i === 0) cls += " you";
-                    else if (i === selectedIdx + 1) cls += " active";
-                    return (
-                      <circle
-                        key={i}
-                        cx={p.x}
-                        cy={p.y}
-                        r={4 + (allManagers[i].wins / webMaxWins) * 7}
-                        className={cls}
-                      >
-                        <title>{`${allManagers[i].name} — ${allManagers[i].wins} win${allManagers[i].wins !== 1 ? "s" : ""} this season`}</title>
-                      </circle>
-                    );
-                  })}
-                </g>
-              </svg>
-              <div className="rivalry-readout">{headToHeadReadout(you, selected)}</div>
-              <p className="card-note">Arrow points to the loser. Bigger dot = more wins.</p>
-            </article>
-
-            <article className="card span-5">
-              <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
-              <div className="card-head">
-                <div className="card-head-left">
-                  <span className="card-index">TER-02</span>
-                  <span className="card-title">Season Form</span>
-                </div>
-                <div className="card-flags"><span className="flag cmp">↔ HIGHLIGHTS</span></div>
-              </div>
-              <div className="heat-wrap">
-                <div className="heat-weeks" style={{ gridTemplateColumns: `58px repeat(${heatWeekCount}, 1fr)` }}>
-                  <span />
-                  {Array.from({ length: heatWeekCount }, (_, i) => (
-                    <span key={i}>W{i + 1}</span>
-                  ))}
-                </div>
-                <div>
-                  {allManagers.map((m, i) => {
-                    const isYou = i === 0;
-                    const isSel = !isYou && i - 1 === selectedIdx;
-                    return (
-                      <div
-                        key={m.rosterId}
-                        className={`heat-row${isYou ? " you" : ""}${isSel ? " selected" : ""}`}
-                        style={{ gridTemplateColumns: `58px repeat(${heatWeekCount}, 1fr)` }}
-                      >
-                        <span className="heat-name">{isYou ? "YOU" : m.name}</span>
-                        {m.seasonForm.map((pct, w) => (
-                          <div key={w} className={`heat-cell ${formClass(pct)}`} title={`${pct}%`} />
-                        ))}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-              <p className="card-note">Cumulative win% by week.</p>
-            </article>
-          </div>
-        </div>
-
-        <article className="card vitals-bay" style={{ marginTop: "12px" }}>
-          <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
-          <div className="card-head">
-            <div className="card-head-left">
-              <span className="card-index">VIT-01</span>
-              <span className="card-title">League Vitals</span>
             </div>
-            <div className="card-flags"><span className="flag live">LIVE</span></div>
-          </div>
-          <div className="vitals-strip-row">
-            {allManagers.map((m, i) => {
-              const isYou = i === 0;
-              const isSel = !isYou && i - 1 === selectedIdx;
-              const color = vitalsColorVar(m.winChance);
-              const tile = heartbeatTile(m.winChance, 100);
-              return (
-                <div className={`vitals-strip${isYou ? " you" : ""}${isSel ? " selected" : ""}`} key={m.rosterId}>
-                  <span className="vitals-name">{isYou ? "YOU" : m.name}</span>
-                  <svg className="vitals-svg-el" viewBox="0 0 200 30" preserveAspectRatio="none" aria-hidden="true">
-                    <g className="vitals-scroll">
-                      <polyline
-                        points={tileToPoints(tile, 0)}
-                        fill="none"
-                        stroke={color}
-                        strokeWidth="1.75"
-                        strokeLinejoin="round"
-                        strokeLinecap="round"
-                      />
-                      <polyline
-                        points={tileToPoints(tile, 100)}
-                        fill="none"
-                        stroke={color}
-                        strokeWidth="1.75"
-                        strokeLinejoin="round"
-                        strokeLinecap="round"
-                      />
-                    </g>
-                  </svg>
-                  <span className="vitals-pct" style={{ color }}>{m.winChance}%</span>
-                </div>
-              );
-            })}
-          </div>
-          <p className="card-note">Estimated live win chance — taller, faster pulse = higher.</p>
-        </article>
+            <p className="card-note">Cumulative win% by week.</p>
+          </article>
+
+          <article className="card vitals-bay">
+            <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
+            <div className="card-head">
+              <div className="card-head-left">
+                <span className="card-index">VIT-01</span>
+                <span className="card-title">League Vitals</span>
+              </div>
+              <div className="card-flags"><span className="flag live">LIVE</span></div>
+            </div>
+            <div className="vitals-strip-row">
+              {allManagers.map((m, i) => {
+                const isYou = i === 0;
+                const isSel = !isYou && i - 1 === selectedIdx;
+                const color = vitalsColorVar(m.winChance);
+                const tile = heartbeatTile(m.winChance, 100);
+                return (
+                  <div className={`vitals-strip${isYou ? " you" : ""}${isSel ? " selected" : ""}`} key={m.rosterId}>
+                    <span className="vitals-name">{isYou ? "YOU" : m.name}</span>
+                    <svg className="vitals-svg-el" viewBox="0 0 200 30" preserveAspectRatio="none" aria-hidden="true">
+                      <g className="vitals-scroll">
+                        <polyline
+                          points={tileToPoints(tile, 0)}
+                          fill="none"
+                          stroke={color}
+                          strokeWidth="1.75"
+                          strokeLinejoin="round"
+                          strokeLinecap="round"
+                        />
+                        <polyline
+                          points={tileToPoints(tile, 100)}
+                          fill="none"
+                          stroke={color}
+                          strokeWidth="1.75"
+                          strokeLinejoin="round"
+                          strokeLinecap="round"
+                        />
+                      </g>
+                    </svg>
+                    <span className="vitals-pct" style={{ color }}>{m.winChance}%</span>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="card-note">Estimated live win chance — taller, faster pulse = higher.</p>
+          </article>
+        </div>
       </div>
     </div>
   );
