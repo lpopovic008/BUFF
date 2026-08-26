@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { MenuIcon } from "@/components/ui/Icon";
 import { HeadToHeadRecord, WarRoomData, WarRoomManager } from "@/lib/warroom-data";
 import {
   abbreviateTeamName,
@@ -128,6 +130,7 @@ export interface WarRoomConsoleProps {
 export function WarRoomConsole({ data, leagueOptions, currentLeagueId, onLeagueChange }: WarRoomConsoleProps) {
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [ledShowingYou, setLedShowingYou] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
   // Deferred to an effect (rather than a lazy initializer) so the initial
   // static-export prerender and the first client render agree on markup —
   // Date.now() only runs after mount, once we're client-side for good.
@@ -198,10 +201,35 @@ export function WarRoomConsole({ data, leagueOptions, currentLeagueId, onLeagueC
     <div className="warroom-console">
       <div className="wrap">
         <header className="console-head-top">
-          <span className="badge">BUFF WAR ROOM</span>
-          <span className="status-strip">
-            {data.leagueName.toUpperCase()} · WEEK <strong>{data.week}</strong>
-          </span>
+          <div className="console-head-left">
+            <span className="badge">BUFF WAR ROOM</span>
+            <span className="status-strip">
+              {data.leagueName.toUpperCase()} · WEEK <strong>{data.week}</strong>
+            </span>
+          </div>
+          <div className="console-menu">
+            <button
+              className="console-menu-btn"
+              aria-label="Menu"
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((v) => !v)}
+            >
+              <MenuIcon />
+            </button>
+            {menuOpen ? (
+              <nav className="console-menu-dropdown">
+                <Link href={`/league?id=${data.leagueId}`} onClick={() => setMenuOpen(false)}>
+                  League
+                </Link>
+                <Link href="/values" onClick={() => setMenuOpen(false)}>
+                  Values
+                </Link>
+                <Link href="/settings" onClick={() => setMenuOpen(false)}>
+                  Settings
+                </Link>
+              </nav>
+            ) : null}
+          </div>
         </header>
 
         <div className="clock-banner">

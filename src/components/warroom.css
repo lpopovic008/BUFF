@@ -44,6 +44,7 @@
     -webkit-font-smoothing: antialiased;
     line-height: 1.5;
     position: relative;
+    min-height: 100vh;
   }
 
   .warroom-console::before {
@@ -73,6 +74,29 @@
   }
   .warroom-console .status-strip { font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; color: var(--ink-dim); }
   .warroom-console .status-strip strong { color: var(--cyan); font-weight: 600; }
+  .warroom-console .console-head-left { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px; }
+
+  .warroom-console .console-menu { position: relative; }
+  .warroom-console .console-menu-btn {
+    display: flex; align-items: center; justify-content: center; width: 30px; height: 30px;
+    background: transparent; color: var(--ink); border: 1px solid var(--line-bright); cursor: pointer;
+    transition: border-color 150ms, color 150ms;
+  }
+  .warroom-console .console-menu-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+  .warroom-console .console-menu-btn:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+  .warroom-console .console-menu-dropdown {
+    position: absolute; top: calc(100% + 6px); right: 0; z-index: 50; min-width: 160px;
+    display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line-bright);
+    animation: warroom-dropdown 0.15s ease-out;
+  }
+  .warroom-console .console-menu-dropdown a {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; color: var(--ink);
+    padding: 10px 14px; text-decoration: none; border-bottom: 1px solid var(--line);
+    transition: color 150ms, background-color 150ms;
+  }
+  .warroom-console .console-menu-dropdown a:last-child { border-bottom: none; }
+  .warroom-console .console-menu-dropdown a:hover { color: var(--cyan); background: var(--panel-inset); }
+  @keyframes warroom-dropdown { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 
   /* ---------- top clock banner ---------- */
 
