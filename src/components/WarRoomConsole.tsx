@@ -323,7 +323,7 @@ export function WarRoomConsole({ data, leagueOptions, currentLeagueId, onLeagueC
                 <GaugeDial label="WIN CHANCE" youVal={you.winChance} cmpVal={selected.winChance} />
                 <GaugeDial label="TOP SCORER" youVal={you.topScorerChance} cmpVal={selected.topScorerChance} />
               </div>
-              <p className="card-note">Pace, win chance, and top-score odds — estimated from live scores.</p>
+              <p className="card-note">Pace vs your average, win chance from projected final scores, top-score odds from live scores.</p>
             </article>
 
             <article className="card">
@@ -346,15 +346,15 @@ export function WarRoomConsole({ data, leagueOptions, currentLeagueId, onLeagueC
               <div className="led-rows">
                 {ledList.map((row, i) => (
                   <div className="led-row" key={i}>
-                    <span className={`led-dot ${ledClass(row.seasonAvg, row.actual)}`} />
+                    <span className={`led-dot ${ledClass(row.expected, row.actual)}`} />
                     <span className="led-slot">{row.slot}</span>
                     <span className="led-name">{row.name}</span>
-                    <span className="led-nums">{row.seasonAvg.toFixed(1)}</span>
+                    <span className="led-nums">{row.expected.toFixed(1)}</span>
                     <span className="led-nums"><strong>{row.actual.toFixed(1)}</strong></span>
                   </div>
                 ))}
               </div>
-              <p className="card-note">Green = ahead of season pace, amber = on pace, red = behind.</p>
+              <p className="card-note">Green = beating projection, amber = on pace, red = behind.</p>
             </article>
           </div>
 

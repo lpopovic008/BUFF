@@ -1,12 +1,14 @@
 // Data layer for the War Room Console (/warroom) — a HUD-style dashboard.
 // Every number here is either read straight from Sleeper or derived from
 // Sleeper data the app already fetches elsewhere (league-data.ts,
-// matchup-players.ts). Two things Sleeper's public API doesn't expose at all
-// — per-player live projections and a play-by-play scoring feed — are
-// approximated (see `seasonAvg`-based "vs pace" below) or replaced with real
-// data that serves the same spot on screen (the transaction feed). Anywhere
-// a number is a heuristic rather than a fact Sleeper reports, it's noted here
-// and the UI's own card copy says so too.
+// matchup-players.ts), including per-player weekly projections via
+// getWeeklyProjections — an undocumented Sleeper endpoint (see sleeper.ts),
+// so a player's `expected` falls back to their season average whenever the
+// projections fetch doesn't cover them. A play-by-play scoring feed is the
+// one thing Sleeper's public API has no equivalent for at all; that's
+// replaced with real data that serves the same spot on screen (the
+// transaction feed). Anywhere a number is a heuristic rather than a fact
+// Sleeper reports, it's noted here and the UI's own card copy says so too.
 
 import {
   SleeperLeagueUser,
@@ -17,6 +19,7 @@ import {
   getLeagueUsers,
   getMatchups,
   getTransactions,
+  getWeeklyProjections,
   isDynastyLeague,
   leagueQBFormat,
 } from "./sleeper";
@@ -42,13 +45,13 @@ export interface WarRoomLineupPlayer {
   /** This week's live/final points so far — 0 before kickoff. */
   actual: number;
   /**
-   * This player's own average points per game across completed weeks this
-   * season. Sleeper has no live per-player projection to compare against, so
-   * "exceeding expectations" is read against their own season pace instead.
-   * Falls back to `actual` (a neutral 1.0 ratio) for a player with no
-   * history yet, e.g. a just-added waiver pickup.
+   * What this player is expected to score this week — Sleeper's own weekly
+   * projection when one exists, falling back to this player's average points
+   * per game across completed weeks this season (for a bye-week or otherwise
+   * unprojected player, or if the projections fetch failed), and finally to
+   * `actual` for a player with neither, e.g. a just-added waiver pickup.
    */
-  seasonAvg: number;
+  expected: number;
 }
 
 export interface HeadToHeadRecord {
@@ -72,7 +75,13 @@ export interface WarRoomManager {
   opponentRosterId: number | null;
   opponentLivePoints: number | null;
   lineup: WarRoomLineupPlayer[];
-  /** 0-100, derived from the live matchup margin — Sleeper publishes no win-probability field. */
+  /**
+   * 0-100 — Sleeper publishes no win-probability field, so this is derived
+   * from each team's projected final score (already-scored points plus
+   * each unfinished starter's remaining expected points). Before kickoff
+   * this reads as the pure projection matchup; it converges to the live
+   * margin by the time every starter's actual catches up to their projection.
+   */
   winChance: number;
   /** 0-100, derived from the gap to this week's current league-high score. */
   topScorerChance: number;
@@ -139,11 +148,12 @@ export async function loadWarRoomData(
 
   const completedWeeks = Math.max(0, currentWeek - 1);
 
-  const [currentMatchups, historicalWeeks, transactions, allResolvedPlayers] = await Promise.all([
+  const [currentMatchups, historicalWeeks, transactions, allResolvedPlayers, weeklyProjections] = await Promise.all([
     getMatchups(leagueId, currentWeek),
     Promise.all(Array.from({ length: completedWeeks }, (_, i) => getMatchups(leagueId, i + 1))),
     getTransactions(leagueId, currentWeek),
     resolvePlayers(rosters.flatMap((r) => r.players ?? [])),
+    getWeeklyProjections(league.season, currentWeek),
   ]);
 
   const matchupsByWeek = new Map<number, SleeperMatchup[]>();
@@ -236,6 +246,22 @@ export async function loadWarRoomData(
 
   const highestLiveScore = Math.max(0, ...currentMatchups.map((m) => m.points));
 
+  // A roster's likely final score: what's already been scored, plus what's
+  // still expected from starters who haven't finished (or started) yet.
+  // Once every starter's actual catches up to their projection (end of the
+  // week), this converges exactly to the live total.
+  const projectedFinalFor = (m: SleeperMatchup | undefined): number => {
+    if (!m) return 0;
+    let total = m.points ?? 0;
+    for (const playerId of m.starters ?? []) {
+      if (!playerId || playerId === "0") continue;
+      const actual = m.players_points?.[playerId] ?? 0;
+      const expected = weeklyProjections[playerId] ?? seasonAvgFor(playerId, actual);
+      total += Math.max(0, expected - actual);
+    }
+    return total;
+  };
+
   const buildManager = (roster: SleeperRoster): WarRoomManager => {
     const user = roster.owner_id ? usersById.get(roster.owner_id) : undefined;
     const name = displayManagerName(user);
@@ -257,13 +283,16 @@ export async function loadWarRoomData(
         position: player?.position ?? slot.slot,
         team: player?.team ?? null,
         actual,
-        seasonAvg: slot.playerId ? seasonAvgFor(slot.playerId, actual) : actual,
+        expected: slot.playerId
+          ? weeklyProjections[slot.playerId] ?? seasonAvgFor(slot.playerId, actual)
+          : actual,
       };
     });
 
     const seasonAvgTotal = seasonAvgTotalFor(roster.roster_id, livePoints || 1);
     const vsPaceGauge = clamp(Math.round((livePoints / (seasonAvgTotal || 1) - 0.5) * 100), 0, 100);
-    const winChance = clamp(Math.round(50 + marginNow * 2.5), 1, 99);
+    const projectedMargin = projectedFinalFor(current) - projectedFinalFor(opponent);
+    const winChance = clamp(Math.round(50 + projectedMargin * 2.5), 1, 99);
     const gapToLead = Math.max(0, highestLiveScore - livePoints);
     const topScorerChance = clamp(Math.round(100 - gapToLead * 4), 2, 96);
 

@@ -211,6 +211,53 @@ export async function getNFLState(): Promise<SleeperNFLState | null> {
   }
 }
 
+interface SleeperProjectionEntry {
+  player_id: string;
+  stats?: { pts_ppr?: number; pts_half_ppr?: number; pts_std?: number } | null;
+}
+
+const PROJECTIONS_BASE = "https://api.sleeper.app/projections/nfl";
+const projectionsCache = new Map<string, { expiresAt: number; promise: Promise<Record<string, number>> }>();
+
+/**
+ * This week's fantasy point projection per player, keyed by player id.
+ * Unlike everything else in this file, this isn't part of Sleeper's
+ * documented public API (docs.sleeper.com has no projections endpoint) —
+ * it's the same undocumented endpoint the Sleeper app itself and various
+ * community tools rely on. Never throws and returns an empty map on any
+ * failure (network error, unexpected response shape, endpoint change), so
+ * callers should treat a missing player id as "no projection available"
+ * and fall back to their own estimate rather than assuming a real outage.
+ */
+export async function getWeeklyProjections(season: string, week: number): Promise<Record<string, number>> {
+  const key = `${season}-${week}`;
+  const cached = projectionsCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) return cached.promise;
+
+  const promise = (async () => {
+    try {
+      const positions = ["QB", "RB", "WR", "TE", "K", "DEF"];
+      const url =
+        `${PROJECTIONS_BASE}/${season}/${week}?season_type=regular&` +
+        positions.map((p) => `position[]=${p}`).join("&");
+      const res = await fetch(url);
+      if (!res.ok) return {};
+      const data = (await res.json()) as SleeperProjectionEntry[] | null;
+      const out: Record<string, number> = {};
+      for (const entry of data ?? []) {
+        const pts = entry.stats?.pts_ppr ?? entry.stats?.pts_half_ppr ?? entry.stats?.pts_std;
+        if (entry.player_id && typeof pts === "number") out[entry.player_id] = pts;
+      }
+      return out;
+    } catch {
+      return {};
+    }
+  })();
+
+  projectionsCache.set(key, { expiresAt: Date.now() + 300 * 1000, promise });
+  return promise;
+}
+
 /**
  * The fantasy week to show matchups/standings for. During the NFL preseason,
  * Sleeper's `week` field counts preseason weeks (1, 2, 3...), not fantasy
