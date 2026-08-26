@@ -135,6 +135,8 @@
   .warroom-console .span-5,
   .warroom-console .span-9,
   .warroom-console .vitals-bay { grid-column: span 1; }
+    .warroom-console .wrap { padding-left: 0; padding-right: 0; }
+    .warroom-console .card { border-left: none; border-right: none; }
   }
 
   /* ---------- card shell ---------- */
