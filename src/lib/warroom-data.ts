@@ -121,11 +121,6 @@ export interface WarRoomManager {
   momentum: number[];
 }
 
-export interface SonarBlip {
-  margin: number;
-  label: string;
-}
-
 export interface WarRoomData {
   leagueId: string;
   leagueName: string;
@@ -135,7 +130,6 @@ export interface WarRoomData {
   you: WarRoomManager;
   others: WarRoomManager[];
   transactionSummaries: string[];
-  sonarBlips: SonarBlip[];
 }
 
 function initialOf(name: string): string {
@@ -365,8 +359,6 @@ export async function loadWarRoomData(
 
   const transactionSummaries = await buildTransactionSummariesLocal(transactions, rosters, usersById);
 
-  const sonarBlips = closestLiveMargins(currentMatchups, rosters, usersById);
-
   return {
     leagueId,
     leagueName: league.name,
@@ -376,7 +368,6 @@ export async function loadWarRoomData(
     you,
     others,
     transactionSummaries,
-    sonarBlips,
   };
 }
 
@@ -431,32 +422,3 @@ async function buildTransactionSummariesLocal(
   return summaries;
 }
 
-function closestLiveMargins(
-  currentMatchups: SleeperMatchup[],
-  rosters: SleeperRoster[],
-  usersById: Map<string, SleeperLeagueUser>
-): SonarBlip[] {
-  const rostersById = new Map(rosters.map((r) => [r.roster_id, r]));
-  const teamName = (rosterId: number) => {
-    const roster = rostersById.get(rosterId);
-    const user = roster?.owner_id ? usersById.get(roster.owner_id) : undefined;
-    return displayManagerName(user);
-  };
-  const byMatchupId = new Map<number, SleeperMatchup[]>();
-  for (const m of currentMatchups) {
-    if (m.matchup_id == null) continue;
-    const list = byMatchupId.get(m.matchup_id) ?? [];
-    list.push(m);
-    byMatchupId.set(m.matchup_id, list);
-  }
-  const margins: SonarBlip[] = [];
-  for (const pair of byMatchupId.values()) {
-    if (pair.length !== 2) continue;
-    const [a, b] = pair;
-    const margin = Math.abs(a.points - b.points);
-    const leader = a.points >= b.points ? a : b;
-    const trailer = a.points >= b.points ? b : a;
-    margins.push({ margin, label: `${teamName(leader.roster_id)} vs ${teamName(trailer.roster_id)}` });
-  }
-  return margins.sort((x, y) => x.margin - y.margin).slice(0, 5);
-}

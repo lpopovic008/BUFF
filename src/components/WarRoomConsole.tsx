@@ -212,6 +212,12 @@ export function WarRoomConsole({
   }
 
   const allManagers = [you, ...others];
+  // Every team's projected-score rank (0 = highest), for the Threat Sweep
+  // sonar — rank drives radius (biggest threat closest to center), while
+  // each team keeps a stable angle by its position in allManagers.
+  const sonarRankByRoster = new Map(
+    [...allManagers].sort((a, b) => b.projectedFinal - a.projectedFinal).map((m, rank) => [m.rosterId, rank])
+  );
   // *1.12 so the tallest bar/projected-final marker never sits flush
   // against the track's top edge, where .scoreboard's overflow:hidden
   // clips it off.
@@ -486,22 +492,24 @@ export function WarRoomConsole({
                   <stop offset="100%" stopColor="#4dd2c9" stopOpacity="0" />
                 </linearGradient>
               </defs>
-              {data.sonarBlips.map((b, i) => {
-                const angle = (-70 + i * 55) * (Math.PI / 180);
-                const r = clamp(18 + b.margin * 2.2, 15, 58);
+              {allManagers.map((m, i) => {
+                const angle = ((i / allManagers.length) * 360 - 90) * (Math.PI / 180);
+                const rank = sonarRankByRoster.get(m.rosterId) ?? 0;
+                const r = allManagers.length > 1 ? 18 + (58 - 18) * (rank / (allManagers.length - 1)) : 18;
                 const x = 70 + r * Math.cos(angle);
                 const y = 70 + r * Math.sin(angle);
+                const isYou = i === 0;
                 return (
-                  <g key={i}>
-                    <circle className="sonar-blip" cx={x} cy={y} r={clamp(3.5 - b.margin * 0.08, 1.5, 3.5)}>
-                      <title>{`${b.label} — margin ${b.margin.toFixed(1)}`}</title>
+                  <g key={m.rosterId}>
+                    <circle className={`sonar-blip${isYou ? " you" : ""}`} cx={x} cy={y} r="3.5">
+                      <title>{`${m.name} — projected ${m.projectedFinal.toFixed(1)}`}</title>
                     </circle>
-                    <text className="sonar-blip-label" x={x + 4} y={y - 2}>{b.margin.toFixed(1)}</text>
+                    <text className="sonar-blip-label" x={x + 4} y={y - 2}>{m.initial}</text>
                   </g>
                 );
               })}
             </svg>
-            <p className="card-note">This week&rsquo;s closest live games. Blips are point margins.</p>
+            <p className="card-note">Every team this week, closest to center = highest projected.</p>
           </article>
 
           <article className="card span-6">
@@ -566,13 +574,16 @@ export function WarRoomConsole({
                     const pos = TEAM_CITIES[g.homeTeam]?.pos;
                     if (!pos) return null;
                     const shown = openGameId === g.id || hoveredGameId === g.id;
+                    const inGame = (p: WarRoomLineupPlayer) => Boolean(p.playerId) && (p.team === g.homeTeam || p.team === g.awayTeam);
+                    const playerCount = you.lineup.filter(inGame).length + selected.lineup.filter(inGame).length;
+                    const baseR = clamp(2.5 + playerCount * 1.3, 2.5, 8);
                     return (
                       <circle
                         key={g.id}
                         className={`usmap-dot game${g.state === "in" ? " live" : ""}${shown ? " active" : ""}`}
                         cx={pos[0]}
                         cy={pos[1]}
-                        r={shown ? 4.5 : 3.5}
+                        r={shown ? baseR + 1.5 : baseR}
                         onClick={(e) => {
                           e.stopPropagation();
                           setOpenGameId(openGameId === g.id ? null : g.id);
@@ -581,7 +592,7 @@ export function WarRoomConsole({
                         onMouseLeave={() => setHoveredGameId((h) => (h === g.id ? null : h))}
                         style={{ cursor: "pointer" }}
                       >
-                        <title>{`${g.awayTeam} @ ${g.homeTeam} — ${gameStatusLabel(g)}`}</title>
+                        <title>{`${g.awayTeam} @ ${g.homeTeam} — ${gameStatusLabel(g)} — ${playerCount} player${playerCount === 1 ? "" : "s"} between you & ${selected.name}`}</title>
                       </circle>
                     );
                   })}
@@ -644,8 +655,8 @@ export function WarRoomConsole({
               <span className="cmp">Click a dot for who&rsquo;s playing</span>
             </div>
             <p className="card-note">
-              Every NFL game today. Schedule &amp; scores from ESPN&rsquo;s public scoreboard — Sleeper has no schedule
-              data of its own.
+              Every NFL game today. Dot size = players you and {selected.name} have in that game. Schedule &amp;
+              scores from ESPN&rsquo;s public scoreboard — Sleeper has no schedule data of its own.
             </p>
           </article>
 
