@@ -187,7 +187,7 @@
   .warroom-console .dossier-pane.cmp .dossier-photo { color: var(--cyan); border-color: var(--cyan-dim); }
   .warroom-console .dossier-info { font-family: var(--mono); font-size: 10.5px; color: var(--ink-dim); line-height: 1.55; }
   .warroom-console .dossier-info .name { font-size: 12.5px; color: var(--ink); display: block; }
-  .warroom-console .dossier-tag { display: inline-block; margin-top: 2px; font-size: 9px; letter-spacing: 0.06em; padding: 1px 5px; }
+  .warroom-console .dossier-tag { display: inline-block; margin-top: 2px; margin-left: 8px; font-size: 9px; letter-spacing: 0.06em; padding: 1px 5px; }
   .warroom-console .dossier-tag.you { color: var(--amber); border: 1px solid var(--amber-dim); }
   .warroom-console .dossier-tag.cmp { color: var(--cyan); border: 1px solid var(--cyan-dim); }
   .warroom-console .dossier-controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -224,7 +224,7 @@
   .warroom-console .led-header .led-nums.you strong,
   .warroom-console .led-header .led-nums.cmp strong { color: inherit; }
   .warroom-console .led-rows { display: flex; flex-direction: column; justify-content: space-between; gap: 5px; flex: 1 1 auto; }
-  .warroom-console .led-row { display: grid; grid-template-columns: 10px 1fr 28px 28px 34px 28px 28px 1fr 10px; gap: 6px; align-items: center; font-family: var(--mono); font-size: 10px; }
+  .warroom-console .led-row { display: grid; grid-template-columns: 10px 1fr 34px 34px 34px 34px 34px 1fr 10px; gap: 6px; align-items: center; font-family: var(--mono); font-size: 10px; }
   .warroom-console .led-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
   .warroom-console .led-dot.good { background: var(--good); box-shadow: 0 0 6px var(--good); }
   .warroom-console .led-dot.warn { background: var(--warn); box-shadow: 0 0 6px var(--warn); }
@@ -266,7 +266,14 @@
 
   /* ---------- VIT-03 terminal ---------- */
 
-  .warroom-console .terminal { display: flex; flex-direction: column; justify-content: space-between; flex: 1 1 auto; width: 100%; font-family: var(--mono); font-size: 11px; line-height: 1.7; color: var(--good); text-align: left; }
+  .warroom-console .terminal {
+    display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; min-height: 0; width: 100%;
+    font-family: var(--mono); font-size: 11px; line-height: 1.45; color: var(--good); text-align: left;
+    overflow-y: auto; max-height: 220px; scrollbar-width: thin; scrollbar-color: var(--line-bright) transparent;
+  }
+  .warroom-console .terminal::-webkit-scrollbar { width: 6px; }
+  .warroom-console .terminal::-webkit-scrollbar-thumb { background: var(--line-bright); }
+  .warroom-console .terminal::-webkit-scrollbar-track { background: transparent; }
   .warroom-console .terminal .t-time { color: var(--ink-dim); }
   .warroom-console .terminal .t-you { color: var(--amber); }
   .warroom-console .terminal .t-cmp { color: var(--cyan); }

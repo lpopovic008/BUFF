@@ -21,6 +21,7 @@ import {
 import { TEAM_CITIES, US_MAP_VIEWBOX, US_OUTLINE_PATH, US_STATE_LINES_PATH } from "@/lib/warroom-team-cities";
 import { TrackedPlayer, useLiveScoringFeed } from "@/hooks/useLiveScoringFeed";
 import { useTodaysGames } from "@/hooks/useTodaysGames";
+import { AllTimeRecord, useAllTimeHeadToHead } from "@/hooks/useAllTimeHeadToHead";
 import { NFLGame } from "@/lib/nfl-schedule";
 import "./warroom.css";
 
@@ -130,9 +131,9 @@ function headToHeadReadout(you: WarRoomManager, selected: WarRoomManager): strin
   return `YOU & ${name}: TIED ${rec.wins}-${rec.losses}`;
 }
 
-/** "VS YOU: 3-2" from the selected manager's own win-loss record against you. */
-function vsYouTag(you: WarRoomManager, selected: WarRoomManager): string {
-  const rec = selected.headToHead.get(you.rosterId);
+/** "VS YOU: 3-2" — the selected manager's all-time win-loss record against you, across every linked season. */
+function vsYouTag(you: WarRoomManager, selected: WarRoomManager, allTimeH2H: Map<string, Map<string, AllTimeRecord>>): string {
+  const rec = selected.ownerId && you.ownerId ? allTimeH2H.get(selected.ownerId)?.get(you.ownerId) : undefined;
   if (!rec || (rec.wins === 0 && rec.losses === 0)) return "VS YOU: 0-0";
   return `VS YOU: ${rec.wins}-${rec.losses}`;
 }
@@ -168,7 +169,9 @@ export function WarRoomConsole({
   const [menuOpen, setMenuOpen] = useState(false);
   const [feedMode, setFeedMode] = useState<"transactions" | "live">("transactions");
   const [openGameId, setOpenGameId] = useState<string | null>(null);
+  const [hoveredGameId, setHoveredGameId] = useState<string | null>(null);
   const todaysGames = useTodaysGames();
+  const allTimeH2H = useAllTimeHeadToHead(data.leagueId);
   // Deferred to an effect (rather than a lazy initializer) so the initial
   // static-export prerender and the first client render agree on markup —
   // Date.now() only runs after mount, once we're client-side for good.
@@ -332,7 +335,7 @@ export function WarRoomConsole({
                 <div className="dossier-info">
                   <span className="name">{selected.name}</span>
                   <span>{selected.wins}-{selected.losses}{selected.ties ? `-${selected.ties}` : ""}</span>
-                  <span className="dossier-tag cmp">{vsYouTag(you, selected)}</span>
+                  <span className="dossier-tag cmp">{vsYouTag(you, selected, allTimeH2H)}</span>
                 </div>
               </div>
             </div>
@@ -522,7 +525,7 @@ export function WarRoomConsole({
                 data.transactionSummaries.length === 0 ? (
                   <div>No moves logged yet this week<span className="cursor" /></div>
                 ) : (
-                  data.transactionSummaries.slice(0, 6).map((line, i) => <div key={i}>{line}</div>)
+                  data.transactionSummaries.slice(0, 30).map((line, i) => <div key={i}>{line}</div>)
                 )
               ) : liveEvents.length === 0 ? (
                 <div>Watching for scoring plays<span className="cursor" /></div>
@@ -550,7 +553,7 @@ export function WarRoomConsole({
               </div>
               <div className="card-flags"><span className="flag live">LIVE</span><span className="flag cmp">↔ COMPARES</span></div>
             </div>
-            <div className="usmap-wrap">
+            <div className="usmap-wrap" onClick={() => setOpenGameId(null)}>
               <svg className="usmap-svg" viewBox={US_MAP_VIEWBOX} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
                 <path className="usmap-outline" d={US_OUTLINE_PATH} />
                 <path className="usmap-state-line" d={US_STATE_LINES_PATH} />
@@ -558,14 +561,20 @@ export function WarRoomConsole({
                   {todaysGames.map((g) => {
                     const pos = TEAM_CITIES[g.homeTeam]?.pos;
                     if (!pos) return null;
+                    const shown = openGameId === g.id || hoveredGameId === g.id;
                     return (
                       <circle
                         key={g.id}
-                        className={`usmap-dot game${g.state === "in" ? " live" : ""}${openGameId === g.id ? " active" : ""}`}
+                        className={`usmap-dot game${g.state === "in" ? " live" : ""}${shown ? " active" : ""}`}
                         cx={pos[0]}
                         cy={pos[1]}
-                        r={openGameId === g.id ? 4.5 : 3.5}
-                        onClick={() => setOpenGameId(openGameId === g.id ? null : g.id)}
+                        r={shown ? 4.5 : 3.5}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenGameId(openGameId === g.id ? null : g.id);
+                        }}
+                        onMouseEnter={() => setHoveredGameId(g.id)}
+                        onMouseLeave={() => setHoveredGameId((h) => (h === g.id ? null : h))}
                         style={{ cursor: "pointer" }}
                       >
                         <title>{`${g.awayTeam} @ ${g.homeTeam} — ${gameStatusLabel(g)}`}</title>
@@ -574,9 +583,9 @@ export function WarRoomConsole({
                   })}
                 </g>
               </svg>
-              {openGameId
+              {openGameId ?? hoveredGameId
                 ? (() => {
-                    const game = todaysGames.find((g) => g.id === openGameId);
+                    const game = todaysGames.find((g) => g.id === (openGameId ?? hoveredGameId));
                     if (!game) return null;
                     const pos = TEAM_CITIES[game.homeTeam]?.pos ?? [160, 100];
                     const inGame = (p: WarRoomLineupPlayer) => p.team === game.homeTeam || p.team === game.awayTeam;
@@ -586,8 +595,16 @@ export function WarRoomConsole({
                       <div
                         className="usmap-popup"
                         style={{ left: `${(pos[0] / 320) * 100}%`, top: `${(pos[1] / 200) * 100}%` }}
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        <button className="usmap-popup-close" onClick={() => setOpenGameId(null)} aria-label="Close">
+                        <button
+                          className="usmap-popup-close"
+                          onClick={() => {
+                            setOpenGameId(null);
+                            setHoveredGameId(null);
+                          }}
+                          aria-label="Close"
+                        >
                           ×
                         </button>
                         <div className="usmap-popup-title">
@@ -715,7 +732,7 @@ export function WarRoomConsole({
               </div>
               <div className="card-flags"><span className="flag cmp">↔ COMPARES</span></div>
             </div>
-            <svg className="radar-svg" viewBox="0 0 140 140" aria-hidden="true">
+            <svg className="radar-svg" viewBox="-10 -10 160 160" aria-hidden="true">
               <polygon className="radar-ring" points={radarPoints([100, 100, 100, 100], 55, 70, 70)} />
               <polygon className="radar-ring" points={radarPoints([50, 50, 50, 50], 55, 70, 70)} />
               {RADAR_LABELS.map((_, i) => {

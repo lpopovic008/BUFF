@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { getMatchups } from "@/lib/sleeper";
 
 const POLL_MS = 25000;
-const MAX_EVENTS = 20;
+const MAX_EVENTS = 40;
 
 export interface TrackedPlayer {
   playerId: string;
