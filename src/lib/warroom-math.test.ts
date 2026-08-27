@@ -1,47 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { abbreviateTeamName, clamp, gaugeDeg, jitterCityDots, ledClass, heartbeatTile, formClass, slotLabel } from "./warroom-math";
-
-test("abbreviateTeamName keeps every label short and fixed-width-ish so scoreboard columns never spill", () => {
-  assert.equal(abbreviateTeamName("Karan"), "KAR");
-  assert.equal(abbreviateTeamName("Matt Ly"), "ML");
-  assert.equal(abbreviateTeamName("Nabers in Paris"), "NIP");
-  assert.equal(abbreviateTeamName("The Greatest Dynasty Team Ever"), "TGD");
-  assert.equal(abbreviateTeamName(""), "");
-});
-
-test("jitterCityDots looks positions up by team code, not by display city name", () => {
-  const cityPos = {
-    BUF: { pos: [260, 59] as [number, number], city: "Orchard Park, NY" },
-    SF: { pos: [7, 88] as [number, number], city: "Santa Clara, CA" },
-  };
-  const dots = jitterCityDots(
-    [
-      { name: "Josh Allen", team: "BUF" },
-      { name: "Brock Purdy", team: "SF" },
-      { name: "Free agent", team: null },
-    ],
-    cityPos
-  );
-  assert.equal(dots.length, 2);
-  assert.equal(dots[0].x, 260);
-  assert.equal(dots[0].y, 59);
-  assert.equal(dots[0].city, "Orchard Park, NY");
-  assert.equal(dots[1].x, 7);
-  assert.equal(dots[1].y, 88);
-});
-
-test("jitterCityDots spreads players sharing a stadium apart instead of stacking them", () => {
-  const cityPos = { BUF: { pos: [260, 59] as [number, number], city: "Orchard Park, NY" } };
-  const dots = jitterCityDots(
-    [
-      { name: "A", team: "BUF" },
-      { name: "B", team: "BUF" },
-    ],
-    cityPos
-  );
-  assert.notEqual(dots[0].x, dots[1].x);
-});
+import { clamp, gaugeDeg, ledClass, heartbeatTile, formClass, slotLabel } from "./warroom-math";
 
 test("gaugeDeg maps 0/50/100 onto the dial's 135deg-405deg sweep", () => {
   assert.equal(gaugeDeg(0), 135);

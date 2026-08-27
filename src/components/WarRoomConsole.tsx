@@ -3,14 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { MenuIcon } from "@/components/ui/Icon";
-import { HeadToHeadRecord, WarRoomData, WarRoomManager } from "@/lib/warroom-data";
+import { HeadToHeadRecord, WarRoomData, WarRoomLineupPlayer, WarRoomManager } from "@/lib/warroom-data";
 import {
   circlePoints,
   clamp,
   formClass,
   gaugeDeg,
   heartbeatTile,
-  jitterCityDots,
   ledClass,
   momentumPoints,
   radarAxisPoint,
@@ -21,6 +20,8 @@ import {
 } from "@/lib/warroom-math";
 import { TEAM_CITIES, US_MAP_VIEWBOX, US_OUTLINE_PATH, US_STATE_LINES_PATH } from "@/lib/warroom-team-cities";
 import { TrackedPlayer, useLiveScoringFeed } from "@/hooks/useLiveScoringFeed";
+import { useTodaysGames } from "@/hooks/useTodaysGames";
+import { NFLGame } from "@/lib/nfl-schedule";
 import "./warroom.css";
 
 const RADAR_LABELS = ["QB", "RB", "WR", "TE"] as const;
@@ -59,6 +60,14 @@ function buildWindows(mountedAt: Date): { label: string; at: number }[] {
 
 function pad(n: number): string {
   return String(n).padStart(2, "0");
+}
+
+function gameStatusLabel(game: NFLGame): string {
+  if (game.state === "post") return `FINAL ${game.awayScore}-${game.homeScore}`;
+  if (game.state === "in") return `LIVE ${game.awayScore}-${game.homeScore}`;
+  const kickoff = new Date(game.kickoff);
+  if (Number.isNaN(kickoff.getTime())) return "Kickoff TBD";
+  return kickoff.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
 /** A manager's Sleeper profile photo — falls back to their initial (no avatar set, or the CDN image fails to load) inside the same styled square, whatever `className` is passed. */
@@ -158,6 +167,8 @@ export function WarRoomConsole({
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [feedMode, setFeedMode] = useState<"transactions" | "live">("transactions");
+  const [openGameId, setOpenGameId] = useState<string | null>(null);
+  const todaysGames = useTodaysGames();
   // Deferred to an effect (rather than a lazy initializer) so the initial
   // static-export prerender and the first client render agree on markup —
   // Date.now() only runs after mount, once we're client-side for good.
@@ -209,15 +220,6 @@ export function WarRoomConsole({
   const clockStr = `${pad(Math.floor(remain / 86400000))}:${pad(Math.floor(remain / 3600000) % 24)}:${pad(
     Math.floor(remain / 60000) % 60
   )}:${pad(Math.floor(remain / 1000) % 60)}`;
-
-  const territoryYouDots = jitterCityDots(
-    you.lineup.filter((p) => p.playerId),
-    TEAM_CITIES
-  );
-  const territoryCmpDots = jitterCityDots(
-    selected.lineup.filter((p) => p.playerId),
-    TEAM_CITIES
-  );
 
   const webNodes = circlePoints(allManagers.length, 75, 75, 56);
   const webMaxWins = Math.max(1, ...allManagers.map((m) => m.wins));
@@ -539,31 +541,84 @@ export function WarRoomConsole({
                 <span className="card-index">TER-01</span>
                 <span className="card-title">Territory Map</span>
               </div>
-              <div className="card-flags"><span className="flag cmp">↔ COMPARES</span></div>
+              <div className="card-flags"><span className="flag live">LIVE</span><span className="flag cmp">↔ COMPARES</span></div>
             </div>
-            <svg className="usmap-svg" viewBox={US_MAP_VIEWBOX} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-              <path className="usmap-outline" d={US_OUTLINE_PATH} />
-              <path className="usmap-state-line" d={US_STATE_LINES_PATH} />
-              <g>
-                {territoryCmpDots.map((p, i) => (
-                  <circle key={i} className="usmap-dot cmp" cx={p.x.toFixed(1)} cy={p.y.toFixed(1)} r={3}>
-                    <title>{`${p.name} — ${p.city}`}</title>
-                  </circle>
-                ))}
-              </g>
-              <g>
-                {territoryYouDots.map((p, i) => (
-                  <circle key={i} className="usmap-dot you" cx={p.x.toFixed(1)} cy={p.y.toFixed(1)} r={3.5}>
-                    <title>{`${p.name} — ${p.city}`}</title>
-                  </circle>
-                ))}
-              </g>
-            </svg>
+            <div className="usmap-wrap">
+              <svg className="usmap-svg" viewBox={US_MAP_VIEWBOX} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                <path className="usmap-outline" d={US_OUTLINE_PATH} />
+                <path className="usmap-state-line" d={US_STATE_LINES_PATH} />
+                <g>
+                  {todaysGames.map((g) => {
+                    const pos = TEAM_CITIES[g.homeTeam]?.pos;
+                    if (!pos) return null;
+                    return (
+                      <circle
+                        key={g.id}
+                        className={`usmap-dot game${g.state === "in" ? " live" : ""}${openGameId === g.id ? " active" : ""}`}
+                        cx={pos[0]}
+                        cy={pos[1]}
+                        r={openGameId === g.id ? 4.5 : 3.5}
+                        onClick={() => setOpenGameId(openGameId === g.id ? null : g.id)}
+                        style={{ cursor: "pointer" }}
+                      >
+                        <title>{`${g.awayTeam} @ ${g.homeTeam} — ${gameStatusLabel(g)}`}</title>
+                      </circle>
+                    );
+                  })}
+                </g>
+              </svg>
+              {openGameId
+                ? (() => {
+                    const game = todaysGames.find((g) => g.id === openGameId);
+                    if (!game) return null;
+                    const pos = TEAM_CITIES[game.homeTeam]?.pos ?? [160, 100];
+                    const inGame = (p: WarRoomLineupPlayer) => p.team === game.homeTeam || p.team === game.awayTeam;
+                    const youPlayers = you.lineup.filter((p) => p.playerId && inGame(p));
+                    const cmpPlayers = selected.lineup.filter((p) => p.playerId && inGame(p));
+                    return (
+                      <div
+                        className="usmap-popup"
+                        style={{ left: `${(pos[0] / 320) * 100}%`, top: `${(pos[1] / 200) * 100}%` }}
+                      >
+                        <button className="usmap-popup-close" onClick={() => setOpenGameId(null)} aria-label="Close">
+                          ×
+                        </button>
+                        <div className="usmap-popup-title">
+                          {game.awayTeam} @ {game.homeTeam}
+                        </div>
+                        <div className="usmap-popup-status">{gameStatusLabel(game)}</div>
+                        {youPlayers.length > 0 ? (
+                          <div className="usmap-popup-group">
+                            <span className="usmap-popup-label you">YOU</span>
+                            {youPlayers.map((p) => (
+                              <div key={p.playerId}>{p.name}</div>
+                            ))}
+                          </div>
+                        ) : null}
+                        {cmpPlayers.length > 0 ? (
+                          <div className="usmap-popup-group">
+                            <span className="usmap-popup-label cmp">{selected.name.toUpperCase()}</span>
+                            {cmpPlayers.map((p) => (
+                              <div key={p.playerId}>{p.name}</div>
+                            ))}
+                          </div>
+                        ) : null}
+                        {youPlayers.length === 0 && cmpPlayers.length === 0 ? (
+                          <div className="usmap-popup-empty">No highlighted players in this game.</div>
+                        ) : null}
+                      </div>
+                    );
+                  })()
+                : null}
+            </div>
             <div className="usmap-legend">
-              <span className="you">Your players&rsquo; game cities this week</span>
-              <span className="cmp">{selected.name}&rsquo;s players&rsquo; game cities</span>
+              <span className="you">Amber = live game</span>
+              <span className="cmp">Click a dot for who&rsquo;s playing</span>
             </div>
-            <p className="card-note">Where each starter plays this week.</p>
+            <p className="card-note">
+              Every NFL game today. Schedule &amp; scores from ESPN&rsquo;s public scoreboard — Sleeper has no schedule
+              data of its own.
+            </p>
           </article>
 
           <article className="card span-3">

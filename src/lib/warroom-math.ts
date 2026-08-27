@@ -5,23 +5,6 @@ export function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
 }
 
-/**
- * A short, fixed-width label for a team/manager name — initials for a
- * multi-word name ("Matt Ly" -> "ML"), a 3-letter truncation for a single
- * word ("Karan" -> "KAR") — so a row of these never varies enough in width
- * to force a scoreboard column wider than its neighbors.
- */
-export function abbreviateTeamName(name: string): string {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) return "";
-  if (words.length === 1) return words[0].slice(0, 3).toUpperCase();
-  return words
-    .slice(0, 3)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
-}
-
 // Evenly spaced diamond: QB top, RB right, WR bottom, TE left.
 const RADAR_ANGLES = [-90, 0, 90, 180].map((d) => (d * Math.PI) / 180);
 
@@ -111,44 +94,6 @@ export function formClass(pct: number): "h1" | "h2" | "h3" | "h4" | "h5" {
   if (pct < 60) return "h3";
   if (pct < 75) return "h4";
   return "h5";
-}
-
-export interface CityDot {
-  x: number;
-  y: number;
-  name: string;
-  city: string;
-}
-
-/**
- * Golden-angle spiral jitter so players sharing a stadium city don't stack
- * into one dot. Keyed by NFL team code (the `cityPos` map's real key) rather
- * than the display city name, so the lookup actually lands on that team's
- * real projected position instead of silently falling through to a shared
- * default for every player.
- */
-export function jitterCityDots(
-  players: { name: string; team: string | null }[],
-  cityPos: Record<string, { pos: [number, number]; city: string }>
-): CityDot[] {
-  const seen: Record<string, number> = {};
-  const out: CityDot[] = [];
-  for (const p of players) {
-    if (!p.team) continue;
-    const entry = cityPos[p.team];
-    if (!entry) continue;
-    seen[p.team] = (seen[p.team] ?? 0) + 1;
-    const k = seen[p.team];
-    const ang = (k * 137.5 * Math.PI) / 180;
-    const rj = (k - 1) * 4.5;
-    out.push({
-      x: entry.pos[0] + rj * Math.cos(ang),
-      y: entry.pos[1] + rj * Math.sin(ang),
-      name: p.name,
-      city: entry.city,
-    });
-  }
-  return out;
 }
 
 /** Evenly-spaced points around a circle — used for the head-to-head web's node layout. */
