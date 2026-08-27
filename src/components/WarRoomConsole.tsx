@@ -478,8 +478,9 @@ export function WarRoomConsole({
               <div className="card-flags"><span className="flag live">LIVE</span></div>
             </div>
             <svg className="sonar-svg" viewBox="0 0 140 140" aria-hidden="true">
-              <circle className="sonar-ring" cx="70" cy="70" r="20" />
-              <circle className="sonar-ring" cx="70" cy="70" r="38" />
+              <circle className="sonar-ring" cx="70" cy="70" r="14" />
+              <circle className="sonar-ring" cx="70" cy="70" r="27" />
+              <circle className="sonar-ring" cx="70" cy="70" r="41" />
               <circle className="sonar-ring" cx="70" cy="70" r="55" />
               <line className="sonar-ring" x1="15" y1="70" x2="125" y2="70" />
               <line className="sonar-ring" x1="70" y1="15" x2="70" y2="125" />
