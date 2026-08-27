@@ -269,7 +269,7 @@
   .warroom-console .terminal {
     display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; min-height: 0; width: 100%;
     font-family: var(--mono); font-size: 11px; line-height: 1.45; color: var(--good); text-align: left;
-    overflow-y: auto; max-height: 220px; scrollbar-width: thin; scrollbar-color: var(--line-bright) transparent;
+    overflow-y: auto; max-height: 140px; scrollbar-width: thin; scrollbar-color: var(--line-bright) transparent;
   }
   .warroom-console .terminal::-webkit-scrollbar { width: 6px; }
   .warroom-console .terminal::-webkit-scrollbar-thumb { background: var(--line-bright); }
