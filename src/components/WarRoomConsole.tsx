@@ -125,10 +125,11 @@ function GaugeDial({ label, youVal, cmpVal }: { label: string; youVal: number; c
 function headToHeadReadout(you: WarRoomManager, selected: WarRoomManager): string {
   const rec = you.headToHead.get(selected.rosterId);
   const name = selected.name.toUpperCase();
-  if (!rec || (rec.wins === 0 && rec.losses === 0)) return `YOU & ${name}: HAVEN'T PLAYED YET`;
-  if (rec.wins > rec.losses) return `YOU LEAD ${name} ${rec.wins}-${rec.losses}`;
-  if (rec.losses > rec.wins) return `${name} LEADS YOU ${rec.losses}-${rec.wins}`;
-  return `YOU & ${name}: TIED ${rec.wins}-${rec.losses}`;
+  const youName = you.name.toUpperCase();
+  if (!rec || (rec.wins === 0 && rec.losses === 0)) return `${youName} & ${name}: HAVEN'T PLAYED YET`;
+  if (rec.wins > rec.losses) return `${youName} LEADS ${name} ${rec.wins}-${rec.losses}`;
+  if (rec.losses > rec.wins) return `${name} LEADS ${youName} ${rec.losses}-${rec.wins}`;
+  return `${youName} & ${name}: TIED ${rec.wins}-${rec.losses}`;
 }
 
 /** "VS YOU: 3-2" — the selected manager's all-time win-loss record against you, across every linked season. */
@@ -211,7 +212,10 @@ export function WarRoomConsole({
   }
 
   const allManagers = [you, ...others];
-  const scoreboardMax = Math.max(1, ...allManagers.flatMap((m) => [m.livePoints, m.projectedFinal]));
+  // *1.12 so the tallest bar/projected-final marker never sits flush
+  // against the track's top edge, where .scoreboard's overflow:hidden
+  // clips it off.
+  const scoreboardMax = Math.max(1, ...allManagers.flatMap((m) => [m.livePoints, m.projectedFinal])) * 1.12;
   const heatWeekCount = you.seasonForm.length;
 
   let wIndex = 0;
@@ -383,7 +387,7 @@ export function WarRoomConsole({
               />
             </svg>
             <div className="momentum-legend">
-              <span className="you">YOU — point differential vs your opponent</span>
+              <span className="you">{you.name.toUpperCase()} — point differential vs your opponent</span>
               <span className="cmp">{selected.name.toUpperCase()} — point differential vs their opponent</span>
             </div>
             <p className="card-note">Kickoff to now&rsquo;s margin. Above = winning, below = losing.</p>
@@ -400,7 +404,7 @@ export function WarRoomConsole({
             </div>
             <div className="led-header led-row">
               <span />
-              <span className="you">YOU</span>
+              <span className="you">{you.name.toUpperCase()}</span>
               <span className="led-nums you">{you.projectedFinal.toFixed(1)}</span>
               <span className="led-nums you"><strong>{you.livePoints.toFixed(1)}</strong></span>
               <span />
@@ -450,7 +454,7 @@ export function WarRoomConsole({
                       <div className="score-target" style={{ bottom: `${(m.projectedFinal / scoreboardMax) * 100}%` }} />
                     </div>
                     <div className="score-val">{m.livePoints.toFixed(1)}</div>
-                    <ManagerAvatar url={m.avatarUrl} initial={m.initial} name={isYou ? "You" : m.name} className="score-photo" />
+                    <ManagerAvatar url={m.avatarUrl} initial={m.initial} name={m.name} className="score-photo" />
                   </div>
                 );
               })}
@@ -613,7 +617,7 @@ export function WarRoomConsole({
                         <div className="usmap-popup-status">{gameStatusLabel(game)}</div>
                         {youPlayers.length > 0 ? (
                           <div className="usmap-popup-group">
-                            <span className="usmap-popup-label you">YOU</span>
+                            <span className="usmap-popup-label you">{you.name.toUpperCase()}</span>
                             {youPlayers.map((p) => (
                               <div key={p.playerId}>{p.name}</div>
                             ))}
@@ -785,7 +789,7 @@ export function WarRoomConsole({
                       className={`heat-row${isYou ? " you" : ""}${isSel ? " selected" : ""}`}
                       style={{ gridTemplateColumns: `58px repeat(${heatWeekCount}, 1fr)` }}
                     >
-                      <span className="heat-name">{isYou ? "YOU" : m.name}</span>
+                      <span className="heat-name">{m.name}</span>
                       {m.seasonForm.map((pct, w) => (
                         <div key={w} className={`heat-cell ${formClass(pct)}`} title={`${pct}%`} />
                       ))}
@@ -814,7 +818,7 @@ export function WarRoomConsole({
                 const tile = heartbeatTile(m.winChance, 100);
                 return (
                   <div className={`vitals-strip${isYou ? " you" : ""}${isSel ? " selected" : ""}`} key={m.rosterId}>
-                    <span className="vitals-name">{isYou ? "YOU" : m.name}</span>
+                    <span className="vitals-name">{m.name}</span>
                     <svg className="vitals-svg-el" viewBox="0 0 200 30" preserveAspectRatio="none" aria-hidden="true">
                       <g className="vitals-scroll">
                         <polyline
