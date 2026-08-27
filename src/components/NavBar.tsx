@@ -10,6 +10,7 @@ import { MenuIcon } from "@/components/ui/Icon";
 const links = [
   { href: "/", label: "War Room" },
   { href: "/values", label: "Values" },
+  { href: "/draft", label: "Draft" },
   { href: "/settings", label: "Settings" },
 ];
 

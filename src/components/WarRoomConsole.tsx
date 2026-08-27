@@ -301,6 +301,9 @@ export function WarRoomConsole({
                 <Link href="/values" onClick={() => setMenuOpen(false)}>
                   Values
                 </Link>
+                <Link href="/draft" onClick={() => setMenuOpen(false)}>
+                  Draft
+                </Link>
                 <Link href="/settings" onClick={() => setMenuOpen(false)}>
                   Settings
                 </Link>
