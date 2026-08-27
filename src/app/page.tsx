@@ -7,9 +7,10 @@ import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { useConfig } from "@/hooks/useConfig";
 import { useMyLeagues } from "@/hooks/useMyLeagues";
+import { useNFLState } from "@/hooks/useNFLState";
 import { WarRoomConsole } from "@/components/WarRoomConsole";
 import { loadWarRoomData, WarRoomData } from "@/lib/warroom-data";
-import { getCurrentWeek, getNFLState } from "@/lib/sleeper";
+import { getCurrentWeek } from "@/lib/sleeper";
 
 const oxanium = Oxanium({ subsets: ["latin"], variable: "--font-oxanium" });
 const titilliumWeb = Titillium_Web({ subsets: ["latin"], weight: ["400", "600", "700"], variable: "--font-titillium-web" });
@@ -28,7 +29,7 @@ function WarRoomHome() {
   const [explicitLeagueId, setExplicitLeagueId] = useState<string | null>(null);
   const [data, setData] = useState<WarRoomData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isPreseason, setIsPreseason] = useState(false);
+  const nflPhase = useNFLState();
 
   const totalRecord = useMemo(() => {
     const totals = { wins: 0, losses: 0, ties: 0 };
@@ -52,10 +53,9 @@ function WarRoomHome() {
       setData(null);
       setError(null);
       try {
-        const [currentWeek, nflState] = await Promise.all([getCurrentWeek(), getNFLState()]);
+        const currentWeek = await getCurrentWeek();
         const result = await loadWarRoomData(leagueId, config.sleeperUserId, currentWeek);
         if (cancelled) return;
-        setIsPreseason(nflState?.season_type === "pre");
         if (!result) {
           setError("Couldn't find your team in this league.");
           return;
@@ -106,7 +106,8 @@ function WarRoomHome() {
         leagueOptions={myLeagues}
         currentLeagueId={leagueId}
         onLeagueChange={setExplicitLeagueId}
-        isPreseason={isPreseason}
+        isPreseason={nflPhase.isPreseason}
+        preseasonWeek={nflPhase.isPreseason ? nflPhase.week : null}
         totalRecord={totalRecord}
       />
     </div>

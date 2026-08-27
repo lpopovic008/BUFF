@@ -264,7 +264,9 @@
 
   .warroom-console .terminal { display: flex; flex-direction: column; justify-content: space-between; flex: 1 1 auto; width: 100%; font-family: var(--mono); font-size: 11px; line-height: 1.7; color: var(--good); text-align: left; }
   .warroom-console .terminal .t-time { color: var(--ink-dim); }
+  .warroom-console .terminal .t-you { color: var(--amber); }
   .warroom-console .terminal .t-cmp { color: var(--cyan); }
+  .warroom-console .feed-toggle { display: flex; gap: 6px; }
   .warroom-console .terminal .cursor { display: inline-block; width: 6px; height: 11px; background: var(--good); vertical-align: middle; margin-left: 2px; }
   @media (prefers-reduced-motion: no-preference) { .warroom-console .terminal .cursor { animation: warroom-blink 1s step-end infinite; } }
   @keyframes warroom-blink { 50% { opacity: 0; } }

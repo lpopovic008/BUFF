@@ -20,6 +20,7 @@ import {
   vitalsColorVar,
 } from "@/lib/warroom-math";
 import { TEAM_CITIES, US_MAP_VIEWBOX, US_OUTLINE_PATH, US_STATE_LINES_PATH } from "@/lib/warroom-team-cities";
+import { TrackedPlayer, useLiveScoringFeed } from "@/hooks/useLiveScoringFeed";
 import "./warroom.css";
 
 const RADAR_LABELS = ["QB", "RB", "WR", "TE"] as const;
@@ -139,6 +140,8 @@ export interface WarRoomConsoleProps {
   onLeagueChange: (leagueId: string) => void;
   /** True during the NFL preseason, when there's no real fantasy week to show yet. */
   isPreseason: boolean;
+  /** Which preseason week it is (1-3ish) — Sleeper's own `week` counter during the preseason. Null once the regular season starts. */
+  preseasonWeek: number | null;
   /** Your record summed across every league tracked in Settings, not just the one showing. */
   totalRecord: { wins: number; losses: number; ties: number };
 }
@@ -149,10 +152,12 @@ export function WarRoomConsole({
   currentLeagueId,
   onLeagueChange,
   isPreseason,
+  preseasonWeek,
   totalRecord,
 }: WarRoomConsoleProps) {
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [feedMode, setFeedMode] = useState<"transactions" | "live">("transactions");
   // Deferred to an effect (rather than a lazy initializer) so the initial
   // static-export prerender and the first client render agree on markup —
   // Date.now() only runs after mount, once we're client-side for good.
@@ -166,6 +171,20 @@ export function WarRoomConsole({
 
   const { you, others } = data;
   const selected = others[selectedIdx % Math.max(1, others.length)] ?? you;
+
+  // Your real weekly matchup opponent — not whichever manager the Dossier's
+  // PREV/NEXT is currently comparing you against — since the live scoring
+  // zone is specifically about the game you're actually playing this week.
+  const realOpponent = others.find((m) => m.rosterId === you.opponentRosterId) ?? null;
+  const tracked: TrackedPlayer[] = [
+    ...you.lineup
+      .filter((p) => p.playerId)
+      .map((p) => ({ playerId: p.playerId, name: p.name, team: "you" as const, actual: p.actual })),
+    ...(realOpponent?.lineup ?? [])
+      .filter((p) => p.playerId)
+      .map((p) => ({ playerId: p.playerId, name: p.name, team: "cmp" as const, actual: p.actual })),
+  ];
+  const liveEvents = useLiveScoringFeed(data.leagueId, data.week, tracked, feedMode === "live");
 
   if (others.length === 0) {
     return (
@@ -226,7 +245,9 @@ export function WarRoomConsole({
             <span className="badge">BUFF WAR ROOM</span>
           </div>
           <div className="console-head-center">
-            <span className="week-badge">{isPreseason ? "PRE" : `WEEK ${data.week}`}</span>
+            <span className="week-badge">
+              {isPreseason ? `PRE WEEK ${preseasonWeek ?? 1}` : `WEEK ${data.week}`}
+            </span>
           </div>
           <div className="console-menu">
             <span className="status-strip">
@@ -472,18 +493,43 @@ export function WarRoomConsole({
             <div className="card-head">
               <div className="card-head-left">
                 <span className="card-index">VIT-03</span>
-                <span className="card-title">Transaction Feed</span>
+                <span className="card-title">{feedMode === "transactions" ? "Transaction Feed" : "Live Scoring Zone"}</span>
               </div>
               <div className="card-flags"><span className="flag live">LIVE</span></div>
             </div>
+            <div className="feed-toggle">
+              <button
+                className={`ctrl-btn${feedMode === "transactions" ? " active" : ""}`}
+                onClick={() => setFeedMode("transactions")}
+              >
+                TRANSACTIONS
+              </button>
+              <button className={`ctrl-btn${feedMode === "live" ? " active" : ""}`} onClick={() => setFeedMode("live")}>
+                LIVE ZONE
+              </button>
+            </div>
             <div className="terminal">
-              {data.transactionSummaries.length === 0 ? (
-                <div>No moves logged yet this week<span className="cursor" /></div>
+              {feedMode === "transactions" ? (
+                data.transactionSummaries.length === 0 ? (
+                  <div>No moves logged yet this week<span className="cursor" /></div>
+                ) : (
+                  data.transactionSummaries.slice(0, 6).map((line, i) => <div key={i}>{line}</div>)
+                )
+              ) : liveEvents.length === 0 ? (
+                <div>Watching for scoring plays<span className="cursor" /></div>
               ) : (
-                data.transactionSummaries.slice(0, 6).map((line, i) => <div key={i}>{line}</div>)
+                liveEvents.map((e) => (
+                  <div key={e.id} className={e.team === "you" ? "t-you" : "t-cmp"}>
+                    {e.name} +{e.delta.toFixed(1)} pts ({e.total.toFixed(1)} total)
+                  </div>
+                ))
               )}
             </div>
-            <p className="card-note">This week&rsquo;s waiver, free-agent, and trade moves.</p>
+            <p className="card-note">
+              {feedMode === "transactions"
+                ? "This week’s waiver, free-agent, and trade moves."
+                : "Live scoring for your matchup, polled every 25s — Sleeper has no play-by-play feed, so this is built from repeated live-score checks. Amber = you, cyan = your opponent."}
+            </p>
           </article>
 
           <article className="card span-6">
