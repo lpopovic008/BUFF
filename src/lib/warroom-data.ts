@@ -183,7 +183,7 @@ export async function loadWarRoomData(
     Promise.all(Array.from({ length: completedWeeks }, (_, i) => getMatchups(leagueId, i + 1))),
     getTransactions(leagueId, currentWeek),
     resolvePlayers(rosters.flatMap((r) => r.players ?? [])),
-    getWeeklyProjections(league.season, currentWeek),
+    getWeeklyProjections(league.season, currentWeek, league.scoring_settings),
   ]);
 
   const matchupsByWeek = new Map<number, SleeperMatchup[]>();

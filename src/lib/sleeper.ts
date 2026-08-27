@@ -213,25 +213,26 @@ export async function getNFLState(): Promise<SleeperNFLState | null> {
 
 interface SleeperProjectionEntry {
   player_id: string;
-  stats?: { pts_ppr?: number; pts_half_ppr?: number; pts_std?: number } | null;
+  /** Raw per-category projected stat line (pass_td, rec, rec_yd, bonus_rec_te, ...) plus Sleeper's own pts_ppr/pts_half_ppr/pts_std rollups — same stat-key vocabulary as a league's scoring_settings and a completed matchup's players_points. */
+  stats?: Record<string, number> | null;
 }
 
 const PROJECTIONS_BASE = "https://api.sleeper.app/projections/nfl";
-const projectionsCache = new Map<string, { expiresAt: number; promise: Promise<Record<string, number>> }>();
+const projectionStatsCache = new Map<string, { expiresAt: number; promise: Promise<Record<string, Record<string, number>>> }>();
 
 /**
- * This week's fantasy point projection per player, keyed by player id.
+ * This week's raw projected stat line per player, keyed by player id.
  * Unlike everything else in this file, this isn't part of Sleeper's
  * documented public API (docs.sleeper.com has no projections endpoint) —
  * it's the same undocumented endpoint the Sleeper app itself and various
  * community tools rely on. Never throws and returns an empty map on any
- * failure (network error, unexpected response shape, endpoint change), so
- * callers should treat a missing player id as "no projection available"
- * and fall back to their own estimate rather than assuming a real outage.
+ * failure (network error, unexpected response shape, endpoint change).
+ * These are the same NFL-wide numbers regardless of league, so this is
+ * cached and shared across every league rather than refetched per league.
  */
-export async function getWeeklyProjections(season: string, week: number): Promise<Record<string, number>> {
+async function getWeeklyProjectionStats(season: string, week: number): Promise<Record<string, Record<string, number>>> {
   const key = `${season}-${week}`;
-  const cached = projectionsCache.get(key);
+  const cached = projectionStatsCache.get(key);
   if (cached && cached.expiresAt > Date.now()) return cached.promise;
 
   const promise = (async () => {
@@ -243,10 +244,9 @@ export async function getWeeklyProjections(season: string, week: number): Promis
       const res = await fetch(url);
       if (!res.ok) return {};
       const data = (await res.json()) as SleeperProjectionEntry[] | null;
-      const out: Record<string, number> = {};
+      const out: Record<string, Record<string, number>> = {};
       for (const entry of data ?? []) {
-        const pts = entry.stats?.pts_ppr ?? entry.stats?.pts_half_ppr ?? entry.stats?.pts_std;
-        if (entry.player_id && typeof pts === "number") out[entry.player_id] = pts;
+        if (entry.player_id && entry.stats) out[entry.player_id] = entry.stats;
       }
       return out;
     } catch {
@@ -254,8 +254,53 @@ export async function getWeeklyProjections(season: string, week: number): Promis
     }
   })();
 
-  projectionsCache.set(key, { expiresAt: Date.now() + 300 * 1000, promise });
+  projectionStatsCache.set(key, { expiresAt: Date.now() + 300 * 1000, promise });
   return promise;
+}
+
+/**
+ * A single player's projected fantasy points under a league's own scoring
+ * rules — summing each projected stat category by that category's point
+ * value in `scoringSettings`, the same way Sleeper computes the projection
+ * it shows in its own app. Falls back to Sleeper's generic pts_ppr/
+ * pts_half_ppr/pts_std rollup (picked by the league's actual reception
+ * value) when `scoringSettings` isn't available, and to the flat PPR
+ * rollup if even that reception-based pick comes up empty — better an
+ * approximate number than none. Exported separately so it's unit-testable
+ * without a network call.
+ */
+export function weighProjection(stats: Record<string, number>, scoringSettings?: Record<string, number>): number | undefined {
+  if (scoringSettings) {
+    let sum = 0;
+    let matched = false;
+    for (const [statKey, weight] of Object.entries(scoringSettings)) {
+      const projected = stats[statKey];
+      if (typeof projected === "number") {
+        sum += projected * weight;
+        matched = true;
+      }
+    }
+    if (matched) return sum;
+    const rec = scoringSettings.rec ?? 0;
+    const byRec = rec >= 1 ? stats.pts_ppr : rec > 0 ? stats.pts_half_ppr : stats.pts_std;
+    if (typeof byRec === "number") return byRec;
+  }
+  return stats.pts_ppr ?? stats.pts_half_ppr ?? stats.pts_std;
+}
+
+/** This week's fantasy point projection per player, keyed by player id, scored under `scoringSettings` (a league's own custom point values) when given — see `weighProjection`. */
+export async function getWeeklyProjections(
+  season: string,
+  week: number,
+  scoringSettings?: Record<string, number>
+): Promise<Record<string, number>> {
+  const statsById = await getWeeklyProjectionStats(season, week);
+  const out: Record<string, number> = {};
+  for (const [playerId, stats] of Object.entries(statsById)) {
+    const pts = weighProjection(stats, scoringSettings);
+    if (typeof pts === "number") out[playerId] = pts;
+  }
+  return out;
 }
 
 /**
