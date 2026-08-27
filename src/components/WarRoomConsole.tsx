@@ -395,9 +395,16 @@ export function WarRoomConsole({
               </div>
               <div className="card-flags"><span className="flag live">LIVE</span><span className="flag cmp">↔ COMPARES</span></div>
             </div>
-            <div className="led-header">
+            <div className="led-header led-row">
+              <span />
               <span className="you">YOU</span>
+              <span className="led-nums you">{you.projectedFinal.toFixed(1)}</span>
+              <span className="led-nums you"><strong>{you.livePoints.toFixed(1)}</strong></span>
+              <span />
+              <span className="led-nums opp cmp"><strong>{selected.livePoints.toFixed(1)}</strong></span>
+              <span className="led-nums opp cmp">{selected.projectedFinal.toFixed(1)}</span>
               <span className="cmp">{selected.name.toUpperCase()}</span>
+              <span />
             </div>
             <div className="led-rows">
               {you.lineup.map((mine, i) => {

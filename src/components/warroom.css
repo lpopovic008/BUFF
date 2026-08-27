@@ -216,9 +216,13 @@
 
   /* ---------- IDT-03 LED lineup: mine + opponent, mirrored around a shared position column ---------- */
 
-  .warroom-console .led-header { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 9px; letter-spacing: 0.05em; }
+  .warroom-console .led-header { font-family: var(--mono); font-size: 9px; letter-spacing: 0.05em; margin-bottom: 1px; }
   .warroom-console .led-header .you { color: var(--amber); }
-  .warroom-console .led-header .cmp { color: var(--cyan); }
+  .warroom-console .led-header .cmp { color: var(--cyan); text-align: right; }
+  .warroom-console .led-header .led-nums.you { color: var(--amber); }
+  .warroom-console .led-header .led-nums.cmp { color: var(--cyan); }
+  .warroom-console .led-header .led-nums.you strong,
+  .warroom-console .led-header .led-nums.cmp strong { color: inherit; }
   .warroom-console .led-rows { display: flex; flex-direction: column; justify-content: space-between; gap: 5px; flex: 1 1 auto; }
   .warroom-console .led-row { display: grid; grid-template-columns: 10px 1fr 28px 28px 34px 28px 28px 1fr 10px; gap: 6px; align-items: center; font-family: var(--mono); font-size: 10px; }
   .warroom-console .led-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
