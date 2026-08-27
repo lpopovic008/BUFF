@@ -499,13 +499,18 @@ export function WarRoomConsole({
                 const r = allManagers.length > 1 ? 18 + (58 - 18) * (rank / (allManagers.length - 1)) : 18;
                 const x = 70 + r * Math.cos(angle);
                 const y = 70 + r * Math.sin(angle);
+                // Label sits further out along the same center-through-dot ray,
+                // so the dot is always between the center and its letter.
+                const labelR = r + 7;
+                const lx = 70 + labelR * Math.cos(angle);
+                const ly = 70 + labelR * Math.sin(angle);
                 const isYou = i === 0;
                 return (
                   <g key={m.rosterId}>
                     <circle className={`sonar-blip${isYou ? " you" : ""}`} cx={x} cy={y} r="3.5">
                       <title>{`${m.name} — projected ${m.projectedFinal.toFixed(1)}`}</title>
                     </circle>
-                    <text className="sonar-blip-label" x={x + 4} y={y - 2}>{m.initial}</text>
+                    <text className="sonar-blip-label" x={lx} y={ly}>{m.initial}</text>
                   </g>
                 );
               })}

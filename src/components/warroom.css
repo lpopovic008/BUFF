@@ -288,7 +288,7 @@
   .warroom-console .sonar-ring { fill: none; stroke: var(--line-bright); stroke-width: 1; }
   .warroom-console .sonar-blip { fill: var(--cyan); }
   .warroom-console .sonar-blip.you { fill: var(--amber); }
-  .warroom-console .sonar-blip-label { font-family: var(--mono); font-size: 7px; fill: var(--ink-dim); }
+  .warroom-console .sonar-blip-label { font-family: var(--mono); font-size: 7px; fill: var(--ink-dim); text-anchor: middle; dominant-baseline: central; }
   .warroom-console .sonar-sweep-group { transform-origin: 70px 70px; }
   @media (prefers-reduced-motion: no-preference) { .warroom-console .sonar-sweep-group { animation: warroom-sonar-spin 4s linear infinite; } }
   @keyframes warroom-sonar-spin { to { transform: rotate(360deg); } }
