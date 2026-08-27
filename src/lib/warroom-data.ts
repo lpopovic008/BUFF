@@ -74,7 +74,10 @@ export interface HeadToHeadRecord {
 export interface WarRoomManager {
   rosterId: number;
   ownerId: string | null;
+  /** Team name when one's set, else the Sleeper username — same fallback most of the console reads (see `name` on the manager's Dossier card, LED headers, etc). */
   name: string;
+  /** Sleeper account username, unconditionally — for the League Vitals module, which the user wants keyed by username rather than team name. */
+  username: string;
   initial: string;
   /** The picture this manager designated for their team in this league — null falls back to `initial` (no team or account photo set, or Sleeper's CDN fails to load). */
   avatarUrl: string | null;
@@ -334,6 +337,7 @@ export async function loadWarRoomData(
       rosterId: roster.roster_id,
       ownerId: roster.owner_id,
       name,
+      username: user?.display_name || name,
       initial: initialOf(name),
       avatarUrl: teamAvatarUrl(user),
       wins: roster.settings.wins ?? 0,

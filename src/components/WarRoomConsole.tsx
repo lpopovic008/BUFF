@@ -166,7 +166,23 @@ export function WarRoomConsole({
   preseasonWeek,
   totalRecord,
 }: WarRoomConsoleProps) {
-  const [selectedIdx, setSelectedIdx] = useState(0);
+  // Default the Dossier to this week's real opponent rather than always the
+  // first manager. Re-synced (via the render-time reset pattern below,
+  // rather than an effect) whenever the league or the matchup itself
+  // changes — data.week only advances once Sleeper rolls the matchup over
+  // (Tuesday), so this holds through the whole game and re-targets
+  // automatically once the next one starts, while still letting PREV/NEXT
+  // freely browse other managers in between.
+  const opponentIdx = data.others.findIndex((m) => m.rosterId === data.you.opponentRosterId);
+  const defaultSelectedIdx = opponentIdx >= 0 ? opponentIdx : 0;
+  const matchupKey = `${data.leagueId}:${data.week}`;
+  const [selectedIdx, setSelectedIdx] = useState(defaultSelectedIdx);
+  const [syncedMatchupKey, setSyncedMatchupKey] = useState(matchupKey);
+  if (matchupKey !== syncedMatchupKey) {
+    setSyncedMatchupKey(matchupKey);
+    setSelectedIdx(defaultSelectedIdx);
+  }
+
   const [menuOpen, setMenuOpen] = useState(false);
   const [feedMode, setFeedMode] = useState<"transactions" | "live">("transactions");
   const [openGameId, setOpenGameId] = useState<string | null>(null);
@@ -780,7 +796,58 @@ export function WarRoomConsole({
             <p className="card-note">League rank by KTC value at each position, 1st = outer edge. Amber = you, cyan = selected.</p>
           </article>
 
-          <article className="card span-9">
+          <article className="card span-3">
+            <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
+            <div className="card-head">
+              <div className="card-head-left">
+                <span className="card-index">VIT-01</span>
+                <span className="card-title">League Vitals</span>
+              </div>
+              <div className="card-flags"><span className="flag live">LIVE</span></div>
+            </div>
+            <div className="vitals-wrap">
+              <div className="vitals-header-spacer" />
+              <div>
+                {allManagers.map((m, i) => {
+                  const isYou = i === 0;
+                  const isSel = !isYou && i - 1 === selectedIdx;
+                  const color = vitalsColorVar(m.winChance);
+                  const tile = heartbeatTile(m.winChance, 100);
+                  return (
+                    <div className={`vitals-row${isYou ? " you" : ""}${isSel ? " selected" : ""}`} key={m.rosterId}>
+                      <span className="vitals-name">{m.username}</span>
+                      <span className="vitals-mini">
+                        <svg className="vitals-svg-el" viewBox="0 0 200 30" preserveAspectRatio="none" aria-hidden="true">
+                          <g className="vitals-scroll">
+                            <polyline
+                              points={tileToPoints(tile, 0)}
+                              fill="none"
+                              stroke={color}
+                              strokeWidth="1.75"
+                              strokeLinejoin="round"
+                              strokeLinecap="round"
+                            />
+                            <polyline
+                              points={tileToPoints(tile, 100)}
+                              fill="none"
+                              stroke={color}
+                              strokeWidth="1.75"
+                              strokeLinejoin="round"
+                              strokeLinecap="round"
+                            />
+                          </g>
+                        </svg>
+                        <span className="vitals-pct" style={{ color }}>{m.winChance}%</span>
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <p className="card-note">Estimated live win chance — taller, faster pulse = higher.</p>
+          </article>
+
+          <article className="card span-6">
             <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
             <div className="card-head">
               <div className="card-head-left">
@@ -816,52 +883,6 @@ export function WarRoomConsole({
               </div>
             </div>
             <p className="card-note">Cumulative win% by week.</p>
-          </article>
-
-          <article className="card span-9">
-            <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
-            <div className="card-head">
-              <div className="card-head-left">
-                <span className="card-index">VIT-01</span>
-                <span className="card-title">League Vitals</span>
-              </div>
-              <div className="card-flags"><span className="flag live">LIVE</span></div>
-            </div>
-            <div className="vitals-strip-row">
-              {allManagers.map((m, i) => {
-                const isYou = i === 0;
-                const isSel = !isYou && i - 1 === selectedIdx;
-                const color = vitalsColorVar(m.winChance);
-                const tile = heartbeatTile(m.winChance, 100);
-                return (
-                  <div className={`vitals-strip${isYou ? " you" : ""}${isSel ? " selected" : ""}`} key={m.rosterId}>
-                    <span className="vitals-name">{m.name}</span>
-                    <svg className="vitals-svg-el" viewBox="0 0 200 30" preserveAspectRatio="none" aria-hidden="true">
-                      <g className="vitals-scroll">
-                        <polyline
-                          points={tileToPoints(tile, 0)}
-                          fill="none"
-                          stroke={color}
-                          strokeWidth="1.75"
-                          strokeLinejoin="round"
-                          strokeLinecap="round"
-                        />
-                        <polyline
-                          points={tileToPoints(tile, 100)}
-                          fill="none"
-                          stroke={color}
-                          strokeWidth="1.75"
-                          strokeLinejoin="round"
-                          strokeLinecap="round"
-                        />
-                      </g>
-                    </svg>
-                    <span className="vitals-pct" style={{ color }}>{m.winChance}%</span>
-                  </div>
-                );
-              })}
-            </div>
-            <p className="card-note">Estimated live win chance — taller, faster pulse = higher.</p>
           </article>
         </div>
       </div>
