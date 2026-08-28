@@ -7,34 +7,39 @@
  * as scripts/fetch-player-values.ts: no browser CORS restriction, and the
  * app itself only ever reads the committed static snapshot.
  *
- * Two different real sources, one per pair of modes:
+ * Source: yafsb.com's public ADP-rankings pages — literal crowd-sourced
+ * Average Draft Position aggregated from real Sleeper drafts (per the
+ * page's own description: "ADP rankings built from real Sleeper fantasy
+ * drafts — not projections"), for all four modes. Plain, fully
+ * server-rendered HTML <table> (no JS framework), confirmed live across all
+ * four URLs below — each returns the right shape (redraft 1QB has no QB in
+ * its top rows; dynasty superflex has Josh Allen #1; etc.) and a real ADP
+ * decimal per player (e.g. Jahmyr Gibbs 1.1 in redraft 1QB).
  *
- * - Redraft ("fantasy") 1QB/superflex: 4for4's public ADP pages
- *   (4for4.com/adp, 4for4.com/superflex-adp) are genuinely useful — a
- *   plain, fully server-rendered HTML <table>, no JS framework blocking it
- *   (confirmed live: real rows like Jahmyr Gibbs/DET/... in the raw
- *   response, cross-checked against a user-provided CSV export of the same
- *   table). The page's own "ADP" column is literal crowd-sourced average
- *   draft position aggregated across real platforms (FFPC, Sleeper, CBS,
- *   ESPN, etc. depending on mode) — not a value-based proxy.
+ * URL scheme, reverse-engineered from the site's own draftSettings.js
+ * (its filter-apply button builds `?scoring_type=&league_size=&is_superflex=&is_dynasty=&is_rookies=`
+ * on the bare /adp-rankings/ path) and confirmed against the equivalent
+ * preset paths the site also exposes (/ppr/, /superflex/, /dynasty/):
+ *   - redraft 1QB:        /adp-rankings/ppr/
+ *   - redraft superflex:  /adp-rankings/superflex/
+ *   - dynasty 1QB:        /adp-rankings/?scoring_type=ppr&league_size=12&is_superflex=False&is_dynasty=True&is_rookies=False
+ *     (no preset path exists for this combo — dynasty/ppr/, dynasty-ppr/,
+ *     ppr/dynasty/ all 404; only the query-param form works)
+ *   - dynasty superflex:  /adp-rankings/dynasty/
  *
- * - Dynasty 1QB/superflex: still FantasyCalc's `overallRank`/`positionRank`
- *   (a value-based rank, not literal ADP — see the AdpEntry doc comment in
- *   src/lib/player-adp.ts) because no real dynasty ADP source has been
- *   found yet. FantasyCalc's own `maybeAdp` field is present but always
- *   null (confirmed live, both isDynasty values, with and without
- *   includeAdp=true); Underdog's site sits behind a Cloudflare bot
- *   challenge; FantasyPros' ADP pages load the actual table client-side via
- *   JS after page load (confirmed: the only <table> in the static HTML is
- *   an unrelated "pick experts" filter modal); DraftSharks' ADP page is
- *   also Vue-rendered client-side. Swap this out for a real dynasty ADP
- *   source (4for4 or otherwise) if/when one turns up.
+ * Superseded sources, kept here as history in case yafsb.com ever breaks:
+ * FantasyCalc (own `maybeAdp` field always null; used as a value-rank proxy
+ * for a while, and its dynasty endpoint mixed in future-pick "PICK"-position
+ * assets); 4for4.com (real ADP, but only for redraft — dynasty modes stayed
+ * on FantasyCalc); Underdog (Cloudflare bot-walled); FantasyPros and
+ * DraftSharks (both load their real ADP table client-side via JS, not in
+ * the raw HTML).
  *
- * Both extraction paths are defensive like the KTC script: on a shape
- * mismatch or a suspiciously low parsed-row count, print real sample data
- * so the actual shape is visible in the CI log rather than guessing blind.
- * On failure this exits non-zero WITHOUT touching the existing file — see
- * the workflow, which only commits on success.
+ * Defensive like the KTC/FantasyCalc scripts before it: on a shape mismatch
+ * or a suspiciously low parsed-row count, prints real sample data so the
+ * actual shape is visible in the CI log rather than guessing blind. On
+ * failure this exits non-zero WITHOUT touching the existing file — see the
+ * workflow, which only commits on success.
  *
  *   npx tsx scripts/fetch-adp.ts             # write the file
  *   npx tsx scripts/fetch-adp.ts --dry-run    # print, change nothing
@@ -52,147 +57,26 @@ const OUT_PATH = path.join(process.cwd(), "src", "data", "player-adp.json");
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36";
 
-const BASE_URL = "https://api.fantasycalc.com/values/current";
+const YAFSB_BASE = "https://www.yafsb.com/fantasy-football/adp-rankings/";
 
-interface Mode {
-  key: keyof Omit<AdpSnapshot, "updatedAt" | "source">;
-  label: string;
-  isDynasty: boolean;
-  numQBs: 1 | 2;
-}
-
-// Only the dynasty modes still come from FantasyCalc — the redraft
-// ("fantasy") modes now come from 4for4's real ADP pages (see FOR4_URLS
-// below and fetchFor4()).
-const MODES: Mode[] = [
-  { key: "dynastyOneQB", label: "dynasty 1QB", isDynasty: true, numQBs: 1 },
-  { key: "dynastySuperflex", label: "dynasty superflex", isDynasty: true, numQBs: 2 },
+const YAFSB_MODES: { key: keyof Omit<AdpSnapshot, "updatedAt" | "source">; label: string; url: string }[] = [
+  { key: "fantasyOneQB", label: "redraft 1QB (yafsb)", url: `${YAFSB_BASE}ppr/` },
+  { key: "fantasySuperflex", label: "redraft superflex (yafsb)", url: `${YAFSB_BASE}superflex/` },
+  {
+    key: "dynastyOneQB",
+    label: "dynasty 1QB (yafsb)",
+    url: `${YAFSB_BASE}?scoring_type=ppr&league_size=12&is_superflex=False&is_dynasty=True&is_rookies=False`,
+  },
+  { key: "dynastySuperflex", label: "dynasty superflex (yafsb)", url: `${YAFSB_BASE}dynasty/` },
 ];
-
-const FOR4_URLS: { key: "fantasyOneQB" | "fantasySuperflex"; label: string; url: string }[] = [
-  { key: "fantasyOneQB", label: "redraft 1QB (4for4)", url: "https://www.4for4.com/adp" },
-  { key: "fantasySuperflex", label: "redraft superflex (4for4)", url: "https://www.4for4.com/superflex-adp" },
-];
-
-async function fetchJson(url: string): Promise<unknown> {
-  const res = await fetch(url, { headers: { "User-Agent": UA, Accept: "application/json" } });
-  const text = await res.text();
-  if (!res.ok) {
-    throw new Error(`${url} responded ${res.status} ${res.statusText}. Body (first 500 chars): ${text.slice(0, 500)}`);
-  }
-  try {
-    return JSON.parse(text);
-  } catch {
-    throw new Error(`${url} returned non-JSON. Body (first 500 chars): ${text.slice(0, 500)}`);
-  }
-}
-
-function pickString(obj: Record<string, unknown>, keys: string[]): string | null {
-  for (const key of keys) {
-    const v = obj[key];
-    if (typeof v === "string" && v.trim()) return v.trim();
-  }
-  return null;
-}
-
-function pickNumber(obj: Record<string, unknown>, keys: string[]): number | null {
-  for (const key of keys) {
-    const v = obj[key];
-    if (typeof v === "number" && Number.isFinite(v)) return v;
-    if (typeof v === "string" && v.trim() && !Number.isNaN(Number(v))) return Number(v);
-  }
-  return null;
-}
-
-/**
- * FantasyCalc's real shape nests player identity under a `player` object
- * (`player.name`, `player.position`, `player.maybeTeam`) with the numeric
- * ranking fields flat on the outer record.
- *
- * `maybeAdp` is present in every real record but always comes back `null`
- * (confirmed via a live probe run against both isDynasty values, with and
- * without `includeAdp=true`) — FantasyCalc's public API doesn't actually
- * have populated per-player ADP behind this field. `overallRank` /
- * `positionRank`, however, ARE populated and computed separately per query
- * (isDynasty x numQbs), i.e. FantasyCalc re-ranks its whole player pool for
- * each of the four modes this app needs — so it's used here as the
- * pool-ordering signal instead. It isn't literally "average draft
- * position"; see the AdpEntry doc comment.
- *
- * Like KTC's trade-value chart, FantasyCalc's dynasty endpoint (isDynasty=
- * true) also mixes in future-pick trade assets — e.g. a record with
- * player.name "2026 Pick 1.01" and player.position "PICK" (confirmed live:
- * 76 such entries in one dynasty-1QB fetch). Those aren't real players and
- * nobody drafts them in an actual draft, so they're excluded here — this is
- * the actual fix for the pool including undraftable pick assets, not just a
- * side effect of switching off KTC.
- */
-function normalizeEntry(item: unknown): AdpEntry | null {
-  if (typeof item !== "object" || item === null) return null;
-  const obj = item as Record<string, unknown>;
-  const player = typeof obj["player"] === "object" && obj["player"] !== null ? (obj["player"] as Record<string, unknown>) : obj;
-
-  const name = pickString(player, ["name", "playerName", "full_name", "player_name"]);
-  if (!name) return null;
-  const position = pickString(player, ["position", "pos"]) ?? "UNK";
-  if (position.toUpperCase() === "PICK") return null;
-  const team = pickString(player, ["maybeTeam", "team", "team_abbrev", "teamAbbrev"]);
-  const adp = pickNumber(obj, ["maybeAdp", "adp", "redraftAdp", "dynastyAdp"]) ?? pickNumber(obj, ["overallRank", "positionRank"]);
-
-  return { name, position, team, adp };
-}
-
-function looksLikeAdpRecord(item: unknown): boolean {
-  return normalizeEntry(item) !== null;
-}
-
-async function fetchMode(mode: Mode): Promise<AdpEntry[]> {
-  const url = `${BASE_URL}?isDynasty=${mode.isDynasty}&numQbs=${mode.numQBs}&numTeams=12&ppr=1&includeAdp=true`;
-  console.log(`Fetching ${mode.label} from ${url}`);
-  const data = await fetchJson(url);
-
-  let raw: unknown;
-  if (Array.isArray(data)) {
-    raw = data;
-  } else if (data && typeof data === "object") {
-    const obj = data as Record<string, unknown>;
-    raw = obj["data"] ?? obj["players"] ?? obj["rankings"] ?? obj["results"] ?? obj["values"];
-  }
-  if (!Array.isArray(raw)) {
-    console.error(`  response for ${mode.label} wasn't an array, and none of data/players/rankings/results/values held one.`);
-    if (data && typeof data === "object" && !Array.isArray(data)) {
-      console.error(`  top-level keys: ${Object.keys(data as Record<string, unknown>).join(", ")}`);
-    }
-    console.error(`  raw response (first 2000 chars):`);
-    console.error(JSON.stringify(data, null, 2).slice(0, 2000));
-    throw new Error(`Unexpected response shape for ${mode.label}`);
-  }
-  console.log(`  received ${raw.length} records`);
-
-  const valid = raw.filter(looksLikeAdpRecord);
-  if (valid.length < raw.length * 0.5 || valid.length === 0) {
-    console.error(`  only normalized ${valid.length}/${raw.length} records for ${mode.label}; sample raw entry:`);
-    console.error(JSON.stringify(raw[0], null, 2));
-    if (valid.length === 0) throw new Error(`Could not normalize any records for ${mode.label}`);
-  }
-
-  const entries = valid.map(normalizeEntry).filter((e): e is AdpEntry => e !== null);
-  // Real ADP first (lowest = earliest pick), then anyone FantasyCalc hasn't
-  // seen enough real drafts for yet, in whatever order the API already
-  // ranked them (its own overallRank/value ordering) — keeps the pool
-  // complete for a full draft board instead of just the players with ADP.
-  const withAdp = entries.filter((e) => e.adp !== null).sort((a, b) => a.adp! - b.adp!);
-  const withoutAdp = entries.filter((e) => e.adp === null);
-  return [...withAdp, ...withoutAdp];
-}
 
 /**
  * Extracts a table row's <td> cell contents as plain text, in order. A
- * cell that wraps its content in an <a> (every player/team-name cell on
- * this page) is reduced to the link's own text rather than the raw anchor
+ * cell that wraps its content in an <a> (the Player-name cell on this
+ * page) is reduced to the link's own text rather than the raw anchor
  * markup; any other cell just has its tags stripped.
  */
-function parseFor4RowCells(rowHtml: string): string[] {
+function parseTableRowCells(rowHtml: string): string[] {
   return [...rowHtml.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => {
     const raw = m[1];
     const linkMatch = raw.match(/<a[^>]*>([\s\S]*?)<\/a>/);
@@ -201,16 +85,12 @@ function parseFor4RowCells(rowHtml: string): string[] {
 }
 
 /**
- * Parses 4for4's ADP table. Confirmed live (CI run 33132856201) and
- * cross-checked against a user-provided CSV export of the same table: a
- * plain, fully server-rendered <table><tbody>, columns always starting
- * [ADP, position-rank (e.g. "RB-01"), player name, team, ...variable
- * per-platform/pick columns...] — the 1QB and superflex pages have a
- * different number of trailing columns (more source platforms track 1QB),
- * so only the first four fixed columns are read; ADP itself (a plain 1..N
- * ordinal, already the real crowd-aggregated draft order) becomes `adp`.
+ * Parses yafsb.com's ADP table. Confirmed live across all four mode URLs:
+ * a plain, fully server-rendered <table><thead><tr><th>Rank/Player/Pos/
+ * Team/ADP/Drafts</th></tr></thead><tbody>, ADP itself a real decimal
+ * average draft position (e.g. "4.9") rather than a plain ordinal rank.
  */
-function parseFor4Table(html: string): AdpEntry[] {
+function parseYafsbTable(html: string): AdpEntry[] {
   const tbodyStart = html.indexOf("<tbody");
   if (tbodyStart === -1) return [];
   const tbodyEndIdx = html.indexOf("</tbody>", tbodyStart);
@@ -218,31 +98,30 @@ function parseFor4Table(html: string): AdpEntry[] {
 
   const entries: AdpEntry[] = [];
   for (const rowMatch of tbodyHtml.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/g)) {
-    const cells = parseFor4RowCells(rowMatch[1]);
-    if (cells.length < 4) continue;
-    const [adpRaw, posRankRaw, name, teamRaw] = cells;
+    const cells = parseTableRowCells(rowMatch[1]);
+    if (cells.length < 5) continue;
+    const [, name, position, teamRaw, adpRaw] = cells;
     const adp = Number(adpRaw);
     if (!name || !Number.isFinite(adp)) continue;
-    const position = posRankRaw.split("-")[0]?.toUpperCase() || "UNK";
     const team = teamRaw && teamRaw !== "-" ? teamRaw : null;
-    entries.push({ name, position, team, adp });
+    entries.push({ name, position: position.toUpperCase() || "UNK", team, adp });
   }
   return entries;
 }
 
-async function fetchFor4(url: string, label: string): Promise<AdpEntry[]> {
+async function fetchYafsb(url: string, label: string): Promise<AdpEntry[]> {
   console.log(`Fetching ${label} from ${url}`);
   const res = await fetch(url, { headers: { "User-Agent": UA, Accept: "text/html,application/xhtml+xml" } });
   const text = await res.text();
   if (!res.ok) {
     throw new Error(`${url} responded ${res.status} ${res.statusText}. Body (first 500 chars): ${text.slice(0, 500)}`);
   }
-  const entries = parseFor4Table(text);
-  // The real table has ~300 rows; a sharp drop means the page structure
-  // changed and this needs re-checking against a fresh sample, not silently
-  // writing a half-empty pool.
+  const entries = parseYafsbTable(text);
+  // Real tables here run ~250-400 rows depending on mode; a sharp drop
+  // means the page structure changed and this needs re-checking against a
+  // fresh sample, not silently writing a half-empty pool.
   if (entries.length < 150) {
-    console.error(`  only parsed ${entries.length} rows for ${label} (expected ~300) — table structure may have changed.`);
+    console.error(`  only parsed ${entries.length} rows for ${label} (expected 250+) — table structure may have changed.`);
     const tbodyIdx = text.indexOf("<tbody");
     console.error(`  <tbody> sample (first 1500 chars from offset ${tbodyIdx === -1 ? "N/A (not found)" : tbodyIdx}):`);
     console.error(tbodyIdx === -1 ? text.slice(0, 1500) : text.slice(tbodyIdx, tbodyIdx + 1500));
@@ -252,37 +131,10 @@ async function fetchFor4(url: string, label: string): Promise<AdpEntry[]> {
   return entries.sort((a, b) => a.adp! - b.adp!);
 }
 
-/** Tries several plausible URL/param variants against the real API and logs each response's status + a body snippet, so the correct shape can be read straight from a CI log instead of guessed at blind. Writes nothing. */
+/** Tries several plausible URL/param variants against the real site and logs each response's status + a body snippet, so the correct shape can be read straight from a CI log instead of guessed at blind. Writes nothing. */
 async function probe() {
-  // DraftSharks (draftsharks.com) publishes public ADP pages (redraft,
-  // dynasty, superflex variants). Unknown yet whether the numbers are
-  // server-rendered in the HTML (like a classic page) or loaded via JS
-  // after the fact (like FantasyPros turned out to be) — checking both the
-  // raw HTML for an embedded table/JSON and any API host their JS bundle
-  // references.
   const jsonCandidates: string[] = [];
-  // User-provided site: yafsb.com, wants Sleeper-specific ADP. Confirmed
-  // live: 3 of 4 modes found as clean path presets — /ppr/ (redraft 1QB),
-  // bare /adp-rankings/ or /superflex/ (redraft superflex), /dynasty/
-  // (dynasty superflex). Dynasty 1QB has no working preset path (dynasty/
-  // ppr/, dynasty-ppr/, ppr/dynasty/, ppr/dynasty-startup/ all 404) and the
-  // page's own "Popular views" nav (same on every page) never lists one —
-  // so either the combo needs the real filter UI's query-param scheme
-  // (checkboxes for scoring/format/dynasty driving a non-preset URL) or it
-  // genuinely doesn't exist as a page. Dumping draftSettings.js, the script
-  // that presumably builds those URLs from the filter form (same technique
-  // that found DraftSharks' export URL pattern earlier this session).
-  // Confirmed live (run 33134914533): draftSettings.js's applyButton
-  // handler builds the real URL as
-  // `${basePath}?scoring_type=${..}&league_size=${..}&is_superflex=${True|False}&is_dynasty=${True|False}&is_rookies=${True|False}`
-  // on top of the bare /adp-rankings/ path. Testing the one remaining
-  // missing mode (dynasty 1QB) plus dynasty superflex again via this exact
-  // query-param form, to confirm it's equivalent to (and replaces) the
-  // /dynasty/ preset path.
-  const htmlCandidates = [
-    "https://www.yafsb.com/fantasy-football/adp-rankings/?scoring_type=ppr&league_size=12&is_superflex=False&is_dynasty=True&is_rookies=False",
-    "https://www.yafsb.com/fantasy-football/adp-rankings/?scoring_type=ppr&league_size=12&is_superflex=True&is_dynasty=True&is_rookies=False",
-  ];
+  const htmlCandidates: string[] = [];
   const jsBundleCandidates: string[] = [];
 
   for (const url of jsonCandidates) {
@@ -323,17 +175,8 @@ async function probe() {
       const uniqueAdpLinks = [...new Set(adpLinks)];
       console.log(`  links mentioning adp/sleeper (${uniqueAdpLinks.length}):`);
       for (const link of uniqueAdpLinks.slice(0, 40)) console.log(`    ${link}`);
-      // The page's own dataLayer.push({...}) block states this exact page's
-      // scoring_type/league_size/is_superflex/is_dynasty/is_rookies flags —
-      // read that directly instead of guessing from nearby text.
       const dataLayerMatch = text.match(/dataLayer\.push\(\{([^}]+)\}\)/);
       console.log(`  dataLayer flags: ${dataLayerMatch ? dataLayerMatch[1].trim() : "not found"}`);
-      // Confirmed live (run 33132856201): 4for4's ADP page has a plain,
-      // fully server-rendered <table><tbody> with real rows (no JS
-      // framework blocking it like FantasyPros'/DraftSharks' pages) — e.g.
-      // Jahmyr Gibbs / DET / ... / 1.01 (round.pick). Grabbing the <thead>
-      // to map the column meanings, plus a much bigger <tbody> window (this
-      // page is only 290KB total, plenty of budget) and a row count.
       const theadIdx = text.indexOf("<thead");
       if (theadIdx !== -1) {
         const theadEnd = text.indexOf("</thead>", theadIdx);
@@ -344,16 +187,6 @@ async function probe() {
       }
       const trCount = [...text.matchAll(/<tr\b/g)].length;
       console.log(`  total <tr count: ${trCount}`);
-      const markers: string[] = [];
-      let found = false;
-      for (const marker of markers) {
-        const idx = text.indexOf(marker);
-        if (idx !== -1) {
-          found = true;
-          console.log(`  found marker "${marker}" at offset ${idx}, snippet:`);
-          console.log(`  ${text.slice(Math.max(0, idx - 100), idx + 1500)}`);
-        }
-      }
       const tbodyIdx = text.indexOf("<tbody");
       if (tbodyIdx !== -1) {
         console.log(`  <tbody> content (1200 chars from offset ${tbodyIdx}):`);
@@ -364,9 +197,6 @@ async function probe() {
       const scriptSrcs = [...text.matchAll(/<script[^>]+src="([^"]+)"/g)].map((m) => m[1]);
       console.log(`  script src count: ${scriptSrcs.length}`);
       for (const src of scriptSrcs.slice(0, 25)) console.log(`    ${src}`);
-      if (!found) {
-        console.log(`  no known JS-data markers found; first 800 chars: ${text.slice(0, 800)}`);
-      }
     } catch (err) {
       console.log(`\n${url}`);
       console.log(`  request failed: ${err instanceof Error ? err.message : err}`);
@@ -380,17 +210,10 @@ async function probe() {
       console.log(`\n${url}`);
       console.log(`  status: ${res.status} ${res.statusText}`);
       console.log(`  body length: ${text.length}`);
-      // Cap the dump — DraftSharks' AdpDash.js was small enough (26KB) to
-      // print whole, but this site's bundle size is unknown; a huge
-      // minified file would flood the log and hide later output the way
-      // Sleeper's giant JSON dump did earlier this session.
       if (text.length <= 40000) {
         console.log(`  FULL BUNDLE TEXT:\n${text}`);
       } else {
         console.log(`  bundle too large to dump whole (${text.length} chars).`);
-        // Minified bundles are often one giant line, so a line-based filter
-        // can come back empty — fall back to windows around each "dynasty"
-        // occurrence (capped to the first 10) if that happens.
         const lines = text.split("\n").filter((l) => /dynasty|superflex|\bppr\b|href|\burl\b/i.test(l));
         if (lines.length > 0 && lines.length < 200) {
           console.log(`  lines mentioning dynasty/superflex/ppr/href/url:`);
@@ -414,25 +237,23 @@ async function main() {
     return;
   }
 
-  const [dynastyResults, for4Results] = await Promise.all([
-    Promise.all(MODES.map(fetchMode)),
-    Promise.all(FOR4_URLS.map((mode) => fetchFor4(mode.url, mode.label))),
-  ]);
+  const results = await Promise.all(YAFSB_MODES.map((mode) => fetchYafsb(mode.url, mode.label)));
 
   const snapshot: AdpSnapshot = {
     updatedAt: new Date().toISOString(),
-    source: "mixed",
-    dynastyOneQB: dynastyResults[0],
-    dynastySuperflex: dynastyResults[1],
-    fantasyOneQB: for4Results[0],
-    fantasySuperflex: for4Results[1],
+    source: "yafsb",
+    dynastyOneQB: [],
+    dynastySuperflex: [],
+    fantasyOneQB: [],
+    fantasySuperflex: [],
   };
+  YAFSB_MODES.forEach((mode, i) => {
+    snapshot[mode.key] = results[i];
+  });
 
-  const allModes = [...MODES, ...FOR4_URLS];
-  for (const mode of allModes) {
+  for (const mode of YAFSB_MODES) {
     const list = snapshot[mode.key];
-    const withAdp = list.filter((e) => e.adp !== null).length;
-    console.log(`${mode.label}: ${list.length} players (${withAdp} with real ADP). Top 3: ${list.slice(0, 3).map((p) => p.name).join(", ")}`);
+    console.log(`${mode.label}: ${list.length} players. Top 3: ${list.slice(0, 3).map((p) => p.name).join(", ")}`);
   }
 
   if (DRY_RUN) {

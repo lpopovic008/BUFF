@@ -303,8 +303,8 @@ export function DraftRoom() {
           </div>
           <p className="card-note">
             Teams, rounds, and order reset the board. Dynasty/Fantasy and 1QB/Superflex just re-rank the pool — real
-            crowd ADP for Fantasy (4for4), FantasyCalc&apos;s real-player rank for Dynasty (no draft-pick assets) —
-            your picks stay put, and each list/format combination lays the grid below out in its own order.
+            crowd Average Draft Position from actual Sleeper drafts (yafsb.com) — your picks stay put, and each
+            list/format combination lays the grid below out in its own order.
           </p>
         </article>
 
@@ -363,7 +363,7 @@ export function DraftRoom() {
           <p className="card-note">
             {editMode
               ? "Click a player to tag them — once highlights, twice outlines, a third clears it. Colors match position."
-              : `Ranked by ${settings.listType === "dynasty" ? "FantasyCalc's real-player rank" : "4for4's real average draft position"}, laid out the way a draft would fill: down a round, then over to the next. Click a player to fill the current pick.`}
+              : "Ranked by real average draft position from actual Sleeper drafts, laid out the way a draft would fill: down a round, then over to the next. Click a player to fill the current pick."}
           </p>
         </article>
 

@@ -6,12 +6,9 @@
 // along the four axes the Draft Room already exposes: dynasty vs redraft
 // ("fantasy"), 1QB vs superflex.
 //
-// The two axes currently come from two different real sources: redraft
-// ("fantasy") 1QB/superflex from 4for4's public ADP pages (literal
-// crowd-sourced average draft position, aggregated across real platforms);
-// dynasty 1QB/superflex still from FantasyCalc's value-based rank (no real
-// dynasty ADP source has been found yet). `source` is "mixed" while that
-// split holds.
+// All four modes come from yafsb.com's public ADP-rankings pages — literal
+// crowd-sourced Average Draft Position built from real Sleeper drafts (the
+// site's own description: "not projections"). `source` is "yafsb".
 
 export interface AdpEntry {
   name: string;
@@ -19,21 +16,16 @@ export interface AdpEntry {
   team: string | null;
   /**
    * Draft-order rank within this mode's pool, lowest = drafted earliest.
-   * For the redraft ("fantasy") modes this is 4for4's real ADP column —
-   * literal crowd-sourced average draft position. For the dynasty modes
-   * it's FantasyCalc's `overallRank`/`positionRank` (computed fresh per
-   * mode) instead, a value-based rank rather than literal ADP — FantasyCalc's
-   * own ADP field exists but is unpopulated, and no real dynasty ADP source
-   * has been found yet (Underdog is bot-protected; FantasyPros and
-   * DraftSharks load their ADP tables client-side via JS). Null if the
-   * source didn't rank this player at all for this mode.
+   * A real decimal Average Draft Position from yafsb.com's Sleeper-draft
+   * data (e.g. 4.9), not a value-based proxy. Null if the source didn't
+   * rank this player at all for this mode.
    */
   adp: number | null;
 }
 
 export interface AdpSnapshot {
   updatedAt: string | null;
-  source: "mixed";
+  source: "yafsb";
   dynastyOneQB: AdpEntry[];
   dynastySuperflex: AdpEntry[];
   fantasyOneQB: AdpEntry[];
@@ -42,7 +34,7 @@ export interface AdpSnapshot {
 
 export const EMPTY_ADP: AdpSnapshot = {
   updatedAt: null,
-  source: "mixed",
+  source: "yafsb",
   dynastyOneQB: [],
   dynastySuperflex: [],
   fantasyOneQB: [],

@@ -24,7 +24,7 @@ test("roundForPick advances every `teams` picks", () => {
 test("draftPool picks the right pre-sorted list for each of the four modes", () => {
   const snapshot: AdpSnapshot = {
     updatedAt: null,
-    source: "mixed",
+    source: "yafsb",
     dynastyOneQB: [{ name: "Dynasty OneQB Player", position: "QB", team: "AAA", adp: 1 }],
     dynastySuperflex: [{ name: "Dynasty Superflex Player", position: "QB", team: "AAA", adp: 1 }],
     fantasyOneQB: [{ name: "Fantasy OneQB Player", position: "RB", team: "BBB", adp: 1 }],
