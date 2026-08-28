@@ -187,13 +187,11 @@ async function probe() {
   // raw HTML for an embedded table/JSON and any API host their JS bundle
   // references.
   const jsonCandidates: string[] = [];
-  const htmlCandidates = ["https://www.draftsharks.com/adp"];
-  // Confirmed live (run 33131612298): /adp and /adp/superflex return 200
-  // with a real <table id="adp-table"> from their Vue app (AdpDash.js) —
-  // /adp/overall and /dynasty-rankings/adp 404. Now checking whether the
-  // <tbody> actually has server-rendered player rows, or whether (like
-  // FantasyPros) Vue fills it client-side after an API call — and pulling
-  // the AdpDash.js bundle itself to look for that API's URL.
+  // Confirmed live (run 33131687510): the <tbody> is `v-for="row in
+  // visibleRows"` — Vue-populated client-side, not server-rendered, same
+  // dead end as FantasyPros. Skipping the HTML re-check and going straight
+  // to the JS bundle to look for the real API endpoint's name.
+  const htmlCandidates: string[] = [];
   const jsBundleCandidates = ["https://www.draftsharks.com/assets/47d5c423/dsvue/apps/AdpDash.js"];
 
   for (const url of jsonCandidates) {
@@ -292,6 +290,11 @@ async function probe() {
       console.log(`  inline API-path hints: ${[...new Set(apiHints)].slice(0, 20).join(", ") || "(none)"}`);
       const fetchCalls = [...text.matchAll(/\.(?:get|post)\(["'`]([^"'`]+)["'`]/g)].map((m) => m[1]);
       console.log(`  .get(/.post( calls: ${[...new Set(fetchCalls)].slice(0, 20).join(", ") || "(none)"}`);
+      // Endpoint names as string literals survive minification even when
+      // the call syntax around them (axios instance var, computed URL,
+      // etc.) doesn't match the .get(/.post( shape above.
+      const anyAdpString = [...text.matchAll(/["'`]([^"'`]{0,80}adp[^"'`]{0,80})["'`]/gi)].map((m) => m[1]);
+      console.log(`  any quoted string containing "adp": ${[...new Set(anyAdpString)].slice(0, 25).join(" | ") || "(none)"}`);
     } catch (err) {
       console.log(`\n${url}`);
       console.log(`  request failed: ${err instanceof Error ? err.message : err}`);
