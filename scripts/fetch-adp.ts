@@ -261,10 +261,16 @@ async function probe() {
   // raw HTML for an embedded table/JSON and any API host their JS bundle
   // references.
   const jsonCandidates: string[] = [];
-  // User-provided link: 4for4's superflex ADP page. Unknown rendering
-  // approach yet — checking for embedded JS data or a server-rendered
-  // <table>/<tbody>, same as every other source checked so far.
-  const htmlCandidates = ["https://www.4for4.com/superflex-adp"];
+  // User-provided site: yafsb.com, wants Sleeper-specific ADP. Unknown URL
+  // structure yet — checking the root page (for nav links pointing at an
+  // ADP section) plus a few plausible direct paths in the same request
+  // batch, same discovery approach used for every prior source.
+  const htmlCandidates = [
+    "https://www.yafsb.com/",
+    "https://www.yafsb.com/adp",
+    "https://www.yafsb.com/sleeper-adp",
+    "https://www.yafsb.com/adp/sleeper",
+  ];
   const jsBundleCandidates: string[] = [];
 
   for (const url of jsonCandidates) {
@@ -301,6 +307,10 @@ async function probe() {
       console.log(`  status: ${res.status} ${res.statusText}`);
       console.log(`  content-type: ${res.headers.get("content-type")}`);
       console.log(`  body length: ${text.length}`);
+      const adpLinks = [...text.matchAll(/<a[^>]+href="([^"]*(?:adp|sleeper)[^"]*)"/gi)].map((m) => m[1]);
+      const uniqueAdpLinks = [...new Set(adpLinks)];
+      console.log(`  links mentioning adp/sleeper (${uniqueAdpLinks.length}):`);
+      for (const link of uniqueAdpLinks.slice(0, 40)) console.log(`    ${link}`);
       // Confirmed live (run 33132856201): 4for4's ADP page has a plain,
       // fully server-rendered <table><tbody> with real rows (no JS
       // framework blocking it like FantasyPros'/DraftSharks' pages) — e.g.
