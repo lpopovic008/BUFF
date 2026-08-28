@@ -6,6 +6,11 @@ on:
   schedule:
     - cron: "10 13 * * *"
   workflow_dispatch:
+    inputs:
+      probe:
+        description: "Probe FantasyCalc endpoint variants instead of doing a real fetch (writes nothing)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -25,9 +30,13 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx tsx scripts/fetch-adp.ts
+      - if: ${{ github.event.inputs.probe == 'true' }}
+        run: npx tsx scripts/fetch-adp.ts --probe
+      - if: ${{ github.event.inputs.probe != 'true' }}
+        run: npx tsx scripts/fetch-adp.ts
       - name: Commit updated ADP
         id: commit
+        if: ${{ github.event.inputs.probe != 'true' }}
         run: |
           if [ -z "$(git status --porcelain src/data/player-adp.json)" ]; then
             echo "No change in player ADP."

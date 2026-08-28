@@ -20,6 +20,7 @@
  *
  *   npx tsx scripts/fetch-adp.ts             # write the file
  *   npx tsx scripts/fetch-adp.ts --dry-run    # print, change nothing
+ *   npx tsx scripts/fetch-adp.ts --probe      # try several URL/param variants and log each response, write nothing
  */
 
 import { promises as fs } from "node:fs";
@@ -27,6 +28,7 @@ import path from "node:path";
 import type { AdpEntry, AdpSnapshot } from "../src/lib/player-adp";
 
 const DRY_RUN = process.argv.includes("--dry-run");
+const PROBE = process.argv.includes("--probe");
 const OUT_PATH = path.join(process.cwd(), "src", "data", "player-adp.json");
 
 const UA =
@@ -143,7 +145,40 @@ async function fetchMode(mode: Mode): Promise<AdpEntry[]> {
   return [...withAdp, ...withoutAdp];
 }
 
+/** Tries several plausible URL/param variants against the real API and logs each response's status + a body snippet, so the correct shape can be read straight from a CI log instead of guessed at blind. Writes nothing. */
+async function probe() {
+  const candidates = [
+    "https://api.fantasycalc.com/values/current",
+    "https://api.fantasycalc.com/values/current?isDynasty=false&numQBs=1&numTeams=12&ppr=1",
+    "https://api.fantasycalc.com/values/current?isDynasty=false&numQbs=1&numTeams=12&ppr=1",
+    "https://api.fantasycalc.com/values/current/?isDynasty=false&numQBs=1&numTeams=12&ppr=1",
+    "https://api.fantasycalc.com/values/current?isDynasty=false&numQBs=1&numTeams=12&ppr=1&includeAdp=true",
+    "https://api.fantasycalc.com/rankings/current",
+    "https://api.fantasycalc.com/values",
+    "https://api.fantasycalc.com/",
+  ];
+  for (const url of candidates) {
+    try {
+      const res = await fetch(url, { headers: { "User-Agent": UA, Accept: "application/json" } });
+      const text = await res.text();
+      console.log(`\n${url}`);
+      console.log(`  status: ${res.status} ${res.statusText}`);
+      console.log(`  content-type: ${res.headers.get("content-type")}`);
+      console.log(`  body length: ${text.length}`);
+      console.log(`  body (first 400 chars): ${text.slice(0, 400)}`);
+    } catch (err) {
+      console.log(`\n${url}`);
+      console.log(`  request failed: ${err instanceof Error ? err.message : err}`);
+    }
+  }
+}
+
 async function main() {
+  if (PROBE) {
+    await probe();
+    return;
+  }
+
   const results = await Promise.all(MODES.map(fetchMode));
 
   const snapshot: AdpSnapshot = {
