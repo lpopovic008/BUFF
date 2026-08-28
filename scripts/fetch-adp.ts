@@ -156,7 +156,18 @@ async function fetchYafsb(url: string, label: string): Promise<AdpEntry[]> {
 
 /** Tries several plausible URL/param variants against the real site and logs each response's status + a body snippet, so the correct shape can be read straight from a CI log instead of guessed at blind. Writes nothing. */
 async function probe() {
-  const jsonCandidates: string[] = [];
+  // Temporary: checking whether ESPN's public-league read endpoint sends
+  // CORS headers that would let a client-side (browser) fetch succeed, for
+  // the "ESPN fantasy capabilities" task. A known public league id (from
+  // the espn-api Python library's own test fixtures) is used since a
+  // private league would 401 regardless of CORS. Simulates a browser
+  // cross-origin request with an explicit Origin header — CORS is decided
+  // by the server echoing (or not) Access-Control-Allow-Origin for that
+  // Origin, so this is testable from a plain server-side fetch.
+  const jsonCandidates: string[] = [
+    "https://fantasy.espn.com/apis/v3/games/ffl/seasons/2023/segments/0/leagues/1421388?view=mTeam",
+    "https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/2023/segments/0/leagues/1421388?view=mTeam",
+  ];
   // User pushed back with a different mode->URL mapping than what live data
   // confirmed earlier (bare URL = redraft 1QB, /dynasty/ = dynasty 1QB in
   // their telling). Re-checking all four fresh, right now, to settle it
@@ -169,11 +180,15 @@ async function probe() {
 
   for (const url of jsonCandidates) {
     try {
-      const res = await fetch(url, { headers: { "User-Agent": UA, Accept: "application/json" } });
+      const res = await fetch(url, {
+        headers: { "User-Agent": UA, Accept: "application/json", Origin: "https://example.com" },
+      });
       const text = await res.text();
       console.log(`\n${url}`);
       console.log(`  status: ${res.status} ${res.statusText}`);
       console.log(`  content-type: ${res.headers.get("content-type")}`);
+      console.log(`  access-control-allow-origin: ${res.headers.get("access-control-allow-origin")}`);
+      console.log(`  access-control-allow-credentials: ${res.headers.get("access-control-allow-credentials")}`);
       console.log(`  body length: ${text.length}`);
       try {
         const parsed = JSON.parse(text);
