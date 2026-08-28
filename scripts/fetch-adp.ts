@@ -70,17 +70,40 @@ const YAFSB_MODES: { key: keyof Omit<AdpSnapshot, "updatedAt" | "source">; label
   { key: "dynastySuperflex", label: "dynasty superflex (yafsb)", url: `${YAFSB_BASE}dynasty/` },
 ];
 
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  nbsp: " ",
+};
+
+/**
+ * Decodes HTML entities left behind after stripping tags — yafsb.com
+ * encodes apostrophes in player names as numeric entities (e.g. "Ja&#x27;Marr
+ * Chase" for "Ja'Marr Chase"), which a tag-stripping regex alone doesn't
+ * touch.
+ */
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)))
+    .replace(/&([a-zA-Z]+);/g, (m, name) => NAMED_ENTITIES[name] ?? m);
+}
+
 /**
  * Extracts a table row's <td> cell contents as plain text, in order. A
  * cell that wraps its content in an <a> (the Player-name cell on this
  * page) is reduced to the link's own text rather than the raw anchor
- * markup; any other cell just has its tags stripped.
+ * markup; any other cell just has its tags stripped and HTML entities
+ * decoded.
  */
 function parseTableRowCells(rowHtml: string): string[] {
   return [...rowHtml.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => {
     const raw = m[1];
     const linkMatch = raw.match(/<a[^>]*>([\s\S]*?)<\/a>/);
-    return (linkMatch ? linkMatch[1] : raw).replace(/<[^>]+>/g, "").trim();
+    return decodeHtmlEntities((linkMatch ? linkMatch[1] : raw).replace(/<[^>]+>/g, "").trim());
   });
 }
 
