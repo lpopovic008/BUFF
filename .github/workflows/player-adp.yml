@@ -1,0 +1,50 @@
+name: Update player ADP
+
+# Daily at 13:10 UTC (~6am Pacific, offset from player-values so they don't
+# collide) and on demand.
+on:
+  schedule:
+    - cron: "10 13 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: player-adp
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsx scripts/fetch-adp.ts
+      - name: Commit updated ADP
+        id: commit
+        run: |
+          if [ -z "$(git status --porcelain src/data/player-adp.json)" ]; then
+            echo "No change in player ADP."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/data/player-adp.json
+          git commit -m "Update player ADP"
+          git push
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+      - name: Trigger deploy
+        # A push made with the default GITHUB_TOKEN does not cascade into
+        # other workflows' `on: push` triggers (GitHub's loop-prevention), so
+        # the commit above would otherwise sit undeployed until the next
+        # unrelated push to main. Dispatch deploy.yml explicitly instead.
+        if: steps.commit.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run deploy.yml --ref main

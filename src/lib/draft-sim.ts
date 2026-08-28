@@ -1,11 +1,14 @@
 // Pure logic for the Draft Room simulator — kept free of React so the pick
 // order and player pool ranking are unit-testable without rendering
-// anything. The player pool itself is the same committed KeepTradeCut
-// snapshot the /values page reads (src/data/player-values.json); this
-// module just re-sorts it into draft order for a given mode, the same four
-// combinations /values already exposes (dynasty/fantasy x 1QB/superflex).
+// anything. The player pool is real crowd Average Draft Position data
+// (src/data/player-adp.json, fetched from FantasyCalc by
+// scripts/fetch-adp.ts) — not KeepTradeCut's trade-value chart, which mixes
+// real players with future-pick assets that nobody actually "drafts" in a
+// real draft. Four modes, matching what /values already exposes: dynasty/
+// redraft ("fantasy") x 1QB/superflex.
 
-import { LeagueFormat, PlayerValue, PlayerValuesSnapshot, valueFor } from "./player-values";
+import { AdpEntry, AdpSnapshot } from "./player-adp";
+import { LeagueFormat } from "./player-values";
 
 export type DraftListType = "dynasty" | "fantasy";
 export type DraftOrderType = "snake" | "linear";
@@ -44,13 +47,13 @@ export function roundForPick(pickIndex: number, teams: number): number {
   return Math.floor(pickIndex / teams) + 1;
 }
 
-/** Stable identity for a KTC snapshot entry — it has no shared id with anything else, so name+position is the key (matches /values' own row key). */
-export function draftPoolKey(p: PlayerValue): string {
+/** Stable identity for an ADP snapshot entry — it has no shared id with anything else, so name+position is the key (matches /values' own row key for the KTC snapshot). */
+export function draftPoolKey(p: AdpEntry): string {
   return `${p.position}-${p.name}`;
 }
 
-/** The KTC snapshot's players for one list, sorted into draft order (highest value first) for a mode. This is the same value used as the ADP proxy everywhere else in the app pulls from this snapshot — there's no separate real ADP feed. */
-export function draftPool(snapshot: PlayerValuesSnapshot, listType: DraftListType, format: LeagueFormat): PlayerValue[] {
-  const list = listType === "dynasty" ? snapshot.dynasty : snapshot.fantasy;
-  return [...list].sort((a, b) => valueFor(b, format, "standard") - valueFor(a, format, "standard"));
+/** The ADP snapshot's players for one mode, already sorted into real draft order (earliest real ADP first, then anyone without enough real-draft data yet) by scripts/fetch-adp.ts. */
+export function draftPool(snapshot: AdpSnapshot, listType: DraftListType, format: LeagueFormat): AdpEntry[] {
+  if (listType === "dynasty") return format === "superflex" ? snapshot.dynastySuperflex : snapshot.dynastyOneQB;
+  return format === "superflex" ? snapshot.fantasySuperflex : snapshot.fantasyOneQB;
 }

@@ -3,8 +3,8 @@
 import { CSSProperties, useMemo, useState } from "react";
 import Link from "next/link";
 import { MenuIcon } from "@/components/ui/Icon";
-import rawSnapshot from "@/data/player-values.json";
-import { PlayerValue, PlayerValuesSnapshot } from "@/lib/player-values";
+import rawSnapshot from "@/data/player-adp.json";
+import { AdpEntry, AdpSnapshot } from "@/lib/player-adp";
 import {
   DEFAULT_DRAFT_SETTINGS,
   DraftSettings,
@@ -19,7 +19,7 @@ import {
 } from "@/lib/draft-sim";
 import "./warroom.css";
 
-const snapshot = rawSnapshot as unknown as PlayerValuesSnapshot;
+const snapshot = rawSnapshot as unknown as AdpSnapshot;
 
 // The same position colors already designated in src/lib/position-colors.ts
 // (its dark-mode values) — hardcoded here as hex since the War Room theme
@@ -119,7 +119,7 @@ export function DraftRoom() {
   // over to the next one — reversing direction on a snake draft's back
   // rounds, via the same teamForPick/roundForPick pair as the board above.
   const poolGrid = useMemo(() => {
-    const g: (PlayerValue | undefined)[][] = Array.from({ length: settings.teams }, () =>
+    const g: (AdpEntry | undefined)[][] = Array.from({ length: settings.teams }, () =>
       Array(settings.rounds).fill(undefined)
     );
     for (let idx = 0; idx < totalPicks && idx < available.length; idx++) {
@@ -151,7 +151,7 @@ export function DraftRoom() {
     });
   }
 
-  function handlePoolCellClick(player: PlayerValue) {
+  function handlePoolCellClick(player: AdpEntry) {
     const key = draftPoolKey(player);
     if (editMode) cycleFavorite(key);
     else draftPlayer(key);
@@ -302,9 +302,9 @@ export function DraftRoom() {
             </div>
           </div>
           <p className="card-note">
-            Teams, rounds, and order reset the board. Dynasty/Fantasy and 1QB/Superflex just re-rank the pool by KTC
-            value — the same values the Values page shows — your picks stay put, and each list/format combination
-            lays the grid below out in its own order.
+            Teams, rounds, and order reset the board. Dynasty/Fantasy and 1QB/Superflex just re-rank the pool by real
+            average draft position (from FantasyCalc) — your picks stay put, and each list/format combination lays
+            the grid below out in its own order.
           </p>
         </article>
 
@@ -363,7 +363,7 @@ export function DraftRoom() {
           <p className="card-note">
             {editMode
               ? "Click a player to tag them — once highlights, twice outlines, a third clears it. Colors match position."
-              : "Ranked by KTC value, laid out the way a real draft would fill: down a round, then over to the next. Click a player to fill the current pick."}
+              : "Ranked by real average draft position, laid out the way a draft would fill: down a round, then over to the next. Click a player to fill the current pick."}
           </p>
         </article>
 
