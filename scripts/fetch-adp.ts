@@ -261,15 +261,20 @@ async function probe() {
   // raw HTML for an embedded table/JSON and any API host their JS bundle
   // references.
   const jsonCandidates: string[] = [];
-  // User-provided site: yafsb.com, wants Sleeper-specific ADP. Unknown URL
-  // structure yet — checking the root page (for nav links pointing at an
-  // ADP section) plus a few plausible direct paths in the same request
-  // batch, same discovery approach used for every prior source.
+  // User-provided site: yafsb.com, wants Sleeper-specific ADP. Confirmed
+  // live (run 33134552442): root page links to /fantasy-football/adp-rankings/.
+  // User then supplied the real per-format paths directly: base = redraft
+  // 1QB, /superflex/ = redraft superflex, /dynasty/ = dynasty startup 1QB,
+  // /dynasty-rookie/ = dynasty rookie-only (not one of our four modes).
+  // Dynasty superflex's path is an educated guess (dynasty-superflex/) —
+  // checking rendering (server HTML table vs JS) and column structure
+  // (does it break out Sleeper specifically, like 4for4 did per-platform?)
+  // on all of these at once.
   const htmlCandidates = [
-    "https://www.yafsb.com/",
-    "https://www.yafsb.com/adp",
-    "https://www.yafsb.com/sleeper-adp",
-    "https://www.yafsb.com/adp/sleeper",
+    "https://www.yafsb.com/fantasy-football/adp-rankings/",
+    "https://www.yafsb.com/fantasy-football/adp-rankings/superflex/",
+    "https://www.yafsb.com/fantasy-football/adp-rankings/dynasty/",
+    "https://www.yafsb.com/fantasy-football/adp-rankings/dynasty-superflex/",
   ];
   const jsBundleCandidates: string[] = [];
 
@@ -311,6 +316,15 @@ async function probe() {
       const uniqueAdpLinks = [...new Set(adpLinks)];
       console.log(`  links mentioning adp/sleeper (${uniqueAdpLinks.length}):`);
       for (const link of uniqueAdpLinks.slice(0, 40)) console.log(`    ${link}`);
+      // Any <select>/<option>/query-param-carrying control that mentions a
+      // draft-site name or format, so the URL scheme for switching
+      // site/format can be read straight off the page instead of guessed.
+      for (const kw of ["sleeper", "dynasty", "superflex", "redraft", "1qb", "one-qb", "half-ppr"]) {
+        const idx = text.toLowerCase().indexOf(kw);
+        if (idx !== -1) {
+          console.log(`  found "${kw}" at offset ${idx}: ${text.slice(Math.max(0, idx - 150), idx + 150).replace(/\s+/g, " ")}`);
+        }
+      }
       // Confirmed live (run 33132856201): 4for4's ADP page has a plain,
       // fully server-rendered <table><tbody> with real rows (no JS
       // framework blocking it like FantasyPros'/DraftSharks' pages) — e.g.
