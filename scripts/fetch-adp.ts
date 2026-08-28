@@ -262,21 +262,20 @@ async function probe() {
   // references.
   const jsonCandidates: string[] = [];
   // User-provided site: yafsb.com, wants Sleeper-specific ADP. Confirmed
-  // live (run 33134651356): real server-rendered table (Rank/Player/Pos/
-  // Team/ADP/Drafts columns), ADP is a literal decimal average draft
-  // position from real Sleeper drafts. BUT the bare /adp-rankings/ URL and
-  // /adp-rankings/superflex/ returned byte-identical top rows (same ADP
-  // values down to Josh Allen at 2.7, which is a superflex-shaped number,
-  // not 1QB) — and /dynasty/ also carries 'is_superflex': true in its own
-  // dataLayer push. The nav's own link labels show /ppr/ as "PPR (1QB)
-  // ADP" (distinct from the unlabeled bare URL), which suggests the site's
-  // real default is superflex and /ppr/ is what actually forces 1QB.
-  // Checking /ppr/ (real redraft 1QB?) and two guesses at a dynasty+1QB
-  // combined path.
+  // live (run 33134760638): /ppr/ IS real redraft 1QB — dataLayer says
+  // is_superflex:false, is_dynasty:false, and the table shape is right
+  // (Josh Allen out of the top 5, ADP 1.1/2.0/3.5/4.9). Two other confirmed
+  // real modes: bare /adp-rankings/ and /superflex/ are both redraft
+  // superflex (is_superflex:true, is_dynasty:false — identical data), and
+  // /dynasty/ is dynasty superflex (is_superflex:true, is_dynasty:true).
+  // Only real dynasty 1QB is still missing — /dynasty/ppr/ and
+  // /dynasty/superflex/ both 404'd (segment order dynasty-then-scoring
+  // isn't a real route), so trying the reverse order plus a hyphenated
+  // guess.
   const htmlCandidates = [
-    "https://www.yafsb.com/fantasy-football/adp-rankings/ppr/",
-    "https://www.yafsb.com/fantasy-football/adp-rankings/dynasty/ppr/",
-    "https://www.yafsb.com/fantasy-football/adp-rankings/dynasty/superflex/",
+    "https://www.yafsb.com/fantasy-football/adp-rankings/ppr/dynasty/",
+    "https://www.yafsb.com/fantasy-football/adp-rankings/dynasty-ppr/",
+    "https://www.yafsb.com/fantasy-football/adp-rankings/ppr/dynasty-startup/",
   ];
   const jsBundleCandidates: string[] = [];
 
