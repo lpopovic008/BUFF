@@ -46,7 +46,10 @@ function hexToRgba(hex: string, alpha: number): string {
 
 function favoriteStyle(fav: FavoriteState, color: string): CSSProperties {
   if (fav === "highlight") return { backgroundColor: hexToRgba(color, 0.28), borderColor: color };
-  if (fav === "border") return { borderColor: color, borderWidth: 2 };
+  // Second tag state: a neutral soft-white/grey, deliberately not the
+  // player's position color, so it reads as visually distinct from the
+  // first tag state rather than just a fainter version of it.
+  if (fav === "border") return { backgroundColor: "rgba(255, 255, 255, 0.16)", borderColor: "rgba(255, 255, 255, 0.6)", borderWidth: 2 };
   return {};
 }
 
@@ -114,21 +117,24 @@ export function DraftRoom() {
     return g;
   }, [settings.teams, settings.rounds, settings.type, totalPicks]);
 
-  // [team-row][round-column] -> the Nth remaining player, packed into the
-  // same shape a real draft would fill: down a column (a "round"), then
-  // over to the next one — reversing direction on a snake draft's back
-  // rounds, via the same teamForPick/roundForPick pair as the board above.
+  // [team-row][round-column] -> the Nth-ranked player, packed into the same
+  // shape a real draft would fill: down a column (a "round"), then over to
+  // the next one — reversing direction on a snake draft's back rounds, via
+  // the same teamForPick/roundForPick pair as the board above. Built from
+  // the full pool (not just the undrafted remainder) so a drafted player's
+  // cell stays put — grayed out below — instead of every later player
+  // shifting up to fill the gap.
   const poolGrid = useMemo(() => {
     const g: (AdpEntry | undefined)[][] = Array.from({ length: settings.teams }, () =>
       Array(settings.rounds).fill(undefined)
     );
-    for (let idx = 0; idx < totalPicks && idx < available.length; idx++) {
+    for (let idx = 0; idx < totalPicks && idx < pool.length; idx++) {
       const round = roundForPick(idx, settings.teams);
       const team = teamForPick(idx, settings.teams, settings.type);
-      g[team - 1][round - 1] = available[idx];
+      g[team - 1][round - 1] = pool[idx];
     }
     return g;
-  }, [available, settings.teams, settings.rounds, settings.type, totalPicks]);
+  }, [pool, settings.teams, settings.rounds, settings.type, totalPicks]);
 
   function updateSettings(patch: Partial<DraftSettings>) {
     setSettings((prev) => ({ ...prev, ...patch }));
@@ -338,15 +344,16 @@ export function DraftRoom() {
                     const key = draftPoolKey(player);
                     const fav = favorites[key] ?? "none";
                     const color = POSITION_ACCENT[player.position] ?? DEFAULT_ACCENT;
+                    const isDrafted = draftedKeys.has(key);
                     return (
                       <button
                         key={c}
                         type="button"
-                        className="draft-pool-cell"
-                        style={favoriteStyle(fav, color)}
+                        className={`draft-pool-cell${isDrafted ? " drafted" : ""}`}
+                        style={isDrafted ? undefined : favoriteStyle(fav, color)}
                         onClick={() => handlePoolCellClick(player)}
-                        disabled={!editMode && draftComplete}
-                        title={editMode ? `Tag ${player.name}` : `Draft ${player.name}`}
+                        disabled={isDrafted || (!editMode && draftComplete)}
+                        title={isDrafted ? `${player.name} — drafted` : editMode ? `Tag ${player.name}` : `Draft ${player.name}`}
                       >
                         <span className="draft-pool-cell-rank">{rankByKey.get(key)}</span>
                         <span className="draft-pool-cell-pos" style={{ color }}>
@@ -362,7 +369,7 @@ export function DraftRoom() {
           </div>
           <p className="card-note">
             {editMode
-              ? "Click a player to tag them — once highlights, twice outlines, a third clears it. Colors match position."
+              ? "Click a player to tag them — once highlights in their position color, twice marks them white, a third clears it."
               : "Ranked by real average draft position from actual Sleeper drafts, laid out the way a draft would fill: down a round, then over to the next. Click a player to fill the current pick."}
           </p>
         </article>

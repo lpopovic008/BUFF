@@ -420,6 +420,7 @@
   .warroom-console .draft-pool-cell:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
   .warroom-console .draft-pool-cell:disabled { cursor: default; opacity: 0.45; }
   .warroom-console .draft-pool-cell.empty { background: transparent; border: 1px dashed var(--line); cursor: default; }
+  .warroom-console .draft-pool-cell.drafted { filter: grayscale(1); }
   .warroom-console .draft-pool-cell-rank { font-size: 7.5px; color: var(--ink-dim); flex: 0 0 auto; }
   .warroom-console .draft-pool-cell-pos { font-size: 8px; font-weight: 600; letter-spacing: 0.03em; flex: 0 0 auto; }
   .warroom-console .draft-pool-cell-name {
