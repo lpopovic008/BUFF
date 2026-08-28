@@ -236,8 +236,22 @@ async function probe() {
       console.log(`  body length: ${text.length}`);
       const vueIdx = text.indexOf("vueAppData");
       if (vueIdx !== -1) {
-        console.log(`  found "vueAppData" at offset ${vueIdx}; window (4000 chars):`);
-        console.log(`  ${text.slice(Math.max(0, vueIdx - 200), vueIdx + 4000)}`);
+        // Confirmed live (run 33131991807): `var vueAppData = {"selected":
+        // {...},"availability":[{"key":"11::104::12","formatId":11,
+        // "sourceId":104,...,"source":"consensus","size":12}, ...]` — this
+        // is metadata (which format/source/size combos exist), not player
+        // rows. The actual data should be in a "seed" property right after
+        // availability — jumping straight to that instead of the object
+        // start, since availability alone can be large.
+        const seedIdx = text.indexOf('"seed":', vueIdx);
+        console.log(`  found "vueAppData" at offset ${vueIdx}; "seed" property at offset ${seedIdx === -1 ? "NOT FOUND" : seedIdx}`);
+        if (seedIdx !== -1) {
+          console.log(`  window around "seed" (6000 chars):`);
+          console.log(`  ${text.slice(seedIdx, seedIdx + 6000)}`);
+        } else {
+          console.log(`  no "seed" property; window from vueAppData start (4000 chars):`);
+          console.log(`  ${text.slice(Math.max(0, vueIdx - 200), vueIdx + 4000)}`);
+        }
       } else {
         console.log(`  "vueAppData" not found in the HTML at all; first 600 chars: ${text.slice(0, 600)}`);
       }
