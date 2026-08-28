@@ -148,14 +148,8 @@ async function fetchMode(mode: Mode): Promise<AdpEntry[]> {
 /** Tries several plausible URL/param variants against the real API and logs each response's status + a body snippet, so the correct shape can be read straight from a CI log instead of guessed at blind. Writes nothing. */
 async function probe() {
   const candidates = [
-    "https://api.fantasycalc.com/values/current",
-    "https://api.fantasycalc.com/values/current?isDynasty=false&numQBs=1&numTeams=12&ppr=1",
     "https://api.fantasycalc.com/values/current?isDynasty=false&numQbs=1&numTeams=12&ppr=1",
-    "https://api.fantasycalc.com/values/current/?isDynasty=false&numQBs=1&numTeams=12&ppr=1",
-    "https://api.fantasycalc.com/values/current?isDynasty=false&numQBs=1&numTeams=12&ppr=1&includeAdp=true",
-    "https://api.fantasycalc.com/rankings/current",
-    "https://api.fantasycalc.com/values",
-    "https://api.fantasycalc.com/",
+    "https://api.fantasycalc.com/values/current?isDynasty=false&numQbs=1&numTeams=12&ppr=1&includeAdp=true",
   ];
   for (const url of candidates) {
     try {
@@ -165,7 +159,16 @@ async function probe() {
       console.log(`  status: ${res.status} ${res.statusText}`);
       console.log(`  content-type: ${res.headers.get("content-type")}`);
       console.log(`  body length: ${text.length}`);
-      console.log(`  body (first 400 chars): ${text.slice(0, 400)}`);
+      // Full first record (pretty-printed) so every field name — including
+      // whatever FantasyCalc actually calls its ADP field — is visible in
+      // the CI log instead of getting cut off mid-object.
+      try {
+        const parsed = JSON.parse(text);
+        const first = Array.isArray(parsed) ? parsed[0] : parsed;
+        console.log(`  first record: ${JSON.stringify(first, null, 2)}`);
+      } catch {
+        console.log(`  body (first 1200 chars): ${text.slice(0, 1200)}`);
+      }
     } catch (err) {
       console.log(`\n${url}`);
       console.log(`  request failed: ${err instanceof Error ? err.message : err}`);
