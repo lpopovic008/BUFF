@@ -302,9 +302,9 @@ export function DraftRoom() {
             </div>
           </div>
           <p className="card-note">
-            Teams, rounds, and order reset the board. Dynasty/Fantasy and 1QB/Superflex just re-rank the pool by real
-            average draft position (from FantasyCalc) — your picks stay put, and each list/format combination lays
-            the grid below out in its own order.
+            Teams, rounds, and order reset the board. Dynasty/Fantasy and 1QB/Superflex just re-rank the pool by
+            FantasyCalc&apos;s real-player rank (no draft-pick assets) — your picks stay put, and each list/format
+            combination lays the grid below out in its own order.
           </p>
         </article>
 
@@ -363,7 +363,7 @@ export function DraftRoom() {
           <p className="card-note">
             {editMode
               ? "Click a player to tag them — once highlights, twice outlines, a third clears it. Colors match position."
-              : "Ranked by real average draft position, laid out the way a draft would fill: down a round, then over to the next. Click a player to fill the current pick."}
+              : "Ranked by FantasyCalc's real-player rank, laid out the way a draft would fill: down a round, then over to the next. Click a player to fill the current pick."}
           </p>
         </article>
 

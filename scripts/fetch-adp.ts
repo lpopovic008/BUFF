@@ -1,15 +1,31 @@
 /**
- * Fetches real Average Draft Position data from FantasyCalc's rankings API
- * and writes a normalized snapshot to src/data/player-adp.json.
+ * Fetches a real-players-only draft pool ranking from FantasyCalc's API and
+ * writes a normalized snapshot to src/data/player-adp.json.
  *
  * Runs server-side in CI (see .github/workflows/player-adp.yml), same reason
  * as scripts/fetch-player-values.ts: no browser CORS restriction, and the
  * app itself only ever reads the committed static snapshot.
  *
  * Unlike KeepTradeCut's trade-value chart (which mixes real players with
- * future-pick assets), this is real crowd ADP — where people actually pick
- * a player in real drafts — across the same four modes the app already
- * exposes: dynasty/redraft x 1QB/superflex.
+ * future-pick assets nobody actually drafts), FantasyCalc's player endpoint
+ * only ever returns real players, across the same four modes the app
+ * already exposes: dynasty/redraft x 1QB/superflex.
+ *
+ * This was originally meant to use literal crowd-sourced Average Draft
+ * Position (e.g. Underdog's own ADP), but that data isn't reachable from a
+ * plain fetch script: FantasyCalc's own `maybeAdp` field is present but
+ * always null (confirmed live, both isDynasty values, with and without
+ * includeAdp=true); Underdog's site sits behind a Cloudflare bot challenge
+ * that returns a JS challenge page instead of content to a scripted
+ * request; FantasyPros' public ADP pages return 200 but load the actual
+ * table client-side via JS after page load (confirmed: the only <table> in
+ * the static HTML is an unrelated "pick experts" filter modal, not ADP
+ * rows) — none of that is fetchable without a full headless browser. So
+ * this uses FantasyCalc's `overallRank`/`positionRank` instead, which ARE
+ * populated and are computed fresh per (isDynasty, numQbs) query — i.e.
+ * FantasyCalc actually re-ranks its whole real-player pool for each of the
+ * four modes this needs. It's a value-based rank, not literal draft-day
+ * ADP; see the AdpEntry doc comment in src/lib/player-adp.ts.
  *
  * FantasyCalc's endpoint shape isn't formally documented, so extraction here
  * is defensive like the KTC script: try the field names known from public
@@ -83,9 +99,17 @@ function pickNumber(obj: Record<string, unknown>, keys: string[]): number | null
 /**
  * FantasyCalc's real shape nests player identity under a `player` object
  * (`player.name`, `player.position`, `player.maybeTeam`) with the numeric
- * ranking fields (`value`, `overallRank`, `maybeAdp`) flat on the outer
- * record — but this tries flat-record fallbacks too in case that's wrong,
- * the same defensive-but-verifiable spirit as the KTC script.
+ * ranking fields flat on the outer record.
+ *
+ * `maybeAdp` is present in every real record but always comes back `null`
+ * (confirmed via a live probe run against both isDynasty values, with and
+ * without `includeAdp=true`) — FantasyCalc's public API doesn't actually
+ * have populated per-player ADP behind this field. `overallRank` /
+ * `positionRank`, however, ARE populated and computed separately per query
+ * (isDynasty x numQbs), i.e. FantasyCalc re-ranks its whole player pool for
+ * each of the four modes this app needs — so it's used here as the
+ * pool-ordering signal instead. It isn't literally "average draft
+ * position"; see the AdpEntry doc comment.
  */
 function normalizeEntry(item: unknown): AdpEntry | null {
   if (typeof item !== "object" || item === null) return null;
@@ -96,7 +120,7 @@ function normalizeEntry(item: unknown): AdpEntry | null {
   if (!name) return null;
   const position = pickString(player, ["position", "pos"]) ?? "UNK";
   const team = pickString(player, ["maybeTeam", "team", "team_abbrev", "teamAbbrev"]);
-  const adp = pickNumber(obj, ["maybeAdp", "adp", "redraftAdp", "dynastyAdp"]);
+  const adp = pickNumber(obj, ["maybeAdp", "adp", "redraftAdp", "dynastyAdp"]) ?? pickNumber(obj, ["overallRank", "positionRank"]);
 
   return { name, position, team, adp };
 }
@@ -106,7 +130,7 @@ function looksLikeAdpRecord(item: unknown): boolean {
 }
 
 async function fetchMode(mode: Mode): Promise<AdpEntry[]> {
-  const url = `${BASE_URL}?isDynasty=${mode.isDynasty}&numQBs=${mode.numQBs}&numTeams=12&ppr=1&includeAdp=true`;
+  const url = `${BASE_URL}?isDynasty=${mode.isDynasty}&numQbs=${mode.numQBs}&numTeams=12&ppr=1&includeAdp=true`;
   console.log(`Fetching ${mode.label} from ${url}`);
   const data = await fetchJson(url);
 
