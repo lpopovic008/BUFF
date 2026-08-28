@@ -186,12 +186,15 @@ async function probe() {
   // mock and live drafts across the whole platform, so it's plausible they
   // expose an aggregate somewhere. Trying the shapes their own site/app is
   // most likely to call.
+  // Dropped .../research/regular/... from the candidate list: it's real,
+  // but confirmed to be ownership%/started% (roster percentage), not ADP —
+  // and its response is huge (thousands of keys), which blew past the CI
+  // log tool's size window and hid the results of every candidate that ran
+  // after it. Every candidate below now has its output hard-capped so one
+  // huge response can never do that again.
   const jsonCandidates = [
     "https://api.sleeper.app/adp/nfl?season=2026&season_type=regular&type=redraft",
     "https://api.sleeper.app/v1/adp/nfl?season=2026",
-    "https://api.sleeper.app/players/nfl/research/regular/2026/1",
-    "https://api.sleeper.app/stats/nfl/regular/2026",
-    "https://api.sleeper.app/v1/players/nfl/trending/add",
   ];
   const htmlCandidates = ["https://sleeper.com/adp"];
 
@@ -206,9 +209,9 @@ async function probe() {
       try {
         const parsed = JSON.parse(text);
         const first = Array.isArray(parsed) ? parsed[0] : parsed;
-        console.log(`  first record: ${JSON.stringify(first, null, 2)}`);
+        console.log(`  first record (first 500 chars): ${JSON.stringify(first).slice(0, 500)}`);
       } catch {
-        console.log(`  body (first 1200 chars): ${text.slice(0, 1200)}`);
+        console.log(`  body (first 500 chars): ${text.slice(0, 500)}`);
       }
     } catch (err) {
       console.log(`\n${url}`);
