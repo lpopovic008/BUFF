@@ -6,6 +6,7 @@
 const CONFIG_KEY = "buff:config";
 const RECAPS_KEY = "buff:recaps";
 const BOWL_PICKS_KEY = "buff:bowl-picks";
+const DRAFT_TARGETS_KEY = "buff:draft-targets";
 
 export interface TrackedLeague {
   leagueId: string;
@@ -172,10 +173,31 @@ export function saveBowlPicks(leagueId: string, season: string, week: number, pi
   writeBowlPicks(all);
 }
 
+/**
+ * Draft Room's tagged/marked target players — keyed by player identity
+ * (position-name, see draftPoolKey), not grid position, so a tag survives a
+ * mode switch (dynasty vs fantasy, 1QB vs superflex). Per-browser like
+ * everything else here; there's no server to sync it across devices.
+ */
+export function getDraftTargets(): string[] {
+  if (!isBrowser()) return [];
+  try {
+    const raw = window.localStorage.getItem(DRAFT_TARGETS_KEY);
+    return raw ? (JSON.parse(raw) as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveDraftTargets(keys: string[]): void {
+  if (!isBrowser()) return;
+  window.localStorage.setItem(DRAFT_TARGETS_KEY, JSON.stringify(keys));
+}
+
 /** Exports everything as a JSON blob the user can save as a manual backup or move to another browser. */
 export function exportAllData(): string {
   return JSON.stringify(
-    { config: getConfig(), recaps: readRecaps(), bowlPicks: readBowlPicks() },
+    { config: getConfig(), recaps: readRecaps(), bowlPicks: readBowlPicks(), draftTargets: getDraftTargets() },
     null,
     2
   );
@@ -186,8 +208,10 @@ export function importAllData(json: string): void {
     config?: AppConfig;
     recaps?: Record<string, SavedRecap>;
     bowlPicks?: Record<string, RecapBowlPicks>;
+    draftTargets?: string[];
   };
   if (parsed.config) saveConfig(parsed.config);
   if (parsed.recaps) writeRecaps(parsed.recaps);
   if (parsed.bowlPicks) writeBowlPicks(parsed.bowlPicks);
+  if (parsed.draftTargets) saveDraftTargets(parsed.draftTargets);
 }

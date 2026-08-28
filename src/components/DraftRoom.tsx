@@ -1,9 +1,10 @@
 "use client";
 
-import { CSSProperties, useMemo, useState } from "react";
+import { CSSProperties, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { MenuIcon } from "@/components/ui/Icon";
 import rawSnapshot from "@/data/player-adp.json";
+import { getDraftTargets, saveDraftTargets } from "@/lib/localStore";
 import { AdpEntry, AdpSnapshot } from "@/lib/player-adp";
 import {
   DEFAULT_DRAFT_SETTINGS,
@@ -34,8 +35,6 @@ const POSITION_ACCENT: Record<string, string> = {
 };
 const DEFAULT_ACCENT = "#93ac9e";
 
-type FavoriteState = "none" | "highlight" | "border";
-
 function hexToRgba(hex: string, alpha: number): string {
   const n = parseInt(hex.slice(1), 16);
   const r = (n >> 16) & 255;
@@ -44,13 +43,8 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-function favoriteStyle(fav: FavoriteState, color: string): CSSProperties {
-  if (fav === "highlight") return { backgroundColor: hexToRgba(color, 0.28), borderColor: color };
-  // Second tag state: a neutral soft-white/grey, deliberately not the
-  // player's position color, so it reads as visually distinct from the
-  // first tag state rather than just a fainter version of it.
-  if (fav === "border") return { backgroundColor: "rgba(255, 255, 255, 0.16)", borderColor: "rgba(255, 255, 255, 0.6)", borderWidth: 2 };
-  return {};
+function targetStyle(isTarget: boolean, color: string): CSSProperties {
+  return isTarget ? { backgroundColor: hexToRgba(color, 0.28), borderColor: color } : {};
 }
 
 function defaultTeamNames(teams: number): string[] {
@@ -69,8 +63,28 @@ export function DraftRoom() {
   const [editMode, setEditMode] = useState(false);
   // Which players are tagged as targets — keyed by player identity, not
   // grid position, so a tag survives a mode switch (dynasty vs fantasy,
-  // 1QB vs superflex) even though that player's cell moves.
-  const [favorites, setFavorites] = useState<Record<string, FavoriteState>>({});
+  // 1QB vs superflex) even though that player's cell moves. Persisted to
+  // localStorage (buff:draft-targets) so tags survive a page refresh — see
+  // src/lib/localStore.ts. Starts `null` ("not loaded yet") rather than
+  // reading storage in the useState initializer: that initializer also
+  // runs during static export's server render, where there's no window, so
+  // it'd render an empty state there and then a different, real one on the
+  // client — a hydration mismatch. Loading it in an effect instead (which
+  // only ever runs client-side, after mount) avoids that, same pattern as
+  // useConfig's own localStorage load.
+  const [targets, setTargets] = useState<Set<string> | null>(null);
+  useEffect(() => {
+    // Wrapped like useConfig's own load effect — a bare setState call as a
+    // direct effect-body statement trips the set-state-in-effect lint rule.
+    (() => setTargets(new Set(getDraftTargets())))();
+  }, []);
+  useEffect(() => {
+    if (targets === null) return; // still loading — don't clobber storage with nothing
+    saveDraftTargets([...targets]);
+  }, [targets]);
+  // The team currently selected in the Draft Board, so its row can be
+  // outlined in the Available Players grid — a scratch UI aid, not saved.
+  const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
 
   const totalPicks = settings.teams * settings.rounds;
   // Teams/rounds/order reshape the whole board (pick count, snake pattern),
@@ -149,17 +163,18 @@ export function DraftRoom() {
     });
   }
 
-  function cycleFavorite(key: string) {
-    setFavorites((prev) => {
-      const current = prev[key] ?? "none";
-      const next: FavoriteState = current === "none" ? "highlight" : current === "highlight" ? "border" : "none";
-      return { ...prev, [key]: next };
+  function toggleTarget(key: string) {
+    setTargets((prev) => {
+      const next = new Set(prev ?? []);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
     });
   }
 
   function handlePoolCellClick(player: AdpEntry) {
     const key = draftPoolKey(player);
-    if (editMode) cycleFavorite(key);
+    if (editMode) toggleTarget(key);
     else draftPlayer(key);
   }
 
@@ -338,11 +353,15 @@ export function DraftRoom() {
                 ))}
               </div>
               {poolGrid.map((row, r) => (
-                <div className="draft-grid-row" style={{ gridTemplateColumns: poolGridColumns }} key={r}>
+                <div
+                  className={`draft-grid-row${selectedTeam === r + 1 ? " team-selected" : ""}`}
+                  style={{ gridTemplateColumns: poolGridColumns }}
+                  key={r}
+                >
                   {row.map((player, c) => {
                     if (!player) return <div className="draft-pool-cell empty" key={c} />;
                     const key = draftPoolKey(player);
-                    const fav = favorites[key] ?? "none";
+                    const isTarget = targets?.has(key) ?? false;
                     const color = POSITION_ACCENT[player.position] ?? DEFAULT_ACCENT;
                     const isDrafted = draftedKeys.has(key);
                     return (
@@ -350,7 +369,7 @@ export function DraftRoom() {
                         key={c}
                         type="button"
                         className={`draft-pool-cell${isDrafted ? " drafted" : ""}`}
-                        style={isDrafted ? undefined : favoriteStyle(fav, color)}
+                        style={isDrafted ? undefined : targetStyle(isTarget, color)}
                         onClick={() => handlePoolCellClick(player)}
                         disabled={isDrafted || (!editMode && draftComplete)}
                         title={isDrafted ? `${player.name} — drafted` : editMode ? `Tag ${player.name}` : `Draft ${player.name}`}
@@ -369,7 +388,7 @@ export function DraftRoom() {
           </div>
           <p className="card-note">
             {editMode
-              ? "Click a player to tag them — once highlights in their position color, twice marks them white, a third clears it."
+              ? "Click a player to tag them, click again to untag. Colors match position. Targets are saved in this browser."
               : "Ranked by real average draft position from actual Sleeper drafts, laid out the way a draft would fill: down a round, then over to the next. Click a player to fill the current pick."}
           </p>
         </article>
@@ -405,7 +424,17 @@ export function DraftRoom() {
               <div className="draft-grid-row" style={{ gridTemplateColumns: boardGridColumns }}>
                 <span />
                 {teamNames.map((name, i) => (
-                  <div className="draft-grid-team-header" key={i}>
+                  <div
+                    className={`draft-grid-team-header${selectedTeam === i + 1 ? " selected" : ""}`}
+                    key={i}
+                    onClick={() => setSelectedTeam((prev) => (prev === i + 1 ? null : i + 1))}
+                    title={`${selectedTeam === i + 1 ? "Deselect" : "Select"} ${name} — outlines their row in Available Players`}
+                  >
+                    {/* The input fills the header, so its click IS the header's click —
+                        no stopPropagation here, or the header's onClick (team select)
+                        would never fire. A click both focuses the input for renaming
+                        and toggles the team selection; that's a fine pairing since
+                        selection is just a transient view aid. */}
                     <input
                       className="draft-grid-team-name"
                       value={name}
