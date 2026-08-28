@@ -272,8 +272,18 @@ async function probe() {
   // genuinely doesn't exist as a page. Dumping draftSettings.js, the script
   // that presumably builds those URLs from the filter form (same technique
   // that found DraftSharks' export URL pattern earlier this session).
-  const htmlCandidates: string[] = [];
-  const jsBundleCandidates: string[] = ["https://www.yafsb.com/static/js/draftSettings.496df485058a.js"];
+  // Confirmed live (run 33134914533): draftSettings.js's applyButton
+  // handler builds the real URL as
+  // `${basePath}?scoring_type=${..}&league_size=${..}&is_superflex=${True|False}&is_dynasty=${True|False}&is_rookies=${True|False}`
+  // on top of the bare /adp-rankings/ path. Testing the one remaining
+  // missing mode (dynasty 1QB) plus dynasty superflex again via this exact
+  // query-param form, to confirm it's equivalent to (and replaces) the
+  // /dynasty/ preset path.
+  const htmlCandidates = [
+    "https://www.yafsb.com/fantasy-football/adp-rankings/?scoring_type=ppr&league_size=12&is_superflex=False&is_dynasty=True&is_rookies=False",
+    "https://www.yafsb.com/fantasy-football/adp-rankings/?scoring_type=ppr&league_size=12&is_superflex=True&is_dynasty=True&is_rookies=False",
+  ];
+  const jsBundleCandidates: string[] = [];
 
   for (const url of jsonCandidates) {
     try {
