@@ -262,22 +262,18 @@ async function probe() {
   // references.
   const jsonCandidates: string[] = [];
   // User-provided site: yafsb.com, wants Sleeper-specific ADP. Confirmed
-  // live (run 33134760638): /ppr/ IS real redraft 1QB — dataLayer says
-  // is_superflex:false, is_dynasty:false, and the table shape is right
-  // (Josh Allen out of the top 5, ADP 1.1/2.0/3.5/4.9). Two other confirmed
-  // real modes: bare /adp-rankings/ and /superflex/ are both redraft
-  // superflex (is_superflex:true, is_dynasty:false — identical data), and
-  // /dynasty/ is dynasty superflex (is_superflex:true, is_dynasty:true).
-  // Only real dynasty 1QB is still missing — /dynasty/ppr/ and
-  // /dynasty/superflex/ both 404'd (segment order dynasty-then-scoring
-  // isn't a real route), so trying the reverse order plus a hyphenated
-  // guess.
-  const htmlCandidates = [
-    "https://www.yafsb.com/fantasy-football/adp-rankings/ppr/dynasty/",
-    "https://www.yafsb.com/fantasy-football/adp-rankings/dynasty-ppr/",
-    "https://www.yafsb.com/fantasy-football/adp-rankings/ppr/dynasty-startup/",
-  ];
-  const jsBundleCandidates: string[] = [];
+  // live: 3 of 4 modes found as clean path presets — /ppr/ (redraft 1QB),
+  // bare /adp-rankings/ or /superflex/ (redraft superflex), /dynasty/
+  // (dynasty superflex). Dynasty 1QB has no working preset path (dynasty/
+  // ppr/, dynasty-ppr/, ppr/dynasty/, ppr/dynasty-startup/ all 404) and the
+  // page's own "Popular views" nav (same on every page) never lists one —
+  // so either the combo needs the real filter UI's query-param scheme
+  // (checkboxes for scoring/format/dynasty driving a non-preset URL) or it
+  // genuinely doesn't exist as a page. Dumping draftSettings.js, the script
+  // that presumably builds those URLs from the filter form (same technique
+  // that found DraftSharks' export URL pattern earlier this session).
+  const htmlCandidates: string[] = [];
+  const jsBundleCandidates: string[] = ["https://www.yafsb.com/static/js/draftSettings.496df485058a.js"];
 
   for (const url of jsonCandidates) {
     try {
@@ -374,13 +370,27 @@ async function probe() {
       console.log(`\n${url}`);
       console.log(`  status: ${res.status} ${res.statusText}`);
       console.log(`  body length: ${text.length}`);
-      // Confirmed live (run 33131800955): getExportLink() builds
-      // '/adp/export?' + 'adp[]=' + encodeURIComponent(key) + '&adp_names[]='
-      // + ... for each key in selectedSetKeys, where key comes from
-      // descriptorByKey.get(key) — so the valid adp[]= values are whatever
-      // keys populate descriptorByKey. The bundle is only 26KB total, small
-      // enough to just dump in full rather than guess more windows.
-      console.log(`  FULL BUNDLE TEXT:\n${text}`);
+      // Cap the dump — DraftSharks' AdpDash.js was small enough (26KB) to
+      // print whole, but this site's bundle size is unknown; a huge
+      // minified file would flood the log and hide later output the way
+      // Sleeper's giant JSON dump did earlier this session.
+      if (text.length <= 40000) {
+        console.log(`  FULL BUNDLE TEXT:\n${text}`);
+      } else {
+        console.log(`  bundle too large to dump whole (${text.length} chars).`);
+        // Minified bundles are often one giant line, so a line-based filter
+        // can come back empty — fall back to windows around each "dynasty"
+        // occurrence (capped to the first 10) if that happens.
+        const lines = text.split("\n").filter((l) => /dynasty|superflex|\bppr\b|href|\burl\b/i.test(l));
+        if (lines.length > 0 && lines.length < 200) {
+          console.log(`  lines mentioning dynasty/superflex/ppr/href/url:`);
+          for (const line of lines) console.log(`    ${line.slice(0, 500)}`);
+        } else {
+          console.log(`  falling back to windows around each "dynasty" occurrence (first 10):`);
+          const idxs = [...text.matchAll(/dynasty/gi)].map((m) => m.index!).slice(0, 10);
+          for (const idx of idxs) console.log(`    ...${text.slice(Math.max(0, idx - 200), idx + 200)}...`);
+        }
+      }
     } catch (err) {
       console.log(`\n${url}`);
       console.log(`  request failed: ${err instanceof Error ? err.message : err}`);
