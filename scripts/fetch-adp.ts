@@ -262,19 +262,21 @@ async function probe() {
   // references.
   const jsonCandidates: string[] = [];
   // User-provided site: yafsb.com, wants Sleeper-specific ADP. Confirmed
-  // live (run 33134552442): root page links to /fantasy-football/adp-rankings/.
-  // User then supplied the real per-format paths directly: base = redraft
-  // 1QB, /superflex/ = redraft superflex, /dynasty/ = dynasty startup 1QB,
-  // /dynasty-rookie/ = dynasty rookie-only (not one of our four modes).
-  // Dynasty superflex's path is an educated guess (dynasty-superflex/) —
-  // checking rendering (server HTML table vs JS) and column structure
-  // (does it break out Sleeper specifically, like 4for4 did per-platform?)
-  // on all of these at once.
+  // live (run 33134651356): real server-rendered table (Rank/Player/Pos/
+  // Team/ADP/Drafts columns), ADP is a literal decimal average draft
+  // position from real Sleeper drafts. BUT the bare /adp-rankings/ URL and
+  // /adp-rankings/superflex/ returned byte-identical top rows (same ADP
+  // values down to Josh Allen at 2.7, which is a superflex-shaped number,
+  // not 1QB) — and /dynasty/ also carries 'is_superflex': true in its own
+  // dataLayer push. The nav's own link labels show /ppr/ as "PPR (1QB)
+  // ADP" (distinct from the unlabeled bare URL), which suggests the site's
+  // real default is superflex and /ppr/ is what actually forces 1QB.
+  // Checking /ppr/ (real redraft 1QB?) and two guesses at a dynasty+1QB
+  // combined path.
   const htmlCandidates = [
-    "https://www.yafsb.com/fantasy-football/adp-rankings/",
-    "https://www.yafsb.com/fantasy-football/adp-rankings/superflex/",
-    "https://www.yafsb.com/fantasy-football/adp-rankings/dynasty/",
-    "https://www.yafsb.com/fantasy-football/adp-rankings/dynasty-superflex/",
+    "https://www.yafsb.com/fantasy-football/adp-rankings/ppr/",
+    "https://www.yafsb.com/fantasy-football/adp-rankings/dynasty/ppr/",
+    "https://www.yafsb.com/fantasy-football/adp-rankings/dynasty/superflex/",
   ];
   const jsBundleCandidates: string[] = [];
 
@@ -316,15 +318,11 @@ async function probe() {
       const uniqueAdpLinks = [...new Set(adpLinks)];
       console.log(`  links mentioning adp/sleeper (${uniqueAdpLinks.length}):`);
       for (const link of uniqueAdpLinks.slice(0, 40)) console.log(`    ${link}`);
-      // Any <select>/<option>/query-param-carrying control that mentions a
-      // draft-site name or format, so the URL scheme for switching
-      // site/format can be read straight off the page instead of guessed.
-      for (const kw of ["sleeper", "dynasty", "superflex", "redraft", "1qb", "one-qb", "half-ppr"]) {
-        const idx = text.toLowerCase().indexOf(kw);
-        if (idx !== -1) {
-          console.log(`  found "${kw}" at offset ${idx}: ${text.slice(Math.max(0, idx - 150), idx + 150).replace(/\s+/g, " ")}`);
-        }
-      }
+      // The page's own dataLayer.push({...}) block states this exact page's
+      // scoring_type/league_size/is_superflex/is_dynasty/is_rookies flags —
+      // read that directly instead of guessing from nearby text.
+      const dataLayerMatch = text.match(/dataLayer\.push\(\{([^}]+)\}\)/);
+      console.log(`  dataLayer flags: ${dataLayerMatch ? dataLayerMatch[1].trim() : "not found"}`);
       // Confirmed live (run 33132856201): 4for4's ADP page has a plain,
       // fully server-rendered <table><tbody> with real rows (no JS
       // framework blocking it like FantasyPros'/DraftSharks' pages) — e.g.
