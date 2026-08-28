@@ -85,6 +85,11 @@ export function DraftRoom() {
   // The team currently selected in the Draft Board, so its row can be
   // outlined in the Available Players grid — a scratch UI aid, not saved.
   const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
+  // Which team's name field is open for editing — a single click on a team
+  // header just selects it (see above); a double-click is required to
+  // actually edit the name, so a stray click doesn't drop you into a text
+  // field you have to click out of.
+  const [editingTeam, setEditingTeam] = useState<number | null>(null);
 
   const totalPicks = settings.teams * settings.rounds;
   // Teams/rounds/order reshape the whole board (pick count, snake pattern),
@@ -423,26 +428,43 @@ export function DraftRoom() {
             <div className="draft-grid">
               <div className="draft-grid-row" style={{ gridTemplateColumns: boardGridColumns }}>
                 <span />
-                {teamNames.map((name, i) => (
-                  <div
-                    className={`draft-grid-team-header${selectedTeam === i + 1 ? " selected" : ""}`}
-                    key={i}
-                    onClick={() => setSelectedTeam((prev) => (prev === i + 1 ? null : i + 1))}
-                    title={`${selectedTeam === i + 1 ? "Deselect" : "Select"} ${name} — outlines their row in Available Players`}
-                  >
-                    {/* The input fills the header, so its click IS the header's click —
-                        no stopPropagation here, or the header's onClick (team select)
-                        would never fire. A click both focuses the input for renaming
-                        and toggles the team selection; that's a fine pairing since
-                        selection is just a transient view aid. */}
-                    <input
-                      className="draft-grid-team-name"
-                      value={name}
-                      onChange={(e) => renameTeam(i, e.target.value)}
-                      aria-label={`Team ${i + 1} name`}
-                    />
-                  </div>
-                ))}
+                {teamNames.map((name, i) => {
+                  const teamNum = i + 1;
+                  const isEditing = editingTeam === teamNum;
+                  return (
+                    <div
+                      className={`draft-grid-team-header${selectedTeam === teamNum ? " selected" : ""}`}
+                      key={i}
+                      onClick={() => setSelectedTeam((prev) => (prev === teamNum ? null : teamNum))}
+                      onDoubleClick={() => setEditingTeam(teamNum)}
+                      title={
+                        isEditing
+                          ? "Editing name"
+                          : `${selectedTeam === teamNum ? "Deselect" : "Select"} ${name} — outlines their row in Available Players. Double-click to rename.`
+                      }
+                    >
+                      {isEditing ? (
+                        // stopPropagation here so clicking to position the
+                        // cursor while renaming doesn't also toggle team
+                        // selection via the header's onClick above.
+                        <input
+                          className="draft-grid-team-name"
+                          value={name}
+                          autoFocus
+                          onChange={(e) => renameTeam(i, e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          onBlur={() => setEditingTeam(null)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") e.currentTarget.blur();
+                          }}
+                          aria-label={`Team ${teamNum} name`}
+                        />
+                      ) : (
+                        <span className="draft-grid-team-name draft-grid-team-name-display">{name}</span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
               {boardGrid.map((row, r) => (
                 <div className="draft-grid-row" style={{ gridTemplateColumns: boardGridColumns }} key={r}>

@@ -431,7 +431,7 @@
   .warroom-console .draft-grid-wrap { overflow-x: auto; }
   .warroom-console .draft-grid { display: flex; flex-direction: column; gap: 3px; width: max-content; min-width: 100%; }
   .warroom-console .draft-grid-row { display: grid; gap: 3px; }
-  /* A soft white fill behind the whole row, not just a stroke around it.
+  /* A fully white fill behind the whole row, not just a stroke around it.
      The cells themselves are opaque, so this background only actually
      shows through the 3px gaps between them (row/column gap above are
      both 3px) — reading as "white between the boxes." The box-shadow
@@ -440,8 +440,8 @@
      toward the rows above/below and past the first/last cell, without
      reaching all the way to the neighboring row. */
   .warroom-console .draft-grid-row.team-selected {
-    background-color: rgba(255, 255, 255, 0.16);
-    box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.16);
+    background-color: #fff;
+    box-shadow: 0 0 0 1.5px #fff;
   }
   .warroom-console .draft-grid-round-label { display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 9.5px; color: var(--ink-dim); }
   .warroom-console .draft-grid-team-header {
@@ -451,10 +451,11 @@
   }
   .warroom-console .draft-grid-team-header.selected { border-color: #fff; background: rgba(255, 255, 255, 0.14); }
   .warroom-console .draft-grid-team-name {
-    width: 100%; background: transparent; border: none; color: var(--cyan); font-family: var(--mono); font-size: 9.5px;
-    text-align: center; letter-spacing: 0.03em;
+    display: block; width: 100%; background: transparent; border: none; color: var(--cyan); font-family: var(--mono);
+    font-size: 9.5px; text-align: center; letter-spacing: 0.03em;
   }
   .warroom-console .draft-grid-team-name:focus-visible { outline: 1px solid var(--cyan); }
+  .warroom-console .draft-grid-team-name-display { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .warroom-console .draft-grid-cell {
     min-width: 96px; min-height: 40px; background: var(--panel-inset); border: 1px solid var(--line);
     padding: 4px 6px; font-family: var(--mono); font-size: 9.5px; color: var(--ink-dim);
