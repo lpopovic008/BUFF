@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-08-28T00:48:06.646Z",
+  "updatedAt": "2026-08-28T00:49:59.499Z",
   "source": "fantasycalc",
   "dynastyOneQB": [
     {
@@ -61,12 +61,6 @@
       "position": "WR",
       "team": "MIN",
       "adp": 10
-    },
-    {
-      "name": "2026 Pick 1.01",
-      "position": "PICK",
-      "team": null,
-      "adp": 11
     },
     {
       "name": "Omarion Hampton",
@@ -183,18 +177,6 @@
       "adp": 29
     },
     {
-      "name": "2026 Pick 1.02",
-      "position": "PICK",
-      "team": null,
-      "adp": 30
-    },
-    {
-      "name": "2027 1st (Early)",
-      "position": "PICK",
-      "team": null,
-      "adp": 30
-    },
-    {
       "name": "Chris Olave",
       "position": "WR",
       "team": "NO",
@@ -253,12 +235,6 @@
       "position": "QB",
       "team": "CHI",
       "adp": 39
-    },
-    {
-      "name": "2026 Pick 1.03",
-      "position": "PICK",
-      "team": null,
-      "adp": 40
     },
     {
       "name": "Kyren Williams",
@@ -339,12 +315,6 @@
       "adp": 52
     },
     {
-      "name": "2026 Pick 1.04",
-      "position": "PICK",
-      "team": null,
-      "adp": 53
-    },
-    {
       "name": "Javonte Williams",
       "position": "RB",
       "team": "DAL",
@@ -373,12 +343,6 @@
       "position": "WR",
       "team": "ARI",
       "adp": 57
-    },
-    {
-      "name": "2026 Pick 1.05",
-      "position": "PICK",
-      "team": null,
-      "adp": 58
     },
     {
       "name": "Tucker Kraft",
@@ -411,12 +375,6 @@
       "adp": 62
     },
     {
-      "name": "2026 Pick 1.06",
-      "position": "PICK",
-      "team": null,
-      "adp": 63
-    },
-    {
       "name": "Josh Jacobs",
       "position": "RB",
       "team": "GB",
@@ -427,12 +385,6 @@
       "position": "TE",
       "team": "CLE",
       "adp": 64
-    },
-    {
-      "name": "2026 1st",
-      "position": "PICK",
-      "team": null,
-      "adp": 65
     },
     {
       "name": "Brian Thomas",
@@ -459,18 +411,6 @@
       "adp": 68
     },
     {
-      "name": "2027 1st (Mid)",
-      "position": "PICK",
-      "team": null,
-      "adp": 69
-    },
-    {
-      "name": "2026 Pick 1.07",
-      "position": "PICK",
-      "team": null,
-      "adp": 69
-    },
-    {
       "name": "Trevor Lawrence",
       "position": "QB",
       "team": "JAX",
@@ -487,12 +427,6 @@
       "position": "TE",
       "team": "DET",
       "adp": 71
-    },
-    {
-      "name": "2027 1st",
-      "position": "PICK",
-      "team": null,
-      "adp": 72
     },
     {
       "name": "KC Concepcion",
@@ -525,12 +459,6 @@
       "adp": 76
     },
     {
-      "name": "2026 Pick 1.08",
-      "position": "PICK",
-      "team": null,
-      "adp": 77
-    },
-    {
       "name": "David Montgomery",
       "position": "RB",
       "team": "HOU",
@@ -541,12 +469,6 @@
       "position": "WR",
       "team": "BUF",
       "adp": 78
-    },
-    {
-      "name": "2026 Pick 1.09",
-      "position": "PICK",
-      "team": null,
-      "adp": 79
     },
     {
       "name": "Christian Watson",
@@ -573,12 +495,6 @@
       "adp": 82
     },
     {
-      "name": "2026 Pick 1.10",
-      "position": "PICK",
-      "team": null,
-      "adp": 83
-    },
-    {
       "name": "De'Zhaun Stribling",
       "position": "WR",
       "team": "SF",
@@ -591,12 +507,6 @@
       "adp": 84
     },
     {
-      "name": "2027 1st (Late)",
-      "position": "PICK",
-      "team": null,
-      "adp": 85
-    },
-    {
       "name": "Fernando Mendoza",
       "position": "QB",
       "team": "LV",
@@ -607,12 +517,6 @@
       "position": "WR",
       "team": "GB",
       "adp": 86
-    },
-    {
-      "name": "2026 Pick 1.11",
-      "position": "PICK",
-      "team": null,
-      "adp": 87
     },
     {
       "name": "Jordan Addison",
@@ -669,18 +573,6 @@
       "adp": 95
     },
     {
-      "name": "2028 1st",
-      "position": "PICK",
-      "team": null,
-      "adp": 96
-    },
-    {
-      "name": "2026 Pick 1.12",
-      "position": "PICK",
-      "team": null,
-      "adp": 96
-    },
-    {
       "name": "Michael Wilson",
       "position": "WR",
       "team": "ARI",
@@ -727,12 +619,6 @@
       "position": "RB",
       "team": "PIT",
       "adp": 103
-    },
-    {
-      "name": "2026 Pick 2.01",
-      "position": "PICK",
-      "team": null,
-      "adp": 104
     },
     {
       "name": "Mike Evans",
@@ -783,18 +669,6 @@
       "adp": 111
     },
     {
-      "name": "2029 1st",
-      "position": "PICK",
-      "team": null,
-      "adp": 112
-    },
-    {
-      "name": "2026 Pick 2.02",
-      "position": "PICK",
-      "team": null,
-      "adp": 112
-    },
-    {
       "name": "Quentin Johnston",
       "position": "WR",
       "team": "LAC",
@@ -837,12 +711,6 @@
       "adp": 118
     },
     {
-      "name": "2027 2nd (Early)",
-      "position": "PICK",
-      "team": null,
-      "adp": 119
-    },
-    {
       "name": "Cam Ward",
       "position": "QB",
       "team": "TEN",
@@ -871,12 +739,6 @@
       "position": "WR",
       "team": "HOU",
       "adp": 123
-    },
-    {
-      "name": "2026 Pick 2.03",
-      "position": "PICK",
-      "team": null,
-      "adp": 124
     },
     {
       "name": "Courtland Sutton",
@@ -927,12 +789,6 @@
       "adp": 131
     },
     {
-      "name": "2026 Pick 2.04",
-      "position": "PICK",
-      "team": null,
-      "adp": 132
-    },
-    {
       "name": "Chris Godwin",
       "position": "WR",
       "team": "TB",
@@ -967,12 +823,6 @@
       "position": "WR",
       "team": "KC",
       "adp": 137
-    },
-    {
-      "name": "2026 Pick 2.05",
-      "position": "PICK",
-      "team": null,
-      "adp": 138
     },
     {
       "name": "Malachi Fields",
@@ -1023,34 +873,10 @@
       "adp": 145
     },
     {
-      "name": "2026 Pick 2.06",
-      "position": "PICK",
-      "team": null,
-      "adp": 146
-    },
-    {
-      "name": "2027 2nd (Mid)",
-      "position": "PICK",
-      "team": null,
-      "adp": 146
-    },
-    {
       "name": "Stefon Diggs",
       "position": "WR",
       "team": "WAS",
       "adp": 146
-    },
-    {
-      "name": "2026 2nd",
-      "position": "PICK",
-      "team": null,
-      "adp": 147
-    },
-    {
-      "name": "2027 2nd",
-      "position": "PICK",
-      "team": null,
-      "adp": 147
     },
     {
       "name": "Mark Andrews",
@@ -1063,12 +889,6 @@
       "position": "RB",
       "team": "GB",
       "adp": 148
-    },
-    {
-      "name": "2026 Pick 2.07",
-      "position": "PICK",
-      "team": null,
-      "adp": 149
     },
     {
       "name": "Chris Rodriguez",
@@ -1123,12 +943,6 @@
       "position": "WR",
       "team": "BUF",
       "adp": 157
-    },
-    {
-      "name": "2026 Pick 2.08",
-      "position": "PICK",
-      "team": null,
-      "adp": 158
     },
     {
       "name": "Rashid Shaheed",
@@ -1197,12 +1011,6 @@
       "adp": 168
     },
     {
-      "name": "2026 Pick 2.09",
-      "position": "PICK",
-      "team": null,
-      "adp": 169
-    },
-    {
       "name": "Tre' Harris",
       "position": "WR",
       "team": "LAC",
@@ -1245,18 +1053,6 @@
       "adp": 175
     },
     {
-      "name": "2026 Pick 2.10",
-      "position": "PICK",
-      "team": null,
-      "adp": 176
-    },
-    {
-      "name": "2027 2nd (Late)",
-      "position": "PICK",
-      "team": null,
-      "adp": 176
-    },
-    {
       "name": "Isiah Pacheco",
       "position": "RB",
       "team": "DET",
@@ -1297,18 +1093,6 @@
       "position": "RB",
       "team": "MIN",
       "adp": 182
-    },
-    {
-      "name": "2028 2nd",
-      "position": "PICK",
-      "team": null,
-      "adp": 183
-    },
-    {
-      "name": "2026 Pick 2.11",
-      "position": "PICK",
-      "team": null,
-      "adp": 183
     },
     {
       "name": "Tyjae Spears",
@@ -1371,22 +1155,10 @@
       "adp": 192
     },
     {
-      "name": "2026 Pick 2.12",
-      "position": "PICK",
-      "team": null,
-      "adp": 193
-    },
-    {
       "name": "Dalton Schultz",
       "position": "TE",
       "team": "HOU",
       "adp": 193
-    },
-    {
-      "name": "2029 2nd",
-      "position": "PICK",
-      "team": null,
-      "adp": 194
     },
     {
       "name": "Jalen Nailor",
@@ -1401,28 +1173,10 @@
       "adp": 195
     },
     {
-      "name": "2026 Pick 3.01",
-      "position": "PICK",
-      "team": null,
-      "adp": 196
-    },
-    {
       "name": "Tre Tucker",
       "position": "WR",
       "team": "LV",
       "adp": 196
-    },
-    {
-      "name": "2027 3rd (Early)",
-      "position": "PICK",
-      "team": null,
-      "adp": 197
-    },
-    {
-      "name": "2026 Pick 3.02",
-      "position": "PICK",
-      "team": null,
-      "adp": 197
     },
     {
       "name": "Isaac TeSlaa",
@@ -1431,46 +1185,10 @@
       "adp": 197
     },
     {
-      "name": "2026 Pick 3.03",
-      "position": "PICK",
-      "team": null,
-      "adp": 198
-    },
-    {
-      "name": "2026 Pick 3.04",
-      "position": "PICK",
-      "team": null,
-      "adp": 198
-    },
-    {
-      "name": "2026 Pick 3.05",
-      "position": "PICK",
-      "team": null,
-      "adp": 198
-    },
-    {
       "name": "Jaylin Noel",
       "position": "WR",
       "team": "HOU",
       "adp": 198
-    },
-    {
-      "name": "2027 3rd (Mid)",
-      "position": "PICK",
-      "team": null,
-      "adp": 199
-    },
-    {
-      "name": "2027 3rd",
-      "position": "PICK",
-      "team": null,
-      "adp": 199
-    },
-    {
-      "name": "2026 Pick 3.06",
-      "position": "PICK",
-      "team": null,
-      "adp": 199
     },
     {
       "name": "Najee Harris",
@@ -1479,28 +1197,10 @@
       "adp": 199
     },
     {
-      "name": "2026 3rd",
-      "position": "PICK",
-      "team": null,
-      "adp": 200
-    },
-    {
-      "name": "2026 Pick 3.07",
-      "position": "PICK",
-      "team": null,
-      "adp": 200
-    },
-    {
       "name": "Keenan Allen",
       "position": "WR",
       "team": "IND",
       "adp": 200
-    },
-    {
-      "name": "2026 Pick 3.08",
-      "position": "PICK",
-      "team": null,
-      "adp": 201
     },
     {
       "name": "Kaytron Allen",
@@ -1539,70 +1239,16 @@
       "adp": 206
     },
     {
-      "name": "2027 3rd (Late)",
-      "position": "PICK",
-      "team": null,
-      "adp": 207
-    },
-    {
-      "name": "2026 Pick 3.09",
-      "position": "PICK",
-      "team": null,
-      "adp": 207
-    },
-    {
       "name": "Jauan Jennings",
       "position": "WR",
       "team": "MIN",
       "adp": 207
     },
     {
-      "name": "2028 3rd",
-      "position": "PICK",
-      "team": null,
-      "adp": 208
-    },
-    {
-      "name": "2026 Pick 3.10",
-      "position": "PICK",
-      "team": null,
-      "adp": 208
-    },
-    {
-      "name": "2029 3rd",
-      "position": "PICK",
-      "team": null,
-      "adp": 208
-    },
-    {
-      "name": "2026 Pick 3.11",
-      "position": "PICK",
-      "team": null,
-      "adp": 208
-    },
-    {
-      "name": "2026 Pick 3.12",
-      "position": "PICK",
-      "team": null,
-      "adp": 208
-    },
-    {
-      "name": "2027 4th (Early)",
-      "position": "PICK",
-      "team": null,
-      "adp": 208
-    },
-    {
       "name": "Tory Horton",
       "position": "WR",
       "team": "SEA",
       "adp": 208
-    },
-    {
-      "name": "2026 Pick 4.01",
-      "position": "PICK",
-      "team": null,
-      "adp": 209
     },
     {
       "name": "Shedeur Sanders",
@@ -1615,12 +1261,6 @@
       "position": "WR",
       "team": "LV",
       "adp": 210
-    },
-    {
-      "name": "2026 Pick 4.02",
-      "position": "PICK",
-      "team": null,
-      "adp": 211
     },
     {
       "name": "Greg Dulcich",
@@ -1653,24 +1293,6 @@
       "adp": 215
     },
     {
-      "name": "2026 Pick 4.03",
-      "position": "PICK",
-      "team": null,
-      "adp": 216
-    },
-    {
-      "name": "2027 4th (Mid)",
-      "position": "PICK",
-      "team": null,
-      "adp": 216
-    },
-    {
-      "name": "2027 4th",
-      "position": "PICK",
-      "team": null,
-      "adp": 216
-    },
-    {
       "name": "Cade Otton",
       "position": "TE",
       "team": "TB",
@@ -1695,30 +1317,6 @@
       "adp": 219
     },
     {
-      "name": "2026 Pick 4.04",
-      "position": "PICK",
-      "team": null,
-      "adp": 220
-    },
-    {
-      "name": "2026 Pick 4.05",
-      "position": "PICK",
-      "team": null,
-      "adp": 220
-    },
-    {
-      "name": "2028 4th",
-      "position": "PICK",
-      "team": null,
-      "adp": 220
-    },
-    {
-      "name": "2026 Pick 4.06",
-      "position": "PICK",
-      "team": null,
-      "adp": 220
-    },
-    {
       "name": "Kaleb Johnson",
       "position": "RB",
       "team": "PIT",
@@ -1729,12 +1327,6 @@
       "position": "RB",
       "team": "MIA",
       "adp": 221
-    },
-    {
-      "name": "2026 4th",
-      "position": "PICK",
-      "team": null,
-      "adp": 222
     },
     {
       "name": "Kimani Vidal",
@@ -1755,28 +1347,10 @@
       "adp": 224
     },
     {
-      "name": "2027 4th (Late)",
-      "position": "PICK",
-      "team": null,
-      "adp": 225
-    },
-    {
       "name": "Elijah Sarratt",
       "position": "WR",
       "team": "BAL",
       "adp": 225
-    },
-    {
-      "name": "2026 Pick 4.07",
-      "position": "PICK",
-      "team": null,
-      "adp": 226
-    },
-    {
-      "name": "2029 4th",
-      "position": "PICK",
-      "team": null,
-      "adp": 226
     },
     {
       "name": "Trey Benson",
@@ -1791,12 +1365,6 @@
       "adp": 227
     },
     {
-      "name": "2026 Pick 4.08",
-      "position": "PICK",
-      "team": null,
-      "adp": 228
-    },
-    {
       "name": "Seth McGowan",
       "position": "RB",
       "team": "IND",
@@ -1809,34 +1377,10 @@
       "adp": 229
     },
     {
-      "name": "2026 Pick 4.09",
-      "position": "PICK",
-      "team": null,
-      "adp": 230
-    },
-    {
       "name": "David Njoku",
       "position": "TE",
       "team": "LAC",
       "adp": 230
-    },
-    {
-      "name": "2026 Pick 4.10",
-      "position": "PICK",
-      "team": null,
-      "adp": 231
-    },
-    {
-      "name": "2026 Pick 4.11",
-      "position": "PICK",
-      "team": null,
-      "adp": 231
-    },
-    {
-      "name": "2026 Pick 4.12",
-      "position": "PICK",
-      "team": null,
-      "adp": 231
     },
     {
       "name": "Skyler Bell",
@@ -2903,12 +2447,6 @@
       "adp": 10
     },
     {
-      "name": "2026 Pick 1.01",
-      "position": "PICK",
-      "team": null,
-      "adp": 11
-    },
-    {
       "name": "Caleb Williams",
       "position": "QB",
       "team": "CHI",
@@ -3023,12 +2561,6 @@
       "adp": 29
     },
     {
-      "name": "2026 Pick 1.02",
-      "position": "PICK",
-      "team": null,
-      "adp": 30
-    },
-    {
       "name": "Bo Nix",
       "position": "QB",
       "team": "DEN",
@@ -3081,18 +2613,6 @@
       "position": "QB",
       "team": "SF",
       "adp": 38
-    },
-    {
-      "name": "2027 1st (Early)",
-      "position": "PICK",
-      "team": null,
-      "adp": 39
-    },
-    {
-      "name": "2026 Pick 1.03",
-      "position": "PICK",
-      "team": null,
-      "adp": 39
     },
     {
       "name": "Tyler Warren",
@@ -3149,12 +2669,6 @@
       "adp": 47
     },
     {
-      "name": "2026 Pick 1.04",
-      "position": "PICK",
-      "team": null,
-      "adp": 48
-    },
-    {
       "name": "Ladd McConkey",
       "position": "WR",
       "team": "LAC",
@@ -3177,12 +2691,6 @@
       "position": "WR",
       "team": "PHI",
       "adp": 51
-    },
-    {
-      "name": "2026 Pick 1.05",
-      "position": "PICK",
-      "team": null,
-      "adp": 52
     },
     {
       "name": "Luther Burden",
@@ -3251,12 +2759,6 @@
       "adp": 62
     },
     {
-      "name": "2026 Pick 1.06",
-      "position": "PICK",
-      "team": null,
-      "adp": 63
-    },
-    {
       "name": "Jadarian Price",
       "position": "RB",
       "team": "SEA",
@@ -3311,12 +2813,6 @@
       "adp": 71
     },
     {
-      "name": "2026 1st",
-      "position": "PICK",
-      "team": null,
-      "adp": 72
-    },
-    {
       "name": "TreVeyon Henderson",
       "position": "RB",
       "team": "NE",
@@ -3347,12 +2843,6 @@
       "adp": 76
     },
     {
-      "name": "2026 Pick 1.07",
-      "position": "PICK",
-      "team": null,
-      "adp": 77
-    },
-    {
       "name": "Sam LaPorta",
       "position": "TE",
       "team": "DET",
@@ -3363,12 +2853,6 @@
       "position": "TE",
       "team": "ATL",
       "adp": 78
-    },
-    {
-      "name": "2027 1st (Mid)",
-      "position": "PICK",
-      "team": null,
-      "adp": 79
     },
     {
       "name": "Matthew Stafford",
@@ -3401,28 +2885,10 @@
       "adp": 83
     },
     {
-      "name": "2027 1st",
-      "position": "PICK",
-      "team": null,
-      "adp": 84
-    },
-    {
-      "name": "2026 Pick 1.08",
-      "position": "PICK",
-      "team": null,
-      "adp": 84
-    },
-    {
       "name": "Parker Washington",
       "position": "WR",
       "team": "JAX",
       "adp": 84
-    },
-    {
-      "name": "2026 Pick 1.09",
-      "position": "PICK",
-      "team": null,
-      "adp": 85
     },
     {
       "name": "KC Concepcion",
@@ -3441,12 +2907,6 @@
       "position": "RB",
       "team": "JAX",
       "adp": 87
-    },
-    {
-      "name": "2026 Pick 1.10",
-      "position": "PICK",
-      "team": null,
-      "adp": 88
     },
     {
       "name": "Bryce Young",
@@ -3491,22 +2951,10 @@
       "adp": 94
     },
     {
-      "name": "2026 Pick 1.11",
-      "position": "PICK",
-      "team": null,
-      "adp": 95
-    },
-    {
       "name": "Ty Simpson",
       "position": "QB",
       "team": "LAR",
       "adp": 95
-    },
-    {
-      "name": "2027 1st (Late)",
-      "position": "PICK",
-      "team": null,
-      "adp": 96
     },
     {
       "name": "De'Zhaun Stribling",
@@ -3519,12 +2967,6 @@
       "position": "RB",
       "team": "HOU",
       "adp": 97
-    },
-    {
-      "name": "2026 Pick 1.12",
-      "position": "PICK",
-      "team": null,
-      "adp": 98
     },
     {
       "name": "George Kittle",
@@ -3551,18 +2993,6 @@
       "adp": 101
     },
     {
-      "name": "2026 Pick 2.01",
-      "position": "PICK",
-      "team": null,
-      "adp": 102
-    },
-    {
-      "name": "2028 1st",
-      "position": "PICK",
-      "team": null,
-      "adp": 102
-    },
-    {
       "name": "Denzel Boston",
       "position": "WR",
       "team": "CLE",
@@ -3585,12 +3015,6 @@
       "position": "TE",
       "team": "BUF",
       "adp": 105
-    },
-    {
-      "name": "2026 Pick 2.02",
-      "position": "PICK",
-      "team": null,
-      "adp": 106
     },
     {
       "name": "Michael Wilson",
@@ -3623,18 +3047,6 @@
       "adp": 110
     },
     {
-      "name": "2026 Pick 2.03",
-      "position": "PICK",
-      "team": null,
-      "adp": 111
-    },
-    {
-      "name": "2029 1st",
-      "position": "PICK",
-      "team": null,
-      "adp": 111
-    },
-    {
       "name": "Mike Evans",
       "position": "WR",
       "team": "SF",
@@ -3665,12 +3077,6 @@
       "adp": 115
     },
     {
-      "name": "2027 2nd (Early)",
-      "position": "PICK",
-      "team": null,
-      "adp": 116
-    },
-    {
       "name": "Wan'Dale Robinson",
       "position": "WR",
       "team": "TEN",
@@ -3681,12 +3087,6 @@
       "position": "WR",
       "team": "NYJ",
       "adp": 117
-    },
-    {
-      "name": "2026 Pick 2.04",
-      "position": "PICK",
-      "team": null,
-      "adp": 118
     },
     {
       "name": "Jake Ferguson",
@@ -3743,12 +3143,6 @@
       "adp": 126
     },
     {
-      "name": "2026 Pick 2.05",
-      "position": "PICK",
-      "team": null,
-      "adp": 127
-    },
-    {
       "name": "Terrance Ferguson",
       "position": "TE",
       "team": "LAR",
@@ -3791,12 +3185,6 @@
       "adp": 133
     },
     {
-      "name": "2026 Pick 2.06",
-      "position": "PICK",
-      "team": null,
-      "adp": 134
-    },
-    {
       "name": "Travis Hunter",
       "position": "WR",
       "team": "JAX",
@@ -3807,12 +3195,6 @@
       "position": "TE",
       "team": "PHI",
       "adp": 135
-    },
-    {
-      "name": "2026 2nd",
-      "position": "PICK",
-      "team": null,
-      "adp": 136
     },
     {
       "name": "Chuba Hubbard",
@@ -3831,12 +3213,6 @@
       "position": "TE",
       "team": "BAL",
       "adp": 138
-    },
-    {
-      "name": "2026 Pick 2.07",
-      "position": "PICK",
-      "team": null,
-      "adp": 139
     },
     {
       "name": "Ja'Kobi Lane",
@@ -3881,12 +3257,6 @@
       "adp": 145
     },
     {
-      "name": "2027 2nd (Mid)",
-      "position": "PICK",
-      "team": null,
-      "adp": 146
-    },
-    {
       "name": "Chris Bell",
       "position": "WR",
       "team": "MIA",
@@ -3897,12 +3267,6 @@
       "position": "RB",
       "team": "TEN",
       "adp": 147
-    },
-    {
-      "name": "2026 Pick 2.08",
-      "position": "PICK",
-      "team": null,
-      "adp": 148
     },
     {
       "name": "Woody Marks",
@@ -3921,12 +3285,6 @@
       "position": "QB",
       "team": "PIT",
       "adp": 150
-    },
-    {
-      "name": "2027 2nd",
-      "position": "PICK",
-      "team": null,
-      "adp": 151
     },
     {
       "name": "Jordan Mason",
@@ -3971,12 +3329,6 @@
       "adp": 157
     },
     {
-      "name": "2026 Pick 2.09",
-      "position": "PICK",
-      "team": null,
-      "adp": 158
-    },
-    {
       "name": "Stefon Diggs",
       "position": "WR",
       "team": "WAS",
@@ -4005,12 +3357,6 @@
       "position": "WR",
       "team": "KC",
       "adp": 162
-    },
-    {
-      "name": "2026 Pick 2.10",
-      "position": "PICK",
-      "team": null,
-      "adp": 163
     },
     {
       "name": "Antonio Williams",
@@ -4073,12 +3419,6 @@
       "adp": 172
     },
     {
-      "name": "2026 Pick 2.11",
-      "position": "PICK",
-      "team": null,
-      "adp": 173
-    },
-    {
       "name": "Kayshon Boutte",
       "position": "WR",
       "team": "NE",
@@ -4095,12 +3435,6 @@
       "position": "WR",
       "team": "MIA",
       "adp": 175
-    },
-    {
-      "name": "2027 2nd (Late)",
-      "position": "PICK",
-      "team": null,
-      "adp": 176
     },
     {
       "name": "Zachariah Branch",
@@ -4125,12 +3459,6 @@
       "position": "RB",
       "team": "GB",
       "adp": 179
-    },
-    {
-      "name": "2026 Pick 2.12",
-      "position": "PICK",
-      "team": null,
-      "adp": 180
     },
     {
       "name": "Chris Rodriguez",
@@ -4169,22 +3497,10 @@
       "adp": 185
     },
     {
-      "name": "2028 2nd",
-      "position": "PICK",
-      "team": null,
-      "adp": 186
-    },
-    {
       "name": "Braelon Allen",
       "position": "RB",
       "team": "NYJ",
       "adp": 186
-    },
-    {
-      "name": "2026 Pick 3.01",
-      "position": "PICK",
-      "team": null,
-      "adp": 187
     },
     {
       "name": "Ted Hurst",
@@ -4215,18 +3531,6 @@
       "position": "RB",
       "team": "PHI",
       "adp": 191
-    },
-    {
-      "name": "2029 2nd",
-      "position": "PICK",
-      "team": null,
-      "adp": 192
-    },
-    {
-      "name": "2026 Pick 3.02",
-      "position": "PICK",
-      "team": null,
-      "adp": 192
     },
     {
       "name": "Germie Bernard",
@@ -4265,12 +3569,6 @@
       "adp": 197
     },
     {
-      "name": "2026 Pick 3.03",
-      "position": "PICK",
-      "team": null,
-      "adp": 198
-    },
-    {
       "name": "Brian Robinson",
       "position": "RB",
       "team": "ATL",
@@ -4283,12 +3581,6 @@
       "adp": 199
     },
     {
-      "name": "2027 3rd (Early)",
-      "position": "PICK",
-      "team": null,
-      "adp": 200
-    },
-    {
       "name": "Jalen Nailor",
       "position": "WR",
       "team": "LV",
@@ -4299,12 +3591,6 @@
       "position": "RB",
       "team": "DET",
       "adp": 201
-    },
-    {
-      "name": "2026 Pick 3.04",
-      "position": "PICK",
-      "team": null,
-      "adp": 202
     },
     {
       "name": "Tre Tucker",
@@ -4331,12 +3617,6 @@
       "adp": 205
     },
     {
-      "name": "2026 Pick 3.05",
-      "position": "PICK",
-      "team": null,
-      "adp": 206
-    },
-    {
       "name": "Isaac TeSlaa",
       "position": "WR",
       "team": "DET",
@@ -4355,42 +3635,6 @@
       "adp": 208
     },
     {
-      "name": "2026 Pick 3.06",
-      "position": "PICK",
-      "team": null,
-      "adp": 209
-    },
-    {
-      "name": "2026 3rd",
-      "position": "PICK",
-      "team": null,
-      "adp": 209
-    },
-    {
-      "name": "2026 Pick 3.07",
-      "position": "PICK",
-      "team": null,
-      "adp": 209
-    },
-    {
-      "name": "2027 3rd (Mid)",
-      "position": "PICK",
-      "team": null,
-      "adp": 209
-    },
-    {
-      "name": "2027 3rd",
-      "position": "PICK",
-      "team": null,
-      "adp": 209
-    },
-    {
-      "name": "2026 Pick 3.08",
-      "position": "PICK",
-      "team": null,
-      "adp": 209
-    },
-    {
       "name": "Eli Raridon",
       "position": "TE",
       "team": "NE",
@@ -4403,52 +3647,10 @@
       "adp": 210
     },
     {
-      "name": "2026 Pick 3.09",
-      "position": "PICK",
-      "team": null,
-      "adp": 211
-    },
-    {
-      "name": "2026 Pick 3.10",
-      "position": "PICK",
-      "team": null,
-      "adp": 211
-    },
-    {
-      "name": "2027 3rd (Late)",
-      "position": "PICK",
-      "team": null,
-      "adp": 211
-    },
-    {
-      "name": "2026 Pick 3.11",
-      "position": "PICK",
-      "team": null,
-      "adp": 211
-    },
-    {
-      "name": "2028 3rd",
-      "position": "PICK",
-      "team": null,
-      "adp": 211
-    },
-    {
       "name": "Keenan Allen",
       "position": "WR",
       "team": "IND",
       "adp": 211
-    },
-    {
-      "name": "2026 Pick 3.12",
-      "position": "PICK",
-      "team": null,
-      "adp": 212
-    },
-    {
-      "name": "2029 3rd",
-      "position": "PICK",
-      "team": null,
-      "adp": 212
     },
     {
       "name": "Jerry Jeudy",
@@ -4469,40 +3671,16 @@
       "adp": 214
     },
     {
-      "name": "2026 Pick 4.01",
-      "position": "PICK",
-      "team": null,
-      "adp": 215
-    },
-    {
       "name": "Najee Harris",
       "position": "RB",
       "team": "NYG",
       "adp": 215
     },
     {
-      "name": "2026 Pick 4.02",
-      "position": "PICK",
-      "team": null,
-      "adp": 216
-    },
-    {
       "name": "Greg Dulcich",
       "position": "TE",
       "team": "MIA",
       "adp": 216
-    },
-    {
-      "name": "2027 4th (Early)",
-      "position": "PICK",
-      "team": null,
-      "adp": 217
-    },
-    {
-      "name": "2026 Pick 4.03",
-      "position": "PICK",
-      "team": null,
-      "adp": 217
     },
     {
       "name": "Kaytron Allen",
@@ -4523,58 +3701,16 @@
       "adp": 219
     },
     {
-      "name": "2026 Pick 4.04",
-      "position": "PICK",
-      "team": null,
-      "adp": 220
-    },
-    {
       "name": "Tory Horton",
       "position": "WR",
       "team": "SEA",
       "adp": 220
     },
     {
-      "name": "2026 Pick 4.05",
-      "position": "PICK",
-      "team": null,
-      "adp": 221
-    },
-    {
-      "name": "2027 4th (Mid)",
-      "position": "PICK",
-      "team": null,
-      "adp": 221
-    },
-    {
-      "name": "2027 4th",
-      "position": "PICK",
-      "team": null,
-      "adp": 221
-    },
-    {
       "name": "Jack Bech",
       "position": "WR",
       "team": "LV",
       "adp": 221
-    },
-    {
-      "name": "2026 Pick 4.06",
-      "position": "PICK",
-      "team": null,
-      "adp": 222
-    },
-    {
-      "name": "2026 4th",
-      "position": "PICK",
-      "team": null,
-      "adp": 222
-    },
-    {
-      "name": "2026 Pick 4.07",
-      "position": "PICK",
-      "team": null,
-      "adp": 222
     },
     {
       "name": "Troy Franklin",
@@ -4589,24 +3725,6 @@
       "adp": 223
     },
     {
-      "name": "2028 4th",
-      "position": "PICK",
-      "team": null,
-      "adp": 224
-    },
-    {
-      "name": "2026 Pick 4.08",
-      "position": "PICK",
-      "team": null,
-      "adp": 224
-    },
-    {
-      "name": "2026 Pick 4.09",
-      "position": "PICK",
-      "team": null,
-      "adp": 224
-    },
-    {
       "name": "David Njoku",
       "position": "TE",
       "team": "LAC",
@@ -4619,30 +3737,6 @@
       "adp": 225
     },
     {
-      "name": "2027 4th (Late)",
-      "position": "PICK",
-      "team": null,
-      "adp": 226
-    },
-    {
-      "name": "2029 4th",
-      "position": "PICK",
-      "team": null,
-      "adp": 226
-    },
-    {
-      "name": "2026 Pick 4.10",
-      "position": "PICK",
-      "team": null,
-      "adp": 226
-    },
-    {
-      "name": "2026 Pick 4.11",
-      "position": "PICK",
-      "team": null,
-      "adp": 226
-    },
-    {
       "name": "Demond Claiborne",
       "position": "RB",
       "team": "MIN",
@@ -4653,12 +3747,6 @@
       "position": "WR",
       "team": "BAL",
       "adp": 227
-    },
-    {
-      "name": "2026 Pick 4.12",
-      "position": "PICK",
-      "team": null,
-      "adp": 228
     },
     {
       "name": "Pat Freiermuth",
