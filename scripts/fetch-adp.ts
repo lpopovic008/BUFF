@@ -147,11 +147,25 @@ async function fetchMode(mode: Mode): Promise<AdpEntry[]> {
 
 /** Tries several plausible URL/param variants against the real API and logs each response's status + a body snippet, so the correct shape can be read straight from a CI log instead of guessed at blind. Writes nothing. */
 async function probe() {
-  const candidates = [
-    "https://api.fantasycalc.com/values/current?isDynasty=false&numQbs=1&numTeams=12&ppr=1",
-    "https://api.fantasycalc.com/values/current?isDynasty=false&numQbs=1&numTeams=12&ppr=1&includeAdp=true",
+  // FantasyCalc's own `maybeAdp` field came back null even with
+  // includeAdp=true (confirmed via CI run 33130524717) — their public API
+  // doesn't actually have populated ADP through this endpoint. FantasyPros'
+  // public ADP pages aggregate real ADP across many sites (Underdog,
+  // Sleeper, ESPN, NFL.com, etc.) and are known to embed a JSON blob in the
+  // page; probing those instead, plus one more shot at a dedicated
+  // FantasyCalc ADP endpoint in case /values/current just isn't it.
+  const jsonCandidates = [
+    "https://api.fantasycalc.com/adp/current?isDynasty=false&numQbs=1&numTeams=12&ppr=1",
+    "https://api.fantasycalc.com/adp/current",
   ];
-  for (const url of candidates) {
+  const htmlCandidates = [
+    "https://www.fantasypros.com/nfl/adp/overall.php",
+    "https://www.fantasypros.com/nfl/adp/superflex.php",
+    "https://www.fantasypros.com/nfl/adp/dynasty-overall.php",
+    "https://www.fantasypros.com/nfl/adp/dynasty-superflex.php",
+  ];
+
+  for (const url of jsonCandidates) {
     try {
       const res = await fetch(url, { headers: { "User-Agent": UA, Accept: "application/json" } });
       const text = await res.text();
@@ -159,15 +173,46 @@ async function probe() {
       console.log(`  status: ${res.status} ${res.statusText}`);
       console.log(`  content-type: ${res.headers.get("content-type")}`);
       console.log(`  body length: ${text.length}`);
-      // Full first record (pretty-printed) so every field name — including
-      // whatever FantasyCalc actually calls its ADP field — is visible in
-      // the CI log instead of getting cut off mid-object.
       try {
         const parsed = JSON.parse(text);
         const first = Array.isArray(parsed) ? parsed[0] : parsed;
         console.log(`  first record: ${JSON.stringify(first, null, 2)}`);
       } catch {
         console.log(`  body (first 1200 chars): ${text.slice(0, 1200)}`);
+      }
+    } catch (err) {
+      console.log(`\n${url}`);
+      console.log(`  request failed: ${err instanceof Error ? err.message : err}`);
+    }
+  }
+
+  for (const url of htmlCandidates) {
+    try {
+      const res = await fetch(url, {
+        headers: {
+          "User-Agent": UA,
+          Accept: "text/html,application/xhtml+xml",
+        },
+      });
+      const text = await res.text();
+      console.log(`\n${url}`);
+      console.log(`  status: ${res.status} ${res.statusText}`);
+      console.log(`  content-type: ${res.headers.get("content-type")}`);
+      console.log(`  body length: ${text.length}`);
+      // Look for the usual embedded-data markers FantasyPros pages use
+      // rather than dumping the whole HTML document.
+      const markers = ["var ecrData", "ecrData =", "adpData", "__NEXT_DATA__", "var players"];
+      let found = false;
+      for (const marker of markers) {
+        const idx = text.indexOf(marker);
+        if (idx !== -1) {
+          found = true;
+          console.log(`  found marker "${marker}" at offset ${idx}, snippet:`);
+          console.log(`  ${text.slice(idx, idx + 1500)}`);
+        }
+      }
+      if (!found) {
+        console.log(`  no known markers found; first 600 chars: ${text.slice(0, 600)}`);
       }
     } catch (err) {
       console.log(`\n${url}`);
