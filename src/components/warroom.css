@@ -431,7 +431,18 @@
   .warroom-console .draft-grid-wrap { overflow-x: auto; }
   .warroom-console .draft-grid { display: flex; flex-direction: column; gap: 3px; width: max-content; min-width: 100%; }
   .warroom-console .draft-grid-row { display: grid; gap: 3px; }
-  .warroom-console .draft-grid-row.team-selected { outline: 2px solid #fff; outline-offset: 2px; }
+  /* A soft white fill behind the whole row, not just a stroke around it.
+     The cells themselves are opaque, so this background only actually
+     shows through the 3px gaps between them (row/column gap above are
+     both 3px) — reading as "white between the boxes." The box-shadow
+     (0 blur, solid spread) extends that same fill 1.5px — half the gap —
+     past the row's own edges on every side, so it peeks into the gap
+     toward the rows above/below and past the first/last cell, without
+     reaching all the way to the neighboring row. */
+  .warroom-console .draft-grid-row.team-selected {
+    background-color: rgba(255, 255, 255, 0.16);
+    box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.16);
+  }
   .warroom-console .draft-grid-round-label { display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 9.5px; color: var(--ink-dim); }
   .warroom-console .draft-grid-team-header {
     background: var(--panel-inset); border: 1px solid var(--line-bright); padding: 3px 4px; cursor: pointer;
