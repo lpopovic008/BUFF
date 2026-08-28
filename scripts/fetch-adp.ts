@@ -187,12 +187,18 @@ async function probe() {
   // raw HTML for an embedded table/JSON and any API host their JS bundle
   // references.
   const jsonCandidates: string[] = [];
-  // Confirmed live (run 33131687510): the <tbody> is `v-for="row in
-  // visibleRows"` — Vue-populated client-side, not server-rendered, same
-  // dead end as FantasyPros. Skipping the HTML re-check and going straight
-  // to the JS bundle to look for the real API endpoint's name.
-  const htmlCandidates: string[] = [];
-  const jsBundleCandidates = ["https://www.draftsharks.com/assets/47d5c423/dsvue/apps/AdpDash.js"];
+  // AdpDash.js destructures { descriptorByKey, adpSetCache, ensureAdpSets,
+  // ... } from a useAdpSets({ availability: vueAppData.availability,
+  // sourceOptions: vueAppData.sourceOptions, seed: vueAppData.seed, ... })
+  // composable that lives in a DIFFERENT bundle file — but `vueAppData`
+  // itself is never defined anywhere in AdpDash.js, meaning it's almost
+  // certainly injected server-side directly in the /adp page's HTML (a
+  // classic SSR-seed pattern, like Next.js's __NEXT_DATA__ but hand-rolled).
+  // If so, `vueAppData.seed` may already BE real ADP rows for the default
+  // selection, with no further API call needed at all. Checking the HTML
+  // for it specifically.
+  const htmlCandidates = ["https://www.draftsharks.com/adp"];
+  const jsBundleCandidates: string[] = [];
 
   for (const url of jsonCandidates) {
     try {
@@ -228,51 +234,13 @@ async function probe() {
       console.log(`  status: ${res.status} ${res.statusText}`);
       console.log(`  content-type: ${res.headers.get("content-type")}`);
       console.log(`  body length: ${text.length}`);
-      // Look for the usual embedded-data markers FantasyPros pages use
-      // rather than dumping the whole HTML document.
-      const markers = [
-        "var ecrData",
-        "ecrData =",
-        "adpData",
-        "__NEXT_DATA__",
-        "var players",
-        "api.fantasypros",
-        ".json",
-        "id=\"data\"",
-        "<table",
-        "application/json",
-        "api.draftsharks",
-        "window.__",
-      ];
-      let found = false;
-      for (const marker of markers) {
-        const idx = text.indexOf(marker);
-        if (idx !== -1) {
-          found = true;
-          console.log(`  found marker "${marker}" at offset ${idx}, snippet:`);
-          console.log(`  ${text.slice(Math.max(0, idx - 100), idx + 500)}`);
-        }
-      }
-      // Also dump every <script src="..."> so the actual JS bundle/API base
-      // URLs are visible even if none of the marker guesses hit.
-      const scriptSrcs = [...text.matchAll(/<script[^>]+src="([^"]+)"/g)].map((m) => m[1]);
-      console.log(`  script src count: ${scriptSrcs.length}`);
-      for (const src of scriptSrcs.slice(0, 20)) console.log(`    ${src}`);
-      if (!found) {
-        console.log(`  no known markers found; first 600 chars: ${text.slice(0, 600)}`);
-      }
-      // Specifically check whether the <table>'s <tbody> has real,
-      // server-rendered player rows or is empty for a Vue app to fill
-      // client-side after its own API call.
-      const tbodyIdx = text.indexOf("<tbody");
-      if (tbodyIdx !== -1) {
-        console.log(`  <tbody> content (600 chars from offset ${tbodyIdx}):`);
-        console.log(`  ${text.slice(tbodyIdx, tbodyIdx + 600)}`);
+      const vueIdx = text.indexOf("vueAppData");
+      if (vueIdx !== -1) {
+        console.log(`  found "vueAppData" at offset ${vueIdx}; window (4000 chars):`);
+        console.log(`  ${text.slice(Math.max(0, vueIdx - 200), vueIdx + 4000)}`);
       } else {
-        console.log(`  no <tbody> found in the response at all.`);
+        console.log(`  "vueAppData" not found in the HTML at all; first 600 chars: ${text.slice(0, 600)}`);
       }
-      const apiHints = [...text.matchAll(/["'`](\/api\/[a-zA-Z0-9/_-]+|https:\/\/[a-zA-Z0-9.-]*draftsharks[a-zA-Z0-9.-]*\/[a-zA-Z0-9/_-]+)["'`]/g)].map((m) => m[1]);
-      console.log(`  inline API-path hints: ${[...new Set(apiHints)].slice(0, 15).join(", ") || "(none)"}`);
     } catch (err) {
       console.log(`\n${url}`);
       console.log(`  request failed: ${err instanceof Error ? err.message : err}`);
@@ -286,15 +254,6 @@ async function probe() {
       console.log(`\n${url}`);
       console.log(`  status: ${res.status} ${res.statusText}`);
       console.log(`  body length: ${text.length}`);
-      const apiHints = [...text.matchAll(/["'`](\/api\/[a-zA-Z0-9/_-]+|https:\/\/[a-zA-Z0-9.-]*draftsharks[a-zA-Z0-9.-]*\/[a-zA-Z0-9/_-]+)["'`]/g)].map((m) => m[1]);
-      console.log(`  inline API-path hints: ${[...new Set(apiHints)].slice(0, 20).join(", ") || "(none)"}`);
-      const fetchCalls = [...text.matchAll(/\.(?:get|post)\(["'`]([^"'`]+)["'`]/g)].map((m) => m[1]);
-      console.log(`  .get(/.post( calls: ${[...new Set(fetchCalls)].slice(0, 20).join(", ") || "(none)"}`);
-      // Endpoint names as string literals survive minification even when
-      // the call syntax around them (axios instance var, computed URL,
-      // etc.) doesn't match the .get(/.post( shape above.
-      const anyAdpString = [...text.matchAll(/["'`]([^"'`]{0,80}adp[^"'`]{0,80})["'`]/gi)].map((m) => m[1]);
-      console.log(`  any quoted string containing "adp": ${[...new Set(anyAdpString)].slice(0, 25).join(" | ") || "(none)"}`);
       // Confirmed live (run 33131800955): getExportLink() builds
       // '/adp/export?' + 'adp[]=' + encodeURIComponent(key) + '&adp_names[]='
       // + ... for each key in selectedSetKeys, where key comes from
