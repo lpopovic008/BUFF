@@ -227,25 +227,23 @@ async function probe() {
       console.log(`  status: ${res.status} ${res.statusText}`);
       console.log(`  content-type: ${res.headers.get("content-type")}`);
       console.log(`  body length: ${text.length}`);
-      // FantasyPros' older "cheatsheets" template is a different codebase
-      // from the /nfl/adp/*.php pages checked earlier (those are Vue/React-
-      // rendered with an empty <tbody>) — checking for the classic embedded-
-      // JS-array pattern this template is known to use, plus generic
-      // fallbacks.
-      const markers = [
-        "ecrData",
-        "var players",
-        "playersArray",
-        "id=\"rank-data\"",
-        "adpData",
-        "__NEXT_DATA__",
-        "__NUXT__",
-        "vueAppData",
-        "window.__",
-        "application/json",
-        "\"adp\":",
-        "adp_data",
-      ];
+      // Confirmed live (run 33132856201): 4for4's ADP page has a plain,
+      // fully server-rendered <table><tbody> with real rows (no JS
+      // framework blocking it like FantasyPros'/DraftSharks' pages) — e.g.
+      // Jahmyr Gibbs / DET / ... / 1.01 (round.pick). Grabbing the <thead>
+      // to map the column meanings, plus a much bigger <tbody> window (this
+      // page is only 290KB total, plenty of budget) and a row count.
+      const theadIdx = text.indexOf("<thead");
+      if (theadIdx !== -1) {
+        const theadEnd = text.indexOf("</thead>", theadIdx);
+        console.log(`  <thead> (offset ${theadIdx}):`);
+        console.log(`  ${text.slice(theadIdx, theadEnd === -1 ? theadIdx + 2000 : theadEnd + 9)}`);
+      } else {
+        console.log(`  no <thead> found.`);
+      }
+      const trCount = [...text.matchAll(/<tr\b/g)].length;
+      console.log(`  total <tr count: ${trCount}`);
+      const markers: string[] = [];
       let found = false;
       for (const marker of markers) {
         const idx = text.indexOf(marker);
