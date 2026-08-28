@@ -180,19 +180,20 @@ async function fetchMode(mode: Mode): Promise<AdpEntry[]> {
 
 /** Tries several plausible URL/param variants against the real API and logs each response's status + a body snippet, so the correct shape can be read straight from a CI log instead of guessed at blind. Writes nothing. */
 async function probe() {
-  // FantasyCalc's own `maybeAdp` field came back null even with
-  // includeAdp=true (confirmed via CI run 33130524717) — their public API
-  // doesn't actually have populated ADP through this endpoint. FantasyPros'
-  // public ADP pages aggregate real ADP across many sites (Underdog,
-  // Sleeper, ESPN, NFL.com, etc.) and are known to embed a JSON blob in the
-  // page; probing those instead, plus one more shot at a dedicated
-  // FantasyCalc ADP endpoint in case /values/current just isn't it.
+  // Sleeper's own player/user API (api.sleeper.app) is public and CORS-open
+  // with no auth — that's where FantasyCalc's `sleeperId` field comes from.
+  // Sleeper doesn't publish a documented ADP endpoint, but they do run real
+  // mock and live drafts across the whole platform, so it's plausible they
+  // expose an aggregate somewhere. Trying the shapes their own site/app is
+  // most likely to call.
   const jsonCandidates = [
-    "https://underdogfantasy.com/rankings",
-    "https://api.underdogfantasy.com/v2/rankings",
-    "https://stats.underdogfantasy.com/v1/user/adp",
+    "https://api.sleeper.app/adp/nfl?season=2026&season_type=regular&type=redraft",
+    "https://api.sleeper.app/v1/adp/nfl?season=2026",
+    "https://api.sleeper.app/players/nfl/research/regular/2026/1",
+    "https://api.sleeper.app/stats/nfl/regular/2026",
+    "https://api.sleeper.app/v1/players/nfl/trending/add",
   ];
-  const htmlCandidates = ["https://www.fantasypros.com/nfl/adp/overall.php"];
+  const htmlCandidates = ["https://sleeper.com/adp"];
 
   for (const url of jsonCandidates) {
     try {
