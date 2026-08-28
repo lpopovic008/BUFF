@@ -110,6 +110,14 @@ function pickNumber(obj: Record<string, unknown>, keys: string[]): number | null
  * each of the four modes this app needs — so it's used here as the
  * pool-ordering signal instead. It isn't literally "average draft
  * position"; see the AdpEntry doc comment.
+ *
+ * Like KTC's trade-value chart, FantasyCalc's dynasty endpoint (isDynasty=
+ * true) also mixes in future-pick trade assets — e.g. a record with
+ * player.name "2026 Pick 1.01" and player.position "PICK" (confirmed live:
+ * 76 such entries in one dynasty-1QB fetch). Those aren't real players and
+ * nobody drafts them in an actual draft, so they're excluded here — this is
+ * the actual fix for the pool including undraftable pick assets, not just a
+ * side effect of switching off KTC.
  */
 function normalizeEntry(item: unknown): AdpEntry | null {
   if (typeof item !== "object" || item === null) return null;
@@ -119,6 +127,7 @@ function normalizeEntry(item: unknown): AdpEntry | null {
   const name = pickString(player, ["name", "playerName", "full_name", "player_name"]);
   if (!name) return null;
   const position = pickString(player, ["position", "pos"]) ?? "UNK";
+  if (position.toUpperCase() === "PICK") return null;
   const team = pickString(player, ["maybeTeam", "team", "team_abbrev", "teamAbbrev"]);
   const adp = pickNumber(obj, ["maybeAdp", "adp", "redraftAdp", "dynastyAdp"]) ?? pickNumber(obj, ["overallRank", "positionRank"]);
 
