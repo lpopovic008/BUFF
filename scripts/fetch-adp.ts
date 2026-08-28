@@ -187,17 +187,14 @@ async function probe() {
   // raw HTML for an embedded table/JSON and any API host their JS bundle
   // references.
   const jsonCandidates: string[] = [];
-  // AdpDash.js destructures { descriptorByKey, adpSetCache, ensureAdpSets,
-  // ... } from a useAdpSets({ availability: vueAppData.availability,
-  // sourceOptions: vueAppData.sourceOptions, seed: vueAppData.seed, ... })
-  // composable that lives in a DIFFERENT bundle file — but `vueAppData`
-  // itself is never defined anywhere in AdpDash.js, meaning it's almost
-  // certainly injected server-side directly in the /adp page's HTML (a
-  // classic SSR-seed pattern, like Next.js's __NEXT_DATA__ but hand-rolled).
-  // If so, `vueAppData.seed` may already BE real ADP rows for the default
-  // selection, with no further API call needed at all. Checking the HTML
-  // for it specifically.
-  const htmlCandidates = ["https://www.draftsharks.com/adp"];
+  // User-provided link: FantasyPros' "cheatsheets" consensus-rankings page
+  // (distinct from the /nfl/adp/*.php pages already checked — those are
+  // Vue/React-rendered with an empty <tbody>). Cheatsheets pages are a much
+  // older FantasyPros template and are known (public knowledge, unverified
+  // against this exact page) to sometimes embed a JS array of player data
+  // directly in a <script> tag rather than loading it via a later fetch.
+  // Checking for that pattern plus the generic markers used before.
+  const htmlCandidates = ["https://www.fantasypros.com/nfl/rankings/ppr-superflex-cheatsheets.php"];
   const jsBundleCandidates: string[] = [];
 
   for (const url of jsonCandidates) {
@@ -234,34 +231,30 @@ async function probe() {
       console.log(`  status: ${res.status} ${res.statusText}`);
       console.log(`  content-type: ${res.headers.get("content-type")}`);
       console.log(`  body length: ${text.length}`);
-      const vueIdx = text.indexOf("vueAppData");
-      if (vueIdx !== -1) {
-        // Confirmed live (run 33131991807): `var vueAppData = {"selected":
-        // {...},"availability":[{"key":"11::104::12","formatId":11,
-        // "sourceId":104,...,"source":"consensus","size":12}, ...]` — this
-        // is metadata (which format/source/size combos exist), not player
-        // rows. The actual data should be in a "seed" property right after
-        // availability — jumping straight to that instead of the object
-        // start, since availability alone can be large.
-        // Confirmed live (run 33132048622): "seed":{"adpSets":{"10::110::12":
-        // [{"id":13542,"pick":1,"marketIndex":0,"dsRank":1,"posAdp":1}, ...
-        // — `pick` is the literal real average draft position, keyed by
-        // player id per (formatId::sourceId::size). Still need the id ->
-        // name/team/position lookup (playerForRow() in AdpDash.js reads
-        // row.player.fn/ln/tm/pos/fp) — searching for that table's key next.
-        const playersIdx = text.indexOf('"players":', vueIdx);
-        console.log(`  found "vueAppData" at offset ${vueIdx}; "players" property at offset ${playersIdx === -1 ? "NOT FOUND" : playersIdx}`);
-        if (playersIdx !== -1) {
-          console.log(`  window around "players" (2000 chars):`);
-          console.log(`  ${text.slice(playersIdx, playersIdx + 2000)}`);
-        } else {
-          // Fall back to dumping the object's top-level key names near vueAppData
-          // start so the actual property name can be read off directly.
-          console.log(`  no "players" property; window from vueAppData start (2500 chars):`);
-          console.log(`  ${text.slice(vueIdx, vueIdx + 2500)}`);
+      // FantasyPros' older "cheatsheets" template is a different codebase
+      // from the /nfl/adp/*.php pages checked earlier (those are Vue/React-
+      // rendered with an empty <tbody>) — checking for the classic embedded-
+      // JS-array pattern this template is known to use, plus generic
+      // fallbacks.
+      const markers = ["ecrData", "var players", "playersArray", "id=\"rank-data\"", "adpData", "__NEXT_DATA__", "window.__"];
+      let found = false;
+      for (const marker of markers) {
+        const idx = text.indexOf(marker);
+        if (idx !== -1) {
+          found = true;
+          console.log(`  found marker "${marker}" at offset ${idx}, snippet:`);
+          console.log(`  ${text.slice(Math.max(0, idx - 100), idx + 1500)}`);
         }
+      }
+      const tbodyIdx = text.indexOf("<tbody");
+      if (tbodyIdx !== -1) {
+        console.log(`  <tbody> content (1200 chars from offset ${tbodyIdx}):`);
+        console.log(`  ${text.slice(tbodyIdx, tbodyIdx + 1200)}`);
       } else {
-        console.log(`  "vueAppData" not found in the HTML at all; first 600 chars: ${text.slice(0, 600)}`);
+        console.log(`  no <tbody> found in the response at all.`);
+      }
+      if (!found) {
+        console.log(`  no known JS-data markers found; first 800 chars: ${text.slice(0, 800)}`);
       }
     } catch (err) {
       console.log(`\n${url}`);
