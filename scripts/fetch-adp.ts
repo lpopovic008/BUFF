@@ -187,14 +187,10 @@ async function probe() {
   // raw HTML for an embedded table/JSON and any API host their JS bundle
   // references.
   const jsonCandidates: string[] = [];
-  // User-provided link: FantasyPros' "cheatsheets" consensus-rankings page
-  // (distinct from the /nfl/adp/*.php pages already checked — those are
-  // Vue/React-rendered with an empty <tbody>). Cheatsheets pages are a much
-  // older FantasyPros template and are known (public knowledge, unverified
-  // against this exact page) to sometimes embed a JS array of player data
-  // directly in a <script> tag rather than loading it via a later fetch.
-  // Checking for that pattern plus the generic markers used before.
-  const htmlCandidates = ["https://www.fantasypros.com/nfl/rankings/ppr-superflex-cheatsheets.php"];
+  // User-provided link: 4for4's superflex ADP page. Unknown rendering
+  // approach yet — checking for embedded JS data or a server-rendered
+  // <table>/<tbody>, same as every other source checked so far.
+  const htmlCandidates = ["https://www.4for4.com/superflex-adp"];
   const jsBundleCandidates: string[] = [];
 
   for (const url of jsonCandidates) {
@@ -236,7 +232,20 @@ async function probe() {
       // rendered with an empty <tbody>) — checking for the classic embedded-
       // JS-array pattern this template is known to use, plus generic
       // fallbacks.
-      const markers = ["ecrData", "var players", "playersArray", "id=\"rank-data\"", "adpData", "__NEXT_DATA__", "window.__"];
+      const markers = [
+        "ecrData",
+        "var players",
+        "playersArray",
+        "id=\"rank-data\"",
+        "adpData",
+        "__NEXT_DATA__",
+        "__NUXT__",
+        "vueAppData",
+        "window.__",
+        "application/json",
+        "\"adp\":",
+        "adp_data",
+      ];
       let found = false;
       for (const marker of markers) {
         const idx = text.indexOf(marker);
@@ -253,6 +262,9 @@ async function probe() {
       } else {
         console.log(`  no <tbody> found in the response at all.`);
       }
+      const scriptSrcs = [...text.matchAll(/<script[^>]+src="([^"]+)"/g)].map((m) => m[1]);
+      console.log(`  script src count: ${scriptSrcs.length}`);
+      for (const src of scriptSrcs.slice(0, 25)) console.log(`    ${src}`);
       if (!found) {
         console.log(`  no known JS-data markers found; first 800 chars: ${text.slice(0, 800)}`);
       }
