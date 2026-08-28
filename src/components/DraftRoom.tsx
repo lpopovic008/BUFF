@@ -186,7 +186,7 @@ export function DraftRoom() {
   }
 
   const boardGridColumns = `40px repeat(${settings.teams}, minmax(96px, 1fr))`;
-  const poolGridColumns = `repeat(${settings.rounds}, minmax(70px, 1fr))`;
+  const poolGridColumns = `repeat(${settings.rounds}, minmax(52px, 1fr))`;
 
   return (
     <div className="warroom-console">
@@ -349,10 +349,10 @@ export function DraftRoom() {
                         title={editMode ? `Tag ${player.name}` : `Draft ${player.name}`}
                       >
                         <span className="draft-pool-cell-rank">{rankByKey.get(key)}</span>
-                        <span className="draft-pool-cell-name">{player.name}</span>
                         <span className="draft-pool-cell-pos" style={{ color }}>
                           {player.position}
                         </span>
+                        <span className="draft-pool-cell-name">{player.name}</span>
                       </button>
                     );
                   })}

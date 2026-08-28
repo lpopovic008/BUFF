@@ -411,26 +411,29 @@
   .warroom-console .draft-clock-value.draft-clock-done { color: var(--good); }
 
   .warroom-console .draft-pool-cell {
-    min-width: 68px; min-height: 46px; background: var(--panel-inset); border: 1px solid var(--line);
-    padding: 4px 5px; font-family: var(--mono); color: var(--ink-dim); cursor: pointer; text-align: left;
-    display: flex; flex-direction: column; justify-content: center; gap: 1px;
+    min-width: 50px; min-height: 22px; background: var(--panel-inset); border: 1px solid var(--line);
+    padding: 3px 4px; font-family: var(--mono); color: var(--ink-dim); cursor: pointer; text-align: left;
+    display: flex; flex-direction: row; align-items: baseline; gap: 4px;
     transition: border-color 150ms, background-color 150ms;
   }
   .warroom-console .draft-pool-cell:hover:not(:disabled) { border-color: var(--cyan); }
   .warroom-console .draft-pool-cell:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
   .warroom-console .draft-pool-cell:disabled { cursor: default; opacity: 0.45; }
   .warroom-console .draft-pool-cell.empty { background: transparent; border: 1px dashed var(--line); cursor: default; }
-  .warroom-console .draft-pool-cell-rank { font-size: 7.5px; color: var(--ink-dim); }
-  .warroom-console .draft-pool-cell-name { font-size: 9.5px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .warroom-console .draft-pool-cell-pos { font-size: 8.5px; font-weight: 600; letter-spacing: 0.04em; }
+  .warroom-console .draft-pool-cell-rank { font-size: 7.5px; color: var(--ink-dim); flex: 0 0 auto; }
+  .warroom-console .draft-pool-cell-pos { font-size: 8px; font-weight: 600; letter-spacing: 0.03em; flex: 0 0 auto; }
+  .warroom-console .draft-pool-cell-name {
+    font-size: 8.5px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    flex: 1 1 auto; min-width: 0;
+  }
 
   .warroom-console .draft-grid-wrap { overflow-x: auto; }
   .warroom-console .draft-grid { display: flex; flex-direction: column; gap: 3px; width: max-content; min-width: 100%; }
   .warroom-console .draft-grid-row { display: grid; gap: 3px; }
   .warroom-console .draft-grid-round-label { display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 9.5px; color: var(--ink-dim); }
   .warroom-console .draft-grid-team-header {
-    background: var(--panel-inset); border: 1px solid var(--line-bright); padding: 5px 4px;
-    font-family: var(--mono); font-size: 9.5px; color: var(--cyan); text-align: center;
+    background: var(--panel-inset); border: 1px solid var(--line-bright); padding: 3px 4px;
+    font-family: var(--mono); font-size: 9px; color: var(--cyan); text-align: center;
   }
   .warroom-console .draft-grid-team-name {
     width: 100%; background: transparent; border: none; color: var(--cyan); font-family: var(--mono); font-size: 9.5px;
