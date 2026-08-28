@@ -193,8 +193,10 @@ async function probe() {
   // after it. Every candidate below now has its output hard-capped so one
   // huge response can never do that again.
   const jsonCandidates = [
-    "https://api.sleeper.app/adp/nfl?season=2026&season_type=regular&type=redraft",
-    "https://api.sleeper.app/v1/adp/nfl?season=2026",
+    "https://api.sleeper.app/adp/nfl",
+    "https://api.sleeper.app/v1/adp/nfl",
+    "https://api.sleeper.app/adp/nfl/2026",
+    "https://api.sleeper.app/adp/nfl/2026/regular",
   ];
   const htmlCandidates = ["https://sleeper.com/adp"];
 
