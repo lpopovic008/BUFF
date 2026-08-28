@@ -155,15 +155,11 @@ async function probe() {
   // page; probing those instead, plus one more shot at a dedicated
   // FantasyCalc ADP endpoint in case /values/current just isn't it.
   const jsonCandidates = [
-    "https://api.fantasycalc.com/adp/current?isDynasty=false&numQbs=1&numTeams=12&ppr=1",
-    "https://api.fantasycalc.com/adp/current",
+    "https://underdogfantasy.com/rankings",
+    "https://api.underdogfantasy.com/v2/rankings",
+    "https://stats.underdogfantasy.com/v1/user/adp",
   ];
-  const htmlCandidates = [
-    "https://www.fantasypros.com/nfl/adp/overall.php",
-    "https://www.fantasypros.com/nfl/adp/superflex.php",
-    "https://www.fantasypros.com/nfl/adp/dynasty-overall.php",
-    "https://www.fantasypros.com/nfl/adp/dynasty-superflex.php",
-  ];
+  const htmlCandidates = ["https://www.fantasypros.com/nfl/adp/overall.php"];
 
   for (const url of jsonCandidates) {
     try {
@@ -201,16 +197,21 @@ async function probe() {
       console.log(`  body length: ${text.length}`);
       // Look for the usual embedded-data markers FantasyPros pages use
       // rather than dumping the whole HTML document.
-      const markers = ["var ecrData", "ecrData =", "adpData", "__NEXT_DATA__", "var players"];
+      const markers = ["var ecrData", "ecrData =", "adpData", "__NEXT_DATA__", "var players", "api.fantasypros", ".json", "id=\"data\"", "<table"];
       let found = false;
       for (const marker of markers) {
         const idx = text.indexOf(marker);
         if (idx !== -1) {
           found = true;
           console.log(`  found marker "${marker}" at offset ${idx}, snippet:`);
-          console.log(`  ${text.slice(idx, idx + 1500)}`);
+          console.log(`  ${text.slice(Math.max(0, idx - 100), idx + 500)}`);
         }
       }
+      // Also dump every <script src="..."> so the actual JS bundle/API base
+      // URLs are visible even if none of the marker guesses hit.
+      const scriptSrcs = [...text.matchAll(/<script[^>]+src="([^"]+)"/g)].map((m) => m[1]);
+      console.log(`  script src count: ${scriptSrcs.length}`);
+      for (const src of scriptSrcs.slice(0, 20)) console.log(`    ${src}`);
       if (!found) {
         console.log(`  no known markers found; first 600 chars: ${text.slice(0, 600)}`);
       }
