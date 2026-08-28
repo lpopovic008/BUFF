@@ -295,6 +295,14 @@ async function probe() {
       // etc.) doesn't match the .get(/.post( shape above.
       const anyAdpString = [...text.matchAll(/["'`]([^"'`]{0,80}adp[^"'`]{0,80})["'`]/gi)].map((m) => m[1]);
       console.log(`  any quoted string containing "adp": ${[...new Set(anyAdpString)].slice(0, 25).join(" | ") || "(none)"}`);
+      // /adp/export showed up as a promising string in a prior run (CI run
+      // 33131747731) — dump a much bigger window around it so the full URL
+      // construction (query param names, required values) is visible.
+      const exportIdx = text.indexOf("/adp/export");
+      if (exportIdx !== -1) {
+        console.log(`  large window around "/adp/export" (offset ${exportIdx}):`);
+        console.log(`  ${text.slice(Math.max(0, exportIdx - 1500), exportIdx + 1500)}`);
+      }
     } catch (err) {
       console.log(`\n${url}`);
       console.log(`  request failed: ${err instanceof Error ? err.message : err}`);
