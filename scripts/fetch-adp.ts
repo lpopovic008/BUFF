@@ -180,25 +180,19 @@ async function fetchMode(mode: Mode): Promise<AdpEntry[]> {
 
 /** Tries several plausible URL/param variants against the real API and logs each response's status + a body snippet, so the correct shape can be read straight from a CI log instead of guessed at blind. Writes nothing. */
 async function probe() {
-  // Sleeper's own player/user API (api.sleeper.app) is public and CORS-open
-  // with no auth — that's where FantasyCalc's `sleeperId` field comes from.
-  // Sleeper doesn't publish a documented ADP endpoint, but they do run real
-  // mock and live drafts across the whole platform, so it's plausible they
-  // expose an aggregate somewhere. Trying the shapes their own site/app is
-  // most likely to call.
-  // Dropped .../research/regular/... from the candidate list: it's real,
-  // but confirmed to be ownership%/started% (roster percentage), not ADP —
-  // and its response is huge (thousands of keys), which blew past the CI
-  // log tool's size window and hid the results of every candidate that ran
-  // after it. Every candidate below now has its output hard-capped so one
-  // huge response can never do that again.
-  const jsonCandidates = [
-    "https://api.sleeper.app/adp/nfl",
-    "https://api.sleeper.app/v1/adp/nfl",
-    "https://api.sleeper.app/adp/nfl/2026",
-    "https://api.sleeper.app/adp/nfl/2026/regular",
+  // DraftSharks (draftsharks.com) publishes public ADP pages (redraft,
+  // dynasty, superflex variants). Unknown yet whether the numbers are
+  // server-rendered in the HTML (like a classic page) or loaded via JS
+  // after the fact (like FantasyPros turned out to be) — checking both the
+  // raw HTML for an embedded table/JSON and any API host their JS bundle
+  // references.
+  const jsonCandidates: string[] = [];
+  const htmlCandidates = [
+    "https://www.draftsharks.com/adp/overall",
+    "https://www.draftsharks.com/adp/superflex",
+    "https://www.draftsharks.com/dynasty-rankings/adp",
+    "https://www.draftsharks.com/adp",
   ];
-  const htmlCandidates = ["https://sleeper.com/adp"];
 
   for (const url of jsonCandidates) {
     try {
@@ -236,7 +230,20 @@ async function probe() {
       console.log(`  body length: ${text.length}`);
       // Look for the usual embedded-data markers FantasyPros pages use
       // rather than dumping the whole HTML document.
-      const markers = ["var ecrData", "ecrData =", "adpData", "__NEXT_DATA__", "var players", "api.fantasypros", ".json", "id=\"data\"", "<table"];
+      const markers = [
+        "var ecrData",
+        "ecrData =",
+        "adpData",
+        "__NEXT_DATA__",
+        "var players",
+        "api.fantasypros",
+        ".json",
+        "id=\"data\"",
+        "<table",
+        "application/json",
+        "api.draftsharks",
+        "window.__",
+      ];
       let found = false;
       for (const marker of markers) {
         const idx = text.indexOf(marker);
