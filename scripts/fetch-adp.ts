@@ -243,14 +243,22 @@ async function probe() {
         // rows. The actual data should be in a "seed" property right after
         // availability — jumping straight to that instead of the object
         // start, since availability alone can be large.
-        const seedIdx = text.indexOf('"seed":', vueIdx);
-        console.log(`  found "vueAppData" at offset ${vueIdx}; "seed" property at offset ${seedIdx === -1 ? "NOT FOUND" : seedIdx}`);
-        if (seedIdx !== -1) {
-          console.log(`  window around "seed" (6000 chars):`);
-          console.log(`  ${text.slice(seedIdx, seedIdx + 6000)}`);
+        // Confirmed live (run 33132048622): "seed":{"adpSets":{"10::110::12":
+        // [{"id":13542,"pick":1,"marketIndex":0,"dsRank":1,"posAdp":1}, ...
+        // — `pick` is the literal real average draft position, keyed by
+        // player id per (formatId::sourceId::size). Still need the id ->
+        // name/team/position lookup (playerForRow() in AdpDash.js reads
+        // row.player.fn/ln/tm/pos/fp) — searching for that table's key next.
+        const playersIdx = text.indexOf('"players":', vueIdx);
+        console.log(`  found "vueAppData" at offset ${vueIdx}; "players" property at offset ${playersIdx === -1 ? "NOT FOUND" : playersIdx}`);
+        if (playersIdx !== -1) {
+          console.log(`  window around "players" (2000 chars):`);
+          console.log(`  ${text.slice(playersIdx, playersIdx + 2000)}`);
         } else {
-          console.log(`  no "seed" property; window from vueAppData start (4000 chars):`);
-          console.log(`  ${text.slice(Math.max(0, vueIdx - 200), vueIdx + 4000)}`);
+          // Fall back to dumping the object's top-level key names near vueAppData
+          // start so the actual property name can be read off directly.
+          console.log(`  no "players" property; window from vueAppData start (2500 chars):`);
+          console.log(`  ${text.slice(vueIdx, vueIdx + 2500)}`);
         }
       } else {
         console.log(`  "vueAppData" not found in the HTML at all; first 600 chars: ${text.slice(0, 600)}`);
