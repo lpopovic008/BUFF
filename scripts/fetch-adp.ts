@@ -134,7 +134,14 @@ async function fetchYafsb(url: string, label: string): Promise<AdpEntry[]> {
 /** Tries several plausible URL/param variants against the real site and logs each response's status + a body snippet, so the correct shape can be read straight from a CI log instead of guessed at blind. Writes nothing. */
 async function probe() {
   const jsonCandidates: string[] = [];
-  const htmlCandidates: string[] = [];
+  // User pushed back with a different mode->URL mapping than what live data
+  // confirmed earlier (bare URL = redraft 1QB, /dynasty/ = dynasty 1QB in
+  // their telling). Re-checking all four fresh, right now, to settle it
+  // against actual table content rather than URL naming.
+  const htmlCandidates = [
+    "https://www.yafsb.com/fantasy-football/adp-rankings/",
+    "https://www.yafsb.com/fantasy-football/adp-rankings/dynasty/",
+  ];
   const jsBundleCandidates: string[] = [];
 
   for (const url of jsonCandidates) {
