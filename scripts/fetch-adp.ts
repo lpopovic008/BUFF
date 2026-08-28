@@ -1,38 +1,40 @@
 /**
- * Fetches a real-players-only draft pool ranking from FantasyCalc's API and
- * writes a normalized snapshot to src/data/player-adp.json.
+ * Fetches a real-players-only draft pool ranking and writes a normalized
+ * snapshot to src/data/player-adp.json, across the four modes the Draft
+ * Room exposes: dynasty/redraft ("fantasy") x 1QB/superflex.
  *
  * Runs server-side in CI (see .github/workflows/player-adp.yml), same reason
  * as scripts/fetch-player-values.ts: no browser CORS restriction, and the
  * app itself only ever reads the committed static snapshot.
  *
- * Unlike KeepTradeCut's trade-value chart (which mixes real players with
- * future-pick assets nobody actually drafts), FantasyCalc's player endpoint
- * only ever returns real players, across the same four modes the app
- * already exposes: dynasty/redraft x 1QB/superflex.
+ * Two different real sources, one per pair of modes:
  *
- * This was originally meant to use literal crowd-sourced Average Draft
- * Position (e.g. Underdog's own ADP), but that data isn't reachable from a
- * plain fetch script: FantasyCalc's own `maybeAdp` field is present but
- * always null (confirmed live, both isDynasty values, with and without
- * includeAdp=true); Underdog's site sits behind a Cloudflare bot challenge
- * that returns a JS challenge page instead of content to a scripted
- * request; FantasyPros' public ADP pages return 200 but load the actual
- * table client-side via JS after page load (confirmed: the only <table> in
- * the static HTML is an unrelated "pick experts" filter modal, not ADP
- * rows) — none of that is fetchable without a full headless browser. So
- * this uses FantasyCalc's `overallRank`/`positionRank` instead, which ARE
- * populated and are computed fresh per (isDynasty, numQbs) query — i.e.
- * FantasyCalc actually re-ranks its whole real-player pool for each of the
- * four modes this needs. It's a value-based rank, not literal draft-day
- * ADP; see the AdpEntry doc comment in src/lib/player-adp.ts.
+ * - Redraft ("fantasy") 1QB/superflex: 4for4's public ADP pages
+ *   (4for4.com/adp, 4for4.com/superflex-adp) are genuinely useful — a
+ *   plain, fully server-rendered HTML <table>, no JS framework blocking it
+ *   (confirmed live: real rows like Jahmyr Gibbs/DET/... in the raw
+ *   response, cross-checked against a user-provided CSV export of the same
+ *   table). The page's own "ADP" column is literal crowd-sourced average
+ *   draft position aggregated across real platforms (FFPC, Sleeper, CBS,
+ *   ESPN, etc. depending on mode) — not a value-based proxy.
  *
- * FantasyCalc's endpoint shape isn't formally documented, so extraction here
- * is defensive like the KTC script: try the field names known from public
- * usage, and if a run's records don't match, print a real sample record so
- * the actual shape is visible in the CI log rather than guessing blind. On
- * failure this exits non-zero WITHOUT touching the existing file — see the
- * workflow, which only commits on success.
+ * - Dynasty 1QB/superflex: still FantasyCalc's `overallRank`/`positionRank`
+ *   (a value-based rank, not literal ADP — see the AdpEntry doc comment in
+ *   src/lib/player-adp.ts) because no real dynasty ADP source has been
+ *   found yet. FantasyCalc's own `maybeAdp` field is present but always
+ *   null (confirmed live, both isDynasty values, with and without
+ *   includeAdp=true); Underdog's site sits behind a Cloudflare bot
+ *   challenge; FantasyPros' ADP pages load the actual table client-side via
+ *   JS after page load (confirmed: the only <table> in the static HTML is
+ *   an unrelated "pick experts" filter modal); DraftSharks' ADP page is
+ *   also Vue-rendered client-side. Swap this out for a real dynasty ADP
+ *   source (4for4 or otherwise) if/when one turns up.
+ *
+ * Both extraction paths are defensive like the KTC script: on a shape
+ * mismatch or a suspiciously low parsed-row count, print real sample data
+ * so the actual shape is visible in the CI log rather than guessing blind.
+ * On failure this exits non-zero WITHOUT touching the existing file — see
+ * the workflow, which only commits on success.
  *
  *   npx tsx scripts/fetch-adp.ts             # write the file
  *   npx tsx scripts/fetch-adp.ts --dry-run    # print, change nothing
@@ -59,11 +61,17 @@ interface Mode {
   numQBs: 1 | 2;
 }
 
+// Only the dynasty modes still come from FantasyCalc — the redraft
+// ("fantasy") modes now come from 4for4's real ADP pages (see FOR4_URLS
+// below and fetchFor4()).
 const MODES: Mode[] = [
   { key: "dynastyOneQB", label: "dynasty 1QB", isDynasty: true, numQBs: 1 },
   { key: "dynastySuperflex", label: "dynasty superflex", isDynasty: true, numQBs: 2 },
-  { key: "fantasyOneQB", label: "redraft 1QB", isDynasty: false, numQBs: 1 },
-  { key: "fantasySuperflex", label: "redraft superflex", isDynasty: false, numQBs: 2 },
+];
+
+const FOR4_URLS: { key: "fantasyOneQB" | "fantasySuperflex"; label: string; url: string }[] = [
+  { key: "fantasyOneQB", label: "redraft 1QB (4for4)", url: "https://www.4for4.com/adp" },
+  { key: "fantasySuperflex", label: "redraft superflex (4for4)", url: "https://www.4for4.com/superflex-adp" },
 ];
 
 async function fetchJson(url: string): Promise<unknown> {
@@ -176,6 +184,72 @@ async function fetchMode(mode: Mode): Promise<AdpEntry[]> {
   const withAdp = entries.filter((e) => e.adp !== null).sort((a, b) => a.adp! - b.adp!);
   const withoutAdp = entries.filter((e) => e.adp === null);
   return [...withAdp, ...withoutAdp];
+}
+
+/**
+ * Extracts a table row's <td> cell contents as plain text, in order. A
+ * cell that wraps its content in an <a> (every player/team-name cell on
+ * this page) is reduced to the link's own text rather than the raw anchor
+ * markup; any other cell just has its tags stripped.
+ */
+function parseFor4RowCells(rowHtml: string): string[] {
+  return [...rowHtml.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => {
+    const raw = m[1];
+    const linkMatch = raw.match(/<a[^>]*>([\s\S]*?)<\/a>/);
+    return (linkMatch ? linkMatch[1] : raw).replace(/<[^>]+>/g, "").trim();
+  });
+}
+
+/**
+ * Parses 4for4's ADP table. Confirmed live (CI run 33132856201) and
+ * cross-checked against a user-provided CSV export of the same table: a
+ * plain, fully server-rendered <table><tbody>, columns always starting
+ * [ADP, position-rank (e.g. "RB-01"), player name, team, ...variable
+ * per-platform/pick columns...] — the 1QB and superflex pages have a
+ * different number of trailing columns (more source platforms track 1QB),
+ * so only the first four fixed columns are read; ADP itself (a plain 1..N
+ * ordinal, already the real crowd-aggregated draft order) becomes `adp`.
+ */
+function parseFor4Table(html: string): AdpEntry[] {
+  const tbodyStart = html.indexOf("<tbody");
+  if (tbodyStart === -1) return [];
+  const tbodyEndIdx = html.indexOf("</tbody>", tbodyStart);
+  const tbodyHtml = html.slice(tbodyStart, tbodyEndIdx === -1 ? undefined : tbodyEndIdx);
+
+  const entries: AdpEntry[] = [];
+  for (const rowMatch of tbodyHtml.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/g)) {
+    const cells = parseFor4RowCells(rowMatch[1]);
+    if (cells.length < 4) continue;
+    const [adpRaw, posRankRaw, name, teamRaw] = cells;
+    const adp = Number(adpRaw);
+    if (!name || !Number.isFinite(adp)) continue;
+    const position = posRankRaw.split("-")[0]?.toUpperCase() || "UNK";
+    const team = teamRaw && teamRaw !== "-" ? teamRaw : null;
+    entries.push({ name, position, team, adp });
+  }
+  return entries;
+}
+
+async function fetchFor4(url: string, label: string): Promise<AdpEntry[]> {
+  console.log(`Fetching ${label} from ${url}`);
+  const res = await fetch(url, { headers: { "User-Agent": UA, Accept: "text/html,application/xhtml+xml" } });
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(`${url} responded ${res.status} ${res.statusText}. Body (first 500 chars): ${text.slice(0, 500)}`);
+  }
+  const entries = parseFor4Table(text);
+  // The real table has ~300 rows; a sharp drop means the page structure
+  // changed and this needs re-checking against a fresh sample, not silently
+  // writing a half-empty pool.
+  if (entries.length < 150) {
+    console.error(`  only parsed ${entries.length} rows for ${label} (expected ~300) — table structure may have changed.`);
+    const tbodyIdx = text.indexOf("<tbody");
+    console.error(`  <tbody> sample (first 1500 chars from offset ${tbodyIdx === -1 ? "N/A (not found)" : tbodyIdx}):`);
+    console.error(tbodyIdx === -1 ? text.slice(0, 1500) : text.slice(tbodyIdx, tbodyIdx + 1500));
+    if (entries.length === 0) throw new Error(`Could not parse any rows for ${label}`);
+  }
+  console.log(`  parsed ${entries.length} rows for ${label}`);
+  return entries.sort((a, b) => a.adp! - b.adp!);
 }
 
 /** Tries several plausible URL/param variants against the real API and logs each response's status + a body snippet, so the correct shape can be read straight from a CI log instead of guessed at blind. Writes nothing. */
@@ -299,18 +373,22 @@ async function main() {
     return;
   }
 
-  const results = await Promise.all(MODES.map(fetchMode));
+  const [dynastyResults, for4Results] = await Promise.all([
+    Promise.all(MODES.map(fetchMode)),
+    Promise.all(FOR4_URLS.map((mode) => fetchFor4(mode.url, mode.label))),
+  ]);
 
   const snapshot: AdpSnapshot = {
     updatedAt: new Date().toISOString(),
-    source: "fantasycalc",
-    dynastyOneQB: results[0],
-    dynastySuperflex: results[1],
-    fantasyOneQB: results[2],
-    fantasySuperflex: results[3],
+    source: "mixed",
+    dynastyOneQB: dynastyResults[0],
+    dynastySuperflex: dynastyResults[1],
+    fantasyOneQB: for4Results[0],
+    fantasySuperflex: for4Results[1],
   };
 
-  for (const mode of MODES) {
+  const allModes = [...MODES, ...FOR4_URLS];
+  for (const mode of allModes) {
     const list = snapshot[mode.key];
     const withAdp = list.filter((e) => e.adp !== null).length;
     console.log(`${mode.label}: ${list.length} players (${withAdp} with real ADP). Top 3: ${list.slice(0, 3).map((p) => p.name).join(", ")}`);
