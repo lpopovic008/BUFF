@@ -187,12 +187,14 @@ async function probe() {
   // raw HTML for an embedded table/JSON and any API host their JS bundle
   // references.
   const jsonCandidates: string[] = [];
-  const htmlCandidates = [
-    "https://www.draftsharks.com/adp/overall",
-    "https://www.draftsharks.com/adp/superflex",
-    "https://www.draftsharks.com/dynasty-rankings/adp",
-    "https://www.draftsharks.com/adp",
-  ];
+  const htmlCandidates = ["https://www.draftsharks.com/adp"];
+  // Confirmed live (run 33131612298): /adp and /adp/superflex return 200
+  // with a real <table id="adp-table"> from their Vue app (AdpDash.js) —
+  // /adp/overall and /dynasty-rankings/adp 404. Now checking whether the
+  // <tbody> actually has server-rendered player rows, or whether (like
+  // FantasyPros) Vue fills it client-side after an API call — and pulling
+  // the AdpDash.js bundle itself to look for that API's URL.
+  const jsBundleCandidates = ["https://www.draftsharks.com/assets/47d5c423/dsvue/apps/AdpDash.js"];
 
   for (const url of jsonCandidates) {
     try {
@@ -261,6 +263,35 @@ async function probe() {
       if (!found) {
         console.log(`  no known markers found; first 600 chars: ${text.slice(0, 600)}`);
       }
+      // Specifically check whether the <table>'s <tbody> has real,
+      // server-rendered player rows or is empty for a Vue app to fill
+      // client-side after its own API call.
+      const tbodyIdx = text.indexOf("<tbody");
+      if (tbodyIdx !== -1) {
+        console.log(`  <tbody> content (600 chars from offset ${tbodyIdx}):`);
+        console.log(`  ${text.slice(tbodyIdx, tbodyIdx + 600)}`);
+      } else {
+        console.log(`  no <tbody> found in the response at all.`);
+      }
+      const apiHints = [...text.matchAll(/["'`](\/api\/[a-zA-Z0-9/_-]+|https:\/\/[a-zA-Z0-9.-]*draftsharks[a-zA-Z0-9.-]*\/[a-zA-Z0-9/_-]+)["'`]/g)].map((m) => m[1]);
+      console.log(`  inline API-path hints: ${[...new Set(apiHints)].slice(0, 15).join(", ") || "(none)"}`);
+    } catch (err) {
+      console.log(`\n${url}`);
+      console.log(`  request failed: ${err instanceof Error ? err.message : err}`);
+    }
+  }
+
+  for (const url of jsBundleCandidates) {
+    try {
+      const res = await fetch(url, { headers: { "User-Agent": UA } });
+      const text = await res.text();
+      console.log(`\n${url}`);
+      console.log(`  status: ${res.status} ${res.statusText}`);
+      console.log(`  body length: ${text.length}`);
+      const apiHints = [...text.matchAll(/["'`](\/api\/[a-zA-Z0-9/_-]+|https:\/\/[a-zA-Z0-9.-]*draftsharks[a-zA-Z0-9.-]*\/[a-zA-Z0-9/_-]+)["'`]/g)].map((m) => m[1]);
+      console.log(`  inline API-path hints: ${[...new Set(apiHints)].slice(0, 20).join(", ") || "(none)"}`);
+      const fetchCalls = [...text.matchAll(/\.(?:get|post)\(["'`]([^"'`]+)["'`]/g)].map((m) => m[1]);
+      console.log(`  .get(/.post( calls: ${[...new Set(fetchCalls)].slice(0, 20).join(", ") || "(none)"}`);
     } catch (err) {
       console.log(`\n${url}`);
       console.log(`  request failed: ${err instanceof Error ? err.message : err}`);
