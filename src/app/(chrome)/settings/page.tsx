@@ -8,6 +8,7 @@ import { useConfig } from "@/hooks/useConfig";
 import { saveConfig, removeLeague, moveLeague, exportAllData, importAllData } from "@/lib/localStore";
 import { DEFAULT_SLEEPER_USERNAME, defaultSeason } from "@/lib/app-defaults";
 import { DiscoverForm } from "./DiscoverForm";
+import { ExternalLeaguesSection } from "./ExternalLeaguesSection";
 
 export default function SettingsPage() {
   const { config, loaded, refresh } = useConfig();
@@ -130,6 +131,13 @@ export default function SettingsPage() {
             </ul>
           </>
         )}
+      </Card>
+
+      <Card className="p-5">
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-muted">
+          External leagues (ESPN / Yahoo)
+        </h2>
+        <ExternalLeaguesSection leagues={config.externalLeagues} onChange={refresh} />
       </Card>
 
       <Card className="p-5">

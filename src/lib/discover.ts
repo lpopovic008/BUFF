@@ -21,7 +21,8 @@ export async function discoverAndSaveLeagues(
   if (!user) throw new UserNotFoundError(username);
 
   const leagues = await getUserLeagues(user.user_id, season);
-  const stored = getConfig().leagues;
+  const existingConfig = getConfig();
+  const stored = existingConfig.leagues;
   const found = new Set(leagues.map((l) => l.league_id));
 
   // Keep leagues we already track in the order the user arranged them, then
@@ -47,6 +48,7 @@ export async function discoverAndSaveLeagues(
     sleeperUserId: user.user_id,
     season,
     leagues: tracked,
+    externalLeagues: existingConfig.externalLeagues,
   };
   saveConfig(config);
   return config;

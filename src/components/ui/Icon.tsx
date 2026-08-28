@@ -255,3 +255,13 @@ export function PlusCircleIcon(props: IconProps) {
     </svg>
   );
 }
+
+export function ExternalLinkIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M8.5 5H4.5a1 1 0 0 0-1 1v9.5a1 1 0 0 0 1 1H14a1 1 0 0 0 1-1v-4" />
+      <path d="M9 11l7-7" />
+      <path d="M12.5 4H16v3.5" />
+    </svg>
+  );
+}

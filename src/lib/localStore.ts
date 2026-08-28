@@ -14,11 +14,30 @@ export interface TrackedLeague {
   isCommish: boolean;
 }
 
+/**
+ * A league on another platform, tracked as an outbound link rather than a
+ * full integration — this app has no ESPN/Yahoo login of its own, so
+ * clicking through always opens the platform's own site in the browser's
+ * normal (already logged-in-or-not) session. `leagueId`/`season` are parsed
+ * from the pasted URL when possible so ESPN's public-league read API can be
+ * tried client-side (see src/lib/espn.ts); Yahoo has no equivalent no-auth
+ * endpoint, so its entries are link-only.
+ */
+export interface ExternalLeague {
+  id: string;
+  platform: "espn" | "yahoo";
+  url: string;
+  nickname?: string;
+  leagueId?: string;
+  season?: string;
+}
+
 export interface AppConfig {
   sleeperUsername: string | null;
   sleeperUserId: string | null;
   season: string;
   leagues: TrackedLeague[];
+  externalLeagues: ExternalLeague[];
 }
 
 const DEFAULT_CONFIG: AppConfig = {
@@ -26,6 +45,7 @@ const DEFAULT_CONFIG: AppConfig = {
   sleeperUserId: null,
   season: String(new Date().getFullYear()),
   leagues: [],
+  externalLeagues: [],
 };
 
 function isBrowser(): boolean {
@@ -60,6 +80,20 @@ export function upsertLeague(league: TrackedLeague): AppConfig {
 export function removeLeague(leagueId: string): AppConfig {
   const config = getConfig();
   config.leagues = config.leagues.filter((l) => l.leagueId !== leagueId);
+  saveConfig(config);
+  return config;
+}
+
+export function addExternalLeague(league: Omit<ExternalLeague, "id">): AppConfig {
+  const config = getConfig();
+  config.externalLeagues.push({ ...league, id: `${Date.now()}-${Math.random().toString(36).slice(2)}` });
+  saveConfig(config);
+  return config;
+}
+
+export function removeExternalLeague(id: string): AppConfig {
+  const config = getConfig();
+  config.externalLeagues = config.externalLeagues.filter((l) => l.id !== id);
   saveConfig(config);
   return config;
 }

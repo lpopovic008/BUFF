@@ -10,6 +10,7 @@ const EMPTY_CONFIG: AppConfig = {
   sleeperUserId: null,
   season: defaultSeason(),
   leagues: [],
+  externalLeagues: [],
 };
 
 /**
