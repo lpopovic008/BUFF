@@ -35,16 +35,29 @@ const POSITION_ACCENT: Record<string, string> = {
 };
 const DEFAULT_ACCENT = "#93ac9e";
 
-function hexToRgba(hex: string, alpha: number): string {
+// Matches --panel-inset in warroom.css — the actual dark background a pool
+// cell normally sits on. blendOverPanel bakes a tag's color into a fully
+// opaque background pre-mixed against that, instead of leaving it at
+// partial alpha: an alpha background lets whatever's actually behind the
+// cell show through and change it, which is exactly what happened when a
+// selected team's white row-highlight sat behind a tagged cell — it washed
+// the tint out toward white, and the player name (already a light color)
+// lost all contrast against it. A solid, pre-blended color can't be
+// changed by anything behind it, so a tagged cell now looks identical
+// whether or not its row is selected.
+const PANEL_INSET = { r: 0x0d, g: 0x13, b: 0x10 };
+
+function blendOverPanel(hex: string, alpha: number): string {
   const n = parseInt(hex.slice(1), 16);
   const r = (n >> 16) & 255;
   const g = (n >> 8) & 255;
   const b = n & 255;
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  const mix = (channel: number, base: number) => Math.round(alpha * channel + (1 - alpha) * base);
+  return `rgb(${mix(r, PANEL_INSET.r)}, ${mix(g, PANEL_INSET.g)}, ${mix(b, PANEL_INSET.b)})`;
 }
 
 function targetStyle(isTarget: boolean, color: string): CSSProperties {
-  return isTarget ? { backgroundColor: hexToRgba(color, 0.28), borderColor: color } : {};
+  return isTarget ? { backgroundColor: blendOverPanel(color, 0.28), borderColor: color } : {};
 }
 
 function defaultTeamNames(teams: number): string[] {
