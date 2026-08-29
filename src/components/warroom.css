@@ -465,3 +465,28 @@
   .warroom-console .draft-grid-cell.onclock { border-color: var(--amber); box-shadow: 0 0 0 1px var(--amber) inset; }
   .warroom-console .draft-grid-pick-no { color: var(--ink-dim); font-size: 8px; }
   .warroom-console .draft-grid-player { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* ---------- DFT-03 Final Rosters ---------- */
+
+  .warroom-console .roster-summary-grid { display: flex; gap: 8px; width: max-content; min-width: 100%; }
+  .warroom-console .roster-col { display: flex; flex-direction: column; gap: 8px; width: 132px; flex: 0 0 auto; }
+  .warroom-console .roster-col-head {
+    display: flex; flex-direction: column; align-items: center; gap: 1px;
+    background: var(--panel-inset); border: 1px solid var(--line-bright); padding: 6px 4px;
+  }
+  .warroom-console .roster-points { font-family: var(--mono); font-size: 12px; color: var(--amber); letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
+  .warroom-console .roster-team-name {
+    font-family: var(--mono); font-size: 10px; color: var(--cyan); text-align: center;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;
+  }
+  .warroom-console .roster-ktc { font-family: var(--mono); font-size: 9px; color: var(--ink-dim); letter-spacing: 0.02em; }
+  .warroom-console .roster-pos-group { display: flex; flex-direction: column; gap: 3px; }
+  .warroom-console .roster-pos-label { font-family: var(--mono); font-size: 8.5px; font-weight: 600; letter-spacing: 0.08em; }
+  .warroom-console .roster-player {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 4px;
+    background: var(--panel-inset); border: 1px solid var(--line); padding: 3px 5px;
+    font-family: var(--mono); color: var(--ink-dim);
+  }
+  .warroom-console .roster-player.starter { color: var(--ink); }
+  .warroom-console .roster-player-name { font-size: 8.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .warroom-console .roster-player-pts { font-size: 8.5px; flex: 0 0 auto; font-variant-numeric: tabular-nums; }

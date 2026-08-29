@@ -6,17 +6,7 @@
 
 import { LeagueFormat, PlayerValuesSnapshot, TEPremium, valueFor } from "./player-values";
 import { ResolvedPlayer } from "./players";
-
-function normalizeName(name: string): string {
-  return name
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "") // strip accents (e.g. "e" + combining acute -> "e")
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, "") // drop punctuation (periods, apostrophes, hyphens)
-    .replace(/\b(jr|sr|ii|iii|iv|v)\b/g, "") // suffixes are inconsistent between sources
-    .replace(/\s+/g, " ")
-    .trim();
-}
+import { normalizeName } from "./name-match";
 
 /** Which of the four KTC value columns to rank players by. */
 export interface ValueMetric {
@@ -35,7 +25,8 @@ export const DEFAULT_VALUE_METRIC: ValueMetric = { listType: "fantasy", format: 
 const valueIndexCache = new Map<string, Map<string, number>>();
 let indexedSnapshot: PlayerValuesSnapshot | null = null;
 
-function valueIndexFor(snapshot: PlayerValuesSnapshot, metric: ValueMetric): Map<string, number> {
+/** Exported so other callers (e.g. the Draft Room's post-draft team-value summary) can reuse the same name-matched KTC index instead of re-deriving it. */
+export function valueIndexFor(snapshot: PlayerValuesSnapshot, metric: ValueMetric): Map<string, number> {
   if (indexedSnapshot !== snapshot) {
     valueIndexCache.clear();
     indexedSnapshot = snapshot;

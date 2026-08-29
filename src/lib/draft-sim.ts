@@ -9,6 +9,7 @@
 
 import { AdpEntry, AdpSnapshot } from "./player-adp";
 import { LeagueFormat } from "./player-values";
+import { DEFAULT_START, MAX_START, MIN_START } from "./starting-lineup";
 
 export type DraftListType = "dynasty" | "fantasy";
 export type DraftOrderType = "snake" | "linear";
@@ -19,6 +20,8 @@ export interface DraftSettings {
   type: DraftOrderType;
   listType: DraftListType;
   format: LeagueFormat;
+  /** How many drafted players make each team's starting lineup once the draft is complete — see src/lib/starting-lineup.ts. */
+  start: number;
 }
 
 export const DEFAULT_DRAFT_SETTINGS: DraftSettings = {
@@ -27,12 +30,14 @@ export const DEFAULT_DRAFT_SETTINGS: DraftSettings = {
   type: "snake",
   listType: "fantasy",
   format: "oneQB",
+  start: DEFAULT_START,
 };
 
 export const MIN_TEAMS = 4;
 export const MAX_TEAMS = 16;
 export const MIN_ROUNDS = 1;
 export const MAX_ROUNDS = 30;
+export { MIN_START, MAX_START };
 
 /** 1-indexed team on the clock for a 0-indexed overall pick number. */
 export function teamForPick(pickIndex: number, teams: number, type: DraftOrderType): number {

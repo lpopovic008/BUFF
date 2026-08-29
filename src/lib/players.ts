@@ -4,6 +4,8 @@
 // cache, since 5MB+ comfortably blows past typical localStorage quotas.
 // Failures (no network) degrade gracefully to raw player ids.
 
+import { normalizeName } from "./name-match";
+
 interface PlayerRecord {
   full_name?: string;
   first_name?: string;
@@ -68,4 +70,26 @@ export async function resolvePlayers(playerIds: string[]): Promise<ResolvedPlaye
       team: record?.team ?? null,
     };
   });
+}
+
+let idIndexCache: Map<string, string> | null = null;
+
+/**
+ * Maps `${position}-${normalizeName(fullName)}` -> Sleeper player_id, built
+ * from the full player dump — for matching a name-only source (KTC, yafsb's
+ * ADP data) to Sleeper's id-keyed data, e.g. the projections endpoint. Not
+ * cached if the underlying dump fails to load, so a later retry can still
+ * succeed once the network is back.
+ */
+export async function loadPlayerIdIndex(): Promise<Map<string, string>> {
+  if (idIndexCache) return idIndexCache;
+  const players = await loadPlayers();
+  if (!players) return new Map();
+  const idx = new Map<string, string>();
+  for (const [id, record] of Object.entries(players)) {
+    if (!record.full_name || !record.position) continue;
+    idx.set(`${record.position}-${normalizeName(record.full_name)}`, id);
+  }
+  idIndexCache = idx;
+  return idx;
 }
