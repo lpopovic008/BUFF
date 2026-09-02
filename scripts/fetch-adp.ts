@@ -70,6 +70,21 @@ const YAFSB_MODES: { key: keyof Omit<AdpSnapshot, "updatedAt" | "source">; label
   { key: "dynastySuperflex", label: "dynasty superflex (yafsb)", url: `${YAFSB_BASE}dynasty/` },
 ];
 
+// Real dynasty ADP data pulls in Defense/Special Teams and Kicker rows same
+// as redraft does, but dynasty value doesn't really apply to either — both
+// are streamed season to season, not held as a long-term asset — so they're
+// just clutter in a dynasty draft pool. Redraft ("fantasy") keeps them,
+// since real season-long leagues do draft and start them.
+const DYNASTY_EXCLUDED_POSITIONS = new Set(["DEF", "K"]);
+
+function filterForMode(
+  entries: AdpEntry[],
+  key: keyof Omit<AdpSnapshot, "updatedAt" | "source">
+): AdpEntry[] {
+  if (!key.startsWith("dynasty")) return entries;
+  return entries.filter((e) => !DYNASTY_EXCLUDED_POSITIONS.has(e.position));
+}
+
 const NAMED_ENTITIES: Record<string, string> = {
   amp: "&",
   lt: "<",
@@ -278,7 +293,7 @@ async function main() {
     fantasySuperflex: [],
   };
   YAFSB_MODES.forEach((mode, i) => {
-    snapshot[mode.key] = results[i];
+    snapshot[mode.key] = filterForMode(results[i], mode.key);
   });
 
   for (const mode of YAFSB_MODES) {
