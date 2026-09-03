@@ -1,8 +1,590 @@
 {
-  "updatedAt": null,
+  "updatedAt": "2026-09-03T18:26:28.129Z",
   "source": "the-odds-api",
-  "bookmakersRequested": [],
+  "bookmakersRequested": [
+    "pinnacle",
+    "betonlineag"
+  ],
   "week": null,
   "season": null,
-  "players": []
+  "players": [
+    {
+      "name": "A.J. Brown",
+      "homeTeam": "Seattle Seahawks",
+      "awayTeam": "New England Patriots",
+      "kickoff": "2026-09-10T00:20:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 60.5,
+          "overOdds": -121,
+          "underOdds": -109,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 4.5,
+          "overOdds": -148,
+          "underOdds": 112,
+          "bookmaker": "pinnacle"
+        }
+      ]
+    },
+    {
+      "name": "AJ Barner",
+      "homeTeam": "Seattle Seahawks",
+      "awayTeam": "New England Patriots",
+      "kickoff": "2026-09-10T00:20:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 24.5,
+          "overOdds": -117,
+          "underOdds": -113,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 2.5,
+          "overOdds": -155,
+          "underOdds": 116,
+          "bookmaker": "pinnacle"
+        }
+      ]
+    },
+    {
+      "name": "Blake Corum",
+      "homeTeam": "Los Angeles Rams",
+      "awayTeam": "San Francisco 49ers",
+      "kickoff": "2026-09-11T00:35:00Z",
+      "props": [
+        {
+          "market": "player_rush_yds",
+          "point": 35.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        }
+      ]
+    },
+    {
+      "name": "Brock Purdy",
+      "homeTeam": "Los Angeles Rams",
+      "awayTeam": "San Francisco 49ers",
+      "kickoff": "2026-09-11T00:35:00Z",
+      "props": [
+        {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": -108,
+          "underOdds": -122,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 245.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 14.5,
+          "overOdds": -120,
+          "underOdds": -110,
+          "bookmaker": "pinnacle"
+        }
+      ]
+    },
+    {
+      "name": "Christian McCaffrey",
+      "homeTeam": "Los Angeles Rams",
+      "awayTeam": "San Francisco 49ers",
+      "kickoff": "2026-09-11T00:35:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 37.5,
+          "overOdds": -115,
+          "underOdds": -115,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 4.5,
+          "overOdds": 101,
+          "underOdds": -134,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 59.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        }
+      ]
+    },
+    {
+      "name": "Colby Parkinson",
+      "homeTeam": "Los Angeles Rams",
+      "awayTeam": "San Francisco 49ers",
+      "kickoff": "2026-09-11T00:35:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 22.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 2.5,
+          "overOdds": 103,
+          "underOdds": -133,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Cooper Kupp",
+      "homeTeam": "Seattle Seahawks",
+      "awayTeam": "New England Patriots",
+      "kickoff": "2026-09-10T00:20:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 30.5,
+          "overOdds": -115,
+          "underOdds": -115,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 2.5,
+          "overOdds": -149,
+          "underOdds": 112,
+          "bookmaker": "pinnacle"
+        }
+      ]
+    },
+    {
+      "name": "Davante Adams",
+      "homeTeam": "Los Angeles Rams",
+      "awayTeam": "San Francisco 49ers",
+      "kickoff": "2026-09-11T00:35:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 52.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 4.5,
+          "overOdds": -103,
+          "underOdds": -125,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Deebo Samuel",
+      "homeTeam": "Los Angeles Rams",
+      "awayTeam": "San Francisco 49ers",
+      "kickoff": "2026-09-11T00:35:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 29.5,
+          "overOdds": -117,
+          "underOdds": -113,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 2.5,
+          "overOdds": -142,
+          "underOdds": 107,
+          "bookmaker": "pinnacle"
+        }
+      ]
+    },
+    {
+      "name": "DeMario Douglas",
+      "homeTeam": "Seattle Seahawks",
+      "awayTeam": "New England Patriots",
+      "kickoff": "2026-09-10T00:20:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 19.5,
+          "overOdds": -111,
+          "underOdds": -119,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 1.5,
+          "overOdds": -177,
+          "underOdds": 132,
+          "bookmaker": "pinnacle"
+        }
+      ]
+    },
+    {
+      "name": "Drake Maye",
+      "homeTeam": "Seattle Seahawks",
+      "awayTeam": "New England Patriots",
+      "kickoff": "2026-09-10T00:20:00Z",
+      "props": [
+        {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": 146,
+          "underOdds": -198,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 227.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 24.5,
+          "overOdds": -114,
+          "underOdds": -116,
+          "bookmaker": "pinnacle"
+        }
+      ]
+    },
+    {
+      "name": "George Holani",
+      "homeTeam": "Seattle Seahawks",
+      "awayTeam": "New England Patriots",
+      "kickoff": "2026-09-10T00:20:00Z",
+      "props": [
+        {
+          "market": "player_rush_yds",
+          "point": 18.5,
+          "overOdds": -120,
+          "underOdds": -110,
+          "bookmaker": "pinnacle"
+        }
+      ]
+    },
+    {
+      "name": "Hunter Henry",
+      "homeTeam": "Seattle Seahawks",
+      "awayTeam": "New England Patriots",
+      "kickoff": "2026-09-10T00:20:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 34.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": 134,
+          "underOdds": -180,
+          "bookmaker": "pinnacle"
+        }
+      ]
+    },
+    {
+      "name": "Jadarian Price",
+      "homeTeam": "Seattle Seahawks",
+      "awayTeam": "New England Patriots",
+      "kickoff": "2026-09-10T00:20:00Z",
+      "props": [
+        {
+          "market": "player_rush_yds",
+          "point": 51.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        }
+      ]
+    },
+    {
+      "name": "Jaxon Smith-Njigba",
+      "homeTeam": "Seattle Seahawks",
+      "awayTeam": "New England Patriots",
+      "kickoff": "2026-09-10T00:20:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 83.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 6.5,
+          "overOdds": -102,
+          "underOdds": -130,
+          "bookmaker": "pinnacle"
+        }
+      ]
+    },
+    {
+      "name": "Kyren Williams",
+      "homeTeam": "Los Angeles Rams",
+      "awayTeam": "San Francisco 49ers",
+      "kickoff": "2026-09-11T00:35:00Z",
+      "props": [
+        {
+          "market": "player_rush_yds",
+          "point": 57.5,
+          "overOdds": -113,
+          "underOdds": -117,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_reception_yds",
+          "point": 10.5,
+          "overOdds": -111,
+          "underOdds": -116,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 1.5,
+          "overOdds": -141,
+          "underOdds": 109,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Matthew Stafford",
+      "homeTeam": "Los Angeles Rams",
+      "awayTeam": "San Francisco 49ers",
+      "kickoff": "2026-09-11T00:35:00Z",
+      "props": [
+        {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": -154,
+          "underOdds": 116,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 265.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        }
+      ]
+    },
+    {
+      "name": "Mike Evans",
+      "homeTeam": "Los Angeles Rams",
+      "awayTeam": "San Francisco 49ers",
+      "kickoff": "2026-09-11T00:35:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 49.5,
+          "overOdds": -114,
+          "underOdds": -116,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": -130,
+          "underOdds": -102,
+          "bookmaker": "pinnacle"
+        }
+      ]
+    },
+    {
+      "name": "Puka Nacua",
+      "homeTeam": "Los Angeles Rams",
+      "awayTeam": "San Francisco 49ers",
+      "kickoff": "2026-09-11T00:35:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 90.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 7.5,
+          "overOdds": 116,
+          "underOdds": -154,
+          "bookmaker": "pinnacle"
+        }
+      ]
+    },
+    {
+      "name": "Rashid Shaheed",
+      "homeTeam": "Seattle Seahawks",
+      "awayTeam": "New England Patriots",
+      "kickoff": "2026-09-10T00:20:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 31.5,
+          "overOdds": -114,
+          "underOdds": -116,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 2.5,
+          "overOdds": 110,
+          "underOdds": -146,
+          "bookmaker": "pinnacle"
+        }
+      ]
+    },
+    {
+      "name": "Rhamondre Stevenson",
+      "homeTeam": "Seattle Seahawks",
+      "awayTeam": "New England Patriots",
+      "kickoff": "2026-09-10T00:20:00Z",
+      "props": [
+        {
+          "market": "player_rush_yds",
+          "point": 40.5,
+          "overOdds": -118,
+          "underOdds": -112,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_reception_yds",
+          "point": 18.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 2.5,
+          "overOdds": 102,
+          "underOdds": -132,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Romeo Doubs",
+      "homeTeam": "Seattle Seahawks",
+      "awayTeam": "New England Patriots",
+      "kickoff": "2026-09-10T00:20:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 36.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": 116,
+          "underOdds": -154,
+          "bookmaker": "pinnacle"
+        }
+      ]
+    },
+    {
+      "name": "Sam Darnold",
+      "homeTeam": "Seattle Seahawks",
+      "awayTeam": "New England Patriots",
+      "kickoff": "2026-09-10T00:20:00Z",
+      "props": [
+        {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": 104,
+          "underOdds": -138,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 228.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 5.5,
+          "overOdds": -110,
+          "underOdds": -120,
+          "bookmaker": "pinnacle"
+        }
+      ]
+    },
+    {
+      "name": "Terrance Ferguson",
+      "homeTeam": "Los Angeles Rams",
+      "awayTeam": "San Francisco 49ers",
+      "kickoff": "2026-09-11T00:35:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 21.5,
+          "overOdds": -119,
+          "underOdds": -109,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 1.5,
+          "overOdds": -147,
+          "underOdds": 113,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "TreVeyon Henderson",
+      "homeTeam": "Seattle Seahawks",
+      "awayTeam": "New England Patriots",
+      "kickoff": "2026-09-10T00:20:00Z",
+      "props": [
+        {
+          "market": "player_rush_yds",
+          "point": 30.5,
+          "overOdds": -115,
+          "underOdds": -115,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_reception_yds",
+          "point": 8.5,
+          "overOdds": -108,
+          "underOdds": -120,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 1.5,
+          "overOdds": -105,
+          "underOdds": -123,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    }
+  ]
 }
