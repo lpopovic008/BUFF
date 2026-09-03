@@ -26,7 +26,10 @@ const snapshot: PlayerPropsSnapshot = {
       homeTeam: "Buffalo Bills",
       awayTeam: "Houston Texans",
       kickoff: "2026-09-13T17:00:00Z",
-      props: [{ market: "player_reception_yds", point: 60.5, overOdds: -121, underOdds: -109, bookmaker: "pinnacle" }],
+      props: [
+        { market: "player_reception_yds", point: 60.5, overOdds: -121, underOdds: -109, bookmaker: "pinnacle" },
+        { market: "player_anytime_td", point: null, overOdds: 150, underOdds: null, bookmaker: "betonlineag" },
+      ],
     },
   ],
 };
@@ -70,6 +73,24 @@ test("a market absent from the league's scoring settings contributes 0, not NaN"
   const result = projectFromProps("Josh Allen", snapshot, {}); // no scoring settings at all
   assert.equal(result.totalFantasyPoints, 0);
   assert.ok(result.lines.every((l) => l.fantasyPoints === 0));
+});
+
+test("projectFromProps converts anytime-TD odds to an implied probability weighted by the league's TD value", () => {
+  const result = projectFromProps("A.J. Brown", snapshot, ppr);
+  const anytimeTd = result.lines.find((l) => l.market === "player_anytime_td")!;
+  assert.equal(anytimeTd.point, null); // no line for this market, only a "Yes" price
+  // American +150 -> implied probability 100/(150+100) = 40%.
+  assert.ok(anytimeTd.impliedProbabilityPct !== null);
+  assert.ok(Math.abs(anytimeTd.impliedProbabilityPct! - 40) < 1e-9);
+  // rush_td and rec_td are both 6 in `ppr`, so the average TD weight is 6.
+  assert.ok(Math.abs(anytimeTd.fantasyPoints - 0.4 * 6) < 1e-9);
+});
+
+test("projectFromProps averages rush_td/rec_td for anytime-TD when they differ", () => {
+  const lopsided = { ...ppr, rush_td: 6, rec_td: 4 };
+  const result = projectFromProps("A.J. Brown", snapshot, lopsided);
+  const anytimeTd = result.lines.find((l) => l.market === "player_anytime_td")!;
+  assert.ok(Math.abs(anytimeTd.fantasyPoints - 0.4 * 5) < 1e-9); // average of 6 and 4
 });
 
 test("projectLineupFromProps sums every starter's props into one lineup total, skipping empty slots", () => {

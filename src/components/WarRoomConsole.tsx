@@ -25,7 +25,7 @@ import { AllTimeRecord, useAllTimeHeadToHead } from "@/hooks/useAllTimeHeadToHea
 import { NFLGame } from "@/lib/nfl-schedule";
 import rawPlayerProps from "@/data/player-props.json";
 import { PlayerPropsSnapshot } from "@/lib/player-props";
-import { projectLineupFromProps } from "@/lib/fantasy-points-from-props";
+import { LineupPropProjection, projectLineupFromProps, PropPointsLine } from "@/lib/fantasy-points-from-props";
 import "./warroom.css";
 
 const playerPropsSnapshot = rawPlayerProps as unknown as PlayerPropsSnapshot;
@@ -33,6 +33,63 @@ const playerPropsSnapshot = rawPlayerProps as unknown as PlayerPropsSnapshot;
 function formatOdds(odds: number | null): string {
   if (odds == null) return "—";
   return odds > 0 ? `+${odds}` : `${odds}`;
+}
+
+/** The chip's headline number — a book's over/under line, or (ANY TD, which has no line) the implied scoring probability. */
+function propChipValue(line: PropPointsLine): string {
+  if (line.point != null) return String(line.point);
+  if (line.impliedProbabilityPct != null) return `${line.impliedProbabilityPct}%`;
+  return "—";
+}
+
+/** Odds string — a paired Over/Under, or (ANY TD, single-sided) just the one price. */
+function propChipOdds(line: PropPointsLine): string {
+  if (line.underOdds == null) return formatOdds(line.overOdds);
+  return `O ${formatOdds(line.overOdds)} / U ${formatOdds(line.underOdds)}`;
+}
+
+/** One team's half of the SBK-01 card — every starter's prop lines, converted to fantasy points. Shared so "you" and the real opponent render identically. */
+function PropsColumn({
+  label,
+  variant,
+  projection,
+}: {
+  label: string;
+  variant: "you" | "opp";
+  projection: { players: LineupPropProjection[]; totalFantasyPoints: number };
+}) {
+  return (
+    <div className="props-column">
+      <div className={`props-column-label ${variant}`}>{label}</div>
+      <div className="props-list">
+        {projection.players.map((p) => (
+          <div className={`props-row${p.matched ? "" : " unmatched"}`} key={p.playerId}>
+            <div className="props-row-head">
+              <span className="props-slot">{p.slot}</span>
+              <span className="props-name">{p.name}</span>
+              {p.matched ? (
+                <span className="props-matchup">
+                  {p.awayTeam} @ {p.homeTeam}
+                </span>
+              ) : null}
+              <span className="props-total">{p.matched ? `${p.totalFantasyPoints.toFixed(1)} PTS` : "NO LINES"}</span>
+            </div>
+            {p.matched && p.lines.length > 0 ? (
+              <div className="props-chips">
+                {p.lines.map((line) => (
+                  <span className="props-chip" key={line.market} title={`${line.bookmaker} · ${line.fantasyPoints.toFixed(2)} pts`}>
+                    <span className="props-chip-label">{line.label}</span>
+                    <span className="props-chip-value">{propChipValue(line)}</span>
+                    <span className="props-chip-odds">{propChipOdds(line)}</span>
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 const RADAR_LABELS = ["QB", "RB", "WR", "TE"] as const;
@@ -227,6 +284,14 @@ export function WarRoomConsole({
   // PREV/NEXT is currently comparing you against — since the live scoring
   // zone is specifically about the game you're actually playing this week.
   const realOpponent = others.find((m) => m.rosterId === you.opponentRosterId) ?? null;
+
+  // Same sportsbook-implied projection, run for the actual weekly opponent's
+  // starting lineup, so SBK-01 can show a real head-to-head comparison
+  // instead of just your own total.
+  const opponentPropProjection = useMemo(
+    () => (realOpponent ? projectLineupFromProps(realOpponent.lineup, playerPropsSnapshot, data.scoringSettings) : null),
+    [realOpponent, data.scoringSettings]
+  );
   const tracked: TrackedPlayer[] = [
     ...you.lineup
       .filter((p) => p.playerId)
@@ -916,7 +981,12 @@ export function WarRoomConsole({
                 <span className="card-title">Sportsbook Fantasy Points</span>
               </div>
               <div className="card-flags">
-                <span className="flag cmp">{propProjection.totalFantasyPoints.toFixed(1)} PTS · LINEUP TOTAL</span>
+                <span className="flag you">{propProjection.totalFantasyPoints.toFixed(1)} PTS · {you.name.toUpperCase()}</span>
+                {realOpponent && opponentPropProjection ? (
+                  <span className="flag cmp">
+                    {opponentPropProjection.totalFantasyPoints.toFixed(1)} PTS · {realOpponent.name.toUpperCase()}
+                  </span>
+                ) : null}
               </div>
             </div>
             {playerPropsSnapshot.players.length === 0 ? (
@@ -925,39 +995,22 @@ export function WarRoomConsole({
               </p>
             ) : (
               <>
-                <div className="props-list">
-                  {propProjection.players.map((p) => (
-                    <div className={`props-row${p.matched ? "" : " unmatched"}`} key={p.playerId}>
-                      <div className="props-row-head">
-                        <span className="props-slot">{p.slot}</span>
-                        <span className="props-name">{p.name}</span>
-                        {p.matched ? (
-                          <span className="props-matchup">
-                            {p.awayTeam} @ {p.homeTeam}
-                          </span>
-                        ) : null}
-                        <span className="props-total">{p.matched ? `${p.totalFantasyPoints.toFixed(1)} PTS` : "NO LINES"}</span>
-                      </div>
-                      {p.matched && p.lines.length > 0 ? (
-                        <div className="props-chips">
-                          {p.lines.map((line) => (
-                            <span className="props-chip" key={line.market} title={`${line.bookmaker} · ${line.fantasyPoints.toFixed(2)} pts`}>
-                              <span className="props-chip-label">{line.label}</span>
-                              <span className="props-chip-value">{line.point}</span>
-                              <span className="props-chip-odds">
-                                O {formatOdds(line.overOdds)} / U {formatOdds(line.underOdds)}
-                              </span>
-                            </span>
-                          ))}
-                        </div>
-                      ) : null}
+                <div className="props-columns">
+                  <PropsColumn label={you.name.toUpperCase()} variant="you" projection={propProjection} />
+                  {realOpponent && opponentPropProjection ? (
+                    <PropsColumn label={realOpponent.name.toUpperCase()} variant="opp" projection={opponentPropProjection} />
+                  ) : (
+                    <div className="props-column">
+                      <div className="props-column-label opp">NO OPPONENT THIS WEEK</div>
+                      <p className="card-note">This week has no scheduled matchup to compare against.</p>
                     </div>
-                  ))}
+                  )}
                 </div>
                 <p className="card-note">
                   Lines are Pinnacle&apos;s where posted (the sharpest book available through this feed), falling back to
-                  BetOnline — labeled per chip. Fantasy points use {data.leagueName}&apos;s own scoring settings. Updated{" "}
-                  {playerPropsSnapshot.updatedAt ? new Date(playerPropsSnapshot.updatedAt).toLocaleString() : "—"}.
+                  BetOnline — labeled per chip. ANY TD shows the anytime-touchdown market&apos;s implied probability,
+                  since that market has no over/under line. Fantasy points use {data.leagueName}&apos;s own scoring
+                  settings. Updated {playerPropsSnapshot.updatedAt ? new Date(playerPropsSnapshot.updatedAt).toLocaleString() : "—"}.
                 </p>
               </>
             )}

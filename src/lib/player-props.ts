@@ -6,14 +6,17 @@
 // the API key in the page's own JS or hit the account's rate limit once per
 // visitor instead of once per refresh.
 
+/** Anytime-touchdown-scorer — unlike every other market here, this is a single-sided "Yes" probability price with no over/under line at all. */
+export const ANYTIME_TD_MARKET = "player_anytime_td";
+
 export interface PlayerPropLine {
   /** The Odds API's market key, e.g. "player_pass_yds", "player_pass_tds". See fantasy-points-from-props.ts for the full set this app understands. */
   market: string;
-  /** The sportsbook's over/under line for this stat. */
-  point: number;
-  /** American odds on the Over side, or null if only one side was available. */
+  /** The sportsbook's over/under line for this stat — null for ANYTIME_TD_MARKET, which has no line, just a "Yes" price (see overOdds). */
+  point: number | null;
+  /** American odds on the Over side (or the single "Yes" price for ANYTIME_TD_MARKET), or null if unavailable. */
   overOdds: number | null;
-  /** American odds on the Under side, or null if only one side was available. */
+  /** American odds on the Under side — always null for ANYTIME_TD_MARKET, which has no other side. */
   underOdds: number | null;
   /** Which book this line came from — see BOOKMAKER_PRIORITY in the fetch script; not always the sharpest book requested, since not every book prices every player/market. */
   bookmaker: string;

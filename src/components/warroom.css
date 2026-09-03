@@ -163,6 +163,7 @@
   .warroom-console .flag.live::before { content: "● "; }
   @media (prefers-reduced-motion: no-preference) { .warroom-console .flag.live::before { animation: warroom-blink 1.6s step-end infinite; } }
   .warroom-console .flag.cmp { color: var(--cyan); }
+  .warroom-console .flag.you { color: var(--amber); }
 
   .warroom-console .card-note { margin: 0; font-size: 12px; color: var(--ink-dim); }
 
@@ -492,6 +493,16 @@
   .warroom-console .roster-player-pts { font-size: 8.5px; flex: 0 0 auto; font-variant-numeric: tabular-nums; }
 
   /* ---------- SBK-01 Sportsbook Fantasy Points ---------- */
+
+  .warroom-console .props-columns { display: flex; gap: 14px; align-items: flex-start; }
+  .warroom-console .props-column { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+  .warroom-console .props-column-label {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; font-weight: 600;
+    border-bottom: 1px solid var(--line-bright); padding-bottom: 4px;
+  }
+  .warroom-console .props-column-label.you { color: var(--amber); }
+  .warroom-console .props-column-label.opp { color: var(--cyan); }
+  @media (max-width: 760px) { .warroom-console .props-columns { flex-direction: column; } }
 
   .warroom-console .props-list { display: flex; flex-direction: column; gap: 8px; }
   .warroom-console .props-row {

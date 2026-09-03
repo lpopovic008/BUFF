@@ -27,6 +27,7 @@
 
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { ANYTIME_TD_MARKET } from "../src/lib/player-props";
 import type { PlayerPropEntry, PlayerPropLine, PlayerPropsSnapshot } from "../src/lib/player-props";
 
 const DRY_RUN = process.argv.includes("--dry-run");
@@ -56,6 +57,7 @@ const MARKETS = [
   "player_reception_yds",
   "player_receptions",
   "player_reception_tds",
+  ANYTIME_TD_MARKET,
 ];
 
 interface OddsApiEvent {
@@ -122,6 +124,26 @@ function pickBestLines(bookmakers: OddsApiBookmaker[]): Map<string, PlayerPropLi
   for (const book of sorted) {
     for (const market of book.markets) {
       if (!MARKETS.includes(market.key)) continue;
+
+      // Anytime-touchdown-scorer has no Over/Under pair — just one "Yes"
+      // outcome (a price) per player, no line at all.
+      if (market.key === ANYTIME_TD_MARKET) {
+        for (const outcome of market.outcomes) {
+          if (!outcome.description) continue;
+          const key = `${outcome.description}::${market.key}`;
+          if (best.has(key)) continue; // already filled by a higher-priority book
+          best.set(key, {
+            playerName: outcome.description,
+            market: market.key,
+            point: null,
+            overOdds: outcome.price,
+            underOdds: null,
+            bookmaker: book.key,
+          });
+        }
+        continue;
+      }
+
       const byPlayer = new Map<string, { over?: OddsApiOutcome; under?: OddsApiOutcome }>();
       for (const outcome of market.outcomes) {
         if (!outcome.description) continue;
