@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-03T18:51:04.228Z",
+  "updatedAt": "2026-09-03T23:45:26.315Z",
   "source": "the-odds-api",
   "bookmakersRequested": [
     "pinnacle",
@@ -53,8 +53,8 @@
         {
           "market": "player_rush_yds",
           "point": 30.5,
-          "overOdds": -119,
-          "underOdds": -109,
+          "overOdds": -118,
+          "underOdds": -110,
           "bookmaker": "betonlineag"
         }
       ]
@@ -126,7 +126,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 260,
+          "overOdds": 270,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -193,15 +193,15 @@
         {
           "market": "player_reception_yds",
           "point": 77.5,
-          "overOdds": -115,
-          "underOdds": -112,
+          "overOdds": -114,
+          "underOdds": -114,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_receptions",
           "point": 6.5,
-          "overOdds": -114,
-          "underOdds": -114,
+          "overOdds": -112,
+          "underOdds": -115,
           "bookmaker": "betonlineag"
         }
       ]
@@ -275,7 +275,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": -143,
+          "overOdds": -125,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -408,8 +408,8 @@
         {
           "market": "player_rush_yds",
           "point": 50.5,
-          "overOdds": -115,
-          "underOdds": -112,
+          "overOdds": -114,
+          "underOdds": -114,
           "bookmaker": "betonlineag"
         }
       ]
@@ -466,7 +466,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 140,
+          "overOdds": 130,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -532,9 +532,9 @@
         },
         {
           "market": "player_reception_yds",
-          "point": 15.5,
-          "overOdds": -118,
-          "underOdds": -110,
+          "point": 16.5,
+          "overOdds": -119,
+          "underOdds": -109,
           "bookmaker": "betonlineag"
         },
         {
@@ -576,8 +576,8 @@
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": 103,
-          "underOdds": -133,
+          "overOdds": -102,
+          "underOdds": -127,
           "bookmaker": "betonlineag"
         }
       ]
@@ -635,8 +635,8 @@
         {
           "market": "player_receptions",
           "point": 2.5,
-          "overOdds": -161,
-          "underOdds": 124,
+          "overOdds": -167,
+          "underOdds": 128,
           "bookmaker": "betonlineag"
         }
       ]
@@ -671,7 +671,7 @@
         },
         {
           "market": "player_reception_yds",
-          "point": 62.5,
+          "point": 63.5,
           "overOdds": -114,
           "underOdds": -114,
           "bookmaker": "betonlineag"
@@ -708,8 +708,8 @@
         {
           "market": "player_rush_yds",
           "point": 14.5,
-          "overOdds": -120,
-          "underOdds": -110,
+          "overOdds": -127,
+          "underOdds": -104,
           "bookmaker": "pinnacle"
         },
         {
@@ -767,8 +767,8 @@
         {
           "market": "player_pass_tds",
           "point": 1.5,
-          "overOdds": 110,
-          "underOdds": -143,
+          "overOdds": 109,
+          "underOdds": -141,
           "bookmaker": "betonlineag"
         },
         {
@@ -780,7 +780,7 @@
         },
         {
           "market": "player_rush_yds",
-          "point": 13.5,
+          "point": 14.5,
           "overOdds": -119,
           "underOdds": -109,
           "bookmaker": "betonlineag"
@@ -825,8 +825,8 @@
         {
           "market": "player_receptions",
           "point": 2.5,
-          "overOdds": 136,
-          "underOdds": -179,
+          "overOdds": 132,
+          "underOdds": -172,
           "bookmaker": "betonlineag"
         },
         {
@@ -867,9 +867,9 @@
         },
         {
           "market": "player_rush_yds",
-          "point": 8.5,
-          "overOdds": -127,
-          "underOdds": -102,
+          "point": 9.5,
+          "overOdds": -119,
+          "underOdds": -109,
           "bookmaker": "betonlineag"
         }
       ]
@@ -935,22 +935,22 @@
         {
           "market": "player_pass_tds",
           "point": 1.5,
-          "overOdds": -103,
-          "underOdds": -125,
+          "overOdds": -101,
+          "underOdds": -128,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_pass_yds",
           "point": 233.5,
-          "overOdds": -115,
-          "underOdds": -112,
+          "overOdds": -114,
+          "underOdds": -114,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_rush_yds",
-          "point": 19.5,
-          "overOdds": -120,
-          "underOdds": -108,
+          "point": 20.5,
+          "overOdds": -123,
+          "underOdds": -105,
           "bookmaker": "betonlineag"
         }
       ]
@@ -1030,15 +1030,15 @@
         {
           "market": "player_pass_yds",
           "point": 208.5,
-          "overOdds": -118,
-          "underOdds": -110,
+          "overOdds": -116,
+          "underOdds": -111,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_rush_yds",
           "point": 8.5,
-          "overOdds": -115,
-          "underOdds": -112,
+          "overOdds": -114,
+          "underOdds": -114,
           "bookmaker": "betonlineag"
         }
       ]
@@ -1087,16 +1087,16 @@
         },
         {
           "market": "player_reception_yds",
-          "point": 74.5,
+          "point": 73.5,
           "overOdds": -114,
           "underOdds": -114,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_receptions",
-          "point": 6.5,
-          "overOdds": 118,
-          "underOdds": -154,
+          "point": 5.5,
+          "overOdds": -175,
+          "underOdds": 135,
           "bookmaker": "betonlineag"
         }
       ]
@@ -1147,8 +1147,8 @@
         {
           "market": "player_reception_yds",
           "point": 22.5,
-          "overOdds": -116,
-          "underOdds": -111,
+          "overOdds": -112,
+          "underOdds": -115,
           "bookmaker": "betonlineag"
         },
         {
@@ -1160,9 +1160,9 @@
         },
         {
           "market": "player_rush_yds",
-          "point": 60.5,
-          "overOdds": -114,
-          "underOdds": -114,
+          "point": 59.5,
+          "overOdds": -116,
+          "underOdds": -111,
           "bookmaker": "betonlineag"
         }
       ]
@@ -1258,8 +1258,8 @@
         {
           "market": "player_reception_yds",
           "point": 76.5,
-          "overOdds": -110,
-          "underOdds": -118,
+          "overOdds": -115,
+          "underOdds": -112,
           "bookmaker": "betonlineag"
         },
         {
@@ -1344,16 +1344,16 @@
         },
         {
           "market": "player_reception_yds",
-          "point": 55.5,
-          "overOdds": -116,
-          "underOdds": -111,
+          "point": 56.5,
+          "overOdds": -114,
+          "underOdds": -114,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -169,
-          "underOdds": 130,
+          "overOdds": -167,
+          "underOdds": 128,
           "bookmaker": "betonlineag"
         }
       ]
@@ -1404,15 +1404,15 @@
         {
           "market": "player_reception_yds",
           "point": 22.5,
-          "overOdds": -114,
-          "underOdds": -114,
+          "overOdds": -115,
+          "underOdds": -112,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_receptions",
           "point": 2.5,
-          "overOdds": 103,
-          "underOdds": -133,
+          "overOdds": 100,
+          "underOdds": -130,
           "bookmaker": "betonlineag"
         }
       ]
@@ -1433,8 +1433,8 @@
         {
           "market": "player_receptions",
           "point": 1.5,
-          "overOdds": -127,
-          "underOdds": -102,
+          "overOdds": -141,
+          "underOdds": 109,
           "bookmaker": "betonlineag"
         }
       ]
@@ -1454,16 +1454,16 @@
         },
         {
           "market": "player_reception_yds",
-          "point": 48.5,
-          "overOdds": -114,
-          "underOdds": -114,
+          "point": 50.5,
+          "overOdds": -116,
+          "underOdds": -111,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_receptions",
           "point": 4.5,
-          "overOdds": 115,
-          "underOdds": -149,
+          "overOdds": 103,
+          "underOdds": -133,
           "bookmaker": "betonlineag"
         }
       ]
@@ -1521,7 +1521,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": -200,
+          "overOdds": -143,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -1543,8 +1543,8 @@
         {
           "market": "player_pass_tds",
           "point": 1.5,
-          "overOdds": -141,
-          "underOdds": 108,
+          "overOdds": -143,
+          "underOdds": 110,
           "bookmaker": "betonlineag"
         },
         {
@@ -1572,15 +1572,15 @@
         {
           "market": "player_reception_yds",
           "point": 35.5,
-          "overOdds": -115,
-          "underOdds": -112,
+          "overOdds": -116,
+          "underOdds": -111,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": 100,
-          "underOdds": -130,
+          "overOdds": -105,
+          "underOdds": -123,
           "bookmaker": "betonlineag"
         }
       ]
@@ -1608,8 +1608,8 @@
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -103,
-          "underOdds": -125,
+          "overOdds": -105,
+          "underOdds": -123,
           "bookmaker": "betonlineag"
         }
       ]
@@ -1680,9 +1680,9 @@
         },
         {
           "market": "player_pass_yds",
-          "point": 232.5,
-          "overOdds": -114,
-          "underOdds": -114,
+          "point": 230.5,
+          "overOdds": -115,
+          "underOdds": -112,
           "bookmaker": "betonlineag"
         }
       ]
@@ -1777,9 +1777,9 @@
         },
         {
           "market": "player_reception_yds",
-          "point": 52.5,
-          "overOdds": -114,
-          "underOdds": -114,
+          "point": 51.5,
+          "overOdds": -115,
+          "underOdds": -112,
           "bookmaker": "betonlineag"
         },
         {
@@ -1806,16 +1806,16 @@
         },
         {
           "market": "player_reception_yds",
-          "point": 7.5,
-          "overOdds": -114,
-          "underOdds": -114,
+          "point": 8.5,
+          "overOdds": -108,
+          "underOdds": -120,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_receptions",
           "point": 1.5,
-          "overOdds": -122,
-          "underOdds": -106,
+          "overOdds": -115,
+          "underOdds": -112,
           "bookmaker": "betonlineag"
         },
         {
@@ -1961,7 +1961,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 700,
+          "overOdds": 600,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -2026,9 +2026,9 @@
         },
         {
           "market": "player_reception_yds",
-          "point": 22.5,
-          "overOdds": -119,
-          "underOdds": -109,
+          "point": 23.5,
+          "overOdds": -116,
+          "underOdds": -111,
           "bookmaker": "betonlineag"
         },
         {
@@ -2070,9 +2070,9 @@
         },
         {
           "market": "player_rush_yds",
-          "point": 78.5,
-          "overOdds": -114,
-          "underOdds": -114,
+          "point": 80.5,
+          "overOdds": -118,
+          "underOdds": -110,
           "bookmaker": "betonlineag"
         }
       ]
@@ -2174,15 +2174,15 @@
         {
           "market": "player_reception_yds",
           "point": 65.5,
-          "overOdds": -118,
-          "underOdds": -110,
+          "overOdds": -116,
+          "underOdds": -111,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_receptions",
           "point": 5.5,
-          "overOdds": 102,
-          "underOdds": -132,
+          "overOdds": 100,
+          "underOdds": -130,
           "bookmaker": "betonlineag"
         }
       ]
@@ -2364,7 +2364,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 650,
+          "overOdds": 600,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -2424,7 +2424,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 1900,
+          "overOdds": 1400,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -2469,7 +2469,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 1000,
+          "overOdds": 650,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -2551,8 +2551,8 @@
         {
           "market": "player_reception_yds",
           "point": 54.5,
-          "overOdds": -115,
-          "underOdds": -112,
+          "overOdds": -114,
+          "underOdds": -114,
           "bookmaker": "betonlineag"
         },
         {
@@ -2588,7 +2588,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 1100,
+          "overOdds": 1000,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -2603,15 +2603,15 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 220,
+          "overOdds": 230,
           "underOdds": null,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_reception_yds",
           "point": 61.5,
-          "overOdds": -115,
-          "underOdds": -112,
+          "overOdds": -114,
+          "underOdds": -114,
           "bookmaker": "betonlineag"
         },
         {
@@ -2675,7 +2675,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 170,
+          "overOdds": 180,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -2705,22 +2705,22 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 140,
+          "overOdds": 150,
           "underOdds": null,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_reception_yds",
-          "point": 68.5,
-          "overOdds": -114,
-          "underOdds": -114,
+          "point": 67.5,
+          "overOdds": -118,
+          "underOdds": -110,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_receptions",
-          "point": 5.5,
-          "overOdds": 126,
-          "underOdds": -164,
+          "point": 4.5,
+          "overOdds": -159,
+          "underOdds": 122,
           "bookmaker": "betonlineag"
         }
       ]
@@ -2786,8 +2786,8 @@
         {
           "market": "player_reception_yds",
           "point": 36.5,
-          "overOdds": -114,
-          "underOdds": -114,
+          "overOdds": -116,
+          "underOdds": -111,
           "bookmaker": "betonlineag"
         },
         {
@@ -2837,7 +2837,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 280,
+          "overOdds": 290,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -2927,7 +2927,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 230,
+          "overOdds": 240,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -2957,13 +2957,13 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": -125,
+          "overOdds": -143,
           "underOdds": null,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_reception_yds",
-          "point": 90.5,
+          "point": 88.5,
           "overOdds": -118,
           "underOdds": -110,
           "bookmaker": "betonlineag"
@@ -2971,8 +2971,8 @@
         {
           "market": "player_receptions",
           "point": 7.5,
-          "overOdds": 109,
-          "underOdds": -141,
+          "overOdds": 104,
+          "underOdds": -135,
           "bookmaker": "betonlineag"
         }
       ]
@@ -3059,9 +3059,9 @@
         },
         {
           "market": "player_pass_yds",
-          "point": 221.5,
-          "overOdds": -114,
-          "underOdds": -114,
+          "point": 222.5,
+          "overOdds": -115,
+          "underOdds": -112,
           "bookmaker": "betonlineag"
         }
       ]
@@ -3082,8 +3082,8 @@
         {
           "market": "player_rush_yds",
           "point": 41.5,
-          "overOdds": -112,
-          "underOdds": -115,
+          "overOdds": -114,
+          "underOdds": -114,
           "bookmaker": "betonlineag"
         }
       ]
@@ -3134,7 +3134,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 800,
+          "overOdds": 650,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -3155,23 +3155,23 @@
         },
         {
           "market": "player_reception_yds",
-          "point": 31.5,
-          "overOdds": -111,
-          "underOdds": -116,
+          "point": 30.5,
+          "overOdds": -115,
+          "underOdds": -112,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_receptions",
           "point": 4.5,
-          "overOdds": 104,
-          "underOdds": -135,
+          "overOdds": 115,
+          "underOdds": -149,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_rush_yds",
-          "point": 85.5,
-          "overOdds": -116,
-          "underOdds": -111,
+          "point": 82.5,
+          "overOdds": -114,
+          "underOdds": -114,
           "bookmaker": "betonlineag"
         }
       ]
@@ -3229,8 +3229,8 @@
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -125,
-          "underOdds": -103,
+          "overOdds": -120,
+          "underOdds": -108,
           "bookmaker": "betonlineag"
         }
       ]
@@ -3259,22 +3259,22 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 270,
+          "overOdds": 260,
           "underOdds": null,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_reception_yds",
-          "point": 38.5,
-          "overOdds": -112,
-          "underOdds": -115,
+          "point": 39.5,
+          "overOdds": -114,
+          "underOdds": -114,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -115,
-          "underOdds": -112,
+          "overOdds": -105,
+          "underOdds": -123,
           "bookmaker": "betonlineag"
         }
       ]
@@ -3301,7 +3301,7 @@
         },
         {
           "market": "player_pass_yds",
-          "point": 214.5,
+          "point": 215.5,
           "overOdds": -114,
           "underOdds": -114,
           "bookmaker": "betonlineag"
@@ -3391,7 +3391,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 650,
+          "overOdds": 750,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -3412,9 +3412,9 @@
         },
         {
           "market": "player_reception_yds",
-          "point": 58.5,
-          "overOdds": -114,
-          "underOdds": -114,
+          "point": 57.5,
+          "overOdds": -116,
+          "underOdds": -111,
           "bookmaker": "betonlineag"
         },
         {
@@ -3442,8 +3442,8 @@
         {
           "market": "player_pass_tds",
           "point": 1.5,
-          "overOdds": -192,
-          "underOdds": 146,
+          "overOdds": -200,
+          "underOdds": 153,
           "bookmaker": "betonlineag"
         },
         {
@@ -3557,7 +3557,7 @@
         },
         {
           "market": "player_pass_yds",
-          "point": 214.5,
+          "point": 213.5,
           "overOdds": -116,
           "underOdds": -111,
           "bookmaker": "betonlineag"
@@ -3565,8 +3565,8 @@
         {
           "market": "player_rush_yds",
           "point": 30.5,
-          "overOdds": -119,
-          "underOdds": -109,
+          "overOdds": -120,
+          "underOdds": -108,
           "bookmaker": "betonlineag"
         }
       ]
@@ -3593,14 +3593,14 @@
         },
         {
           "market": "player_pass_yds",
-          "point": 204.5,
-          "overOdds": -118,
-          "underOdds": -110,
+          "point": 199.5,
+          "overOdds": -116,
+          "underOdds": -111,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_rush_yds",
-          "point": 38.5,
+          "point": 39.5,
           "overOdds": -116,
           "underOdds": -111,
           "bookmaker": "betonlineag"
@@ -3630,8 +3630,8 @@
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -102,
-          "underOdds": -127,
+          "overOdds": -103,
+          "underOdds": -125,
           "bookmaker": "betonlineag"
         }
       ]
@@ -3675,7 +3675,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 500,
+          "overOdds": 550,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -3727,15 +3727,15 @@
         {
           "market": "player_reception_yds",
           "point": 31.5,
-          "overOdds": -115,
-          "underOdds": -112,
+          "overOdds": -116,
+          "underOdds": -111,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_receptions",
           "point": 2.5,
-          "overOdds": -192,
-          "underOdds": 146,
+          "overOdds": -175,
+          "underOdds": 134,
           "bookmaker": "betonlineag"
         }
       ]
@@ -3770,16 +3770,16 @@
         },
         {
           "market": "player_pass_tds",
-          "point": 1.5,
-          "overOdds": -208,
-          "underOdds": 157,
+          "point": 2.5,
+          "overOdds": 164,
+          "underOdds": -217,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_pass_yds",
-          "point": 270.5,
-          "overOdds": -114,
-          "underOdds": -114,
+          "point": 271.5,
+          "overOdds": -118,
+          "underOdds": -110,
           "bookmaker": "betonlineag"
         },
         {
@@ -3800,7 +3800,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 800,
+          "overOdds": 900,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -3881,8 +3881,8 @@
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -103,
-          "underOdds": -125,
+          "overOdds": -102,
+          "underOdds": -127,
           "bookmaker": "betonlineag"
         }
       ]
@@ -3917,8 +3917,8 @@
         {
           "market": "player_rush_yds",
           "point": 9.5,
-          "overOdds": -122,
-          "underOdds": -106,
+          "overOdds": -119,
+          "underOdds": -109,
           "bookmaker": "betonlineag"
         }
       ]
@@ -4123,8 +4123,8 @@
         {
           "market": "player_receptions",
           "point": 5.5,
-          "overOdds": -147,
-          "underOdds": 113,
+          "overOdds": -152,
+          "underOdds": 116,
           "bookmaker": "betonlineag"
         }
       ]
@@ -4152,8 +4152,8 @@
         {
           "market": "player_receptions",
           "point": 4.5,
-          "overOdds": 118,
-          "underOdds": -154,
+          "overOdds": 122,
+          "underOdds": -159,
           "bookmaker": "betonlineag"
         }
       ]
@@ -4197,7 +4197,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 600,
+          "overOdds": 650,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -4219,15 +4219,15 @@
         {
           "market": "player_reception_yds",
           "point": 20.5,
-          "overOdds": -114,
-          "underOdds": -114,
+          "overOdds": -116,
+          "underOdds": -111,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_receptions",
           "point": 1.5,
-          "overOdds": -147,
-          "underOdds": 113,
+          "overOdds": -145,
+          "underOdds": 112,
           "bookmaker": "betonlineag"
         }
       ]
@@ -4262,9 +4262,9 @@
         },
         {
           "market": "player_reception_yds",
-          "point": 32.5,
-          "overOdds": -116,
-          "underOdds": -111,
+          "point": 33.5,
+          "overOdds": -114,
+          "underOdds": -114,
           "bookmaker": "betonlineag"
         },
         {
@@ -4404,8 +4404,8 @@
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -147,
-          "underOdds": 114,
+          "overOdds": -139,
+          "underOdds": 107,
           "bookmaker": "betonlineag"
         }
       ]
@@ -4603,29 +4603,29 @@
         {
           "market": "player_rush_yds",
           "point": 57.5,
-          "overOdds": -113,
-          "underOdds": -117,
+          "overOdds": -111,
+          "underOdds": -119,
           "bookmaker": "pinnacle"
         },
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": -167,
+          "overOdds": -143,
           "underOdds": null,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_reception_yds",
-          "point": 10.5,
-          "overOdds": -111,
-          "underOdds": -116,
+          "point": 9.5,
+          "overOdds": -119,
+          "underOdds": -109,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_receptions",
           "point": 1.5,
-          "overOdds": -141,
-          "underOdds": 109,
+          "overOdds": -133,
+          "underOdds": 103,
           "bookmaker": "betonlineag"
         }
       ]
@@ -4645,9 +4645,9 @@
         },
         {
           "market": "player_reception_yds",
-          "point": 52.5,
-          "overOdds": -116,
-          "underOdds": -111,
+          "point": 55.5,
+          "overOdds": -115,
+          "underOdds": -112,
           "bookmaker": "betonlineag"
         },
         {
@@ -4675,8 +4675,8 @@
         {
           "market": "player_pass_tds",
           "point": 1.5,
-          "overOdds": 110,
-          "underOdds": -143,
+          "overOdds": 107,
+          "underOdds": -139,
           "bookmaker": "betonlineag"
         },
         {
@@ -4689,8 +4689,8 @@
         {
           "market": "player_rush_yds",
           "point": 36.5,
-          "overOdds": -114,
-          "underOdds": -114,
+          "overOdds": -119,
+          "underOdds": -109,
           "bookmaker": "betonlineag"
         }
       ]
@@ -4749,13 +4749,13 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 180,
+          "overOdds": 160,
           "underOdds": null,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_reception_yds",
-          "point": 51.5,
+          "point": 56.5,
           "overOdds": -114,
           "underOdds": -114,
           "bookmaker": "betonlineag"
@@ -4763,8 +4763,8 @@
         {
           "market": "player_receptions",
           "point": 4.5,
-          "overOdds": -101,
-          "underOdds": -128,
+          "overOdds": -154,
+          "underOdds": 119,
           "bookmaker": "betonlineag"
         }
       ]
@@ -4955,8 +4955,8 @@
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": 110,
-          "underOdds": -143,
+          "overOdds": 109,
+          "underOdds": -141,
           "bookmaker": "betonlineag"
         }
       ]
@@ -4991,9 +4991,9 @@
         },
         {
           "market": "player_rush_yds",
-          "point": 51.5,
-          "overOdds": -116,
-          "underOdds": -111,
+          "point": 52.5,
+          "overOdds": -114,
+          "underOdds": -114,
           "bookmaker": "betonlineag"
         }
       ]
@@ -5057,16 +5057,16 @@
         },
         {
           "market": "player_reception_yds",
-          "point": 40.5,
-          "overOdds": -116,
-          "underOdds": -111,
+          "point": 41.5,
+          "overOdds": -114,
+          "underOdds": -114,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -106,
-          "underOdds": -122,
+          "overOdds": -103,
+          "underOdds": -125,
           "bookmaker": "betonlineag"
         }
       ]
@@ -5226,7 +5226,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 260,
+          "overOdds": 270,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -5367,7 +5367,7 @@
         },
         {
           "market": "player_reception_yds",
-          "point": 70.5,
+          "point": 69.5,
           "overOdds": -114,
           "underOdds": -114,
           "bookmaker": "betonlineag"
@@ -5471,7 +5471,7 @@
         },
         {
           "market": "player_rush_yds",
-          "point": 65.5,
+          "point": 66.5,
           "overOdds": -114,
           "underOdds": -114,
           "bookmaker": "betonlineag"
@@ -5524,15 +5524,15 @@
         {
           "market": "player_reception_yds",
           "point": 51.5,
-          "overOdds": -118,
-          "underOdds": -110,
+          "overOdds": -116,
+          "underOdds": -111,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -169,
-          "underOdds": 129,
+          "overOdds": -167,
+          "underOdds": 128,
           "bookmaker": "betonlineag"
         }
       ]
@@ -5775,20 +5775,20 @@
         {
           "market": "player_rush_yds",
           "point": 40.5,
-          "overOdds": -118,
-          "underOdds": -112,
+          "overOdds": -132,
+          "underOdds": 100,
           "bookmaker": "pinnacle"
         },
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 130,
+          "overOdds": 120,
           "underOdds": null,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_reception_yds",
-          "point": 18.5,
+          "point": 22.5,
           "overOdds": -114,
           "underOdds": -114,
           "bookmaker": "betonlineag"
@@ -5796,8 +5796,8 @@
         {
           "market": "player_receptions",
           "point": 2.5,
-          "overOdds": 102,
-          "underOdds": -132,
+          "overOdds": -167,
+          "underOdds": 127,
           "bookmaker": "betonlineag"
         }
       ]
@@ -5871,22 +5871,22 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 180,
+          "overOdds": 190,
           "underOdds": null,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_reception_yds",
-          "point": 44.5,
-          "overOdds": -114,
-          "underOdds": -114,
+          "point": 48.5,
+          "overOdds": -118,
+          "underOdds": -110,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": 107,
-          "underOdds": -139,
+          "overOdds": -101,
+          "underOdds": -128,
           "bookmaker": "betonlineag"
         }
       ]
@@ -5929,7 +5929,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 300,
+          "overOdds": 220,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -6001,16 +6001,16 @@
         },
         {
           "market": "player_reception_yds",
-          "point": 40.5,
-          "overOdds": -115,
-          "underOdds": -112,
+          "point": 41.5,
+          "overOdds": -114,
+          "underOdds": -114,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -154,
-          "underOdds": 119,
+          "overOdds": -156,
+          "underOdds": 121,
           "bookmaker": "betonlineag"
         }
       ]
@@ -6061,22 +6061,22 @@
         {
           "market": "player_reception_yds",
           "point": 15.5,
-          "overOdds": -114,
-          "underOdds": -114,
+          "overOdds": -115,
+          "underOdds": -112,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_receptions",
           "point": 2.5,
-          "overOdds": -102,
-          "underOdds": -127,
+          "overOdds": -105,
+          "underOdds": -123,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_rush_yds",
           "point": 76.5,
-          "overOdds": -118,
-          "underOdds": -110,
+          "overOdds": -116,
+          "underOdds": -111,
           "bookmaker": "betonlineag"
         }
       ]
@@ -6142,15 +6142,15 @@
         {
           "market": "player_reception_yds",
           "point": 41.5,
-          "overOdds": -114,
-          "underOdds": -114,
+          "overOdds": -118,
+          "underOdds": -110,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -141,
-          "underOdds": 108,
+          "overOdds": -137,
+          "underOdds": 106,
           "bookmaker": "betonlineag"
         }
       ]
@@ -6282,8 +6282,8 @@
         {
           "market": "player_receptions",
           "point": 4.5,
-          "overOdds": -130,
-          "underOdds": 100,
+          "overOdds": -133,
+          "underOdds": 103,
           "bookmaker": "betonlineag"
         }
       ]
@@ -6304,15 +6304,15 @@
         {
           "market": "player_reception_yds",
           "point": 21.5,
-          "overOdds": -119,
-          "underOdds": -109,
+          "overOdds": -112,
+          "underOdds": -115,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_receptions",
           "point": 1.5,
-          "overOdds": -147,
-          "underOdds": 113,
+          "overOdds": -152,
+          "underOdds": 116,
           "bookmaker": "betonlineag"
         }
       ]
@@ -6332,9 +6332,9 @@
         },
         {
           "market": "player_reception_yds",
-          "point": 52.5,
-          "overOdds": -114,
-          "underOdds": -114,
+          "point": 51.5,
+          "overOdds": -118,
+          "underOdds": -110,
           "bookmaker": "betonlineag"
         },
         {
@@ -6361,9 +6361,9 @@
         },
         {
           "market": "player_reception_yds",
-          "point": 59.5,
-          "overOdds": -116,
-          "underOdds": -111,
+          "point": 58.5,
+          "overOdds": -114,
+          "underOdds": -114,
           "bookmaker": "betonlineag"
         },
         {
@@ -6429,7 +6429,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 110,
+          "overOdds": 100,
           "underOdds": null,
           "bookmaker": "betonlineag"
         },
@@ -6531,8 +6531,8 @@
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -111,
-          "underOdds": -116,
+          "overOdds": -110,
+          "underOdds": -118,
           "bookmaker": "betonlineag"
         }
       ]
@@ -6546,8 +6546,8 @@
         {
           "market": "player_rush_yds",
           "point": 30.5,
-          "overOdds": -115,
-          "underOdds": -115,
+          "overOdds": 104,
+          "underOdds": -138,
           "bookmaker": "pinnacle"
         },
         {
@@ -6559,16 +6559,16 @@
         },
         {
           "market": "player_reception_yds",
-          "point": 8.5,
-          "overOdds": -108,
-          "underOdds": -120,
+          "point": 7.5,
+          "overOdds": -116,
+          "underOdds": -111,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_receptions",
           "point": 1.5,
-          "overOdds": -105,
-          "underOdds": -123,
+          "overOdds": 100,
+          "underOdds": -130,
           "bookmaker": "betonlineag"
         }
       ]
@@ -6617,9 +6617,9 @@
         },
         {
           "market": "player_rush_yds",
-          "point": 17.5,
-          "overOdds": -119,
-          "underOdds": -109,
+          "point": 16.5,
+          "overOdds": -116,
+          "underOdds": -111,
           "bookmaker": "betonlineag"
         }
       ]
@@ -6639,9 +6639,9 @@
         },
         {
           "market": "player_reception_yds",
-          "point": 57.5,
-          "overOdds": -114,
-          "underOdds": -114,
+          "point": 58.5,
+          "overOdds": -115,
+          "underOdds": -112,
           "bookmaker": "betonlineag"
         },
         {
@@ -6712,9 +6712,9 @@
         },
         {
           "market": "player_receptions",
-          "point": 3.5,
-          "overOdds": -156,
-          "underOdds": 121,
+          "point": 4.5,
+          "overOdds": 118,
+          "underOdds": -154,
           "bookmaker": "betonlineag"
         }
       ]
@@ -6817,15 +6817,15 @@
         {
           "market": "player_pass_yds",
           "point": 246.5,
-          "overOdds": -115,
-          "underOdds": -112,
+          "overOdds": -114,
+          "underOdds": -114,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_rush_yds",
-          "point": 16.5,
-          "overOdds": -115,
-          "underOdds": -112,
+          "point": 17.5,
+          "overOdds": -116,
+          "underOdds": -111,
           "bookmaker": "betonlineag"
         }
       ]
@@ -6899,15 +6899,15 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 220,
+          "overOdds": 210,
           "underOdds": null,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_reception_yds",
-          "point": 7.5,
-          "overOdds": -123,
-          "underOdds": -105,
+          "point": 9.5,
+          "overOdds": -116,
+          "underOdds": -111,
           "bookmaker": "betonlineag"
         },
         {
@@ -6988,7 +6988,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 700,
+          "overOdds": 650,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
