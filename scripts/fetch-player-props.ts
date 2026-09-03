@@ -168,27 +168,28 @@ async function probe() {
   }
 
   const eventId = events[0].id;
-  const propsUrl =
-    `${BASE}/events/${eventId}/odds?apiKey=${key}&regions=us&oddsFormat=american` +
-    `&markets=${MARKETS.join(",")}`;
-  console.log(`\nFetching player props for one event (${eventId}):`);
-  const { data: eventOdds, res: propsRes, text: propsText } = await getJson<OddsApiEventOdds>(propsUrl);
-  console.log(`  status: ${propsRes.status} ${propsRes.statusText}`);
-  console.log(`  x-requests-remaining: ${propsRes.headers.get("x-requests-remaining")}`);
-  console.log(`  x-requests-used: ${propsRes.headers.get("x-requests-used")}`);
-  if (!eventOdds) {
-    console.log(`  body (first 1500 chars): ${propsText.slice(0, 1500)}`);
-    return;
-  }
-  console.log(`  bookmakers returned: ${eventOdds.bookmakers.map((b) => b.key).join(", ") || "(none)"}`);
-  for (const book of eventOdds.bookmakers.slice(0, 3)) {
-    console.log(`  --- ${book.key} ---`);
-    for (const market of book.markets.slice(0, 3)) {
-      console.log(`    market: ${market.key}`);
-      console.log(`    sample outcomes: ${JSON.stringify(market.outcomes.slice(0, 4))}`);
+  for (const regions of ["us", "eu"]) {
+    const propsUrl =
+      `${BASE}/events/${eventId}/odds?apiKey=${key}&regions=${regions}&oddsFormat=american` +
+      `&markets=${MARKETS.join(",")}`;
+    console.log(`\nFetching player props for one event (${eventId}), regions=${regions}:`);
+    const { data: eventOdds, res: propsRes, text: propsText } = await getJson<OddsApiEventOdds>(propsUrl);
+    console.log(`  status: ${propsRes.status} ${propsRes.statusText}`);
+    console.log(`  x-requests-remaining: ${propsRes.headers.get("x-requests-remaining")}`);
+    console.log(`  x-requests-used: ${propsRes.headers.get("x-requests-used")}`);
+    if (!eventOdds) {
+      console.log(`  body (first 1500 chars): ${propsText.slice(0, 1500)}`);
+      continue;
+    }
+    console.log(`  bookmakers returned: ${eventOdds.bookmakers.map((b) => b.key).join(", ") || "(none)"}`);
+    for (const book of eventOdds.bookmakers.slice(0, 3)) {
+      console.log(`  --- ${book.key} ---`);
+      for (const market of book.markets.slice(0, 3)) {
+        console.log(`    market: ${market.key}`);
+        console.log(`    sample outcomes: ${JSON.stringify(market.outcomes.slice(0, 4))}`);
+      }
     }
   }
-  console.log(`\n  full first-bookmaker JSON (first 2000 chars): ${JSON.stringify(eventOdds.bookmakers[0]).slice(0, 2000)}`);
 }
 
 async function main() {
