@@ -1,0 +1,65 @@
+name: Update player prop odds
+
+# Twice a week during the season — Thursday evening (ahead of TNF) and
+# Sunday morning (ahead of the early/late slate and closest to "closing
+# line" for most of the week's games, the sharpest a market ever prices) —
+# plus on demand. Real player-prop requests cost The Odds API credits, so
+# this doesn't run more often than that.
+on:
+  schedule:
+    - cron: "0 22 * * 4" # Thursday 22:00 UTC (~6pm ET)
+    - cron: "0 15 * * 0" # Sunday 15:00 UTC (~11am ET / 10am CT — before the 1pm ET kickoffs)
+  workflow_dispatch:
+    inputs:
+      probe:
+        description: "Probe The Odds API for the real response shape (minimal-cost) instead of a full fetch — writes nothing"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: player-props
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    env:
+      ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - if: ${{ github.event.inputs.probe == 'true' }}
+        run: npx tsx scripts/fetch-player-props.ts --probe
+      - if: ${{ github.event.inputs.probe != 'true' }}
+        run: npx tsx scripts/fetch-player-props.ts
+      - name: Commit updated player props
+        id: commit
+        if: ${{ github.event.inputs.probe != 'true' }}
+        run: |
+          if [ -z "$(git status --porcelain src/data/player-props.json)" ]; then
+            echo "No change in player props."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/data/player-props.json
+          git commit -m "Update player prop odds"
+          git push
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+      - name: Trigger deploy
+        # A push made with the default GITHUB_TOKEN does not cascade into
+        # other workflows' `on: push` triggers (GitHub's loop-prevention), so
+        # the commit above would otherwise sit undeployed until the next
+        # unrelated push to main. Dispatch deploy.yml explicitly instead.
+        if: steps.commit.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run deploy.yml --ref main
