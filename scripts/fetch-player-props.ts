@@ -171,26 +171,31 @@ async function probe() {
   }
 
   const eventId = events[0].id;
-  for (const regions of ["us", "eu"]) {
-    const propsUrl =
-      `${BASE}/events/${eventId}/odds?apiKey=${key}&regions=${regions}&oddsFormat=american` +
-      `&markets=${MARKETS.join(",")}`;
-    console.log(`\nFetching player props for one event (${eventId}), regions=${regions}:`);
-    const { data: eventOdds, res: propsRes, text: propsText } = await getJson<OddsApiEventOdds>(propsUrl);
-    console.log(`  status: ${propsRes.status} ${propsRes.statusText}`);
-    console.log(`  x-requests-remaining: ${propsRes.headers.get("x-requests-remaining")}`);
-    console.log(`  x-requests-used: ${propsRes.headers.get("x-requests-used")}`);
-    if (!eventOdds) {
-      console.log(`  body (first 1500 chars): ${propsText.slice(0, 1500)}`);
-      continue;
-    }
-    console.log(`  bookmakers returned: ${eventOdds.bookmakers.map((b) => b.key).join(", ") || "(none)"}`);
-    for (const book of eventOdds.bookmakers.slice(0, 3)) {
-      console.log(`  --- ${book.key} ---`);
-      for (const market of book.markets.slice(0, 3)) {
-        console.log(`    market: ${market.key}`);
-        console.log(`    sample outcomes: ${JSON.stringify(market.outcomes.slice(0, 4))}`);
-      }
+  // Checking the anytime-touchdown-scorer market's real shape — it's a
+  // single-sided "Yes" probability market (no O/U line), unlike everything
+  // else in MARKETS, so it needs confirming before it's parsed for real.
+  const probeMarkets = [...MARKETS, "player_anytime_td"];
+  const propsUrl =
+    `${BASE}/events/${eventId}/odds?apiKey=${key}&regions=eu&oddsFormat=american` +
+    `&markets=${probeMarkets.join(",")}`;
+  console.log(`\nFetching player props for one event (${eventId}), regions=eu:`);
+  const { data: eventOdds, res: propsRes, text: propsText } = await getJson<OddsApiEventOdds>(propsUrl);
+  console.log(`  status: ${propsRes.status} ${propsRes.statusText}`);
+  console.log(`  x-requests-remaining: ${propsRes.headers.get("x-requests-remaining")}`);
+  console.log(`  x-requests-used: ${propsRes.headers.get("x-requests-used")}`);
+  if (!eventOdds) {
+    console.log(`  body (first 1500 chars): ${propsText.slice(0, 1500)}`);
+    return;
+  }
+  console.log(`  bookmakers returned: ${eventOdds.bookmakers.map((b) => b.key).join(", ") || "(none)"}`);
+  for (const book of eventOdds.bookmakers) {
+    const tdMarket = book.markets.find((m) => m.key === "player_anytime_td");
+    console.log(`  --- ${book.key} ---`);
+    console.log(`    markets present: ${book.markets.map((m) => m.key).join(", ")}`);
+    if (tdMarket) {
+      console.log(`    player_anytime_td outcomes (first 6): ${JSON.stringify(tdMarket.outcomes.slice(0, 6))}`);
+    } else {
+      console.log(`    (no player_anytime_td market from this book)`);
     }
   }
 }
