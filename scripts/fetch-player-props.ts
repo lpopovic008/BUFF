@@ -205,11 +205,18 @@ async function main() {
   const { data: events } = await getJson<OddsApiEvent[]>(`${BASE}/events?apiKey=${key}`);
   if (!events) throw new Error("Could not fetch NFL events list.");
 
-  // Only events within the next 8 days — the upcoming week's slate. The
-  // Odds API only lists events it actually has odds coverage for anyway.
-  const cutoff = Date.now() + 8 * 24 * 60 * 60 * 1000;
+  // Only events within the next 11 days — comfortably covers a full NFL
+  // week (Thursday night through the following Monday night is at most 5
+  // days) with slack for whenever in that cycle this actually runs. 8 days
+  // was too tight: a run on Wednesday can sit ~9-10 days before the
+  // following Sunday's main slate and miss it entirely, which is exactly
+  // what a manual off-schedule run hit — 2 of a week's games came back
+  // instead of the whole slate. The Odds API only lists events it actually
+  // has odds coverage for anyway, so this doesn't reach further than real
+  // data exists.
+  const cutoff = Date.now() + 11 * 24 * 60 * 60 * 1000;
   const upcoming = events.filter((e) => new Date(e.commence_time).getTime() <= cutoff);
-  console.log(`${upcoming.length} of ${events.length} listed events fall within the next 8 days.`);
+  console.log(`${upcoming.length} of ${events.length} listed events fall within the next 11 days.`);
 
   const playerMap = new Map<string, PlayerPropEntry>();
   for (const event of upcoming) {
