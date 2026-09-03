@@ -36,13 +36,16 @@ const OUT_PATH = path.join(process.cwd(), "src", "data", "player-props.json");
 const API_KEY = process.env.ODDS_API_KEY;
 const BASE = "https://api.the-odds-api.com/v4/sports/americanfootball_nfl";
 
-// Priority order: try the sharpest book first, fall back down the list to
-// whichever the account's plan/region actually returns for a given event.
-// Pinnacle and Circa are the two books the sports-betting community treats
-// as the closest thing to a genuinely efficient (low-vig, sharp-money-
-// driven) market; DraftKings/FanDuel are recreational-book fallbacks in
-// case neither sharp book has a line up for a given player/market.
-const BOOKMAKER_PRIORITY = ["pinnacle", "circasports", "draftkings", "fanduel"];
+// Confirmed live (via --probe): The Odds API only returns Pinnacle under
+// regions=eu (it isn't US-licensed, so regions=us never includes it —
+// that region instead returns DraftKings/FanDuel/BetOnline/BetRivers/
+// Bovada). regions=eu pairs Pinnacle with BetOnline, which the sports-
+// betting community also treats as sharper/less reactive to public money
+// than the recreational US books — a reasonable fallback on the rare
+// player/market Pinnacle hasn't posted a line for. Circa Sports isn't
+// available through this API at all.
+const REGIONS = "eu";
+const BOOKMAKER_PRIORITY = ["pinnacle", "betonlineag"];
 
 const MARKETS = [
   "player_pass_yds",
@@ -211,7 +214,7 @@ async function main() {
   const playerMap = new Map<string, PlayerPropEntry>();
   for (const event of upcoming) {
     const url =
-      `${BASE}/events/${event.id}/odds?apiKey=${key}&regions=us&oddsFormat=american` +
+      `${BASE}/events/${event.id}/odds?apiKey=${key}&regions=${REGIONS}&oddsFormat=american` +
       `&markets=${MARKETS.join(",")}`;
     const { data: eventOdds } = await getJson<OddsApiEventOdds>(url);
     if (!eventOdds) {
@@ -222,8 +225,8 @@ async function main() {
     for (const { playerName, ...line } of bestLines.values()) {
       const entry = playerMap.get(playerName) ?? {
         name: playerName,
-        team: null,
-        opponent: null,
+        homeTeam: event.home_team,
+        awayTeam: event.away_team,
         kickoff: event.commence_time,
         props: [],
       };

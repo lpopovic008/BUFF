@@ -23,7 +23,17 @@ import { TrackedPlayer, useLiveScoringFeed } from "@/hooks/useLiveScoringFeed";
 import { useTodaysGames } from "@/hooks/useTodaysGames";
 import { AllTimeRecord, useAllTimeHeadToHead } from "@/hooks/useAllTimeHeadToHead";
 import { NFLGame } from "@/lib/nfl-schedule";
+import rawPlayerProps from "@/data/player-props.json";
+import { PlayerPropsSnapshot } from "@/lib/player-props";
+import { projectLineupFromProps } from "@/lib/fantasy-points-from-props";
 import "./warroom.css";
+
+const playerPropsSnapshot = rawPlayerProps as unknown as PlayerPropsSnapshot;
+
+function formatOdds(odds: number | null): string {
+  if (odds == null) return "—";
+  return odds > 0 ? `+${odds}` : `${odds}`;
+}
 
 const RADAR_LABELS = ["QB", "RB", "WR", "TE"] as const;
 
@@ -202,6 +212,16 @@ export function WarRoomConsole({
 
   const { you, others } = data;
   const selected = others[selectedIdx % Math.max(1, others.length)] ?? you;
+
+  // Sportsbook-implied fantasy points for the chosen league's own starting
+  // lineup — each starter's prop lines (from Pinnacle, via The Odds API)
+  // weighed by this league's real scoring settings. See
+  // fantasy-points-from-props.ts; recomputed whenever the league (and so
+  // its lineup/scoring) changes.
+  const propProjection = useMemo(
+    () => projectLineupFromProps(you.lineup, playerPropsSnapshot, data.scoringSettings),
+    [you.lineup, data.scoringSettings]
+  );
 
   // Your real weekly matchup opponent — not whichever manager the Dossier's
   // PREV/NEXT is currently comparing you against — since the live scoring
@@ -886,6 +906,61 @@ export function WarRoomConsole({
               </div>
             </div>
             <p className="card-note">Cumulative win% by week.</p>
+          </article>
+
+          <article className="card span-9">
+            <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
+            <div className="card-head">
+              <div className="card-head-left">
+                <span className="card-index">SBK-01</span>
+                <span className="card-title">Sportsbook Fantasy Points</span>
+              </div>
+              <div className="card-flags">
+                <span className="flag cmp">{propProjection.totalFantasyPoints.toFixed(1)} PTS · LINEUP TOTAL</span>
+              </div>
+            </div>
+            {playerPropsSnapshot.players.length === 0 ? (
+              <p className="card-note">
+                No prop odds fetched yet — this fills in once the player-props pipeline runs (Pinnacle via The Odds API).
+              </p>
+            ) : (
+              <>
+                <div className="props-list">
+                  {propProjection.players.map((p) => (
+                    <div className={`props-row${p.matched ? "" : " unmatched"}`} key={p.playerId}>
+                      <div className="props-row-head">
+                        <span className="props-slot">{p.slot}</span>
+                        <span className="props-name">{p.name}</span>
+                        {p.matched ? (
+                          <span className="props-matchup">
+                            {p.awayTeam} @ {p.homeTeam}
+                          </span>
+                        ) : null}
+                        <span className="props-total">{p.matched ? `${p.totalFantasyPoints.toFixed(1)} PTS` : "NO LINES"}</span>
+                      </div>
+                      {p.matched && p.lines.length > 0 ? (
+                        <div className="props-chips">
+                          {p.lines.map((line) => (
+                            <span className="props-chip" key={line.market} title={`${line.bookmaker} · ${line.fantasyPoints.toFixed(2)} pts`}>
+                              <span className="props-chip-label">{line.label}</span>
+                              <span className="props-chip-value">{line.point}</span>
+                              <span className="props-chip-odds">
+                                O {formatOdds(line.overOdds)} / U {formatOdds(line.underOdds)}
+                              </span>
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+                <p className="card-note">
+                  Lines are Pinnacle&apos;s where posted (the sharpest book available through this feed), falling back to
+                  BetOnline — labeled per chip. Fantasy points use {data.leagueName}&apos;s own scoring settings. Updated{" "}
+                  {playerPropsSnapshot.updatedAt ? new Date(playerPropsSnapshot.updatedAt).toLocaleString() : "—"}.
+                </p>
+              </>
+            )}
           </article>
         </div>
       </div>

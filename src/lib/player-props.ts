@@ -22,10 +22,16 @@ export interface PlayerPropLine {
 export interface PlayerPropEntry {
   /** Player name as the sportsbook spells it — matched to Sleeper/roster names via src/lib/name-match.ts, same as KTC and season-projection matching elsewhere in this app. */
   name: string;
-  team: string | null;
-  opponent: string | null;
-  /** ISO kickoff time for the game these lines are attached to. */
-  kickoff: string | null;
+  /**
+   * The game these lines are attached to. Which side the player is actually
+   * on isn't in the odds response (a prop market gives a player's name, not
+   * their team) — the app resolves that itself via Sleeper's player data
+   * (already loaded for name-matching) when it needs to show it.
+   */
+  homeTeam: string;
+  awayTeam: string;
+  /** ISO kickoff time. */
+  kickoff: string;
   props: PlayerPropLine[];
 }
 

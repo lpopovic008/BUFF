@@ -133,6 +133,8 @@ export interface WarRoomData {
   you: WarRoomManager;
   others: WarRoomManager[];
   transactionSummaries: string[];
+  /** This league's own scoring rules — how the "sportsbook fantasy points" section weighs each prop market's line (src/lib/fantasy-points-from-props.ts). */
+  scoringSettings: Record<string, number>;
 }
 
 function initialOf(name: string): string {
@@ -372,6 +374,7 @@ export async function loadWarRoomData(
     you,
     others,
     transactionSummaries,
+    scoringSettings: league.scoring_settings ?? {},
   };
 }
 
