@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-03T18:26:28.129Z",
+  "updatedAt": "2026-09-03T18:29:56.404Z",
   "source": "the-odds-api",
   "bookmakersRequested": [
     "pinnacle",
@@ -31,6 +31,43 @@
       ]
     },
     {
+      "name": "Aaron Jones",
+      "homeTeam": "Minnesota Vikings",
+      "awayTeam": "Green Bay Packers",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_rush_yds",
+          "point": 30.5,
+          "overOdds": -119,
+          "underOdds": -109,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Aaron Rodgers",
+      "homeTeam": "Pittsburgh Steelers",
+      "awayTeam": "Atlanta Falcons",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": 126,
+          "underOdds": -164,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 214.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
       "name": "AJ Barner",
       "homeTeam": "Seattle Seahawks",
       "awayTeam": "New England Patriots",
@@ -53,6 +90,101 @@
       ]
     },
     {
+      "name": "Amon-Ra St. Brown",
+      "homeTeam": "Detroit Lions",
+      "awayTeam": "New Orleans Saints",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 77.5,
+          "overOdds": -115,
+          "underOdds": -112,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 6.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Baker Mayfield",
+      "homeTeam": "Cincinnati Bengals",
+      "awayTeam": "Tampa Bay Buccaneers",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": -118,
+          "underOdds": -110,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 235.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 15.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Bhayshul Tuten",
+      "homeTeam": "Jacksonville Jaguars",
+      "awayTeam": "Cleveland Browns",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_rush_yds",
+          "point": 50.5,
+          "overOdds": -115,
+          "underOdds": -112,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Bijan Robinson",
+      "homeTeam": "Pittsburgh Steelers",
+      "awayTeam": "Atlanta Falcons",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 36.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 4.5,
+          "overOdds": 102,
+          "underOdds": -132,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 78.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
       "name": "Blake Corum",
       "homeTeam": "Los Angeles Rams",
       "awayTeam": "San Francisco 49ers",
@@ -64,6 +196,101 @@
           "overOdds": -114,
           "underOdds": -114,
           "bookmaker": "pinnacle"
+        }
+      ]
+    },
+    {
+      "name": "Breece Hall",
+      "homeTeam": "Tennessee Titans",
+      "awayTeam": "New York Jets",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 15.5,
+          "overOdds": -118,
+          "underOdds": -110,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 2.5,
+          "overOdds": -103,
+          "underOdds": -125,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 64.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Brenton Strange",
+      "homeTeam": "Jacksonville Jaguars",
+      "awayTeam": "Cleveland Browns",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 35.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": 103,
+          "underOdds": -133,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Brian Thomas Jr",
+      "homeTeam": "Jacksonville Jaguars",
+      "awayTeam": "Cleveland Browns",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 36.5,
+          "overOdds": -116,
+          "underOdds": -111,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 2.5,
+          "overOdds": -161,
+          "underOdds": 124,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Brock Bowers",
+      "homeTeam": "Las Vegas Raiders",
+      "awayTeam": "Miami Dolphins",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 62.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 5.5,
+          "overOdds": -139,
+          "underOdds": 107,
+          "bookmaker": "betonlineag"
         }
       ]
     },
@@ -97,6 +324,276 @@
       ]
     },
     {
+      "name": "Bryce Young",
+      "homeTeam": "Carolina Panthers",
+      "awayTeam": "Chicago Bears",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": 110,
+          "underOdds": -143,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 214.5,
+          "overOdds": -116,
+          "underOdds": -111,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 13.5,
+          "overOdds": -119,
+          "underOdds": -109,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Bucky Irving",
+      "homeTeam": "Cincinnati Bengals",
+      "awayTeam": "Tampa Bay Buccaneers",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 13.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 2.5,
+          "overOdds": 136,
+          "underOdds": -179,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 55.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "C.J. Stroud",
+      "homeTeam": "Houston Texans",
+      "awayTeam": "Buffalo Bills",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": 120,
+          "underOdds": -156,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 219.5,
+          "overOdds": -115,
+          "underOdds": -112,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 8.5,
+          "overOdds": -127,
+          "underOdds": -102,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Caleb Williams",
+      "homeTeam": "Carolina Panthers",
+      "awayTeam": "Chicago Bears",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": -103,
+          "underOdds": -125,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 233.5,
+          "overOdds": -115,
+          "underOdds": -112,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 19.5,
+          "overOdds": -120,
+          "underOdds": -108,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Cam Skattebo",
+      "homeTeam": "New York Giants",
+      "awayTeam": "Dallas Cowboys",
+      "kickoff": "2026-09-14T00:20:00Z",
+      "props": [
+        {
+          "market": "player_rush_yds",
+          "point": 45.5,
+          "overOdds": -118,
+          "underOdds": -110,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Cam Ward",
+      "homeTeam": "Tennessee Titans",
+      "awayTeam": "New York Jets",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": 167,
+          "underOdds": -222,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 208.5,
+          "overOdds": -118,
+          "underOdds": -110,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 8.5,
+          "overOdds": -115,
+          "underOdds": -112,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Carnell Tate",
+      "homeTeam": "Tennessee Titans",
+      "awayTeam": "New York Jets",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 40.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": -112,
+          "underOdds": -115,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "CeeDee Lamb",
+      "homeTeam": "New York Giants",
+      "awayTeam": "Dallas Cowboys",
+      "kickoff": "2026-09-14T00:20:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 74.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 6.5,
+          "overOdds": 117,
+          "underOdds": -152,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Chase Brown",
+      "homeTeam": "Cincinnati Bengals",
+      "awayTeam": "Tampa Bay Buccaneers",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 22.5,
+          "overOdds": -116,
+          "underOdds": -111,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": -111,
+          "underOdds": -116,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 60.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Chris Olave",
+      "homeTeam": "Detroit Lions",
+      "awayTeam": "New Orleans Saints",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 76.5,
+          "overOdds": -110,
+          "underOdds": -118,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 6.5,
+          "overOdds": 104,
+          "underOdds": -135,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Chris Rodriguez Jr.",
+      "homeTeam": "Jacksonville Jaguars",
+      "awayTeam": "Cleveland Browns",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_rush_yds",
+          "point": 33.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
       "name": "Christian McCaffrey",
       "homeTeam": "Los Angeles Rams",
       "awayTeam": "San Francisco 49ers",
@@ -126,6 +623,28 @@
       ]
     },
     {
+      "name": "Christian Watson",
+      "homeTeam": "Minnesota Vikings",
+      "awayTeam": "Green Bay Packers",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 55.5,
+          "overOdds": -116,
+          "underOdds": -111,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": -169,
+          "underOdds": 130,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
       "name": "Colby Parkinson",
       "homeTeam": "Los Angeles Rams",
       "awayTeam": "San Francisco 49ers",
@@ -143,6 +662,43 @@
           "point": 2.5,
           "overOdds": 103,
           "underOdds": -133,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Cole Kmet",
+      "homeTeam": "Carolina Panthers",
+      "awayTeam": "Chicago Bears",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_receptions",
+          "point": 1.5,
+          "overOdds": -127,
+          "underOdds": -102,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Colston Loveland",
+      "homeTeam": "Carolina Panthers",
+      "awayTeam": "Chicago Bears",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 48.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 4.5,
+          "overOdds": 115,
+          "underOdds": -149,
           "bookmaker": "betonlineag"
         }
       ]
@@ -170,6 +726,116 @@
       ]
     },
     {
+      "name": "Dak Prescott",
+      "homeTeam": "New York Giants",
+      "awayTeam": "Dallas Cowboys",
+      "kickoff": "2026-09-14T00:20:00Z",
+      "props": [
+        {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": -141,
+          "underOdds": 108,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 260.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Dallas Goedert",
+      "homeTeam": "Philadelphia Eagles",
+      "awayTeam": "Washington Commanders",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 35.5,
+          "overOdds": -115,
+          "underOdds": -112,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": 100,
+          "underOdds": -130,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Dalton Kincaid",
+      "homeTeam": "Houston Texans",
+      "awayTeam": "Buffalo Bills",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 33.5,
+          "overOdds": -120,
+          "underOdds": -108,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": 107,
+          "underOdds": -139,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Dalton Schultz",
+      "homeTeam": "Houston Texans",
+      "awayTeam": "Buffalo Bills",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 35.5,
+          "overOdds": -116,
+          "underOdds": -111,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": -127,
+          "underOdds": -102,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Daniel Jones",
+      "homeTeam": "Indianapolis Colts",
+      "awayTeam": "Baltimore Ravens",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": 134,
+          "underOdds": -175,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 232.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
       "name": "Davante Adams",
       "homeTeam": "Los Angeles Rams",
       "awayTeam": "San Francisco 49ers",
@@ -187,6 +853,64 @@
           "point": 4.5,
           "overOdds": -103,
           "underOdds": -125,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "David Montgomery",
+      "homeTeam": "Houston Texans",
+      "awayTeam": "Buffalo Bills",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 7.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 1.5,
+          "overOdds": -122,
+          "underOdds": -106,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 55.5,
+          "overOdds": -139,
+          "underOdds": 107,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "De'Von Achane",
+      "homeTeam": "Las Vegas Raiders",
+      "awayTeam": "Miami Dolphins",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 29.5,
+          "overOdds": -116,
+          "underOdds": -111,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 4.5,
+          "overOdds": 106,
+          "underOdds": -137,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 68.5,
+          "overOdds": -118,
+          "underOdds": -110,
           "bookmaker": "betonlineag"
         }
       ]
@@ -236,6 +960,160 @@
       ]
     },
     {
+      "name": "Denzel Boston",
+      "homeTeam": "Jacksonville Jaguars",
+      "awayTeam": "Cleveland Browns",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 22.5,
+          "overOdds": -119,
+          "underOdds": -109,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 2.5,
+          "overOdds": 117,
+          "underOdds": -152,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Derrick Henry",
+      "homeTeam": "Indianapolis Colts",
+      "awayTeam": "Baltimore Ravens",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_rush_yds",
+          "point": 78.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Deshaun Watson",
+      "homeTeam": "Jacksonville Jaguars",
+      "awayTeam": "Cleveland Browns",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_pass_tds",
+          "point": 0.5,
+          "overOdds": -172,
+          "underOdds": 133,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 178.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 17.5,
+          "overOdds": -123,
+          "underOdds": -105,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "DeVonta Smith",
+      "homeTeam": "Philadelphia Eagles",
+      "awayTeam": "Washington Commanders",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 65.5,
+          "overOdds": -118,
+          "underOdds": -110,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 5.5,
+          "overOdds": 102,
+          "underOdds": -132,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "DJ Moore",
+      "homeTeam": "Houston Texans",
+      "awayTeam": "Buffalo Bills",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 47.5,
+          "overOdds": -116,
+          "underOdds": -111,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": -103,
+          "underOdds": -125,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "DK Metcalf",
+      "homeTeam": "Pittsburgh Steelers",
+      "awayTeam": "Atlanta Falcons",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 46.5,
+          "overOdds": -118,
+          "underOdds": -110,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": -135,
+          "underOdds": 105,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Drake London",
+      "homeTeam": "Pittsburgh Steelers",
+      "awayTeam": "Atlanta Falcons",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 64.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 5.5,
+          "overOdds": -105,
+          "underOdds": -123,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
       "name": "Drake Maye",
       "homeTeam": "Seattle Seahawks",
       "awayTeam": "New England Patriots",
@@ -265,6 +1143,79 @@
       ]
     },
     {
+      "name": "Emeka Egbuka",
+      "homeTeam": "Cincinnati Bengals",
+      "awayTeam": "Tampa Bay Buccaneers",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 54.5,
+          "overOdds": -115,
+          "underOdds": -112,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 4.5,
+          "overOdds": 120,
+          "underOdds": -156,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Garrett Wilson",
+      "homeTeam": "Tennessee Titans",
+      "awayTeam": "New York Jets",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 61.5,
+          "overOdds": -115,
+          "underOdds": -112,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 5.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Geno Smith",
+      "homeTeam": "Tennessee Titans",
+      "awayTeam": "New York Jets",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_pass_tds",
+          "point": 0.5,
+          "overOdds": -256,
+          "underOdds": 190,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 202.5,
+          "overOdds": -116,
+          "underOdds": -111,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 5.5,
+          "overOdds": -116,
+          "underOdds": -111,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
       "name": "George Holani",
       "homeTeam": "Seattle Seahawks",
       "awayTeam": "New England Patriots",
@@ -276,6 +1227,50 @@
           "overOdds": -120,
           "underOdds": -110,
           "bookmaker": "pinnacle"
+        }
+      ]
+    },
+    {
+      "name": "George Pickens",
+      "homeTeam": "New York Giants",
+      "awayTeam": "Dallas Cowboys",
+      "kickoff": "2026-09-14T00:20:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 68.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 5.5,
+          "overOdds": 126,
+          "underOdds": -164,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Harold Fannin Jr.",
+      "homeTeam": "Jacksonville Jaguars",
+      "awayTeam": "Cleveland Browns",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 36.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 4.5,
+          "overOdds": 120,
+          "underOdds": -156,
+          "bookmaker": "betonlineag"
         }
       ]
     },
@@ -302,6 +1297,65 @@
       ]
     },
     {
+      "name": "Ja'Marr Chase",
+      "homeTeam": "Cincinnati Bengals",
+      "awayTeam": "Tampa Bay Buccaneers",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 90.5,
+          "overOdds": -118,
+          "underOdds": -110,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 7.5,
+          "overOdds": 109,
+          "underOdds": -141,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Jacoby Brissett",
+      "homeTeam": "Los Angeles Chargers",
+      "awayTeam": "Arizona Cardinals",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": 178,
+          "underOdds": -238,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 221.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Jacory Croskey-Merritt",
+      "homeTeam": "Philadelphia Eagles",
+      "awayTeam": "Washington Commanders",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_rush_yds",
+          "point": 41.5,
+          "overOdds": -112,
+          "underOdds": -115,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
       "name": "Jadarian Price",
       "homeTeam": "Seattle Seahawks",
       "awayTeam": "New England Patriots",
@@ -313,6 +1367,204 @@
           "overOdds": -114,
           "underOdds": -114,
           "bookmaker": "pinnacle"
+        }
+      ]
+    },
+    {
+      "name": "Jahmyr Gibbs",
+      "homeTeam": "Detroit Lions",
+      "awayTeam": "New Orleans Saints",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 31.5,
+          "overOdds": -111,
+          "underOdds": -116,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 4.5,
+          "overOdds": 104,
+          "underOdds": -135,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 85.5,
+          "overOdds": -116,
+          "underOdds": -111,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Jakobi Meyers",
+      "homeTeam": "Jacksonville Jaguars",
+      "awayTeam": "Cleveland Browns",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 37.5,
+          "overOdds": -116,
+          "underOdds": -111,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": -125,
+          "underOdds": -103,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Jalen Coker",
+      "homeTeam": "Carolina Panthers",
+      "awayTeam": "Chicago Bears",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 38.5,
+          "overOdds": -112,
+          "underOdds": -115,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": -115,
+          "underOdds": -112,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Jalen Hurts",
+      "homeTeam": "Philadelphia Eagles",
+      "awayTeam": "Washington Commanders",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": 112,
+          "underOdds": -145,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 214.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 28.5,
+          "overOdds": -119,
+          "underOdds": -109,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "James Cook",
+      "homeTeam": "Houston Texans",
+      "awayTeam": "Buffalo Bills",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_rush_yds",
+          "point": 74.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Jameson Williams",
+      "homeTeam": "Detroit Lions",
+      "awayTeam": "New Orleans Saints",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 58.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": -147,
+          "underOdds": 114,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Jared Goff",
+      "homeTeam": "Detroit Lions",
+      "awayTeam": "New Orleans Saints",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": -192,
+          "underOdds": 146,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 261.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Jauan Jennings",
+      "homeTeam": "Minnesota Vikings",
+      "awayTeam": "Green Bay Packers",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 24.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 2.5,
+          "overOdds": 134,
+          "underOdds": -175,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Javonte Williams",
+      "homeTeam": "New York Giants",
+      "awayTeam": "Dallas Cowboys",
+      "kickoff": "2026-09-14T00:20:00Z",
+      "props": [
+        {
+          "market": "player_rush_yds",
+          "point": 73.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
         }
       ]
     },
@@ -335,6 +1587,452 @@
           "overOdds": -102,
           "underOdds": -130,
           "bookmaker": "pinnacle"
+        }
+      ]
+    },
+    {
+      "name": "Jaxson Dart",
+      "homeTeam": "New York Giants",
+      "awayTeam": "Dallas Cowboys",
+      "kickoff": "2026-09-14T00:20:00Z",
+      "props": [
+        {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": 124,
+          "underOdds": -161,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 214.5,
+          "overOdds": -116,
+          "underOdds": -111,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 30.5,
+          "overOdds": -119,
+          "underOdds": -109,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Jayden Daniels",
+      "homeTeam": "Philadelphia Eagles",
+      "awayTeam": "Washington Commanders",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": 186,
+          "underOdds": -250,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 204.5,
+          "overOdds": -118,
+          "underOdds": -110,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 38.5,
+          "overOdds": -116,
+          "underOdds": -111,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Jayden Reed",
+      "homeTeam": "Minnesota Vikings",
+      "awayTeam": "Green Bay Packers",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 38.5,
+          "overOdds": -116,
+          "underOdds": -111,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": -102,
+          "underOdds": -127,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Jerry Jeudy",
+      "homeTeam": "Jacksonville Jaguars",
+      "awayTeam": "Cleveland Browns",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 31.5,
+          "overOdds": -115,
+          "underOdds": -112,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 2.5,
+          "overOdds": -192,
+          "underOdds": 146,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Joe Burrow",
+      "homeTeam": "Cincinnati Bengals",
+      "awayTeam": "Tampa Bay Buccaneers",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": -208,
+          "underOdds": 157,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 270.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 6.5,
+          "overOdds": -119,
+          "underOdds": -109,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Jonathan Taylor",
+      "homeTeam": "Indianapolis Colts",
+      "awayTeam": "Baltimore Ravens",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_rush_yds",
+          "point": 76.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Jordan Addison",
+      "homeTeam": "Minnesota Vikings",
+      "awayTeam": "Green Bay Packers",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 43.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": -103,
+          "underOdds": -125,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Jordan Love",
+      "homeTeam": "Minnesota Vikings",
+      "awayTeam": "Green Bay Packers",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": 102,
+          "underOdds": -132,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 238.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 9.5,
+          "overOdds": -122,
+          "underOdds": -106,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Jordan Mason",
+      "homeTeam": "Minnesota Vikings",
+      "awayTeam": "Green Bay Packers",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_rush_yds",
+          "point": 43.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Josh Allen",
+      "homeTeam": "Houston Texans",
+      "awayTeam": "Buffalo Bills",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": 139,
+          "underOdds": -182,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 220.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 29.5,
+          "overOdds": -116,
+          "underOdds": -111,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Justin Herbert",
+      "homeTeam": "Los Angeles Chargers",
+      "awayTeam": "Arizona Cardinals",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": -204,
+          "underOdds": 156,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 235.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Justin Jefferson",
+      "homeTeam": "Minnesota Vikings",
+      "awayTeam": "Green Bay Packers",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 73.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 5.5,
+          "overOdds": -147,
+          "underOdds": 113,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Juwan Johnson",
+      "homeTeam": "Detroit Lions",
+      "awayTeam": "New Orleans Saints",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 42.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 4.5,
+          "overOdds": 118,
+          "underOdds": -154,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Kayshon Boutte",
+      "homeTeam": "Houston Texans",
+      "awayTeam": "Buffalo Bills",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 20.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 1.5,
+          "overOdds": -147,
+          "underOdds": 113,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "KC Concepcion",
+      "homeTeam": "Jacksonville Jaguars",
+      "awayTeam": "Cleveland Browns",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 32.5,
+          "overOdds": -116,
+          "underOdds": -111,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": 115,
+          "underOdds": -149,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Khalil Shakir",
+      "homeTeam": "Houston Texans",
+      "awayTeam": "Buffalo Bills",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 36.5,
+          "overOdds": -115,
+          "underOdds": -112,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": -147,
+          "underOdds": 114,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Kirk Cousins",
+      "homeTeam": "Las Vegas Raiders",
+      "awayTeam": "Miami Dolphins",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": 144,
+          "underOdds": -189,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 213.5,
+          "overOdds": -116,
+          "underOdds": -111,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Kyle Pitts",
+      "homeTeam": "Pittsburgh Steelers",
+      "awayTeam": "Atlanta Falcons",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 41.5,
+          "overOdds": -112,
+          "underOdds": -115,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 4.5,
+          "overOdds": 118,
+          "underOdds": -154,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Kyler Murray",
+      "homeTeam": "Minnesota Vikings",
+      "awayTeam": "Green Bay Packers",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": 118,
+          "underOdds": -154,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 223.5,
+          "overOdds": -116,
+          "underOdds": -111,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 22.5,
+          "overOdds": -112,
+          "underOdds": -115,
+          "bookmaker": "betonlineag"
         }
       ]
     },
@@ -368,6 +2066,204 @@
       ]
     },
     {
+      "name": "Ladd McConkey",
+      "homeTeam": "Los Angeles Chargers",
+      "awayTeam": "Arizona Cardinals",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 52.5,
+          "overOdds": -116,
+          "underOdds": -111,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 4.5,
+          "overOdds": -105,
+          "underOdds": -123,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Lamar Jackson",
+      "homeTeam": "Indianapolis Colts",
+      "awayTeam": "Baltimore Ravens",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": 110,
+          "underOdds": -143,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 220.5,
+          "overOdds": -118,
+          "underOdds": -110,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 36.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Luther Burden III",
+      "homeTeam": "Carolina Panthers",
+      "awayTeam": "Chicago Bears",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 51.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 4.5,
+          "overOdds": -101,
+          "underOdds": -128,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Malik Nabers",
+      "homeTeam": "New York Giants",
+      "awayTeam": "Dallas Cowboys",
+      "kickoff": "2026-09-14T00:20:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 60.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 5.5,
+          "overOdds": 118,
+          "underOdds": -154,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Malik Willis",
+      "homeTeam": "Las Vegas Raiders",
+      "awayTeam": "Miami Dolphins",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_pass_tds",
+          "point": 0.5,
+          "overOdds": -204,
+          "underOdds": 154,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 170.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Mark Andrews",
+      "homeTeam": "Indianapolis Colts",
+      "awayTeam": "Baltimore Ravens",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 34.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": 110,
+          "underOdds": -143,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "MarShawn Lloyd",
+      "homeTeam": "Minnesota Vikings",
+      "awayTeam": "Green Bay Packers",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_rush_yds",
+          "point": 51.5,
+          "overOdds": -116,
+          "underOdds": -111,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Marvin Harrison Jr.",
+      "homeTeam": "Los Angeles Chargers",
+      "awayTeam": "Arizona Cardinals",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 47.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": -161,
+          "underOdds": 123,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Matthew Golden",
+      "homeTeam": "Minnesota Vikings",
+      "awayTeam": "Green Bay Packers",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 40.5,
+          "overOdds": -116,
+          "underOdds": -111,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": -106,
+          "underOdds": -122,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
       "name": "Matthew Stafford",
       "homeTeam": "Los Angeles Rams",
       "awayTeam": "San Francisco 49ers",
@@ -386,6 +2282,50 @@
           "overOdds": -114,
           "underOdds": -114,
           "bookmaker": "pinnacle"
+        }
+      ]
+    },
+    {
+      "name": "Michael Pittman Jr.",
+      "homeTeam": "Pittsburgh Steelers",
+      "awayTeam": "Atlanta Falcons",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 44.5,
+          "overOdds": -116,
+          "underOdds": -111,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 4.5,
+          "overOdds": 100,
+          "underOdds": -130,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Michael Wilson",
+      "homeTeam": "Los Angeles Chargers",
+      "awayTeam": "Arizona Cardinals",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 42.5,
+          "overOdds": -116,
+          "underOdds": -111,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": -123,
+          "underOdds": -105,
+          "bookmaker": "betonlineag"
         }
       ]
     },
@@ -412,6 +2352,65 @@
       ]
     },
     {
+      "name": "Nico Collins",
+      "homeTeam": "Houston Texans",
+      "awayTeam": "Buffalo Bills",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 69.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 5.5,
+          "overOdds": 104,
+          "underOdds": -135,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Omarion Hampton",
+      "homeTeam": "Los Angeles Chargers",
+      "awayTeam": "Arizona Cardinals",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_rush_yds",
+          "point": 65.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Parker Washington",
+      "homeTeam": "Jacksonville Jaguars",
+      "awayTeam": "Cleveland Browns",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 51.5,
+          "overOdds": -118,
+          "underOdds": -110,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": -169,
+          "underOdds": 129,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
       "name": "Puka Nacua",
       "homeTeam": "Los Angeles Rams",
       "awayTeam": "San Francisco 49ers",
@@ -430,6 +2429,43 @@
           "overOdds": 116,
           "underOdds": -154,
           "bookmaker": "pinnacle"
+        }
+      ]
+    },
+    {
+      "name": "Quentin Johnston",
+      "homeTeam": "Los Angeles Chargers",
+      "awayTeam": "Arizona Cardinals",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 44.5,
+          "overOdds": -115,
+          "underOdds": -112,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": 112,
+          "underOdds": -145,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Quinshon Judkins",
+      "homeTeam": "Jacksonville Jaguars",
+      "awayTeam": "Cleveland Browns",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_rush_yds",
+          "point": 58.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
         }
       ]
     },
@@ -480,6 +2516,28 @@
           "point": 2.5,
           "overOdds": 102,
           "underOdds": -132,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Rome Odunze",
+      "homeTeam": "Carolina Panthers",
+      "awayTeam": "Chicago Bears",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 44.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": 107,
+          "underOdds": -139,
           "bookmaker": "betonlineag"
         }
       ]
@@ -536,6 +2594,123 @@
       ]
     },
     {
+      "name": "Sam LaPorta",
+      "homeTeam": "Detroit Lions",
+      "awayTeam": "New Orleans Saints",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 40.5,
+          "overOdds": -115,
+          "underOdds": -112,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": -154,
+          "underOdds": 119,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Saquon Barkley",
+      "homeTeam": "Philadelphia Eagles",
+      "awayTeam": "Washington Commanders",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 15.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 2.5,
+          "overOdds": -102,
+          "underOdds": -127,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 76.5,
+          "overOdds": -118,
+          "underOdds": -110,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Stefon Diggs",
+      "homeTeam": "Philadelphia Eagles",
+      "awayTeam": "Washington Commanders",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 41.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": -141,
+          "underOdds": 108,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "T.J. Hockenson",
+      "homeTeam": "Minnesota Vikings",
+      "awayTeam": "Green Bay Packers",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 27.5,
+          "overOdds": -116,
+          "underOdds": -111,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": -115,
+          "underOdds": -112,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Tee Higgins",
+      "homeTeam": "Cincinnati Bengals",
+      "awayTeam": "Tampa Bay Buccaneers",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 61.5,
+          "overOdds": -120,
+          "underOdds": -108,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 4.5,
+          "overOdds": -130,
+          "underOdds": 100,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
       "name": "Terrance Ferguson",
       "homeTeam": "Los Angeles Rams",
       "awayTeam": "San Francisco 49ers",
@@ -553,6 +2728,124 @@
           "point": 1.5,
           "overOdds": -147,
           "underOdds": 113,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Terry McLaurin",
+      "homeTeam": "Philadelphia Eagles",
+      "awayTeam": "Washington Commanders",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 52.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": -167,
+          "underOdds": 127,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Tetairoa McMillan",
+      "homeTeam": "Carolina Panthers",
+      "awayTeam": "Chicago Bears",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 59.5,
+          "overOdds": -116,
+          "underOdds": -111,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 4.5,
+          "overOdds": -116,
+          "underOdds": -111,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Tony Pollard",
+      "homeTeam": "Tennessee Titans",
+      "awayTeam": "New York Jets",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_rush_yds",
+          "point": 54.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Travis Etienne Jr.",
+      "homeTeam": "Detroit Lions",
+      "awayTeam": "New Orleans Saints",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_rush_yds",
+          "point": 51.5,
+          "overOdds": -112,
+          "underOdds": -115,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Tre Harris",
+      "homeTeam": "Los Angeles Chargers",
+      "awayTeam": "Arizona Cardinals",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 27.5,
+          "overOdds": -116,
+          "underOdds": -111,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 2.5,
+          "overOdds": -110,
+          "underOdds": -118,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Tre Tucker",
+      "homeTeam": "Las Vegas Raiders",
+      "awayTeam": "Miami Dolphins",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 40.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": -111,
+          "underOdds": -116,
           "bookmaker": "betonlineag"
         }
       ]
@@ -582,6 +2875,167 @@
           "point": 1.5,
           "overOdds": -105,
           "underOdds": -123,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Trevor Lawrence",
+      "homeTeam": "Jacksonville Jaguars",
+      "awayTeam": "Cleveland Browns",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": -105,
+          "underOdds": -123,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 233.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 17.5,
+          "overOdds": -119,
+          "underOdds": -109,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Trey McBride",
+      "homeTeam": "Los Angeles Chargers",
+      "awayTeam": "Arizona Cardinals",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 57.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 6.5,
+          "overOdds": 112,
+          "underOdds": -145,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Tua Tagovailoa",
+      "homeTeam": "Pittsburgh Steelers",
+      "awayTeam": "Atlanta Falcons",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_pass_yds",
+          "point": 210.5,
+          "overOdds": -116,
+          "underOdds": -111,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Tucker Kraft",
+      "homeTeam": "Minnesota Vikings",
+      "awayTeam": "Green Bay Packers",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 45.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": -156,
+          "underOdds": 121,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Tyler Shough",
+      "homeTeam": "Detroit Lions",
+      "awayTeam": "New Orleans Saints",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": 139,
+          "underOdds": -182,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 246.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 16.5,
+          "overOdds": -115,
+          "underOdds": -112,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Woody Marks",
+      "homeTeam": "Houston Texans",
+      "awayTeam": "Buffalo Bills",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 7.5,
+          "overOdds": -123,
+          "underOdds": -105,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 28.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Zay Flowers",
+      "homeTeam": "Indianapolis Colts",
+      "awayTeam": "Baltimore Ravens",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 65.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 4.5,
+          "overOdds": -132,
+          "underOdds": 102,
           "bookmaker": "betonlineag"
         }
       ]
