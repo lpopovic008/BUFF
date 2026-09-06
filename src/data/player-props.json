@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-03T23:45:26.315Z",
+  "updatedAt": "2026-09-06T17:33:29.325Z",
   "source": "the-odds-api",
   "bookmakersRequested": [
     "pinnacle",
@@ -44,17 +44,17 @@
       "kickoff": "2026-09-13T20:25:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 150,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
+          "market": "player_rush_yds",
+          "point": 29.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
-          "market": "player_rush_yds",
-          "point": 30.5,
-          "overOdds": -118,
-          "underOdds": -110,
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 160,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -68,22 +68,37 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 1400,
+          "overOdds": 1300,
           "underOdds": null,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_pass_tds",
           "point": 1.5,
-          "overOdds": 126,
-          "underOdds": -164,
+          "overOdds": 117,
+          "underOdds": -152,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_pass_yds",
-          "point": 214.5,
-          "overOdds": -114,
-          "underOdds": -114,
+          "point": 215.5,
+          "overOdds": -116,
+          "underOdds": -111,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Adam Trautman",
+      "homeTeam": "Kansas City Chiefs",
+      "awayTeam": "Denver Broncos",
+      "kickoff": "2026-09-15T00:15:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 700,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -94,6 +109,20 @@
       "awayTeam": "New York Jets",
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 32.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 2.5,
+          "overOdds": -138,
+          "underOdds": 104,
+          "bookmaker": "pinnacle"
+        },
         {
           "market": "player_anytime_td",
           "point": null,
@@ -112,21 +141,21 @@
         {
           "market": "player_reception_yds",
           "point": 24.5,
-          "overOdds": -117,
-          "underOdds": -113,
+          "overOdds": -122,
+          "underOdds": -108,
           "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 2.5,
-          "overOdds": -155,
-          "underOdds": 116,
+          "overOdds": -153,
+          "underOdds": 115,
           "bookmaker": "pinnacle"
         },
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 270,
+          "overOdds": 250,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -154,9 +183,23 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
+          "market": "player_reception_yds",
+          "point": 46.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": -108,
+          "underOdds": -122,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 240,
+          "overOdds": 250,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -184,24 +227,24 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": -125,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
           "point": 77.5,
           "overOdds": -114,
           "underOdds": -114,
-          "bookmaker": "betonlineag"
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 6.5,
-          "overOdds": -112,
-          "underOdds": -115,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": -111,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -230,7 +273,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 1700,
+          "overOdds": 1900,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -245,7 +288,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 700,
+          "overOdds": 800,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -260,7 +303,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 750,
+          "overOdds": 800,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -275,7 +318,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": -125,
+          "overOdds": -200,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -290,7 +333,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 400,
+          "overOdds": 500,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -318,31 +361,31 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 500,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_pass_tds",
           "point": 1.5,
-          "overOdds": -118,
-          "underOdds": -110,
-          "bookmaker": "betonlineag"
+          "overOdds": -112,
+          "underOdds": -118,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_pass_yds",
-          "point": 235.5,
+          "point": 232.5,
           "overOdds": -114,
           "underOdds": -114,
-          "bookmaker": "betonlineag"
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_rush_yds",
           "point": 15.5,
           "overOdds": -114,
           "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 450,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -356,7 +399,22 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 800,
+          "overOdds": 750,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Ben Sinnott",
+      "homeTeam": "Philadelphia Eagles",
+      "awayTeam": "Washington Commanders",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 2400,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -371,7 +429,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 1900,
+          "overOdds": 1100,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -386,7 +444,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 1000,
+          "overOdds": 1100,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -399,17 +457,31 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 120,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
+          "market": "player_reception_yds",
+          "point": 11.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 1.5,
+          "overOdds": -172,
+          "underOdds": 128,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_rush_yds",
           "point": 50.5,
-          "overOdds": -114,
-          "underOdds": -114,
+          "overOdds": -115,
+          "underOdds": -115,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 110,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -421,31 +493,31 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": -167,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 36.5,
-          "overOdds": -114,
-          "underOdds": -114,
-          "bookmaker": "betonlineag"
+          "point": 37.5,
+          "overOdds": -115,
+          "underOdds": -115,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 4.5,
-          "overOdds": 102,
-          "underOdds": -132,
-          "bookmaker": "betonlineag"
+          "overOdds": 106,
+          "underOdds": -140,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_rush_yds",
-          "point": 78.5,
+          "point": 76.5,
           "overOdds": -114,
           "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": -200,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -458,7 +530,7 @@
       "props": [
         {
           "market": "player_rush_yds",
-          "point": 35.5,
+          "point": 37.5,
           "overOdds": -114,
           "underOdds": -114,
           "bookmaker": "pinnacle"
@@ -481,7 +553,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 1300,
+          "overOdds": 1400,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -496,7 +568,58 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 800,
+          "overOdds": 900,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Bo Nix",
+      "homeTeam": "Kansas City Chiefs",
+      "awayTeam": "Denver Broncos",
+      "kickoff": "2026-09-15T00:15:00Z",
+      "props": [
+        {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": 172,
+          "underOdds": -235,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 227.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 15.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 400,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Brady Russell",
+      "homeTeam": "Seattle Seahawks",
+      "awayTeam": "New England Patriots",
+      "kickoff": "2026-09-10T00:20:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 3400,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -509,9 +632,31 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
+          "market": "player_rush_yds",
+          "point": 17.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
           "overOdds": 240,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Brashard Smith",
+      "homeTeam": "Kansas City Chiefs",
+      "awayTeam": "Denver Broncos",
+      "kickoff": "2026-09-15T00:15:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 450,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -524,31 +669,31 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": -111,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 16.5,
-          "overOdds": -119,
-          "underOdds": -109,
-          "bookmaker": "betonlineag"
+          "point": 18.5,
+          "overOdds": -115,
+          "underOdds": -115,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 2.5,
-          "overOdds": -103,
-          "underOdds": -125,
-          "bookmaker": "betonlineag"
+          "overOdds": -102,
+          "underOdds": -130,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_rush_yds",
           "point": 64.5,
           "overOdds": -114,
           "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 100,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -560,24 +705,24 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 240,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 35.5,
+          "point": 36.5,
           "overOdds": -114,
           "underOdds": -114,
-          "bookmaker": "betonlineag"
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
           "overOdds": -102,
-          "underOdds": -127,
+          "underOdds": -130,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 230,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -591,7 +736,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 800,
+          "overOdds": 750,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -619,24 +764,24 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 220,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
           "point": 36.5,
-          "overOdds": -116,
-          "underOdds": -111,
-          "bookmaker": "betonlineag"
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 2.5,
-          "overOdds": -167,
+          "overOdds": -172,
           "underOdds": 128,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 210,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -650,7 +795,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 3400,
+          "overOdds": 2900,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -663,24 +808,24 @@
       "kickoff": "2026-09-13T20:25:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 150,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 63.5,
+          "point": 62.5,
           "overOdds": -114,
-          "underOdds": -114,
-          "bookmaker": "betonlineag"
+          "underOdds": -116,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 5.5,
-          "overOdds": -139,
-          "underOdds": 107,
+          "overOdds": -136,
+          "underOdds": 102,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 150,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -707,9 +852,9 @@
         },
         {
           "market": "player_rush_yds",
-          "point": 14.5,
-          "overOdds": -127,
-          "underOdds": -104,
+          "point": 17.5,
+          "overOdds": -120,
+          "underOdds": -110,
           "bookmaker": "pinnacle"
         },
         {
@@ -717,6 +862,13 @@
           "point": null,
           "overOdds": 550,
           "underOdds": null,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_pass_interceptions",
+          "point": 0.5,
+          "overOdds": -132,
+          "underOdds": 102,
           "bookmaker": "betonlineag"
         }
       ]
@@ -730,7 +882,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 650,
+          "overOdds": 600,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -758,31 +910,31 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": 114,
+          "underOdds": -152,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 208.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 13.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
           "overOdds": 350,
           "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
-          "market": "player_pass_tds",
-          "point": 1.5,
-          "overOdds": 109,
-          "underOdds": -141,
-          "bookmaker": "betonlineag"
-        },
-        {
-          "market": "player_pass_yds",
-          "point": 214.5,
-          "overOdds": -116,
-          "underOdds": -111,
-          "bookmaker": "betonlineag"
-        },
-        {
-          "market": "player_rush_yds",
-          "point": 14.5,
-          "overOdds": -119,
-          "underOdds": -109,
           "bookmaker": "betonlineag"
         }
       ]
@@ -809,31 +961,31 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 110,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
           "point": 13.5,
           "overOdds": -114,
           "underOdds": -114,
-          "bookmaker": "betonlineag"
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 2.5,
-          "overOdds": 132,
-          "underOdds": -172,
-          "bookmaker": "betonlineag"
+          "overOdds": 144,
+          "underOdds": -194,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_rush_yds",
-          "point": 55.5,
-          "overOdds": -114,
-          "underOdds": -114,
+          "point": 58.5,
+          "overOdds": -115,
+          "underOdds": -115,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 100,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -845,31 +997,31 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 750,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_pass_tds",
           "point": 1.5,
           "overOdds": 120,
-          "underOdds": -156,
-          "bookmaker": "betonlineag"
+          "underOdds": -160,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_pass_yds",
           "point": 219.5,
-          "overOdds": -115,
-          "underOdds": -112,
-          "bookmaker": "betonlineag"
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_rush_yds",
-          "point": 9.5,
-          "overOdds": -119,
-          "underOdds": -109,
+          "point": 10.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 750,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -880,6 +1032,20 @@
       "awayTeam": "Tampa Bay Buccaneers",
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 28.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": 124,
+          "underOdds": -166,
+          "bookmaker": "pinnacle"
+        },
         {
           "market": "player_anytime_td",
           "point": null,
@@ -898,7 +1064,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 1700,
+          "overOdds": 1900,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -913,7 +1079,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 450,
+          "overOdds": 500,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -926,31 +1092,31 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": -110,
+          "underOdds": -120,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 226.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 19.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
           "overOdds": 350,
           "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
-          "market": "player_pass_tds",
-          "point": 1.5,
-          "overOdds": -101,
-          "underOdds": -128,
-          "bookmaker": "betonlineag"
-        },
-        {
-          "market": "player_pass_yds",
-          "point": 233.5,
-          "overOdds": -114,
-          "underOdds": -114,
-          "bookmaker": "betonlineag"
-        },
-        {
-          "market": "player_rush_yds",
-          "point": 20.5,
-          "overOdds": -123,
-          "underOdds": -105,
           "bookmaker": "betonlineag"
         }
       ]
@@ -961,6 +1127,20 @@
       "awayTeam": "New York Jets",
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 25.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 2.5,
+          "overOdds": 144,
+          "underOdds": -194,
+          "bookmaker": "pinnacle"
+        },
         {
           "market": "player_anytime_td",
           "point": null,
@@ -979,7 +1159,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 1400,
+          "overOdds": 1300,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -992,17 +1172,31 @@
       "kickoff": "2026-09-14T00:20:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": -125,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
+          "market": "player_reception_yds",
+          "point": 15.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 2.5,
+          "overOdds": 116,
+          "underOdds": -154,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_rush_yds",
-          "point": 45.5,
-          "overOdds": -118,
-          "underOdds": -110,
+          "point": 51.5,
+          "overOdds": -114,
+          "underOdds": -116,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": -111,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -1014,6 +1208,13 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
+          "market": "player_rush_yds",
+          "point": 8.5,
+          "overOdds": -140,
+          "underOdds": 106,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
           "overOdds": 500,
@@ -1023,20 +1224,13 @@
         {
           "market": "player_pass_tds",
           "point": 1.5,
-          "overOdds": 167,
-          "underOdds": -222,
+          "overOdds": 164,
+          "underOdds": -217,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_pass_yds",
           "point": 208.5,
-          "overOdds": -116,
-          "underOdds": -111,
-          "bookmaker": "betonlineag"
-        },
-        {
-          "market": "player_rush_yds",
-          "point": 8.5,
           "overOdds": -114,
           "underOdds": -114,
           "bookmaker": "betonlineag"
@@ -1050,24 +1244,24 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 220,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
           "point": 40.5,
-          "overOdds": -114,
-          "underOdds": -114,
-          "bookmaker": "betonlineag"
+          "overOdds": -115,
+          "underOdds": -115,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -112,
-          "underOdds": -115,
+          "overOdds": -108,
+          "underOdds": -122,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 220,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -1079,24 +1273,24 @@
       "kickoff": "2026-09-14T00:20:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 120,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 73.5,
+          "point": 76.5,
           "overOdds": -114,
           "underOdds": -114,
-          "bookmaker": "betonlineag"
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
-          "point": 5.5,
-          "overOdds": -175,
-          "underOdds": 135,
+          "point": 6.5,
+          "overOdds": 116,
+          "underOdds": -154,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 110,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -1110,7 +1304,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 290,
+          "overOdds": 300,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -1125,7 +1319,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 1700,
+          "overOdds": 1900,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -1138,31 +1332,31 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": -167,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 22.5,
-          "overOdds": -112,
-          "underOdds": -115,
-          "bookmaker": "betonlineag"
+          "point": 23.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -111,
-          "underOdds": -116,
-          "bookmaker": "betonlineag"
+          "overOdds": -132,
+          "underOdds": 100,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_rush_yds",
-          "point": 59.5,
-          "overOdds": -116,
-          "underOdds": -111,
+          "point": 57.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": -167,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -1176,7 +1370,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 350,
+          "overOdds": 400,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -1206,7 +1400,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 650,
+          "overOdds": 750,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -1221,7 +1415,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 240,
+          "overOdds": 250,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -1236,7 +1430,22 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 190,
+          "overOdds": 180,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Chris Manhertz",
+      "homeTeam": "New York Giants",
+      "awayTeam": "Dallas Cowboys",
+      "kickoff": "2026-09-14T00:20:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 2400,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -1249,24 +1458,24 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 150,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
           "point": 76.5,
-          "overOdds": -115,
-          "underOdds": -112,
-          "bookmaker": "betonlineag"
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 6.5,
-          "overOdds": 104,
-          "underOdds": -135,
+          "overOdds": -102,
+          "underOdds": -130,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 140,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -1278,17 +1487,17 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 170,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_rush_yds",
           "point": 33.5,
           "overOdds": -114,
           "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 160,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -1301,9 +1510,9 @@
       "props": [
         {
           "market": "player_reception_yds",
-          "point": 37.5,
-          "overOdds": -115,
-          "underOdds": -115,
+          "point": 38.5,
+          "overOdds": -114,
+          "underOdds": -114,
           "bookmaker": "pinnacle"
         },
         {
@@ -1336,24 +1545,24 @@
       "kickoff": "2026-09-13T20:25:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 180,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 56.5,
+          "point": 54.5,
           "overOdds": -114,
           "underOdds": -114,
-          "bookmaker": "betonlineag"
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -167,
+          "overOdds": -172,
           "underOdds": 128,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 180,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -1368,6 +1577,21 @@
           "market": "player_anytime_td",
           "point": null,
           "overOdds": 120,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "CJ Daniels",
+      "homeTeam": "Los Angeles Rams",
+      "awayTeam": "San Francisco 49ers",
+      "kickoff": "2026-09-11T00:35:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 1000,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -1395,24 +1619,24 @@
       "kickoff": "2026-09-11T00:35:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 350,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
           "point": 22.5,
-          "overOdds": -115,
-          "underOdds": -112,
-          "bookmaker": "betonlineag"
+          "overOdds": 106,
+          "underOdds": -140,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 2.5,
-          "overOdds": 100,
-          "underOdds": -130,
+          "overOdds": 114,
+          "underOdds": -152,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 350,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -1424,17 +1648,39 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
+          "market": "player_reception_yds",
+          "point": 14.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 1.5,
+          "overOdds": -138,
+          "underOdds": 104,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
           "overOdds": 400,
           "underOdds": null,
           "bookmaker": "betonlineag"
-        },
+        }
+      ]
+    },
+    {
+      "name": "Colson Yankoff",
+      "homeTeam": "Philadelphia Eagles",
+      "awayTeam": "Washington Commanders",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
         {
-          "market": "player_receptions",
-          "point": 1.5,
-          "overOdds": -141,
-          "underOdds": 109,
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 2900,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -1446,24 +1692,24 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 160,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
           "point": 50.5,
           "overOdds": -116,
-          "underOdds": -111,
-          "bookmaker": "betonlineag"
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 4.5,
-          "overOdds": 103,
-          "underOdds": -133,
+          "overOdds": -108,
+          "underOdds": -122,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 160,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -1477,7 +1723,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 1100,
+          "overOdds": 800,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -1499,14 +1745,58 @@
         {
           "market": "player_receptions",
           "point": 2.5,
-          "overOdds": -149,
+          "overOdds": -148,
           "underOdds": 112,
           "bookmaker": "pinnacle"
         },
         {
           "market": "player_anytime_td",
           "point": null,
+          "overOdds": 190,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Courtland Sutton",
+      "homeTeam": "Kansas City Chiefs",
+      "awayTeam": "Denver Broncos",
+      "kickoff": "2026-09-15T00:15:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 42.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 4.5,
+          "overOdds": 124,
+          "underOdds": -166,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
           "overOdds": 200,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Cyrus Allen",
+      "homeTeam": "Kansas City Chiefs",
+      "awayTeam": "Denver Broncos",
+      "kickoff": "2026-09-15T00:15:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 800,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -1521,7 +1811,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": -143,
+          "overOdds": -200,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -1534,24 +1824,31 @@
       "kickoff": "2026-09-14T00:20:00Z",
       "props": [
         {
+          "market": "player_pass_yds",
+          "point": 260.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 7.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 500,
+          "overOdds": 450,
           "underOdds": null,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_pass_tds",
           "point": 1.5,
-          "overOdds": -143,
-          "underOdds": 110,
-          "bookmaker": "betonlineag"
-        },
-        {
-          "market": "player_pass_yds",
-          "point": 260.5,
-          "overOdds": -114,
-          "underOdds": -114,
+          "overOdds": -149,
+          "underOdds": 115,
           "bookmaker": "betonlineag"
         }
       ]
@@ -1563,24 +1860,39 @@
       "kickoff": "2026-09-13T20:25:00Z",
       "props": [
         {
+          "market": "player_reception_yds",
+          "point": 34.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": 102,
+          "underOdds": -136,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
           "overOdds": 210,
           "underOdds": null,
           "bookmaker": "betonlineag"
-        },
+        }
+      ]
+    },
+    {
+      "name": "Dallen Bentley",
+      "homeTeam": "Kansas City Chiefs",
+      "awayTeam": "Denver Broncos",
+      "kickoff": "2026-09-15T00:15:00Z",
+      "props": [
         {
-          "market": "player_reception_yds",
-          "point": 35.5,
-          "overOdds": -116,
-          "underOdds": -111,
-          "bookmaker": "betonlineag"
-        },
-        {
-          "market": "player_receptions",
-          "point": 3.5,
-          "overOdds": -105,
-          "underOdds": -123,
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 2400,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -1592,24 +1904,24 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 290,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 33.5,
-          "overOdds": -120,
-          "underOdds": -108,
-          "bookmaker": "betonlineag"
+          "point": 38.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -105,
-          "underOdds": -123,
+          "overOdds": -102,
+          "underOdds": -130,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 260,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -1621,24 +1933,24 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 290,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 34.5,
-          "overOdds": -119,
-          "underOdds": -109,
-          "bookmaker": "betonlineag"
+          "point": 32.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
           "overOdds": -130,
-          "underOdds": 101,
+          "underOdds": -102,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 270,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -1652,7 +1964,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 900,
+          "overOdds": 1000,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -1665,24 +1977,24 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 450,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_pass_tds",
           "point": 1.5,
-          "overOdds": 134,
-          "underOdds": -175,
-          "bookmaker": "betonlineag"
+          "overOdds": 138,
+          "underOdds": -186,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_pass_yds",
-          "point": 230.5,
-          "overOdds": -115,
-          "underOdds": -112,
+          "point": 233.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 400,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -1696,7 +2008,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 1000,
+          "overOdds": 900,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -1769,24 +2081,24 @@
       "kickoff": "2026-09-11T00:35:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 120,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
           "point": 51.5,
-          "overOdds": -115,
-          "underOdds": -112,
-          "bookmaker": "betonlineag"
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 4.5,
-          "overOdds": -103,
-          "underOdds": -125,
+          "overOdds": -102,
+          "underOdds": -130,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 120,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -1798,31 +2110,31 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": -125,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 8.5,
-          "overOdds": -108,
-          "underOdds": -120,
-          "bookmaker": "betonlineag"
+          "point": 7.5,
+          "overOdds": -120,
+          "underOdds": -110,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 1.5,
-          "overOdds": -115,
-          "underOdds": -112,
-          "bookmaker": "betonlineag"
+          "overOdds": -108,
+          "underOdds": -122,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_rush_yds",
-          "point": 55.5,
-          "overOdds": -139,
-          "underOdds": 107,
+          "point": 53.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": -125,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -1836,7 +2148,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 290,
+          "overOdds": 350,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -1851,7 +2163,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 650,
+          "overOdds": 600,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -1879,31 +2191,31 @@
       "kickoff": "2026-09-13T20:25:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": -111,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 29.5,
-          "overOdds": -116,
-          "underOdds": -111,
-          "bookmaker": "betonlineag"
+          "point": 31.5,
+          "overOdds": -110,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 4.5,
-          "overOdds": 106,
-          "underOdds": -137,
-          "bookmaker": "betonlineag"
+          "overOdds": 102,
+          "underOdds": -136,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_rush_yds",
-          "point": 68.5,
-          "overOdds": -118,
-          "underOdds": -110,
+          "point": 69.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 110,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -1931,7 +2243,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 190,
+          "overOdds": 210,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -1946,7 +2258,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 1100,
+          "overOdds": 1300,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -1961,7 +2273,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 600,
+          "overOdds": 700,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -1990,7 +2302,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 500,
+          "overOdds": 550,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -2018,24 +2330,24 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 450,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 23.5,
-          "overOdds": -116,
-          "underOdds": -111,
-          "bookmaker": "betonlineag"
+          "point": 25.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 2.5,
-          "overOdds": 117,
-          "underOdds": -152,
+          "overOdds": 112,
+          "underOdds": -148,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 450,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -2062,17 +2374,24 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
+          "market": "player_reception_yds",
+          "point": 6.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 78.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
           "overOdds": -250,
           "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
-          "market": "player_rush_yds",
-          "point": 80.5,
-          "overOdds": -118,
-          "underOdds": -110,
           "bookmaker": "betonlineag"
         }
       ]
@@ -2086,15 +2405,15 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 650,
+          "overOdds": 600,
           "underOdds": null,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_pass_tds",
           "point": 0.5,
-          "overOdds": -172,
-          "underOdds": 133,
+          "overOdds": -182,
+          "underOdds": 138,
           "bookmaker": "betonlineag"
         },
         {
@@ -2106,9 +2425,9 @@
         },
         {
           "market": "player_rush_yds",
-          "point": 17.5,
-          "overOdds": -123,
-          "underOdds": -105,
+          "point": 19.5,
+          "overOdds": -120,
+          "underOdds": -108,
           "bookmaker": "betonlineag"
         }
       ]
@@ -2120,9 +2439,23 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
+          "market": "player_reception_yds",
+          "point": 39.5,
+          "overOdds": -115,
+          "underOdds": -115,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": -102,
+          "underOdds": -130,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 290,
+          "overOdds": 300,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -2137,7 +2470,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 1000,
+          "overOdds": 1100,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -2152,7 +2485,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 325,
+          "overOdds": 300,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -2165,24 +2498,24 @@
       "kickoff": "2026-09-13T20:25:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 170,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 65.5,
-          "overOdds": -116,
-          "underOdds": -111,
-          "bookmaker": "betonlineag"
+          "point": 66.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 5.5,
-          "overOdds": 100,
-          "underOdds": -130,
+          "overOdds": 106,
+          "underOdds": -140,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 170,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -2196,7 +2529,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 500,
+          "overOdds": 700,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -2211,7 +2544,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 1100,
+          "overOdds": 1300,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -2224,24 +2557,24 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 280,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
           "point": 47.5,
-          "overOdds": -116,
-          "underOdds": -111,
-          "bookmaker": "betonlineag"
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -103,
-          "underOdds": -125,
+          "overOdds": -112,
+          "underOdds": -118,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 250,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -2253,24 +2586,24 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 190,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
           "point": 46.5,
-          "overOdds": -118,
+          "overOdds": -120,
           "underOdds": -110,
-          "bookmaker": "betonlineag"
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -135,
-          "underOdds": 105,
+          "overOdds": -130,
+          "underOdds": -102,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 190,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -2284,7 +2617,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 300,
+          "overOdds": 290,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -2297,24 +2630,24 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 200,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
           "point": 64.5,
           "overOdds": -114,
           "underOdds": -114,
-          "bookmaker": "betonlineag"
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 5.5,
-          "overOdds": -105,
-          "underOdds": -123,
+          "overOdds": -125,
+          "underOdds": -106,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 220,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -2328,8 +2661,8 @@
         {
           "market": "player_pass_tds",
           "point": 1.5,
-          "overOdds": 146,
-          "underOdds": -198,
+          "overOdds": 140,
+          "underOdds": -188,
           "bookmaker": "pinnacle"
         },
         {
@@ -2349,8 +2682,15 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 350,
+          "overOdds": 400,
           "underOdds": null,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_pass_interceptions",
+          "point": 0.5,
+          "overOdds": -122,
+          "underOdds": -106,
           "bookmaker": "betonlineag"
         }
       ]
@@ -2394,7 +2734,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 325,
+          "overOdds": 300,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -2409,7 +2749,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 500,
+          "overOdds": 600,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -2484,7 +2824,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 600,
+          "overOdds": 750,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -2499,7 +2839,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 1000,
+          "overOdds": 900,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -2514,7 +2854,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 800,
+          "overOdds": 1000,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -2542,24 +2882,39 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
+          "market": "player_reception_yds",
+          "point": 54.5,
+          "overOdds": -110,
+          "underOdds": -120,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 4.5,
+          "overOdds": 124,
+          "underOdds": -166,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
           "overOdds": 160,
           "underOdds": null,
           "bookmaker": "betonlineag"
-        },
+        }
+      ]
+    },
+    {
+      "name": "Emmett Johnson",
+      "homeTeam": "Kansas City Chiefs",
+      "awayTeam": "Denver Broncos",
+      "kickoff": "2026-09-15T00:15:00Z",
+      "props": [
         {
-          "market": "player_reception_yds",
-          "point": 54.5,
-          "overOdds": -114,
-          "underOdds": -114,
-          "bookmaker": "betonlineag"
-        },
-        {
-          "market": "player_receptions",
-          "point": 4.5,
-          "overOdds": 120,
-          "underOdds": -156,
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 400,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -2574,6 +2929,36 @@
           "market": "player_anytime_td",
           "point": null,
           "overOdds": 1900,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Erick All",
+      "homeTeam": "Cincinnati Bengals",
+      "awayTeam": "Tampa Bay Buccaneers",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 400,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Evan Engram",
+      "homeTeam": "Kansas City Chiefs",
+      "awayTeam": "Denver Broncos",
+      "kickoff": "2026-09-15T00:15:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 450,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -2601,24 +2986,39 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 230,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
           "point": 61.5,
           "overOdds": -114,
-          "underOdds": -114,
-          "bookmaker": "betonlineag"
+          "underOdds": -116,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 5.5,
           "overOdds": -114,
           "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 240,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Gavin Bartholomew",
+      "homeTeam": "Minnesota Vikings",
+      "awayTeam": "Green Bay Packers",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 1900,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -2630,31 +3030,31 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
+          "market": "player_rush_yds",
+          "point": 5.5,
+          "overOdds": -115,
+          "underOdds": -115,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 1000,
+          "overOdds": 1100,
           "underOdds": null,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_pass_tds",
           "point": 0.5,
-          "overOdds": -256,
-          "underOdds": 190,
+          "overOdds": -270,
+          "underOdds": 197,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_pass_yds",
-          "point": 202.5,
-          "overOdds": -116,
-          "underOdds": -111,
-          "bookmaker": "betonlineag"
-        },
-        {
-          "market": "player_rush_yds",
-          "point": 5.5,
-          "overOdds": -116,
-          "underOdds": -111,
+          "point": 204.5,
+          "overOdds": -118,
+          "underOdds": -110,
           "bookmaker": "betonlineag"
         }
       ]
@@ -2667,15 +3067,15 @@
       "props": [
         {
           "market": "player_rush_yds",
-          "point": 18.5,
-          "overOdds": -120,
-          "underOdds": -110,
+          "point": 20.5,
+          "overOdds": -114,
+          "underOdds": -114,
           "bookmaker": "pinnacle"
         },
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 180,
+          "overOdds": 170,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -2688,9 +3088,23 @@
       "kickoff": "2026-09-11T00:35:00Z",
       "props": [
         {
+          "market": "player_reception_yds",
+          "point": 39.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 4.5,
+          "overOdds": 124,
+          "underOdds": -166,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 200,
+          "overOdds": 220,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -2703,24 +3117,24 @@
       "kickoff": "2026-09-14T00:20:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 150,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 67.5,
-          "overOdds": -118,
-          "underOdds": -110,
-          "bookmaker": "betonlineag"
+          "point": 69.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
-          "point": 4.5,
-          "overOdds": -159,
-          "underOdds": 122,
+          "point": 5.5,
+          "overOdds": 124,
+          "underOdds": -166,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 140,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -2762,6 +3176,20 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
+          "market": "player_reception_yds",
+          "point": 24.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 2.5,
+          "overOdds": -158,
+          "underOdds": 118,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
           "overOdds": 400,
@@ -2777,24 +3205,24 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 300,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
           "point": 36.5,
-          "overOdds": -116,
-          "underOdds": -111,
-          "bookmaker": "betonlineag"
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 4.5,
-          "overOdds": 120,
-          "underOdds": -156,
+          "overOdds": 124,
+          "underOdds": -166,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 300,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -2880,9 +3308,23 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
+          "market": "player_reception_yds",
+          "point": 16.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 1.5,
+          "overOdds": 106,
+          "underOdds": -140,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 300,
+          "overOdds": 350,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -2897,7 +3339,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 1300,
+          "overOdds": 1100,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -2925,9 +3367,23 @@
       "kickoff": "2026-09-14T00:20:00Z",
       "props": [
         {
+          "market": "player_reception_yds",
+          "point": 34.5,
+          "overOdds": -116,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": 114,
+          "underOdds": -152,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 240,
+          "overOdds": 270,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -2942,7 +3398,29 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 700,
+          "overOdds": 750,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "J.K. Dobbins",
+      "homeTeam": "Kansas City Chiefs",
+      "awayTeam": "Denver Broncos",
+      "kickoff": "2026-09-15T00:15:00Z",
+      "props": [
+        {
+          "market": "player_rush_yds",
+          "point": 49.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 120,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -2955,24 +3433,24 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": -143,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 88.5,
-          "overOdds": -118,
-          "underOdds": -110,
-          "bookmaker": "betonlineag"
+          "point": 85.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 7.5,
-          "overOdds": 104,
-          "underOdds": -135,
+          "overOdds": 116,
+          "underOdds": -154,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": -143,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -3001,7 +3479,22 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 600,
+          "overOdds": 550,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Jack Endries",
+      "homeTeam": "Cincinnati Bengals",
+      "awayTeam": "Tampa Bay Buccaneers",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 500,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -3044,24 +3537,24 @@
       "kickoff": "2026-09-13T20:25:00Z",
       "props": [
         {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": 162,
+          "underOdds": -220,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 221.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
           "overOdds": 900,
           "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
-          "market": "player_pass_tds",
-          "point": 1.5,
-          "overOdds": 178,
-          "underOdds": -238,
-          "bookmaker": "betonlineag"
-        },
-        {
-          "market": "player_pass_yds",
-          "point": 222.5,
-          "overOdds": -115,
-          "underOdds": -112,
           "bookmaker": "betonlineag"
         }
       ]
@@ -3073,17 +3566,17 @@
       "kickoff": "2026-09-13T20:25:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 130,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_rush_yds",
-          "point": 41.5,
+          "point": 40.5,
           "overOdds": -114,
           "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 140,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -3094,6 +3587,20 @@
       "awayTeam": "New England Patriots",
       "kickoff": "2026-09-10T00:20:00Z",
       "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 8.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 1.5,
+          "overOdds": 115,
+          "underOdds": -152,
+          "bookmaker": "pinnacle"
+        },
         {
           "market": "player_rush_yds",
           "point": 51.5,
@@ -3117,9 +3624,23 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
+          "market": "player_reception_yds",
+          "point": 18.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 1.5,
+          "overOdds": -172,
+          "underOdds": 128,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 500,
+          "overOdds": 550,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -3134,7 +3655,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 650,
+          "overOdds": 700,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -3147,31 +3668,46 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": -333,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
           "point": 30.5,
           "overOdds": -115,
-          "underOdds": -112,
-          "bookmaker": "betonlineag"
+          "underOdds": -115,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 4.5,
-          "overOdds": 115,
-          "underOdds": -149,
-          "bookmaker": "betonlineag"
+          "overOdds": 124,
+          "underOdds": -166,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_rush_yds",
           "point": 82.5,
           "overOdds": -114,
           "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": -500,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Jake Briningstool",
+      "homeTeam": "Kansas City Chiefs",
+      "awayTeam": "Denver Broncos",
+      "kickoff": "2026-09-15T00:15:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 1700,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -3183,9 +3719,23 @@
       "kickoff": "2026-09-14T00:20:00Z",
       "props": [
         {
+          "market": "player_reception_yds",
+          "point": 30.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": -102,
+          "underOdds": -130,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 200,
+          "overOdds": 190,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -3200,7 +3750,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 220,
+          "overOdds": 240,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -3213,24 +3763,24 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 220,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
           "point": 37.5,
-          "overOdds": -116,
-          "underOdds": -111,
-          "bookmaker": "betonlineag"
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -120,
-          "underOdds": -108,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 220,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -3244,7 +3794,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 1000,
+          "overOdds": 1100,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -3257,24 +3807,24 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 260,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
           "point": 39.5,
           "overOdds": -114,
           "underOdds": -114,
-          "bookmaker": "betonlineag"
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -105,
-          "underOdds": -123,
+          "overOdds": -128,
+          "underOdds": -104,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 280,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -3286,31 +3836,31 @@
       "kickoff": "2026-09-13T20:25:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 110,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_pass_tds",
           "point": 1.5,
-          "overOdds": 112,
-          "underOdds": -145,
-          "bookmaker": "betonlineag"
+          "overOdds": 106,
+          "underOdds": -140,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_pass_yds",
-          "point": 215.5,
+          "point": 214.5,
           "overOdds": -114,
           "underOdds": -114,
-          "bookmaker": "betonlineag"
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_rush_yds",
-          "point": 28.5,
-          "overOdds": -119,
-          "underOdds": -109,
+          "point": 27.5,
+          "overOdds": -120,
+          "underOdds": -110,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 120,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -3324,7 +3874,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 230,
+          "overOdds": 220,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -3354,7 +3904,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 500,
+          "overOdds": 550,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -3367,17 +3917,31 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": -111,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
+          "market": "player_reception_yds",
+          "point": 13.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 2.5,
+          "overOdds": 134,
+          "underOdds": -180,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_rush_yds",
           "point": 74.5,
           "overOdds": -114,
           "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": -111,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -3391,7 +3955,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 750,
+          "overOdds": 800,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -3404,24 +3968,24 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 150,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 57.5,
-          "overOdds": -116,
-          "underOdds": -111,
-          "bookmaker": "betonlineag"
+          "point": 58.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -145,
+          "overOdds": -148,
           "underOdds": 112,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 160,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -3433,24 +3997,39 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 1400,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_pass_tds",
           "point": 1.5,
           "overOdds": -200,
-          "underOdds": 153,
-          "bookmaker": "betonlineag"
+          "underOdds": 148,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_pass_yds",
           "point": 261.5,
           "overOdds": -114,
           "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 1400,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Jared Wiley",
+      "homeTeam": "Kansas City Chiefs",
+      "awayTeam": "Denver Broncos",
+      "kickoff": "2026-09-15T00:15:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 1700,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -3462,24 +4041,24 @@
       "kickoff": "2026-09-13T20:25:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 325,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 24.5,
+          "point": 23.5,
           "overOdds": -114,
           "underOdds": -114,
-          "bookmaker": "betonlineag"
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 2.5,
-          "overOdds": 134,
-          "underOdds": -175,
+          "overOdds": 132,
+          "underOdds": -178,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 325,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -3491,17 +4070,31 @@
       "kickoff": "2026-09-14T00:20:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": -200,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
+          "market": "player_reception_yds",
+          "point": 9.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 2.5,
+          "overOdds": 154,
+          "underOdds": -210,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_rush_yds",
           "point": 73.5,
           "overOdds": -114,
           "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": -200,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -3514,7 +4107,7 @@
       "props": [
         {
           "market": "player_reception_yds",
-          "point": 83.5,
+          "point": 82.5,
           "overOdds": -114,
           "underOdds": -114,
           "bookmaker": "pinnacle"
@@ -3523,7 +4116,7 @@
           "market": "player_receptions",
           "point": 6.5,
           "overOdds": -102,
-          "underOdds": -130,
+          "underOdds": -129,
           "bookmaker": "pinnacle"
         },
         {
@@ -3542,31 +4135,31 @@
       "kickoff": "2026-09-14T00:20:00Z",
       "props": [
         {
+          "market": "player_pass_yds",
+          "point": 217.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 28.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 170,
+          "overOdds": 180,
           "underOdds": null,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_pass_tds",
           "point": 1.5,
-          "overOdds": 124,
-          "underOdds": -161,
-          "bookmaker": "betonlineag"
-        },
-        {
-          "market": "player_pass_yds",
-          "point": 213.5,
-          "overOdds": -116,
-          "underOdds": -111,
-          "bookmaker": "betonlineag"
-        },
-        {
-          "market": "player_rush_yds",
-          "point": 30.5,
-          "overOdds": -120,
-          "underOdds": -108,
+          "overOdds": 120,
+          "underOdds": -156,
           "bookmaker": "betonlineag"
         }
       ]
@@ -3578,31 +4171,31 @@
       "kickoff": "2026-09-13T20:25:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 210,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_pass_tds",
-          "point": 1.5,
-          "overOdds": 186,
-          "underOdds": -250,
-          "bookmaker": "betonlineag"
+          "point": 0.5,
+          "overOdds": -245,
+          "underOdds": 178,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_pass_yds",
-          "point": 199.5,
-          "overOdds": -116,
-          "underOdds": -111,
-          "bookmaker": "betonlineag"
+          "point": 205.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_rush_yds",
-          "point": 39.5,
-          "overOdds": -116,
-          "underOdds": -111,
+          "point": 37.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 240,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -3614,24 +4207,53 @@
       "kickoff": "2026-09-13T20:25:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 260,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 38.5,
-          "overOdds": -116,
-          "underOdds": -111,
-          "bookmaker": "betonlineag"
+          "point": 39.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -103,
-          "underOdds": -125,
+          "overOdds": -102,
+          "underOdds": -130,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 290,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Jaylen Waddle",
+      "homeTeam": "Kansas City Chiefs",
+      "awayTeam": "Denver Broncos",
+      "kickoff": "2026-09-15T00:15:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 53.5,
+          "overOdds": -115,
+          "underOdds": -115,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 4.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 200,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -3643,9 +4265,30 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
+          "market": "player_reception_yds",
+          "point": 15.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 2.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 39.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 110,
+          "overOdds": 120,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -3660,7 +4303,22 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 350,
+          "overOdds": 325,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Jaylin Lane",
+      "homeTeam": "Philadelphia Eagles",
+      "awayTeam": "Washington Commanders",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 1100,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -3675,7 +4333,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 550,
+          "overOdds": 500,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -3690,7 +4348,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 150,
+          "overOdds": 180,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -3718,24 +4376,24 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 400,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
           "point": 31.5,
-          "overOdds": -116,
-          "underOdds": -111,
-          "bookmaker": "betonlineag"
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 2.5,
-          "overOdds": -175,
-          "underOdds": 134,
+          "overOdds": -174,
+          "underOdds": 130,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 400,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -3762,31 +4420,46 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 650,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_pass_tds",
           "point": 2.5,
-          "overOdds": 164,
-          "underOdds": -217,
-          "bookmaker": "betonlineag"
+          "overOdds": 163,
+          "underOdds": -222,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_pass_yds",
-          "point": 271.5,
-          "overOdds": -118,
-          "underOdds": -110,
-          "bookmaker": "betonlineag"
+          "point": 267.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_rush_yds",
           "point": 6.5,
-          "overOdds": -119,
-          "underOdds": -109,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 600,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "John Bates",
+      "homeTeam": "Philadelphia Eagles",
+      "awayTeam": "Washington Commanders",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 1700,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -3800,7 +4473,37 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 900,
+          "overOdds": 800,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Johnny Mundt",
+      "homeTeam": "Philadelphia Eagles",
+      "awayTeam": "Washington Commanders",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 1300,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Jonah Coleman",
+      "homeTeam": "Kansas City Chiefs",
+      "awayTeam": "Denver Broncos",
+      "kickoff": "2026-09-15T00:15:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 550,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -3815,7 +4518,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 1400,
+          "overOdds": 1300,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -3828,17 +4531,17 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": -250,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_rush_yds",
           "point": 76.5,
           "overOdds": -114,
           "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": -200,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -3852,7 +4555,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 170,
+          "overOdds": 160,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -3865,24 +4568,24 @@
       "kickoff": "2026-09-13T20:25:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 240,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 43.5,
+          "point": 42.5,
           "overOdds": -114,
           "underOdds": -114,
-          "bookmaker": "betonlineag"
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -102,
-          "underOdds": -127,
+          "overOdds": 102,
+          "underOdds": -136,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 230,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -3894,31 +4597,31 @@
       "kickoff": "2026-09-13T20:25:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 600,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_pass_tds",
           "point": 1.5,
-          "overOdds": 102,
-          "underOdds": -132,
-          "bookmaker": "betonlineag"
+          "overOdds": 106,
+          "underOdds": -140,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_pass_yds",
           "point": 238.5,
           "overOdds": -114,
           "underOdds": -114,
-          "bookmaker": "betonlineag"
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_rush_yds",
-          "point": 9.5,
-          "overOdds": -119,
-          "underOdds": -109,
+          "point": 10.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 700,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -3930,17 +4633,17 @@
       "kickoff": "2026-09-13T20:25:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 130,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_rush_yds",
           "point": 43.5,
-          "overOdds": -114,
-          "underOdds": -114,
+          "overOdds": -120,
+          "underOdds": -110,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 140,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -3954,7 +4657,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 500,
+          "overOdds": 450,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -3967,31 +4670,31 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 120,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_pass_tds",
           "point": 1.5,
-          "overOdds": 139,
-          "underOdds": -182,
-          "bookmaker": "betonlineag"
+          "overOdds": 148,
+          "underOdds": -199,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_pass_yds",
-          "point": 222.5,
+          "point": 220.5,
           "overOdds": -114,
           "underOdds": -114,
-          "bookmaker": "betonlineag"
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_rush_yds",
           "point": 29.5,
-          "overOdds": -116,
-          "underOdds": -111,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 120,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -4003,11 +4706,40 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
+          "market": "player_reception_yds",
+          "point": 43.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": -158,
+          "underOdds": 118,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 240,
+          "overOdds": 250,
           "underOdds": null,
           "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Josh Jacobs",
+      "homeTeam": "Minnesota Vikings",
+      "awayTeam": "Green Bay Packers",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_rush_yds",
+          "point": 52.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         }
       ]
     },
@@ -4020,7 +4752,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 700,
+          "overOdds": 750,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -4050,7 +4782,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 750,
+          "overOdds": 700,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -4065,7 +4797,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 450,
+          "overOdds": 400,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -4078,24 +4810,24 @@
       "kickoff": "2026-09-13T20:25:00Z",
       "props": [
         {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": -225,
+          "underOdds": 164,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 233.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
           "overOdds": 350,
           "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
-          "market": "player_pass_tds",
-          "point": 1.5,
-          "overOdds": -204,
-          "underOdds": 156,
-          "bookmaker": "betonlineag"
-        },
-        {
-          "market": "player_pass_yds",
-          "point": 235.5,
-          "overOdds": -114,
-          "underOdds": -114,
           "bookmaker": "betonlineag"
         }
       ]
@@ -4107,24 +4839,31 @@
       "kickoff": "2026-09-13T20:25:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 160,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
           "point": 73.5,
           "overOdds": -114,
           "underOdds": -114,
-          "bookmaker": "betonlineag"
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 5.5,
-          "overOdds": -152,
-          "underOdds": 116,
+          "overOdds": -148,
+          "underOdds": 112,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 43.5,
+          "overOdds": -114,
+          "underOdds": -116,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 150,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -4136,24 +4875,24 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 250,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
           "point": 42.5,
           "overOdds": -114,
           "underOdds": -114,
-          "bookmaker": "betonlineag"
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 4.5,
-          "overOdds": 122,
-          "underOdds": -159,
+          "overOdds": 116,
+          "underOdds": -154,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 250,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -4167,7 +4906,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 650,
+          "overOdds": 800,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -4182,7 +4921,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 500,
+          "overOdds": 450,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -4210,24 +4949,24 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 350,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 20.5,
-          "overOdds": -116,
-          "underOdds": -111,
-          "bookmaker": "betonlineag"
+          "point": 22.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 1.5,
-          "overOdds": -145,
-          "underOdds": 112,
+          "overOdds": -158,
+          "underOdds": 118,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 325,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -4241,7 +4980,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 550,
+          "overOdds": 600,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -4254,24 +4993,24 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 450,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
           "point": 33.5,
           "overOdds": -114,
           "underOdds": -114,
-          "bookmaker": "betonlineag"
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": 115,
-          "underOdds": -149,
+          "overOdds": 106,
+          "underOdds": -140,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 450,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -4285,7 +5024,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 220,
+          "overOdds": 210,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -4300,7 +5039,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 290,
+          "overOdds": 300,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -4315,7 +5054,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 400,
+          "overOdds": 450,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -4337,11 +5076,68 @@
       ]
     },
     {
+      "name": "Kenneth Walker III",
+      "homeTeam": "Kansas City Chiefs",
+      "awayTeam": "Denver Broncos",
+      "kickoff": "2026-09-15T00:15:00Z",
+      "props": [
+        {
+          "market": "player_rush_yds",
+          "point": 59.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": -143,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_reception_yds",
+          "point": 15.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_receptions",
+          "point": 2.5,
+          "overOdds": -143,
+          "underOdds": 110,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
       "name": "Kenny Gainwell",
       "homeTeam": "Cincinnati Bengals",
       "awayTeam": "Tampa Bay Buccaneers",
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 20.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": 116,
+          "underOdds": -154,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 21.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
         {
           "market": "player_anytime_td",
           "point": null,
@@ -4375,7 +5171,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 600,
+          "overOdds": 550,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -4388,24 +5184,24 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 300,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
           "point": 36.5,
           "overOdds": -115,
-          "underOdds": -112,
-          "bookmaker": "betonlineag"
+          "underOdds": -115,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -139,
-          "underOdds": 107,
+          "overOdds": -130,
+          "underOdds": -102,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 270,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -4419,7 +5215,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 325,
+          "overOdds": 240,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -4434,20 +5230,20 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 1400,
+          "overOdds": 1100,
           "underOdds": null,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_pass_tds",
           "point": 1.5,
-          "overOdds": 144,
-          "underOdds": -189,
+          "overOdds": 132,
+          "underOdds": -172,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_pass_yds",
-          "point": 213.5,
+          "point": 212.5,
           "overOdds": -116,
           "underOdds": -111,
           "bookmaker": "betonlineag"
@@ -4463,7 +5259,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 500,
+          "overOdds": 450,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -4478,7 +5274,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 1100,
+          "overOdds": 800,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -4506,24 +5302,24 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 260,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 41.5,
-          "overOdds": -112,
-          "underOdds": -115,
-          "bookmaker": "betonlineag"
+          "point": 42.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 4.5,
-          "overOdds": 118,
-          "underOdds": -154,
+          "overOdds": 110,
+          "underOdds": -146,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 300,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -4537,7 +5333,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 1000,
+          "overOdds": 1100,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -4565,6 +5361,13 @@
       "kickoff": "2026-09-13T20:25:00Z",
       "props": [
         {
+          "market": "player_rush_yds",
+          "point": 21.5,
+          "overOdds": -142,
+          "underOdds": 107,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
           "overOdds": 250,
@@ -4580,16 +5383,9 @@
         },
         {
           "market": "player_pass_yds",
-          "point": 223.5,
-          "overOdds": -116,
-          "underOdds": -111,
-          "bookmaker": "betonlineag"
-        },
-        {
-          "market": "player_rush_yds",
-          "point": 22.5,
-          "overOdds": -112,
-          "underOdds": -115,
+          "point": 224.5,
+          "overOdds": -111,
+          "underOdds": -116,
           "bookmaker": "betonlineag"
         }
       ]
@@ -4601,31 +5397,31 @@
       "kickoff": "2026-09-11T00:35:00Z",
       "props": [
         {
+          "market": "player_reception_yds",
+          "point": 10.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 1.5,
+          "overOdds": -148,
+          "underOdds": 112,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_rush_yds",
-          "point": 57.5,
-          "overOdds": -111,
-          "underOdds": -119,
+          "point": 56.5,
+          "overOdds": -114,
+          "underOdds": -114,
           "bookmaker": "pinnacle"
         },
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": -143,
+          "overOdds": -167,
           "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
-          "market": "player_reception_yds",
-          "point": 9.5,
-          "overOdds": -119,
-          "underOdds": -109,
-          "bookmaker": "betonlineag"
-        },
-        {
-          "market": "player_receptions",
-          "point": 1.5,
-          "overOdds": -133,
-          "underOdds": 103,
           "bookmaker": "betonlineag"
         }
       ]
@@ -4637,24 +5433,39 @@
       "kickoff": "2026-09-13T20:25:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 100,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 55.5,
-          "overOdds": -115,
-          "underOdds": -112,
-          "bookmaker": "betonlineag"
+          "point": 50.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 4.5,
-          "overOdds": -105,
-          "underOdds": -123,
+          "overOdds": -102,
+          "underOdds": -130,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 110,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "LaJohntay Wester",
+      "homeTeam": "Indianapolis Colts",
+      "awayTeam": "Baltimore Ravens",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 1900,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -4666,31 +5477,31 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": 104,
+          "underOdds": -138,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 223.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 37.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
           "overOdds": 190,
           "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
-          "market": "player_pass_tds",
-          "point": 1.5,
-          "overOdds": 107,
-          "underOdds": -139,
-          "bookmaker": "betonlineag"
-        },
-        {
-          "market": "player_pass_yds",
-          "point": 220.5,
-          "overOdds": -118,
-          "underOdds": -110,
-          "bookmaker": "betonlineag"
-        },
-        {
-          "market": "player_rush_yds",
-          "point": 36.5,
-          "overOdds": -119,
-          "underOdds": -109,
           "bookmaker": "betonlineag"
         }
       ]
@@ -4711,6 +5522,21 @@
       ]
     },
     {
+      "name": "Lil'Jordan Humphrey",
+      "homeTeam": "Kansas City Chiefs",
+      "awayTeam": "Denver Broncos",
+      "kickoff": "2026-09-15T00:15:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 1100,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
       "name": "Luke McCaffrey",
       "homeTeam": "Philadelphia Eagles",
       "awayTeam": "Washington Commanders",
@@ -4719,7 +5545,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 600,
+          "overOdds": 700,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -4747,24 +5573,24 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 160,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 56.5,
+          "point": 55.5,
           "overOdds": -114,
           "underOdds": -114,
-          "bookmaker": "betonlineag"
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 4.5,
-          "overOdds": -154,
-          "underOdds": 119,
+          "overOdds": -138,
+          "underOdds": 104,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 160,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -4808,7 +5634,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 2900,
+          "overOdds": 1100,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -4838,7 +5664,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 450,
+          "overOdds": 600,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -4853,7 +5679,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 700,
+          "overOdds": 750,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -4866,24 +5692,24 @@
       "kickoff": "2026-09-14T00:20:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 140,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
           "point": 60.5,
           "overOdds": -114,
           "underOdds": -114,
-          "bookmaker": "betonlineag"
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 5.5,
-          "overOdds": 118,
+          "overOdds": 116,
           "underOdds": -154,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 140,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -4897,7 +5723,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 350,
+          "overOdds": 325,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -4912,22 +5738,22 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 220,
+          "overOdds": 250,
           "underOdds": null,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_pass_tds",
           "point": 0.5,
-          "overOdds": -204,
-          "underOdds": 154,
+          "overOdds": -213,
+          "underOdds": 161,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_pass_yds",
-          "point": 170.5,
-          "overOdds": -114,
-          "underOdds": -114,
+          "point": 180.5,
+          "overOdds": -115,
+          "underOdds": -112,
           "bookmaker": "betonlineag"
         }
       ]
@@ -4939,24 +5765,24 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 200,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
           "point": 34.5,
           "overOdds": -114,
           "underOdds": -114,
-          "bookmaker": "betonlineag"
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": 109,
-          "underOdds": -141,
+          "overOdds": 116,
+          "underOdds": -154,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 190,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -4970,7 +5796,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 1400,
+          "overOdds": 1700,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -4983,17 +5809,17 @@
       "kickoff": "2026-09-13T20:25:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": -125,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_rush_yds",
           "point": 52.5,
           "overOdds": -114,
           "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": -125,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -5005,24 +5831,39 @@
       "kickoff": "2026-09-13T20:25:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 250,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 47.5,
+          "point": 48.5,
           "overOdds": -114,
           "underOdds": -114,
-          "bookmaker": "betonlineag"
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -161,
-          "underOdds": 123,
+          "overOdds": -172,
+          "underOdds": 128,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 240,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Marvin Mims Jr.",
+      "homeTeam": "Kansas City Chiefs",
+      "awayTeam": "Denver Broncos",
+      "kickoff": "2026-09-15T00:15:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 800,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -5036,7 +5877,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 500,
+          "overOdds": 450,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -5049,24 +5890,24 @@
       "kickoff": "2026-09-13T20:25:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 230,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 41.5,
+          "point": 39.5,
           "overOdds": -114,
           "underOdds": -114,
-          "bookmaker": "betonlineag"
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -103,
-          "underOdds": -125,
+          "overOdds": -102,
+          "underOdds": -130,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 260,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -5092,9 +5933,53 @@
           "bookmaker": "pinnacle"
         },
         {
+          "market": "player_rush_yds",
+          "point": 0.5,
+          "overOdds": 126,
+          "underOdds": -165,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
           "overOdds": 1400,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_pass_interceptions",
+          "point": 0.5,
+          "overOdds": 115,
+          "underOdds": -149,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Max Bredeson",
+      "homeTeam": "Minnesota Vikings",
+      "awayTeam": "Green Bay Packers",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 1900,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Max Klare",
+      "homeTeam": "Los Angeles Rams",
+      "awayTeam": "San Francisco 49ers",
+      "kickoff": "2026-09-11T00:35:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 1300,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -5137,24 +6022,24 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 200,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 44.5,
-          "overOdds": -116,
-          "underOdds": -111,
-          "bookmaker": "betonlineag"
+          "point": 42.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 4.5,
-          "overOdds": 100,
-          "underOdds": -130,
+          "overOdds": 110,
+          "underOdds": -146,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 180,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -5166,24 +6051,24 @@
       "kickoff": "2026-09-13T20:25:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 300,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 42.5,
-          "overOdds": -116,
-          "underOdds": -111,
-          "bookmaker": "betonlineag"
+          "point": 41.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -123,
-          "underOdds": -105,
+          "overOdds": -122,
+          "underOdds": -108,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 300,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -5197,8 +6082,8 @@
         {
           "market": "player_reception_yds",
           "point": 49.5,
-          "overOdds": -114,
-          "underOdds": -116,
+          "overOdds": -110,
+          "underOdds": -120,
           "bookmaker": "pinnacle"
         },
         {
@@ -5211,7 +6096,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 170,
+          "overOdds": 200,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -5241,7 +6126,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 100,
+          "overOdds": -200,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -5271,6 +6156,21 @@
         {
           "market": "player_anytime_td",
           "point": null,
+          "overOdds": 900,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Montorie Foster Jr.",
+      "homeTeam": "Seattle Seahawks",
+      "awayTeam": "New England Patriots",
+      "kickoff": "2026-09-10T00:20:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
           "overOdds": 1400,
           "underOdds": null,
           "bookmaker": "betonlineag"
@@ -5286,7 +6186,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 800,
+          "overOdds": 900,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -5308,6 +6208,21 @@
       ]
     },
     {
+      "name": "Nate Adkins",
+      "homeTeam": "Kansas City Chiefs",
+      "awayTeam": "Denver Broncos",
+      "kickoff": "2026-09-15T00:15:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 2400,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
       "name": "Nate Boerkircher",
       "homeTeam": "Jacksonville Jaguars",
       "awayTeam": "Cleveland Browns",
@@ -5316,7 +6231,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 1300,
+          "overOdds": 1000,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -5331,7 +6246,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 750,
+          "overOdds": 650,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -5359,24 +6274,39 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
+          "market": "player_reception_yds",
+          "point": 69.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 5.5,
+          "overOdds": 102,
+          "underOdds": -136,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
           "overOdds": 150,
           "underOdds": null,
           "bookmaker": "betonlineag"
-        },
+        }
+      ]
+    },
+    {
+      "name": "Nikko Remigio",
+      "homeTeam": "Kansas City Chiefs",
+      "awayTeam": "Denver Broncos",
+      "kickoff": "2026-09-15T00:15:00Z",
+      "props": [
         {
-          "market": "player_reception_yds",
-          "point": 69.5,
-          "overOdds": -114,
-          "underOdds": -114,
-          "bookmaker": "betonlineag"
-        },
-        {
-          "market": "player_receptions",
-          "point": 5.5,
-          "overOdds": 103,
-          "underOdds": -133,
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 1900,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -5397,6 +6327,21 @@
       ]
     },
     {
+      "name": "Noah Gray",
+      "homeTeam": "Kansas City Chiefs",
+      "awayTeam": "Denver Broncos",
+      "kickoff": "2026-09-15T00:15:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 800,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
       "name": "Odell Beckham Jr.",
       "homeTeam": "New York Giants",
       "awayTeam": "Dallas Cowboys",
@@ -5407,6 +6352,13 @@
           "point": null,
           "overOdds": 750,
           "underOdds": null,
+          "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_reception_yds",
+          "point": 7.5,
+          "overOdds": -114,
+          "underOdds": -114,
           "bookmaker": "betonlineag"
         }
       ]
@@ -5420,7 +6372,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 700,
+          "overOdds": 750,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -5435,7 +6387,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 400,
+          "overOdds": 325,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -5463,17 +6415,17 @@
       "kickoff": "2026-09-13T20:25:00Z",
       "props": [
         {
+          "market": "player_rush_yds",
+          "point": 65.5,
+          "overOdds": -114,
+          "underOdds": -116,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
           "overOdds": -200,
           "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
-          "market": "player_rush_yds",
-          "point": 66.5,
-          "overOdds": -114,
-          "underOdds": -114,
           "bookmaker": "betonlineag"
         }
       ]
@@ -5487,7 +6439,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 290,
+          "overOdds": 350,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -5502,7 +6454,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 750,
+          "overOdds": 800,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -5515,24 +6467,39 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 190,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
           "point": 51.5,
-          "overOdds": -116,
-          "underOdds": -111,
-          "bookmaker": "betonlineag"
+          "overOdds": -117,
+          "underOdds": -113,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -167,
-          "underOdds": 128,
+          "overOdds": -182,
+          "underOdds": 136,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 180,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Pat Bryant",
+      "homeTeam": "Kansas City Chiefs",
+      "awayTeam": "Denver Broncos",
+      "kickoff": "2026-09-15T00:15:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 400,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -5544,9 +6511,59 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
+          "market": "player_reception_yds",
+          "point": 25.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 2.5,
+          "overOdds": -138,
+          "underOdds": 104,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 350,
+          "overOdds": 325,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Patrick Mahomes",
+      "homeTeam": "Kansas City Chiefs",
+      "awayTeam": "Denver Broncos",
+      "kickoff": "2026-09-15T00:15:00Z",
+      "props": [
+        {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": 116,
+          "underOdds": -154,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_pass_yds",
+          "point": 225.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 15.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 550,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -5575,7 +6592,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 120,
+          "overOdds": 100,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -5588,24 +6605,24 @@
       "kickoff": "2026-09-13T20:25:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 110,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 44.5,
-          "overOdds": -115,
-          "underOdds": -112,
-          "bookmaker": "betonlineag"
+          "point": 42.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": 112,
-          "underOdds": -145,
+          "overOdds": 116,
+          "underOdds": -154,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 120,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -5617,17 +6634,31 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 140,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
+          "market": "player_reception_yds",
+          "point": 9.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 1.5,
+          "overOdds": -137,
+          "underOdds": 104,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_rush_yds",
           "point": 58.5,
           "overOdds": -114,
           "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 150,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -5656,7 +6687,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 210,
+          "overOdds": 220,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -5678,6 +6709,35 @@
       ]
     },
     {
+      "name": "Rashee Rice",
+      "homeTeam": "Kansas City Chiefs",
+      "awayTeam": "Denver Broncos",
+      "kickoff": "2026-09-15T00:15:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 59.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 5.5,
+          "overOdds": -122,
+          "underOdds": -108,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 130,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
       "name": "Rasheen Ali",
       "homeTeam": "Indianapolis Colts",
       "awayTeam": "Baltimore Ravens",
@@ -5686,7 +6746,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 1000,
+          "overOdds": 900,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -5708,8 +6768,15 @@
         {
           "market": "player_receptions",
           "point": 2.5,
-          "overOdds": 110,
-          "underOdds": -146,
+          "overOdds": 107,
+          "underOdds": -142,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 2.5,
+          "overOdds": -114,
+          "underOdds": -114,
           "bookmaker": "pinnacle"
         },
         {
@@ -5727,6 +6794,20 @@
       "awayTeam": "Baltimore Ravens",
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 24.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 1.5,
+          "overOdds": -172,
+          "underOdds": 128,
+          "bookmaker": "pinnacle"
+        },
         {
           "market": "player_anytime_td",
           "point": null,
@@ -5752,6 +6833,21 @@
       ]
     },
     {
+      "name": "Reggie Gilliam",
+      "homeTeam": "Seattle Seahawks",
+      "awayTeam": "New England Patriots",
+      "kickoff": "2026-09-10T00:20:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 2400,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
       "name": "Reggie Virgil",
       "homeTeam": "Los Angeles Chargers",
       "awayTeam": "Arizona Cardinals",
@@ -5760,7 +6856,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 1000,
+          "overOdds": 1100,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -5773,10 +6869,17 @@
       "kickoff": "2026-09-10T00:20:00Z",
       "props": [
         {
+          "market": "player_reception_yds",
+          "point": 23.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_rush_yds",
-          "point": 40.5,
-          "overOdds": -132,
-          "underOdds": 100,
+          "point": 47.5,
+          "overOdds": -114,
+          "underOdds": -114,
           "bookmaker": "pinnacle"
         },
         {
@@ -5787,17 +6890,10 @@
           "bookmaker": "betonlineag"
         },
         {
-          "market": "player_reception_yds",
-          "point": 22.5,
-          "overOdds": -114,
-          "underOdds": -114,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_receptions",
           "point": 2.5,
-          "overOdds": -167,
-          "underOdds": 127,
+          "overOdds": -185,
+          "underOdds": 140,
           "bookmaker": "betonlineag"
         }
       ]
@@ -5809,9 +6905,30 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
+          "market": "player_reception_yds",
+          "point": 10.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 1.5,
+          "overOdds": -148,
+          "underOdds": 112,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_rush_yds",
+          "point": 50.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 120,
+          "overOdds": 110,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -5826,7 +6943,22 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 1900,
+          "overOdds": 1400,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "RJ Harvey",
+      "homeTeam": "Kansas City Chiefs",
+      "awayTeam": "Denver Broncos",
+      "kickoff": "2026-09-15T00:15:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 170,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -5841,7 +6973,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 1000,
+          "overOdds": 900,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -5869,24 +7001,24 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 190,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 48.5,
-          "overOdds": -118,
-          "underOdds": -110,
-          "bookmaker": "betonlineag"
+          "point": 45.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -101,
-          "underOdds": -128,
+          "overOdds": 102,
+          "underOdds": -136,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 180,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -5914,7 +7046,22 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 270,
+          "overOdds": 290,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Ronnie Rivers",
+      "homeTeam": "Los Angeles Rams",
+      "awayTeam": "San Francisco 49ers",
+      "kickoff": "2026-09-11T00:35:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 3400,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -5929,7 +7076,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 220,
+          "overOdds": 210,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -5967,7 +7114,7 @@
           "market": "player_pass_yds",
           "point": 228.5,
           "overOdds": -114,
-          "underOdds": -114,
+          "underOdds": -116,
           "bookmaker": "pinnacle"
         },
         {
@@ -5983,6 +7130,13 @@
           "overOdds": 800,
           "underOdds": null,
           "bookmaker": "betonlineag"
+        },
+        {
+          "market": "player_pass_interceptions",
+          "point": 0.5,
+          "overOdds": -101,
+          "underOdds": -128,
+          "bookmaker": "betonlineag"
         }
       ]
     },
@@ -5993,24 +7147,24 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 180,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
           "point": 41.5,
           "overOdds": -114,
           "underOdds": -114,
-          "bookmaker": "betonlineag"
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -156,
-          "underOdds": 121,
+          "overOdds": -172,
+          "underOdds": 128,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 180,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -6037,9 +7191,16 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
+          "market": "player_rush_yds",
+          "point": 19.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 300,
+          "overOdds": 290,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -6052,31 +7213,31 @@
       "kickoff": "2026-09-13T20:25:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": -143,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
           "point": 15.5,
-          "overOdds": -115,
-          "underOdds": -112,
-          "bookmaker": "betonlineag"
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 2.5,
-          "overOdds": -105,
-          "underOdds": -123,
-          "bookmaker": "betonlineag"
+          "overOdds": -102,
+          "underOdds": -130,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_rush_yds",
-          "point": 76.5,
-          "overOdds": -116,
-          "underOdds": -111,
+          "point": 75.5,
+          "overOdds": -114,
+          "underOdds": -116,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": -143,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -6090,7 +7251,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 500,
+          "overOdds": 450,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -6105,7 +7266,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 1000,
+          "overOdds": 700,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -6127,30 +7288,60 @@
       ]
     },
     {
+      "name": "Skyler Bell",
+      "homeTeam": "Houston Texans",
+      "awayTeam": "Buffalo Bills",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 1700,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Skyy Moore",
+      "homeTeam": "Minnesota Vikings",
+      "awayTeam": "Green Bay Packers",
+      "kickoff": "2026-09-13T20:25:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 1700,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
       "name": "Stefon Diggs",
       "homeTeam": "Philadelphia Eagles",
       "awayTeam": "Washington Commanders",
       "kickoff": "2026-09-13T20:25:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 325,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 41.5,
-          "overOdds": -118,
-          "underOdds": -110,
-          "bookmaker": "betonlineag"
+          "point": 42.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -137,
-          "underOdds": 106,
+          "overOdds": -148,
+          "underOdds": 112,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 350,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -6162,24 +7353,24 @@
       "kickoff": "2026-09-13T20:25:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 350,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
           "point": 27.5,
-          "overOdds": -116,
-          "underOdds": -111,
-          "bookmaker": "betonlineag"
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -115,
-          "underOdds": -112,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 350,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -6193,7 +7384,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 900,
+          "overOdds": 800,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -6208,7 +7399,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 700,
+          "overOdds": 750,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -6230,6 +7421,21 @@
       ]
     },
     {
+      "name": "Tanner Arkin",
+      "homeTeam": "Seattle Seahawks",
+      "awayTeam": "New England Patriots",
+      "kickoff": "2026-09-10T00:20:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 2400,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
       "name": "Tay Martin",
       "homeTeam": "Detroit Lions",
       "awayTeam": "New Orleans Saints",
@@ -6238,7 +7444,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 800,
+          "overOdds": 900,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -6253,7 +7459,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 230,
+          "overOdds": 220,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -6266,24 +7472,24 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 120,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 61.5,
-          "overOdds": -120,
-          "underOdds": -108,
-          "bookmaker": "betonlineag"
+          "point": 60.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 4.5,
-          "overOdds": -133,
-          "underOdds": 103,
+          "overOdds": -140,
+          "underOdds": 106,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 110,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -6295,24 +7501,24 @@
       "kickoff": "2026-09-11T00:35:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 350,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 21.5,
-          "overOdds": -112,
-          "underOdds": -115,
-          "bookmaker": "betonlineag"
+          "point": 22.5,
+          "overOdds": -140,
+          "underOdds": 106,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 1.5,
-          "overOdds": -152,
-          "underOdds": 116,
+          "overOdds": -158,
+          "underOdds": 118,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 350,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -6324,24 +7530,24 @@
       "kickoff": "2026-09-13T20:25:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 220,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 51.5,
-          "overOdds": -118,
-          "underOdds": -110,
-          "bookmaker": "betonlineag"
+          "point": 52.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -167,
-          "underOdds": 127,
+          "overOdds": -172,
+          "underOdds": 128,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 250,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -6353,24 +7559,39 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
+          "market": "player_reception_yds",
+          "point": 58.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 4.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
           "overOdds": 160,
           "underOdds": null,
           "bookmaker": "betonlineag"
-        },
+        }
+      ]
+    },
+    {
+      "name": "Tez Johnson",
+      "homeTeam": "Cincinnati Bengals",
+      "awayTeam": "Tampa Bay Buccaneers",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
         {
-          "market": "player_reception_yds",
-          "point": 58.5,
-          "overOdds": -114,
-          "underOdds": -114,
-          "bookmaker": "betonlineag"
-        },
-        {
-          "market": "player_receptions",
-          "point": 4.5,
-          "overOdds": -116,
-          "underOdds": -111,
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 300,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -6391,6 +7612,21 @@
       ]
     },
     {
+      "name": "Thomas Fidone",
+      "homeTeam": "New York Giants",
+      "awayTeam": "Dallas Cowboys",
+      "kickoff": "2026-09-14T00:20:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 2400,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
       "name": "Tim Patrick",
       "homeTeam": "Tennessee Titans",
       "awayTeam": "New York Jets",
@@ -6399,7 +7635,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 1700,
+          "overOdds": 1400,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -6427,17 +7663,32 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
+          "market": "player_rush_yds",
+          "point": 54.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
           "overOdds": 100,
           "underOdds": null,
           "bookmaker": "betonlineag"
-        },
+        }
+      ]
+    },
+    {
+      "name": "Tory Horton",
+      "homeTeam": "Seattle Seahawks",
+      "awayTeam": "New England Patriots",
+      "kickoff": "2026-09-10T00:20:00Z",
+      "props": [
         {
-          "market": "player_rush_yds",
-          "point": 54.5,
-          "overOdds": -114,
-          "underOdds": -114,
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 650,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -6449,17 +7700,31 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": -111,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
+          "market": "player_reception_yds",
+          "point": 17.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 2.5,
+          "overOdds": -205,
+          "underOdds": 152,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_rush_yds",
-          "point": 51.5,
-          "overOdds": -112,
+          "point": 56.5,
+          "overOdds": -115,
           "underOdds": -115,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": -125,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -6480,30 +7745,59 @@
       ]
     },
     {
+      "name": "Travis Kelce",
+      "homeTeam": "Kansas City Chiefs",
+      "awayTeam": "Denver Broncos",
+      "kickoff": "2026-09-15T00:15:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 41.5,
+          "overOdds": -116,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": -148,
+          "underOdds": 112,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 160,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
       "name": "Tre Harris",
       "homeTeam": "Los Angeles Chargers",
       "awayTeam": "Arizona Cardinals",
       "kickoff": "2026-09-13T20:25:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 270,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 27.5,
-          "overOdds": -116,
-          "underOdds": -111,
-          "bookmaker": "betonlineag"
+          "point": 26.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 2.5,
-          "overOdds": -110,
-          "underOdds": -118,
+          "overOdds": -102,
+          "underOdds": -130,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 270,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -6515,24 +7809,24 @@
       "kickoff": "2026-09-13T20:25:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 300,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 40.5,
+          "point": 39.5,
           "overOdds": -114,
-          "underOdds": -114,
-          "bookmaker": "betonlineag"
+          "underOdds": -110,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 3.5,
-          "overOdds": -110,
-          "underOdds": -118,
+          "overOdds": -108,
+          "underOdds": -122,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 270,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -6544,31 +7838,31 @@
       "kickoff": "2026-09-10T00:20:00Z",
       "props": [
         {
+          "market": "player_reception_yds",
+          "point": 7.5,
+          "overOdds": -116,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_rush_yds",
-          "point": 30.5,
-          "overOdds": 104,
-          "underOdds": -138,
+          "point": 26.5,
+          "overOdds": -114,
+          "underOdds": -114,
           "bookmaker": "pinnacle"
         },
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 250,
+          "overOdds": 270,
           "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
-          "market": "player_reception_yds",
-          "point": 7.5,
-          "overOdds": -116,
-          "underOdds": -111,
           "bookmaker": "betonlineag"
         },
         {
           "market": "player_receptions",
           "point": 1.5,
-          "overOdds": 100,
-          "underOdds": -130,
+          "overOdds": 126,
+          "underOdds": -164,
           "bookmaker": "betonlineag"
         }
       ]
@@ -6595,31 +7889,31 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 220,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_pass_tds",
           "point": 1.5,
-          "overOdds": -105,
-          "underOdds": -123,
-          "bookmaker": "betonlineag"
+          "overOdds": -104,
+          "underOdds": -128,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_pass_yds",
-          "point": 233.5,
+          "point": 238.5,
           "overOdds": -114,
           "underOdds": -114,
-          "bookmaker": "betonlineag"
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_rush_yds",
           "point": 16.5,
-          "overOdds": -116,
-          "underOdds": -111,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 210,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -6631,24 +7925,24 @@
       "kickoff": "2026-09-13T20:25:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 190,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 58.5,
-          "overOdds": -115,
-          "underOdds": -112,
-          "bookmaker": "betonlineag"
+          "point": 56.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 6.5,
-          "overOdds": 112,
-          "underOdds": -145,
+          "overOdds": 116,
+          "underOdds": -154,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 190,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -6669,6 +7963,21 @@
       ]
     },
     {
+      "name": "Troy Franklin",
+      "homeTeam": "Kansas City Chiefs",
+      "awayTeam": "Denver Broncos",
+      "kickoff": "2026-09-15T00:15:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 800,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
       "name": "Tua Tagovailoa",
       "homeTeam": "Pittsburgh Steelers",
       "awayTeam": "Atlanta Falcons",
@@ -6677,15 +7986,22 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 2900,
+          "overOdds": 2400,
           "underOdds": null,
           "bookmaker": "betonlineag"
         },
         {
+          "market": "player_pass_tds",
+          "point": 1.5,
+          "overOdds": 167,
+          "underOdds": -222,
+          "bookmaker": "betonlineag"
+        },
+        {
           "market": "player_pass_yds",
-          "point": 210.5,
-          "overOdds": -116,
-          "underOdds": -111,
+          "point": 208.5,
+          "overOdds": -114,
+          "underOdds": -114,
           "bookmaker": "betonlineag"
         }
       ]
@@ -6697,24 +8013,24 @@
       "kickoff": "2026-09-13T20:25:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 190,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
           "point": 45.5,
           "overOdds": -114,
           "underOdds": -114,
-          "bookmaker": "betonlineag"
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
-          "point": 4.5,
-          "overOdds": 118,
-          "underOdds": -154,
+          "point": 3.5,
+          "overOdds": -172,
+          "underOdds": 128,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 190,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -6728,7 +8044,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 600,
+          "overOdds": 550,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -6741,9 +8057,16 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
+          "market": "player_rush_yds",
+          "point": 20.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 210,
+          "overOdds": 200,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -6758,7 +8081,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 2400,
+          "overOdds": 1900,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -6773,7 +8096,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 170,
+          "overOdds": 180,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -6786,9 +8109,23 @@
       "kickoff": "2026-09-11T00:35:00Z",
       "props": [
         {
+          "market": "player_reception_yds",
+          "point": 13.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 1.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 500,
+          "overOdds": 450,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -6801,31 +8138,31 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 325,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_pass_tds",
           "point": 1.5,
-          "overOdds": 139,
-          "underOdds": -182,
-          "bookmaker": "betonlineag"
+          "overOdds": 140,
+          "underOdds": -186,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_pass_yds",
           "point": 246.5,
-          "overOdds": -114,
-          "underOdds": -114,
-          "bookmaker": "betonlineag"
+          "overOdds": -115,
+          "underOdds": -115,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_rush_yds",
-          "point": 17.5,
-          "overOdds": -116,
-          "underOdds": -111,
+          "point": 16.5,
+          "overOdds": -140,
+          "underOdds": 105,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 325,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -6837,9 +8174,38 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
+          "market": "player_reception_yds",
+          "point": 44.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 4.5,
+          "overOdds": -130,
+          "underOdds": -102,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 180,
+          "overOdds": 210,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Tyquan Thornton",
+      "homeTeam": "Kansas City Chiefs",
+      "awayTeam": "Denver Broncos",
+      "kickoff": "2026-09-15T00:15:00Z",
+      "props": [
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 450,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -6855,6 +8221,35 @@
           "market": "player_anytime_td",
           "point": null,
           "overOdds": 300,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Wan'Dale Robinson",
+      "homeTeam": "Tennessee Titans",
+      "awayTeam": "New York Jets",
+      "kickoff": "2026-09-13T17:00:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 41.5,
+          "overOdds": -114,
+          "underOdds": -116,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 4.5,
+          "overOdds": -110,
+          "underOdds": -120,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 325,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -6884,7 +8279,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 1000,
+          "overOdds": 900,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -6897,24 +8292,24 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 210,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
           "point": 9.5,
           "overOdds": -116,
-          "underOdds": -111,
-          "bookmaker": "betonlineag"
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_rush_yds",
-          "point": 28.5,
+          "point": 30.5,
           "overOdds": -114,
-          "underOdds": -114,
+          "underOdds": -116,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 200,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -6941,6 +8336,20 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
+          "market": "player_reception_yds",
+          "point": 18.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 1.5,
+          "overOdds": -225,
+          "underOdds": 164,
+          "bookmaker": "pinnacle"
+        },
+        {
           "market": "player_anytime_td",
           "point": null,
           "overOdds": 450,
@@ -6958,7 +8367,36 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 800,
+          "overOdds": 750,
+          "underOdds": null,
+          "bookmaker": "betonlineag"
+        }
+      ]
+    },
+    {
+      "name": "Xavier Worthy",
+      "homeTeam": "Kansas City Chiefs",
+      "awayTeam": "Denver Broncos",
+      "kickoff": "2026-09-15T00:15:00Z",
+      "props": [
+        {
+          "market": "player_reception_yds",
+          "point": 36.5,
+          "overOdds": -114,
+          "underOdds": -114,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_receptions",
+          "point": 3.5,
+          "overOdds": 116,
+          "underOdds": -154,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 260,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -6973,7 +8411,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 600,
+          "overOdds": 750,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -6988,7 +8426,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 650,
+          "overOdds": 700,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
@@ -7001,24 +8439,24 @@
       "kickoff": "2026-09-13T17:00:00Z",
       "props": [
         {
-          "market": "player_anytime_td",
-          "point": null,
-          "overOdds": 160,
-          "underOdds": null,
-          "bookmaker": "betonlineag"
-        },
-        {
           "market": "player_reception_yds",
-          "point": 65.5,
+          "point": 64.5,
           "overOdds": -114,
           "underOdds": -114,
-          "bookmaker": "betonlineag"
+          "bookmaker": "pinnacle"
         },
         {
           "market": "player_receptions",
           "point": 4.5,
-          "overOdds": -132,
-          "underOdds": 102,
+          "overOdds": -130,
+          "underOdds": -102,
+          "bookmaker": "pinnacle"
+        },
+        {
+          "market": "player_anytime_td",
+          "point": null,
+          "overOdds": 170,
+          "underOdds": null,
           "bookmaker": "betonlineag"
         }
       ]
@@ -7032,7 +8470,7 @@
         {
           "market": "player_anytime_td",
           "point": null,
-          "overOdds": 900,
+          "overOdds": 1100,
           "underOdds": null,
           "bookmaker": "betonlineag"
         }
