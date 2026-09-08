@@ -18,6 +18,15 @@ function normalizeTeam(abbr: string): string {
   return ESPN_TO_SLEEPER_TEAM[abbr] ?? abbr;
 }
 
+export interface GameVenue {
+  name: string | null;
+  city: string | null;
+  /** Absent for venues outside the US, which is part of how they're spotted. */
+  state: string | null;
+  /** ESPN spells the United States "USA". */
+  country: string | null;
+}
+
 export interface NFLGame {
   id: string;
   homeTeam: string;
@@ -27,6 +36,26 @@ export interface NFLGame {
   state: "pre" | "in" | "post";
   homeScore: number;
   awayScore: number;
+  venue: GameVenue | null;
+  /** True when neither team is really at home — the international series, mostly. */
+  neutralSite: boolean;
+}
+
+// ESPN writes "USA"; the others are here so a spelling change doesn't silently
+// exile every game to the "outside the US" list.
+const US_COUNTRIES = new Set(["USA", "US", "UNITED STATES"]);
+
+/**
+ * Whether this game is being played outside the United States — the London,
+ * Munich, Dublin, São Paulo and Melbourne games. Those can't be plotted on a
+ * US map, so they get listed separately. A game with no venue data is assumed
+ * domestic: the home team's stadium is the far likelier answer, and guessing
+ * "abroad" would drop a real dot off the map.
+ */
+export function isOutsideUS(game: NFLGame): boolean {
+  const country = game.venue?.country;
+  if (!country) return false;
+  return !US_COUNTRIES.has(country.trim().toUpperCase());
 }
 
 /** Parses ESPN's scoreboard JSON shape into our own type, tolerating any missing/unexpected field. Exported separately so it's unit-testable without a network call. */
@@ -56,21 +85,49 @@ export function parseScoreboard(data: unknown): NFLGame[] {
       state: state === "in" || state === "post" ? state : "pre",
       homeScore: scoreOf(home),
       awayScore: scoreOf(away),
+      venue: parseVenue(comp.venue),
+      neutralSite: comp.neutralSite === true,
     });
   }
   return games;
 }
 
-/** Today's NFL games (ESPN's scoreboard defaults to "today" with no date param). Never throws. */
-export async function getTodaysGames(): Promise<NFLGame[]> {
+function parseVenue(raw: unknown): GameVenue | null {
+  if (!isRecord(raw)) return null;
+  const address = isRecord(raw.address) ? raw.address : null;
+  const str = (v: unknown) => (typeof v === "string" && v ? v : null);
+  return {
+    name: str(raw.fullName),
+    city: address ? str(address.city) : null,
+    state: address ? str(address.state) : null,
+    country: address ? str(address.country) : null,
+  };
+}
+
+async function fetchGames(url: string): Promise<NFLGame[]> {
   try {
-    const res = await fetch(ESPN_SCOREBOARD_URL);
+    const res = await fetch(url);
     if (!res.ok) return [];
     const data: unknown = await res.json();
     return parseScoreboard(data);
   } catch {
     return [];
   }
+}
+
+/** Today's NFL games (ESPN's scoreboard defaults to "today" with no date param). Never throws. */
+export async function getTodaysGames(): Promise<NFLGame[]> {
+  return fetchGames(ESPN_SCOREBOARD_URL);
+}
+
+/**
+ * Every game of one regular-season week — the whole Thursday-through-Monday
+ * slate, not just today's. `season` is the year the season started in, the
+ * same string Sleeper reports. Never throws.
+ */
+export async function getWeekGames(season: string, week: number): Promise<NFLGame[]> {
+  const url = `${ESPN_SCOREBOARD_URL}?seasontype=2&week=${week}&dates=${encodeURIComponent(season)}`;
+  return fetchGames(url);
 }
 
 function isRecord(v: unknown): v is Record<string, unknown> {

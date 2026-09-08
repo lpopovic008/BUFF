@@ -1,14 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getLeague, getLeagueRosters, getLeagueUsers, getMatchups, isDynastyLeague, leagueQBFormat } from "@/lib/sleeper";
+import { getLeagueRosters, getLeagueUsers, getMatchups } from "@/lib/sleeper";
 import { DashboardMatchupTeam, findMyMatchup } from "@/lib/league-data";
-import { resolvePlayers } from "@/lib/players";
-import { RankedPlayer, topPlayersByValue, ValueMetric } from "@/lib/matchup-players";
-import rawSnapshot from "@/data/player-values.json";
-import { PlayerValuesSnapshot } from "@/lib/player-values";
-
-const snapshot = rawSnapshot as unknown as PlayerValuesSnapshot;
 
 // Sleeper's own matchups endpoint is the live-scoring source of truth during
 // games; re-polling it periodically is how this dashboard "updates live"
@@ -20,7 +14,6 @@ export interface DashboardMatchupSide {
   rosterId: number;
   teamName: string;
   points: number;
-  topPlayers: RankedPlayer[];
 }
 
 export interface DashboardMatchupView {
@@ -34,34 +27,18 @@ export interface MatchupTarget {
 }
 
 async function loadOne(target: MatchupTarget, week: number): Promise<[string, DashboardMatchupView | null]> {
-  const [matchups, rosters, users, league] = await Promise.all([
+  const [matchups, rosters, users] = await Promise.all([
     getMatchups(target.leagueId, week),
     getLeagueRosters(target.leagueId),
     getLeagueUsers(target.leagueId),
-    getLeague(target.leagueId),
   ]);
   const matchup = findMyMatchup(matchups, rosters, users, target.myRosterId);
   if (!matchup) return [target.leagueId, null];
-
-  const metric: ValueMetric | undefined = league
-    ? { listType: isDynastyLeague(league) ? "dynasty" : "fantasy", format: leagueQBFormat(league), tep: "standard" }
-    : undefined;
-
-  const allIds = [...matchup.my.playerIds, ...(matchup.opponent?.playerIds ?? [])];
-  const resolved = await resolvePlayers(allIds);
-  const byId = new Map(resolved.map((p) => [p.playerId, p]));
 
   const sideView = (side: DashboardMatchupTeam): DashboardMatchupSide => ({
     rosterId: side.rosterId,
     teamName: side.teamName,
     points: side.points,
-    topPlayers: topPlayersByValue(
-      side.playerIds.map((id) => byId.get(id)).filter((p): p is NonNullable<typeof p> => Boolean(p)),
-      side.playersPoints,
-      snapshot,
-      3,
-      metric
-    ),
   });
 
   return [
@@ -71,10 +48,8 @@ async function loadOne(target: MatchupTarget, week: number): Promise<[string, Da
 }
 
 /**
- * Loads each league's current matchup + top-3-by-KTC-value players per side
- * (ranked using that league's own dynasty/redraft and 1QB/superflex value
- * metric, same as the Values tab), and re-polls Sleeper while mounted so
- * scores update live during games.
+ * Loads each league's current matchup — team names and live score per side —
+ * and re-polls Sleeper while mounted so scores update during games.
  */
 export function useDashboardMatchups(
   targets: MatchupTarget[],

@@ -1,17 +1,5 @@
 import { DashboardMatchupView } from "@/hooks/useDashboardMatchups";
-import { RankedPlayer } from "@/lib/matchup-players";
 import { formatPoints, ordinal, splitNameTwoLines } from "@/lib/format";
-import { PlayerHeadshot } from "@/components/PlayerHeadshot";
-
-function PlayerFaces({ players }: { players: RankedPlayer[] }) {
-  return (
-    <div className="flex gap-1.5">
-      {players.map((p) => (
-        <PlayerHeadshot key={p.playerId} playerId={p.playerId} size={36} />
-      ))}
-    </div>
-  );
-}
 
 /**
  * A team's name, with an optional colored rank suffix. On mobile, any name
@@ -62,7 +50,7 @@ function TeamNameLabel({
   );
 }
 
-/** The dashboard's per-league matchup section: team names + score left/right, and each side's top 3 players pictured. Sits inside a whole-box link, so team names are plain text rather than their own nested links. */
+/** The dashboard's per-league matchup section: team names + score left/right. Sits inside a whole-box link, so team names are plain text rather than their own nested links. Who's actually playing is covered once, for every league at once, by the starters-by-game box below the league grid. */
 export function DashboardMatchupCard({
   matchup,
   myRank,
@@ -91,12 +79,6 @@ export function DashboardMatchupCard({
         <span>{formatPoints(matchup.my.points)}</span>
         {matchup.opponent ? <span>{formatPoints(matchup.opponent.points)}</span> : null}
       </div>
-      {matchup.my.topPlayers.length > 0 || matchup.opponent?.topPlayers.length ? (
-        <div className="flex items-center justify-between gap-3">
-          <PlayerFaces players={matchup.my.topPlayers} />
-          {matchup.opponent ? <PlayerFaces players={matchup.opponent.topPlayers} /> : null}
-        </div>
-      ) : null}
     </div>
   );
 }

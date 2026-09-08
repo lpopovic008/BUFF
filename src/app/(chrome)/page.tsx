@@ -4,9 +4,15 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { DashboardMatchupCard } from "@/components/DashboardMatchupCard";
+import { GameMap, MappedGame } from "@/components/GameMap";
+import { LeagueLegendEntry, StartersByGame } from "@/components/StartersByGame";
 import { useConfig } from "@/hooks/useConfig";
 import { MatchupTarget, useDashboardMatchups } from "@/hooks/useDashboardMatchups";
+import { StarterSource, useMyStarters } from "@/hooks/useMyStarters";
+import { useNFLState } from "@/hooks/useNFLState";
+import { useWeekGames } from "@/hooks/useWeekGames";
 import { getLeagueSummary, LeagueSummary } from "@/lib/league-data";
+import { groupStartersByGame } from "@/lib/my-starters";
 import { getCurrentWeek } from "@/lib/sleeper";
 import { TrackedLeague } from "@/lib/localStore";
 import { formatRecord } from "@/lib/format";
@@ -63,6 +69,41 @@ export default function DashboardPage() {
       .filter((t): t is MatchupTarget => t !== null);
   }, [leagues, config.sleeperUserId]);
   const matchups = useDashboardMatchups(matchupTargets, week);
+
+  // Your starters across every league, filed under the NFL game each is
+  // playing in — one box for all leagues, rather than a few faces per league.
+  const starterSources = useMemo<StarterSource[]>(() => {
+    if (!leagues) return [];
+    return leagues
+      .map(({ tracked, summary }) => {
+        const myRow = summary.standings.find((r) => r.ownerId === config.sleeperUserId);
+        return myRow
+          ? { leagueId: tracked.leagueId, leagueName: summary.league.name, myRosterId: myRow.rosterId }
+          : null;
+      })
+      .filter((s): s is StarterSource => s !== null);
+  }, [leagues, config.sleeperUserId]);
+
+  const nflPhase = useNFLState();
+  const weekGames = useWeekGames(nflPhase.season ?? config.season, week);
+  const myStarters = useMyStarters(starterSources, week);
+
+  const grouped = useMemo(
+    () => groupStartersByGame(myStarters ?? [], weekGames),
+    [myStarters, weekGames]
+  );
+
+  // Colour per league, keyed off the order leagues are tracked in so a
+  // league keeps the same colour on the map, in the list, and in the legend.
+  const legend = useMemo<LeagueLegendEntry[]>(
+    () => starterSources.map((s, i) => ({ leagueId: s.leagueId, leagueName: s.leagueName, colorIndex: i })),
+    [starterSources]
+  );
+
+  const mappedGames = useMemo<MappedGame[]>(() => {
+    const countByGameId = new Map(grouped.games.map((g) => [g.game.id, g.players.length]));
+    return weekGames.map((game) => ({ game, playerCount: countByGameId.get(game.id) ?? 0 }));
+  }, [weekGames, grouped.games]);
 
   if (bootstrapping) {
     return (
@@ -133,6 +174,33 @@ export default function DashboardPage() {
           );
         })}
       </div>
+
+      {weekGames.length > 0 ? (
+        <Card className="animate-[rise_0.5s_ease-out_backwards] p-5 [animation-delay:140ms]">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-muted">
+            Week {week} around the league
+          </h2>
+          <GameMap games={mappedGames} />
+        </Card>
+      ) : null}
+
+      <Card className="animate-[rise_0.5s_ease-out_backwards] p-5 [animation-delay:200ms]">
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-muted">
+          My starters by game
+        </h2>
+        {myStarters === null ? (
+          <p className="text-sm text-ink-secondary">Loading your lineups…</p>
+        ) : weekGames.length === 0 ? (
+          // Without the schedule every starter would fall into "not playing",
+          // which would read as a league-wide bye rather than a failed fetch.
+          <p className="text-sm text-ink-secondary">
+            Couldn&rsquo;t load this week&rsquo;s NFL schedule, so there&rsquo;s nothing to group
+            your starters under yet.
+          </p>
+        ) : (
+          <StartersByGame games={grouped.games} notPlaying={grouped.notPlaying} legend={legend} />
+        )}
+      </Card>
     </div>
   );
 }

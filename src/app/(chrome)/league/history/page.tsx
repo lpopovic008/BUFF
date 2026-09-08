@@ -7,10 +7,13 @@ import { Card } from "@/components/ui/Card";
 import { ChevronLeftIcon, ChevronDownIcon } from "@/components/ui/Icon";
 import { CareerLeaderboard } from "@/components/CareerLeaderboard";
 import { MoneyLineChart } from "@/components/MoneyLineChart";
+import { SortHeader } from "@/components/ui/SortHeader";
+import { useTableSort } from "@/hooks/useTableSort";
 import {
   getLeagueSeasonHistory,
   aggregateCareerStats,
   SeasonRecord,
+  StandingsRow,
   ManagerCareerStats,
 } from "@/lib/league-data";
 import { loadLeagueMoney, LeagueMoney } from "@/lib/league-money";
@@ -51,32 +54,124 @@ function SeasonMoney({ leagueId, profile }: { leagueId: string; profile: LeagueP
         </span>
       </div>
       <MoneyLineChart series={series} />
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[420px] text-sm">
-          <thead>
-            <tr className="border-b border-grid text-left text-xs uppercase tracking-wide text-ink-muted">
-              <th className="py-2 pr-3 font-medium">Manager</th>
-              <th className="py-2 pr-3 text-right font-medium">Wins</th>
-              <th className="py-2 pr-3 text-right font-medium">High-score weeks</th>
-              <th className="py-2 pr-3 text-right font-medium">Earned</th>
+      <MoneyTable managers={money.ledger.managers} />
+    </div>
+  );
+}
+
+type MoneyManager = LeagueMoney["ledger"]["managers"][number];
+
+const MONEY_COLUMNS = {
+  manager: (m: MoneyManager) => m.name,
+  wins: (m: MoneyManager) => m.wins,
+  highScoreWeeks: (m: MoneyManager) => m.highScoreWeeks.length,
+  earned: (m: MoneyManager) => m.total,
+};
+
+function MoneyTable({ managers }: { managers: MoneyManager[] }) {
+  const { sorted, sortState, toggleSort } = useTableSort(managers, MONEY_COLUMNS);
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[420px] text-sm">
+        <thead>
+          <tr className="border-b border-grid text-xs uppercase tracking-wide text-ink-muted">
+            <SortHeader sortKey="manager" state={sortState} onSort={toggleSort}>
+              Manager
+            </SortHeader>
+            <SortHeader sortKey="wins" state={sortState} onSort={toggleSort} align="right">
+              Wins
+            </SortHeader>
+            <SortHeader sortKey="highScoreWeeks" state={sortState} onSort={toggleSort} align="right">
+              High-score weeks
+            </SortHeader>
+            <SortHeader sortKey="earned" state={sortState} onSort={toggleSort} align="right">
+              Earned
+            </SortHeader>
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map((m) => (
+            <tr key={m.rosterId} className="border-b border-grid last:border-0">
+              <td className="py-2 pr-3 font-medium text-ink-primary">{m.name}</td>
+              <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">{m.wins}</td>
+              <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">
+                {m.highScoreWeeks.length}
+              </td>
+              <td className="py-2 pr-3 text-right font-semibold tabular-nums text-ink-primary">
+                ${m.total}
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {money.ledger.managers.map((m) => (
-              <tr key={m.rosterId} className="border-b border-grid last:border-0">
-                <td className="py-2 pr-3 font-medium text-ink-primary">{m.name}</td>
-                <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">{m.wins}</td>
-                <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">
-                  {m.highScoreWeeks.length}
-                </td>
-                <td className="py-2 pr-3 text-right font-semibold tabular-nums text-ink-primary">
-                  ${m.total}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+const STANDINGS_COLUMNS = {
+  rank: (row: StandingsRow) => row.rank,
+  team: (row: StandingsRow) => row.teamName,
+  record: (row: StandingsRow) => {
+    const games = row.wins + row.losses + row.ties;
+    return games ? (row.wins + row.ties * 0.5) / games : 0;
+  },
+  pointsFor: (row: StandingsRow) => row.pointsFor,
+  pointsAgainst: (row: StandingsRow) => row.pointsAgainst,
+};
+
+function StandingsTable({ season }: { season: SeasonRecord }) {
+  const { sorted, sortState, toggleSort } = useTableSort(season.standings, STANDINGS_COLUMNS);
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[480px] text-sm">
+        <thead>
+          <tr className="border-b border-grid text-xs uppercase tracking-wide text-ink-muted">
+            <SortHeader sortKey="rank" state={sortState} onSort={toggleSort}>
+              {season.complete ? "Finish" : "Standing"}
+            </SortHeader>
+            <SortHeader sortKey="team" state={sortState} onSort={toggleSort}>
+              Team
+            </SortHeader>
+            <SortHeader sortKey="record" state={sortState} onSort={toggleSort} align="right">
+              Record
+            </SortHeader>
+            <SortHeader sortKey="pointsFor" state={sortState} onSort={toggleSort} align="right">
+              PF
+            </SortHeader>
+            <SortHeader sortKey="pointsAgainst" state={sortState} onSort={toggleSort} align="right">
+              PA
+            </SortHeader>
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map((row) => (
+            <tr key={row.rosterId} className="border-b border-grid last:border-0">
+              <td className="py-2 pr-3 tabular-nums text-ink-secondary">
+                {season.hasResults ? ordinal(row.rank) : "—"}
+              </td>
+              <td className="py-2 pr-3 font-medium text-ink-primary">
+                <Link href={`/team?league=${season.leagueId}&roster=${row.rosterId}`} className="hover:underline">
+                  {row.teamName}
+                </Link>
+                {season.champion?.rosterId === row.rosterId ? (
+                  <span className="ml-2 text-xs text-status-good">Champion</span>
+                ) : season.runnerUp?.rosterId === row.rosterId ? (
+                  <span className="ml-2 text-xs text-ink-muted">Runner-up</span>
+                ) : null}
+              </td>
+              <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">
+                {formatRecord(row.wins, row.losses, row.ties)}
+              </td>
+              <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">
+                {formatPoints(row.pointsFor)}
+              </td>
+              <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">
+                {formatPoints(row.pointsAgainst)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -115,47 +210,7 @@ function SeasonAccordion({
       </summary>
 
       <div className="flex flex-col gap-4 px-5">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[480px] text-sm">
-            <thead>
-              <tr className="border-b border-grid text-left text-xs uppercase tracking-wide text-ink-muted">
-                <th className="py-2 pr-3 font-medium">{season.complete ? "Finish" : "Standing"}</th>
-                <th className="py-2 pr-3 font-medium">Team</th>
-                <th className="py-2 pr-3 text-right font-medium">Record</th>
-                <th className="py-2 pr-3 text-right font-medium">PF</th>
-                <th className="py-2 pr-3 text-right font-medium">PA</th>
-              </tr>
-            </thead>
-            <tbody>
-              {season.standings.map((row) => (
-                <tr key={row.rosterId} className="border-b border-grid last:border-0">
-                  <td className="py-2 pr-3 tabular-nums text-ink-secondary">
-                    {season.hasResults ? ordinal(row.rank) : "—"}
-                  </td>
-                  <td className="py-2 pr-3 font-medium text-ink-primary">
-                    <Link href={`/team?league=${season.leagueId}&roster=${row.rosterId}`} className="hover:underline">
-                      {row.teamName}
-                    </Link>
-                    {season.champion?.rosterId === row.rosterId ? (
-                      <span className="ml-2 text-xs text-status-good">Champion</span>
-                    ) : season.runnerUp?.rosterId === row.rosterId ? (
-                      <span className="ml-2 text-xs text-ink-muted">Runner-up</span>
-                    ) : null}
-                  </td>
-                  <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">
-                    {formatRecord(row.wins, row.losses, row.ties)}
-                  </td>
-                  <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">
-                    {formatPoints(row.pointsFor)}
-                  </td>
-                  <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">
-                    {formatPoints(row.pointsAgainst)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <StandingsTable season={season} />
 
         {profile ? <SeasonMoney leagueId={season.leagueId} profile={profile} /> : null}
       </div>
