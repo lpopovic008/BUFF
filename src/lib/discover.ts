@@ -49,6 +49,7 @@ export async function discoverAndSaveLeagues(
     season,
     leagues: tracked,
     externalLeagues: existingConfig.externalLeagues,
+    googleClientId: existingConfig.googleClientId,
   };
   saveConfig(config);
   return config;

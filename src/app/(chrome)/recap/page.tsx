@@ -19,6 +19,8 @@ import { formatBowlResultLine, formatUpcomingBowlBlock, formatUpcomingHonorableB
 import { loadLeagueMoney, LeagueMoney } from "@/lib/league-money";
 import { summarizeWeek } from "@/lib/payouts";
 import { getRecap, getBowlPicks, RecapBowlPicks, SavedRecap } from "@/lib/localStore";
+import { resolveGoogleClientId } from "@/lib/google-config";
+import { useConfig } from "@/hooks/useConfig";
 import { getRecapWeek, getLeague, getLeagueRosters, getLeagueUsers } from "@/lib/sleeper";
 import { resolvePlayers } from "@/lib/players";
 import { displayManagerName } from "@/lib/format";
@@ -100,6 +102,8 @@ function RecapContent() {
   // (the picker shows "Loading teams…" until ready) and needed for both regular
   // weeks and the Preseason page's own "Upcoming Week 1" picker.
   const teamOptions = useLeagueTeams(leagueId);
+  const { config } = useConfig();
+  const googleClientId = resolveGoogleClientId(config.googleClientId);
 
   // No week in the URL yet — resolve which week's write-up should be open and pin it into the URL so the recap is bookmarkable.
   useEffect(() => {
@@ -332,6 +336,7 @@ function RecapContent() {
           onPlainBodyChange={setPlainBody}
           savedAt={savedAt}
           writeupDocId={money?.profile.writeupDocId}
+          googleClientId={googleClientId}
         />
       </Card>
 

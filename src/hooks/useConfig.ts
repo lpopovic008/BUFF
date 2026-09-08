@@ -11,6 +11,7 @@ const EMPTY_CONFIG: AppConfig = {
   season: defaultSeason(),
   leagues: [],
   externalLeagues: [],
+  googleClientId: null,
 };
 
 /**

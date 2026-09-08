@@ -40,6 +40,14 @@ export interface AppConfig {
   season: string;
   leagues: TrackedLeague[];
   externalLeagues: ExternalLeague[];
+  /**
+   * OAuth "Web application" Client ID for Google Identity Services (see
+   * google-auth.ts), pasted in on Settings. Lets "Save to Doc" work without
+   * anyone touching the repo's GitHub Actions variables — set per browser,
+   * same as everything else in this config. Falls back to the build-time
+   * NEXT_PUBLIC_GOOGLE_CLIENT_ID (see google-config.ts) when unset.
+   */
+  googleClientId: string | null;
 }
 
 const DEFAULT_CONFIG: AppConfig = {
@@ -48,6 +56,7 @@ const DEFAULT_CONFIG: AppConfig = {
   season: String(new Date().getFullYear()),
   leagues: [],
   externalLeagues: [],
+  googleClientId: null,
 };
 
 function isBrowser(): boolean {

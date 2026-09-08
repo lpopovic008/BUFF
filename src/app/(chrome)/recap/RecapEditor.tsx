@@ -6,7 +6,6 @@ import { buildRecapClipboardHtml } from "@/lib/format-recap";
 import { RecapModel, joinRecapModel } from "@/lib/recap-model";
 import { getGoogleAccessToken } from "@/lib/google-auth";
 import { appendWriteupToDoc, DOCS_SCOPE } from "@/lib/google-docs";
-import { GOOGLE_CLIENT_ID } from "@/lib/google-config";
 import { IconButton } from "@/components/ui/IconButton";
 import { CopyIcon, CopyStyledIcon, SaveIcon, CheckIcon, UploadIcon } from "@/components/ui/Icon";
 import { RecapSectionsEditor } from "./RecapSectionsEditor";
@@ -22,6 +21,7 @@ export function RecapEditor({
   onPlainBodyChange,
   savedAt,
   writeupDocId,
+  googleClientId,
 }: {
   leagueId: string;
   season: string;
@@ -40,6 +40,8 @@ export function RecapEditor({
   onPlainBodyChange: (body: string) => void;
   savedAt: string | null;
   writeupDocId?: string;
+  /** Resolved via resolveGoogleClientId() — empty when Google Docs isn't connected, in which case Save to Doc stays hidden. */
+  googleClientId: string;
 }) {
   const [copied, setCopied] = useState(false);
   const [copiedFormatted, setCopiedFormatted] = useState(false);
@@ -86,11 +88,11 @@ export function RecapEditor({
 
   /** Appends the write-up currently shown to the commish's Google Doc — whatever's been hand-edited, not the auto-generated draft. Prompts a Google sign-in popup the first time (or once the cached token expires). */
   async function handleSaveToDoc() {
-    if (!writeupDocId || !GOOGLE_CLIENT_ID) return;
+    if (!writeupDocId || !googleClientId) return;
     setDocStatus("saving");
     setDocError(null);
     try {
-      const accessToken = await getGoogleAccessToken(GOOGLE_CLIENT_ID, DOCS_SCOPE);
+      const accessToken = await getGoogleAccessToken(googleClientId, DOCS_SCOPE);
       await appendWriteupToDoc(writeupDocId, body, accessToken);
       setDocStatus("saved");
       setTimeout(() => setDocStatus("idle"), 2500);
@@ -125,13 +127,17 @@ export function RecapEditor({
           onClick={handleCopy}
         />
         <IconButton icon={<SaveIcon />} label="Save to archive" type="submit" variant="primary" />
-        {writeupDocId && GOOGLE_CLIENT_ID ? (
+        {writeupDocId && googleClientId ? (
           <IconButton
             icon={docStatus === "saved" ? <CheckIcon /> : <UploadIcon />}
             label={docStatus === "saving" ? "Saving to Doc…" : docStatus === "saved" ? "Saved to Doc" : "Save to Doc"}
             onClick={handleSaveToDoc}
             disabled={docStatus === "saving"}
           />
+        ) : writeupDocId ? (
+          <a href="/settings" className="text-xs text-ink-muted underline decoration-dotted hover:text-ink-secondary">
+            Connect Google Docs in Settings to save write-ups there
+          </a>
         ) : null}
         {lastSavedAt ? (
           <span className="text-xs text-ink-muted">Saved {new Date(lastSavedAt).toLocaleString()}</span>
