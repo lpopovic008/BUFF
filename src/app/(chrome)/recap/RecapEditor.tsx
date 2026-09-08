@@ -3,19 +3,23 @@
 import { useState } from "react";
 import { saveRecap } from "@/lib/localStore";
 import { buildRecapClipboardHtml } from "@/lib/format-recap";
+import { RecapModel, joinRecapModel } from "@/lib/recap-model";
 import { getGoogleAccessToken } from "@/lib/google-auth";
 import { appendWriteupToDoc, DOCS_SCOPE } from "@/lib/google-docs";
 import { GOOGLE_CLIENT_ID } from "@/lib/google-config";
 import { IconButton } from "@/components/ui/IconButton";
 import { CopyIcon, CopyStyledIcon, SaveIcon, CheckIcon, UploadIcon } from "@/components/ui/Icon";
+import { RecapSectionsEditor } from "./RecapSectionsEditor";
 
 export function RecapEditor({
   leagueId,
   season,
   week,
   title,
-  body,
-  onBodyChange,
+  model,
+  onModelChange,
+  plainBody,
+  onPlainBodyChange,
   savedAt,
   writeupDocId,
 }: {
@@ -23,8 +27,17 @@ export function RecapEditor({
   season: string;
   week: number;
   title: string;
-  body: string;
-  onBodyChange: (body: string) => void;
+  /**
+   * The structured, header-by-header form of the write-up (see
+   * recap-model.ts) — present for leagues with the commissioner house style,
+   * where every header gets its own box on screen. Null falls back to a
+   * single plain text box (`plainBody`) for leagues without that format, or
+   * for a previously-saved recap this shape can't be recovered from.
+   */
+  model: RecapModel | null;
+  onModelChange: (model: RecapModel) => void;
+  plainBody: string;
+  onPlainBodyChange: (body: string) => void;
   savedAt: string | null;
   writeupDocId?: string;
 }) {
@@ -33,6 +46,11 @@ export function RecapEditor({
   const [lastSavedAt, setLastSavedAt] = useState(savedAt);
   const [docStatus, setDocStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [docError, setDocError] = useState<string | null>(null);
+
+  // The exact text that gets saved, copied, and posted — reassembled from the
+  // header boxes on every render, so copying is always exactly what's on
+  // screen, headers included, never a stale or hand-diverged version.
+  const body = model ? joinRecapModel(model) : plainBody;
 
   async function handleCopy() {
     await navigator.clipboard.writeText(body);
@@ -62,11 +80,11 @@ export function RecapEditor({
   function handleSave(e: React.FormEvent) {
     e.preventDefault();
     const now = new Date().toISOString();
-    saveRecap({ leagueId, season, week, title, body, savedAt: now });
+    saveRecap({ leagueId, season, week, title, body, model: model ?? undefined, savedAt: now });
     setLastSavedAt(now);
   }
 
-  /** Appends the write-up currently in the textarea to the commish's Google Doc — whatever's been hand-edited, not the auto-generated draft. Prompts a Google sign-in popup the first time (or once the cached token expires). */
+  /** Appends the write-up currently shown to the commish's Google Doc — whatever's been hand-edited, not the auto-generated draft. Prompts a Google sign-in popup the first time (or once the cached token expires). */
   async function handleSaveToDoc() {
     if (!writeupDocId || !GOOGLE_CLIENT_ID) return;
     setDocStatus("saving");
@@ -84,12 +102,16 @@ export function RecapEditor({
 
   return (
     <form onSubmit={handleSave} className="flex flex-col gap-3">
-      <textarea
-        value={body}
-        onChange={(e) => onBodyChange(e.target.value)}
-        rows={20}
-        className="w-full border border-border bg-page p-4 font-mono text-sm text-ink-primary outline-none transition-colors focus:border-series-1"
-      />
+      {model ? (
+        <RecapSectionsEditor model={model} onChange={onModelChange} />
+      ) : (
+        <textarea
+          value={plainBody}
+          onChange={(e) => onPlainBodyChange(e.target.value)}
+          rows={20}
+          className="w-full border border-border bg-page p-4 font-mono text-sm text-ink-primary outline-none transition-colors focus:border-series-1"
+        />
+      )}
 
       <div className="flex flex-wrap items-center gap-2">
         <IconButton

@@ -3,6 +3,8 @@
 // so everything lives in this browser's localStorage instead. That means
 // settings and saved recaps are per-browser, not synced across devices.
 
+import type { RecapModel } from "./recap-model";
+
 const CONFIG_KEY = "buff:config";
 const RECAPS_KEY = "buff:recaps";
 const BOWL_PICKS_KEY = "buff:bowl-picks";
@@ -119,7 +121,16 @@ export interface SavedRecap {
   season: string;
   week: number;
   title: string;
+  /** The flat text this recap flattens to — what the archive list, save/copy actions, and Google Doc export all use. Always kept in sync with `model` when one is saved alongside it. */
   body: string;
+  /**
+   * The recap editor's per-header fields (see recap-model.ts), saved
+   * alongside `body` so reopening this recap keeps every box independently
+   * editable instead of collapsing back to one flat field. Absent for recaps
+   * saved before the header boxes existed, or for leagues without the
+   * commissioner house style — those reopen in the plain text box.
+   */
+  model?: RecapModel;
   savedAt: string;
 }
 

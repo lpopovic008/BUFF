@@ -9,15 +9,16 @@ import { ChevronLeftIcon, ChevronRightIcon, DocumentIcon } from "@/components/ui
 import { computeWeekRecap, WeekRecapData } from "@/lib/league-data";
 import {
   formatRecapMarkdown,
-  formatCommishRecap,
-  formatPreseasonTemplate,
+  buildWeeklyRecapModel,
+  buildPreseasonRecapModel,
   findWeekTopStarters,
-  extractRecapDetails,
+  RecapDetails,
 } from "@/lib/format-recap";
+import { RecapModel, parseRecapModel } from "@/lib/recap-model";
 import { formatBowlResultLine, formatUpcomingBowlBlock, formatUpcomingHonorableBlock } from "@/lib/bowl-narrative";
 import { loadLeagueMoney, LeagueMoney } from "@/lib/league-money";
 import { summarizeWeek } from "@/lib/payouts";
-import { getRecap, getBowlPicks, RecapBowlPicks } from "@/lib/localStore";
+import { getRecap, getBowlPicks, RecapBowlPicks, SavedRecap } from "@/lib/localStore";
 import { getRecapWeek, getLeague, getLeagueRosters, getLeagueUsers } from "@/lib/sleeper";
 import { resolvePlayers } from "@/lib/players";
 import { displayManagerName } from "@/lib/format";
@@ -31,6 +32,25 @@ const PRESEASON_WEEK = 0;
 
 function simplePreseasonTemplate(leagueName: string, season: string): string {
   return [`🚨📋 ${leagueName} — ${season} Preseason`, "", "[Write your season preview here.]", ""].join("\n");
+}
+
+/**
+ * Where a freshly-computed house-style model meets whatever was last saved.
+ * A saved recap always wins outright (a save is a deliberate checkpoint) —
+ * preferring its own structured `model` when one exists, falling back to
+ * recovering one from its flat `body` (see parseRecapModel) for a recap
+ * saved before the header boxes existed. When that recovery can't confirm
+ * the shape, the flat body is kept as a single plain box rather than risking
+ * silently dropping part of a hand-edited write-up into the wrong field.
+ */
+function resolveHouseStyleState(
+  fresh: RecapModel,
+  saved: SavedRecap | null
+): { model: RecapModel | null; plainBody: string } {
+  if (!saved) return { model: fresh, plainBody: "" };
+  if (saved.model) return { model: saved.model, plainBody: "" };
+  const parsed = parseRecapModel(saved.body);
+  return parsed ? { model: parsed, plainBody: "" } : { model: null, plainBody: saved.body };
 }
 
 async function fetchTeamNames(leagueId: string): Promise<Record<number, string>> {
@@ -60,7 +80,14 @@ function RecapContent() {
 
   const [recapData, setRecapData] = useState<WeekRecapData | null>(null);
   const [header, setHeader] = useState<RecapHeader | null>(null);
-  const [body, setBody] = useState("");
+  // The structured, header-by-header write-up — set whenever the league has
+  // the commissioner house style. `plainBody` backs the single flat text box
+  // used instead, either because the league doesn't use that style at all, or
+  // because a previously-saved recap's text can't be recovered into the
+  // structured shape (see parseRecapModel) and editing it as one field is the
+  // safe fallback rather than risking silently losing part of it.
+  const [model, setModel] = useState<RecapModel | null>(null);
+  const [plainBody, setPlainBody] = useState("");
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -89,6 +116,8 @@ function RecapContent() {
     (async () => {
       setRecapData(null);
       setHeader(null);
+      setModel(null);
+      setPlainBody("");
       setMoney(null);
       setUpcomingPicks(null);
       setTeamNames({});
@@ -108,7 +137,7 @@ function RecapContent() {
             subtitle: "Free-write — nothing to auto-generate yet.",
           });
 
-          let fresh: string;
+          const saved = getRecap(leagueId, league.season, PRESEASON_WEEK);
           if (leagueMoney) {
             const names = await fetchTeamNames(leagueId);
             if (cancelled) return;
@@ -116,18 +145,19 @@ function RecapContent() {
 
             const upcoming = getBowlPicks(leagueId, league.season, PRESEASON_WEEK + 1);
             setUpcomingPicks(upcoming);
-            fresh = formatPreseasonTemplate({
+            const fresh = buildPreseasonRecapModel({
               leagueName: league.name,
               season: league.season,
               upcomingBowlLines: formatUpcomingBowlBlock(upcoming.bowlOfWeek, PRESEASON_WEEK + 1, names, []),
               upcomingHonorableLines: formatUpcomingHonorableBlock(upcoming.honorableBowl, PRESEASON_WEEK + 1, names),
             });
+            const resolved = resolveHouseStyleState(fresh, saved);
+            setModel(resolved.model);
+            setPlainBody(resolved.plainBody);
           } else {
-            fresh = simplePreseasonTemplate(league.name, league.season);
+            setModel(null);
+            setPlainBody(saved ? saved.body : simplePreseasonTemplate(league.name, league.season));
           }
-
-          const saved = getRecap(leagueId, league.season, PRESEASON_WEEK);
-          setBody(saved ? saved.body : fresh);
           setSavedAt(saved ? saved.savedAt : null);
           return;
         }
@@ -150,7 +180,7 @@ function RecapContent() {
         if (cancelled) return;
         setMoney(leagueMoney);
 
-        let fresh: string;
+        const saved = getRecap(leagueId, data.league.season, week);
         if (leagueMoney) {
           // Team names come straight from this week's own matchup data — no extra
           // fetch needed, and it's already every team in the league.
@@ -169,13 +199,13 @@ function RecapContent() {
           const leaderIds = summary?.highScorer
             ? findWeekTopStarters(summary.highScorer.rosterId, data.games).map((l) => l.playerId)
             : [];
-          const resolved = leaderIds.length > 0 ? await resolvePlayers(leaderIds) : [];
+          const resolvedPlayers = leaderIds.length > 0 ? await resolvePlayers(leaderIds) : [];
           if (cancelled) return;
           const playerNames: Record<string, string> = {};
-          for (const p of resolved) playerNames[p.playerId] = p.name;
+          for (const p of resolvedPlayers) playerNames[p.playerId] = p.name;
           setHighScorerNames(playerNames);
 
-          fresh = formatCommishRecap({
+          const fresh = buildWeeklyRecapModel({
             data,
             ledger: leagueMoney.ledger,
             playerNames,
@@ -184,12 +214,13 @@ function RecapContent() {
             upcomingBowlLines: formatUpcomingBowlBlock(upcoming.bowlOfWeek, week + 1, names, data.standingsAfter),
             upcomingHonorableLines: formatUpcomingHonorableBlock(upcoming.honorableBowl, week + 1, names),
           });
+          const resolvedState = resolveHouseStyleState(fresh, saved);
+          setModel(resolvedState.model);
+          setPlainBody(resolvedState.plainBody);
         } else {
-          fresh = formatRecapMarkdown(data);
+          setModel(null);
+          setPlainBody(saved ? saved.body : formatRecapMarkdown(data));
         }
-
-        const saved = getRecap(leagueId, data.league.season, week);
-        setBody(saved ? saved.body : fresh);
         setSavedAt(saved ? saved.savedAt : null);
       } catch {
         if (!cancelled) setError("Couldn't reach Sleeper's API. Check your connection and try again.");
@@ -203,24 +234,35 @@ function RecapContent() {
   function handlePicksSaved(picks: RecapBowlPicks) {
     setUpcomingPicks(picks);
     if (!money || !header || !leagueId || week === null) return;
+    // Only the structured editor can regenerate safely — it already holds
+    // every hand-typed detail as its own field. In plain-fallback mode (see
+    // resolveHouseStyleState) there's no reliable way to tell the commish's
+    // edits apart from the mechanical parts inside one flat field, so a pick
+    // save there updates the picker but leaves the write-up for the commish
+    // to reconcile by hand.
+    setModel((current) => {
+      if (!current) return current;
+      const details: RecapDetails = {
+        bowlResult: current.bowlDetail,
+        honorableResult: current.honorableDetail,
+        highScorer: current.highScorerDetail,
+        upcomingBowl: current.upcomingBowlDetail,
+        upcomingHonorable: current.upcomingHonorableDetail,
+      };
 
-    if (week === PRESEASON_WEEK) {
-      setBody((currentBody) =>
-        formatPreseasonTemplate({
+      if (week === PRESEASON_WEEK) {
+        return buildPreseasonRecapModel({
           leagueName: header.leagueName,
           season: header.season,
           upcomingBowlLines: formatUpcomingBowlBlock(picks.bowlOfWeek, PRESEASON_WEEK + 1, teamNames, []),
           upcomingHonorableLines: formatUpcomingHonorableBlock(picks.honorableBowl, PRESEASON_WEEK + 1, teamNames),
-          details: extractRecapDetails(currentBody),
-        })
-      );
-      return;
-    }
+          details,
+        });
+      }
 
-    if (!recapData) return;
-    const resultPick = getBowlPicks(leagueId, header.season, week);
-    setBody((currentBody) =>
-      formatCommishRecap({
+      if (!recapData) return current;
+      const resultPick = getBowlPicks(leagueId, header.season, week);
+      return buildWeeklyRecapModel({
         data: recapData,
         ledger: money.ledger,
         playerNames: highScorerNames,
@@ -228,9 +270,9 @@ function RecapContent() {
         honorableResultLine: formatBowlResultLine("🏆", resultPick.honorableBowl, teamNames, recapData.games),
         upcomingBowlLines: formatUpcomingBowlBlock(picks.bowlOfWeek, week + 1, teamNames, recapData.standingsAfter),
         upcomingHonorableLines: formatUpcomingHonorableBlock(picks.honorableBowl, week + 1, teamNames),
-        details: extractRecapDetails(currentBody),
-      })
-    );
+        details,
+      });
+    });
   }
 
   if (!leagueId) {
@@ -284,8 +326,10 @@ function RecapContent() {
           season={header.season}
           week={week}
           title={header.title}
-          body={body}
-          onBodyChange={setBody}
+          model={model}
+          onModelChange={setModel}
+          plainBody={plainBody}
+          onPlainBodyChange={setPlainBody}
           savedAt={savedAt}
           writeupDocId={money?.profile.writeupDocId}
         />
