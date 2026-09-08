@@ -105,7 +105,11 @@ function SeasonAccordion({
             <span>
               🏆 <span className="font-medium text-ink-primary">{season.champion.teamName}</span>
             </span>
-          ) : null}
+          ) : (
+            <span className="text-xs uppercase tracking-wide text-ink-muted">
+              {season.hasResults ? "In progress" : "Not started"}
+            </span>
+          )}
           <ChevronDownIcon className="h-4 w-4 shrink-0 text-ink-muted transition-transform group-open:rotate-180" />
         </div>
       </summary>
@@ -115,7 +119,7 @@ function SeasonAccordion({
           <table className="w-full min-w-[480px] text-sm">
             <thead>
               <tr className="border-b border-grid text-left text-xs uppercase tracking-wide text-ink-muted">
-                <th className="py-2 pr-3 font-medium">Rank</th>
+                <th className="py-2 pr-3 font-medium">{season.complete ? "Finish" : "Standing"}</th>
                 <th className="py-2 pr-3 font-medium">Team</th>
                 <th className="py-2 pr-3 text-right font-medium">Record</th>
                 <th className="py-2 pr-3 text-right font-medium">PF</th>
@@ -125,7 +129,9 @@ function SeasonAccordion({
             <tbody>
               {season.standings.map((row) => (
                 <tr key={row.rosterId} className="border-b border-grid last:border-0">
-                  <td className="py-2 pr-3 tabular-nums text-ink-secondary">{ordinal(row.rank)}</td>
+                  <td className="py-2 pr-3 tabular-nums text-ink-secondary">
+                    {season.hasResults ? ordinal(row.rank) : "—"}
+                  </td>
                   <td className="py-2 pr-3 font-medium text-ink-primary">
                     <Link href={`/team?league=${season.leagueId}&roster=${row.rosterId}`} className="hover:underline">
                       {row.teamName}
@@ -227,9 +233,11 @@ function LeagueHistoryContent() {
       </div>
 
       <p className="text-xs text-ink-muted">
-        Champion/runner-up come from the playoff bracket&rsquo;s championship match. Rank reflects
-        regular-season record (wins, then points for) and may not match the exact tiebreakers your
-        league uses.
+        Finishes come from the games that were actually played: the playoff bracket settles the top
+        of the table and the consolation bracket settles the rest, so a team&rsquo;s finish is where
+        it played its way to, not where its regular-season record seeded it. A season still being
+        played shows live standings instead, and doesn&rsquo;t count toward best finish or
+        championships until it&rsquo;s decided.
       </p>
     </div>
   );

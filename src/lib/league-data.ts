@@ -8,6 +8,7 @@ import {
   getLeague,
   getLeagueRosters,
   getLeagueUsers,
+  getLosersBracket,
   getMatchups,
   getTransactions,
   getWinnersBracket,
@@ -501,9 +502,20 @@ export interface SeasonRecord {
   season: string;
   leagueId: string;
   leagueName: string;
+  /**
+   * For a finished season these are the real final placements, decided by the
+   * playoff and consolation games that were actually played (see
+   * finalPlacements). For a season still under way they're the current
+   * standings — which is not a finish, so read `complete` before treating
+   * `rank` as one.
+   */
   standings: StandingsRow[];
   champion: StandingsRow | null;
   runnerUp: StandingsRow | null;
+  /** At least one game has been played, so the records/standings mean something. */
+  hasResults: boolean;
+  /** The season is over — its championship has been decided (or Sleeper has closed the league out). Only then is `rank` a final finish. */
+  complete: boolean;
 }
 
 export interface ManagerCareerStats {
@@ -518,11 +530,19 @@ export interface ManagerCareerStats {
   pointsAgainst: number;
   championships: number;
   runnerUps: number;
+  /** Best *finished* placement across every completed season — null until this manager has finished one. */
   bestFinishRank: number | null;
-  seasons: { season: string; rank: number; record: string; champion: boolean }[];
+  seasons: {
+    season: string;
+    /** Final placement, or null while the season is still being played. */
+    rank: number | null;
+    record: string;
+    champion: boolean;
+    complete: boolean;
+  }[];
 }
 
-/** Walks the previous_league_id chain and reconstructs a completed final standings + champion for each season. */
+/** Walks the previous_league_id chain and reconstructs each season's final placements + champion. */
 export async function getLeagueSeasonHistory(leagueId: string): Promise<SeasonRecord[]> {
   const seasons: SeasonRecord[] = [];
   let currentId: string | null = leagueId;
@@ -531,20 +551,31 @@ export async function getLeagueSeasonHistory(leagueId: string): Promise<SeasonRe
     seen.add(currentId);
     const league = await getLeague(currentId);
     if (!league) break;
-    const [rosters, users, bracket] = await Promise.all([
+    const [rosters, users, winners, losers] = await Promise.all([
       getLeagueRosters(currentId),
       getLeagueUsers(currentId),
       getWinnersBracket(currentId),
+      getLosersBracket(currentId),
     ]);
-    const standings = applyBracketPlacements(buildLiveStandings(rosters, users), bracket);
-    const { champion, runnerUp } = deriveChampionship(bracket, standings);
+    const seeded = buildLiveStandings(rosters, users);
+    const { champion, runnerUp } = deriveChampionship(winners, seeded);
+    // Sleeper flips a league to "complete" once the season closes out, but it
+    // can lag right after the final — a decided championship game is the
+    // stronger signal, so either one counts.
+    const complete = league.status === "complete" || champion !== null;
+    const hasResults = seeded.some((row) => row.wins + row.losses + row.ties > 0);
+    const standings = complete ? finalPlacements(seeded, winners, losers) : seeded;
     seasons.push({
       season: league.season,
       leagueId: currentId,
       leagueName: league.name,
       standings,
-      champion,
-      runnerUp,
+      // Re-resolve against the final order so champion/runnerUp carry the
+      // placement-corrected rank rather than the seeding one.
+      champion: champion ? standings.find((r) => r.rosterId === champion.rosterId) ?? champion : null,
+      runnerUp: runnerUp ? standings.find((r) => r.rosterId === runnerUp.rosterId) ?? runnerUp : null,
+      hasResults,
+      complete,
     });
     currentId = league.previous_league_id || null;
   }
@@ -552,27 +583,75 @@ export async function getLeagueSeasonHistory(leagueId: string): Promise<SeasonRe
 }
 
 /**
- * Regular-season win%/points order only reflects seeding (i.e. next year's draft slot),
- * not who actually won the playoffs. Overlays the winners bracket's placement games
- * (`p`: 1 = championship, 3 = 3rd place game, ...) onto final rank, so "best finish"
- * reflects what actually happened in the bracket. Teams with no placement game (missed
- * the playoffs, or the bracket has no 3rd-place/consolation game) keep their relative
- * regular-season order, slotted in after every team with a bracket placement.
+ * Orders one bracket's teams by what they actually did in it.
+ *
+ * Sleeper marks the games that decide a placement with `p` — `p: 1` is the
+ * championship, `p: 3` the 3rd-place game, `p: 5` the 5th-place game, and so
+ * on — so the winner of a `p` game finishes `p` and its loser `p + 1`. Teams
+ * knocked out without a placement game to land in are ordered by how deep
+ * they got (the last round they appear in), then by seed.
  */
-function applyBracketPlacements(standings: StandingsRow[], bracket: SleeperBracketMatch[]): StandingsRow[] {
-  const placementByRoster = new Map<number, number>();
-  for (const match of bracket) {
-    if (match.p == null) continue;
-    if (match.w != null) placementByRoster.set(match.w, match.p);
-    if (match.l != null) placementByRoster.set(match.l, match.p + 1);
-  }
-  if (placementByRoster.size === 0) return standings;
+function orderBracket(bracket: SleeperBracketMatch[], seedIndex: Map<number, number>): number[] {
+  const placement = new Map<number, number>();
+  const lastRound = new Map<number, number>();
+  const note = (rosterId: number | null | undefined, round: number) => {
+    if (rosterId == null) return;
+    lastRound.set(rosterId, Math.max(lastRound.get(rosterId) ?? 0, round));
+  };
 
-  const placed = standings
-    .filter((row) => placementByRoster.has(row.rosterId))
-    .sort((a, b) => placementByRoster.get(a.rosterId)! - placementByRoster.get(b.rosterId)!);
-  const unplaced = standings.filter((row) => !placementByRoster.has(row.rosterId));
-  return [...placed, ...unplaced].map((row, i) => ({ ...row, rank: i + 1 }));
+  for (const match of bracket) {
+    // t1/t2 are a roster id once known, or a {w|l: matchId} reference before
+    // that round's feeder game has been played — only the numbers are teams.
+    if (typeof match.t1 === "number") note(match.t1, match.r);
+    if (typeof match.t2 === "number") note(match.t2, match.r);
+    note(match.w, match.r);
+    note(match.l, match.r);
+    if (match.p == null) continue;
+    // First placement wins: a roster should only ever land one, but never let
+    // a later game demote a team that already has its place.
+    if (match.w != null && !placement.has(match.w)) placement.set(match.w, match.p);
+    if (match.l != null && !placement.has(match.l)) placement.set(match.l, match.p + 1);
+  }
+
+  const seedOf = (rosterId: number) => seedIndex.get(rosterId) ?? Number.MAX_SAFE_INTEGER;
+  const participants = [...lastRound.keys()];
+  const placed = participants
+    .filter((id) => placement.has(id))
+    .sort((a, b) => placement.get(a)! - placement.get(b)!);
+  const eliminated = participants
+    .filter((id) => !placement.has(id))
+    .sort((a, b) => (lastRound.get(b)! - lastRound.get(a)!) || seedOf(a) - seedOf(b));
+  return [...placed, ...eliminated];
+}
+
+/**
+ * A season's real final order, from the games that were actually played.
+ *
+ * Regular-season record only sets the seeding — it's what next year's draft
+ * order gets built from, not where anyone finished. The finish comes out of
+ * the two brackets: the winners bracket settles the top of the table (its `p`
+ * values are absolute places), and the consolation bracket settles everyone
+ * who missed the playoffs (its `p` values restart at 1 within that bracket,
+ * so they slot in after every team the winners bracket placed). Anyone in
+ * neither bracket falls to the bottom in seed order.
+ */
+export function finalPlacements(
+  standings: StandingsRow[],
+  winners: SleeperBracketMatch[],
+  losers: SleeperBracketMatch[]
+): StandingsRow[] {
+  const seedIndex = new Map(standings.map((row, i) => [row.rosterId, i]));
+  const order: number[] = [];
+  const push = (rosterId: number) => {
+    if (!order.includes(rosterId) && seedIndex.has(rosterId)) order.push(rosterId);
+  };
+
+  orderBracket(winners, seedIndex).forEach(push);
+  orderBracket(losers, seedIndex).forEach(push);
+  for (const row of standings) push(row.rosterId);
+
+  const byRosterId = new Map(standings.map((row) => [row.rosterId, row]));
+  return order.map((rosterId, i) => ({ ...byRosterId.get(rosterId)!, rank: i + 1 }));
 }
 
 function deriveChampionship(
@@ -590,11 +669,21 @@ function deriveChampionship(
   return { champion: null, runnerUp: null };
 }
 
+/**
+ * Career totals across every linked season.
+ *
+ * A season only contributes a *finish* (best finish, championship, a rank in
+ * the per-season list) once it's actually been played out. A season still
+ * under way — including one that hasn't kicked off, where every team sits at
+ * 0-0 and the "standings" are just roster order — would otherwise hand
+ * everyone a placement they never earned.
+ */
 export function aggregateCareerStats(seasons: SeasonRecord[]): ManagerCareerStats[] {
   const byUser = new Map<string, ManagerCareerStats>();
   // Oldest season first so `seasons` arrays read chronologically.
   const chronological = [...seasons].reverse();
   for (const season of chronological) {
+    if (!season.hasResults) continue; // nothing played yet — no record, no finish
     for (const row of season.standings) {
       if (!row.ownerId) continue;
       let stats = byUser.get(row.ownerId);
@@ -624,16 +713,21 @@ export function aggregateCareerStats(seasons: SeasonRecord[]): ManagerCareerStat
       stats.ties += row.ties;
       stats.pointsFor += row.pointsFor;
       stats.pointsAgainst += row.pointsAgainst;
-      const isChampion = season.champion?.ownerId === row.ownerId;
-      const isRunnerUp = season.runnerUp?.ownerId === row.ownerId;
+      const isChampion = season.complete && season.champion?.ownerId === row.ownerId;
+      const isRunnerUp = season.complete && season.runnerUp?.ownerId === row.ownerId;
       if (isChampion) stats.championships += 1;
       if (isRunnerUp) stats.runnerUps += 1;
-      stats.bestFinishRank = stats.bestFinishRank ? Math.min(stats.bestFinishRank, row.rank) : row.rank;
+      if (season.complete) {
+        stats.bestFinishRank = stats.bestFinishRank
+          ? Math.min(stats.bestFinishRank, row.rank)
+          : row.rank;
+      }
       stats.seasons.push({
         season: season.season,
-        rank: row.rank,
+        rank: season.complete ? row.rank : null,
         record: `${row.wins}-${row.losses}${row.ties ? `-${row.ties}` : ""}`,
         champion: isChampion,
+        complete: season.complete,
       });
     }
   }

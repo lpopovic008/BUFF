@@ -202,6 +202,21 @@ export async function getWinnersBracket(leagueId: string): Promise<SleeperBracke
   return bracket ?? [];
 }
 
+/**
+ * The consolation bracket every team that missed the playoffs plays out. Its
+ * `p` placements are numbered *within* the bracket (its `p: 1` game decides
+ * the best of the non-playoff teams, not 1st overall), so callers have to
+ * offset them past however many teams the winners bracket placed — see
+ * finalPlacements in league-data.ts.
+ */
+export async function getLosersBracket(leagueId: string): Promise<SleeperBracketMatch[]> {
+  const bracket = await sleeperFetch<SleeperBracketMatch[]>(
+    `/league/${leagueId}/losers_bracket`,
+    300
+  );
+  return bracket ?? [];
+}
+
 /** Never throws — callers use this only to pick a sensible default view, so a Sleeper outage shouldn't 500 the page. */
 export async function getNFLState(): Promise<SleeperNFLState | null> {
   try {
