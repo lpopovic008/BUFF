@@ -16,7 +16,7 @@ const oxanium = Oxanium({ subsets: ["latin"], variable: "--font-oxanium" });
 const titilliumWeb = Titillium_Web({ subsets: ["latin"], weight: ["400", "600", "700"], variable: "--font-titillium-web" });
 const ibmPlexMono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-ibm-plex-mono" });
 
-function WarRoomHome() {
+function WarRoomContent() {
   const idParam = useSearchParams().get("id");
   const { config, loaded, bootstrapping } = useConfig();
   const leagueIds = useMemo(() => config.leagues.map((l) => l.leagueId), [config.leagues]);
@@ -114,10 +114,10 @@ function WarRoomHome() {
   );
 }
 
-export default function HomePage() {
+export default function WarRoomPage() {
   return (
     <Suspense fallback={<Card className="p-12 text-center text-sm text-ink-secondary">Loading…</Card>}>
-      <WarRoomHome />
+      <WarRoomContent />
     </Suspense>
   );
 }

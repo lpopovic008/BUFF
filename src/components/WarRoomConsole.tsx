@@ -380,6 +380,9 @@ export function WarRoomConsole({
             </button>
             {menuOpen ? (
               <nav className="console-menu-dropdown">
+                <Link href="/" onClick={() => setMenuOpen(false)}>
+                  Dashboard
+                </Link>
                 <Link href={`/league?id=${data.leagueId}`} onClick={() => setMenuOpen(false)}>
                   League
                 </Link>
