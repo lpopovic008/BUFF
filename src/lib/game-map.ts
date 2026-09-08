@@ -51,3 +51,16 @@ export function leagueColor(index: number): string {
 export function leagueTint(index: number, percent = 12): string {
   return `color-mix(in srgb, ${leagueColor(index)} ${percent}%, transparent)`;
 }
+
+/**
+ * A fixed slot for an international game's dot, in a small cluster tucked
+ * into the map's top-right corner — there's no meaningful US position for a
+ * game played abroad, so these get their own reserved row instead.
+ */
+export function internationalSlotPosition(index: number): [number, number] {
+  const perRow = 4;
+  const spacing = 14;
+  const originX = 258;
+  const originY = 10;
+  return [originX + (index % perRow) * spacing, originY + Math.floor(index / perRow) * spacing];
+}

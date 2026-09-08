@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { NFLGame, isOutsideUS } from "@/lib/nfl-schedule";
-import { gameMapPosition } from "@/lib/game-map";
+import { gameMapPosition, internationalSlotPosition } from "@/lib/game-map";
 import { formatKickoff } from "@/lib/my-starters";
 import { US_MAP_VIEWBOX, US_OUTLINE_PATH, US_STATE_LINES_PATH } from "@/lib/warroom-team-cities";
 
@@ -17,9 +17,9 @@ function dotRadius(playerCount: number): number {
   return Math.min(3 + playerCount * 1.1, 8);
 }
 
-/** Host first, matching the game headers in the starters list below the map. */
+/** Away team first, matching the game headers in the starters list below the map. */
 function gameLabel(game: NFLGame): string {
-  return `${game.homeTeam} vs ${game.awayTeam}`;
+  return `${game.awayTeam} vs ${game.homeTeam}`;
 }
 
 /**
@@ -37,7 +37,10 @@ export function GameMap({ games }: { games: MappedGame[] }) {
     // Biggest last so a game you care about is never hidden under an empty one.
     .sort((a, b) => a.playerCount - b.playerCount);
 
-  const active = plotted.find((entry) => entry.game.id === hovered) ?? null;
+  const active =
+    plotted.find((entry) => entry.game.id === hovered) ??
+    abroad.find((entry) => entry.game.id === hovered) ??
+    null;
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
@@ -53,6 +56,32 @@ export function GameMap({ games }: { games: MappedGame[] }) {
         >
           <path d={US_OUTLINE_PATH} fill="var(--surface)" stroke="var(--border)" strokeWidth="0.6" />
           <path d={US_STATE_LINES_PATH} fill="none" stroke="var(--grid-hairline)" strokeWidth="0.4" />
+          {abroad.map((entry, i) => {
+            const isActive = entry.game.id === hovered;
+            const hasPlayers = entry.playerCount > 0;
+            const [x, y] = internationalSlotPosition(i);
+            return (
+              <circle
+                key={entry.game.id}
+                cx={x}
+                cy={y}
+                r={dotRadius(entry.playerCount) * 0.6 + (isActive ? 1 : 0)}
+                fill={hasPlayers ? "var(--series-2)" : "var(--ink-muted)"}
+                fillOpacity={hasPlayers ? (isActive ? 1 : 0.85) : 0.45}
+                stroke="var(--surface-raised)"
+                strokeWidth="0.5"
+                className="cursor-pointer transition-[r,fill-opacity]"
+                onMouseEnter={() => setHovered(entry.game.id)}
+                onMouseLeave={() => setHovered((id) => (id === entry.game.id ? null : id))}
+              >
+                <title>
+                  {`${gameLabel(entry.game)} (outside the US) — ${formatKickoff(entry.game.kickoff)}${
+                    entry.playerCount ? ` — ${entry.playerCount} of your starters` : ""
+                  }`}
+                </title>
+              </circle>
+            );
+          })}
           {plotted.map((entry) => {
             const isActive = entry.game.id === hovered;
             const hasPlayers = entry.playerCount > 0;

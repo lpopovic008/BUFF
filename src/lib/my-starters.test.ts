@@ -70,13 +70,13 @@ test("a player on bye is handed back separately, never dropped", () => {
   assert.deepEqual(notPlaying.map((p) => p.name), ["Bye Guy", "Empty Slot"]);
 });
 
-test("the same player started in two leagues shows up once per league", () => {
+test("the same player started in two leagues shows up once, with both leagues listed", () => {
   const { games } = groupStartersByGame(
     [starter("Puka", "WR", "LAR", "L1"), starter("Puka", "WR", "LAR", "L2")],
     [MELBOURNE]
   );
-  assert.equal(games[0].players.length, 2);
-  assert.deepEqual(games[0].players.map((p) => p.leagueId), ["L1", "L2"]);
+  assert.equal(games[0].players.length, 1);
+  assert.deepEqual(games[0].players[0].leagueIds, ["L1", "L2"]);
 });
 
 const NOW = new Date("2026-09-08T12:00:00Z");
@@ -97,7 +97,7 @@ test("an unparseable kickoff degrades to TBD rather than Invalid Date", () => {
   assert.equal(formatKickoff("not a date", NOW), "TBD");
 });
 
-test("the game header names the host first, which is what \"vs\" means", () => {
-  // LAR are the nominal home side of the Melbourne opener.
-  assert.match(formatGameHeader(MELBOURNE, NOW), /^LAR vs SF @ /);
+test("the game header names the away team first", () => {
+  // SF are the nominal away side of the Melbourne opener.
+  assert.match(formatGameHeader(MELBOURNE, NOW), /^SF vs LAR @ /);
 });

@@ -14,10 +14,44 @@ export interface StarterEntry {
   leagueName: string;
 }
 
+/** A starter deduped across leagues — one row per unique player, with every league they're started in. */
+export interface GroupedStarter {
+  playerId: string;
+  name: string;
+  position: string;
+  team: string | null;
+  leagueIds: string[];
+}
+
 export interface GameStarters {
   game: NFLGame;
-  /** Your starters in this game, home team's players first, then by position. */
-  players: StarterEntry[];
+  /** Your starters in this game, deduped by player, then by position. */
+  players: GroupedStarter[];
+}
+
+/**
+ * Collapses per-league starter entries into one row per unique player,
+ * accumulating the leagues they're started in (in first-appearance order)
+ * so a player rostered in two or more leagues shows up once with a
+ * `leagueIds` list instead of one row per league.
+ */
+export function dedupeStarters(starters: StarterEntry[]): GroupedStarter[] {
+  const byPlayer = new Map<string, GroupedStarter>();
+  for (const starter of starters) {
+    const existing = byPlayer.get(starter.playerId);
+    if (existing) {
+      existing.leagueIds.push(starter.leagueId);
+    } else {
+      byPlayer.set(starter.playerId, {
+        playerId: starter.playerId,
+        name: starter.name,
+        position: starter.position,
+        team: starter.team,
+        leagueIds: [starter.leagueId],
+      });
+    }
+  }
+  return [...byPlayer.values()];
 }
 
 const POSITION_ORDER = ["QB", "RB", "WR", "TE", "K", "DEF"];
@@ -41,14 +75,14 @@ function kickoffTime(game: NFLGame): number {
 export function groupStartersByGame(
   starters: StarterEntry[],
   games: NFLGame[]
-): { games: GameStarters[]; notPlaying: StarterEntry[] } {
+): { games: GameStarters[]; notPlaying: GroupedStarter[] } {
   const gameForTeam = new Map<string, NFLGame>();
   for (const game of games) {
     gameForTeam.set(game.homeTeam, game);
     gameForTeam.set(game.awayTeam, game);
   }
 
-  const byGameId = new Map<string, GameStarters>();
+  const byGameId = new Map<string, { game: NFLGame; players: StarterEntry[] }>();
   const notPlaying: StarterEntry[] = [];
   for (const starter of starters) {
     const game = starter.team ? gameForTeam.get(starter.team) : undefined;
@@ -61,14 +95,15 @@ export function groupStartersByGame(
     byGameId.set(game.id, bucket);
   }
 
-  const grouped = [...byGameId.values()].sort((a, b) => kickoffTime(a.game) - kickoffTime(b.game));
-  for (const entry of grouped) {
-    entry.players.sort(
-      (a, b) =>
-        positionRank(a.position) - positionRank(b.position) || a.name.localeCompare(b.name)
-    );
-  }
-  return { games: grouped, notPlaying };
+  const grouped = [...byGameId.values()]
+    .sort((a, b) => kickoffTime(a.game) - kickoffTime(b.game))
+    .map((entry) => ({
+      game: entry.game,
+      players: dedupeStarters(entry.players).sort(
+        (a, b) => positionRank(a.position) - positionRank(b.position) || a.name.localeCompare(b.name)
+      ),
+    }));
+  return { games: grouped, notPlaying: dedupeStarters(notPlaying) };
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -89,7 +124,7 @@ export function formatKickoff(kickoff: string, now: Date = new Date()): string {
   return `${time} ${day}`;
 }
 
-/** The whole game header, e.g. "LAR vs SF @ 8:20 PM Thu" — host first, which is what "vs" means. */
+/** The whole game header, e.g. "SF vs LAR @ 8:20 PM Thu" — away team first. */
 export function formatGameHeader(game: NFLGame, now: Date = new Date()): string {
-  return `${game.homeTeam} vs ${game.awayTeam} @ ${formatKickoff(game.kickoff, now)}`;
+  return `${game.awayTeam} vs ${game.homeTeam} @ ${formatKickoff(game.kickoff, now)}`;
 }

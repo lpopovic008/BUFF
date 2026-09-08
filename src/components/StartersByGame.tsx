@@ -1,7 +1,7 @@
 "use client";
 
-import { formatGameHeader, GameStarters, StarterEntry } from "@/lib/my-starters";
-import { leagueColor, leagueTint } from "@/lib/game-map";
+import { formatGameHeader, GameStarters, GroupedStarter } from "@/lib/my-starters";
+import { leagueColor } from "@/lib/game-map";
 
 export interface LeagueLegendEntry {
   leagueId: string;
@@ -10,13 +10,29 @@ export interface LeagueLegendEntry {
   colorIndex: number;
 }
 
-function PlayerRow({ player, colorIndex }: { player: StarterEntry; colorIndex: number }) {
+function PlayerRow({
+  player,
+  colorIndexFor,
+  legendByLeagueId,
+}: {
+  player: GroupedStarter;
+  colorIndexFor: Map<string, number>;
+  legendByLeagueId: Map<string, LeagueLegendEntry>;
+}) {
+  const leagueNames = player.leagueIds
+    .map((id) => legendByLeagueId.get(id)?.leagueName ?? id)
+    .join(", ");
   return (
-    <div
-      className="flex items-baseline gap-2 border-l-2 px-2 py-1"
-      style={{ backgroundColor: leagueTint(colorIndex), borderLeftColor: leagueColor(colorIndex) }}
-      title={`${player.name} — ${player.leagueName}`}
-    >
+    <div className="flex items-baseline gap-2 px-2 py-1" title={`${player.name} — ${leagueNames}`}>
+      <span className="flex shrink-0 gap-0.5">
+        {player.leagueIds.map((id) => (
+          <span
+            key={id}
+            className="h-2.5 w-2.5 shrink-0"
+            style={{ backgroundColor: leagueColor(colorIndexFor.get(id) ?? 0) }}
+          />
+        ))}
+      </span>
       <span className="w-8 shrink-0 text-[10px] font-medium uppercase tracking-wide text-ink-muted">
         {player.position}
       </span>
@@ -27,20 +43,26 @@ function PlayerRow({ player, colorIndex }: { player: StarterEntry; colorIndex: n
 }
 
 /**
- * Your whole week at a glance: every starter you have in every league, filed
- * under the NFL game they're playing in. Each player carries the colour of the
- * league they're started in, so overlapping rosters stay legible.
+ * Your whole week at a glance: every unique starter you have across your
+ * leagues, filed under the NFL game they're playing in. A player started in
+ * two or more leagues shows up once, with one colour indicator per league.
+ * The legend doubles as a filter — click a league to show only its starters.
  */
 export function StartersByGame({
   games,
   notPlaying,
   legend,
+  selectedLeagueIds,
+  onToggleLeague,
 }: {
   games: GameStarters[];
-  notPlaying: StarterEntry[];
+  notPlaying: GroupedStarter[];
   legend: LeagueLegendEntry[];
+  selectedLeagueIds: Set<string>;
+  onToggleLeague: (leagueId: string) => void;
 }) {
   const colorIndexFor = new Map(legend.map((l) => [l.leagueId, l.colorIndex]));
+  const legendByLeagueId = new Map(legend.map((l) => [l.leagueId, l]));
 
   if (games.length === 0 && notPlaying.length === 0) {
     return <p className="text-sm text-ink-secondary">No starters set for this week yet.</p>;
@@ -49,15 +71,26 @@ export function StartersByGame({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap gap-x-4 gap-y-1">
-        {legend.map((league) => (
-          <span key={league.leagueId} className="flex items-center gap-1.5 text-xs text-ink-secondary">
-            <span
-              className="h-2.5 w-2.5 shrink-0"
-              style={{ backgroundColor: leagueColor(league.colorIndex) }}
-            />
-            {league.leagueName}
-          </span>
-        ))}
+        {legend.map((league) => {
+          const selected = selectedLeagueIds.has(league.leagueId);
+          return (
+            <button
+              key={league.leagueId}
+              type="button"
+              onClick={() => onToggleLeague(league.leagueId)}
+              aria-pressed={selected}
+              className={`flex items-center gap-1.5 text-xs transition-opacity ${
+                selected ? "text-ink-secondary" : "text-ink-muted opacity-40"
+              }`}
+            >
+              <span
+                className="h-2.5 w-2.5 shrink-0"
+                style={{ backgroundColor: leagueColor(league.colorIndex) }}
+              />
+              {league.leagueName}
+            </button>
+          );
+        })}
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -69,9 +102,10 @@ export function StartersByGame({
             <div className="flex flex-col gap-1">
               {players.map((player) => (
                 <PlayerRow
-                  key={`${player.leagueId}-${player.playerId}`}
+                  key={player.playerId}
                   player={player}
-                  colorIndex={colorIndexFor.get(player.leagueId) ?? 0}
+                  colorIndexFor={colorIndexFor}
+                  legendByLeagueId={legendByLeagueId}
                 />
               ))}
             </div>
@@ -87,9 +121,10 @@ export function StartersByGame({
           <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 lg:grid-cols-3">
             {notPlaying.map((player) => (
               <PlayerRow
-                key={`${player.leagueId}-${player.playerId}`}
+                key={player.playerId}
                 player={player}
-                colorIndex={colorIndexFor.get(player.leagueId) ?? 0}
+                colorIndexFor={colorIndexFor}
+                legendByLeagueId={legendByLeagueId}
               />
             ))}
           </div>

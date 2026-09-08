@@ -88,9 +88,29 @@ export default function DashboardPage() {
   const weekGames = useWeekGames(nflPhase.season ?? config.season, week);
   const myStarters = useMyStarters(starterSources, week);
 
+  // Which leagues' starters to show — null means "no explicit choice yet",
+  // which defaults to every tracked league until the user toggles one off.
+  const [selectedLeagueIds, setSelectedLeagueIds] = useState<Set<string> | null>(null);
+  const allLeagueIds = useMemo(() => new Set(starterSources.map((s) => s.leagueId)), [starterSources]);
+  const effectiveSelected = selectedLeagueIds ?? allLeagueIds;
+  const toggleLeague = (leagueId: string) => {
+    setSelectedLeagueIds((prev) => {
+      const base = prev ?? allLeagueIds;
+      const next = new Set(base);
+      if (next.has(leagueId)) next.delete(leagueId);
+      else next.add(leagueId);
+      return next;
+    });
+  };
+
+  const filteredStarters = useMemo(
+    () => (myStarters ?? []).filter((s) => effectiveSelected.has(s.leagueId)),
+    [myStarters, effectiveSelected]
+  );
+
   const grouped = useMemo(
-    () => groupStartersByGame(myStarters ?? [], weekGames),
-    [myStarters, weekGames]
+    () => groupStartersByGame(filteredStarters, weekGames),
+    [filteredStarters, weekGames]
   );
 
   // Colour per league, keyed off the order leagues are tracked in so a
@@ -198,7 +218,13 @@ export default function DashboardPage() {
             your starters under yet.
           </p>
         ) : (
-          <StartersByGame games={grouped.games} notPlaying={grouped.notPlaying} legend={legend} />
+          <StartersByGame
+            games={grouped.games}
+            notPlaying={grouped.notPlaying}
+            legend={legend}
+            selectedLeagueIds={effectiveSelected}
+            onToggleLeague={toggleLeague}
+          />
         )}
       </Card>
     </div>
