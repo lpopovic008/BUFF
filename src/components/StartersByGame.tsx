@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { formatGameHeader, GameStarters, groupGamesByTimeBlock, GroupedStarter } from "@/lib/my-starters";
+import { formatKickoff, formatTeamMatchup, GameStarters, groupGamesByTimeBlock, GroupedStarter } from "@/lib/my-starters";
+import { NFLGame } from "@/lib/nfl-schedule";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import { LeagueLegendEntry, LeagueMark } from "./LeagueMark";
 
@@ -30,6 +31,18 @@ function PlayerRow({
         </span>
       </span>
     </div>
+  );
+}
+
+/** Every game header the same shape: team abbreviations on their own line, kickoff time/day smaller and grey underneath — never sharing a line, however narrow the column. */
+function GameHeader({ game }: { game: NFLGame }) {
+  return (
+    <h3 className="flex flex-col">
+      <span className="text-xs font-semibold uppercase tracking-wide text-ink-primary">
+        {formatTeamMatchup(game)}
+      </span>
+      <span className="text-[10px] uppercase tracking-wide text-ink-muted">{formatKickoff(game.kickoff)}</span>
+    </h3>
   );
 }
 
@@ -124,9 +137,7 @@ export function StartersByGame({
                 </span>
                 {column.games.map(({ game, players }) => (
                   <div key={game.id} className="flex flex-col gap-1.5">
-                    <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-primary">
-                      {formatGameHeader(game)}
-                    </h3>
+                    <GameHeader game={game} />
                     <div className="flex flex-col gap-1">
                       {players.map((player) => (
                         <PlayerRow key={player.playerId} player={player} legendByLeagueId={legendByLeagueId} />

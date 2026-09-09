@@ -130,6 +130,11 @@ export function formatGameHeader(game: NFLGame, now: Date = new Date()): string 
   return `${game.awayTeam} vs ${game.homeTeam} @ ${formatKickoff(game.kickoff, now)}`;
 }
 
+/** Just the team matchup half of a game header, e.g. "SF vs LAR" — away team first, no kickoff. */
+export function formatTeamMatchup(game: NFLGame): string {
+  return `${game.awayTeam} vs ${game.homeTeam}`;
+}
+
 /** One kickoff window's worth of games — one column in the starters-by-game swipe view. */
 export interface TimeBlockColumn {
   /** e.g. "Wed 8p" — same labeling as the map's kickoff legend, so the two stay recognizable as the same scale. */

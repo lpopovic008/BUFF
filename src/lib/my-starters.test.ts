@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   formatGameHeader,
   formatKickoff,
+  formatTeamMatchup,
   groupGamesByTimeBlock,
   groupStartersByGame,
   StarterEntry,
@@ -106,6 +107,10 @@ test("an unparseable kickoff degrades to TBD rather than Invalid Date", () => {
 test("the game header names the away team first", () => {
   // SF are the nominal away side of the Melbourne opener.
   assert.match(formatGameHeader(MELBOURNE, NOW), /^SF vs LAR @ /);
+});
+
+test("the team matchup half names the away team first and carries no kickoff", () => {
+  assert.equal(formatTeamMatchup(MELBOURNE), "SF vs LAR");
 });
 
 test("games are bucketed into one column per kickoff window, earliest first", () => {
