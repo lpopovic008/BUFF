@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { NFLGame, isOutsideUS } from "@/lib/nfl-schedule";
 import { computeKickoffSlots, gameMapPosition, internationalSlotPosition, kickoffSlotColor, kickoffSlotLabel } from "@/lib/game-map";
 import { formatKickoff } from "@/lib/my-starters";
@@ -20,7 +20,6 @@ export interface MappedGame {
   starters: MappedStarter[];
 }
 
-const VIEWBOX_W = 320;
 const VIEWBOX_H = 200;
 
 function dotRadius(starterCount: number): number {
@@ -55,10 +54,12 @@ function GamePreviewCard({
   positioned,
   legendByLeagueId,
   onClose,
+  cardRef,
 }: {
   positioned: PositionedGame;
   legendByLeagueId: Map<string, LeagueLegendEntry>;
   onClose: () => void;
+  cardRef: RefObject<HTMLDivElement | null>;
 }) {
   const { entry, y } = positioned;
   // Horizontally the card always centers itself in the map — a fixed-width
@@ -73,6 +74,7 @@ function GamePreviewCard({
 
   return (
     <div
+      ref={cardRef}
       className="absolute z-10 w-60 max-w-[calc(100%-1rem)] border border-grid bg-page p-3 text-xs shadow-sm"
       style={{
         left: "50%",
@@ -128,6 +130,23 @@ function GamePreviewCard({
 export function GameMap({ games, legend }: { games: MappedGame[]; legend: LeagueLegendEntry[] }) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [clicked, setClicked] = useState<string | null>(null);
+  const cardRef = useRef<HTMLDivElement | null>(null);
+
+  // Tapping anywhere outside the open preview — elsewhere on the map, or
+  // anywhere else on the page — dismisses it. A tap on a dot is left alone
+  // here; the dot's own onClick already decides whether that switches or
+  // closes the preview.
+  useEffect(() => {
+    if (!clicked) return;
+    function handlePointerDown(e: PointerEvent) {
+      const target = e.target as Element | null;
+      if (cardRef.current?.contains(target)) return;
+      if (target?.closest("circle")) return;
+      setClicked(null);
+    }
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [clicked]);
 
   const legendByLeagueId = useMemo(() => new Map(legend.map((l) => [l.leagueId, l])), [legend]);
 
@@ -212,6 +231,7 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
             positioned={selected}
             legendByLeagueId={legendByLeagueId}
             onClose={() => setClicked(null)}
+            cardRef={cardRef}
           />
         ) : null}
       </div>

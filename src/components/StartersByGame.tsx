@@ -88,7 +88,7 @@ export function StartersByGame({
         </p>
       ) : (
         <>
-          <div className="-mx-1 flex snap-x snap-mandatory justify-center gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:justify-start sm:px-7 [&::-webkit-scrollbar]:hidden">
+          <div className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 [justify-content:safe_center] [scrollbar-width:none] sm:justify-start sm:px-7 [&::-webkit-scrollbar]:hidden">
             {columns.map((column) => (
               <div key={column.label} className="flex w-[31%] shrink-0 snap-start flex-col gap-3 sm:w-[200px]">
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
