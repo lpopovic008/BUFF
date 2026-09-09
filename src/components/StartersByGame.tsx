@@ -136,7 +136,7 @@ export function StartersByGame({
                   {column.label}
                 </span>
                 {column.games.map(({ game, players }) => (
-                  <div key={game.id} className="flex flex-col gap-1.5">
+                  <div key={game.id} className="flex flex-col gap-1.5 border border-grid p-2">
                     <GameHeader game={game} />
                     <div className="flex flex-col gap-1">
                       {players.map((player) => (
