@@ -108,10 +108,13 @@ export function RecapEditor({
     setGraphicError(null);
     try {
       const canvas = document.createElement("canvas");
+      const avatarByName: Record<string, string | null> = {};
+      for (const t of Object.values(teams)) avatarByName[t.name] = t.avatar;
       await drawRecapGraphic(canvas, body, model, {
         bowl: decidedMatchupFor(teams, bowlMatchup),
         honorable: decidedMatchupFor(teams, honorableMatchup),
         upcoming: previewMatchupFor(teams, upcomingMatchup),
+        avatarByName,
         displayFontFamily: recapDisplayFont.style.fontFamily,
       });
       // Passed as a Promise (not awaited first) rather than an already-resolved

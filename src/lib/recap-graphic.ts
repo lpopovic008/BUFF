@@ -2,16 +2,23 @@
 // shadows and big rounded corners instead of hard borders. The header is
 // always the write-up's own first line (never an invented one), and every
 // list section is headed by the write-up's own literal header line
-// (RECAP_HEADERS). The Bowl of the Week and Honorable Mention results get a
-// poster treatment of their own: the bowl/cup name in a "college sports"
-// display font, the winning team's logo and name bright, the losing team's
-// dimmed — same font treatment (no winner/loser styling, since it hasn't
-// been played yet) for the upcoming marquee matchup. Renders to the
+// (RECAP_HEADERS) where one exists in the real text. Bowl of the Week and
+// Honorable Mention render as poster cards — the bowl/cup name in a
+// "college sports" display font, the winning team's logo and name bright,
+// the losing team's dimmed (same font/logo treatment with no winner/loser
+// split for the not-yet-played upcoming matchup) — and always render, even
+// before there's a real pick to show, falling back to bracketed
+// placeholders so the graphic can be previewed at any point in the week.
+// Winners this week get a 5-step podium, the high scorer gets a bar chart
+// of every team's score with their logo on each bar, updated standings get
+// bars proportional to money earned (most first, left to right), and last
+// week's results are a plain name/score/result-icon table. Renders to the
 // clipboard as an image (see RecapEditor's "Copy graphic" button). Pure
 // canvas 2D drawing, no DOM/layout dependency beyond the canvas itself, and
 // not theme-reactive — this is a fixed-look card, not a live page.
 
 import { RecapModel, RECAP_HEADERS } from "./recap-model";
+import { ordinal } from "./format";
 
 const WIDTH = 1080;
 const PADDING = 56;
@@ -26,6 +33,7 @@ const COLOR = {
   bgTop: "#181410",
   bgBottom: "#0a0908",
   card: "rgba(255, 255, 255, 0.055)",
+  bar: "rgba(255, 255, 255, 0.14)",
   primary: "#ffffff",
   secondary: "#c9c7bc",
   muted: "#87857c",
@@ -55,10 +63,12 @@ export interface PreviewMatchup {
   teamB: MatchupTeam;
 }
 
-export interface RecapGraphicMatchups {
+export interface RecapGraphicExtras {
   bowl?: DecidedMatchup | null;
   honorable?: DecidedMatchup | null;
   upcoming?: PreviewMatchup | null;
+  /** Every team's logo, keyed by the exact display name used in the write-up text — how the podium, high-scorer chart, and standings stacks find a team's logo, since the underlying text only ever has names. */
+  avatarByName?: Record<string, string | null>;
   /** CSS font-family for the "college sports" display font (see fonts.ts) — falls back to the body font stack if omitted or it fails to load in time. */
   displayFontFamily?: string;
 }
@@ -85,6 +95,14 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
   return lines;
 }
 
+/** Shortens `text` to fit `maxWidth` under the ctx's currently-set font, with a trailing ellipsis — for name labels next to a fixed-width bar. */
+function truncateToWidth(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string {
+  if (ctx.measureText(text).width <= maxWidth) return text;
+  let t = text;
+  while (t.length > 1 && ctx.measureText(`${t}…`).width > maxWidth) t = t.slice(0, -1);
+  return `${t}…`;
+}
+
 function roundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   const rr = Math.min(r, w / 2, h / 2);
   ctx.beginPath();
@@ -108,9 +126,51 @@ function paintCardSurface(ctx: CanvasRenderingContext2D, x: number, y: number, w
   ctx.restore();
 }
 
+/** A bracket placeholder (e.g. "[Team 1]", "[highest scoring team]") has nothing sensible to take an initial from. */
 function initialsFor(name: string): string {
   const trimmed = name.trim();
-  return trimmed ? trimmed.charAt(0).toUpperCase() : "?";
+  if (!trimmed || trimmed.startsWith("[")) return "?";
+  return trimmed.charAt(0).toUpperCase();
+}
+
+function lookupAvatar(avatarByName: Record<string, string | null> | undefined, name: string): string | null {
+  return avatarByName?.[name] ?? null;
+}
+
+/** A circular logo, or an initials badge when there's no avatar or it failed to load. */
+function drawAvatarCircle(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  r: number,
+  img: HTMLImageElement | null,
+  name: string,
+  opts: { ring?: boolean; alpha?: number } = {}
+) {
+  ctx.save();
+  ctx.globalAlpha = opts.alpha ?? 1;
+  if (opts.ring) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r + 5, 0, Math.PI * 2);
+    ctx.fillStyle = COLOR.accent;
+    ctx.fill();
+  }
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.closePath();
+  ctx.clip();
+  if (img) {
+    ctx.drawImage(img, cx - r, cy - r, r * 2, r * 2);
+  } else {
+    ctx.fillStyle = "#2c261c";
+    ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+    ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+    ctx.font = `800 ${Math.round(r)}px ${FONT_STACK}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(initialsFor(name), cx, cy + 1);
+  }
+  ctx.restore();
 }
 
 interface TextOpts {
@@ -151,9 +211,134 @@ function drawText(
   return lines.length * lineHeight;
 }
 
+interface BarItem {
+  name: string;
+  avatarUrl: string | null;
+  /** Drives bar height when `proportional`; only rank/order matters otherwise. */
+  value: number;
+  /** Small label drawn above the logo — a score, a dollar amount, a rank. Omitted entirely if not given. */
+  valueLabel?: string;
+  highlight?: boolean;
+}
+
+/** One bar per item, logo sitting on top of it, an optional value label above that and the (possibly truncated) name below — the shared chart primitive behind the podium, the high-scorer chart, and the standings stacks. Bar height is either proportional to `value` or a fixed rank-based staircase (tallest first), per `opts.proportional`. */
+function barChartContent(
+  ctx: CanvasRenderingContext2D,
+  paint: boolean,
+  inner: { x: number; y: number; width: number },
+  items: BarItem[],
+  images: Map<string, HTMLImageElement>,
+  opts: { proportional: boolean; maxBarH: number; minBarH: number }
+): number {
+  const n = items.length;
+  if (n === 0) return 0;
+  const { maxBarH, minBarH } = opts;
+  const gap = 12;
+  const colW = (inner.width - gap * (n - 1)) / n;
+  const avatarR = Math.max(13, Math.min(24, colW / 2 - 6));
+  const barW = Math.max(10, colW - 16);
+
+  const heights = opts.proportional
+    ? (() => {
+        const max = Math.max(...items.map((i) => i.value), 1);
+        return items.map((i) => Math.max(minBarH, (Math.max(0, i.value) / max) * maxBarH));
+      })()
+    : items.map((_, idx) => Math.max(minBarH, maxBarH - idx * ((maxBarH - minBarH) / Math.max(1, n - 1))));
+
+  const valueLabelH = 18;
+  const topPad = valueLabelH + avatarR + 6;
+  const baselineY = inner.y + topPad + maxBarH;
+
+  if (paint) {
+    for (let i = 0; i < n; i++) {
+      const item = items[i];
+      const cx = inner.x + i * (colW + gap) + colW / 2;
+      const barH = heights[i];
+      const barTop = baselineY - barH;
+
+      roundRectPath(ctx, cx - barW / 2, barTop, barW, barH, Math.min(10, barW / 2));
+      ctx.fillStyle = item.highlight ? COLOR.accent : COLOR.bar;
+      ctx.fill();
+
+      if (item.valueLabel) {
+        ctx.font = `700 13px ${FONT_STACK}`;
+        ctx.fillStyle = item.highlight ? COLOR.accent : COLOR.muted;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "alphabetic";
+        ctx.fillText(item.valueLabel, cx, inner.y + valueLabelH - 4);
+      }
+
+      const img = item.avatarUrl ? (images.get(item.avatarUrl) ?? null) : null;
+      drawAvatarCircle(ctx, cx, inner.y + valueLabelH + avatarR, avatarR, img, item.name, { ring: item.highlight });
+
+      ctx.font = `${item.highlight ? "700" : "400"} 13px ${FONT_STACK}`;
+      ctx.fillStyle = item.highlight ? COLOR.primary : COLOR.muted;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "alphabetic";
+      const label = truncateToWidth(ctx, item.name, colW + gap - 6);
+      ctx.fillText(label, cx, baselineY + 20);
+    }
+  }
+
+  return topPad + maxBarH + 30;
+}
+
+/** "🔹Luka" / "▫️Ivan" -> { name: "Luka", highlight: true }. */
+function parseWinners(text: string): { name: string; highlight: boolean }[] {
+  return text
+    .split("\n")
+    .filter((line) => line.trim() !== "")
+    .map((line) => ({ name: line.replace(/^(🔹|▫️)/, "").trim(), highlight: line.startsWith("🔹") }));
+}
+
+/**
+ * "Luka\n142.40 ✅\nMarko\n118.90 ❌..." -> one row per team, keeping the
+ * original points text verbatim rather than re-formatting the parsed
+ * number. A pair that isn't a real score yet (still the bracketed
+ * placeholder text, e.g. "[team 1 points] [✅ for a win, ❌ for a loss]")
+ * still becomes a row — `resolved: false`, a "–" in place of the score —
+ * so the chart/table show a placeholder instead of silently having nothing
+ * to draw.
+ */
+function parseScoreboardRows(text: string): { name: string; points: number; pointsLabel: string; won: boolean; resolved: boolean }[] {
+  const lines = text.split("\n").filter((line) => line.trim() !== "");
+  const rows: { name: string; points: number; pointsLabel: string; won: boolean; resolved: boolean }[] = [];
+  for (let i = 0; i + 1 < lines.length; i += 2) {
+    const name = lines[i];
+    const match = lines[i + 1].match(/^([\d.,]+)\s*(✅|❌)?/);
+    if (match) {
+      rows.push({ name, points: parseFloat(match[1].replace(/,/g, "")), pointsLabel: match[1], won: match[2] === "✅", resolved: true });
+    } else {
+      rows.push({ name, points: 0, pointsLabel: "–", won: false, resolved: false });
+    }
+  }
+  return rows;
+}
+
+/**
+ * "$75 Luka\n$60 Ivan..." -> one row per team, keeping the original dollar
+ * text verbatim. Falls back to the whole line as an unresolved placeholder
+ * row (amount 0, "–" label) when it isn't in that shape yet — e.g. the
+ * default single-line placeholder before any payouts exist.
+ */
+function parseStandingsRows(text: string): { name: string; amount: number; amountLabel: string; resolved: boolean }[] {
+  const rows: { name: string; amount: number; amountLabel: string; resolved: boolean }[] = [];
+  for (const line of text.split("\n")) {
+    if (!line.trim()) continue;
+    const match = line.match(/^\$(-?[\d.,]+)\s+(.+)$/);
+    if (match) {
+      rows.push({ name: match[2].trim(), amount: parseFloat(match[1].replace(/,/g, "")), amountLabel: `$${match[1]}`, resolved: true });
+    } else {
+      rows.push({ name: line.trim(), amount: 0, amountLabel: "–", resolved: false });
+    }
+  }
+  return rows;
+}
+
 interface GraphicContext {
   images: Map<string, HTMLImageElement>;
   displayFamily: string;
+  avatarByName?: Record<string, string | null>;
 }
 
 interface TeamColumnOpts {
@@ -177,52 +362,6 @@ class Layout {
 
   text(text: string, opts: TextOpts) {
     this.y += drawText(this.ctx, this.paint, PADDING, this.y, CONTENT_WIDTH, text, opts);
-  }
-
-  /** A card whose only "header" is the section's own first line — no separate invented label above it. Used as the fallback for a bowl/honorable result the poster card can't render (no resolvable matchup yet). */
-  statCard(resultLine: string, detailLine: string) {
-    if (!resultLine.trim()) return;
-    this.card((paint, inner) => {
-      let h = drawText(this.ctx, paint, inner.x, inner.y, inner.width, resultLine, {
-        size: 25,
-        weight: "700",
-        color: COLOR.primary,
-        lineHeight: 32,
-      });
-      if (detailLine.trim()) {
-        h += 8;
-        h += drawText(this.ctx, paint, inner.x, inner.y + h, inner.width, detailLine, {
-          size: 18,
-          style: "italic",
-          color: COLOR.secondary,
-          lineHeight: 25,
-        });
-      }
-      return h;
-    });
-  }
-
-  /** A card headed by one of the write-up's own literal header lines (RECAP_HEADERS) — never a shortened stand-in for it. */
-  listCard(header: string, body: string) {
-    const rows = body.split("\n").filter((line) => line.trim() !== "");
-    if (rows.length === 0) return;
-    this.card((paint, inner) => {
-      let h = drawText(this.ctx, paint, inner.x, inner.y, inner.width, header, {
-        size: 15,
-        weight: "700",
-        color: COLOR.accent,
-        lineHeight: 20,
-      });
-      h += 10;
-      for (const row of rows) {
-        h += drawText(this.ctx, paint, inner.x, inner.y + h, inner.width, row, {
-          size: 19,
-          color: COLOR.secondary,
-          lineHeight: 26,
-        });
-      }
-      return h;
-    });
   }
 
   /** Bowl of the Week / Honorable Mention as a poster: the name in the display font, the winner's logo and name bright, the loser's dimmed, side by side. */
@@ -313,35 +452,141 @@ class Layout {
     });
   }
 
+  /** A 5-step podium (or however many actually won this week) — tallest/leftmost is the top scorer among the winners. */
+  winnersPodium(header: string, rows: { name: string; highlight: boolean }[]) {
+    if (rows.length === 0) return;
+    this.card((paint, inner) => {
+      let h = drawText(this.ctx, paint, inner.x, inner.y, inner.width, header, {
+        size: 15,
+        weight: "700",
+        color: COLOR.accent,
+        lineHeight: 20,
+      });
+      h += 16;
+      const items: BarItem[] = rows.map((r, idx) => ({
+        name: r.name,
+        avatarUrl: lookupAvatar(this.gctx.avatarByName, r.name),
+        value: rows.length - idx,
+        valueLabel: ordinal(idx + 1),
+        highlight: r.highlight,
+      }));
+      h += barChartContent(this.ctx, paint, { x: inner.x, y: inner.y + h, width: inner.width }, items, this.gctx.images, {
+        proportional: false,
+        maxBarH: 110,
+        minBarH: 36,
+      });
+      return h;
+    });
+  }
+
+  /** Every team's score as a bar, that team's logo riding on top of it, the week's high scorer picked out in accent. The write-up's own sentence + detail render small and gray beneath, like a caption — the chart carries the section now. */
+  highScorerChart(rows: { name: string; points: number; pointsLabel: string }[], captionLines: string[]) {
+    if (rows.length === 0) return;
+    this.card((paint, inner) => {
+      const maxPoints = Math.max(...rows.map((r) => r.points), 0);
+      const items: BarItem[] = rows.map((r) => ({
+        name: r.name,
+        avatarUrl: lookupAvatar(this.gctx.avatarByName, r.name),
+        value: r.points,
+        valueLabel: r.pointsLabel,
+        highlight: r.points === maxPoints,
+      }));
+      let h = barChartContent(this.ctx, paint, { x: inner.x, y: inner.y, width: inner.width }, items, this.gctx.images, {
+        proportional: true,
+        maxBarH: 120,
+        minBarH: 30,
+      });
+      for (const line of captionLines) {
+        if (!line.trim()) continue;
+        h += 10;
+        h += drawText(this.ctx, paint, inner.x, inner.y + h, inner.width, line, {
+          size: 15,
+          style: "italic",
+          color: COLOR.muted,
+          lineHeight: 20,
+        });
+      }
+      return h;
+    });
+  }
+
+  /** Bars proportional to money earned this season, richest team first (left) to least (right), that team's logo on top of its bar. */
+  standingsStacks(header: string, rows: { name: string; amount: number; amountLabel: string }[]) {
+    if (rows.length === 0) return;
+    this.card((paint, inner) => {
+      let h = drawText(this.ctx, paint, inner.x, inner.y, inner.width, header, {
+        size: 15,
+        weight: "700",
+        color: COLOR.accent,
+        lineHeight: 20,
+      });
+      h += 16;
+      const items: BarItem[] = rows.map((r, idx) => ({
+        name: r.name,
+        avatarUrl: lookupAvatar(this.gctx.avatarByName, r.name),
+        value: r.amount,
+        valueLabel: r.amountLabel,
+        highlight: idx === 0,
+      }));
+      h += barChartContent(this.ctx, paint, { x: inner.x, y: inner.y + h, width: inner.width }, items, this.gctx.images, {
+        proportional: true,
+        maxBarH: 120,
+        minBarH: 26,
+      });
+      return h;
+    });
+  }
+
+  /** Name on the left, score in the middle, result icon on the right — one row per team. */
+  lastWeekTable(header: string, rows: { name: string; pointsLabel: string; won: boolean; resolved: boolean }[]) {
+    if (rows.length === 0) return;
+    this.card((paint, inner) => {
+      let h = drawText(this.ctx, paint, inner.x, inner.y, inner.width, header, {
+        size: 15,
+        weight: "700",
+        color: COLOR.accent,
+        lineHeight: 20,
+      });
+      h += 14;
+      const rowH = 32;
+      const scoreCx = inner.x + inner.width * 0.62;
+      const iconX = inner.x + inner.width - 6;
+      if (paint) {
+        const ctx = this.ctx;
+        for (const row of rows) {
+          const baseline = inner.y + h + 16;
+
+          ctx.font = `400 18px ${FONT_STACK}`;
+          ctx.fillStyle = COLOR.secondary;
+          ctx.textAlign = "left";
+          ctx.textBaseline = "alphabetic";
+          const name = truncateToWidth(ctx, row.name, scoreCx - inner.x - 100);
+          ctx.fillText(name, inner.x, baseline);
+
+          ctx.font = `700 18px ${FONT_STACK}`;
+          ctx.fillStyle = COLOR.primary;
+          ctx.textAlign = "center";
+          ctx.fillText(row.pointsLabel, scoreCx, baseline);
+
+          ctx.font = `16px ${FONT_STACK}`;
+          ctx.fillStyle = COLOR.muted;
+          ctx.textAlign = "right";
+          ctx.fillText(row.resolved ? (row.won ? "✅" : "❌") : "–", iconX, baseline);
+
+          h += rowH;
+        }
+      } else {
+        h += rowH * rows.length;
+      }
+      return h;
+    });
+  }
+
   /** A circular logo (or an initials fallback, when there's no avatar or it failed to load) with the team's name beneath it — always the same height for a given avatar radius, so measure and paint passes can never disagree. */
   private teamColumn(paint: boolean, cx: number, y: number, colWidth: number, avatarR: number, team: MatchupTeam, opts: TeamColumnOpts): number {
     if (paint) {
-      const ctx = this.ctx;
       const img = team.avatarUrl ? (this.gctx.images.get(team.avatarUrl) ?? null) : null;
-      ctx.save();
-      ctx.globalAlpha = opts.alpha;
-      if (opts.ring) {
-        ctx.beginPath();
-        ctx.arc(cx, y + avatarR, avatarR + 5, 0, Math.PI * 2);
-        ctx.fillStyle = COLOR.accent;
-        ctx.fill();
-      }
-      ctx.beginPath();
-      ctx.arc(cx, y + avatarR, avatarR, 0, Math.PI * 2);
-      ctx.closePath();
-      ctx.clip();
-      if (img) {
-        ctx.drawImage(img, cx - avatarR, y, avatarR * 2, avatarR * 2);
-      } else {
-        ctx.fillStyle = "#2c261c";
-        ctx.fillRect(cx - avatarR, y, avatarR * 2, avatarR * 2);
-        ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
-        ctx.font = `800 ${Math.round(avatarR)}px ${FONT_STACK}`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(initialsFor(team.name), cx, y + avatarR + 2);
-      }
-      ctx.restore();
+      drawAvatarCircle(this.ctx, cx, y + avatarR, avatarR, img, team.name, { ring: opts.ring, alpha: opts.alpha });
     }
     let h = avatarR * 2 + 12;
     h += drawText(this.ctx, paint, cx, y + h, colWidth, team.name, {
@@ -387,12 +632,24 @@ class Layout {
   }
 }
 
+const PLACEHOLDER_MATCHUP: DecidedMatchup = {
+  bowlName: "[Bowl Game Name]",
+  winner: { name: "[Team 1]", avatarUrl: null },
+  loser: { name: "[Team 2]", avatarUrl: null },
+};
+
+const PLACEHOLDER_PREVIEW: PreviewMatchup = {
+  bowlName: "[Bowl Game Name]",
+  teamA: { name: "[Team 1]", avatarUrl: null },
+  teamB: { name: "[Team 2]", avatarUrl: null },
+};
+
 function runLayout(
   ctx: CanvasRenderingContext2D,
   header: string,
   model: RecapModel | null,
   restBody: string,
-  matchups: RecapGraphicMatchups,
+  matchups: RecapGraphicExtras,
   gctx: GraphicContext,
   paint: boolean
 ): number {
@@ -421,18 +678,13 @@ function runLayout(
   l.space(34);
 
   if (model) {
-    if (matchups.bowl) l.decidedMatchup(matchups.bowl);
-    else l.statCard(model.bowlResult, model.bowlDetail);
-
-    if (matchups.honorable) l.decidedMatchup(matchups.honorable);
-    else l.statCard(model.honorableResult, model.honorableDetail);
-
-    l.statCard(model.highScorer, model.highScorerDetail);
-    l.listCard(RECAP_HEADERS.winners, model.winners);
-    l.listCard(RECAP_HEADERS.lastWeek, model.lastWeek);
-    l.listCard(RECAP_HEADERS.standings, model.standings);
-
-    if (matchups.upcoming) l.previewMatchup(RECAP_HEADERS.upcomingBowl, matchups.upcoming);
+    l.decidedMatchup(matchups.bowl ?? PLACEHOLDER_MATCHUP);
+    l.decidedMatchup(matchups.honorable ?? PLACEHOLDER_MATCHUP);
+    l.highScorerChart(parseScoreboardRows(model.lastWeek), [model.highScorer, model.highScorerDetail]);
+    l.winnersPodium(RECAP_HEADERS.winners, parseWinners(model.winners));
+    l.lastWeekTable(RECAP_HEADERS.lastWeek, parseScoreboardRows(model.lastWeek));
+    l.standingsStacks(RECAP_HEADERS.standings, parseStandingsRows(model.standings));
+    l.previewMatchup(RECAP_HEADERS.upcomingBowl, matchups.upcoming ?? PLACEHOLDER_PREVIEW);
   } else if (restBody.trim()) {
     l.text(restBody, { size: 19, color: COLOR.secondary, lineHeight: 27 });
     l.space(20);
@@ -495,20 +747,24 @@ async function ensureDisplayFont(family: string | undefined): Promise<string> {
  * joinRecapModel) onto `canvas`, sized to fit the content, so the caller
  * should create it fresh and not assume a fixed height. The header is
  * always `body`'s own first line — never a separately-composed title — and
- * every list section header is one of the write-up's own literal header
- * lines (RECAP_HEADERS). `model` renders every structured section; a league
+ * every section header is either that same first-line convention (the bowl
+ * results) or one of the write-up's own literal header lines
+ * (RECAP_HEADERS, for the podium/chart/stacks/table sections and the
+ * upcoming matchup). `model` renders every structured section; a league
  * without the structured house style falls back to the rest of `body` as a
  * single block of text. `matchups` supplies the poster-card data (team
- * names, logos, and — for a decided game — which team won); a matchup left
- * out or null falls back to the plain result card. Async because it has to
- * wait for the display font and any team logos to finish loading before it
- * can lay anything out.
+ * names, logos, and — for a decided game — which team won) and the
+ * name -> logo lookup the other sections use; anything missing renders as
+ * bracketed placeholders rather than being skipped, so the graphic can be
+ * previewed before there's real data to show. Async because it has to wait
+ * for the display font and any team logos to finish loading before it can
+ * lay anything out.
  */
 export async function drawRecapGraphic(
   canvas: HTMLCanvasElement,
   body: string,
   model: RecapModel | null,
-  matchups: RecapGraphicMatchups = {}
+  matchups: RecapGraphicExtras = {}
 ): Promise<void> {
   const lines = body.split("\n");
   const header = lines[0] ?? "";
@@ -521,9 +777,10 @@ export async function drawRecapGraphic(
     matchups.honorable?.loser.avatarUrl,
     matchups.upcoming?.teamA.avatarUrl,
     matchups.upcoming?.teamB.avatarUrl,
+    ...Object.values(matchups.avatarByName ?? {}),
   ];
   const [images, displayFamily] = await Promise.all([preloadImages(avatarUrls), ensureDisplayFont(matchups.displayFontFamily)]);
-  const gctx: GraphicContext = { images, displayFamily };
+  const gctx: GraphicContext = { images, displayFamily, avatarByName: matchups.avatarByName };
 
   const measureCtx = document.createElement("canvas").getContext("2d");
   if (!measureCtx) throw new Error("Couldn't measure the graphic — canvas isn't supported here.");
