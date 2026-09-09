@@ -93,7 +93,7 @@ export function RecapEditor({
     setDocError(null);
     try {
       const accessToken = await getGoogleAccessToken(googleClientId, DOCS_SCOPE);
-      await appendWriteupToDoc(writeupDocId, body, accessToken);
+      await appendWriteupToDoc(writeupDocId, body, accessToken, season);
       setDocStatus("saved");
       setTimeout(() => setDocStatus("idle"), 2500);
     } catch (err) {
