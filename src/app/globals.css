@@ -28,13 +28,15 @@
 
   /* Kickoff-time gradient for the week map: cool/dark (earliest games) to
      warm/light (latest), swept blue -> violet -> magenta -> coral so no two
-     adjacent stops mix into mud the way opposite hues do. */
-  --kickoff-1: #2171cc;
-  --kickoff-2: #7069d5;
-  --kickoff-3: #a263c9;
-  --kickoff-4: #c960ac;
-  --kickoff-5: #e46584;
-  --kickoff-6: #f07456;
+     adjacent stops mix into mud the way opposite hues do. Both hue AND
+     lightness move across the run (not just hue) so steps stay easier to
+     tell apart at a glance, not just under close comparison. */
+  --kickoff-1: #195daa;
+  --kickoff-2: #635dbe;
+  --kickoff-3: #9a5ebf;
+  --kickoff-4: #ca61ad;
+  --kickoff-5: #f06a8b;
+  --kickoff-6: #ff7f5d;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -64,12 +66,12 @@
     --status-critical: #d03b3b;
     --success-text: #0ca30c;
 
-    --kickoff-1: #337bd0;
-    --kickoff-2: #7772d7;
-    --kickoff-3: #a56bca;
-    --kickoff-4: #c968ae;
-    --kickoff-5: #e26b87;
-    --kickoff-6: #ec785b;
+    --kickoff-1: #2971c6;
+    --kickoff-2: #756fd8;
+    --kickoff-3: #ad6dd5;
+    --kickoff-4: #de6ebf;
+    --kickoff-5: #ff7698;
+    --kickoff-6: #ff8a66;
   }
 }
 

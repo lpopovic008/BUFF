@@ -130,7 +130,10 @@ export default function DashboardPage() {
     const startersByGameId = new Map(grouped.games.map((g) => [g.game.id, g.players]));
     return weekGames.map((game) => {
       const players = startersByGameId.get(game.id) ?? [];
-      return { game, playerCount: players.length, starterNames: players.map((p) => p.name) };
+      return {
+        game,
+        starters: players.map((p) => ({ playerId: p.playerId, name: p.name, leagueIds: p.leagueIds })),
+      };
     });
   }, [weekGames, grouped.games]);
 
@@ -209,7 +212,7 @@ export default function DashboardPage() {
           <h2 className="mb-3 px-3 text-sm font-semibold uppercase tracking-wide text-ink-muted sm:px-6">
             Week {week} around the league
           </h2>
-          <GameMap games={mappedGames} />
+          <GameMap games={mappedGames} legend={legend} />
         </div>
       ) : null}
 

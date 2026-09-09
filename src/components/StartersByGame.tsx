@@ -1,30 +1,10 @@
 "use client";
 
 import { formatGameHeader, GameStarters, groupGamesByTimeBlock, GroupedStarter } from "@/lib/my-starters";
-import { leagueColor } from "@/lib/game-map";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
+import { LeagueLegendEntry, LeagueMark } from "./LeagueMark";
 
-export interface LeagueLegendEntry {
-  leagueId: string;
-  leagueName: string;
-  /** Position in the tracked-league list — the fallback colour when a league has no logo. */
-  colorIndex: number;
-  /** The league's own Sleeper avatar, if the commish set one. Null falls back to a colour dot. */
-  leagueAvatar: string | null;
-}
-
-/** A league's mark — its own logo when it has one, otherwise the same colour dot the legend used before. */
-function LeagueMark({ league, className }: { league: LeagueLegendEntry | undefined; className: string }) {
-  if (league?.leagueAvatar) {
-    return <img src={league.leagueAvatar} alt="" className={`shrink-0 rounded-full object-cover ${className}`} />;
-  }
-  return (
-    <span
-      className={`shrink-0 rounded-full ${className}`}
-      style={{ backgroundColor: leagueColor(league?.colorIndex ?? 0) }}
-    />
-  );
-}
+export type { LeagueLegendEntry };
 
 function PlayerRow({
   player,
@@ -108,7 +88,7 @@ export function StartersByGame({
         </p>
       ) : (
         <>
-          <div className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:px-7 [&::-webkit-scrollbar]:hidden">
+          <div className="-mx-1 flex snap-x snap-mandatory justify-center gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:justify-start sm:px-7 [&::-webkit-scrollbar]:hidden">
             {columns.map((column) => (
               <div key={column.label} className="flex w-[31%] shrink-0 snap-start flex-col gap-3 sm:w-[200px]">
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
