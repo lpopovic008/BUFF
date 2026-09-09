@@ -1,24 +1,37 @@
-// Draws the current week's recap — the write-up and every stat in it — as a
-// single shareable graphic, so it can be copied to the clipboard as an image
-// (see RecapEditor's "Copy graphic" button) instead of only as text. Pure
-// canvas 2D drawing, no DOM/layout dependency beyond the canvas itself, so
-// it renders the same regardless of the viewer's own theme — this is a
-// fixed-look card, not a reactive page.
+// Draws the recap as a single shareable poster — the write-up's own first
+// line as the header (never an invented one), every result as its own card
+// headed by nothing but its own first line, and the list sections headed by
+// the write-up's real header lines (RECAP_HEADERS) — so it can be copied to
+// the clipboard as an image (see RecapEditor's "Copy graphic" button)
+// instead of only as text. Pure canvas 2D drawing, no DOM/layout dependency
+// beyond the canvas itself, and not theme-reactive — this is a fixed-look
+// card, not a live page.
 
-import { RecapModel } from "./recap-model";
+import { RecapModel, RECAP_HEADERS } from "./recap-model";
 
 const WIDTH = 1080;
-const PADDING = 64;
+const PADDING = 56;
 const CONTENT_WIDTH = WIDTH - PADDING * 2;
 
+const CARD_RADIUS = 16;
+const CARD_PAD_X = 28;
+const CARD_PAD_Y = 24;
+const CARD_GAP = 18;
+const ACCENT_BAR_W = 5;
+const TEXT_INSET = ACCENT_BAR_W + 22;
+
 const COLOR = {
-  bg: "#0d0d0d",
+  bgTop: "#181410",
+  bgBottom: "#0a0908",
+  card: "rgba(255, 255, 255, 0.045)",
+  cardBorder: "rgba(255, 255, 255, 0.09)",
   hairline: "rgba(255, 255, 255, 0.12)",
   primary: "#ffffff",
-  secondary: "#c3c2b7",
-  muted: "#898781",
+  secondary: "#c9c7bc",
+  muted: "#87857c",
   accent: "#eb6834",
-  good: "#0ca30c",
+  accentInk: "#1a1208",
+  heroBorder: "rgba(235, 104, 52, 0.5)",
 };
 
 const FONT_STACK = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
@@ -45,7 +58,55 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
   return lines;
 }
 
-/** One block of drawing work, always measured and only actually painted when `paint` is true — keeps the two passes (measure the total height, then draw at that height) from ever disagreeing. */
+function roundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  const rr = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rr);
+  ctx.arcTo(x + w, y + h, x, y + h, rr);
+  ctx.arcTo(x, y + h, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
+  ctx.closePath();
+}
+
+interface TextOpts {
+  size: number;
+  color: string;
+  weight?: string;
+  style?: string;
+  lineHeight?: number;
+  align?: "left" | "center";
+}
+
+/** Wraps and, when `paint` is true, actually draws one block of text — always returning the height it took up, so the measure pass and the paint pass can never disagree about where the next thing goes. */
+function drawText(
+  ctx: CanvasRenderingContext2D,
+  paint: boolean,
+  x: number,
+  y: number,
+  maxWidth: number,
+  text: string,
+  opts: TextOpts
+): number {
+  if (!text) return 0;
+  const { size, color, weight = "400", style = "normal", align = "left" } = opts;
+  const lineHeight = opts.lineHeight ?? size * 1.3;
+  ctx.font = `${style} ${weight} ${size}px ${FONT_STACK}`;
+  const lines = wrapText(ctx, text, maxWidth);
+  if (paint) {
+    ctx.fillStyle = color;
+    ctx.textAlign = align;
+    ctx.textBaseline = "alphabetic";
+    let cy = y;
+    for (const line of lines) {
+      ctx.fillText(line, x, cy + size);
+      cy += lineHeight;
+    }
+  }
+  return lines.length * lineHeight;
+}
+
+/** One vertical cursor shared by every section. Each card measures its own content once (regardless of `paint`) to size itself, then — only when actually painting — draws its background before its text, so nothing is ever painted over an unsized box. */
 class Layout {
   y = PADDING;
   constructor(
@@ -57,96 +118,262 @@ class Layout {
     this.y += px;
   }
 
-  rule() {
-    if (this.paint) {
-      this.ctx.strokeStyle = COLOR.hairline;
-      this.ctx.lineWidth = 1;
-      this.ctx.beginPath();
-      this.ctx.moveTo(PADDING, this.y);
-      this.ctx.lineTo(WIDTH - PADDING, this.y);
-      this.ctx.stroke();
-    }
-    this.space(32);
+  text(text: string, opts: TextOpts) {
+    this.y += drawText(this.ctx, this.paint, PADDING, this.y, CONTENT_WIDTH, text, opts);
   }
 
-  text(value: string, opts: { size: number; color: string; weight?: string; style?: string; lineHeight?: number }) {
-    if (!value) return;
-    const { size, color, weight = "400", style = "normal" } = opts;
-    const lineHeight = opts.lineHeight ?? size * 1.35;
-    this.ctx.font = `${style} ${weight} ${size}px ${FONT_STACK}`;
-    const lines = wrapText(this.ctx, value, CONTENT_WIDTH);
-    if (this.paint) {
-      this.ctx.fillStyle = color;
-      this.ctx.textBaseline = "alphabetic";
-      for (const line of lines) {
-        this.ctx.fillText(line, PADDING, this.y + size);
-        this.y += lineHeight;
+  /** A card whose only "header" is the section's own first line — no separate invented label above it. */
+  statCard(resultLine: string, detailLine: string) {
+    if (!resultLine.trim()) return;
+    this.card((paint, inner) => {
+      let h = drawText(this.ctx, paint, inner.x, inner.y, inner.width, resultLine, {
+        size: 25,
+        weight: "700",
+        color: COLOR.primary,
+        lineHeight: 32,
+      });
+      if (detailLine.trim()) {
+        h += 8;
+        h += drawText(this.ctx, paint, inner.x, inner.y + h, inner.width, detailLine, {
+          size: 18,
+          style: "italic",
+          color: COLOR.secondary,
+          lineHeight: 25,
+        });
       }
-    } else {
-      this.y += lineHeight * lines.length;
+      return h;
+    });
+  }
+
+  /** A card headed by one of the write-up's own literal header lines (RECAP_HEADERS) — never a shortened stand-in for it. */
+  listCard(header: string, body: string) {
+    const rows = body.split("\n").filter((line) => line.trim() !== "");
+    if (rows.length === 0) return;
+    this.card((paint, inner) => {
+      let h = drawText(this.ctx, paint, inner.x, inner.y, inner.width, header, {
+        size: 15,
+        weight: "700",
+        color: COLOR.accent,
+        lineHeight: 20,
+      });
+      h += 10;
+      for (const row of rows) {
+        h += drawText(this.ctx, paint, inner.x, inner.y + h, inner.width, row, {
+          size: 19,
+          color: COLOR.secondary,
+          lineHeight: 26,
+        });
+      }
+      return h;
+    });
+  }
+
+  /** The upcoming marquee game, poster-style: the bowl name, then the two teams stacked around a VS badge — the same "🥇 Matchup of the Week:" header the write-up itself uses. */
+  heroMatchup(header: string, bowlName: string, teamA: string, teamB: string, stats: string[]) {
+    this.heroCard((paint, inner) => {
+      const cx = inner.x + inner.width / 2;
+      let h = drawText(this.ctx, paint, cx, inner.y, inner.width, header, {
+        size: 14,
+        weight: "700",
+        color: COLOR.accent,
+        lineHeight: 18,
+        align: "center",
+      });
+      h += 12;
+      h += drawText(this.ctx, paint, cx, inner.y + h, inner.width, bowlName, {
+        size: 30,
+        weight: "800",
+        color: COLOR.primary,
+        lineHeight: 38,
+        align: "center",
+      });
+      h += 20;
+      h += drawText(this.ctx, paint, cx, inner.y + h, inner.width, teamA, {
+        size: 25,
+        weight: "700",
+        color: COLOR.primary,
+        lineHeight: 32,
+        align: "center",
+      });
+      h += 6;
+      const badgeR = 20;
+      if (paint) {
+        this.ctx.beginPath();
+        this.ctx.arc(cx, inner.y + h + badgeR, badgeR, 0, Math.PI * 2);
+        this.ctx.fillStyle = COLOR.accent;
+        this.ctx.fill();
+        this.ctx.fillStyle = COLOR.accentInk;
+        this.ctx.font = `800 13px ${FONT_STACK}`;
+        this.ctx.textAlign = "center";
+        this.ctx.textBaseline = "middle";
+        this.ctx.fillText("VS", cx, inner.y + h + badgeR + 1);
+      }
+      h += badgeR * 2 + 6;
+      h += drawText(this.ctx, paint, cx, inner.y + h, inner.width, teamB, {
+        size: 25,
+        weight: "700",
+        color: COLOR.primary,
+        lineHeight: 32,
+        align: "center",
+      });
+      if (stats.length > 0) {
+        h += 18;
+        for (const line of stats) {
+          h += drawText(this.ctx, paint, cx, inner.y + h, inner.width, line, {
+            size: 14,
+            color: COLOR.muted,
+            lineHeight: 19,
+            align: "center",
+          });
+        }
+      }
+      return h;
+    });
+  }
+
+  private card(render: (paint: boolean, inner: { x: number; y: number; width: number }) => number) {
+    const innerX = PADDING + TEXT_INSET;
+    const innerWidth = CONTENT_WIDTH - TEXT_INSET - CARD_PAD_X;
+    const innerHeight = render(false, { x: innerX, y: 0, width: innerWidth });
+    const cardHeight = innerHeight + CARD_PAD_Y * 2;
+
+    if (this.paint) {
+      const ctx = this.ctx;
+      roundRectPath(ctx, PADDING, this.y, CONTENT_WIDTH, cardHeight, CARD_RADIUS);
+      ctx.save();
+      ctx.clip();
+      ctx.fillStyle = COLOR.card;
+      ctx.fillRect(PADDING, this.y, CONTENT_WIDTH, cardHeight);
+      ctx.fillStyle = COLOR.accent;
+      ctx.fillRect(PADDING, this.y, ACCENT_BAR_W, cardHeight);
+      ctx.restore();
+
+      roundRectPath(ctx, PADDING, this.y, CONTENT_WIDTH, cardHeight, CARD_RADIUS);
+      ctx.strokeStyle = COLOR.cardBorder;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      render(true, { x: innerX, y: this.y + CARD_PAD_Y, width: innerWidth });
     }
+
+    this.y += cardHeight + CARD_GAP;
   }
 
-  sectionHeader(label: string) {
-    this.text(label, { size: 22, weight: "700", color: COLOR.accent });
-    this.space(6);
+  private heroCard(render: (paint: boolean, inner: { x: number; y: number; width: number }) => number) {
+    const padX = CARD_PAD_X + 8;
+    const padY = CARD_PAD_Y + 10;
+    const innerX = PADDING + padX;
+    const innerWidth = CONTENT_WIDTH - padX * 2;
+    const innerHeight = render(false, { x: innerX, y: 0, width: innerWidth });
+    const cardHeight = innerHeight + padY * 2;
+
+    if (this.paint) {
+      const ctx = this.ctx;
+      roundRectPath(ctx, PADDING, this.y, CONTENT_WIDTH, cardHeight, CARD_RADIUS + 4);
+      const grad = ctx.createLinearGradient(0, this.y, 0, this.y + cardHeight);
+      grad.addColorStop(0, "rgba(235, 104, 52, 0.20)");
+      grad.addColorStop(1, "rgba(235, 104, 52, 0.05)");
+      ctx.fillStyle = grad;
+      ctx.fill();
+      ctx.strokeStyle = COLOR.heroBorder;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      render(true, { x: innerX, y: this.y + padY, width: innerWidth });
+    }
+
+    this.y += cardHeight + CARD_GAP + 6;
   }
 }
 
-function drawSection(l: Layout, header: string, result: string, detail: string) {
-  if (!result.trim()) return;
-  l.sectionHeader(header);
-  l.text(result, { size: 30, weight: "700", color: COLOR.primary, lineHeight: 38 });
-  l.space(4);
-  l.text(detail, { size: 20, style: "italic", color: COLOR.secondary, lineHeight: 27 });
-  l.space(32);
+/** Pulls the bowl name and the two teams out of the upcoming-matchup preview block (see bowl-narrative.ts's formatUpcomingBowlBlock) — null until a real pick replaces the "[Week N Bowl Game Name]" / "[team 1] vs [team 2]" placeholders, so the hero card only appears once there's an actual matchup to show. */
+function parseMatchup(upcomingBowlLines: string): { bowlName: string; teamA: string; teamB: string; stats: string[] } | null {
+  const rows = upcomingBowlLines.split("\n").filter((line) => line.trim() !== "");
+  if (rows.length < 2) return null;
+  const [bowlName, matchup, ...stats] = rows;
+  const match = matchup.match(/^(.+?)\s+vs\s+(.+)$/);
+  if (!match) return null;
+  const teamA = match[1].trim();
+  const teamB = match[2].trim();
+  if (!bowlName.trim() || bowlName.startsWith("[") || teamA.startsWith("[") || teamB.startsWith("[")) return null;
+  return { bowlName: bowlName.trim(), teamA, teamB, stats };
 }
 
-function drawList(l: Layout, header: string, body: string) {
-  const rows = body.split("\n").filter((line) => line.trim() !== "");
-  if (rows.length === 0) return;
-  l.sectionHeader(header);
-  for (const row of rows) {
-    l.text(row, { size: 20, color: COLOR.secondary, lineHeight: 28 });
-  }
-  l.space(32);
-}
-
-function runLayout(ctx: CanvasRenderingContext2D, title: string, model: RecapModel | null, plainBody: string, paint: boolean): number {
+function runLayout(ctx: CanvasRenderingContext2D, header: string, model: RecapModel | null, restBody: string, paint: boolean): number {
   const l = new Layout(ctx, paint);
 
-  l.text(title, { size: 40, weight: "700", color: COLOR.primary, lineHeight: 50 });
-  l.space(28);
-  l.rule();
+  const badgeW = 92;
+  const badgeH = 32;
+  if (paint) {
+    roundRectPath(ctx, PADDING, l.y, badgeW, badgeH, 8);
+    ctx.fillStyle = COLOR.accent;
+    ctx.fill();
+    ctx.fillStyle = COLOR.accentInk;
+    ctx.font = `800 15px ${FONT_STACK}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("BUFF", PADDING + badgeW / 2, l.y + badgeH / 2 + 1);
+  }
+  l.space(badgeH + 24);
+
+  l.text(header, { size: 38, weight: "800", color: COLOR.primary, lineHeight: 46 });
+  l.space(14);
+  if (paint) {
+    ctx.fillStyle = COLOR.accent;
+    ctx.fillRect(PADDING, l.y, 64, 5);
+  }
+  l.space(34);
 
   if (model) {
-    drawSection(l, "👑 BOWL OF THE WEEK", model.bowlResult, model.bowlDetail);
-    drawSection(l, "🏆 HONORABLE MENTION", model.honorableResult, model.honorableDetail);
-    drawSection(l, "📈 HIGH SCORER", model.highScorer, model.highScorerDetail);
-    drawList(l, "🤑 WINNERS THIS WEEK", model.winners);
-    drawList(l, "🗓️ LAST WEEK RESULTS", model.lastWeek);
-    drawList(l, "💰 UPDATED STANDINGS", model.standings);
-  } else {
-    l.text(plainBody, { size: 20, color: COLOR.secondary, lineHeight: 28 });
-    l.space(32);
+    const matchup = parseMatchup(model.upcomingBowlLines);
+    if (matchup) {
+      l.heroMatchup(RECAP_HEADERS.upcomingBowl, matchup.bowlName, matchup.teamA, matchup.teamB, matchup.stats);
+    }
+    l.statCard(model.bowlResult, model.bowlDetail);
+    l.statCard(model.honorableResult, model.honorableDetail);
+    l.statCard(model.highScorer, model.highScorerDetail);
+    l.listCard(RECAP_HEADERS.winners, model.winners);
+    l.listCard(RECAP_HEADERS.lastWeek, model.lastWeek);
+    l.listCard(RECAP_HEADERS.standings, model.standings);
+  } else if (restBody.trim()) {
+    l.text(restBody, { size: 19, color: COLOR.secondary, lineHeight: 27 });
+    l.space(20);
   }
 
-  l.rule();
-  l.text("BUFF", { size: 16, weight: "700", color: COLOR.muted });
+  if (paint) {
+    ctx.strokeStyle = COLOR.hairline;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(PADDING, l.y);
+    ctx.lineTo(WIDTH - PADDING, l.y);
+    ctx.stroke();
+  }
+  l.space(28);
+  l.text("BUFF · Fantasy Recap", { size: 14, weight: "700", color: COLOR.muted });
 
   return l.y + PADDING;
 }
 
 /**
- * Renders the recap onto `canvas` (sized to fit the content, so the caller
- * should create it fresh and not assume a fixed height). `model` renders
- * every structured stat section; a league without the structured house
- * style falls back to `plainBody` as a single block of text.
+ * Renders `body` (exactly what gets saved/copied/posted — see
+ * joinRecapModel) onto `canvas`, sized to fit the content, so the caller
+ * should create it fresh and not assume a fixed height. The header is
+ * always `body`'s own first line — never a separately-composed title — and
+ * every section header is either that same first-line convention (the
+ * result cards) or one of the write-up's own literal header lines
+ * (RECAP_HEADERS, for the list cards and the upcoming matchup). `model`
+ * renders every structured section, including the upcoming marquee
+ * matchup as a poster-style hero card; a league without the structured
+ * house style falls back to the rest of `body` as a single block of text.
  */
-export function drawRecapGraphic(canvas: HTMLCanvasElement, title: string, model: RecapModel | null, plainBody: string): void {
+export function drawRecapGraphic(canvas: HTMLCanvasElement, body: string, model: RecapModel | null): void {
+  const lines = body.split("\n");
+  const header = lines[0] ?? "";
+  const restBody = model ? "" : lines.slice(1).join("\n").replace(/^\n+/, "");
+
   const measureCtx = document.createElement("canvas").getContext("2d");
   if (!measureCtx) throw new Error("Couldn't measure the graphic — canvas isn't supported here.");
-  const height = runLayout(measureCtx, title, model, plainBody, false);
+  const height = runLayout(measureCtx, header, model, restBody, false);
 
   const scale = 2; // draw at 2x for a crisp image on high-density screens
   canvas.width = WIDTH * scale;
@@ -155,7 +382,11 @@ export function drawRecapGraphic(canvas: HTMLCanvasElement, title: string, model
   if (!ctx) throw new Error("Couldn't draw the graphic — canvas isn't supported here.");
   ctx.scale(scale, scale);
 
-  ctx.fillStyle = COLOR.bg;
+  const grad = ctx.createLinearGradient(0, 0, 0, height);
+  grad.addColorStop(0, COLOR.bgTop);
+  grad.addColorStop(1, COLOR.bgBottom);
+  ctx.fillStyle = grad;
   ctx.fillRect(0, 0, WIDTH, height);
-  runLayout(ctx, title, model, plainBody, true);
+
+  runLayout(ctx, header, model, restBody, true);
 }

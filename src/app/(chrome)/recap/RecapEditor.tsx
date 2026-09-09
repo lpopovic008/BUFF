@@ -69,7 +69,7 @@ export function RecapEditor({
     setGraphicError(null);
     try {
       const canvas = document.createElement("canvas");
-      drawRecapGraphic(canvas, title, model, plainBody);
+      drawRecapGraphic(canvas, body, model);
       // Passed as a Promise (not awaited first) rather than an already-resolved
       // Blob — Safari ties clipboard-write permission to the triggering click,
       // and only accepts that if ClipboardItem gets the still-pending promise.
