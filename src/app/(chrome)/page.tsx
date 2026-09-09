@@ -121,8 +121,11 @@ export default function DashboardPage() {
   );
 
   const mappedGames = useMemo<MappedGame[]>(() => {
-    const countByGameId = new Map(grouped.games.map((g) => [g.game.id, g.players.length]));
-    return weekGames.map((game) => ({ game, playerCount: countByGameId.get(game.id) ?? 0 }));
+    const startersByGameId = new Map(grouped.games.map((g) => [g.game.id, g.players]));
+    return weekGames.map((game) => {
+      const players = startersByGameId.get(game.id) ?? [];
+      return { game, playerCount: players.length, starterNames: players.map((p) => p.name) };
+    });
   }, [weekGames, grouped.games]);
 
   if (bootstrapping) {

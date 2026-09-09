@@ -21,12 +21,12 @@ function PlayerRow({
     .map((id) => legendByLeagueId.get(id)?.leagueName ?? id)
     .join(", ");
   return (
-    <div className="flex items-baseline gap-2 px-2 py-1" title={`${player.name} — ${leagueNames}`}>
-      <span className="w-8 shrink-0 text-[10px] font-medium uppercase tracking-wide text-ink-muted">
-        {player.position}
+    <div className="flex flex-col px-2 py-1" title={`${player.name} — ${leagueNames}`}>
+      <span className="break-words text-[11px] leading-tight text-ink-primary">{player.name}</span>
+      <span className="flex items-center gap-1 text-[9px] uppercase tracking-wide text-ink-muted">
+        <span>{player.position}</span>
+        <span>{player.team}</span>
       </span>
-      <span className="min-w-0 flex-1 truncate text-sm text-ink-primary">{player.name}</span>
-      <span className="shrink-0 text-[10px] uppercase tracking-wide text-ink-muted">{player.team}</span>
     </div>
   );
 }
