@@ -19,9 +19,9 @@ function PlayerRow({
     .map((id) => legendByLeagueId.get(id)?.leagueName ?? id)
     .join(", ");
   return (
-    <div className="flex flex-col py-1" title={`${player.name} — ${leagueNames}`}>
+    <div className="flex flex-col py-0.5" title={`${player.name} — ${leagueNames}`}>
       <span className="break-words text-[11px] leading-tight text-ink-primary">{player.name}</span>
-      <span className="flex items-center gap-1 text-[9px] uppercase tracking-wide text-ink-muted">
+      <span className="flex items-center gap-0.5 text-[9px] uppercase tracking-wide text-ink-muted">
         <span className={POSITION_TEXT_COLOR[player.position] ?? "text-ink-muted"}>{player.position}</span>
         <span>{player.team}</span>
         <span className="flex items-center gap-0.5">
@@ -37,7 +37,7 @@ function PlayerRow({
 /** Every game header the same shape: team abbreviations on their own line, kickoff time/day smaller and grey underneath — never sharing a line, however narrow the column. */
 function GameHeader({ game }: { game: NFLGame }) {
   return (
-    <h3 className="flex flex-col">
+    <h3 className="flex flex-col leading-tight">
       <span className="text-xs font-semibold uppercase tracking-wide text-ink-primary">
         {formatTeamMatchup(game)}
       </span>
@@ -126,19 +126,19 @@ export function StartersByGame({
         <>
           <div
             ref={scrollerRef}
-            className={`-mx-1 flex gap-1.5 overflow-x-auto px-3 pb-1 [scrollbar-width:none] sm:gap-3 sm:px-6 [&::-webkit-scrollbar]:hidden ${
+            className={`-mx-1 flex gap-1 overflow-x-auto px-2 pb-1 [scrollbar-width:none] sm:gap-2 sm:px-5 [&::-webkit-scrollbar]:hidden ${
               centered ? "justify-center" : "justify-start"
             }`}
           >
             {columns.map((column) => (
-              <div key={column.label} className="flex w-[32.5%] shrink-0 flex-col gap-3 sm:w-[200px]">
+              <div key={column.label} className="flex w-[33.5%] shrink-0 flex-col gap-1.5 sm:w-[190px]">
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
                   {column.label}
                 </span>
                 {column.games.map(({ game, players }) => (
-                  <div key={game.id} className="flex flex-col gap-1.5 border border-grid p-2">
+                  <div key={game.id} className="flex flex-col gap-1 border border-grid p-1.5">
                     <GameHeader game={game} />
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-0.5">
                       {players.map((player) => (
                         <PlayerRow key={player.playerId} player={player} legendByLeagueId={legendByLeagueId} />
                       ))}
