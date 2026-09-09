@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
@@ -15,7 +15,15 @@ import {
   RecapDetails,
 } from "@/lib/format-recap";
 import { RecapModel, parseRecapModel } from "@/lib/recap-model";
-import { formatBowlResultLine, formatUpcomingBowlBlock, formatUpcomingHonorableBlock } from "@/lib/bowl-narrative";
+import {
+  formatBowlResultLine,
+  formatUpcomingBowlBlock,
+  formatUpcomingHonorableBlock,
+  resolveBowlMatchup,
+  resolveBowlMatchupPreview,
+  BowlMatchupResult,
+  BowlMatchupPreview,
+} from "@/lib/bowl-narrative";
 import { loadLeagueMoney, LeagueMoney } from "@/lib/league-money";
 import { summarizeWeek } from "@/lib/payouts";
 import { getRecap, getBowlPicks, RecapBowlPicks, SavedRecap } from "@/lib/localStore";
@@ -97,11 +105,25 @@ function RecapContent() {
   const [upcomingPicks, setUpcomingPicks] = useState<RecapBowlPicks | null>(null);
   const [teamNames, setTeamNames] = useState<Record<number, string>>({});
   const [highScorerNames, setHighScorerNames] = useState<Record<string, string>>({});
+  // The same bowl-of-the-week/honorable-mention picks as structured data (who
+  // actually won, not just the sentence) — feeds the recap graphic's poster
+  // cards, which need to tell winner from loser to style and label them
+  // apart. Null wherever the flat text also falls back to brackets.
+  const [bowlMatchup, setBowlMatchup] = useState<BowlMatchupResult | null>(null);
+  const [honorableMatchup, setHonorableMatchup] = useState<BowlMatchupResult | null>(null);
+  const [upcomingBowlPreview, setUpcomingBowlPreview] = useState<BowlMatchupPreview | null>(null);
 
   // Feeds the bowl-pick team selects — a league-wide roster dump, loaded lazily
   // (the picker shows "Loading teams…" until ready) and needed for both regular
   // weeks and the Preseason page's own "Upcoming Week 1" picker.
   const teamOptions = useLeagueTeams(leagueId);
+  // Roster id -> name/logo, for the recap graphic's poster cards. Reuses the
+  // same fetch the bowl-pick team pickers already make — no extra network call.
+  const teamsById = useMemo(() => {
+    const map: Record<number, { name: string; avatar: string | null }> = {};
+    for (const t of teamOptions ?? []) map[t.rosterId] = { name: t.teamName, avatar: t.avatar };
+    return map;
+  }, [teamOptions]);
   const { config } = useConfig();
   const googleClientId = resolveGoogleClientId(config.googleClientId);
 
@@ -126,6 +148,9 @@ function RecapContent() {
       setUpcomingPicks(null);
       setTeamNames({});
       setHighScorerNames({});
+      setBowlMatchup(null);
+      setHonorableMatchup(null);
+      setUpcomingBowlPreview(null);
       setError(null);
       try {
         if (week === PRESEASON_WEEK) {
@@ -149,6 +174,7 @@ function RecapContent() {
 
             const upcoming = getBowlPicks(leagueId, league.season, PRESEASON_WEEK + 1);
             setUpcomingPicks(upcoming);
+            setUpcomingBowlPreview(resolveBowlMatchupPreview(upcoming.bowlOfWeek));
             const fresh = buildPreseasonRecapModel({
               leagueName: league.name,
               season: league.season,
@@ -198,6 +224,9 @@ function RecapContent() {
           const resultPick = getBowlPicks(leagueId, data.league.season, week);
           const upcoming = getBowlPicks(leagueId, data.league.season, week + 1);
           setUpcomingPicks(upcoming);
+          setBowlMatchup(resolveBowlMatchup(resultPick.bowlOfWeek, data.games));
+          setHonorableMatchup(resolveBowlMatchup(resultPick.honorableBowl, data.games));
+          setUpcomingBowlPreview(resolveBowlMatchupPreview(upcoming.bowlOfWeek));
 
           const summary = summarizeWeek(leagueMoney.ledger, week);
           const leaderIds = summary?.highScorer
@@ -237,6 +266,7 @@ function RecapContent() {
 
   function handlePicksSaved(picks: RecapBowlPicks) {
     setUpcomingPicks(picks);
+    setUpcomingBowlPreview(resolveBowlMatchupPreview(picks.bowlOfWeek));
     if (!money || !header || !leagueId || week === null) return;
     // Only the structured editor can regenerate safely — it already holds
     // every hand-typed detail as its own field. In plain-fallback mode (see
@@ -337,6 +367,10 @@ function RecapContent() {
           savedAt={savedAt}
           writeupDocId={money?.profile.writeupDocId}
           googleClientId={googleClientId}
+          bowlMatchup={bowlMatchup}
+          honorableMatchup={honorableMatchup}
+          upcomingMatchup={upcomingBowlPreview}
+          teams={teamsById}
         />
       </Card>
 

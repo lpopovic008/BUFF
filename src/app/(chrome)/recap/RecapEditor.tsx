@@ -3,12 +3,41 @@
 import { useState } from "react";
 import { saveRecap } from "@/lib/localStore";
 import { RecapModel, joinRecapModel } from "@/lib/recap-model";
-import { drawRecapGraphic } from "@/lib/recap-graphic";
+import { drawRecapGraphic, DecidedMatchup, PreviewMatchup, MatchupTeam } from "@/lib/recap-graphic";
+import { BowlMatchupResult, BowlMatchupPreview } from "@/lib/bowl-narrative";
+import { recapDisplayFont } from "@/lib/fonts";
 import { getGoogleAccessToken } from "@/lib/google-auth";
 import { appendWriteupToDoc, DOCS_SCOPE } from "@/lib/google-docs";
 import { IconButton } from "@/components/ui/IconButton";
 import { CopyIcon, ImageIcon, SaveIcon, CheckIcon, UploadIcon } from "@/components/ui/Icon";
 import { RecapSectionsEditor } from "./RecapSectionsEditor";
+
+/** A team's name/logo for the recap graphic — the piece resolveBowlMatchup/resolveBowlMatchupPreview's roster ids still need looked up before they're usable as a MatchupTeam. */
+function teamFor(teams: Record<number, { name: string; avatar: string | null }>, rosterId: number): MatchupTeam {
+  const team = teams[rosterId];
+  return { name: team?.name ?? "?", avatarUrl: team?.avatar ?? null };
+}
+
+function decidedMatchupFor(
+  teams: Record<number, { name: string; avatar: string | null }>,
+  result: BowlMatchupResult | null
+): DecidedMatchup | null {
+  if (!result) return null;
+  return {
+    bowlName: result.bowlName,
+    winner: teamFor(teams, result.winnerRosterId),
+    loser: teamFor(teams, result.loserRosterId),
+  };
+}
+
+function previewMatchupFor(
+  teams: Record<number, { name: string; avatar: string | null }>,
+  preview: BowlMatchupPreview | null
+): PreviewMatchup | null {
+  if (!preview) return null;
+  const [aId, bId] = preview.rosterIds;
+  return { bowlName: preview.bowlName, teamA: teamFor(teams, aId), teamB: teamFor(teams, bId) };
+}
 
 export function RecapEditor({
   leagueId,
@@ -22,6 +51,10 @@ export function RecapEditor({
   savedAt,
   writeupDocId,
   googleClientId,
+  bowlMatchup,
+  honorableMatchup,
+  upcomingMatchup,
+  teams,
 }: {
   leagueId: string;
   season: string;
@@ -42,6 +75,12 @@ export function RecapEditor({
   writeupDocId?: string;
   /** Resolved via resolveGoogleClientId() — empty when Google Docs isn't connected, in which case Save to Doc stays hidden. */
   googleClientId: string;
+  /** This week's decided Bowl of the Week / Honorable Mention picks, and next week's still-undecided marquee pick — feed the recap graphic's poster cards. Null wherever there's no resolvable pick yet. */
+  bowlMatchup: BowlMatchupResult | null;
+  honorableMatchup: BowlMatchupResult | null;
+  upcomingMatchup: BowlMatchupPreview | null;
+  /** Roster id -> team name/logo, for turning the matchups above into the graphic's MatchupTeam shape. */
+  teams: Record<number, { name: string; avatar: string | null }>;
 }) {
   const [copied, setCopied] = useState(false);
   const [graphicStatus, setGraphicStatus] = useState<"idle" | "copying" | "copied" | "error">("idle");
@@ -69,7 +108,12 @@ export function RecapEditor({
     setGraphicError(null);
     try {
       const canvas = document.createElement("canvas");
-      drawRecapGraphic(canvas, body, model);
+      await drawRecapGraphic(canvas, body, model, {
+        bowl: decidedMatchupFor(teams, bowlMatchup),
+        honorable: decidedMatchupFor(teams, honorableMatchup),
+        upcoming: previewMatchupFor(teams, upcomingMatchup),
+        displayFontFamily: recapDisplayFont.style.fontFamily,
+      });
       // Passed as a Promise (not awaited first) rather than an already-resolved
       // Blob — Safari ties clipboard-write permission to the triggering click,
       // and only accepts that if ClipboardItem gets the still-pending promise.
@@ -115,6 +159,10 @@ export function RecapEditor({
 
   return (
     <form onSubmit={handleSave} className="flex flex-col gap-3">
+      {/* Gives the browser a live use of the display font so it's actually loaded — see recap-graphic.ts, which draws with it via its resolved font-family name, not this class. */}
+      <span aria-hidden className={`${recapDisplayFont.className} absolute h-0 w-0 overflow-hidden`}>
+        .
+      </span>
       {model ? (
         <RecapSectionsEditor model={model} onChange={onModelChange} />
       ) : (
