@@ -27,9 +27,9 @@ function dotRadius(starterCount: number): number {
   return Math.min(4.5 + starterCount * 1.6, 20);
 }
 
-/** Away team first, matching the game headers in the starters list below the map. */
+/** Away team first, "@" meaning "at" the home team — matching the game headers in the starters list below the map. */
 function gameLabel(game: NFLGame): string {
-  return `${game.awayTeam} vs ${game.homeTeam}`;
+  return `${game.awayTeam} @ ${game.homeTeam}`;
 }
 
 function venueLabel(game: NFLGame): string | null {

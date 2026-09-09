@@ -125,14 +125,14 @@ export function formatKickoff(kickoff: string, now: Date = new Date()): string {
   return `${time} ${day}`;
 }
 
-/** The whole game header, e.g. "SF vs LAR @ 8:20 PM Thu" — away team first. */
+/** The whole game header, e.g. "SF @ LAR — 8:20 PM Thu" — standard away-@-home notation. */
 export function formatGameHeader(game: NFLGame, now: Date = new Date()): string {
-  return `${game.awayTeam} vs ${game.homeTeam} @ ${formatKickoff(game.kickoff, now)}`;
+  return `${formatTeamMatchup(game)} — ${formatKickoff(game.kickoff, now)}`;
 }
 
-/** Just the team matchup half of a game header, e.g. "SF vs LAR" — away team first, no kickoff. */
+/** Just the team matchup half of a game header, e.g. "SF @ LAR" — away team first, "@" meaning "at" the home team, no kickoff. */
 export function formatTeamMatchup(game: NFLGame): string {
-  return `${game.awayTeam} vs ${game.homeTeam}`;
+  return `${game.awayTeam} @ ${game.homeTeam}`;
 }
 
 /** One kickoff window's worth of games — one column in the starters-by-game swipe view. */

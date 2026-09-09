@@ -104,13 +104,13 @@ test("an unparseable kickoff degrades to TBD rather than Invalid Date", () => {
   assert.equal(formatKickoff("not a date", NOW), "TBD");
 });
 
-test("the game header names the away team first", () => {
+test("the game header names the away team first, standard away-@-home notation", () => {
   // SF are the nominal away side of the Melbourne opener.
-  assert.match(formatGameHeader(MELBOURNE, NOW), /^SF vs LAR @ /);
+  assert.match(formatGameHeader(MELBOURNE, NOW), /^SF @ LAR — /);
 });
 
 test("the team matchup half names the away team first and carries no kickoff", () => {
-  assert.equal(formatTeamMatchup(MELBOURNE), "SF vs LAR");
+  assert.equal(formatTeamMatchup(MELBOURNE), "SF @ LAR");
 });
 
 test("games are bucketed into one column per kickoff window, earliest first", () => {
