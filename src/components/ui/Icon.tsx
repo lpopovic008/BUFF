@@ -50,6 +50,16 @@ export function CopyStyledIcon(props: IconProps) {
   );
 }
 
+export function ImageIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <rect x="2.5" y="3.5" width="15" height="13" rx="1.5" />
+      <circle cx="7" cy="8" r="1.4" fill="currentColor" stroke="none" />
+      <path d="M2.5 14.5l4.5-4.5 3 3 3.5-3.5 4 4" />
+    </svg>
+  );
+}
+
 export function SaveIcon(props: IconProps) {
   return (
     <svg {...base(props)}>

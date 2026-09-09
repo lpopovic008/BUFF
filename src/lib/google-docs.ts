@@ -10,12 +10,7 @@
 export const DOCS_SCOPE = "https://www.googleapis.com/auth/documents";
 
 export interface DocsBatchUpdateRequest {
-  insertText?: { location: { index: number; tabId?: string }; text: string };
-  updateParagraphStyle?: {
-    range: { startIndex: number; endIndex: number; tabId?: string };
-    paragraphStyle: { namedStyleType: string };
-    fields: string;
-  };
+  insertText: { location: { index: number; tabId?: string }; text: string };
 }
 
 /** One tab (or child tab) of the doc, with just enough to find it by title and know where its content ends. */
@@ -73,36 +68,18 @@ export function resolveTargetTab(
  * inside a specific tab): separates from any network call so the offsets
  * can be unit tested directly.
  *
- * The write-up's own first line (e.g. "🚨📋 Week 5 Recap") becomes a
- * Heading 1 paragraph, matching every other week's entry in the doc; the
- * rest is inserted as plain text underneath it. Two blank lines separate it
- * from whatever precedes it at `insertAt`.
+ * Just the write-up, as plain text — no heading styling on the first line.
+ * Two blank lines separate it from whatever precedes it at `insertAt`.
  */
 export function buildInsertRequests(
   insertAt: number,
   body: string,
   tabId?: string
 ): { text: string; requests: DocsBatchUpdateRequest[] } {
-  const newlineIndex = body.indexOf("\n");
-  const heading = newlineIndex === -1 ? body : body.slice(0, newlineIndex);
-  const rest = newlineIndex === -1 ? "" : body.slice(newlineIndex + 1);
-
-  const text = `\n\n${heading}\n${rest}\n`;
-  const headingStart = insertAt + 2;
-  const headingEnd = headingStart + heading.length;
-
+  const text = `\n\n${body}\n`;
   return {
     text,
-    requests: [
-      { insertText: { location: { index: insertAt, ...(tabId ? { tabId } : {}) }, text } },
-      {
-        updateParagraphStyle: {
-          range: { startIndex: headingStart, endIndex: headingEnd, ...(tabId ? { tabId } : {}) },
-          paragraphStyle: { namedStyleType: "HEADING_1" },
-          fields: "namedStyleType",
-        },
-      },
-    ],
+    requests: [{ insertText: { location: { index: insertAt, ...(tabId ? { tabId } : {}) }, text } }],
   };
 }
 

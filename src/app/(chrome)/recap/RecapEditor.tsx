@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { saveRecap } from "@/lib/localStore";
-import { buildRecapClipboardHtml } from "@/lib/format-recap";
 import { RecapModel, joinRecapModel } from "@/lib/recap-model";
+import { drawRecapGraphic } from "@/lib/recap-graphic";
 import { getGoogleAccessToken } from "@/lib/google-auth";
 import { appendWriteupToDoc, DOCS_SCOPE } from "@/lib/google-docs";
 import { IconButton } from "@/components/ui/IconButton";
-import { CopyIcon, CopyStyledIcon, SaveIcon, CheckIcon, UploadIcon } from "@/components/ui/Icon";
+import { CopyIcon, ImageIcon, SaveIcon, CheckIcon, UploadIcon } from "@/components/ui/Icon";
 import { RecapSectionsEditor } from "./RecapSectionsEditor";
 
 export function RecapEditor({
@@ -44,7 +44,8 @@ export function RecapEditor({
   googleClientId: string;
 }) {
   const [copied, setCopied] = useState(false);
-  const [copiedFormatted, setCopiedFormatted] = useState(false);
+  const [graphicStatus, setGraphicStatus] = useState<"idle" | "copying" | "copied" | "error">("idle");
+  const [graphicError, setGraphicError] = useState<string | null>(null);
   const [lastSavedAt, setLastSavedAt] = useState(savedAt);
   const [docStatus, setDocStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [docError, setDocError] = useState<string | null>(null);
@@ -60,23 +61,31 @@ export function RecapEditor({
     setTimeout(() => setCopied(false), 2000);
   }
 
-  /** Copies both plain text and HTML representations — apps that keep formatting on
-   * paste (Messages/Notes/Mail on Mac, and most iOS paste targets) pick up the bold
-   * headers/underlined callout/italic narrative; anything else just gets plain text. */
-  async function handleCopyFormatted() {
+  /** Renders the write-up and its stats as a single image (see recap-graphic.ts)
+   * and copies that image to the clipboard, ready to paste into a group chat or
+   * post — a shareable graphic instead of formatted text. */
+  async function handleCopyGraphic() {
+    setGraphicStatus("copying");
+    setGraphicError(null);
     try {
-      const html = buildRecapClipboardHtml(body);
-      await navigator.clipboard.write([
-        new ClipboardItem({
-          "text/plain": new Blob([body], { type: "text/plain" }),
-          "text/html": new Blob([html], { type: "text/html" }),
-        }),
-      ]);
-    } catch {
-      await navigator.clipboard.writeText(body);
+      const canvas = document.createElement("canvas");
+      drawRecapGraphic(canvas, title, model, plainBody);
+      // Passed as a Promise (not awaited first) rather than an already-resolved
+      // Blob — Safari ties clipboard-write permission to the triggering click,
+      // and only accepts that if ClipboardItem gets the still-pending promise.
+      const blobPromise = new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error("Couldn't render the graphic."));
+        }, "image/png");
+      });
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": blobPromise })]);
+      setGraphicStatus("copied");
+      setTimeout(() => setGraphicStatus("idle"), 2000);
+    } catch (err) {
+      setGraphicStatus("error");
+      setGraphicError(err instanceof Error ? err.message : "Couldn't copy the graphic.");
     }
-    setCopiedFormatted(true);
-    setTimeout(() => setCopiedFormatted(false), 2000);
   }
 
   function handleSave(e: React.FormEvent) {
@@ -119,9 +128,10 @@ export function RecapEditor({
 
       <div className="flex flex-wrap items-center gap-2">
         <IconButton
-          icon={copiedFormatted ? <CheckIcon /> : <CopyStyledIcon />}
-          label={copiedFormatted ? "Copied formatted" : "Copy formatted"}
-          onClick={handleCopyFormatted}
+          icon={graphicStatus === "copied" ? <CheckIcon /> : <ImageIcon />}
+          label={graphicStatus === "copying" ? "Rendering graphic…" : graphicStatus === "copied" ? "Copied graphic" : "Copy graphic"}
+          onClick={handleCopyGraphic}
+          disabled={graphicStatus === "copying"}
         />
         <IconButton
           icon={copied ? <CheckIcon /> : <CopyIcon />}
@@ -146,6 +156,9 @@ export function RecapEditor({
         ) : (
           <span className="text-xs text-ink-muted">Not saved yet</span>
         )}
+        {graphicStatus === "error" && graphicError ? (
+          <span className="text-xs text-status-critical">Copy graphic failed: {graphicError}</span>
+        ) : null}
         {docStatus === "error" && docError ? (
           <span className="text-xs text-status-critical">Google Doc save failed: {docError}</span>
         ) : null}

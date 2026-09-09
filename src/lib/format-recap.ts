@@ -1,7 +1,7 @@
 import { WeekRecapData, MatchupGame } from "./league-data";
 import { PayoutLedger, summarizeWeek, standingsThroughWeek } from "./payouts";
 import { formatPoints, ordinal } from "./format";
-import { RecapModel, joinRecapModel, WHO_WILL_PREVAIL, GOOD_LUCK_TO_ALL } from "./recap-model";
+import { RecapModel, joinRecapModel } from "./recap-model";
 
 /** The high-scoring team's own top-scoring starters — who "led the scoring" for that team this week, richest first. */
 export function findWeekTopStarters(
@@ -193,49 +193,6 @@ export function buildPreseasonRecapModel({
 /** Flattens a preseason recap model into the exact text that gets saved/copied/posted. */
 export function formatPreseasonTemplate(args: Parameters<typeof buildPreseasonRecapModel>[0]): string {
   return joinRecapModel(buildPreseasonRecapModel(args));
-}
-
-// Lines starting with one of these get bolded as a section header when copying
-// formatted; 📈 gets underlined instead (see buildRecapClipboardHtml) since it's
-// the standout stat callout, not a section boundary.
-const BOLD_HEADER_EMOJIS = ["🚨📋", "👑", "🏆", "🤑", "🗓️", "💰", "🥇", "🥈"];
-const BOLD_FIXED_LINES = new Set([WHO_WILL_PREVAIL, GOOD_LUCK_TO_ALL]);
-
-function escapeHtml(text: string): string {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-/**
- * Rich-text (HTML) rendering of a recap body for copying into apps that keep
- * formatting on paste — Messages and Notes on Mac, Mail, and similar — so it
- * reads as headers and callouts instead of one flat block of plain text.
- * Bolds each section header, the "UPCOMING WEEK" banner, dollar amounts, and
- * the two rallying-cry lines; underlines the high-scorer line; italicizes
- * each free "<Detail>"/commentary line. Pair with a plain-text fallback for
- * paste targets that don't keep rich content (see RecapEditor's
- * copy-formatted handler). Operates on the flattened text (see
- * joinRecapModel) so it stays correct regardless of whether that text came
- * from the structured editor or the plain fallback box.
- */
-export function buildRecapClipboardHtml(body: string): string {
-  const rawLines = body.split("\n");
-  return rawLines
-    .map((rawLine, i) => {
-      const trimmed = rawLine.trim();
-      const withMoneyBold = escapeHtml(rawLine).replace(/\$\d+(\.\d+)?/g, (m) => `<b>${m}</b>`);
-      const previousLine = rawLines[i - 1] ?? "";
-      const isDetailLine =
-        previousLine.startsWith("👑") || previousLine.startsWith("🏆") || previousLine.startsWith("📈");
-
-      if (rawLine.startsWith("📈")) return `<u>${withMoneyBold}</u>`;
-      if (rawLine.startsWith("UPCOMING WEEK") || BOLD_HEADER_EMOJIS.some((e) => rawLine.startsWith(e))) {
-        return `<b>${withMoneyBold}</b>`;
-      }
-      if (BOLD_FIXED_LINES.has(trimmed)) return `<b>${withMoneyBold}</b>`;
-      if (isDetailLine && trimmed) return `<i>${withMoneyBold}</i>`;
-      return withMoneyBold;
-    })
-    .join("<br>");
 }
 
 /** Generic recap for leagues without a commissioner profile configured. */
