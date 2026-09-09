@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { NFLGame, isOutsideUS } from "@/lib/nfl-schedule";
-import { gameMapPosition, internationalSlotPosition } from "@/lib/game-map";
+import { computeKickoffSlots, gameMapPosition, internationalSlotPosition, kickoffSlotColor, kickoffSlotLabel } from "@/lib/game-map";
 import { formatKickoff } from "@/lib/my-starters";
 import { US_MAP_VIEWBOX, US_OUTLINE_PATH, US_STATE_LINES_PATH } from "@/lib/warroom-team-cities";
 
@@ -24,8 +24,12 @@ function gameLabel(game: NFLGame): string {
 
 /**
  * This week's games plotted on the same US geometry the War Room's territory
- * map uses, sized by how many of your starters are in each. Anything played
- * abroad can't sit on a US map, so it's listed alongside instead.
+ * map uses, sized by how many of your starters are in each and coloured by
+ * kickoff window — a gradient from this week's earliest games to its latest,
+ * so you can tell what time a game is at a glance, not just where. Anything
+ * played abroad can't sit on the US outline, so it gets its own small dot
+ * cluster tucked in the corner instead — its position off the map is the
+ * only signal it needs.
  */
 export function GameMap({ games }: { games: MappedGame[] }) {
   const [hovered, setHovered] = useState<string | null>(null);
@@ -37,103 +41,107 @@ export function GameMap({ games }: { games: MappedGame[] }) {
     // Biggest last so a game you care about is never hidden under an empty one.
     .sort((a, b) => a.playerCount - b.playerCount);
 
+  const { slotIndexByGameId, slots } = useMemo(
+    () => computeKickoffSlots(games.map((g) => g.game)),
+    [games]
+  );
+  const colorFor = (gameId: string) =>
+    kickoffSlotColor(slotIndexByGameId.get(gameId) ?? 0, slots.length || 1);
+
   const active =
     plotted.find((entry) => entry.game.id === hovered) ??
     abroad.find((entry) => entry.game.id === hovered) ??
     null;
 
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-      <div className="relative min-w-0 flex-1">
-        <svg
-          viewBox={US_MAP_VIEWBOX}
-          preserveAspectRatio="xMidYMid meet"
-          // Capped so the map stays a glanceable strip rather than swallowing
-          // the page — its 320x200 viewBox is otherwise ~700px tall at full width.
-          className="mx-auto block w-full max-w-[560px]"
-          role="img"
-          aria-label={`${plotted.length} games plotted across the United States`}
-        >
-          <path d={US_OUTLINE_PATH} fill="var(--surface)" stroke="var(--border)" strokeWidth="0.6" />
-          <path d={US_STATE_LINES_PATH} fill="none" stroke="var(--grid-hairline)" strokeWidth="0.4" />
-          {abroad.map((entry, i) => {
-            const isActive = entry.game.id === hovered;
-            const hasPlayers = entry.playerCount > 0;
-            const [x, y] = internationalSlotPosition(i);
-            return (
-              <circle
-                key={entry.game.id}
-                cx={x}
-                cy={y}
-                r={dotRadius(entry.playerCount) * 0.6 + (isActive ? 1 : 0)}
-                fill={hasPlayers ? "var(--series-2)" : "var(--ink-muted)"}
-                fillOpacity={hasPlayers ? (isActive ? 1 : 0.85) : 0.45}
-                stroke="var(--surface-raised)"
-                strokeWidth="0.5"
-                className="cursor-pointer transition-[r,fill-opacity]"
-                onMouseEnter={() => setHovered(entry.game.id)}
-                onMouseLeave={() => setHovered((id) => (id === entry.game.id ? null : id))}
-              >
-                <title>
-                  {`${gameLabel(entry.game)} (outside the US) — ${formatKickoff(entry.game.kickoff)}${
-                    entry.playerCount ? ` — ${entry.playerCount} of your starters` : ""
-                  }`}
-                </title>
-              </circle>
-            );
-          })}
-          {plotted.map((entry) => {
-            const isActive = entry.game.id === hovered;
-            const hasPlayers = entry.playerCount > 0;
-            return (
-              <circle
-                key={entry.game.id}
-                cx={entry.pos[0]}
-                cy={entry.pos[1]}
-                r={dotRadius(entry.playerCount) + (isActive ? 1.4 : 0)}
-                fill={hasPlayers ? "var(--series-1)" : "var(--ink-muted)"}
-                fillOpacity={hasPlayers ? (isActive ? 1 : 0.85) : 0.45}
-                stroke="var(--surface-raised)"
-                strokeWidth="0.5"
-                className="cursor-pointer transition-[r,fill-opacity]"
-                onMouseEnter={() => setHovered(entry.game.id)}
-                onMouseLeave={() => setHovered((id) => (id === entry.game.id ? null : id))}
-              >
-                <title>
-                  {`${gameLabel(entry.game)} — ${formatKickoff(entry.game.kickoff)}${
-                    entry.playerCount ? ` — ${entry.playerCount} of your starters` : ""
-                  }`}
-                </title>
-              </circle>
-            );
-          })}
-        </svg>
-        <p className="mt-1 text-xs text-ink-muted">
+    <div className="relative min-w-0">
+      <svg
+        viewBox={US_MAP_VIEWBOX}
+        preserveAspectRatio="xMidYMid meet"
+        // Capped so the map stays a glanceable strip rather than swallowing
+        // the page — its 320x200 viewBox is otherwise ~700px tall at full width.
+        className="mx-auto block w-full max-w-[560px]"
+        role="img"
+        aria-label={`${plotted.length} games plotted across the United States`}
+      >
+        <path d={US_OUTLINE_PATH} fill="var(--surface)" stroke="var(--border)" strokeWidth="0.6" />
+        <path d={US_STATE_LINES_PATH} fill="none" stroke="var(--grid-hairline)" strokeWidth="0.4" />
+        {abroad.map((entry, i) => {
+          const isActive = entry.game.id === hovered;
+          const hasPlayers = entry.playerCount > 0;
+          const [x, y] = internationalSlotPosition(i);
+          return (
+            <circle
+              key={entry.game.id}
+              cx={x}
+              cy={y}
+              r={dotRadius(entry.playerCount) * 0.6 + (isActive ? 1 : 0)}
+              fill={colorFor(entry.game.id)}
+              fillOpacity={hasPlayers ? (isActive ? 0.92 : 0.75) : isActive ? 0.65 : 0.45}
+              stroke="var(--surface-raised)"
+              strokeWidth="0.5"
+              className="cursor-pointer transition-[r,fill-opacity]"
+              onMouseEnter={() => setHovered(entry.game.id)}
+              onMouseLeave={() => setHovered((id) => (id === entry.game.id ? null : id))}
+            >
+              <title>
+                {`${gameLabel(entry.game)} (outside the US) — ${formatKickoff(entry.game.kickoff)}${
+                  entry.playerCount ? ` — ${entry.playerCount} of your starters` : ""
+                }`}
+              </title>
+            </circle>
+          );
+        })}
+        {plotted.map((entry) => {
+          const isActive = entry.game.id === hovered;
+          const hasPlayers = entry.playerCount > 0;
+          return (
+            <circle
+              key={entry.game.id}
+              cx={entry.pos[0]}
+              cy={entry.pos[1]}
+              r={dotRadius(entry.playerCount) + (isActive ? 1.4 : 0)}
+              fill={colorFor(entry.game.id)}
+              fillOpacity={hasPlayers ? (isActive ? 0.92 : 0.75) : isActive ? 0.65 : 0.45}
+              stroke="var(--surface-raised)"
+              strokeWidth="0.5"
+              className="cursor-pointer transition-[r,fill-opacity]"
+              onMouseEnter={() => setHovered(entry.game.id)}
+              onMouseLeave={() => setHovered((id) => (id === entry.game.id ? null : id))}
+            >
+              <title>
+                {`${gameLabel(entry.game)} — ${formatKickoff(entry.game.kickoff)}${
+                  entry.playerCount ? ` — ${entry.playerCount} of your starters` : ""
+                }`}
+              </title>
+            </circle>
+          );
+        })}
+      </svg>
+
+      <div className="mt-1 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <p className="text-xs text-ink-muted">
           {active
             ? `${gameLabel(active.game)} · ${active.game.venue?.city ?? "—"} · ${
                 active.playerCount || "no"
               } of your starters`
             : "Bigger dot = more of your starters in that game."}
         </p>
-      </div>
 
-      {abroad.length > 0 ? (
-        <div className="flex shrink-0 flex-col gap-1 border border-grid bg-page p-3 sm:w-52">
-          <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
-            Outside the US
-          </span>
-          {abroad.map(({ game, playerCount }) => (
-            <div key={game.id} className="text-xs text-ink-secondary">
-              <span className="font-medium text-ink-primary">{gameLabel(game)}</span>
-              <span className="block text-ink-muted">
-                {game.venue?.city ?? "—"}
-                {game.venue?.country ? `, ${game.venue.country}` : ""}
-                {playerCount ? ` · ${playerCount} starter${playerCount === 1 ? "" : "s"}` : ""}
+        {slots.length > 1 ? (
+          <div className="flex items-center gap-1.5 opacity-25 transition-opacity hover:opacity-90">
+            {slots.map((slot, i) => (
+              <span key={i} className="flex items-center gap-0.5">
+                <span
+                  className="h-1.5 w-1.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: kickoffSlotColor(i, slots.length) }}
+                />
+                <span className="text-[9px] text-ink-muted">{kickoffSlotLabel(slot.sortTime)}</span>
               </span>
-            </div>
-          ))}
-        </div>
-      ) : null}
+            ))}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
