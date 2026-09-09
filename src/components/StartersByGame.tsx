@@ -126,12 +126,12 @@ export function StartersByGame({
         <>
           <div
             ref={scrollerRef}
-            className={`-mx-1 flex gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:px-7 [&::-webkit-scrollbar]:hidden ${
+            className={`-mx-1 flex gap-1.5 overflow-x-auto px-3 pb-1 [scrollbar-width:none] sm:gap-3 sm:px-6 [&::-webkit-scrollbar]:hidden ${
               centered ? "justify-center" : "justify-start"
             }`}
           >
             {columns.map((column) => (
-              <div key={column.label} className="flex w-[31%] shrink-0 flex-col gap-3 sm:w-[200px]">
+              <div key={column.label} className="flex w-[32.5%] shrink-0 flex-col gap-3 sm:w-[200px]">
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
                   {column.label}
                 </span>
