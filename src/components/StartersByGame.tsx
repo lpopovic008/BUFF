@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { formatGameHeader, GameStarters, groupGamesByTimeBlock, GroupedStarter } from "@/lib/my-starters";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import { LeagueLegendEntry, LeagueMark } from "./LeagueMark";
@@ -58,6 +59,23 @@ export function StartersByGame({
   const columns = groupGamesByTimeBlock(games);
   const nothingToShow = games.length === 0 && notPlaying.length === 0;
 
+  // Centering an overflowing flex row makes the browser start the scroll
+  // position mid-content instead of at the true first column — CSS's own
+  // "safe center" keyword is meant to fix exactly that, but support isn't
+  // reliable enough on mobile browsers to trust it. Measuring for real and
+  // only centering when the columns actually fit avoids that failure mode
+  // entirely: it can never clip, in any browser.
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const [centered, setCentered] = useState(false);
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const measure = () => setCentered(el.scrollWidth <= el.clientWidth + 1);
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  });
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap gap-x-4 gap-y-1 px-3 sm:px-6">
@@ -88,7 +106,12 @@ export function StartersByGame({
         </p>
       ) : (
         <>
-          <div className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 [justify-content:safe_center] [scrollbar-width:none] sm:justify-start sm:px-7 [&::-webkit-scrollbar]:hidden">
+          <div
+            ref={scrollerRef}
+            className={`-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:px-7 [&::-webkit-scrollbar]:hidden ${
+              centered ? "justify-center" : "justify-start"
+            }`}
+          >
             {columns.map((column) => (
               <div key={column.label} className="flex w-[31%] shrink-0 snap-start flex-col gap-3 sm:w-[200px]">
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
