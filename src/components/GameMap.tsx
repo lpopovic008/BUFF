@@ -66,7 +66,7 @@ export function GameMap({ games }: { games: MappedGame[] }) {
   const toggleClicked = (id: string) => setClicked((current) => (current === id ? null : id));
 
   return (
-    <div className="relative min-w-0">
+    <div className="relative min-w-0 px-3 sm:px-6">
       <svg
         viewBox={US_MAP_VIEWBOX}
         preserveAspectRatio="xMidYMid meet"

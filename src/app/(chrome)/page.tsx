@@ -13,7 +13,7 @@ import { useNFLState } from "@/hooks/useNFLState";
 import { useWeekGames } from "@/hooks/useWeekGames";
 import { getLeagueSummary, LeagueSummary } from "@/lib/league-data";
 import { groupStartersByGame } from "@/lib/my-starters";
-import { getCurrentWeek } from "@/lib/sleeper";
+import { avatarUrl, getCurrentWeek } from "@/lib/sleeper";
 import { TrackedLeague } from "@/lib/localStore";
 import { formatRecord } from "@/lib/format";
 
@@ -114,11 +114,17 @@ export default function DashboardPage() {
   );
 
   // Colour per league, keyed off the order leagues are tracked in so a
-  // league keeps the same colour on the map, in the list, and in the legend.
-  const legend = useMemo<LeagueLegendEntry[]>(
-    () => starterSources.map((s, i) => ({ leagueId: s.leagueId, leagueName: s.leagueName, colorIndex: i })),
-    [starterSources]
-  );
+  // league keeps the same colour on the map, in the list, and in the legend —
+  // the fallback for any league whose commish hasn't set a custom logo.
+  const legend = useMemo<LeagueLegendEntry[]>(() => {
+    const rawAvatarByLeagueId = new Map((leagues ?? []).map((l) => [l.tracked.leagueId, l.summary.league.avatar]));
+    return starterSources.map((s, i) => ({
+      leagueId: s.leagueId,
+      leagueName: s.leagueName,
+      colorIndex: i,
+      leagueAvatar: avatarUrl(rawAvatarByLeagueId.get(s.leagueId)),
+    }));
+  }, [starterSources, leagues]);
 
   const mappedGames = useMemo<MappedGame[]>(() => {
     const startersByGameId = new Map(grouped.games.map((g) => [g.game.id, g.players]));
@@ -199,24 +205,24 @@ export default function DashboardPage() {
       </div>
 
       {weekGames.length > 0 ? (
-        <Card className="animate-[rise_0.5s_ease-out_backwards] p-5 [animation-delay:140ms]">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-muted">
+        <div className="-mx-3 animate-[rise_0.5s_ease-out_backwards] [animation-delay:140ms] sm:-mx-6">
+          <h2 className="mb-3 px-3 text-sm font-semibold uppercase tracking-wide text-ink-muted sm:px-6">
             Week {week} around the league
           </h2>
           <GameMap games={mappedGames} />
-        </Card>
+        </div>
       ) : null}
 
-      <Card className="animate-[rise_0.5s_ease-out_backwards] p-5 [animation-delay:200ms]">
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-muted">
+      <div className="-mx-3 animate-[rise_0.5s_ease-out_backwards] [animation-delay:200ms] sm:-mx-6">
+        <h2 className="mb-4 px-3 text-sm font-semibold uppercase tracking-wide text-ink-muted sm:px-6">
           My starters by game
         </h2>
         {myStarters === null ? (
-          <p className="text-sm text-ink-secondary">Loading your lineups…</p>
+          <p className="px-3 text-sm text-ink-secondary sm:px-6">Loading your lineups…</p>
         ) : weekGames.length === 0 ? (
           // Without the schedule every starter would fall into "not playing",
           // which would read as a league-wide bye rather than a failed fetch.
-          <p className="text-sm text-ink-secondary">
+          <p className="px-3 text-sm text-ink-secondary sm:px-6">
             Couldn&rsquo;t load this week&rsquo;s NFL schedule, so there&rsquo;s nothing to group
             your starters under yet.
           </p>
@@ -229,7 +235,7 @@ export default function DashboardPage() {
             onToggleLeague={toggleLeague}
           />
         )}
-      </Card>
+      </div>
     </div>
   );
 }

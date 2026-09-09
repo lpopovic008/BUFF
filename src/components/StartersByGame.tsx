@@ -2,12 +2,28 @@
 
 import { formatGameHeader, GameStarters, groupGamesByTimeBlock, GroupedStarter } from "@/lib/my-starters";
 import { leagueColor } from "@/lib/game-map";
+import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 
 export interface LeagueLegendEntry {
   leagueId: string;
   leagueName: string;
-  /** Position in the tracked-league list — what picks the colour. */
+  /** Position in the tracked-league list — the fallback colour when a league has no logo. */
   colorIndex: number;
+  /** The league's own Sleeper avatar, if the commish set one. Null falls back to a colour dot. */
+  leagueAvatar: string | null;
+}
+
+/** A league's mark — its own logo when it has one, otherwise the same colour dot the legend used before. */
+function LeagueMark({ league, className }: { league: LeagueLegendEntry | undefined; className: string }) {
+  if (league?.leagueAvatar) {
+    return <img src={league.leagueAvatar} alt="" className={`shrink-0 rounded-full object-cover ${className}`} />;
+  }
+  return (
+    <span
+      className={`shrink-0 rounded-full ${className}`}
+      style={{ backgroundColor: leagueColor(league?.colorIndex ?? 0) }}
+    />
+  );
 }
 
 function PlayerRow({
@@ -21,11 +37,16 @@ function PlayerRow({
     .map((id) => legendByLeagueId.get(id)?.leagueName ?? id)
     .join(", ");
   return (
-    <div className="flex flex-col px-2 py-1" title={`${player.name} — ${leagueNames}`}>
+    <div className="flex flex-col py-1" title={`${player.name} — ${leagueNames}`}>
       <span className="break-words text-[11px] leading-tight text-ink-primary">{player.name}</span>
       <span className="flex items-center gap-1 text-[9px] uppercase tracking-wide text-ink-muted">
-        <span>{player.position}</span>
+        <span className={POSITION_TEXT_COLOR[player.position] ?? "text-ink-muted"}>{player.position}</span>
         <span>{player.team}</span>
+        <span className="flex items-center gap-0.5">
+          {player.leagueIds.map((id) => (
+            <LeagueMark key={id} league={legendByLeagueId.get(id)} className="h-2.5 w-2.5" />
+          ))}
+        </span>
       </span>
     </div>
   );
@@ -37,7 +58,8 @@ function PlayerRow({
  * by kickoff window — one column per window (Wed night, Thu night, Sun noon,
  * ...), earliest first, swipeable on narrow screens where roughly three
  * columns fit at once. The legend doubles as a filter — click a league to
- * show only its starters.
+ * show only its starters — and stays visible even with every league
+ * deselected, since it's the only way back to reselecting one.
  */
 export function StartersByGame({
   games,
@@ -54,14 +76,11 @@ export function StartersByGame({
 }) {
   const legendByLeagueId = new Map(legend.map((l) => [l.leagueId, l]));
   const columns = groupGamesByTimeBlock(games);
-
-  if (games.length === 0 && notPlaying.length === 0) {
-    return <p className="text-sm text-ink-secondary">No starters set for this week yet.</p>;
-  }
+  const nothingToShow = games.length === 0 && notPlaying.length === 0;
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap gap-x-4 gap-y-1">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 px-3 sm:px-6">
         {legend.map((league) => {
           const selected = selectedLeagueIds.has(league.leagueId);
           return (
@@ -74,50 +93,57 @@ export function StartersByGame({
                 selected ? "text-ink-secondary" : "text-ink-muted opacity-40"
               }`}
             >
-              <span
-                className="h-2.5 w-2.5 shrink-0"
-                style={{ backgroundColor: leagueColor(league.colorIndex) }}
-              />
+              <LeagueMark league={league} className="h-2.5 w-2.5" />
               {league.leagueName}
             </button>
           );
         })}
       </div>
 
-      <div className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {columns.map((column) => (
-          <div key={column.label} className="flex w-[31%] shrink-0 snap-start flex-col gap-3 sm:w-[200px]">
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
-              {column.label}
-            </span>
-            {column.games.map(({ game, players }) => (
-              <div key={game.id} className="flex flex-col gap-1.5">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-primary">
-                  {formatGameHeader(game)}
-                </h3>
-                <div className="flex flex-col gap-1">
-                  {players.map((player) => (
-                    <PlayerRow key={player.playerId} player={player} legendByLeagueId={legendByLeagueId} />
-                  ))}
-                </div>
+      {nothingToShow ? (
+        <p className="px-3 text-sm text-ink-secondary sm:px-6">
+          {legend.some((l) => selectedLeagueIds.has(l.leagueId)) || legend.length === 0
+            ? "No starters set for this week yet."
+            : "Every league is hidden — select one above to see its starters."}
+        </p>
+      ) : (
+        <>
+          <div className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:px-7 [&::-webkit-scrollbar]:hidden">
+            {columns.map((column) => (
+              <div key={column.label} className="flex w-[31%] shrink-0 snap-start flex-col gap-3 sm:w-[200px]">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
+                  {column.label}
+                </span>
+                {column.games.map(({ game, players }) => (
+                  <div key={game.id} className="flex flex-col gap-1.5">
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-primary">
+                      {formatGameHeader(game)}
+                    </h3>
+                    <div className="flex flex-col gap-1">
+                      {players.map((player) => (
+                        <PlayerRow key={player.playerId} player={player} legendByLeagueId={legendByLeagueId} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             ))}
           </div>
-        ))}
-      </div>
 
-      {notPlaying.length > 0 ? (
-        <div className="flex flex-col gap-1.5 border-t border-grid pt-3">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
-            Not playing this week
-          </h3>
-          <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 lg:grid-cols-3">
-            {notPlaying.map((player) => (
-              <PlayerRow key={player.playerId} player={player} legendByLeagueId={legendByLeagueId} />
-            ))}
-          </div>
-        </div>
-      ) : null}
+          {notPlaying.length > 0 ? (
+            <div className="flex flex-col gap-1.5 border-t border-grid px-3 pt-3 sm:px-6">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                Not playing this week
+              </h3>
+              <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 lg:grid-cols-3">
+                {notPlaying.map((player) => (
+                  <PlayerRow key={player.playerId} player={player} legendByLeagueId={legendByLeagueId} />
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </>
+      )}
     </div>
   );
 }
