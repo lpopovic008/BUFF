@@ -60,21 +60,26 @@ export function StartersByGame({
   const nothingToShow = games.length === 0 && notPlaying.length === 0;
 
   // Centering an overflowing flex row makes the browser start the scroll
-  // position mid-content instead of at the true first column — CSS's own
-  // "safe center" keyword is meant to fix exactly that, but support isn't
-  // reliable enough on mobile browsers to trust it. Measuring for real and
-  // only centering when the columns actually fit avoids that failure mode
-  // entirely: it can never clip, in any browser.
+  // position mid-content instead of at the true first column — measuring
+  // for real and only centering when the columns actually fit avoids that.
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [centered, setCentered] = useState(false);
+  // Mobile Safari's scroll-snap can pick an initial resting scroll position
+  // that isn't 0 — sometimes calculated before the real (async-loaded) game
+  // data has replaced the first paint's shorter list, leaving the row
+  // scrolled part way in with the first column already cut off, snap or no
+  // snap. Force it back to the true start whenever the actual set of
+  // columns changes, rather than trusting the browser's own resting point.
+  const columnsKey = columns.map((c) => `${c.label}:${c.games.map((g) => g.game.id).join(",")}`).join("|");
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
+    el.scrollLeft = 0;
     const measure = () => setCentered(el.scrollWidth <= el.clientWidth + 1);
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-  });
+  }, [columnsKey]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -108,12 +113,12 @@ export function StartersByGame({
         <>
           <div
             ref={scrollerRef}
-            className={`-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:px-7 [&::-webkit-scrollbar]:hidden ${
+            className={`-mx-1 flex gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:px-7 [&::-webkit-scrollbar]:hidden ${
               centered ? "justify-center" : "justify-start"
             }`}
           >
             {columns.map((column) => (
-              <div key={column.label} className="flex w-[31%] shrink-0 snap-start flex-col gap-3 sm:w-[200px]">
+              <div key={column.label} className="flex w-[31%] shrink-0 flex-col gap-3 sm:w-[200px]">
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
                   {column.label}
                 </span>
