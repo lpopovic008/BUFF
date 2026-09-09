@@ -93,7 +93,9 @@ export function RecapEditor({
     setDocError(null);
     try {
       const accessToken = await getGoogleAccessToken(googleClientId, DOCS_SCOPE);
-      await appendWriteupToDoc(writeupDocId, body, accessToken, season);
+      // week 0 is the preseason sentinel (see recap/page.tsx) — that write-up
+      // has no week tab of its own, so it saves straight into the season tab.
+      await appendWriteupToDoc(writeupDocId, body, accessToken, season, week === 0 ? null : week);
       setDocStatus("saved");
       setTimeout(() => setDocStatus("idle"), 2500);
     } catch (err) {

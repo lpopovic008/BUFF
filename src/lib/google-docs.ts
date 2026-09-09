@@ -1,68 +1,77 @@
-// Appends a recap write-up to the right season's section of a Google Doc via
+// Appends a recap write-up to the right season/week tab of a Google Doc via
 // the Docs API, called from the browser with a user-granted OAuth access
 // token (see google-auth.ts). No server involved — this is a static site.
+//
+// The commish's doc uses native Google Docs tabs: a top-level tab per season
+// (e.g. "2026"), with a child tab per week ("Week 1", "Week 2", ...) under
+// it. A preseason write-up has no week of its own, so it's saved directly
+// into the season tab rather than a child tab.
 
 export const DOCS_SCOPE = "https://www.googleapis.com/auth/documents";
 
 export interface DocsBatchUpdateRequest {
-  insertText?: { location: { index: number }; text: string };
+  insertText?: { location: { index: number; tabId?: string }; text: string };
   updateParagraphStyle?: {
-    range: { startIndex: number; endIndex: number };
+    range: { startIndex: number; endIndex: number; tabId?: string };
     paragraphStyle: { namedStyleType: string };
     fields: string;
   };
 }
 
-/** One paragraph of the doc's existing content, enough to find heading text and its position. */
-export interface DocParagraph {
-  startIndex: number;
-  endIndex: number;
-  text: string;
-  /** e.g. "HEADING_1", "TITLE" — null for ordinary body text. */
-  headingStyle: string | null;
+/** One tab (or child tab) of the doc, with just enough to find it by title and know where its content ends. */
+export interface DocTab {
+  tabId: string;
+  title: string;
+  /** endIndex of the tab's own body content — where a new paragraph gets appended. */
+  docEndIndex: number;
+  childTabs: DocTab[];
 }
 
-function isHeadingStyle(style: string | null): boolean {
-  return style !== null && (style.startsWith("HEADING") || style === "TITLE");
+function titleMatches(title: string, expected: string): boolean {
+  const normalized = title.trim().toLowerCase();
+  const target = expected.trim().toLowerCase();
+  return normalized === target || normalized.startsWith(`${target} `);
+}
+
+/** The doc-tab title a week's write-up lives under — "Week 1", "Week 2", etc. */
+export function weekTabTitle(week: number): string {
+  return `Week ${week}`;
 }
 
 /**
- * Where a season's entries live in a heading-organized doc — one heading per
- * season (e.g. a paragraph reading exactly "2026"), with everything under it
- * up to the next heading belonging to that season. Matches a heading whose
- * text is the season on its own, or starts with it ("2026 Season", "2026
- * Preseason & Regular Season" and similar all count), so write-ups land in
- * the year they're actually for instead of always the newest section.
- *
- * When no such heading exists yet, the season section needs to be created —
- * signaled by `createSeasonHeading: true` — and `insertAt` falls back to the
- * very end of the document, where the new section gets appended.
+ * Resolves which tab a write-up belongs in: the season tab itself for a
+ * preseason write-up (`week` null), or that season's "Week N" child tab
+ * otherwise. Doesn't create anything — the Docs API has no way to add a tab,
+ * only to write into ones that already exist — so a missing tab is reported
+ * back as an error naming exactly what to create, rather than silently
+ * misfiling the write-up into the wrong place.
  */
-export function findSeasonSectionInsertPoint(
-  paragraphs: DocParagraph[],
-  docEndIndex: number,
-  season: string
-): { insertAt: number; createSeasonHeading: boolean } {
-  const headings = paragraphs.filter((p) => isHeadingStyle(p.headingStyle));
-  const seasonIndex = headings.findIndex((p) => {
-    const text = p.text.trim();
-    return text === season || text.startsWith(`${season} `);
-  });
-
-  if (seasonIndex === -1) {
-    return { insertAt: docEndIndex - 1, createSeasonHeading: true };
+export function resolveTargetTab(
+  tabs: DocTab[],
+  season: string,
+  week: number | null
+): { tab: DocTab } | { error: string } {
+  const seasonTab = tabs.find((t) => titleMatches(t.title, season));
+  if (!seasonTab) {
+    return { error: `Couldn't find a "${season}" tab in this Doc — create it, then try again.` };
   }
-
-  // Insert right before whatever heading comes next — that's the boundary of
-  // this season's section — or at the doc's end if this season is the last
-  // section in the doc.
-  const next = headings[seasonIndex + 1];
-  return { insertAt: next ? next.startIndex : docEndIndex - 1, createSeasonHeading: false };
+  if (week === null) {
+    return { tab: seasonTab };
+  }
+  const title = weekTabTitle(week);
+  const weekTab = seasonTab.childTabs.find((t) => titleMatches(t.title, title));
+  if (!weekTab) {
+    return {
+      error: `Couldn't find a "${title}" tab under "${seasonTab.title}" — create it, then try again.`,
+    };
+  }
+  return { tab: weekTab };
 }
 
 /**
- * Pure index math for inserting a write-up at a known position: separates
- * from any network call so the offsets can be unit tested directly.
+ * Pure index math for inserting a write-up at a known position (optionally
+ * inside a specific tab): separates from any network call so the offsets
+ * can be unit tested directly.
  *
  * The write-up's own first line (e.g. "🚨📋 Week 5 Recap") becomes a
  * Heading 1 paragraph, matching every other week's entry in the doc; the
@@ -71,7 +80,8 @@ export function findSeasonSectionInsertPoint(
  */
 export function buildInsertRequests(
   insertAt: number,
-  body: string
+  body: string,
+  tabId?: string
 ): { text: string; requests: DocsBatchUpdateRequest[] } {
   const newlineIndex = body.indexOf("\n");
   const heading = newlineIndex === -1 ? body : body.slice(0, newlineIndex);
@@ -84,10 +94,10 @@ export function buildInsertRequests(
   return {
     text,
     requests: [
-      { insertText: { location: { index: insertAt }, text } },
+      { insertText: { location: { index: insertAt, ...(tabId ? { tabId } : {}) }, text } },
       {
         updateParagraphStyle: {
-          range: { startIndex: headingStart, endIndex: headingEnd },
+          range: { startIndex: headingStart, endIndex: headingEnd, ...(tabId ? { tabId } : {}) },
           paragraphStyle: { namedStyleType: "HEADING_1" },
           fields: "namedStyleType",
         },
@@ -98,56 +108,15 @@ export function buildInsertRequests(
 
 /**
  * Google Docs' body always ends with an implicit trailing newline that can't
- * be written over — appending at the very end must land at `endIndex - 1`,
- * one before it. Thin wrapper over buildInsertRequests for that specific case.
+ * be written over — appending at the very end of a tab must land at
+ * `docEndIndex - 1`, one before it.
  */
 export function buildAppendRequests(
   docEndIndex: number,
-  body: string
+  body: string,
+  tabId?: string
 ): { text: string; requests: DocsBatchUpdateRequest[] } {
-  return buildInsertRequests(docEndIndex - 1, body);
-}
-
-/**
- * Same as buildInsertRequests, but also creates the season heading itself —
- * used the first time a write-up for a season is saved and no section for it
- * exists yet in the doc.
- */
-export function buildNewSeasonSectionRequests(
-  insertAt: number,
-  season: string,
-  body: string
-): { text: string; requests: DocsBatchUpdateRequest[] } {
-  const newlineIndex = body.indexOf("\n");
-  const heading = newlineIndex === -1 ? body : body.slice(0, newlineIndex);
-  const rest = newlineIndex === -1 ? "" : body.slice(newlineIndex + 1);
-
-  const text = `\n\n${season}\n\n${heading}\n${rest}\n`;
-  const seasonStart = insertAt + 2;
-  const seasonEnd = seasonStart + season.length;
-  const headingStart = seasonEnd + 2;
-  const headingEnd = headingStart + heading.length;
-
-  return {
-    text,
-    requests: [
-      { insertText: { location: { index: insertAt }, text } },
-      {
-        updateParagraphStyle: {
-          range: { startIndex: seasonStart, endIndex: seasonEnd },
-          paragraphStyle: { namedStyleType: "HEADING_1" },
-          fields: "namedStyleType",
-        },
-      },
-      {
-        updateParagraphStyle: {
-          range: { startIndex: headingStart, endIndex: headingEnd },
-          paragraphStyle: { namedStyleType: "HEADING_1" },
-          fields: "namedStyleType",
-        },
-      },
-    ],
-  };
+  return buildInsertRequests(docEndIndex - 1, body, tabId);
 }
 
 async function docsFetch(path: string, accessToken: string, init?: RequestInit): Promise<Response> {
@@ -166,64 +135,72 @@ async function docsFetch(path: string, accessToken: string, init?: RequestInit):
   return res;
 }
 
-interface DocsContentElementResponse {
-  startIndex?: number;
-  endIndex?: number;
-  paragraph?: {
-    paragraphStyle?: { namedStyleType?: string };
-    elements?: { textRun?: { content?: string } }[];
+interface DocsTabResponse {
+  tabProperties?: { tabId?: string; title?: string };
+  documentTab?: { body?: { content?: { endIndex?: number }[] } };
+  childTabs?: DocsTabResponse[];
+}
+
+function parseTab(raw: DocsTabResponse): DocTab {
+  const content = raw.documentTab?.body?.content ?? [];
+  const last = content.at(-1);
+  return {
+    tabId: raw.tabProperties?.tabId ?? "",
+    title: raw.tabProperties?.title ?? "",
+    docEndIndex: last?.endIndex ?? 1,
+    childTabs: (raw.childTabs ?? []).map(parseTab),
   };
 }
 
-function parseParagraphs(content: DocsContentElementResponse[]): DocParagraph[] {
-  const paragraphs: DocParagraph[] = [];
-  for (const el of content) {
-    if (!el.paragraph || el.startIndex === undefined || el.endIndex === undefined) continue;
-    const text = (el.paragraph.elements ?? []).map((e) => e.textRun?.content ?? "").join("");
-    paragraphs.push({
-      startIndex: el.startIndex,
-      endIndex: el.endIndex,
-      text,
-      headingStyle: el.paragraph.paragraphStyle?.namedStyleType ?? null,
-    });
-  }
-  return paragraphs;
-}
+const TABS_FIELDS =
+  "tabs(tabProperties,documentTab.body.content(endIndex)," +
+  "childTabs(tabProperties,documentTab.body.content(endIndex)))";
 
-async function fetchDocStructure(
-  documentId: string,
-  accessToken: string
-): Promise<{ paragraphs: DocParagraph[]; docEndIndex: number }> {
+/** Every tab in the doc, with its child tabs nested inside it — null if this doc doesn't use tabs at all. */
+async function fetchDocTabs(documentId: string, accessToken: string): Promise<DocTab[] | null> {
   const res = await docsFetch(
-    `/v1/documents/${documentId}?fields=body.content(startIndex,endIndex,paragraph(paragraphStyle.namedStyleType,elements(textRun.content)))`,
+    `/v1/documents/${documentId}?includeTabsContent=true&fields=${encodeURIComponent(TABS_FIELDS)}`,
     accessToken
   );
-  const doc = (await res.json()) as { body?: { content?: DocsContentElementResponse[] } };
-  const content = doc.body?.content ?? [];
-  const last = content.at(-1);
+  const doc = (await res.json()) as { tabs?: DocsTabResponse[] };
+  if (!doc.tabs || doc.tabs.length === 0) return null;
+  return doc.tabs.map(parseTab);
+}
+
+async function getDocEndIndex(documentId: string, accessToken: string): Promise<number> {
+  const res = await docsFetch(`/v1/documents/${documentId}?fields=body.content(endIndex)`, accessToken);
+  const doc = (await res.json()) as { body?: { content?: { endIndex?: number }[] } };
+  const last = doc.body?.content?.at(-1);
   if (!last?.endIndex) throw new Error("Couldn't read the document's content — is the doc empty?");
-  return { paragraphs: parseParagraphs(content), docEndIndex: last.endIndex };
+  return last.endIndex;
 }
 
 /**
- * Appends `body` (the recap editor's current text) under the given season's
- * section of the doc — found by matching a heading against `season` — rather
- * than always at the very end, so a preseason or early-week write-up lands
- * with its own year instead of under whatever season was written last. If
- * that season has no section yet, one is created (a heading reading exactly
- * `season`) at the end of the doc.
+ * Appends `body` (the recap editor's current text) to the doc, in the right
+ * place: the "{season}" tab for a preseason write-up, or the "{season}" tab's
+ * "Week {week}" child tab otherwise. Falls back to appending at the very end
+ * of the doc's single body when it has no tabs at all (an older doc that
+ * predates the tab layout).
  */
 export async function appendWriteupToDoc(
   documentId: string,
   body: string,
   accessToken: string,
-  season: string
+  season: string,
+  week: number | null
 ): Promise<void> {
-  const { paragraphs, docEndIndex } = await fetchDocStructure(documentId, accessToken);
-  const { insertAt, createSeasonHeading } = findSeasonSectionInsertPoint(paragraphs, docEndIndex, season);
-  const { requests } = createSeasonHeading
-    ? buildNewSeasonSectionRequests(insertAt, season, body)
-    : buildInsertRequests(insertAt, body);
+  const tabs = await fetchDocTabs(documentId, accessToken);
+
+  let requests: DocsBatchUpdateRequest[];
+  if (tabs) {
+    const resolved = resolveTargetTab(tabs, season, week);
+    if ("error" in resolved) throw new Error(resolved.error);
+    requests = buildInsertRequests(resolved.tab.docEndIndex - 1, body, resolved.tab.tabId).requests;
+  } else {
+    const docEndIndex = await getDocEndIndex(documentId, accessToken);
+    requests = buildAppendRequests(docEndIndex, body).requests;
+  }
+
   await docsFetch(`/v1/documents/${documentId}:batchUpdate`, accessToken, {
     method: "POST",
     body: JSON.stringify({ requests }),
