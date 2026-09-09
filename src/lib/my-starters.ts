@@ -3,6 +3,7 @@
 // window. Pure logic — the fetching lives in hooks/useMyStarters.ts.
 
 import { NFLGame } from "./nfl-schedule";
+import { computeKickoffSlots, kickoffSlotLabel } from "./game-map";
 
 export interface StarterEntry {
   playerId: string;
@@ -127,4 +128,41 @@ export function formatKickoff(kickoff: string, now: Date = new Date()): string {
 /** The whole game header, e.g. "SF vs LAR @ 8:20 PM Thu" — away team first. */
 export function formatGameHeader(game: NFLGame, now: Date = new Date()): string {
   return `${game.awayTeam} vs ${game.homeTeam} @ ${formatKickoff(game.kickoff, now)}`;
+}
+
+/** One kickoff window's worth of games — one column in the starters-by-game swipe view. */
+export interface TimeBlockColumn {
+  /** e.g. "Wed 8p" — same labeling as the map's kickoff legend, so the two stay recognizable as the same scale. */
+  label: string;
+  games: GameStarters[];
+}
+
+/**
+ * Buckets this week's games into columns by kickoff window (same windowing
+ * as the map's kickoff gradient — see computeKickoffSlots), earliest first:
+ * every Wednesday-night game in one column, every Sunday-1pm game in the
+ * next, and so on. Games within a column keep the kickoff order they arrive
+ * in (groupStartersByGame already sorts the whole list chronologically).
+ * A game whose kickoff can't be parsed still needs somewhere to live — it
+ * lands in a trailing "TBD" column rather than vanishing.
+ */
+export function groupGamesByTimeBlock(games: GameStarters[]): TimeBlockColumn[] {
+  const { slotIndexByGameId, slots } = computeKickoffSlots(games.map((g) => g.game));
+  const columns: TimeBlockColumn[] = slots.map((slot) => ({
+    label: kickoffSlotLabel(slot.sortTime),
+    games: [],
+  }));
+
+  const unresolved: GameStarters[] = [];
+  for (const entry of games) {
+    const slotIndex = slotIndexByGameId.get(entry.game.id);
+    if (slotIndex === undefined) {
+      unresolved.push(entry);
+      continue;
+    }
+    columns[slotIndex].games.push(entry);
+  }
+  if (unresolved.length > 0) columns.push({ label: "TBD", games: unresolved });
+
+  return columns.filter((col) => col.games.length > 0);
 }

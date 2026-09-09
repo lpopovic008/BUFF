@@ -1,6 +1,6 @@
 "use client";
 
-import { formatGameHeader, GameStarters, GroupedStarter } from "@/lib/my-starters";
+import { formatGameHeader, GameStarters, groupGamesByTimeBlock, GroupedStarter } from "@/lib/my-starters";
 import { leagueColor } from "@/lib/game-map";
 
 export interface LeagueLegendEntry {
@@ -12,11 +12,9 @@ export interface LeagueLegendEntry {
 
 function PlayerRow({
   player,
-  colorIndexFor,
   legendByLeagueId,
 }: {
   player: GroupedStarter;
-  colorIndexFor: Map<string, number>;
   legendByLeagueId: Map<string, LeagueLegendEntry>;
 }) {
   const leagueNames = player.leagueIds
@@ -24,15 +22,6 @@ function PlayerRow({
     .join(", ");
   return (
     <div className="flex items-baseline gap-2 px-2 py-1" title={`${player.name} — ${leagueNames}`}>
-      <span className="flex shrink-0 gap-0.5">
-        {player.leagueIds.map((id) => (
-          <span
-            key={id}
-            className="h-2.5 w-2.5 shrink-0"
-            style={{ backgroundColor: leagueColor(colorIndexFor.get(id) ?? 0) }}
-          />
-        ))}
-      </span>
       <span className="w-8 shrink-0 text-[10px] font-medium uppercase tracking-wide text-ink-muted">
         {player.position}
       </span>
@@ -44,9 +33,11 @@ function PlayerRow({
 
 /**
  * Your whole week at a glance: every unique starter you have across your
- * leagues, filed under the NFL game they're playing in. A player started in
- * two or more leagues shows up once, with one colour indicator per league.
- * The legend doubles as a filter — click a league to show only its starters.
+ * leagues, filed under the NFL game they're playing in, grouped into columns
+ * by kickoff window — one column per window (Wed night, Thu night, Sun noon,
+ * ...), earliest first, swipeable on narrow screens where roughly three
+ * columns fit at once. The legend doubles as a filter — click a league to
+ * show only its starters.
  */
 export function StartersByGame({
   games,
@@ -61,8 +52,8 @@ export function StartersByGame({
   selectedLeagueIds: Set<string>;
   onToggleLeague: (leagueId: string) => void;
 }) {
-  const colorIndexFor = new Map(legend.map((l) => [l.leagueId, l.colorIndex]));
   const legendByLeagueId = new Map(legend.map((l) => [l.leagueId, l]));
+  const columns = groupGamesByTimeBlock(games);
 
   if (games.length === 0 && notPlaying.length === 0) {
     return <p className="text-sm text-ink-secondary">No starters set for this week yet.</p>;
@@ -93,22 +84,24 @@ export function StartersByGame({
         })}
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {games.map(({ game, players }) => (
-          <div key={game.id} className="flex flex-col gap-1.5">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-primary">
-              {formatGameHeader(game)}
-            </h3>
-            <div className="flex flex-col gap-1">
-              {players.map((player) => (
-                <PlayerRow
-                  key={player.playerId}
-                  player={player}
-                  colorIndexFor={colorIndexFor}
-                  legendByLeagueId={legendByLeagueId}
-                />
-              ))}
-            </div>
+      <div className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {columns.map((column) => (
+          <div key={column.label} className="flex w-[31%] shrink-0 snap-start flex-col gap-3 sm:w-[200px]">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
+              {column.label}
+            </span>
+            {column.games.map(({ game, players }) => (
+              <div key={game.id} className="flex flex-col gap-1.5">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-primary">
+                  {formatGameHeader(game)}
+                </h3>
+                <div className="flex flex-col gap-1">
+                  {players.map((player) => (
+                    <PlayerRow key={player.playerId} player={player} legendByLeagueId={legendByLeagueId} />
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         ))}
       </div>
@@ -120,12 +113,7 @@ export function StartersByGame({
           </h3>
           <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 lg:grid-cols-3">
             {notPlaying.map((player) => (
-              <PlayerRow
-                key={player.playerId}
-                player={player}
-                colorIndexFor={colorIndexFor}
-                legendByLeagueId={legendByLeagueId}
-              />
+              <PlayerRow key={player.playerId} player={player} legendByLeagueId={legendByLeagueId} />
             ))}
           </div>
         </div>

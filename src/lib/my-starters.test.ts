@@ -1,6 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { formatGameHeader, formatKickoff, groupStartersByGame, StarterEntry } from "./my-starters";
+import {
+  formatGameHeader,
+  formatKickoff,
+  groupGamesByTimeBlock,
+  groupStartersByGame,
+  StarterEntry,
+} from "./my-starters";
 import { NFLGame } from "./nfl-schedule";
 
 function game(id: string, away: string, home: string, kickoff: string): NFLGame {
@@ -100,4 +106,44 @@ test("an unparseable kickoff degrades to TBD rather than Invalid Date", () => {
 test("the game header names the away team first", () => {
   // SF are the nominal away side of the Melbourne opener.
   assert.match(formatGameHeader(MELBOURNE, NOW), /^SF vs LAR @ /);
+});
+
+test("games are bucketed into one column per kickoff window, earliest first", () => {
+  const wedNight = game("wed", "SF", "LAR", "2026-09-09T23:00:00");
+  const sunNoonA = game("sun-a", "TB", "CIN", "2026-09-13T13:00:00");
+  const sunNoonB = game("sun-b", "DAL", "NYG", "2026-09-13T13:00:00"); // same window as sunNoonA
+  const monNight = game("mon", "PHI", "GB", "2026-09-14T20:15:00");
+
+  const { games } = groupStartersByGame(
+    [
+      starter("A", "QB", "LAR"),
+      starter("B", "WR", "CIN"),
+      starter("C", "RB", "NYG"),
+      starter("D", "TE", "GB"),
+    ],
+    [wedNight, sunNoonA, sunNoonB, monNight]
+  );
+
+  const columns = groupGamesByTimeBlock(games);
+  assert.deepEqual(
+    columns.map((c) => c.games.map((g) => g.game.id)),
+    [["wed"], ["sun-a", "sun-b"], ["mon"]]
+  );
+  assert.deepEqual(
+    columns.map((c) => c.label),
+    ["Wed 11p", "Sun 1p", "Mon 8p"]
+  );
+});
+
+test("a game with an unparseable kickoff still shows up, in a trailing TBD column", () => {
+  const good = game("good", "SF", "LAR", "2026-09-13T13:00:00");
+  const bad = game("bad", "TB", "CIN", "not a date");
+  const { games } = groupStartersByGame(
+    [starter("A", "QB", "LAR"), starter("B", "WR", "CIN")],
+    [good, bad]
+  );
+
+  const columns = groupGamesByTimeBlock(games);
+  assert.equal(columns.at(-1)!.label, "TBD");
+  assert.deepEqual(columns.at(-1)!.games.map((g) => g.game.id), ["bad"]);
 });
