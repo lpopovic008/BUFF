@@ -4,9 +4,11 @@
 // own box on screen: each field here maps to exactly one editable box, and
 // `joinRecapModel` is the single place that knows how to flatten them back
 // into the literal text that gets saved, copied, and posted — so what the
-// editor shows is always exactly what gets copied, headers included.
-
-const DETAIL_PLACEHOLDER = "<Detail>";
+// editor shows is always exactly what gets copied, headers included. Every
+// section can also be individually excluded (`RecapModel.include`) — dropped
+// from both the flattened text and the exported graphic — rather than the
+// code deciding what's relevant for a given week; the same structure covers
+// the preseason write-up and every regular week identically.
 
 // The header/anchor lines that appear verbatim in the flattened text — shared
 // between the joiner and the parser (and the editor's on-screen labels) so
@@ -25,6 +27,20 @@ export const GOOD_LUCK_TO_ALL = "Good Luck to All!";
 export function upcomingWeekLabel(week: number): string {
   return `UPCOMING WEEK ${week}:`;
 }
+
+/** Every section the write-up/graphic can show, in the order they appear — the single source of truth the include/exclude checkboxes (and the graphic's own section toggles) are built from, so the two can never drift apart. */
+export const RECAP_SECTIONS = [
+  { key: "bowl", label: "👑 Bowl of the Week" },
+  { key: "honorable", label: "🏆 Honorable Mention" },
+  { key: "highScorer", label: "📈 High Scorer" },
+  { key: "winners", label: "🤑 Winners Podium" },
+  { key: "lastWeek", label: "🗓️ Last Week Results" },
+  { key: "standings", label: "💰 Updated Standings" },
+  { key: "upcomingBowl", label: "🥇 Matchup of the Week" },
+  { key: "upcomingHonorable", label: "🥈 Honorable Mention Preview" },
+] as const;
+
+export type RecapSectionKey = (typeof RECAP_SECTIONS)[number]["key"];
 
 export interface RecapModel {
   title: string;
@@ -45,40 +61,53 @@ export interface RecapModel {
   upcomingBowlDetail: string;
   upcomingHonorableLines: string;
   upcomingHonorableDetail: string;
+  /** A key mapped to `false` leaves that section out of both the flattened text and the graphic; anything missing (including every section on an older saved recap) defaults to included. */
+  include: Partial<Record<RecapSectionKey, boolean>>;
+}
+
+/** Whether a section should be shown — the one place both the text flattener and the UI check, so "excluded" always means the same thing everywhere. */
+export function isSectionIncluded(model: Pick<RecapModel, "include">, key: RecapSectionKey): boolean {
+  return model.include?.[key] !== false;
 }
 
 /** Every field defaults to this until real data or a hand-typed edit replaces it. */
 export const EMPTY_RECAP_MODEL: RecapModel = {
   title: "",
   bowlResult: "",
-  bowlDetail: DETAIL_PLACEHOLDER,
+  bowlDetail: "",
   honorableResult: "",
-  honorableDetail: DETAIL_PLACEHOLDER,
+  honorableDetail: "",
   highScorer: "",
-  highScorerDetail: DETAIL_PLACEHOLDER,
+  highScorerDetail: "",
   winners: "",
   lastWeek: "",
   standings: "",
   upcomingWeek: 1,
   upcomingBowlLines: "",
-  upcomingBowlDetail: DETAIL_PLACEHOLDER,
+  upcomingBowlDetail: "",
   upcomingHonorableLines: "",
-  upcomingHonorableDetail: DETAIL_PLACEHOLDER,
+  upcomingHonorableDetail: "",
+  include: {},
 };
 
-/** Flattens a model into the exact literal text that gets saved, copied, and posted. The one place that knows this layout — the parser below mirrors it exactly. */
+/** Flattens a model into the exact literal text that gets saved, copied, and posted — an excluded section (see `include`) is left out entirely, header and all. The one place that knows this layout — the parser below mirrors it exactly for a fully-included recap, the only shape older saved text can be in. */
 export function joinRecapModel(model: RecapModel): string {
+  const included = (key: RecapSectionKey) => isSectionIncluded(model, key);
   const lines: string[] = [];
   lines.push(model.title, "");
-  lines.push(model.bowlResult, model.bowlDetail, "");
-  lines.push(model.honorableResult, model.honorableDetail, "");
-  lines.push(model.highScorer, model.highScorerDetail, "");
-  lines.push(RECAP_HEADERS.winners, ...model.winners.split("\n"), "");
-  lines.push(RECAP_HEADERS.lastWeek, ...model.lastWeek.split("\n"), "");
-  lines.push(RECAP_HEADERS.standings, ...model.standings.split("\n"), "");
+  if (included("bowl")) lines.push(model.bowlResult, model.bowlDetail, "");
+  if (included("honorable")) lines.push(model.honorableResult, model.honorableDetail, "");
+  if (included("highScorer")) lines.push(model.highScorer, model.highScorerDetail, "");
+  if (included("winners")) lines.push(RECAP_HEADERS.winners, ...model.winners.split("\n"), "");
+  if (included("lastWeek")) lines.push(RECAP_HEADERS.lastWeek, ...model.lastWeek.split("\n"), "");
+  if (included("standings")) lines.push(RECAP_HEADERS.standings, ...model.standings.split("\n"), "");
   lines.push(upcomingWeekLabel(model.upcomingWeek), "");
-  lines.push(RECAP_HEADERS.upcomingBowl, ...model.upcomingBowlLines.split("\n"), "", model.upcomingBowlDetail, WHO_WILL_PREVAIL, "");
-  lines.push(RECAP_HEADERS.upcomingHonorable, ...model.upcomingHonorableLines.split("\n"), "", model.upcomingHonorableDetail, GOOD_LUCK_TO_ALL);
+  if (included("upcomingBowl")) {
+    lines.push(RECAP_HEADERS.upcomingBowl, ...model.upcomingBowlLines.split("\n"), "", model.upcomingBowlDetail, WHO_WILL_PREVAIL, "");
+  }
+  if (included("upcomingHonorable")) {
+    lines.push(RECAP_HEADERS.upcomingHonorable, ...model.upcomingHonorableLines.split("\n"), "", model.upcomingHonorableDetail, GOOD_LUCK_TO_ALL);
+  }
   return lines.join("\n");
 }
 
@@ -204,5 +233,9 @@ export function parseRecapModel(body: string): RecapModel | null {
     upcomingBowlDetail: upcomingBowl.detail.join("\n"),
     upcomingHonorableLines: upcomingHonorable.lines.join("\n"),
     upcomingHonorableDetail: upcomingHonorable.detail.join("\n"),
+    // Old flat text never had exclusion — a recap recovered from it always
+    // starts with everything included, same as `joinRecapModel` would need
+    // to reproduce this exact text.
+    include: {},
   };
 }

@@ -1,7 +1,7 @@
 import { WeekRecapData, MatchupGame } from "./league-data";
 import { PayoutLedger, summarizeWeek, standingsThroughWeek } from "./payouts";
 import { formatPoints, ordinal } from "./format";
-import { RecapModel, joinRecapModel } from "./recap-model";
+import { RecapModel, RecapSectionKey, joinRecapModel } from "./recap-model";
 
 /** The high-scoring team's own top-scoring starters — who "led the scoring" for that team this week, richest first. */
 export function findWeekTopStarters(
@@ -18,8 +18,6 @@ export function findWeekTopStarters(
     .map((id) => ({ playerId: id, points: team.playersPoints[id] }));
 }
 
-const DETAIL_PLACEHOLDER = "<Detail>";
-
 export interface RecapDetails {
   bowlResult: string;
   honorableResult: string;
@@ -29,11 +27,11 @@ export interface RecapDetails {
 }
 
 const DEFAULT_DETAILS: RecapDetails = {
-  bowlResult: DETAIL_PLACEHOLDER,
-  honorableResult: DETAIL_PLACEHOLDER,
-  highScorer: DETAIL_PLACEHOLDER,
-  upcomingBowl: DETAIL_PLACEHOLDER,
-  upcomingHonorable: DETAIL_PLACEHOLDER,
+  bowlResult: "",
+  honorableResult: "",
+  highScorer: "",
+  upcomingBowl: "",
+  upcomingHonorable: "",
 };
 
 /**
@@ -44,10 +42,10 @@ const DEFAULT_DETAILS: RecapDetails = {
  * save/copy actions) that just want the final text. The bowl-game
  * result/preview lines are pre-composed from the commish's picks (see
  * bowl-narrative.ts), with brackets filled in for anything not resolvable yet
- * (no pick made, game not played). The 5 free "<Detail>" fields default to
- * that literal placeholder unless `details` is passed, so regenerating the
- * mechanical parts (scores, standings, bowl-game text) after a pick save
- * never loses commentary the commish already wrote.
+ * (no pick made, game not played). The 5 free-write "detail" fields default
+ * to empty unless `details` is passed, so regenerating the mechanical parts
+ * (scores, standings, bowl-game text) after a pick save never loses
+ * commentary the commish already wrote.
  */
 export function buildWeeklyRecapModel({
   data,
@@ -58,6 +56,7 @@ export function buildWeeklyRecapModel({
   upcomingBowlLines,
   upcomingHonorableLines,
   details = DEFAULT_DETAILS,
+  include = {},
 }: {
   data: WeekRecapData;
   ledger: PayoutLedger;
@@ -68,6 +67,8 @@ export function buildWeeklyRecapModel({
   upcomingBowlLines: string[];
   upcomingHonorableLines: string[];
   details?: RecapDetails;
+  /** Which sections are checked in on screen — carried through so regenerating the mechanical parts after a pick save never resets a section the commish already unchecked. */
+  include?: Partial<Record<RecapSectionKey, boolean>>;
 }): RecapModel {
   const week = data.week;
   const summary = summarizeWeek(ledger, week);
@@ -136,6 +137,7 @@ export function buildWeeklyRecapModel({
     upcomingBowlDetail: details.upcomingBowl,
     upcomingHonorableLines: upcomingHonorableLines.join("\n"),
     upcomingHonorableDetail: details.upcomingHonorable,
+    include,
   };
 }
 
@@ -157,12 +159,14 @@ export function buildPreseasonRecapModel({
   upcomingBowlLines,
   upcomingHonorableLines,
   details = DEFAULT_DETAILS,
+  include = {},
 }: {
   leagueName: string;
   season: string;
   upcomingBowlLines: string[];
   upcomingHonorableLines: string[];
   details?: RecapDetails;
+  include?: Partial<Record<RecapSectionKey, boolean>>;
 }): RecapModel {
   return {
     title: `🚨📋 ${leagueName} — ${season} Preseason`,
@@ -187,6 +191,7 @@ export function buildPreseasonRecapModel({
     upcomingBowlDetail: details.upcomingBowl,
     upcomingHonorableLines: upcomingHonorableLines.join("\n"),
     upcomingHonorableDetail: details.upcomingHonorable,
+    include,
   };
 }
 

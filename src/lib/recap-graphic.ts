@@ -17,7 +17,7 @@
 // canvas 2D drawing, no DOM/layout dependency beyond the canvas itself, and
 // not theme-reactive — this is a fixed-look card, not a live page.
 
-import { RecapModel, RECAP_HEADERS } from "./recap-model";
+import { RecapModel, RECAP_HEADERS, RecapSectionKey, isSectionIncluded } from "./recap-model";
 import { ordinal } from "./format";
 
 const WIDTH = 1080;
@@ -63,20 +63,6 @@ export interface PreviewMatchup {
   teamB: MatchupTeam;
 }
 
-/** Every section the graphic can draw, in the order they'd appear — the single source of truth RecapEditor's include/exclude toggles are built from, so the two can never drift apart. */
-export const GRAPHIC_SECTIONS = [
-  { key: "bowl", label: "👑 Bowl of the Week" },
-  { key: "honorable", label: "🏆 Honorable Mention" },
-  { key: "highScorer", label: "📈 High Scorer" },
-  { key: "winners", label: "🤑 Winners Podium" },
-  { key: "lastWeek", label: "🗓️ Last Week Results" },
-  { key: "standings", label: "💰 Updated Standings" },
-  { key: "upcomingBowl", label: "🥇 Matchup of the Week" },
-  { key: "upcomingHonorable", label: "🥈 Honorable Mention Preview" },
-] as const;
-
-export type GraphicSectionKey = (typeof GRAPHIC_SECTIONS)[number]["key"];
-
 export interface RecapGraphicExtras {
   bowl?: DecidedMatchup | null;
   honorable?: DecidedMatchup | null;
@@ -86,8 +72,8 @@ export interface RecapGraphicExtras {
   avatarByName?: Record<string, string | null>;
   /** CSS font-family for the "college sports" display font (see fonts.ts) — falls back to the body font stack if omitted or it fails to load in time. */
   displayFontFamily?: string;
-  /** Which sections to draw — a key mapped to `false` skips it, anything missing defaults to included. Lets every section be turned on/off per export rather than the code deciding what's relevant for a given week. */
-  include?: Partial<Record<GraphicSectionKey, boolean>>;
+  /** Which sections to draw — same shape and meaning as `RecapModel.include` (see recap-model.ts), normally passed straight through from it so the graphic always matches what's checked on screen. */
+  include?: Partial<Record<RecapSectionKey, boolean>>;
 }
 
 function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
@@ -694,7 +680,7 @@ function runLayout(
   }
   l.space(34);
 
-  const included = (key: GraphicSectionKey) => matchups.include?.[key] !== false;
+  const included = (key: RecapSectionKey) => isSectionIncluded({ include: matchups.include ?? {} }, key);
 
   if (model) {
     if (included("bowl")) l.decidedMatchup(matchups.bowl ?? PLACEHOLDER_MATCHUP);

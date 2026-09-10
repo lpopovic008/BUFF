@@ -4,8 +4,17 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
-import { IconLink } from "@/components/ui/IconButton";
-import { ChevronLeftIcon, ChevronRightIcon, DocumentIcon } from "@/components/ui/Icon";
+import { IconLink, IconButton } from "@/components/ui/IconButton";
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  DocumentIcon,
+  CopyIcon,
+  ImageIcon,
+  SaveIcon,
+  CheckIcon,
+  UploadIcon,
+} from "@/components/ui/Icon";
 import { computeWeekRecap, WeekRecapData } from "@/lib/league-data";
 import {
   formatRecapMarkdown,
@@ -26,13 +35,15 @@ import {
 } from "@/lib/bowl-narrative";
 import { loadLeagueMoney, LeagueMoney } from "@/lib/league-money";
 import { summarizeWeek } from "@/lib/payouts";
-import { getRecap, getBowlPicks, RecapBowlPicks, SavedRecap } from "@/lib/localStore";
+import { getRecap, getBowlPicks, saveBowlPicks, RecapBowlPicks, SavedRecap } from "@/lib/localStore";
 import { resolveGoogleClientId } from "@/lib/google-config";
 import { useConfig } from "@/hooks/useConfig";
+import { useRecapActions } from "@/hooks/useRecapActions";
 import { getRecapWeek, getLeague, getLeagueRosters, getLeagueUsers } from "@/lib/sleeper";
 import { resolvePlayers } from "@/lib/players";
 import { displayManagerName } from "@/lib/format";
 import { useLeagueTeams } from "@/hooks/useLeagueTeams";
+import { recapDisplayFont } from "@/lib/fonts";
 import { RecapEditor } from "./RecapEditor";
 import { BowlPicksEditor } from "./BowlPicksEditor";
 
@@ -314,6 +325,65 @@ function RecapContent() {
     });
   }
 
+  /**
+   * Renaming this week's Bowl of the Week/Honorable Mention writes straight
+   * back to the same week-keyed BowlGamePick that was set as the "upcoming"
+   * pick on last week's page (see saveBowlPicks/getBowlPicks) — so the name
+   * is never duplicated per-section, and a league visiting last week's page
+   * again would see the same updated name in its own preview box too.
+   */
+  function renameResultBowl(field: keyof RecapBowlPicks, name: string) {
+    if (!leagueId || !header || !recapData || week === null) return;
+    const current = getBowlPicks(leagueId, header.season, week);
+    const updatedPick = { ...current[field], name };
+    const updated: RecapBowlPicks = { ...current, [field]: updatedPick };
+    saveBowlPicks(leagueId, header.season, week, updated);
+
+    const matchup = resolveBowlMatchup(updatedPick, recapData.games);
+    if (field === "bowlOfWeek") setBowlMatchup(matchup);
+    else setHonorableMatchup(matchup);
+
+    setModel((prev) => {
+      if (!prev) return prev;
+      if (field === "bowlOfWeek") {
+        return { ...prev, bowlResult: formatBowlResultLine("👑", updatedPick, teamNames, recapData.games) };
+      }
+      return { ...prev, honorableResult: formatBowlResultLine("🏆", updatedPick, teamNames, recapData.games) };
+    });
+  }
+
+  /**
+   * Renaming next week's preview writes to the same pick record
+   * handlePicksSaved above already knows how to fold back into the model —
+   * reused as-is so a rename regenerates the preview lines identically to a
+   * picker save.
+   */
+  function renameUpcomingBowl(field: keyof RecapBowlPicks, name: string) {
+    if (!leagueId || !header || week === null) return;
+    const pickWeek = week + 1;
+    const current = upcomingPicks ?? getBowlPicks(leagueId, header.season, pickWeek);
+    const updated: RecapBowlPicks = { ...current, [field]: { ...current[field], name } };
+    saveBowlPicks(leagueId, header.season, pickWeek, updated);
+    handlePicksSaved(updated);
+  }
+
+  const actions = useRecapActions({
+    leagueId: leagueId ?? "",
+    season: header?.season ?? "",
+    week: week ?? PRESEASON_WEEK,
+    title: header?.title ?? "",
+    model,
+    plainBody,
+    savedAt,
+    writeupDocId: money?.profile.writeupDocId,
+    googleClientId,
+    bowlMatchup,
+    honorableMatchup,
+    upcomingMatchup: upcomingBowlPreview,
+    upcomingHonorableMatchup: upcomingHonorablePreview,
+    teams: teamsById,
+  });
+
   if (!leagueId) {
     return <Card className="p-12 text-center text-sm text-ink-secondary">No league selected.</Card>;
   }
@@ -326,11 +396,12 @@ function RecapContent() {
 
   return (
     <div className="flex flex-col gap-6 animate-[rise_0.5s_ease-out_backwards]">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-ink-primary">{header.title}</h1>
-          <p className="mt-1 text-sm text-ink-secondary">{header.subtitle}</p>
-        </div>
+      {/* Gives the browser a live use of the display font so it's actually loaded — see recap-graphic.ts, which draws with it via its resolved font-family name, not this class. */}
+      <span aria-hidden className={`${recapDisplayFont.className} absolute h-0 w-0 overflow-hidden`}>
+        .
+      </span>
+
+      <div className="sticky top-0 z-10 -mx-3 flex flex-wrap items-center justify-between gap-3 border-b border-border bg-page/95 px-3 py-3 backdrop-blur sm:-mx-6 sm:px-6">
         <div className="flex items-center gap-2 text-sm">
           {week > PRESEASON_WEEK + 1 ? (
             <Link
@@ -354,29 +425,77 @@ function RecapContent() {
           >
             {isPreseason ? "Week 1" : `Week ${week + 1}`} <ChevronRightIcon className="h-4 w-4" />
           </Link>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
           <IconLink href={`/recap/archive?id=${leagueId}`} icon={<DocumentIcon />} label="Recap archive" />
+          <IconButton
+            icon={actions.graphicStatus === "copied" ? <CheckIcon /> : <ImageIcon />}
+            label={
+              actions.graphicStatus === "copying"
+                ? "Rendering graphic…"
+                : actions.graphicStatus === "copied"
+                  ? "Copied graphic"
+                  : "Copy graphic"
+            }
+            onClick={actions.handleCopyGraphic}
+            disabled={actions.graphicStatus === "copying"}
+          />
+          <IconButton
+            icon={actions.copied ? <CheckIcon /> : <CopyIcon />}
+            label={actions.copied ? "Copied plain text" : "Copy plain text"}
+            onClick={actions.handleCopy}
+          />
+          <IconButton icon={<SaveIcon />} label="Save to archive" variant="primary" onClick={actions.handleSave} />
+          {money?.profile.writeupDocId && googleClientId ? (
+            <IconButton
+              icon={actions.docStatus === "saved" ? <CheckIcon /> : <UploadIcon />}
+              label={
+                actions.docStatus === "saving" ? "Saving to Doc…" : actions.docStatus === "saved" ? "Saved to Doc" : "Save to Doc"
+              }
+              onClick={actions.handleSaveToDoc}
+              disabled={actions.docStatus === "saving"}
+            />
+          ) : null}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold text-ink-primary">{header.title}</h1>
+          <p className="mt-1 text-sm text-ink-secondary">{header.subtitle}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 text-xs text-ink-muted">
+          {actions.lastSavedAt ? <span>Saved {new Date(actions.lastSavedAt).toLocaleString()}</span> : <span>Not saved yet</span>}
+          {money?.profile.writeupDocId && !googleClientId ? (
+            <a href="/settings" className="underline decoration-dotted hover:text-ink-secondary">
+              Connect Google Docs in Settings to save write-ups there
+            </a>
+          ) : null}
+          {actions.graphicStatus === "error" && actions.graphicError ? (
+            <span className="text-status-critical">Copy graphic failed: {actions.graphicError}</span>
+          ) : null}
+          {actions.docStatus === "error" && actions.docError ? (
+            <span className="text-status-critical">Google Doc save failed: {actions.docError}</span>
+          ) : null}
         </div>
       </div>
 
       <Card className="p-5">
         <RecapEditor
-          key={`${leagueId}-${week}`}
-          leagueId={leagueId}
-          season={header.season}
-          week={week}
-          title={header.title}
           model={model}
           onModelChange={setModel}
           plainBody={plainBody}
           onPlainBodyChange={setPlainBody}
-          savedAt={savedAt}
-          writeupDocId={money?.profile.writeupDocId}
-          googleClientId={googleClientId}
           bowlMatchup={bowlMatchup}
           honorableMatchup={honorableMatchup}
           upcomingMatchup={upcomingBowlPreview}
           upcomingHonorableMatchup={upcomingHonorablePreview}
           teams={teamsById}
+          onRenameBowl={(name) => renameResultBowl("bowlOfWeek", name)}
+          onRenameHonorable={(name) => renameResultBowl("honorableBowl", name)}
+          onRenameUpcomingBowl={(name) => renameUpcomingBowl("bowlOfWeek", name)}
+          onRenameUpcomingHonorable={(name) => renameUpcomingBowl("honorableBowl", name)}
         />
       </Card>
 
