@@ -52,10 +52,13 @@ export interface RecapModel {
   highScorerDetail: string;
   /** One line per team receiving commission this week. */
   winners: string;
+  winnersDetail: string;
   /** Two lines per team — name, then "points ✅/❌". */
   lastWeek: string;
+  lastWeekDetail: string;
   /** One line per team's running total. */
   standings: string;
+  standingsDetail: string;
   upcomingWeek: number;
   upcomingBowlLines: string;
   upcomingBowlDetail: string;
@@ -63,11 +66,37 @@ export interface RecapModel {
   upcomingHonorableDetail: string;
   /** A key mapped to `false` leaves that section out of both the flattened text and the graphic; anything missing (including every section on an older saved recap) defaults to included. */
   include: Partial<Record<RecapSectionKey, boolean>>;
+  /** Whether a section's Detail box renders on screen — see isDetailShown. Purely a UI affordance (the "+"/"–" button in SectionBox's corner); never affects the flattened text, which includes a Detail line whenever it has content regardless of whether the box happens to be open. */
+  detailShown: Partial<Record<RecapSectionKey, boolean>>;
 }
 
 /** Whether a section should be shown — the one place both the text flattener and the UI check, so "excluded" always means the same thing everywhere. */
 export function isSectionIncluded(model: Pick<RecapModel, "include">, key: RecapSectionKey): boolean {
   return model.include?.[key] !== false;
+}
+
+/** Which model field holds a given section's optional free-write commentary — the single place that maps a section to its Detail field, so the "+" toggle and the flattener can't drift apart on which field goes with which section. */
+export const DETAIL_FIELD: Record<RecapSectionKey, keyof RecapModel> = {
+  bowl: "bowlDetail",
+  honorable: "honorableDetail",
+  highScorer: "highScorerDetail",
+  winners: "winnersDetail",
+  lastWeek: "lastWeekDetail",
+  standings: "standingsDetail",
+  upcomingBowl: "upcomingBowlDetail",
+  upcomingHonorable: "upcomingHonorableDetail",
+};
+
+/**
+ * Whether a section's Detail box should render on screen right now —
+ * explicit once the commish has ever clicked its "+"/"–" toggle, otherwise
+ * inferred from whether it already has text, so a recap with commentary
+ * typed before this toggle existed doesn't suddenly hide it.
+ */
+export function isDetailShown(model: RecapModel, key: RecapSectionKey): boolean {
+  const explicit = model.detailShown?.[key];
+  if (explicit !== undefined) return explicit;
+  return (model[DETAIL_FIELD[key]] as string).trim() !== "";
 }
 
 /** Every field defaults to this until real data or a hand-typed edit replaces it. */
@@ -80,14 +109,18 @@ export const EMPTY_RECAP_MODEL: RecapModel = {
   highScorer: "",
   highScorerDetail: "",
   winners: "",
+  winnersDetail: "",
   lastWeek: "",
+  lastWeekDetail: "",
   standings: "",
+  standingsDetail: "",
   upcomingWeek: 1,
   upcomingBowlLines: "",
   upcomingBowlDetail: "",
   upcomingHonorableLines: "",
   upcomingHonorableDetail: "",
   include: {},
+  detailShown: {},
 };
 
 /** Flattens a model into the exact literal text that gets saved, copied, and posted — an excluded section (see `include`) is left out entirely, header and all. The one place that knows this layout — the parser below mirrors it exactly for a fully-included recap, the only shape older saved text can be in. */
@@ -98,9 +131,21 @@ export function joinRecapModel(model: RecapModel): string {
   if (included("bowl")) lines.push(model.bowlResult, model.bowlDetail, "");
   if (included("honorable")) lines.push(model.honorableResult, model.honorableDetail, "");
   if (included("highScorer")) lines.push(model.highScorer, model.highScorerDetail, "");
-  if (included("winners")) lines.push(RECAP_HEADERS.winners, ...model.winners.split("\n"), "");
-  if (included("lastWeek")) lines.push(RECAP_HEADERS.lastWeek, ...model.lastWeek.split("\n"), "");
-  if (included("standings")) lines.push(RECAP_HEADERS.standings, ...model.standings.split("\n"), "");
+  if (included("winners")) {
+    lines.push(RECAP_HEADERS.winners, ...model.winners.split("\n"));
+    if (model.winnersDetail) lines.push("", model.winnersDetail);
+    lines.push("");
+  }
+  if (included("lastWeek")) {
+    lines.push(RECAP_HEADERS.lastWeek, ...model.lastWeek.split("\n"));
+    if (model.lastWeekDetail) lines.push("", model.lastWeekDetail);
+    lines.push("");
+  }
+  if (included("standings")) {
+    lines.push(RECAP_HEADERS.standings, ...model.standings.split("\n"));
+    if (model.standingsDetail) lines.push("", model.standingsDetail);
+    lines.push("");
+  }
   lines.push(upcomingWeekLabel(model.upcomingWeek), "");
   if (included("upcomingBowl")) {
     lines.push(RECAP_HEADERS.upcomingBowl, ...model.upcomingBowlLines.split("\n"), "", model.upcomingBowlDetail, WHO_WILL_PREVAIL, "");
@@ -226,16 +271,30 @@ export function parseRecapModel(body: string): RecapModel | null {
     highScorer: highScorer.block[0],
     highScorerDetail: highScorer.block.slice(1).join("\n"),
     winners: winners.block.join("\n"),
+    // winners/lastWeek/standings never had a Detail line before this toggle
+    // existed, and readBlockUntilBlank has no way to tell new detail text
+    // apart from the list content it follows (unlike bowl/honorable/
+    // highScorer, there's no fixed single "result" line to split on) — text
+    // saved with one of these populated fails this parse entirely and falls
+    // back to a plain text box, which is fine: saved.model is always
+    // preferred over recovering from flat text once a recap has ever been
+    // saved with the structured model (see resolveHouseStyleState).
+    winnersDetail: "",
     lastWeek: lastWeek.block.join("\n"),
+    lastWeekDetail: "",
     standings: standings.block.join("\n"),
+    standingsDetail: "",
     upcomingWeek,
     upcomingBowlLines: upcomingBowl.lines.join("\n"),
     upcomingBowlDetail: upcomingBowl.detail.join("\n"),
     upcomingHonorableLines: upcomingHonorable.lines.join("\n"),
     upcomingHonorableDetail: upcomingHonorable.detail.join("\n"),
-    // Old flat text never had exclusion — a recap recovered from it always
-    // starts with everything included, same as `joinRecapModel` would need
-    // to reproduce this exact text.
+    // Old flat text never had exclusion or a detail-visibility toggle — a
+    // recap recovered from it always starts with everything included and
+    // every Detail box collapsed (or open, if it already has text — see
+    // isDetailShown), same as `joinRecapModel` would need to reproduce this
+    // exact text.
     include: {},
+    detailShown: {},
   };
 }

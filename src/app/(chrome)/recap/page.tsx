@@ -113,6 +113,11 @@ function RecapContent() {
   const [money, setMoney] = useState<LeagueMoney | null>(null);
   const [upcomingPicks, setUpcomingPicks] = useState<RecapBowlPicks | null>(null);
   const [teamNames, setTeamNames] = useState<Record<number, string>>({});
+  // Player id -> display name, for the High Scorer section's live "led by"
+  // callout (see RecapSectionsEditor) — resolved once per week from the
+  // high scorer's top starters, same lookup the mechanical text generator
+  // already needed.
+  const [highScorerNames, setHighScorerNames] = useState<Record<string, string>>({});
   // The same bowl-of-the-week/honorable-mention picks as structured data (who
   // actually won, not just the sentence) — feeds the recap graphic's poster
   // cards, which need to tell winner from loser to style and label them
@@ -156,6 +161,7 @@ function RecapContent() {
       setMoney(null);
       setUpcomingPicks(null);
       setTeamNames({});
+      setHighScorerNames({});
       setBowlMatchup(null);
       setHonorableMatchup(null);
       setUpcomingBowlPreview(null);
@@ -247,6 +253,7 @@ function RecapContent() {
           if (cancelled) return;
           const playerNames: Record<string, string> = {};
           for (const p of resolvedPlayers) playerNames[p.playerId] = p.name;
+          setHighScorerNames(playerNames);
 
           const fresh = buildWeeklyRecapModel({
             data,
@@ -491,6 +498,10 @@ function RecapContent() {
           upcomingHonorableMatchup={upcomingHonorablePreview}
           teams={teamsById}
           teamOptions={teamOptions}
+          recapData={recapData}
+          ledger={money?.ledger ?? null}
+          week={week}
+          playerNames={highScorerNames}
           onRenameBowl={(name) => renameResultBowl("bowlOfWeek", name)}
           onRenameHonorable={(name) => renameResultBowl("honorableBowl", name)}
           onRenameUpcomingBowl={(name) => renameUpcomingBowl("bowlOfWeek", name)}

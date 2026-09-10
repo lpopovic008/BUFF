@@ -130,14 +130,18 @@ export function buildWeeklyRecapModel({
     highScorer,
     highScorerDetail: details.highScorer,
     winners: winners.join("\n"),
+    winnersDetail: "",
     lastWeek: lastWeek.join("\n"),
+    lastWeekDetail: "",
     standings: standings.join("\n"),
+    standingsDetail: "",
     upcomingWeek: week + 1,
     upcomingBowlLines: upcomingBowlLines.join("\n"),
     upcomingBowlDetail: details.upcomingBowl,
     upcomingHonorableLines: upcomingHonorableLines.join("\n"),
     upcomingHonorableDetail: details.upcomingHonorable,
     include,
+    detailShown: {},
   };
 }
 
@@ -184,14 +188,18 @@ export function buildPreseasonRecapModel({
       "▫️[4th highest scoring winning team]",
       "▫️[5th highest scoring winning team]",
     ].join("\n"),
+    winnersDetail: "",
     lastWeek: ["[team 1]", "[team 1 points] [✅ for a win, ❌ for a loss]"].join("\n"),
+    lastWeekDetail: "",
     standings: "[most profitable team profit so far] [most profitable team name]",
+    standingsDetail: "",
     upcomingWeek: 1,
     upcomingBowlLines: upcomingBowlLines.join("\n"),
     upcomingBowlDetail: details.upcomingBowl,
     upcomingHonorableLines: upcomingHonorableLines.join("\n"),
     upcomingHonorableDetail: details.upcomingHonorable,
     include,
+    detailShown: {},
   };
 }
 

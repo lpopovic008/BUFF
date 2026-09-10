@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { EMPTY_RECAP_MODEL, joinRecapModel, parseRecapModel, RecapModel } from "./recap-model";
+import { DETAIL_FIELD, EMPTY_RECAP_MODEL, isDetailShown, joinRecapModel, parseRecapModel, RecapModel } from "./recap-model";
 
 function sampleModel(overrides: Partial<RecapModel> = {}): RecapModel {
   return {
@@ -92,4 +92,35 @@ test("parseRecapModel handles an embedded blank line inside the upcoming-matchup
 
 test("parseRecapModel returns null on a hand-typed body that doesn't match the house shape", () => {
   assert.equal(parseRecapModel("🚨📋 Week 4 Recap\n\nJust wrote whatever here, no structure."), null);
+});
+
+test("joinRecapModel appends a winners/lastWeek/standings detail line only when it has content", () => {
+  const withoutDetail = joinRecapModel(sampleModel());
+  assert.ok(!withoutDetail.includes("Tight race down the stretch."));
+
+  const withDetail = joinRecapModel(sampleModel({ standingsDetail: "Tight race down the stretch." }));
+  assert.ok(withDetail.includes("Tight race down the stretch."));
+});
+
+test("isDetailShown defaults to explicit state once set, otherwise to whether the field already has text", () => {
+  const empty = sampleModel({ standingsDetail: "" });
+  assert.equal(isDetailShown(empty, "standings"), false);
+
+  const withText = sampleModel({ standingsDetail: "Already had commentary before the toggle existed." });
+  assert.equal(isDetailShown(withText, "standings"), true);
+
+  const explicitlyClosed = sampleModel({
+    standingsDetail: "Still has text",
+    detailShown: { standings: false },
+  });
+  assert.equal(isDetailShown(explicitlyClosed, "standings"), false);
+
+  const explicitlyOpen = sampleModel({ standingsDetail: "", detailShown: { standings: true } });
+  assert.equal(isDetailShown(explicitlyOpen, "standings"), true);
+});
+
+test("DETAIL_FIELD maps every section to a real RecapModel field", () => {
+  for (const key of Object.keys(DETAIL_FIELD) as (keyof typeof DETAIL_FIELD)[]) {
+    assert.ok(DETAIL_FIELD[key] in EMPTY_RECAP_MODEL, `${key} -> ${DETAIL_FIELD[key]}`);
+  }
 });

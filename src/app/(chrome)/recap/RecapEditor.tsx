@@ -3,6 +3,8 @@
 import { RecapModel } from "@/lib/recap-model";
 import { BowlMatchupResult, BowlMatchupPreview } from "@/lib/bowl-narrative";
 import { LeagueTeamOption } from "@/hooks/useLeagueTeams";
+import { WeekRecapData } from "@/lib/league-data";
+import { PayoutLedger } from "@/lib/payouts";
 import { recapBodyFont } from "@/lib/fonts";
 import { RecapSectionsEditor } from "./RecapSectionsEditor";
 
@@ -24,6 +26,10 @@ export function RecapEditor({
   upcomingHonorableMatchup,
   teams,
   teamOptions,
+  recapData,
+  ledger,
+  week,
+  playerNames,
   onRenameBowl,
   onRenameHonorable,
   onRenameUpcomingBowl,
@@ -43,6 +49,12 @@ export function RecapEditor({
   teams: Record<number, { name: string; avatar: string | null }>;
   /** The league's roster pool for the upcoming-matchup team pickers — null until useLeagueTeams finishes loading. */
   teamOptions: LeagueTeamOption[] | null;
+  /** This write-up's own week's matchup data and money ledger, feeding the four computed sections (High Scorer, Winners, Last Week Results, Updated Standings) — see RecapSectionsEditor. */
+  recapData: WeekRecapData | null;
+  ledger: PayoutLedger | null;
+  week: number;
+  /** Player id -> display name, for the High Scorer callout's "led by" names. */
+  playerNames: Record<string, string>;
   /** Double-clicking a matchup's header renames it — writes back to the shared bowl pick (see recap/page.tsx) so the same game's name stays identical everywhere it's shown, this week and next. */
   onRenameBowl: (name: string) => void;
   onRenameHonorable: (name: string) => void;
@@ -74,6 +86,10 @@ export function RecapEditor({
         upcomingHonorableMatchup={upcomingHonorableMatchup}
         teams={teams}
         teamOptions={teamOptions}
+        recapData={recapData}
+        ledger={ledger}
+        week={week}
+        playerNames={playerNames}
         onRenameBowl={onRenameBowl}
         onRenameHonorable={onRenameHonorable}
         onRenameUpcomingBowl={onRenameUpcomingBowl}
