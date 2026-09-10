@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Julius_Sans_One } from "next/font/google";
+import { AutoSync } from "@/components/AutoSync";
 import "./globals.css";
 
 const juliusSansOne = Julius_Sans_One({
@@ -16,7 +17,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${juliusSansOne.variable} h-full antialiased`}>
-      <body className="min-h-full bg-page">{children}</body>
+      <body className="min-h-full bg-page">
+        <AutoSync />
+        {children}
+      </body>
     </html>
   );
 }

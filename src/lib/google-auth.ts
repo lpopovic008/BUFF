@@ -53,7 +53,10 @@ interface CachedToken {
   expiresAt: number;
 }
 
-let cachedToken: CachedToken | null = null;
+// Keyed by scope (Docs and Drive are requested independently) — a single
+// cached slot would wrongly hand back a Docs-scope token for a Drive
+// request, or vice versa, since GIS issues a distinct token per scope.
+const cachedTokens = new Map<string, CachedToken>();
 
 /**
  * Resolves to a valid OAuth access token for `scope`, reusing a cached one
@@ -62,8 +65,9 @@ let cachedToken: CachedToken | null = null;
  * or the browser may block the popup.
  */
 export async function getGoogleAccessToken(clientId: string, scope: string): Promise<string> {
-  if (cachedToken && cachedToken.expiresAt > Date.now() + 30_000) {
-    return cachedToken.accessToken;
+  const cached = cachedTokens.get(scope);
+  if (cached && cached.expiresAt > Date.now() + 30_000) {
+    return cached.accessToken;
   }
   await loadGoogleIdentityServices();
   return new Promise((resolve, reject) => {
@@ -75,10 +79,10 @@ export async function getGoogleAccessToken(clientId: string, scope: string): Pro
           reject(new Error(response.error ?? "Google sign-in was cancelled or failed."));
           return;
         }
-        cachedToken = {
+        cachedTokens.set(scope, {
           accessToken: response.access_token,
           expiresAt: Date.now() + (response.expires_in ?? 3600) * 1000,
-        };
+        });
         resolve(response.access_token);
       },
     });

@@ -63,6 +63,21 @@ function isBrowser(): boolean {
   return typeof window !== "undefined";
 }
 
+// A tiny pub-sub so google-drive-sync.ts can push to Drive shortly after any
+// local write, without this file needing to know sync exists. Fired from the
+// 4 low-level write functions below — every higher-level setter (saveRecap,
+// upsertLeague, saveBowlPicks, ...) already funnels through one of them.
+const localWriteListeners = new Set<() => void>();
+
+export function onLocalWrite(listener: () => void): () => void {
+  localWriteListeners.add(listener);
+  return () => localWriteListeners.delete(listener);
+}
+
+function notifyLocalWrite(): void {
+  for (const listener of localWriteListeners) listener();
+}
+
 export function getConfig(): AppConfig {
   if (!isBrowser()) return DEFAULT_CONFIG;
   try {
@@ -77,6 +92,7 @@ export function getConfig(): AppConfig {
 export function saveConfig(config: AppConfig): void {
   if (!isBrowser()) return;
   window.localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+  notifyLocalWrite();
 }
 
 export function upsertLeague(league: TrackedLeague): AppConfig {
@@ -160,6 +176,7 @@ function readRecaps(): Record<string, SavedRecap> {
 function writeRecaps(recaps: Record<string, SavedRecap>): void {
   if (!isBrowser()) return;
   window.localStorage.setItem(RECAPS_KEY, JSON.stringify(recaps));
+  notifyLocalWrite();
 }
 
 export function saveRecap(recap: SavedRecap): void {
@@ -213,6 +230,7 @@ function readBowlPicks(): Record<string, RecapBowlPicks> {
 function writeBowlPicks(picks: Record<string, RecapBowlPicks>): void {
   if (!isBrowser()) return;
   window.localStorage.setItem(BOWL_PICKS_KEY, JSON.stringify(picks));
+  notifyLocalWrite();
 }
 
 /** Stored separately from SavedRecap so setting picks doesn't imply a recap draft has been saved. */
@@ -246,6 +264,40 @@ export function getDraftTargets(): string[] {
 export function saveDraftTargets(keys: string[]): void {
   if (!isBrowser()) return;
   window.localStorage.setItem(DRAFT_TARGETS_KEY, JSON.stringify(keys));
+  notifyLocalWrite();
+}
+
+const SYNC_STATE_KEY = "buff:sync-state";
+
+/**
+ * This browser's own view of where it stands with Google Drive sync — never
+ * part of exportAllData/importAllData's payload (it describes this browser,
+ * not the league data) and writing it never fires onLocalWrite (it's not
+ * itself data worth syncing, and doing so would make every sync retrigger
+ * another sync).
+ */
+export interface SyncState {
+  /** When this browser last changed anything, per Date.now() — bumped on every onLocalWrite notification. */
+  lastLocalWriteAt: number;
+  /** When this browser's data last matched what's on Drive (a push it made, or a pull it applied). */
+  lastSyncedAt: number;
+}
+
+const DEFAULT_SYNC_STATE: SyncState = { lastLocalWriteAt: 0, lastSyncedAt: 0 };
+
+export function getSyncState(): SyncState {
+  if (!isBrowser()) return DEFAULT_SYNC_STATE;
+  try {
+    const raw = window.localStorage.getItem(SYNC_STATE_KEY);
+    return raw ? { ...DEFAULT_SYNC_STATE, ...(JSON.parse(raw) as Partial<SyncState>) } : DEFAULT_SYNC_STATE;
+  } catch {
+    return DEFAULT_SYNC_STATE;
+  }
+}
+
+export function saveSyncState(state: SyncState): void {
+  if (!isBrowser()) return;
+  window.localStorage.setItem(SYNC_STATE_KEY, JSON.stringify(state));
 }
 
 /** Exports everything as a JSON blob the user can save as a manual backup or move to another browser. */
