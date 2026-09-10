@@ -6,7 +6,7 @@ import { IconButton } from "@/components/ui/IconButton";
 import { ChevronUpIcon, ChevronDownIcon, StarIcon, TrashIcon, DownloadIcon, UploadIcon, CrownIcon } from "@/components/ui/Icon";
 import { useConfig } from "@/hooks/useConfig";
 import { saveConfig, removeLeague, moveLeague, exportAllData, importAllData } from "@/lib/localStore";
-import { DEFAULT_SLEEPER_USERNAME, defaultSeason } from "@/lib/app-defaults";
+import { defaultSeason } from "@/lib/app-defaults";
 import { DiscoverForm } from "./DiscoverForm";
 import { ExternalLeaguesSection } from "./ExternalLeaguesSection";
 import { GoogleDocsSection } from "./GoogleDocsSection";
@@ -71,7 +71,7 @@ export default function SettingsPage() {
           Sleeper account
         </h2>
         <DiscoverForm
-          defaultUsername={config.sleeperUsername ?? DEFAULT_SLEEPER_USERNAME}
+          defaultUsername={config.sleeperUsername ?? ""}
           defaultSeason={config.season || defaultSeason()}
           onDiscovered={refresh}
         />

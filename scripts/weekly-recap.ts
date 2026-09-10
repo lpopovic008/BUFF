@@ -21,7 +21,7 @@ import { formatCommishRecap, findWeekTopStarters } from "../src/lib/format-recap
 import { formatBowlResultLine, formatUpcomingBowlBlock, formatUpcomingHonorableBlock } from "../src/lib/bowl-narrative";
 import { standingsThroughWeek, summarizeWeek } from "../src/lib/payouts";
 import { resolvePlayers } from "../src/lib/players";
-import { DEFAULT_SLEEPER_USERNAME, defaultSeason } from "../src/lib/app-defaults";
+import { COMMISH_SLEEPER_USERNAME, defaultSeason } from "../src/lib/app-defaults";
 
 const DRY_RUN = process.argv.includes("--dry-run");
 const OUT_DIR = path.join(process.cwd(), "recaps");
@@ -34,9 +34,9 @@ function slug(name: string): string {
 }
 
 async function main() {
-  const username = DEFAULT_SLEEPER_USERNAME;
+  const username = COMMISH_SLEEPER_USERNAME;
   if (!username) {
-    console.error("No DEFAULT_SLEEPER_USERNAME configured; nothing to do.");
+    console.error("No COMMISH_SLEEPER_USERNAME configured; nothing to do.");
     return;
   }
 

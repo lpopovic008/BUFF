@@ -1,14 +1,9 @@
-// Baked-in identity so the dashboard needs no manual setup on a fresh browser.
-//
-// Deliberately the *username* rather than league IDs: Sleeper mints a new
-// league_id for every league every season (the years are chained together via
-// previous_league_id), so hard-coded league IDs would go stale each August.
-// A username re-discovers the current season's leagues automatically.
-//
-// Leave as an empty string to disable auto-setup and use the Settings page.
-// Annotated as `string` rather than inferred, so the empty-string checks that
-// gate auto-setup stay valid whatever value is filled in here.
-export const DEFAULT_SLEEPER_USERNAME: string = "lpop8";
+// The commish's Sleeper username, for the CI recap-automation script only
+// (scripts/weekly-recap.ts) — it runs server-side in GitHub Actions with no
+// browser and no Settings page to read a username from. NOT used by the app
+// itself: a browser's own Settings page always starts blank, even on a
+// fresh machine, so a visitor other than the commish never sees this.
+export const COMMISH_SLEEPER_USERNAME = "lpop8";
 
 /**
  * The NFL season to load by default. Sleeper labels a season by the calendar

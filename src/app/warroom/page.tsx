@@ -18,7 +18,7 @@ const ibmPlexMono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500", "
 
 function WarRoomContent() {
   const idParam = useSearchParams().get("id");
-  const { config, loaded, bootstrapping } = useConfig();
+  const { config, loaded } = useConfig();
   const leagueIds = useMemo(() => config.leagues.map((l) => l.leagueId), [config.leagues]);
   const myLeagues = useMyLeagues(leagueIds, config.sleeperUserId);
 
@@ -70,9 +70,6 @@ function WarRoomContent() {
     };
   }, [leagueId, config.sleeperUserId]);
 
-  if (bootstrapping) {
-    return <Card className="p-12 text-center text-sm text-ink-secondary">Finding your Sleeper leagues…</Card>;
-  }
   if (!loaded) {
     return <Card className="p-12 text-center text-sm text-ink-secondary">Loading…</Card>;
   }

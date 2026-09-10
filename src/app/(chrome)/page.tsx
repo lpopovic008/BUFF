@@ -23,7 +23,7 @@ interface LoadedLeague {
 }
 
 export default function DashboardPage() {
-  const { config, loaded, bootstrapping } = useConfig();
+  const { config, loaded } = useConfig();
   const [leagues, setLeagues] = useState<LoadedLeague[] | null>(null);
   const [week, setWeek] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -150,14 +150,6 @@ export default function DashboardPage() {
       opponentStarters: toMappedStarters(opponentStartersByGameId.get(game.id) ?? []),
     }));
   }, [weekGames, grouped.games, groupedOpponent.games]);
-
-  if (bootstrapping) {
-    return (
-      <Card className="p-12 text-center text-sm text-ink-secondary">
-        Finding your Sleeper leagues…
-      </Card>
-    );
-  }
 
   if (!loaded || leagues === null) {
     return (
