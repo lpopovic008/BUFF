@@ -2,6 +2,7 @@
 
 import { RecapModel } from "@/lib/recap-model";
 import { BowlMatchupResult, BowlMatchupPreview } from "@/lib/bowl-narrative";
+import { LeagueTeamOption } from "@/hooks/useLeagueTeams";
 import { recapBodyFont } from "@/lib/fonts";
 import { RecapSectionsEditor } from "./RecapSectionsEditor";
 
@@ -22,10 +23,13 @@ export function RecapEditor({
   upcomingMatchup,
   upcomingHonorableMatchup,
   teams,
+  teamOptions,
   onRenameBowl,
   onRenameHonorable,
   onRenameUpcomingBowl,
   onRenameUpcomingHonorable,
+  onChangeUpcomingBowlTeam,
+  onChangeUpcomingHonorableTeam,
 }: {
   model: RecapModel | null;
   onModelChange: (model: RecapModel) => void;
@@ -37,11 +41,16 @@ export function RecapEditor({
   upcomingHonorableMatchup: BowlMatchupPreview | null;
   /** Roster id -> team name/logo, resolving the matchups above into names to display. */
   teams: Record<number, { name: string; avatar: string | null }>;
+  /** The league's roster pool for the upcoming-matchup team pickers — null until useLeagueTeams finishes loading. */
+  teamOptions: LeagueTeamOption[] | null;
   /** Double-clicking a matchup's header renames it — writes back to the shared bowl pick (see recap/page.tsx) so the same game's name stays identical everywhere it's shown, this week and next. */
   onRenameBowl: (name: string) => void;
   onRenameHonorable: (name: string) => void;
   onRenameUpcomingBowl: (name: string) => void;
   onRenameUpcomingHonorable: (name: string) => void;
+  /** Picking a team for one of next week's matchup slots — writes back to the shared bowl pick the same way a rename does. */
+  onChangeUpcomingBowlTeam: (slot: 0 | 1, rosterId: number | "") => void;
+  onChangeUpcomingHonorableTeam: (slot: 0 | 1, rosterId: number | "") => void;
 }) {
   if (!model) {
     return (
@@ -64,10 +73,13 @@ export function RecapEditor({
         upcomingMatchup={upcomingMatchup}
         upcomingHonorableMatchup={upcomingHonorableMatchup}
         teams={teams}
+        teamOptions={teamOptions}
         onRenameBowl={onRenameBowl}
         onRenameHonorable={onRenameHonorable}
         onRenameUpcomingBowl={onRenameUpcomingBowl}
         onRenameUpcomingHonorable={onRenameUpcomingHonorable}
+        onChangeUpcomingBowlTeam={onChangeUpcomingBowlTeam}
+        onChangeUpcomingHonorableTeam={onChangeUpcomingHonorableTeam}
       />
     </div>
   );

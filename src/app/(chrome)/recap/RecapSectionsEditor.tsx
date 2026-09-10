@@ -13,6 +13,7 @@ import {
 } from "@/lib/recap-model";
 import { BowlMatchupResult, BowlMatchupPreview } from "@/lib/bowl-narrative";
 import { formatPoints } from "@/lib/format";
+import { LeagueTeamOption } from "@/hooks/useLeagueTeams";
 
 type FieldKey = keyof RecapModel;
 
@@ -157,20 +158,50 @@ function DecidedMatchupBody({
   );
 }
 
-/** The two picked teams for an upcoming matchup — not decided yet, so no winner/loser, just who's playing. Who's playing is changed with the team pickers below, not here. */
+/** Picks which team fills one slot of an upcoming matchup — the same picker BowlPicksEditor used to own, now living right on the section it fills in. */
+function TeamSelect({
+  value,
+  onChange,
+  options,
+}: {
+  value: number | "";
+  onChange: (rosterId: number | "") => void;
+  options: LeagueTeamOption[];
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value ? Number(e.target.value) : "")}
+      className="w-full border border-border bg-page px-2 py-1.5 text-sm text-ink-primary outline-none focus:border-series-1"
+    >
+      <option value="">— Select a team —</option>
+      {options.map((t) => (
+        <option key={t.rosterId} value={t.rosterId}>
+          {t.teamName}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+/** The two teams playing an upcoming matchup — not decided yet, so no winner/loser, just who's in it. Picking a team here writes straight back to the shared bowl pick (see recap/page.tsx), same as renaming the header above it. */
 function PreviewMatchupBody({
   preview,
-  teams,
+  teamOptions,
+  onChangeTeam,
 }: {
   preview: BowlMatchupPreview | null;
-  teams: Record<number, { name: string; avatar: string | null }>;
+  teamOptions: LeagueTeamOption[] | null;
+  onChangeTeam: (slot: 0 | 1, rosterId: number | "") => void;
 }) {
-  const teamAName = preview ? (teams[preview.rosterIds[0]]?.name ?? "?") : null;
-  const teamBName = preview ? (teams[preview.rosterIds[1]]?.name ?? "?") : null;
+  if (!teamOptions) {
+    return <p className="text-xs text-ink-muted">Loading teams…</p>;
+  }
+  const rosterIds = preview?.rosterIds ?? [];
   return (
-    <div className="grid grid-cols-2 gap-3 text-sm">
-      <StatColumn label="Team" name={teamAName} points={null} />
-      <StatColumn label="Team" name={teamBName} points={null} />
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+      <TeamSelect value={rosterIds[0] ?? ""} options={teamOptions} onChange={(id) => onChangeTeam(0, id)} />
+      <TeamSelect value={rosterIds[1] ?? ""} options={teamOptions} onChange={(id) => onChangeTeam(1, id)} />
     </div>
   );
 }
@@ -253,10 +284,13 @@ export function RecapSectionsEditor({
   upcomingMatchup,
   upcomingHonorableMatchup,
   teams,
+  teamOptions,
   onRenameBowl,
   onRenameHonorable,
   onRenameUpcomingBowl,
   onRenameUpcomingHonorable,
+  onChangeUpcomingBowlTeam,
+  onChangeUpcomingHonorableTeam,
 }: {
   model: RecapModel;
   onChange: (model: RecapModel) => void;
@@ -265,10 +299,14 @@ export function RecapSectionsEditor({
   upcomingMatchup: BowlMatchupPreview | null;
   upcomingHonorableMatchup: BowlMatchupPreview | null;
   teams: Record<number, { name: string; avatar: string | null }>;
+  /** The league's roster pool for the upcoming-matchup team pickers below — null until useLeagueTeams finishes loading. */
+  teamOptions: LeagueTeamOption[] | null;
   onRenameBowl: (name: string) => void;
   onRenameHonorable: (name: string) => void;
   onRenameUpcomingBowl: (name: string) => void;
   onRenameUpcomingHonorable: (name: string) => void;
+  onChangeUpcomingBowlTeam: (slot: 0 | 1, rosterId: number | "") => void;
+  onChangeUpcomingHonorableTeam: (slot: 0 | 1, rosterId: number | "") => void;
 }) {
   const set = <K extends FieldKey>(key: K, value: RecapModel[K]) => onChange({ ...model, [key]: value });
   const toggleIncluded = (key: RecapSectionKey) =>
@@ -360,7 +398,7 @@ export function RecapSectionsEditor({
           />
         }
       >
-        <PreviewMatchupBody preview={upcomingMatchup} teams={teams} />
+        <PreviewMatchupBody preview={upcomingMatchup} teamOptions={teamOptions} onChangeTeam={onChangeUpcomingBowlTeam} />
         <Field
           label="Detail"
           value={model.upcomingBowlDetail}
@@ -383,7 +421,11 @@ export function RecapSectionsEditor({
           />
         }
       >
-        <PreviewMatchupBody preview={upcomingHonorableMatchup} teams={teams} />
+        <PreviewMatchupBody
+          preview={upcomingHonorableMatchup}
+          teamOptions={teamOptions}
+          onChangeTeam={onChangeUpcomingHonorableTeam}
+        />
         <Field
           label="Detail"
           value={model.upcomingHonorableDetail}
