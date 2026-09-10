@@ -2,6 +2,7 @@
 
 import { RecapModel } from "@/lib/recap-model";
 import { BowlMatchupResult, BowlMatchupPreview } from "@/lib/bowl-narrative";
+import { recapBodyFont } from "@/lib/fonts";
 import { RecapSectionsEditor } from "./RecapSectionsEditor";
 
 /**
@@ -48,24 +49,26 @@ export function RecapEditor({
         value={plainBody}
         onChange={(e) => onPlainBodyChange(e.target.value)}
         rows={20}
-        className="w-full border border-border bg-page p-4 font-mono text-sm text-ink-primary outline-none transition-colors focus:border-series-1"
+        className={`${recapBodyFont.className} w-full border border-border bg-page p-4 text-sm text-ink-primary outline-none transition-colors focus:border-series-1`}
       />
     );
   }
 
   return (
-    <RecapSectionsEditor
-      model={model}
-      onChange={onModelChange}
-      bowlMatchup={bowlMatchup}
-      honorableMatchup={honorableMatchup}
-      upcomingMatchup={upcomingMatchup}
-      upcomingHonorableMatchup={upcomingHonorableMatchup}
-      teams={teams}
-      onRenameBowl={onRenameBowl}
-      onRenameHonorable={onRenameHonorable}
-      onRenameUpcomingBowl={onRenameUpcomingBowl}
-      onRenameUpcomingHonorable={onRenameUpcomingHonorable}
-    />
+    <div className={recapBodyFont.className}>
+      <RecapSectionsEditor
+        model={model}
+        onChange={onModelChange}
+        bowlMatchup={bowlMatchup}
+        honorableMatchup={honorableMatchup}
+        upcomingMatchup={upcomingMatchup}
+        upcomingHonorableMatchup={upcomingHonorableMatchup}
+        teams={teams}
+        onRenameBowl={onRenameBowl}
+        onRenameHonorable={onRenameHonorable}
+        onRenameUpcomingBowl={onRenameUpcomingBowl}
+        onRenameUpcomingHonorable={onRenameUpcomingHonorable}
+      />
+    </div>
   );
 }
