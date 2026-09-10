@@ -12,7 +12,7 @@ import { StarterSource, useMyStarters } from "@/hooks/useMyStarters";
 import { useNFLState } from "@/hooks/useNFLState";
 import { useWeekGames } from "@/hooks/useWeekGames";
 import { getLeagueSummary, LeagueSummary } from "@/lib/league-data";
-import { groupStartersByGame } from "@/lib/my-starters";
+import { groupStartersByGame, GroupedStarter } from "@/lib/my-starters";
 import { avatarUrl, getCurrentWeek } from "@/lib/sleeper";
 import { TrackedLeague } from "@/lib/localStore";
 import { formatRecord } from "@/lib/format";
@@ -86,7 +86,7 @@ export default function DashboardPage() {
 
   const nflPhase = useNFLState();
   const weekGames = useWeekGames(nflPhase.season ?? config.season, week);
-  const myStarters = useMyStarters(starterSources, week);
+  const { mine: myStarters, opponent: opponentStarters } = useMyStarters(starterSources, week);
 
   // Which leagues' starters to show — null means "no explicit choice yet",
   // which defaults to every tracked league until the user toggles one off.
@@ -107,10 +107,23 @@ export default function DashboardPage() {
     () => (myStarters ?? []).filter((s) => effectiveSelected.has(s.leagueId)),
     [myStarters, effectiveSelected]
   );
+  const filteredOpponentStarters = useMemo(
+    () => (opponentStarters ?? []).filter((s) => effectiveSelected.has(s.leagueId)),
+    [opponentStarters, effectiveSelected]
+  );
 
   const grouped = useMemo(
     () => groupStartersByGame(filteredStarters, weekGames),
     [filteredStarters, weekGames]
+  );
+  // Same grouping, run again for the opponents' side — kept as its own pass
+  // rather than merged into `grouped` so a player who happens to be both one
+  // of your starters and one of an opponent's (in different leagues) still
+  // shows up once on each side instead of being deduped into a single row
+  // that loses which side they're on.
+  const groupedOpponent = useMemo(
+    () => groupStartersByGame(filteredOpponentStarters, weekGames),
+    [filteredOpponentStarters, weekGames]
   );
 
   // Colour per league, keyed off the order leagues are tracked in so a
@@ -128,14 +141,15 @@ export default function DashboardPage() {
 
   const mappedGames = useMemo<MappedGame[]>(() => {
     const startersByGameId = new Map(grouped.games.map((g) => [g.game.id, g.players]));
-    return weekGames.map((game) => {
-      const players = startersByGameId.get(game.id) ?? [];
-      return {
-        game,
-        starters: players.map((p) => ({ playerId: p.playerId, name: p.name, leagueIds: p.leagueIds })),
-      };
-    });
-  }, [weekGames, grouped.games]);
+    const opponentStartersByGameId = new Map(groupedOpponent.games.map((g) => [g.game.id, g.players]));
+    const toMappedStarters = (players: GroupedStarter[]) =>
+      players.map((p) => ({ playerId: p.playerId, name: p.name, leagueIds: p.leagueIds }));
+    return weekGames.map((game) => ({
+      game,
+      starters: toMappedStarters(startersByGameId.get(game.id) ?? []),
+      opponentStarters: toMappedStarters(opponentStartersByGameId.get(game.id) ?? []),
+    }));
+  }, [weekGames, grouped.games, groupedOpponent.games]);
 
   if (bootstrapping) {
     return (

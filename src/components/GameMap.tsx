@@ -18,6 +18,8 @@ export interface MappedGame {
   game: NFLGame;
   /** Your starters in this game — count drives dot size, names+leagues feed the preview card. */
   starters: MappedStarter[];
+  /** Your current-week opponents' starters in this game, across every tracked league — shown alongside yours in the preview card, not counted toward dot size. */
+  opponentStarters: MappedStarter[];
 }
 
 const VIEWBOX_H = 200;
@@ -43,12 +45,39 @@ interface PositionedGame {
   y: number;
 }
 
+/** One player's row in the preview card — name plus the logo of every league they're started in. `align="right"` mirrors the row (logos before the name) for the opponents column, so both columns read outward from the card's center gutter. */
+function PlayerRow({
+  starter,
+  legendByLeagueId,
+  align,
+}: {
+  starter: MappedStarter;
+  legendByLeagueId: Map<string, LeagueLegendEntry>;
+  align: "left" | "right";
+}) {
+  const marks = (
+    <span className="flex shrink-0 items-center gap-0.5">
+      {starter.leagueIds.map((id) => (
+        <LeagueMark key={id} league={legendByLeagueId.get(id)} className="h-3 w-3" />
+      ))}
+    </span>
+  );
+  const name = <span className="truncate">{starter.name}</span>;
+  return (
+    <div className={`flex items-center gap-1 text-ink-secondary ${align === "right" ? "flex-row-reverse" : ""}`}>
+      {name}
+      {marks}
+    </div>
+  );
+}
+
 /**
  * The click-to-preview card: one line up top with the matchup, kickoff, and
- * venue, then every one of your starters in that game on their own line with
- * the logo of every league they're started in right after their name.
- * Positioned to hug the clicked dot but opening toward the map's center, so
- * it never has to hang off the edge of the SVG.
+ * venue, then two columns below it — your starters in that game on the
+ * left, that week's opposing starters (across every tracked league) on the
+ * right — each with the logo of every league they're started in next to
+ * their name. Positioned to hug the clicked dot but opening toward the
+ * map's center, so it never has to hang off the edge of the SVG.
  */
 function GamePreviewCard({
   positioned,
@@ -71,11 +100,12 @@ function GamePreviewCard({
   const summaryLine = [gameLabel(entry.game), formatKickoff(entry.game.kickoff), venueLabel(entry.game)]
     .filter(Boolean)
     .join(" · ");
+  const hasAnyone = entry.starters.length > 0 || entry.opponentStarters.length > 0;
 
   return (
     <div
       ref={cardRef}
-      className="absolute z-10 w-60 max-w-[calc(100%-1rem)] border border-grid bg-page p-3 text-xs shadow-sm"
+      className="absolute z-10 w-80 max-w-[calc(100%-1rem)] border border-grid bg-page p-3 text-xs shadow-sm"
       style={{
         left: "50%",
         top: `${(y / VIEWBOX_H) * 100}%`,
@@ -96,22 +126,24 @@ function GamePreviewCard({
           ×
         </button>
       </div>
-      <div className="mt-2 flex flex-col gap-1">
-        {entry.starters.length > 0 ? (
-          entry.starters.map((starter) => (
-            <div key={starter.playerId} className="flex items-center gap-1 text-ink-secondary">
-              <span className="truncate">{starter.name}</span>
-              <span className="flex shrink-0 items-center gap-0.5">
-                {starter.leagueIds.map((id) => (
-                  <LeagueMark key={id} league={legendByLeagueId.get(id)} className="h-3 w-3" />
-                ))}
-              </span>
-            </div>
-          ))
-        ) : (
-          <p className="text-ink-secondary">None of your starters are in this game.</p>
-        )}
-      </div>
+      {hasAnyone ? (
+        <div className="mt-2 grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1">
+            <span className="text-[9px] font-semibold uppercase tracking-wide text-ink-muted">You</span>
+            {entry.starters.map((starter) => (
+              <PlayerRow key={starter.playerId} starter={starter} legendByLeagueId={legendByLeagueId} align="left" />
+            ))}
+          </div>
+          <div className="flex flex-col items-end gap-1 text-right">
+            <span className="text-[9px] font-semibold uppercase tracking-wide text-ink-muted">Opponent</span>
+            {entry.opponentStarters.map((starter) => (
+              <PlayerRow key={starter.playerId} starter={starter} legendByLeagueId={legendByLeagueId} align="right" />
+            ))}
+          </div>
+        </div>
+      ) : (
+        <p className="mt-2 text-ink-secondary">None of your starters or opponents&rsquo; starters are in this game.</p>
+      )}
     </div>
   );
 }
