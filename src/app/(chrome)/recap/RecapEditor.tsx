@@ -3,7 +3,14 @@
 import { useState } from "react";
 import { saveRecap } from "@/lib/localStore";
 import { RecapModel, joinRecapModel } from "@/lib/recap-model";
-import { drawRecapGraphic, DecidedMatchup, PreviewMatchup, MatchupTeam } from "@/lib/recap-graphic";
+import {
+  drawRecapGraphic,
+  DecidedMatchup,
+  PreviewMatchup,
+  MatchupTeam,
+  GRAPHIC_SECTIONS,
+  GraphicSectionKey,
+} from "@/lib/recap-graphic";
 import { BowlMatchupResult, BowlMatchupPreview } from "@/lib/bowl-narrative";
 import { recapDisplayFont } from "@/lib/fonts";
 import { getGoogleAccessToken } from "@/lib/google-auth";
@@ -54,6 +61,7 @@ export function RecapEditor({
   bowlMatchup,
   honorableMatchup,
   upcomingMatchup,
+  upcomingHonorableMatchup,
   teams,
 }: {
   leagueId: string;
@@ -79,12 +87,20 @@ export function RecapEditor({
   bowlMatchup: BowlMatchupResult | null;
   honorableMatchup: BowlMatchupResult | null;
   upcomingMatchup: BowlMatchupPreview | null;
+  upcomingHonorableMatchup: BowlMatchupPreview | null;
   /** Roster id -> team name/logo, for turning the matchups above into the graphic's MatchupTeam shape. */
   teams: Record<number, { name: string; avatar: string | null }>;
 }) {
   const [copied, setCopied] = useState(false);
   const [graphicStatus, setGraphicStatus] = useState<"idle" | "copying" | "copied" | "error">("idle");
   const [graphicError, setGraphicError] = useState<string | null>(null);
+  // Which of the graphic's sections to draw — every section defaults to
+  // included; unchecking one here is the only way to leave it out, so
+  // there's no separate logic anywhere deciding a section isn't relevant
+  // for a given week (e.g. preseason still offers all of them).
+  const [includedSections, setIncludedSections] = useState<Record<GraphicSectionKey, boolean>>(() =>
+    Object.fromEntries(GRAPHIC_SECTIONS.map((s) => [s.key, true])) as Record<GraphicSectionKey, boolean>
+  );
   const [lastSavedAt, setLastSavedAt] = useState(savedAt);
   const [docStatus, setDocStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [docError, setDocError] = useState<string | null>(null);
@@ -98,6 +114,10 @@ export function RecapEditor({
     await navigator.clipboard.writeText(body);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  function toggleSection(key: GraphicSectionKey) {
+    setIncludedSections((prev) => ({ ...prev, [key]: !prev[key] }));
   }
 
   /** Renders the write-up and its stats as a single image (see recap-graphic.ts)
@@ -114,8 +134,10 @@ export function RecapEditor({
         bowl: decidedMatchupFor(teams, bowlMatchup),
         honorable: decidedMatchupFor(teams, honorableMatchup),
         upcoming: previewMatchupFor(teams, upcomingMatchup),
+        upcomingHonorable: previewMatchupFor(teams, upcomingHonorableMatchup),
         avatarByName,
         displayFontFamily: recapDisplayFont.style.fontFamily,
+        include: includedSections,
       });
       // Passed as a Promise (not awaited first) rather than an already-resolved
       // Blob — Safari ties clipboard-write permission to the triggering click,
@@ -176,6 +198,30 @@ export function RecapEditor({
           className="w-full border border-border bg-page p-4 font-mono text-sm text-ink-primary outline-none transition-colors focus:border-series-1"
         />
       )}
+
+      {model ? (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-xs text-ink-muted">Graphic sections:</span>
+          {GRAPHIC_SECTIONS.map((s) => {
+            const active = includedSections[s.key];
+            return (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => toggleSection(s.key)}
+                aria-pressed={active}
+                className={`border px-2 py-1 text-xs font-medium transition-colors ${
+                  active
+                    ? "border-series-1 bg-series-1/10 text-series-1"
+                    : "border-border text-ink-muted line-through hover:bg-page"
+                }`}
+              >
+                {s.label}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
 
       <div className="flex flex-wrap items-center gap-2">
         <IconButton

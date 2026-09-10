@@ -63,14 +63,31 @@ export interface PreviewMatchup {
   teamB: MatchupTeam;
 }
 
+/** Every section the graphic can draw, in the order they'd appear — the single source of truth RecapEditor's include/exclude toggles are built from, so the two can never drift apart. */
+export const GRAPHIC_SECTIONS = [
+  { key: "bowl", label: "👑 Bowl of the Week" },
+  { key: "honorable", label: "🏆 Honorable Mention" },
+  { key: "highScorer", label: "📈 High Scorer" },
+  { key: "winners", label: "🤑 Winners Podium" },
+  { key: "lastWeek", label: "🗓️ Last Week Results" },
+  { key: "standings", label: "💰 Updated Standings" },
+  { key: "upcomingBowl", label: "🥇 Matchup of the Week" },
+  { key: "upcomingHonorable", label: "🥈 Honorable Mention Preview" },
+] as const;
+
+export type GraphicSectionKey = (typeof GRAPHIC_SECTIONS)[number]["key"];
+
 export interface RecapGraphicExtras {
   bowl?: DecidedMatchup | null;
   honorable?: DecidedMatchup | null;
   upcoming?: PreviewMatchup | null;
+  upcomingHonorable?: PreviewMatchup | null;
   /** Every team's logo, keyed by the exact display name used in the write-up text — how the podium, high-scorer chart, and standings stacks find a team's logo, since the underlying text only ever has names. */
   avatarByName?: Record<string, string | null>;
   /** CSS font-family for the "college sports" display font (see fonts.ts) — falls back to the body font stack if omitted or it fails to load in time. */
   displayFontFamily?: string;
+  /** Which sections to draw — a key mapped to `false` skips it, anything missing defaults to included. Lets every section be turned on/off per export rather than the code deciding what's relevant for a given week. */
+  include?: Partial<Record<GraphicSectionKey, boolean>>;
 }
 
 function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
@@ -677,14 +694,17 @@ function runLayout(
   }
   l.space(34);
 
+  const included = (key: GraphicSectionKey) => matchups.include?.[key] !== false;
+
   if (model) {
-    l.decidedMatchup(matchups.bowl ?? PLACEHOLDER_MATCHUP);
-    l.decidedMatchup(matchups.honorable ?? PLACEHOLDER_MATCHUP);
-    l.highScorerChart(parseScoreboardRows(model.lastWeek), [model.highScorer, model.highScorerDetail]);
-    l.winnersPodium(RECAP_HEADERS.winners, parseWinners(model.winners));
-    l.lastWeekTable(RECAP_HEADERS.lastWeek, parseScoreboardRows(model.lastWeek));
-    l.standingsStacks(RECAP_HEADERS.standings, parseStandingsRows(model.standings));
-    l.previewMatchup(RECAP_HEADERS.upcomingBowl, matchups.upcoming ?? PLACEHOLDER_PREVIEW);
+    if (included("bowl")) l.decidedMatchup(matchups.bowl ?? PLACEHOLDER_MATCHUP);
+    if (included("honorable")) l.decidedMatchup(matchups.honorable ?? PLACEHOLDER_MATCHUP);
+    if (included("highScorer")) l.highScorerChart(parseScoreboardRows(model.lastWeek), [model.highScorer, model.highScorerDetail]);
+    if (included("winners")) l.winnersPodium(RECAP_HEADERS.winners, parseWinners(model.winners));
+    if (included("lastWeek")) l.lastWeekTable(RECAP_HEADERS.lastWeek, parseScoreboardRows(model.lastWeek));
+    if (included("standings")) l.standingsStacks(RECAP_HEADERS.standings, parseStandingsRows(model.standings));
+    if (included("upcomingBowl")) l.previewMatchup(RECAP_HEADERS.upcomingBowl, matchups.upcoming ?? PLACEHOLDER_PREVIEW);
+    if (included("upcomingHonorable")) l.previewMatchup(RECAP_HEADERS.upcomingHonorable, matchups.upcomingHonorable ?? PLACEHOLDER_PREVIEW);
   } else if (restBody.trim()) {
     l.text(restBody, { size: 19, color: COLOR.secondary, lineHeight: 27 });
     l.space(20);
@@ -777,6 +797,8 @@ export async function drawRecapGraphic(
     matchups.honorable?.loser.avatarUrl,
     matchups.upcoming?.teamA.avatarUrl,
     matchups.upcoming?.teamB.avatarUrl,
+    matchups.upcomingHonorable?.teamA.avatarUrl,
+    matchups.upcomingHonorable?.teamB.avatarUrl,
     ...Object.values(matchups.avatarByName ?? {}),
   ];
   const [images, displayFamily] = await Promise.all([preloadImages(avatarUrls), ensureDisplayFont(matchups.displayFontFamily)]);
