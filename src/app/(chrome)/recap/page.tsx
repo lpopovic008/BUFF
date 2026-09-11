@@ -447,34 +447,51 @@ function RecapContent() {
 
         <div className="flex flex-wrap items-center gap-2">
           <IconLink href={`/recap/archive?id=${leagueId}`} icon={<DocumentIcon />} label="Recap archive" />
-          <IconButton
-            icon={actions.graphicStatus === "copied" ? <CheckIcon /> : <ImageIcon />}
-            label={
-              actions.graphicStatus === "copying"
-                ? "Rendering graphic…"
-                : actions.graphicStatus === "copied"
-                  ? "Copied graphic"
-                  : "Copy graphic"
-            }
-            onClick={actions.handleCopyGraphic}
-            disabled={actions.graphicStatus === "copying"}
-          />
-          <IconButton
-            icon={actions.copied ? <CheckIcon /> : <CopyIcon />}
-            label={actions.copied ? "Copied plain text" : "Copy plain text"}
-            onClick={actions.handleCopy}
-          />
-          <IconButton icon={<SaveIcon />} label="Save to archive" variant="primary" onClick={actions.handleSave} />
+          <div className="relative">
+            <IconButton
+              icon={actions.graphicStatus === "copied" ? <CheckIcon /> : <ImageIcon />}
+              label={
+                actions.graphicStatus === "copying"
+                  ? "Rendering graphic…"
+                  : actions.graphicStatus === "copied"
+                    ? "Copied graphic"
+                    : "Copy graphic"
+              }
+              onClick={actions.handleCopyGraphic}
+              disabled={actions.graphicStatus === "copying"}
+            />
+            {/* A sliver of the graphic's own neon theme along the bottom edge — ties this button to what it produces. */}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-[3px] bg-gradient-to-r from-[#ff2e9a] via-[#22d3ee] to-[#39ff8e]"
+            />
+          </div>
           {money?.profile.writeupDocId && googleClientId ? (
+            // Saving to the commish's Google Doc IS the archive for a league
+            // with one configured — no need for a separate local-only copy
+            // or a plain-text clipboard step on top of it.
             <IconButton
               icon={actions.docStatus === "saved" ? <CheckIcon /> : <UploadIcon />}
               label={
                 actions.docStatus === "saving" ? "Saving to Doc…" : actions.docStatus === "saved" ? "Saved to Doc" : "Save to Doc"
               }
+              variant="primary"
               onClick={actions.handleSaveToDoc}
               disabled={actions.docStatus === "saving"}
             />
-          ) : null}
+          ) : (
+            // No Google Doc configured for this league — Save to archive is
+            // the only thing that persists edits at all (nothing else here
+            // writes to localStorage), so it stays required here.
+            <>
+              <IconButton
+                icon={actions.copied ? <CheckIcon /> : <CopyIcon />}
+                label={actions.copied ? "Copied plain text" : "Copy plain text"}
+                onClick={actions.handleCopy}
+              />
+              <IconButton icon={<SaveIcon />} label="Save to archive" variant="primary" onClick={actions.handleSave} />
+            </>
+          )}
         </div>
       </div>
 
@@ -484,7 +501,12 @@ function RecapContent() {
           <p className="mt-1 text-sm text-ink-secondary">{header.subtitle}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 text-xs text-ink-muted">
-          {actions.lastSavedAt ? <span>Saved {new Date(actions.lastSavedAt).toLocaleString()}</span> : <span>Not saved yet</span>}
+          {!(money?.profile.writeupDocId && googleClientId) &&
+            (actions.lastSavedAt ? (
+              <span>Saved {new Date(actions.lastSavedAt).toLocaleString()}</span>
+            ) : (
+              <span>Not saved yet</span>
+            ))}
           {money?.profile.writeupDocId && !googleClientId ? (
             <a href="/settings" className="underline decoration-dotted hover:text-ink-secondary">
               Connect Google Docs in Settings to save write-ups there
