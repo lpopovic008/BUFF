@@ -33,6 +33,7 @@ import {
   BowlMatchupPreview,
 } from "@/lib/bowl-narrative";
 import { loadLeagueMoney, LeagueMoney } from "@/lib/league-money";
+import { findLeagueProfile, defaultProfileFor } from "@/lib/league-config";
 import { summarizeWeek } from "@/lib/payouts";
 import { getRecap, getBowlPicks, saveBowlPicks, RecapBowlPicks, SavedRecap } from "@/lib/localStore";
 import { resolveGoogleClientId } from "@/lib/google-config";
@@ -92,28 +93,10 @@ interface RecapHeader {
 function RecapContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { config, loaded: configLoaded } = useConfig();
-  const idParam = searchParams.get("id");
+  const leagueId = searchParams.get("id");
   const weekParam = searchParams.get("week");
   const week = weekParam !== null ? Number(weekParam) : null;
   const isPreseason = week === PRESEASON_WEEK;
-
-  // Which league is showing — same pattern as the War Room's Dossier
-  // (src/app/warroom/page.tsx): the URL's ?id= wins while it names a tracked
-  // league, otherwise the top league from Settings' order. Picking a
-  // different league from the dropdown below writes the choice back into
-  // the URL (dropping week, letting the effect below resolve the new
-  // league's current week) so the page stays bookmarkable either way.
-  const [explicitLeagueId, setExplicitLeagueId] = useState<string | null>(null);
-  const defaultLeagueId = configLoaded
-    ? (idParam && config.leagues.some((l) => l.leagueId === idParam) ? idParam : config.leagues[0]?.leagueId) ?? null
-    : null;
-  const leagueId = explicitLeagueId ?? defaultLeagueId;
-
-  function handleLeagueChange(id: string) {
-    setExplicitLeagueId(id);
-    router.replace(`/recap?id=${id}`);
-  }
 
   const [recapData, setRecapData] = useState<WeekRecapData | null>(null);
   const [header, setHeader] = useState<RecapHeader | null>(null);
@@ -158,6 +141,7 @@ function RecapContent() {
     for (const t of teamOptions ?? []) map[t.rosterId] = { name: t.teamName, avatar: t.avatar, username: t.username };
     return map;
   }, [teamOptions]);
+  const { config } = useConfig();
   const googleClientId = resolveGoogleClientId(config.googleClientId);
 
   // No week in the URL yet — resolve which week's write-up should be open and pin it into the URL so the recap is bookmarkable.
@@ -190,7 +174,13 @@ function RecapContent() {
         if (week === PRESEASON_WEEK) {
           const league = await getLeague(leagueId);
           if (cancelled || !league) return;
-          const leagueMoney = await loadLeagueMoney(leagueId);
+          // Every league gets the graphic-style write-up, whether or not
+          // the commish has hand-entered real payout rules for it — a
+          // league with no matching LeagueProfile still gets a ledger (via
+          // defaultProfileFor), just with every payout at $0, so the same
+          // High Scorer/Winners/Last Week/Standings sections show up
+          // everywhere instead of only for leagues with configured money.
+          const leagueMoney = await loadLeagueMoney(leagueId, findLeagueProfile(league.name) ?? defaultProfileFor(league));
           if (cancelled) return;
           setMoney(leagueMoney);
           setHeader({
@@ -237,11 +227,12 @@ function RecapContent() {
           subtitle: "Auto-generated from Sleeper data. Edit freely before copying it out to your group chat.",
         });
 
-        // Commissioner leagues get the house-style recap with the money blocks,
-        // last week's bowl-game result, and next week's marquee-matchup preview
-        // filled in; everything else falls back to the generic markdown, which
-        // has no bowl-game concept.
-        const leagueMoney = await loadLeagueMoney(leagueId);
+        // Every league gets the house-style recap — the money blocks, last
+        // week's bowl-game result, and next week's marquee-matchup preview —
+        // whether or not it has real payout rules configured (see
+        // defaultProfileFor); a league without one just shows $0 everywhere
+        // money would otherwise appear.
+        const leagueMoney = await loadLeagueMoney(leagueId, findLeagueProfile(data.league.name) ?? defaultProfileFor(data.league));
         if (cancelled) return;
         setMoney(leagueMoney);
 
@@ -412,18 +403,7 @@ function RecapContent() {
   });
 
   if (!leagueId) {
-    if (!configLoaded) {
-      return <Card className="p-12 text-center text-sm text-ink-secondary">Loading…</Card>;
-    }
-    return (
-      <Card className="p-12 text-center text-sm text-ink-secondary">
-        No leagues tracked yet.{" "}
-        <Link href="/settings" className="underline decoration-dotted hover:text-ink-primary">
-          Add one in Settings
-        </Link>{" "}
-        to start a write-up.
-      </Card>
-    );
+    return <Card className="p-12 text-center text-sm text-ink-secondary">No league selected.</Card>;
   }
   if (error) {
     return <Card className="p-12 text-center text-sm text-status-critical">{error}</Card>;
@@ -441,19 +421,6 @@ function RecapContent() {
 
       <div className="sticky top-0 z-10 -mx-3 flex flex-wrap items-center justify-between gap-3 border-b border-border bg-page/95 px-3 py-3 backdrop-blur sm:-mx-6 sm:px-6">
         <div className="flex items-center gap-2 text-sm">
-          {config.leagues.length > 1 ? (
-            <select
-              value={leagueId}
-              onChange={(e) => handleLeagueChange(e.target.value)}
-              className="border border-border bg-page px-3 py-1.5 font-medium text-ink-secondary outline-none transition-colors hover:bg-surface-raised"
-            >
-              {config.leagues.map((l) => (
-                <option key={l.leagueId} value={l.leagueId}>
-                  {l.nickname ?? l.leagueId}
-                </option>
-              ))}
-            </select>
-          ) : null}
           {week > PRESEASON_WEEK + 1 ? (
             <Link
               href={`/recap?id=${leagueId}&week=${week - 1}`}

@@ -117,6 +117,32 @@ export function findLeagueProfile(leagueName: string | undefined): LeagueProfile
   return LEAGUE_PROFILES.find((p) => p.matchNames.some((m) => needle.includes(m))) ?? null;
 }
 
+/**
+ * A stand-in profile for a league with no real commissioner rules configured
+ * — every payout amount is $0, so the money ledger it drives still carries
+ * genuine wins/points/standings (needed to show the write-up's graphic-style
+ * sections — High Scorer, Winners, Last Week, Standings — for any league,
+ * not just ones with hand-entered payout rules), just no fabricated dollar
+ * figures. `regularSeasonWeeks` comes from the league's own playoff start
+ * instead of a guess, so the ledger only ever looks at weeks that actually
+ * happened.
+ */
+export function defaultProfileFor(league: { name: string; settings: { playoff_week_start?: number } }): LeagueProfile {
+  return {
+    matchNames: [],
+    label: league.name,
+    payouts: {
+      buyIn: 0,
+      perWin: 0,
+      weeklyHighScore: 0,
+      highScoreStacks: false,
+      regularSeasonWeeks: Math.max(1, (league.settings.playoff_week_start ?? 15) - 1),
+      finalPayouts: [],
+    },
+    managerNamesByRosterId: {},
+  };
+}
+
 /** The rules in force for a given season: its override if one exists, else the default. */
 export function payoutsForSeason(profile: LeagueProfile, season: string): PayoutRules {
   return profile.payoutsBySeason?.[season] ?? profile.payouts;
