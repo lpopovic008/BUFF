@@ -5,6 +5,7 @@ import { BowlMatchupResult, BowlMatchupPreview } from "@/lib/bowl-narrative";
 import { LeagueTeamOption } from "@/hooks/useLeagueTeams";
 import { WeekRecapData } from "@/lib/league-data";
 import { PayoutLedger } from "@/lib/payouts";
+import { GraphicTeam } from "@/lib/recap-graphic-data";
 import { recapBodyFont } from "@/lib/fonts";
 import { RecapSectionsEditor } from "./RecapSectionsEditor";
 
@@ -45,8 +46,8 @@ export function RecapEditor({
   honorableMatchup: BowlMatchupResult | null;
   upcomingMatchup: BowlMatchupPreview | null;
   upcomingHonorableMatchup: BowlMatchupPreview | null;
-  /** Roster id -> team name/logo, resolving the matchups above into names to display. */
-  teams: Record<number, { name: string; avatar: string | null }>;
+  /** Roster id -> team name/logo/username, resolving the matchups above into names to display. */
+  teams: Record<number, GraphicTeam>;
   /** The league's roster pool for the upcoming-matchup team pickers — null until useLeagueTeams finishes loading. */
   teamOptions: LeagueTeamOption[] | null;
   /** This write-up's own week's matchup data and money ledger, feeding the four computed sections (High Scorer, Winners, Last Week Results, Updated Standings) — see RecapSectionsEditor. */

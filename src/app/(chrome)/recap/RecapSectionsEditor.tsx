@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import "./recap-neon.css";
 import {
   RecapModel,
-  RECAP_HEADERS,
   RECAP_SECTIONS,
   RecapSectionKey,
   isSectionIncluded,
@@ -13,164 +12,97 @@ import {
   upcomingWeekLabel,
 } from "@/lib/recap-model";
 import { BowlMatchupResult, BowlMatchupPreview } from "@/lib/bowl-narrative";
-import { formatPoints } from "@/lib/format";
 import { LeagueTeamOption } from "@/hooks/useLeagueTeams";
 import { WeekRecapData } from "@/lib/league-data";
-import { PayoutLedger, summarizeWeek, standingsThroughWeek } from "@/lib/payouts";
-import { findWeekTopStarters } from "@/lib/format-recap";
+import { PayoutLedger } from "@/lib/payouts";
+import { recapDisplayFont } from "@/lib/fonts";
+import {
+  GraphicTeam,
+  decidedMatchupFor,
+  winnersForGraphic,
+  highScorerForGraphic,
+  lastWeekForGraphic,
+  standingsForGraphic,
+} from "@/lib/recap-graphic-data";
 
 type FieldKey = keyof RecapModel;
 
-/** One labeled, independently-editable box — this is the "own box to write in" the header-by-header layout is built from. */
-function Field({
-  label,
-  value,
-  onChange,
-  multiline = true,
-  rows = 3,
-  placeholder,
+/** Initials fallback — same rule the canvas graphic uses (recap-graphic.ts's initialsFor): a bracket placeholder has nothing sensible to take a letter from. */
+function initialsFor(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed || trimmed.startsWith("[")) return "?";
+  return trimmed.charAt(0).toUpperCase();
+}
+
+/** A team/player logo or photo — a real `<img>` when there's a URL (no canvas/CORS concerns here, this never gets exported as a bitmap), initials otherwise. `ring` matches the graphic's gradient-ring winner treatment; `dim` its 50%-alpha loser treatment. */
+function Avatar({
+  url,
+  name,
+  ring = false,
+  dim = false,
+  small = false,
 }: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  multiline?: boolean;
-  rows?: number;
-  placeholder?: string;
+  url: string | null;
+  name: string;
+  ring?: boolean;
+  dim?: boolean;
+  small?: boolean;
 }) {
-  const sharedClass =
-    "w-full border border-border bg-page px-3 py-2 text-sm text-ink-primary outline-none transition-colors focus:border-series-1";
+  const cls = ["rn-avatar", ring ? "rn-ring" : "", dim ? "rn-dim" : "", small ? "rn-avatar-sm" : ""].filter(Boolean).join(" ");
+  return <div className={cls}>{url ? <img src={url} alt="" /> : initialsFor(name)}</div>;
+}
+
+/** The write-up's own title — always a visible input box, not a plain heading, matching every other editable field's affordance. */
+function TitleField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
-    <label className="flex flex-col gap-1">
-      <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">{label}</span>
-      {multiline ? (
-        <textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          rows={rows}
-          placeholder={placeholder}
-          className={sharedClass}
-        />
-      ) : (
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          className={sharedClass}
-        />
-      )}
-    </label>
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder="Give this write-up a title…"
+      className="rn-title-input"
+    />
   );
 }
 
-/** A dynamically-substituted value inside an otherwise-fixed line of house-style prose — colored apart from the surrounding fixed wording so it reads at a glance as "this part is live data," not something hand-typed. */
-function Variable({ children }: { children: React.ReactNode }) {
-  return <span className="font-semibold text-series-1">{children}</span>;
-}
-
-/** The small caption every computed (non-editable) section shows, matching DecidedMatchupBody's own — one place so the wording can't drift between them. */
-function LiveCaption({ children }: { children: React.ReactNode }) {
-  return <span className="text-[10px] font-medium uppercase tracking-wide text-ink-muted">{children}</span>;
-}
-
-/** Read-only closing line — fixed text every write-up ends its preview sections with, shown so the section reads complete without being an editable box. */
-function StaticFooter({ children }: { children: React.ReactNode }) {
-  return <p className="text-sm font-semibold text-ink-primary">{children}</p>;
-}
-
-/** A section's own name (the bowl/cup a matchup is named after) — double-click to rename. Renaming writes back to the shared pick this box's data came from (see recap/page.tsx), so every other box built from that same pick — this week's result, or a future week's preview of it — picks up the new name too, never just this one box. */
-function EditableHeader({ value, placeholder, onRename }: { value: string; placeholder: string; onRename: (name: string) => void }) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
-
-  function startEditing() {
-    setDraft(value);
-    setEditing(true);
-  }
-
-  function commit() {
-    setEditing(false);
-    const trimmed = draft.trim();
-    if (trimmed && trimmed !== value) onRename(trimmed);
-  }
-
-  if (editing) {
-    return (
-      <input
-        autoFocus
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onFocus={(e) => e.currentTarget.select()}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            commit();
-          } else if (e.key === "Escape") {
-            setEditing(false);
-          }
-        }}
-        className="w-full border-b-2 border-series-1 bg-transparent text-base font-bold text-ink-primary outline-none"
-      />
-    );
-  }
-
+/** A section card's title: emoji bookending a solid-cyan label, matching recap-graphic.ts's sectionHeader(). */
+function SectionHeader({ emoji, label }: { emoji: string; label: string }) {
   return (
-    <h3
-      onDoubleClick={startEditing}
-      title="Double-click to rename — renames this matchup everywhere it appears"
-      className="w-fit cursor-text text-base font-bold text-ink-primary decoration-dotted decoration-1 underline-offset-4 hover:underline"
-    >
-      {value.trim() || <span className="italic text-ink-muted">{placeholder}</span>}
-    </h3>
-  );
-}
-
-/** A fixed (non-renameable) header — for the sections that don't correspond to any other box, so there's nothing for a rename to stay in sync with. */
-function FixedHeader({ children }: { children: React.ReactNode }) {
-  return <h3 className="text-sm font-semibold text-ink-primary">{children}</h3>;
-}
-
-/** One statistic pulled out of the matchup data — a label, the team's name, and (once there's a score to show) their points. */
-function StatColumn({ label, name, points, muted = false }: { label: string; name: string | null; points: string | null; muted?: boolean }) {
-  return (
-    <div>
-      <div className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">{label}</div>
-      <div className={`font-semibold ${muted ? "text-ink-secondary" : "text-ink-primary"}`}>{name ?? "—"}</div>
-      {points ? <div className="text-xs text-ink-secondary">{points}</div> : null}
+    <div className="rn-section-header">
+      <span>{emoji}</span>
+      <span className="rn-label">{label}</span>
+      <span>{emoji}</span>
     </div>
   );
 }
 
-/** Winner/loser for a decided matchup — computed from whatever the live score currently says (even mid-game, the team ahead right now), never hand-typed, so it's shown as read-only with a small label saying so rather than as another text box. */
-function DecidedMatchupBody({
-  matchup,
-  teams,
-}: {
-  matchup: BowlMatchupResult | null;
-  teams: Record<number, { name: string; avatar: string | null }>;
-}) {
+/** Freeform commentary — always a visible textarea, sized/weighted/colored exactly like the graphic's own Detail text (bright bold white), so what you type here is what the picture will show. */
+function DetailField({ value, onChange, placeholder = "Add a detail…" }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
   return (
-    <div className="flex flex-col gap-2">
-      <LiveCaption>Calculated from live scores — not editable</LiveCaption>
-      <div className="grid grid-cols-2 gap-3 text-sm">
-        <StatColumn
-          label="Winner"
-          name={matchup ? (teams[matchup.winnerRosterId]?.name ?? "?") : null}
-          points={matchup ? formatPoints(matchup.winnerPoints) : null}
-        />
-        <StatColumn
-          label="Loser"
-          name={matchup ? (teams[matchup.loserRosterId]?.name ?? "?") : null}
-          points={matchup ? formatPoints(matchup.loserPoints) : null}
-          muted
-        />
-      </div>
-    </div>
+    <textarea
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      rows={2}
+      className="rn-detail-textarea"
+    />
   );
 }
 
-/** Picks which team fills one slot of an upcoming matchup — the same picker BowlPicksEditor used to own, now living right on the section it fills in. */
+/** The bowl/cup a matchup is named after — always a visible input box (not hidden behind a double-click), styled in the same display font/size the graphic's own poster title uses. Writes back to the shared pick this box's data came from (see recap/page.tsx), so every other box built from that same pick — this week's result, or a future week's preview of it — picks up the new name too. */
+function BowlNameInput({ value, placeholder, onRename }: { value: string; placeholder: string; onRename: (name: string) => void }) {
+  return (
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => onRename(e.target.value)}
+      placeholder={placeholder}
+      className={`${recapDisplayFont.className} rn-bowl-name-input`}
+    />
+  );
+}
+
+/** Picks which team fills one slot of an upcoming matchup — a real dropdown (already a proper editable control), with a small logo preview matching the graphic's team columns. */
 function TeamSelect({
   value,
   onChange,
@@ -180,19 +112,42 @@ function TeamSelect({
   onChange: (rosterId: number | "") => void;
   options: LeagueTeamOption[];
 }) {
+  const picked = typeof value === "number" ? options.find((o) => o.rosterId === value) : undefined;
   return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value ? Number(e.target.value) : "")}
-      className="w-full border border-border bg-page px-2 py-1.5 text-sm text-ink-primary outline-none focus:border-series-1"
-    >
-      <option value="">— Select a team —</option>
-      {options.map((t) => (
-        <option key={t.rosterId} value={t.rosterId}>
-          {t.teamName}
-        </option>
-      ))}
-    </select>
+    <div className="rn-team-col">
+      <Avatar url={picked?.avatar ?? null} name={picked?.teamName ?? "?"} />
+      <select value={value} onChange={(e) => onChange(e.target.value ? Number(e.target.value) : "")} className="rn-team-select">
+        <option value="">— Select a team —</option>
+        {options.map((t) => (
+          <option key={t.rosterId} value={t.rosterId}>
+            {t.teamName}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+/** Bowl of the Week / Honorable Mention as decided — winner bright with a ring, loser dimmed, the same "W  defeated  L" wording the graphic draws, computed live from whoever's actually ahead right now rather than hand-typed. */
+function DecidedMatchupBody({ matchup, teams }: { matchup: BowlMatchupResult | null; teams: Record<number, GraphicTeam> }) {
+  const winner = matchup ? teams[matchup.winnerRosterId] : undefined;
+  const loser = matchup ? teams[matchup.loserRosterId] : undefined;
+  return (
+    <div className="rn-team-row">
+      <div className="rn-team-col">
+        <Avatar url={winner?.avatar ?? null} name={winner?.name ?? "?"} ring />
+        <span className="rn-team-name">{winner?.name ?? "[Team 1]"}</span>
+      </div>
+      <div className="rn-result-line" style={{ alignSelf: "center", marginTop: 0 }}>
+        <span className="rn-w">W</span>
+        <span className="rn-vs-text">defeated</span>
+        <span className="rn-l">L</span>
+      </div>
+      <div className="rn-team-col">
+        <Avatar url={loser?.avatar ?? null} name={loser?.name ?? "?"} dim />
+        <span className="rn-team-name rn-muted">{loser?.name ?? "[Team 2]"}</span>
+      </div>
+    </div>
   );
 }
 
@@ -207,179 +162,167 @@ function PreviewMatchupBody({
   onChangeTeam: (slot: 0 | 1, rosterId: number | "") => void;
 }) {
   if (!teamOptions) {
-    return <p className="text-xs text-ink-muted">Loading teams…</p>;
+    return <p className="rn-caption">Loading teams…</p>;
   }
   const rosterIds = preview?.rosterIds ?? [];
   return (
-    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+    <div className="rn-team-row">
       <TeamSelect value={rosterIds[0] ?? ""} options={teamOptions} onChange={(id) => onChangeTeam(0, id)} />
+      <span className="rn-vs">VS</span>
       <TeamSelect value={rosterIds[1] ?? ""} options={teamOptions} onChange={(id) => onChangeTeam(1, id)} />
     </div>
   );
 }
 
-/**
- * Live data shared by the four computed, never-hand-edited sections below —
- * whatever `computeWeekRecap`/`loadLeagueMoney` last fetched for this
- * write-up's own week (see recap/page.tsx), the same source the recap
- * graphic draws from. `summarizeWeek`/`standingsThroughWeek` both take
- * `week` as a hard ceiling — reopening an old week's write-up recomputes
- * from just that week's data, never anything past it, so week 1's numbers
- * can't include week 3's results just because more weeks have been played
- * since.
- */
+/** Live data shared by the four computed, never-hand-edited sections below — the same source (recap-graphic-data.ts) the exported graphic itself draws from, so this on-screen preview and the picture you copy can never quietly disagree. */
 interface LiveWeekData {
   recapData: WeekRecapData | null;
   ledger: PayoutLedger | null;
   week: number;
+  teams: Record<number, GraphicTeam>;
 }
 
-const HIGH_SCORER_PLACEHOLDER = {
-  name: "[highest scoring team]",
-  points: "[points of the highest scoring team]",
-  leader1: "[player]",
-  leader2: "[player]",
-  leader3: "[player]",
-};
-
-/** The "📈 ... outperformed the league" callout — same wording format-recap.ts has always generated, but rendered live with every substituted value picked out in blue instead of frozen into an editable text box. */
-function HighScorerCallout({ recapData, ledger, week, playerNames }: LiveWeekData & { playerNames: Record<string, string> }) {
-  const summary = recapData && ledger ? summarizeWeek(ledger, week) : null;
-  const hs = summary?.highScorer;
-
-  let name = HIGH_SCORER_PLACEHOLDER.name;
-  let points = HIGH_SCORER_PLACEHOLDER.points;
-  let leader1 = HIGH_SCORER_PLACEHOLDER.leader1;
-  let leader2 = HIGH_SCORER_PLACEHOLDER.leader2;
-  let leader3 = HIGH_SCORER_PLACEHOLDER.leader3;
-  if (hs) {
-    const leaders = findWeekTopStarters(hs.rosterId, recapData!.games, 3).map((l) => playerNames[l.playerId] ?? "[player]");
-    name = hs.name;
-    points = formatPoints(hs.points);
-    leader1 = leaders[0] ?? "[player]";
-    leader2 = leaders[1] ?? "[player]";
-    leader3 = leaders[2] ?? "[player]";
+/** "🏆 High Scorer 🏆": the top-3 teams staggered into a podium on the left (1st highest, 2nd a step lower, 3rd lower still, gold/silver/bronze rank labels, points instead of name beneath each logo) and the winning team's top-3 players triangled on the right — the same layout and the same live data as the graphic's own podium. */
+function HighScorerBody({ recapData, ledger, week, teams, playerNames }: LiveWeekData & { playerNames: Record<string, string> }) {
+  const data = highScorerForGraphic(recapData, ledger, week, teams, playerNames, "");
+  if (!data) {
+    return <p className="rn-caption">Calculated from live scores once games are underway — not editable.</p>;
   }
-
+  const ordered = [...data.runnersUp].reverse();
+  ordered.push({ team: data.team, points: data.points });
+  const rankClass = ["rn-bronze", "rn-silver", "rn-gold"];
+  const rankLabel = ["3RD", "2ND", "1ST"];
+  const rankRow = ["rn-rank-3", "rn-rank-2", ""];
+  const players = [0, 1, 2].map((i) => data.topPlayers[i] ?? { name: "?", points: "–", photoUrl: null });
   return (
-    <div className="flex flex-col gap-2">
-      <LiveCaption>Calculated from live scores — not editable</LiveCaption>
-      <p className="text-sm leading-relaxed text-ink-secondary">
-        📈 <Variable>{name}</Variable> outperformed the league this week! He scored a whopping <Variable>{points}</Variable>! The
-        team was led by <Variable>{leader1}</Variable>, <Variable>{leader2}</Variable> and <Variable>{leader3}</Variable>! Congrats
-        to <Variable>{name}</Variable>!
-      </p>
-    </div>
-  );
-}
-
-const WINNERS_PLACEHOLDER: { name: string; highlight: boolean }[] = [
-  { name: "[highest scoring team]", highlight: true },
-  { name: "[2nd highest scoring winning team]", highlight: false },
-  { name: "[3rd highest scoring winning team]", highlight: false },
-  { name: "[4th highest scoring winning team]", highlight: false },
-  { name: "[5th highest scoring winning team]", highlight: false },
-];
-
-/** Who'd be getting paid if this week's games ended right now — every team that's currently winning its matchup, richest scorer first. A week with no resolved winner yet (nothing played, or every matchup still tied) falls back to the same bracket placeholders the flat text has always used. */
-function WinnersList({ recapData, ledger, week }: LiveWeekData) {
-  const summary = recapData && ledger ? summarizeWeek(ledger, week) : null;
-  const rows =
-    summary && summary.winners.length > 0
-      ? summary.winners.map((w) => ({ name: w.name, highlight: summary.highScorer?.rosterId === w.rosterId }))
-      : WINNERS_PLACEHOLDER;
-  return (
-    <div className="flex flex-col gap-2">
-      <LiveCaption>Calculated from live scores — not editable</LiveCaption>
-      <ul className="flex flex-col gap-1 text-sm text-ink-secondary">
-        {rows.map((r, i) => (
-          <li key={i}>
-            {r.highlight ? "🔹" : "▫️"}
-            <Variable>{r.name}</Variable>
-          </li>
+    <div className="rn-podium">
+      <div className="rn-podium-teams">
+        {ordered.map((entry, i) => (
+          <div key={i} className={`rn-podium-team ${rankRow[i]}`}>
+            <span className={`rn-rank-label ${rankClass[i]}`}>{rankLabel[i]}</span>
+            <Avatar url={entry.team.avatarUrl} name={entry.team.name} ring={i === 2} small={i !== 2} dim={i !== 2} />
+            <span className={i === 2 ? "rn-points-label rn-top" : "rn-points-label"}>{entry.points}</span>
+          </div>
         ))}
-      </ul>
+      </div>
+      <div className="rn-player-triangle">
+        <div className="rn-player">
+          <span className="rn-player-score">{players[0].points}</span>
+          <Avatar url={players[0].photoUrl} name={players[0].name} />
+        </div>
+        <div className="rn-player-bottom-row">
+          <div className="rn-player">
+            <span className="rn-player-score">{players[1].points}</span>
+            <Avatar url={players[1].photoUrl} name={players[1].name} small />
+          </div>
+          <div className="rn-player">
+            <span className="rn-player-score">{players[2].points}</span>
+            <Avatar url={players[2].photoUrl} name={players[2].name} small />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
-/** Every team's result this week — name, score, win/loss — one row per team, laid out the same way the recap graphic's own last-week table reads: name left, score front and center, result icon on the right. */
-function LastWeekTable({ recapData, ledger, week }: LiveWeekData) {
-  const summary = recapData && ledger ? summarizeWeek(ledger, week) : null;
+/** The auto-generated "X outperformed the league..." sentence — computed live (see recap-graphic-data.ts), same bright bold treatment as Detail text, never hand-typed. */
+function HighScorerSentence({ recapData, ledger, week, teams, playerNames }: LiveWeekData & { playerNames: Record<string, string> }) {
+  const data = highScorerForGraphic(recapData, ledger, week, teams, playerNames, "");
+  if (!data) return null;
+  return <p className="rn-sentence">{data.sentence}</p>;
+}
+
+/** Who's getting paid this week — avatar, dollar amount, username, margin of victory — same data and layout as the graphic's Winners row. */
+function WinnersBody({ recapData, ledger, week, teams }: LiveWeekData) {
+  const rows = winnersForGraphic(recapData, ledger, week, teams);
+  if (!rows || rows.length === 0) {
+    return <p className="rn-caption">Calculated from live scores once a matchup resolves — not editable.</p>;
+  }
   return (
-    <div className="flex flex-col gap-2">
-      <LiveCaption>Calculated from live scores — not editable</LiveCaption>
-      {summary ? (
-        <div className="flex flex-col divide-y divide-grid text-sm">
-          {summary.scoreboard.map((row) => (
-            <div key={row.rosterId} className="flex items-center justify-between gap-3 py-1.5">
-              <span className="text-ink-secondary">{row.name}</span>
-              <Variable>{formatPoints(row.points)}</Variable>
-              <span className="text-ink-muted">{row.won ? "✅" : "❌"}</span>
-            </div>
-          ))}
+    <div className="rn-winners-row">
+      {rows.map((r, i) => (
+        <div key={i} className="rn-winner">
+          <span className="rn-winner-amount">{r.amountLabel}</span>
+          <Avatar url={r.avatarUrl} name={r.name} ring={r.highlight} />
+          <span className="rn-team-name">{r.name}</span>
+          {r.marginLabel ? <span className="rn-winner-margin">{r.marginLabel}</span> : null}
         </div>
-      ) : (
-        <div className="flex items-center justify-between gap-3 py-1.5 text-sm text-ink-secondary">
-          <Variable>[team 1]</Variable>
-          <Variable>[team 1 points]</Variable>
-          <span className="text-xs text-ink-muted">[✅ for a win, ❌ for a loss]</span>
-        </div>
-      )}
+      ))}
     </div>
   );
 }
 
-/** Running earnings through this write-up's own week — richest first. `standingsThroughWeek` sums only weeks up to `week`, so week 1's write-up always shows week 1's money, never a later week's, no matter when it's reopened. */
-function StandingsList({ recapData, ledger, week }: LiveWeekData) {
-  const rows = recapData && ledger ? standingsThroughWeek(ledger, week) : [];
+/** Every team's result this week — name, score, a proportional background bar (the bar's own "0" always starts past the longest name shown here, same fix as the graphic), win/loss — same data as the graphic's Last Week table. */
+function LastWeekBody({ recapData, ledger, week, teams }: LiveWeekData) {
+  const rows = lastWeekForGraphic(recapData, ledger, week, teams);
+  if (!rows || rows.length === 0) {
+    return <p className="rn-caption">Calculated from live scores once games are underway — not editable.</p>;
+  }
+  const points = rows.map((r) => r.points);
+  const max = Math.max(...points);
+  const min = Math.min(...points);
   return (
-    <div className="flex flex-col gap-2">
-      <LiveCaption>Calculated from live earnings through this week — not editable</LiveCaption>
-      {rows.length > 0 ? (
-        <div className="flex flex-col divide-y divide-grid text-sm">
-          {rows.map((r) => (
-            <div key={r.name} className="flex items-center justify-between gap-3 py-1.5">
-              <span className="text-ink-secondary">{r.name}</span>
-              <Variable>${r.amount}</Variable>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="flex items-center justify-between gap-3 py-1.5 text-sm text-ink-secondary">
-          <Variable>[most profitable team profit so far]</Variable>
-          <span>[most profitable team name]</span>
-        </div>
-      )}
+    <div className="rn-lastweek-rows">
+      {rows.map((r, i) => {
+        const pct = max === min ? 100 : 30 + ((r.points - min) / (max - min)) * 70;
+        return (
+          <div key={i} className="rn-lastweek-row">
+            <div className="rn-lastweek-bar" style={{ width: `${pct}%` }} />
+            <span className="rn-lastweek-name">{r.name}</span>
+            <span className="rn-lastweek-points">{r.pointsLabel}</span>
+            <span className={`rn-lastweek-result ${r.won ? "rn-w" : "rn-l"}`}>{r.won ? "W" : "L"}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-// A distinct background tint per section so each box stands out from the
-// page instead of blending into a wall of white — same accent palette the
-// map already uses for its per-league colors, at low opacity.
-const SECTION_TINT: Record<RecapSectionKey, string> = {
-  bowl: "var(--color-series-2)",
-  honorable: "var(--color-series-4)",
-  highScorer: "var(--color-series-3)",
-  winners: "var(--color-series-8)",
-  lastWeek: "var(--color-series-1)",
-  standings: "var(--color-series-6)",
-  upcomingBowl: "var(--color-series-7)",
-  upcomingHonorable: "var(--color-series-5)",
+/** Running earnings through this write-up's own week — a stack of bills per team, taller for whoever's made more, same as the graphic's Standings section. */
+function StandingsBody({ recapData, ledger, week, teams }: LiveWeekData) {
+  const rows = standingsForGraphic(recapData, ledger, week, teams);
+  if (!rows || rows.length === 0) {
+    return <p className="rn-caption">Calculated from live earnings once there&rsquo;s payout data — not editable.</p>;
+  }
+  const maxAmount = Math.max(...rows.map((r) => r.amount), 0);
+  const unit = Math.max(15, Math.ceil(maxAmount / 16 / 15) * 15);
+  return (
+    <div className="rn-standings-row">
+      {rows.map((r, i) => {
+        const count = r.amount > 0 ? Math.max(1, Math.round(r.amount / unit)) : 0;
+        return (
+          <div key={i} className="rn-standing">
+            <span className="rn-standing-amount">{r.amountLabel}</span>
+            <div className="rn-bill-stack">
+              {Array.from({ length: count }).map((_, b) => (
+                <div key={b} className="rn-bill">
+                  $
+                </div>
+              ))}
+            </div>
+            <span className="rn-standing-name">{r.name}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Matches SECTION_TINT's old per-section variety, but every card in this
+// theme shares the same translucent-white surface (see recap-graphic.ts's
+// COLOR.card) — the graphic doesn't tint cards per section, so neither does
+// this.
+const SECTION_TITLE: Record<Exclude<RecapSectionKey, "bowl" | "honorable">, { emoji: string; label: string }> = {
+  highScorer: { emoji: "🏆", label: "High Scorer" },
+  winners: { emoji: "💵", label: "Winners" },
+  lastWeek: { emoji: "📊", label: "Last Week" },
+  standings: { emoji: "💰", label: "Standings" },
+  upcomingBowl: { emoji: "🏈", label: "Matchup of the Week" },
+  upcomingHonorable: { emoji: "🥈", label: "Honorable Mention" },
 };
 
-/**
- * Every section's shared shell: a tinted card so it stands out from the
- * page's white background, an include/exclude checkbox pinned to the
- * top-right corner (unchecked greys the whole box out and leaves it out of
- * both the copied text and the graphic), and a "+"/"–" button pinned to the
- * bottom-right that shows or hides `detail` — an optional free-write box
- * every section can opt into without it cluttering the ones that don't need
- * it.
- */
+/** Every section's shared shell: a translucent card matching the graphic's own, an include/exclude checkbox pinned to the top-right corner (unchecked greys the whole box out and leaves it out of both the copied text and the graphic), and a "+"/"–" button pinned to the bottom-right that shows or hides `detail`. `poster` switches to the wider-padded gradient-tinted card the two decided/preview matchups use in the graphic. */
 function SectionBox({
-  sectionKey,
   included,
   onToggleIncluded,
   header,
@@ -387,8 +330,8 @@ function SectionBox({
   detail,
   detailShown,
   onToggleDetail,
+  poster = false,
 }: {
-  sectionKey: RecapSectionKey;
   included: boolean;
   onToggleIncluded: () => void;
   header: React.ReactNode;
@@ -396,29 +339,17 @@ function SectionBox({
   detail: React.ReactNode;
   detailShown: boolean;
   onToggleDetail: () => void;
+  poster?: boolean;
 }) {
   return (
-    <div
-      className="relative flex flex-col gap-3 border border-grid p-4 pb-10 pr-9 transition-[opacity,background-color]"
-      style={{
-        backgroundColor: included
-          ? `color-mix(in srgb, ${SECTION_TINT[sectionKey]} 12%, var(--color-surface-raised))`
-          : "var(--color-surface)",
-        opacity: included ? 1 : 0.55,
-      }}
-    >
+    <div className={`rn-card ${poster ? "rn-poster-card" : ""} ${included ? "" : "rn-excluded"}`}>
       <label
-        className="absolute right-3 top-3 flex cursor-pointer items-center"
+        className="rn-include-toggle-wrap"
         title={included ? "Included — click to leave this out" : "Excluded — click to include it"}
       >
-        <input
-          type="checkbox"
-          checked={included}
-          onChange={onToggleIncluded}
-          className="h-4 w-4 cursor-pointer accent-series-1"
-        />
+        <input type="checkbox" checked={included} onChange={onToggleIncluded} className="rn-include-toggle" />
       </label>
-      <div className={`flex flex-col gap-3 ${included ? "" : "pointer-events-none grayscale"}`}>
+      <div className="rn-card-body" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {header}
         {children}
         {detailShown ? detail : null}
@@ -428,7 +359,7 @@ function SectionBox({
         onClick={onToggleDetail}
         title={detailShown ? "Remove the detail box" : "Add a detail box"}
         aria-label={detailShown ? "Remove the detail box" : "Add a detail box"}
-        className="absolute bottom-3 right-3 flex h-6 w-6 items-center justify-center border border-border bg-page text-sm font-bold leading-none text-ink-secondary transition-colors hover:border-series-1 hover:text-series-1"
+        className="rn-detail-toggle"
       >
         {detailShown ? "–" : "+"}
       </button>
@@ -437,20 +368,16 @@ function SectionBox({
 }
 
 /**
- * The commish recap, broken into one box per header instead of one flat
- * field — every header from the write-up gets its own section on screen.
- * `onChange` fires with the whole updated model on every keystroke;
- * `joinRecapModel(model)` (see RecapEditor) is what actually gets saved,
- * copied, and posted, so this layout can never drift from that text.
- *
- * Four sections are entirely computed, never hand-typed: High Scorer,
- * Winners Podium, Last Week Results, and Updated Standings all render live
- * from this week's own Sleeper/ledger data (see LiveWeekData above), with
- * every substituted value picked out in blue — same "calculated, not
- * editable" treatment Bowl of the Week/Honorable Mention already get, just
- * without needing a bowl pick behind it. Every section (computed or
- * free-write) can still carry an optional Detail box, toggled by its own
- * "+"/"–" button rather than always taking up space.
+ * The commish recap, styled as a live HTML replica of the exported graphic
+ * (see recap-graphic.ts) — same dark neon theme, same layout per section —
+ * so editing here is a true preview of what "Copy graphic" produces, not a
+ * generic form floating apart from it. Every genuinely editable field
+ * (title, bowl/matchup names, team pickers, Detail boxes) renders as an
+ * always-visible input/textarea/select styled to match its surrounding
+ * text; every computed field (winner/loser, the High Scorer podium, Winners
+ * row, Last Week table, Standings stacks) renders read-only, sourced live
+ * from recap-graphic-data.ts — the exact same functions the graphic itself
+ * calls, so the two can never quietly disagree.
  */
 export function RecapSectionsEditor({
   model,
@@ -478,14 +405,14 @@ export function RecapSectionsEditor({
   honorableMatchup: BowlMatchupResult | null;
   upcomingMatchup: BowlMatchupPreview | null;
   upcomingHonorableMatchup: BowlMatchupPreview | null;
-  teams: Record<number, { name: string; avatar: string | null }>;
+  teams: Record<number, GraphicTeam>;
   /** The league's roster pool for the upcoming-matchup team pickers below — null until useLeagueTeams finishes loading. */
   teamOptions: LeagueTeamOption[] | null;
   /** This write-up's own week's matchup data — null in preseason, or before it's loaded — and the money ledger it's scored against, feeding the four computed sections below. */
   recapData: WeekRecapData | null;
   ledger: PayoutLedger | null;
   week: number;
-  /** Player id -> display name, for the High Scorer callout's "led by" names. */
+  /** Player id -> display name, for the High Scorer podium's top-3-player photos. */
   playerNames: Record<string, string>;
   onRenameBowl: (name: string) => void;
   onRenameHonorable: (name: string) => void;
@@ -501,30 +428,42 @@ export function RecapSectionsEditor({
   const detailShown = (key: RecapSectionKey) => isDetailShown(model, key);
   const toggleDetail = (key: RecapSectionKey) =>
     onChange({ ...model, detailShown: { ...model.detailShown, [key]: !isDetailShown(model, key) } });
-  const live: LiveWeekData = { recapData, ledger, week };
+  const live: LiveWeekData = { recapData, ledger, week, teams };
+  const decidedBowl = decidedMatchupFor(teams, bowlMatchup);
+  const decidedHonorable = decidedMatchupFor(teams, honorableMatchup);
 
   return (
-    <div className="flex flex-col gap-4">
-      <Field label="Title" value={model.title} onChange={(v) => set("title", v)} multiline={false} />
+    <div className="recap-neon">
+      <span className="rn-badge">BUFF</span>
+      <div className="rn-title-row">
+        <TitleField value={model.title} onChange={(v) => set("title", v)} />
+        <div className="rn-underline" />
+      </div>
 
       <SectionBox
-        sectionKey="bowl"
+        poster
         included={included("bowl")}
         onToggleIncluded={() => toggleIncluded("bowl")}
-        header={<EditableHeader value={bowlMatchup?.bowlName ?? ""} placeholder="Name the Bowl of the Week…" onRename={onRenameBowl} />}
+        header={
+          <BowlNameInput value={bowlMatchup?.bowlName ?? ""} placeholder="Name the Bowl of the Week…" onRename={onRenameBowl} />
+        }
         detailShown={detailShown("bowl")}
         onToggleDetail={() => toggleDetail("bowl")}
-        detail={<Field label="Detail" value={model.bowlDetail} onChange={(v) => set("bowlDetail", v)} rows={2} placeholder="Add a detail…" />}
+        detail={<DetailField value={model.bowlDetail} onChange={(v) => set("bowlDetail", v)} />}
       >
-        <DecidedMatchupBody matchup={bowlMatchup} teams={teams} />
+        {decidedBowl ? (
+          <DecidedMatchupBody matchup={bowlMatchup} teams={teams} />
+        ) : (
+          <p className="rn-caption">Calculated from live scores — not editable.</p>
+        )}
       </SectionBox>
 
       <SectionBox
-        sectionKey="honorable"
+        poster
         included={included("honorable")}
         onToggleIncluded={() => toggleIncluded("honorable")}
         header={
-          <EditableHeader
+          <BowlNameInput
             value={honorableMatchup?.bowlName ?? ""}
             placeholder="Name the Honorable Mention…"
             onRename={onRenameHonorable}
@@ -532,127 +471,109 @@ export function RecapSectionsEditor({
         }
         detailShown={detailShown("honorable")}
         onToggleDetail={() => toggleDetail("honorable")}
-        detail={
-          <Field label="Detail" value={model.honorableDetail} onChange={(v) => set("honorableDetail", v)} rows={2} placeholder="Add a detail…" />
-        }
+        detail={<DetailField value={model.honorableDetail} onChange={(v) => set("honorableDetail", v)} />}
       >
-        <DecidedMatchupBody matchup={honorableMatchup} teams={teams} />
+        {decidedHonorable ? (
+          <DecidedMatchupBody matchup={honorableMatchup} teams={teams} />
+        ) : (
+          <p className="rn-caption">Calculated from live scores — not editable.</p>
+        )}
       </SectionBox>
 
       <SectionBox
-        sectionKey="highScorer"
         included={included("highScorer")}
         onToggleIncluded={() => toggleIncluded("highScorer")}
-        header={<FixedHeader>📈 High Scorer</FixedHeader>}
+        header={<SectionHeader emoji="🏆" label="High Scorer" />}
         detailShown={detailShown("highScorer")}
         onToggleDetail={() => toggleDetail("highScorer")}
-        detail={
-          <Field label="Detail" value={model.highScorerDetail} onChange={(v) => set("highScorerDetail", v)} rows={2} placeholder="Add a detail…" />
-        }
+        detail={<DetailField value={model.highScorerDetail} onChange={(v) => set("highScorerDetail", v)} />}
       >
-        <HighScorerCallout {...live} playerNames={playerNames} />
+        <HighScorerBody {...live} playerNames={playerNames} />
+        <HighScorerSentence {...live} playerNames={playerNames} />
       </SectionBox>
 
       <SectionBox
-        sectionKey="winners"
         included={included("winners")}
         onToggleIncluded={() => toggleIncluded("winners")}
-        header={<FixedHeader>{RECAP_HEADERS.winners}</FixedHeader>}
+        header={<SectionHeader emoji={SECTION_TITLE.winners.emoji} label={SECTION_TITLE.winners.label} />}
         detailShown={detailShown("winners")}
         onToggleDetail={() => toggleDetail("winners")}
-        detail={<Field label="Detail" value={model.winnersDetail} onChange={(v) => set("winnersDetail", v)} rows={2} placeholder="Add a detail…" />}
+        detail={<DetailField value={model.winnersDetail} onChange={(v) => set("winnersDetail", v)} />}
       >
-        <WinnersList {...live} />
+        <WinnersBody {...live} />
       </SectionBox>
 
       <SectionBox
-        sectionKey="lastWeek"
         included={included("lastWeek")}
         onToggleIncluded={() => toggleIncluded("lastWeek")}
-        header={<FixedHeader>{RECAP_HEADERS.lastWeek}</FixedHeader>}
+        header={<SectionHeader emoji={SECTION_TITLE.lastWeek.emoji} label={SECTION_TITLE.lastWeek.label} />}
         detailShown={detailShown("lastWeek")}
         onToggleDetail={() => toggleDetail("lastWeek")}
-        detail={
-          <Field label="Detail" value={model.lastWeekDetail} onChange={(v) => set("lastWeekDetail", v)} rows={2} placeholder="Add a detail…" />
-        }
+        detail={<DetailField value={model.lastWeekDetail} onChange={(v) => set("lastWeekDetail", v)} />}
       >
-        <LastWeekTable {...live} />
+        <LastWeekBody {...live} />
       </SectionBox>
 
       <SectionBox
-        sectionKey="standings"
         included={included("standings")}
         onToggleIncluded={() => toggleIncluded("standings")}
-        header={<FixedHeader>{RECAP_HEADERS.standings}</FixedHeader>}
+        header={<SectionHeader emoji={SECTION_TITLE.standings.emoji} label={SECTION_TITLE.standings.label} />}
         detailShown={detailShown("standings")}
         onToggleDetail={() => toggleDetail("standings")}
-        detail={
-          <Field label="Detail" value={model.standingsDetail} onChange={(v) => set("standingsDetail", v)} rows={2} placeholder="Add a detail…" />
-        }
+        detail={<DetailField value={model.standingsDetail} onChange={(v) => set("standingsDetail", v)} />}
       >
-        <StandingsList {...live} />
+        <StandingsBody {...live} />
       </SectionBox>
 
-      <div className="border-t border-grid pt-3">
-        <FixedHeader>{upcomingWeekLabel(model.upcomingWeek)}</FixedHeader>
-      </div>
+      <div className="rn-divider" />
+      <p className={`${recapDisplayFont.className} rn-upcoming-title`}>{upcomingWeekLabel(model.upcomingWeek)}</p>
 
       <SectionBox
-        sectionKey="upcomingBowl"
+        poster
         included={included("upcomingBowl")}
         onToggleIncluded={() => toggleIncluded("upcomingBowl")}
         header={
-          <EditableHeader
-            value={upcomingMatchup?.bowlName ?? ""}
-            placeholder="Name next week's Matchup of the Week…"
-            onRename={onRenameUpcomingBowl}
-          />
+          <>
+            <SectionHeader emoji={SECTION_TITLE.upcomingBowl.emoji} label={SECTION_TITLE.upcomingBowl.label} />
+            <BowlNameInput
+              value={upcomingMatchup?.bowlName ?? ""}
+              placeholder="Name next week's Matchup of the Week…"
+              onRename={onRenameUpcomingBowl}
+            />
+          </>
         }
         detailShown={detailShown("upcomingBowl")}
         onToggleDetail={() => toggleDetail("upcomingBowl")}
-        detail={
-          <Field
-            label="Detail"
-            value={model.upcomingBowlDetail}
-            onChange={(v) => set("upcomingBowlDetail", v)}
-            rows={2}
-            placeholder="Add a detail…"
-          />
-        }
+        detail={<DetailField value={model.upcomingBowlDetail} onChange={(v) => set("upcomingBowlDetail", v)} />}
       >
         <PreviewMatchupBody preview={upcomingMatchup} teamOptions={teamOptions} onChangeTeam={onChangeUpcomingBowlTeam} />
-        <StaticFooter>{WHO_WILL_PREVAIL}</StaticFooter>
+        <p className="rn-trailer">{WHO_WILL_PREVAIL}</p>
       </SectionBox>
 
       <SectionBox
-        sectionKey="upcomingHonorable"
+        poster
         included={included("upcomingHonorable")}
         onToggleIncluded={() => toggleIncluded("upcomingHonorable")}
         header={
-          <EditableHeader
-            value={upcomingHonorableMatchup?.bowlName ?? ""}
-            placeholder="Name next week's Honorable Mention…"
-            onRename={onRenameUpcomingHonorable}
-          />
+          <>
+            <SectionHeader emoji={SECTION_TITLE.upcomingHonorable.emoji} label={SECTION_TITLE.upcomingHonorable.label} />
+            <BowlNameInput
+              value={upcomingHonorableMatchup?.bowlName ?? ""}
+              placeholder="Name next week's Honorable Mention…"
+              onRename={onRenameUpcomingHonorable}
+            />
+          </>
         }
         detailShown={detailShown("upcomingHonorable")}
         onToggleDetail={() => toggleDetail("upcomingHonorable")}
-        detail={
-          <Field
-            label="Detail"
-            value={model.upcomingHonorableDetail}
-            onChange={(v) => set("upcomingHonorableDetail", v)}
-            rows={2}
-            placeholder="Add a detail…"
-          />
-        }
+        detail={<DetailField value={model.upcomingHonorableDetail} onChange={(v) => set("upcomingHonorableDetail", v)} />}
       >
         <PreviewMatchupBody
           preview={upcomingHonorableMatchup}
           teamOptions={teamOptions}
           onChangeTeam={onChangeUpcomingHonorableTeam}
         />
-        <StaticFooter>{GOOD_LUCK_TO_ALL}</StaticFooter>
+        <p className="rn-trailer">{GOOD_LUCK_TO_ALL}</p>
       </SectionBox>
     </div>
   );

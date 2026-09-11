@@ -1,0 +1,554 @@
+/*
+ * The write-up editor's visual theme — a live HTML/CSS replica of the
+ * canvas graphic (see recap-graphic.ts), scoped under .recap-neon so it
+ * never leaks into the rest of the app's light theme. Every color/size
+ * constant here is copied by hand from recap-graphic.ts's NEON/COLOR/
+ * CARD_* constants and RANK_METAL — if those ever change, these should
+ * change with them, since the whole point of this file is "the editor
+ * should look like the picture you copy."
+ */
+
+.recap-neon {
+  --neon-pink: #ff2e9a;
+  --neon-blue: #22d3ee;
+  --neon-green: #39ff8e;
+  --rn-bg-top: #181410;
+  --rn-bg-bottom: #0a0908;
+  --rn-card: rgba(255, 255, 255, 0.055);
+  --rn-primary: #ffffff;
+  --rn-secondary: #c9c7bc;
+  --rn-muted: #87857c;
+  --rn-hairline: rgba(255, 255, 255, 0.12);
+  --rn-win: #22c55e;
+  --rn-loss: #ef4444;
+  --rn-radius: 24px;
+  --rn-pad-x: 26px;
+  --rn-pad-y: 24px;
+  --rn-gap: 18px;
+
+  background: linear-gradient(180deg, var(--rn-bg-top), var(--rn-bg-bottom));
+  border-radius: var(--rn-radius);
+  padding: 28px;
+  color: var(--rn-primary);
+  display: flex;
+  flex-direction: column;
+  gap: var(--rn-gap);
+}
+
+.recap-neon .rn-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(90deg, var(--neon-pink), var(--neon-blue), var(--neon-green));
+}
+
+.recap-neon .rn-title-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.recap-neon .rn-title-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--rn-primary);
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.2;
+  padding: 2px 0;
+  border-bottom: 2px dashed transparent;
+}
+.recap-neon .rn-title-input:hover,
+.recap-neon .rn-title-input:focus {
+  border-bottom-color: var(--neon-blue);
+}
+
+.recap-neon .rn-underline {
+  height: 5px;
+  width: 64px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--neon-pink), var(--neon-blue), var(--neon-green));
+}
+
+/* Card shells */
+.recap-neon .rn-card {
+  position: relative;
+  border-radius: var(--rn-radius);
+  padding: var(--rn-pad-y) var(--rn-pad-x);
+  background: var(--rn-card);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: opacity 0.15s ease;
+}
+.recap-neon .rn-card.rn-excluded {
+  opacity: 0.5;
+}
+.recap-neon .rn-card.rn-excluded .rn-card-body {
+  pointer-events: none;
+  filter: grayscale(1);
+}
+
+.recap-neon .rn-poster-card {
+  background: linear-gradient(180deg, rgba(255, 46, 154, 0.14), rgba(34, 211, 238, 0.1) 50%, rgba(57, 255, 142, 0.06));
+  border-radius: calc(var(--rn-radius) + 4px);
+  padding: calc(var(--rn-pad-y) + 8px) calc(var(--rn-pad-x) + 6px);
+}
+
+.recap-neon .rn-include-toggle {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--neon-blue);
+}
+
+.recap-neon .rn-detail-toggle {
+  position: absolute;
+  bottom: 14px;
+  right: 14px;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--rn-hairline);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--rn-secondary);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+.recap-neon .rn-detail-toggle:hover {
+  border-color: var(--neon-blue);
+  color: var(--neon-blue);
+}
+
+/* Section header: emoji bookends + solid cyan label, matches sectionHeader() */
+.recap-neon .rn-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 22px;
+  font-weight: 800;
+  text-align: center;
+}
+.recap-neon .rn-section-header .rn-label {
+  color: var(--neon-blue);
+}
+
+/* Poster bowl-name — big display-font input, matches decidedMatchup's title */
+.recap-neon .rn-bowl-name-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--rn-primary);
+  text-align: center;
+  font-size: 28px;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  padding: 4px 0;
+  border-bottom: 2px dashed transparent;
+}
+.recap-neon .rn-bowl-name-input::placeholder {
+  color: var(--rn-muted);
+  text-transform: none;
+}
+.recap-neon .rn-bowl-name-input:hover,
+.recap-neon .rn-bowl-name-input:focus {
+  border-bottom-color: var(--neon-blue);
+}
+
+.recap-neon .rn-upcoming-title {
+  text-align: center;
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--rn-primary);
+}
+
+/* Team row (decided/preview matchups) */
+.recap-neon .rn-team-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 40px;
+}
+.recap-neon .rn-team-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 160px;
+}
+.recap-neon .rn-team-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--rn-primary);
+  text-align: center;
+  word-break: break-word;
+}
+.recap-neon .rn-team-name.rn-muted {
+  color: var(--rn-muted);
+  font-weight: 600;
+}
+
+/* Avatar circle: gradient ring + real gap (matches the transparent-gap fix in recap-graphic.ts) */
+.recap-neon .rn-avatar {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #2c261c;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 800;
+  font-size: 26px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.recap-neon .rn-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.recap-neon .rn-avatar.rn-ring {
+  outline: 7px solid transparent;
+  outline-offset: 3px;
+  background-image: conic-gradient(from 90deg, var(--neon-pink), var(--neon-blue), var(--neon-green), var(--neon-pink));
+  background-origin: border-box;
+}
+.recap-neon .rn-avatar.rn-ring::before {
+  content: "";
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+  padding: 7px;
+  background: conic-gradient(from 90deg, var(--neon-pink), var(--neon-blue), var(--neon-green), var(--neon-pink));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  z-index: -1;
+}
+.recap-neon .rn-avatar.rn-dim {
+  opacity: 0.55;
+}
+.recap-neon .rn-avatar-sm {
+  width: 56px;
+  height: 56px;
+  font-size: 20px;
+}
+
+/* W defeated L */
+.recap-neon .rn-result-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: -8px;
+}
+.recap-neon .rn-result-line .rn-w {
+  color: var(--rn-win);
+  font-weight: 800;
+  font-size: 30px;
+}
+.recap-neon .rn-result-line .rn-l {
+  color: var(--rn-loss);
+  font-weight: 800;
+  font-size: 30px;
+}
+.recap-neon .rn-result-line .rn-vs-text {
+  color: var(--rn-secondary);
+  font-weight: 600;
+  font-size: 14px;
+}
+.recap-neon .rn-vs {
+  color: var(--neon-pink);
+  font-weight: 800;
+  font-size: 15px;
+  text-align: center;
+  margin-top: -6px;
+}
+
+/* High Scorer podium */
+.recap-neon .rn-podium {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.recap-neon .rn-podium-teams {
+  display: flex;
+  gap: 20px;
+  flex: 1 1 260px;
+  justify-content: space-around;
+}
+.recap-neon .rn-podium-team {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.recap-neon .rn-podium-team.rn-rank-2 {
+  margin-top: 16px;
+}
+.recap-neon .rn-podium-team.rn-rank-3 {
+  margin-top: 32px;
+}
+.recap-neon .rn-rank-label {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+.recap-neon .rn-rank-label.rn-gold {
+  background: linear-gradient(90deg, #fff6d8, #d4af37, #fff6d8);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.recap-neon .rn-rank-label.rn-silver {
+  color: var(--rn-secondary);
+}
+.recap-neon .rn-rank-label.rn-bronze {
+  background: linear-gradient(90deg, #f4c99a, #a9653a, #f4c99a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.recap-neon .rn-points-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--rn-secondary);
+}
+.recap-neon .rn-points-label.rn-top {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--rn-primary);
+}
+
+.recap-neon .rn-player-triangle {
+  flex: 1 1 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.recap-neon .rn-player-bottom-row {
+  display: flex;
+  gap: 32px;
+}
+.recap-neon .rn-player {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.recap-neon .rn-player-score {
+  font-size: 14px;
+  font-weight: 800;
+  background: linear-gradient(90deg, var(--neon-pink), var(--neon-blue), var(--neon-green));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Winners row */
+.recap-neon .rn-winners-row {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+.recap-neon .rn-winner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.recap-neon .rn-winner-amount {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--rn-primary);
+}
+.recap-neon .rn-winner-margin {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--rn-win);
+}
+
+/* Last Week bars */
+.recap-neon .rn-lastweek-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.recap-neon .rn-lastweek-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-radius: 8px;
+  padding: 8px 14px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.04);
+}
+.recap-neon .rn-lastweek-bar {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--neon-pink), var(--neon-blue) 50%, var(--neon-green));
+  opacity: 0.16;
+  z-index: 0;
+}
+.recap-neon .rn-lastweek-name,
+.recap-neon .rn-lastweek-points,
+.recap-neon .rn-lastweek-result {
+  position: relative;
+  z-index: 1;
+}
+.recap-neon .rn-lastweek-name {
+  color: var(--rn-secondary);
+  font-size: 15px;
+}
+.recap-neon .rn-lastweek-points {
+  color: var(--rn-primary);
+  font-weight: 700;
+  font-size: 15px;
+}
+.recap-neon .rn-lastweek-result {
+  font-weight: 900;
+  font-size: 14px;
+}
+.recap-neon .rn-lastweek-result.rn-w {
+  color: var(--rn-win);
+}
+.recap-neon .rn-lastweek-result.rn-l {
+  color: var(--rn-loss);
+}
+
+/* Standings cash stacks */
+.recap-neon .rn-standings-row {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: flex-end;
+}
+.recap-neon .rn-standing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.recap-neon .rn-standing-amount {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--rn-primary);
+}
+.recap-neon .rn-bill-stack {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 3px;
+}
+.recap-neon .rn-bill {
+  width: 46px;
+  height: 14px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--neon-pink), var(--neon-blue), var(--neon-green));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.6);
+}
+.recap-neon .rn-standing-name {
+  font-size: 13px;
+  color: var(--rn-secondary);
+}
+
+/* Text bodies */
+.recap-neon .rn-sentence {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--rn-primary);
+  line-height: 1.4;
+}
+.recap-neon .rn-detail-textarea {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: vertical;
+  color: var(--rn-primary);
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.4;
+  font-family: inherit;
+  padding: 4px 0;
+  border-bottom: 2px dashed transparent;
+  min-height: 30px;
+}
+.recap-neon .rn-detail-textarea::placeholder {
+  color: var(--rn-muted);
+  font-weight: 500;
+}
+.recap-neon .rn-detail-textarea:hover,
+.recap-neon .rn-detail-textarea:focus {
+  border-bottom-color: var(--neon-blue);
+}
+
+.recap-neon .rn-trailer {
+  text-align: center;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--neon-green);
+}
+
+.recap-neon .rn-caption {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--rn-muted);
+}
+
+/* Preview matchup team picker — a plain select, restyled to blend but stay a real dropdown */
+.recap-neon .rn-team-select {
+  width: 100%;
+  max-width: 180px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--rn-hairline);
+  border-radius: 8px;
+  padding: 6px 10px;
+  color: var(--rn-primary);
+  font-size: 13px;
+  outline: none;
+}
+.recap-neon .rn-team-select:hover,
+.recap-neon .rn-team-select:focus {
+  border-color: var(--neon-blue);
+}
+
+.recap-neon .rn-divider {
+  height: 1px;
+  background: var(--rn-hairline);
+  margin: 4px 0;
+}

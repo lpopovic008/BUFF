@@ -491,30 +491,38 @@ function RecapContent() {
         </div>
       </div>
 
-      <Card className="p-5">
-        <RecapEditor
-          model={model}
-          onModelChange={setModel}
-          plainBody={plainBody}
-          onPlainBodyChange={setPlainBody}
-          bowlMatchup={bowlMatchup}
-          honorableMatchup={honorableMatchup}
-          upcomingMatchup={upcomingBowlPreview}
-          upcomingHonorableMatchup={upcomingHonorablePreview}
-          teams={teamsById}
-          teamOptions={teamOptions}
-          recapData={recapData}
-          ledger={money?.ledger ?? null}
-          week={week}
-          playerNames={highScorerNames}
-          onRenameBowl={(name) => renameResultBowl("bowlOfWeek", name)}
-          onRenameHonorable={(name) => renameResultBowl("honorableBowl", name)}
-          onRenameUpcomingBowl={(name) => renameUpcomingBowl("bowlOfWeek", name)}
-          onRenameUpcomingHonorable={(name) => renameUpcomingBowl("honorableBowl", name)}
-          onChangeUpcomingBowlTeam={(slot, rosterId) => changeUpcomingTeam("bowlOfWeek", slot, rosterId)}
-          onChangeUpcomingHonorableTeam={(slot, rosterId) => changeUpcomingTeam("honorableBowl", slot, rosterId)}
-        />
-      </Card>
+      {(() => {
+        const editor = (
+          <RecapEditor
+            model={model}
+            onModelChange={setModel}
+            plainBody={plainBody}
+            onPlainBodyChange={setPlainBody}
+            bowlMatchup={bowlMatchup}
+            honorableMatchup={honorableMatchup}
+            upcomingMatchup={upcomingBowlPreview}
+            upcomingHonorableMatchup={upcomingHonorablePreview}
+            teams={teamsById}
+            teamOptions={teamOptions}
+            recapData={recapData}
+            ledger={money?.ledger ?? null}
+            week={week}
+            playerNames={highScorerNames}
+            onRenameBowl={(name) => renameResultBowl("bowlOfWeek", name)}
+            onRenameHonorable={(name) => renameResultBowl("honorableBowl", name)}
+            onRenameUpcomingBowl={(name) => renameUpcomingBowl("bowlOfWeek", name)}
+            onRenameUpcomingHonorable={(name) => renameUpcomingBowl("honorableBowl", name)}
+            onChangeUpcomingBowlTeam={(slot, rosterId) => changeUpcomingTeam("bowlOfWeek", slot, rosterId)}
+            onChangeUpcomingHonorableTeam={(slot, rosterId) => changeUpcomingTeam("honorableBowl", slot, rosterId)}
+          />
+        );
+        // The structured editor's .recap-neon wrapper (see RecapSectionsEditor)
+        // paints its own dark card background matching the exported graphic —
+        // wrapping it in the page's light Card would double up on chrome. The
+        // plain-textarea fallback (no model) still needs the Card for its
+        // border/background.
+        return model ? editor : <Card className="p-5">{editor}</Card>;
+      })()}
     </div>
   );
 }
