@@ -72,6 +72,7 @@ export function RecapEditor({
   onModelChange,
   plainBody,
   onPlainBodyChange,
+  freshModel,
   bowlMatchup,
   honorableMatchup,
   upcomingMatchup,
@@ -93,6 +94,8 @@ export function RecapEditor({
   onModelChange: (model: RecapModel) => void;
   plainBody: string;
   onPlainBodyChange: (body: string) => void;
+  /** The structured model computed fresh from this week's live data, regardless of what actually won out above — offered as an escape hatch (see the plain-textarea branch below) for a saved recap old enough to predate the header boxes, which otherwise gets permanently stuck as one flat field. Null only while data is still loading. */
+  freshModel: RecapModel | null;
   bowlMatchup: BowlMatchupResult | null;
   honorableMatchup: BowlMatchupResult | null;
   upcomingMatchup: BowlMatchupPreview | null;
@@ -118,12 +121,33 @@ export function RecapEditor({
 }) {
   if (!model) {
     return (
-      <textarea
-        value={plainBody}
-        onChange={(e) => onPlainBodyChange(e.target.value)}
-        rows={20}
-        className={`${recapBodyFont.className} w-full border border-border bg-page p-4 text-sm text-ink-primary outline-none transition-colors focus:border-series-1`}
-      />
+      <div className="flex flex-col gap-2">
+        {freshModel ? (
+          <button
+            type="button"
+            onClick={() => {
+              if (
+                !window.confirm(
+                  "Switch to the new graphic-style layout? This write-up was saved in an older format that can't be recovered into the new header boxes automatically — copy anything you want to keep from the text below first, since it won't carry over."
+                )
+              ) {
+                return;
+              }
+              onModelChange(freshModel);
+              onPlainBodyChange("");
+            }}
+            className="self-start text-xs font-medium text-series-1 underline decoration-dotted hover:text-series-1/80"
+          >
+            This write-up was saved in an older format — switch to the new graphic-style layout
+          </button>
+        ) : null}
+        <textarea
+          value={plainBody}
+          onChange={(e) => onPlainBodyChange(e.target.value)}
+          rows={20}
+          className={`${recapBodyFont.className} w-full border border-border bg-page p-4 text-sm text-ink-primary outline-none transition-colors focus:border-series-1`}
+        />
+      </div>
     );
   }
 

@@ -65,11 +65,11 @@ function simplePreseasonTemplate(leagueName: string, season: string): string {
 function resolveHouseStyleState(
   fresh: RecapModel,
   saved: SavedRecap | null
-): { model: RecapModel | null; plainBody: string } {
-  if (!saved) return { model: fresh, plainBody: "" };
-  if (saved.model) return { model: saved.model, plainBody: "" };
+): { model: RecapModel | null; plainBody: string; fresh: RecapModel } {
+  if (!saved) return { model: fresh, plainBody: "", fresh };
+  if (saved.model) return { model: saved.model, plainBody: "", fresh };
   const parsed = parseRecapModel(saved.body);
-  return parsed ? { model: parsed, plainBody: "" } : { model: null, plainBody: saved.body };
+  return parsed ? { model: parsed, plainBody: "", fresh } : { model: null, plainBody: saved.body, fresh };
 }
 
 async function fetchTeamNames(leagueId: string): Promise<Record<number, string>> {
@@ -107,6 +107,12 @@ function RecapContent() {
   // safe fallback rather than risking silently losing part of it.
   const [model, setModel] = useState<RecapModel | null>(null);
   const [plainBody, setPlainBody] = useState("");
+  // The structured model computed fresh from this week's live data —
+  // computed regardless of whether a saved recap won out over it above, so
+  // the plain-textarea fallback can still offer "switch to the new format"
+  // rather than being permanently stuck once a recap predates the header
+  // boxes (see resolveHouseStyleState and RecapEditor's onSwitchToNewFormat).
+  const [freshModel, setFreshModel] = useState<RecapModel | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -160,6 +166,7 @@ function RecapContent() {
       setHeader(null);
       setModel(null);
       setPlainBody("");
+      setFreshModel(null);
       setMoney(null);
       setUpcomingPicks(null);
       setTeamNames({});
@@ -208,9 +215,11 @@ function RecapContent() {
             const resolved = resolveHouseStyleState(fresh, saved);
             setModel(resolved.model);
             setPlainBody(resolved.plainBody);
+            setFreshModel(resolved.fresh);
           } else {
             setModel(null);
             setPlainBody(saved ? saved.body : simplePreseasonTemplate(league.name, league.season));
+            setFreshModel(null);
           }
           setSavedAt(saved ? saved.savedAt : null);
           return;
@@ -276,9 +285,11 @@ function RecapContent() {
           const resolvedState = resolveHouseStyleState(fresh, saved);
           setModel(resolvedState.model);
           setPlainBody(resolvedState.plainBody);
+          setFreshModel(resolvedState.fresh);
         } else {
           setModel(null);
           setPlainBody(saved ? saved.body : formatRecapMarkdown(data));
+          setFreshModel(null);
         }
         setSavedAt(saved ? saved.savedAt : null);
       } catch {
@@ -524,6 +535,7 @@ function RecapContent() {
             onModelChange={setModel}
             plainBody={plainBody}
             onPlainBodyChange={setPlainBody}
+            freshModel={freshModel}
             bowlMatchup={bowlMatchup}
             honorableMatchup={honorableMatchup}
             upcomingMatchup={upcomingBowlPreview}
