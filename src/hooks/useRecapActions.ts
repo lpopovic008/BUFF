@@ -1,13 +1,14 @@
 "use client";
 
 // Every action the recap write-up supports — copy as text, copy as a
-// graphic, save to the archive, save to the commish's Google Doc — as one
-// hook so the toolbar (now pinned at the top of the page, see recap/page.tsx)
-// and the section editor can share the exact same state without either
-// owning it. Previously lived inside RecapEditor itself; pulled out once the
-// buttons needed to render somewhere else in the tree entirely.
+// graphic, save to the commish's Google Doc, plus auto-saving to the local
+// archive in the background — as one hook so the toolbar (now pinned at the
+// top of the page, see recap/page.tsx) and the section editor can share the
+// exact same state without either owning it. Previously lived inside
+// RecapEditor itself; pulled out once the buttons needed to render somewhere
+// else in the tree entirely.
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { saveRecap } from "@/lib/localStore";
 import { RecapModel, joinRecapModel } from "@/lib/recap-model";
 import { drawRecapGraphic } from "@/lib/recap-graphic";
@@ -36,6 +37,8 @@ export interface RecapActionsArgs {
   model: RecapModel | null;
   plainBody: string;
   savedAt: string | null;
+  /** False while this week's recap is still loading (or the week/league is switching) — gates auto-save below, so the brief model=null/plainBody="" reset a week switch does never gets mistaken for a real edit and saved over whatever's already there. */
+  loaded: boolean;
   writeupDocId?: string;
   /** Resolved via resolveGoogleClientId() — empty when Google Docs isn't connected, in which case Save to Doc stays hidden. */
   googleClientId: string;
@@ -60,6 +63,12 @@ export function useRecapActions(args: RecapActionsArgs) {
   const [lastSavedAt, setLastSavedAt] = useState(args.savedAt);
   const [docStatus, setDocStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [docError, setDocError] = useState<string | null>(null);
+  // Tracks the last body auto-saved (see the effect below) — a ref rather
+  // than state since it's only ever read/written from that effect, never
+  // rendered. Never needs resetting on a week switch: the new week's body
+  // is different text by construction, so it naturally won't match
+  // whatever the previous week last saved.
+  const lastSavedBodyRef = useRef<string | null>(null);
 
   // A new week's own recap is a clean slate for every action's status — this
   // hook lives in the page component now (see recap/page.tsx), which doesn't
@@ -150,19 +159,31 @@ export function useRecapActions(args: RecapActionsArgs) {
     }
   }
 
-  function handleSave() {
-    const now = new Date().toISOString();
-    saveRecap({
-      leagueId: args.leagueId,
-      season: args.season,
-      week: args.week,
-      title: args.title,
-      body,
-      model: args.model ?? undefined,
-      savedAt: now,
-    });
-    setLastSavedAt(now);
-  }
+  // Auto-saves to this browser's local archive shortly after an edit
+  // settles — no more manual "Save to archive" click needed. This is also
+  // what Google Sync (see google-drive-sync.ts's onLocalWrite listener)
+  // pushes to Drive, so a saved write-up shows up on any other device
+  // signed into the same Google account without a separate step.
+  useEffect(() => {
+    if (!args.loaded) return;
+    if (lastSavedBodyRef.current === body) return;
+    const timer = setTimeout(() => {
+      const now = new Date().toISOString();
+      saveRecap({
+        leagueId: args.leagueId,
+        season: args.season,
+        week: args.week,
+        title: args.title,
+        body,
+        model: args.model ?? undefined,
+        savedAt: now,
+      });
+      lastSavedBodyRef.current = body;
+      setLastSavedAt(now);
+    }, 1500);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [args.loaded, body, args.leagueId, args.season, args.week, args.title]);
 
   /** Appends the write-up currently shown to the commish's Google Doc — whatever's been hand-edited, not the auto-generated draft. Prompts a Google sign-in popup the first time (or once the cached token expires). */
   async function handleSaveToDoc() {
@@ -192,7 +213,6 @@ export function useRecapActions(args: RecapActionsArgs) {
     lastSavedAt,
     handleCopy,
     handleCopyGraphic,
-    handleSave,
     handleSaveToDoc,
   };
 }

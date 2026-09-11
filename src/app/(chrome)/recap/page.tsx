@@ -11,7 +11,6 @@ import {
   DocumentIcon,
   CopyIcon,
   ImageIcon,
-  SaveIcon,
   CheckIcon,
   UploadIcon,
 } from "@/components/ui/Icon";
@@ -390,6 +389,11 @@ function RecapContent() {
     model,
     plainBody,
     savedAt,
+    // Gates auto-save (see useRecapActions) — same condition as the loading
+    // guard just below, so a week switch's brief model=null/plainBody=""
+    // reset never gets mistaken for a real edit and auto-saved over
+    // whatever this week already had.
+    loaded: Boolean(leagueId) && !error && week !== null && !!header && (isPreseason || !!recapData),
     writeupDocId: money?.profile.writeupDocId,
     googleClientId,
     bowlMatchup,
@@ -468,13 +472,7 @@ function RecapContent() {
           </div>
           {money?.profile.writeupDocId && googleClientId ? (
             // Typing directly into the Doc already leaves a plain-text copy
-            // there, so Save to Doc stands in for Copy Text here — but
-            // Save to Archive still has its own job (below): it's the only
-            // thing that writes into this browser's local storage, which is
-            // both what /recap/archive reads and what Google Sync (Settings)
-            // pushes to Drive so the same saved write-up shows up when
-            // signing into that Drive account elsewhere. Save to Doc never
-            // touches either of those.
+            // there, so Save to Doc stands in for Copy Text here.
             <IconButton
               icon={actions.docStatus === "saved" ? <CheckIcon /> : <UploadIcon />}
               label={
@@ -491,7 +489,6 @@ function RecapContent() {
               onClick={actions.handleCopy}
             />
           )}
-          <IconButton icon={<SaveIcon />} label="Save to archive" variant="primary" onClick={actions.handleSave} />
         </div>
       </div>
 
@@ -502,7 +499,7 @@ function RecapContent() {
         </div>
         <div className="flex flex-wrap items-center gap-2 text-xs text-ink-muted">
           {actions.lastSavedAt ? (
-            <span>Saved {new Date(actions.lastSavedAt).toLocaleString()}</span>
+            <span>Auto-saved {new Date(actions.lastSavedAt).toLocaleString()}</span>
           ) : (
             <span>Not saved yet</span>
           )}
