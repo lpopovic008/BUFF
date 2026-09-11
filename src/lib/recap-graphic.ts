@@ -84,9 +84,9 @@ export interface HighScorerGraphicData {
   runnersUp: { team: MatchupTeam; points: string }[];
   /** Up to 3, highest-scoring first. */
   topPlayers: { name: string; points: string; photoUrl: string | null }[];
-  /** The write-up's own auto-generated sentence (e.g. "X put up the week's highest score."), rendered small beneath the podium/photos. */
+  /** An auto-generated summary sentence (e.g. "X put up the week's highest score."), computed live from the same data as the podium above it — not the write-up's own possibly-stale saved text — and rendered beneath it in the same bright bold white as Detail text. */
   sentence: string;
-  /** The write-up's own freeform commentary for this section, rendered bright white and bold beneath the sentence — same treatment as every other section's Detail text. */
+  /** The write-up's own freeform commentary for this section, rendered bright white and bold beneath the sentence — same treatment. */
   detail: string;
 }
 
@@ -183,16 +183,6 @@ function neonGradient(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1:
   g.addColorStop(0, hexToRgba(NEON.pink, alpha));
   g.addColorStop(0.5, hexToRgba(NEON.blue, alpha));
   g.addColorStop(1, hexToRgba(NEON.green, alpha));
-  return g;
-}
-
-/** Section-header gradient: mostly the theme's cyan/blue, with pink and green only barely showing at the very edges — unlike neonGradient's even 3-way blend, which on a short span of text reads as a much bolder pink-to-green sweep than intended here. */
-function headerGradient(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number): CanvasGradient {
-  const g = ctx.createLinearGradient(x0, y0, x1, y1);
-  g.addColorStop(0, NEON.pink);
-  g.addColorStop(0.16, NEON.blue);
-  g.addColorStop(0.84, NEON.blue);
-  g.addColorStop(1, NEON.green);
   return g;
 }
 
@@ -697,9 +687,10 @@ class Layout {
       if (data.sentence.trim()) {
         h += 14;
         h += drawText(this.ctx, paint, inner.x, inner.y + h, inner.width, data.sentence, {
-          size: 15,
-          color: COLOR.secondary,
-          lineHeight: 20,
+          size: 18,
+          weight: "800",
+          color: COLOR.primary,
+          lineHeight: 24,
         });
       }
       if (data.detail.trim()) {
@@ -941,12 +932,11 @@ class Layout {
    * still smaller than a matchup's own bowl name), the emoji bookending the
    * label on both sides — every section (including the two upcoming-matchup
    * previews) uses this. The emoji are each drawn as their own fillText
-   * with a plain fillStyle, not the gradient — a CanvasGradient fillStyle
-   * applied across an emoji glyph can make some renderers tint it instead
-   * of leaving its native color. The label uses headerGradient (mostly
-   * cyan, pink/green only at the very edges), not the full neonGradient
-   * sweep, since on a short span of text the even 3-way blend reads far
-   * bolder than intended here.
+   * with a plain fillStyle, not the label's color — a CanvasGradient
+   * fillStyle applied across an emoji glyph can make some renderers tint
+   * it instead of leaving its native color (moot now the label itself is
+   * solid, but the emoji still gets its own fillText either way). The
+   * label is solid cyan, the theme's single representative neon.
    */
   private sectionHeader(paint: boolean, inner: { x: number; y: number; width: number }, title: SectionTitle): number {
     const ctx = this.ctx;
@@ -964,7 +954,7 @@ class Layout {
       ctx.textBaseline = "alphabetic";
       ctx.fillStyle = COLOR.primary;
       ctx.fillText(title.emoji, startX, inner.y + size);
-      ctx.fillStyle = headerGradient(ctx, startX + emojiW + gap, inner.y, startX + emojiW + gap + labelW, inner.y);
+      ctx.fillStyle = NEON.blue;
       ctx.fillText(title.label, startX + emojiW + gap, inner.y + size);
       ctx.fillStyle = COLOR.primary;
       ctx.fillText(title.emoji, startX + emojiW + gap + labelW + gap, inner.y + size);
@@ -1115,7 +1105,13 @@ function runLayout(
     if (included("highScorer")) {
       l.highScorerPodium(
         GRAPHIC_SECTION_TITLE.highScorer,
-        matchups.highScorer ?? { ...PLACEHOLDER_HIGH_SCORER, sentence: model.highScorer, detail: model.highScorerDetail }
+        matchups.highScorer ?? {
+          ...PLACEHOLDER_HIGH_SCORER,
+          // The header's own trophy emoji already covers this — strip the
+          // leading "📈 " format-recap.ts bakes into the saved sentence text.
+          sentence: model.highScorer.replace(/^📈\s*/, ""),
+          detail: model.highScorerDetail,
+        }
       );
     }
 

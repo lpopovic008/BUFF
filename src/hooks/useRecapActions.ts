@@ -26,7 +26,7 @@ import { getGoogleAccessToken } from "@/lib/google-auth";
 import { appendWriteupToDoc, DOCS_SCOPE } from "@/lib/google-docs";
 import { WeekRecapData } from "@/lib/league-data";
 import { PayoutLedger, summarizeWeek, standingsThroughWeek } from "@/lib/payouts";
-import { findWeekTopStarters } from "@/lib/format-recap";
+import { findWeekTopStarters, joinLeaderNames } from "@/lib/format-recap";
 import { formatPoints } from "@/lib/format";
 import { playerHeadshotUrlForCanvas } from "@/lib/sleeper";
 
@@ -80,14 +80,24 @@ function winnersForGraphic(recapData: WeekRecapData | null, ledger: PayoutLedger
   }));
 }
 
-/** The High Scorer section's live data for the graphic — the top-3-scoring teams and the winning team's top 3 players (headshots via Sleeper's CDN). Null when nothing's been played yet, so the graphic falls back to its bracket placeholders. */
+/**
+ * The High Scorer section's live data for the graphic — the top-3-scoring
+ * teams and the winning team's top 3 players (headshots via Sleeper's
+ * CDN). `sentence` is built fresh from this same live data (same template
+ * format-recap.ts uses for the write-up's own auto-generated line, minus
+ * its leading emoji — the section header already carries one), rather
+ * than read back from the write-up's own saved (and possibly stale, if
+ * scores changed since that text was generated/last edited) text, so it
+ * can never drift from what the podium above it actually shows. Null
+ * when nothing's been played yet, so the graphic falls back to its
+ * bracket placeholders.
+ */
 function highScorerForGraphic(
   recapData: WeekRecapData | null,
   ledger: PayoutLedger | null,
   week: number,
   teams: Record<number, GraphicTeam>,
   playerNames: Record<string, string>,
-  sentence: string,
   detail: string
 ): HighScorerGraphicData | null {
   if (!recapData || !ledger) return null;
@@ -103,6 +113,8 @@ function highScorerForGraphic(
     points: formatPoints(l.points),
     photoUrl: playerHeadshotUrlForCanvas(l.playerId),
   }));
+  const winnerName = teamFrom(top3[0]).name;
+  const sentence = `${winnerName} outperformed the league this week! He scored a whopping ${formatPoints(top3[0].points)}! The team was led by ${joinLeaderNames(players.map((p) => p.name))}! Congrats to ${winnerName}!`;
   return {
     team: teamFrom(top3[0]),
     points: formatPoints(top3[0].points),
@@ -234,7 +246,6 @@ export function useRecapActions(args: RecapActionsArgs) {
           args.week,
           args.teams,
           args.playerNames,
-          args.model?.highScorer ?? "",
           args.model?.highScorerDetail ?? ""
         ),
         winners: winnersForGraphic(args.recapData, args.ledger, args.week, args.teams),
