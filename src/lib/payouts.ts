@@ -231,14 +231,14 @@ export function summarizeWeek(ledger: PayoutLedger, week: number): WeekMoneySumm
 export function standingsThroughWeek(
   ledger: PayoutLedger,
   week: number
-): { name: string; amount: number }[] {
+): { rosterId: number; name: string; amount: number }[] {
   return ledger.managers
     .map((m) => {
       let amount = 0;
       for (const [w, v] of Object.entries(m.weekly)) {
         if (Number(w) <= week) amount += v;
       }
-      return { name: m.name, amount };
+      return { rosterId: m.rosterId, name: m.name, amount };
     })
     .sort((a, b) => b.amount - a.amount || a.name.localeCompare(b.name));
 }

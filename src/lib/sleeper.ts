@@ -96,6 +96,8 @@ export interface SleeperRoster {
 
 export interface SleeperLeagueUser {
   user_id: string;
+  /** The account's @handle — null for the rare account with it hidden. Distinct from display_name (their shown name, which they can freely change) and metadata.team_name (this league's own branding for them). */
+  username?: string | null;
   display_name: string;
   avatar: string | null;
   is_owner?: boolean;

@@ -239,6 +239,7 @@ const HIGH_SCORER_PLACEHOLDER = {
   points: "[points of the highest scoring team]",
   leader1: "[player]",
   leader2: "[player]",
+  leader3: "[player]",
 };
 
 /** The "📈 ... outperformed the league" callout — same wording format-recap.ts has always generated, but rendered live with every substituted value picked out in blue instead of frozen into an editable text box. */
@@ -250,12 +251,14 @@ function HighScorerCallout({ recapData, ledger, week, playerNames }: LiveWeekDat
   let points = HIGH_SCORER_PLACEHOLDER.points;
   let leader1 = HIGH_SCORER_PLACEHOLDER.leader1;
   let leader2 = HIGH_SCORER_PLACEHOLDER.leader2;
+  let leader3 = HIGH_SCORER_PLACEHOLDER.leader3;
   if (hs) {
-    const leaders = findWeekTopStarters(hs.rosterId, recapData!.games).map((l) => playerNames[l.playerId] ?? "[player]");
+    const leaders = findWeekTopStarters(hs.rosterId, recapData!.games, 3).map((l) => playerNames[l.playerId] ?? "[player]");
     name = hs.name;
     points = formatPoints(hs.points);
     leader1 = leaders[0] ?? "[player]";
     leader2 = leaders[1] ?? "[player]";
+    leader3 = leaders[2] ?? "[player]";
   }
 
   return (
@@ -263,7 +266,8 @@ function HighScorerCallout({ recapData, ledger, week, playerNames }: LiveWeekDat
       <LiveCaption>Calculated from live scores — not editable</LiveCaption>
       <p className="text-sm leading-relaxed text-ink-secondary">
         📈 <Variable>{name}</Variable> outperformed the league this week! He scored a whopping <Variable>{points}</Variable>! The
-        team was led by <Variable>{leader1}</Variable> and <Variable>{leader2}</Variable>! Congrats to <Variable>{name}</Variable>!
+        team was led by <Variable>{leader1}</Variable>, <Variable>{leader2}</Variable> and <Variable>{leader3}</Variable>! Congrats
+        to <Variable>{name}</Variable>!
       </p>
     </div>
   );

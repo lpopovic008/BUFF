@@ -7,7 +7,7 @@ import { RecapModel, RecapSectionKey, joinRecapModel } from "./recap-model";
 export function findWeekTopStarters(
   rosterId: number,
   games: MatchupGame[],
-  count = 2
+  count = 3
 ): { playerId: string; points: number }[] {
   const team = games.flatMap((g) => g.teams).find((t) => t.rosterId === rosterId);
   if (!team) return [];
@@ -16,6 +16,12 @@ export function findWeekTopStarters(
     .sort((a, b) => team.playersPoints[b] - team.playersPoints[a])
     .slice(0, count)
     .map((id) => ({ playerId: id, points: team.playersPoints[id] }));
+}
+
+/** "X, Y and Z" — the High Scorer callout's "led by" clause, falling back to a bracket placeholder for any of the 3 slots that don't have a real name yet. */
+export function joinLeaderNames(names: string[]): string {
+  const [a, b, c] = [names[0] ?? "[player]", names[1] ?? "[player]", names[2] ?? "[player]"];
+  return `${a}, ${b} and ${c}`;
 }
 
 export interface RecapDetails {
@@ -76,18 +82,12 @@ export function buildWeeklyRecapModel({
   let highScorer: string;
   if (summary?.highScorer) {
     const hs = summary.highScorer;
-    const leaders = findWeekTopStarters(hs.rosterId, data.games);
+    const leaders = findWeekTopStarters(hs.rosterId, data.games, 3);
     const leaderNames = leaders.map((l) => playerNames[l.playerId] ?? "[player]");
-    const leaderText =
-      leaderNames.length === 2
-        ? `${leaderNames[0]} and ${leaderNames[1]}`
-        : leaderNames.length === 1
-          ? `${leaderNames[0]} and [player]`
-          : "[player] and [player]";
-    highScorer = `📈 ${hs.name} outperformed the league this week! He scored a whopping ${formatPoints(hs.points)}! The team was led by ${leaderText}! Congrats to ${hs.name}!`;
+    highScorer = `📈 ${hs.name} outperformed the league this week! He scored a whopping ${formatPoints(hs.points)}! The team was led by ${joinLeaderNames(leaderNames)}! Congrats to ${hs.name}!`;
   } else {
     highScorer =
-      "📈 [highest scoring team] outperformed the league this week! He scored a whopping [points of the highest scoring team]! The team was led by [player] and [player]! Congrats to [highest scoring team]!";
+      "📈 [highest scoring team] outperformed the league this week! He scored a whopping [points of the highest scoring team]! The team was led by [player], [player] and [player]! Congrats to [highest scoring team]!";
   }
 
   const winners: string[] = [];
@@ -179,7 +179,7 @@ export function buildPreseasonRecapModel({
     honorableResult: "🏆 [team] won the [bowl game name]! Congrats to [team]!",
     honorableDetail: details.honorableResult,
     highScorer:
-      "📈 [highest scoring team] outperformed the league this week! He scored a whopping [points of the highest scoring team]! The team was led by [player] and [player]! Congrats to [highest scoring team]!",
+      "📈 [highest scoring team] outperformed the league this week! He scored a whopping [points of the highest scoring team]! The team was led by [player], [player] and [player]! Congrats to [highest scoring team]!",
     highScorerDetail: details.highScorer,
     winners: [
       "🔹[highest scoring team]",

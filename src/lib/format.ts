@@ -39,6 +39,11 @@ export function displayManagerName(user: { display_name?: string; metadata?: { t
   return user?.metadata?.team_name || user?.display_name || "Unclaimed team";
 }
 
+/** The manager's actual Sleeper @handle, as opposed to displayManagerName's team branding — for the recap graphic's Winners/Standings sections, which list who's getting paid by their real account, not their team's name. */
+export function displaySleeperUsername(user: { username?: string | null; display_name?: string } | undefined): string {
+  return user?.username || user?.display_name || "unclaimed";
+}
+
 /**
  * Splits a name into two lines at the space closest to the midpoint, so both
  * lines come out as close to equal length as possible. Returns null for a

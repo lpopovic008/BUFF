@@ -10,22 +10,34 @@
 import { useState } from "react";
 import { saveRecap } from "@/lib/localStore";
 import { RecapModel, joinRecapModel } from "@/lib/recap-model";
-import { drawRecapGraphic, DecidedMatchup, PreviewMatchup, MatchupTeam } from "@/lib/recap-graphic";
+import {
+  drawRecapGraphic,
+  DecidedMatchup,
+  PreviewMatchup,
+  MatchupTeam,
+  HighScorerGraphicData,
+  WinnerGraphicRow,
+  StandingsGraphicRow,
+} from "@/lib/recap-graphic";
 import { BowlMatchupResult, BowlMatchupPreview } from "@/lib/bowl-narrative";
 import { recapDisplayFont } from "@/lib/fonts";
 import { getGoogleAccessToken } from "@/lib/google-auth";
 import { appendWriteupToDoc, DOCS_SCOPE } from "@/lib/google-docs";
+import { WeekRecapData } from "@/lib/league-data";
+import { PayoutLedger, summarizeWeek, standingsThroughWeek } from "@/lib/payouts";
+import { findWeekTopStarters } from "@/lib/format-recap";
+import { formatPoints } from "@/lib/format";
+import { playerHeadshotUrl } from "@/lib/sleeper";
+
+type GraphicTeam = { name: string; avatar: string | null; username: string };
 
 /** A team's name/logo for the recap graphic — resolveBowlMatchup/resolveBowlMatchupPreview's roster ids still need looked up before they're usable as a MatchupTeam. */
-function teamFor(teams: Record<number, { name: string; avatar: string | null }>, rosterId: number): MatchupTeam {
+function teamFor(teams: Record<number, GraphicTeam>, rosterId: number): MatchupTeam {
   const team = teams[rosterId];
   return { name: team?.name ?? "?", avatarUrl: team?.avatar ?? null };
 }
 
-function decidedMatchupFor(
-  teams: Record<number, { name: string; avatar: string | null }>,
-  result: BowlMatchupResult | null
-): DecidedMatchup | null {
+function decidedMatchupFor(teams: Record<number, GraphicTeam>, result: BowlMatchupResult | null): DecidedMatchup | null {
   if (!result) return null;
   return {
     bowlName: result.bowlName,
@@ -34,13 +46,85 @@ function decidedMatchupFor(
   };
 }
 
-function previewMatchupFor(
-  teams: Record<number, { name: string; avatar: string | null }>,
-  preview: BowlMatchupPreview | null
-): PreviewMatchup | null {
+function previewMatchupFor(teams: Record<number, GraphicTeam>, preview: BowlMatchupPreview | null): PreviewMatchup | null {
   if (!preview) return null;
   const [aId, bId] = preview.rosterIds;
   return { bowlName: preview.bowlName, teamA: teamFor(teams, aId), teamB: teamFor(teams, bId) };
+}
+
+/** Every team's margin of victory this week, by roster id — the "+12.34" under each Winners row — read straight off the actual matchup pairs rather than derived from the money ledger, which only knows who won and by how much they got paid, not the score gap. */
+function marginsByRoster(recapData: WeekRecapData): Map<number, number> {
+  const margins = new Map<number, number>();
+  for (const game of recapData.games) {
+    if (game.teams.length !== 2) continue;
+    const [a, b] = game.teams;
+    margins.set(a.rosterId, a.points - b.points);
+    margins.set(b.rosterId, b.points - a.points);
+  }
+  return margins;
+}
+
+/** The Winners section's live rows for the graphic — the week's high scorer first (they're always among the winners, since scoring the league's single highest total means winning your own matchup), then up to 4 more, by username with their margin of victory. Null when there's nothing resolved yet (nothing played, or every matchup tied), so the graphic falls back to the flat text's own bracket placeholders. */
+function winnersForGraphic(recapData: WeekRecapData | null, ledger: PayoutLedger | null, week: number, teams: Record<number, GraphicTeam>): WinnerGraphicRow[] | null {
+  if (!recapData || !ledger) return null;
+  const summary = summarizeWeek(ledger, week);
+  if (!summary || summary.winners.length === 0) return null;
+  const margins = marginsByRoster(recapData);
+  return summary.winners.slice(0, 5).map((w) => ({
+    name: teams[w.rosterId]?.username ?? w.name,
+    avatarUrl: teams[w.rosterId]?.avatar ?? null,
+    marginLabel: `+${formatPoints(margins.get(w.rosterId) ?? 0)}`,
+    highlight: summary.highScorer?.rosterId === w.rosterId,
+  }));
+}
+
+/** The High Scorer section's live data for the graphic — the top-3-scoring teams and the winning team's top 3 players (headshots via Sleeper's CDN). Null when nothing's been played yet, so the graphic falls back to its bracket placeholders. */
+function highScorerForGraphic(
+  recapData: WeekRecapData | null,
+  ledger: PayoutLedger | null,
+  week: number,
+  teams: Record<number, GraphicTeam>,
+  playerNames: Record<string, string>,
+  captionLines: string[]
+): HighScorerGraphicData | null {
+  if (!recapData || !ledger) return null;
+  const summary = summarizeWeek(ledger, week);
+  if (!summary?.highScorer) return null;
+  const top3 = summary.scoreboard.slice(0, 3);
+  const teamFrom = (row: { rosterId: number; name: string }): MatchupTeam => ({
+    name: teams[row.rosterId]?.name ?? row.name,
+    avatarUrl: teams[row.rosterId]?.avatar ?? null,
+  });
+  const players = findWeekTopStarters(summary.highScorer.rosterId, recapData.games, 3).map((l) => ({
+    name: playerNames[l.playerId] ?? "Unknown Player",
+    points: formatPoints(l.points),
+    photoUrl: playerHeadshotUrl(l.playerId),
+  }));
+  return {
+    team: teamFrom(top3[0]),
+    points: formatPoints(top3[0].points),
+    runnersUp: top3.slice(1).map((row) => ({ team: teamFrom(row), points: formatPoints(row.points) })),
+    topPlayers: players,
+    captionLines,
+  };
+}
+
+/** The Updated Standings section's live rows for the graphic — running earnings through this write-up's own week, by username. Null when there's no ledger data yet (preseason), so the graphic falls back to its bracket placeholder. */
+function standingsForGraphic(
+  recapData: WeekRecapData | null,
+  ledger: PayoutLedger | null,
+  week: number,
+  teams: Record<number, GraphicTeam>
+): StandingsGraphicRow[] | null {
+  if (!recapData || !ledger) return null;
+  const rows = standingsThroughWeek(ledger, week);
+  if (rows.length === 0) return null;
+  return rows.map((r) => ({
+    name: teams[r.rosterId]?.username ?? r.name,
+    avatarUrl: teams[r.rosterId]?.avatar ?? null,
+    amount: r.amount,
+    amountLabel: `$${r.amount}`,
+  }));
 }
 
 export interface RecapActionsArgs {
@@ -59,8 +143,13 @@ export interface RecapActionsArgs {
   honorableMatchup: BowlMatchupResult | null;
   upcomingMatchup: BowlMatchupPreview | null;
   upcomingHonorableMatchup: BowlMatchupPreview | null;
-  /** Roster id -> team name/logo, for turning the matchups above into the graphic's MatchupTeam shape. */
-  teams: Record<number, { name: string; avatar: string | null }>;
+  /** Roster id -> team name/logo/username, for turning the matchups above into the graphic's MatchupTeam shape, and for the Winners/Standings sections' usernames. */
+  teams: Record<number, GraphicTeam>;
+  /** This write-up's own week's matchup data and money ledger — feeds the graphic's High Scorer podium, Winners margins, and Updated Standings, the same live data the on-screen sections already show (see RecapSectionsEditor). Null in preseason or before it's loaded. */
+  recapData: WeekRecapData | null;
+  ledger: PayoutLedger | null;
+  /** Player id -> display name, for the High Scorer podium's top-3-player photos. */
+  playerNames: Record<string, string>;
 }
 
 export function useRecapActions(args: RecapActionsArgs) {
@@ -111,11 +200,15 @@ export function useRecapActions(args: RecapActionsArgs) {
       const canvas = document.createElement("canvas");
       const avatarByName: Record<string, string | null> = {};
       for (const t of Object.values(args.teams)) avatarByName[t.name] = t.avatar;
+      const captionLines = [args.model?.highScorer ?? "", args.model?.highScorerDetail ?? ""];
       await drawRecapGraphic(canvas, body, args.model, {
         bowl: decidedMatchupFor(args.teams, args.bowlMatchup),
         honorable: decidedMatchupFor(args.teams, args.honorableMatchup),
         upcoming: previewMatchupFor(args.teams, args.upcomingMatchup),
         upcomingHonorable: previewMatchupFor(args.teams, args.upcomingHonorableMatchup),
+        highScorer: highScorerForGraphic(args.recapData, args.ledger, args.week, args.teams, args.playerNames, captionLines),
+        winners: winnersForGraphic(args.recapData, args.ledger, args.week, args.teams),
+        standings: standingsForGraphic(args.recapData, args.ledger, args.week, args.teams),
         avatarByName,
         displayFontFamily: recapDisplayFont.style.fontFamily,
         include: args.model?.include,

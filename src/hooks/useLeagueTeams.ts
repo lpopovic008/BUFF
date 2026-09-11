@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { getLeagueRosters, getLeagueUsers, teamAvatarUrl } from "@/lib/sleeper";
-import { displayManagerName } from "@/lib/format";
+import { displayManagerName, displaySleeperUsername } from "@/lib/format";
 
 export interface LeagueTeamOption {
   rosterId: number;
   teamName: string;
   /** The manager's team-branded picture for this league, or their account avatar — null if they haven't set either. */
   avatar: string | null;
+  /** The manager's actual Sleeper @handle, not their team's display name — see displaySleeperUsername. */
+  username: string;
 }
 
 /** Every team (manager + roster id) in the league — the pool the bowl-game team pickers select from. */
@@ -28,7 +30,12 @@ export function useLeagueTeams(leagueId: string | null): LeagueTeamOption[] | nu
       setTeams(
         rosters.map((r) => {
           const owner = r.owner_id ? usersById.get(r.owner_id) : undefined;
-          return { rosterId: r.roster_id, teamName: displayManagerName(owner), avatar: teamAvatarUrl(owner) };
+          return {
+            rosterId: r.roster_id,
+            teamName: displayManagerName(owner),
+            avatar: teamAvatarUrl(owner),
+            username: displaySleeperUsername(owner),
+          };
         })
       );
     })();

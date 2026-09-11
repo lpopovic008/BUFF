@@ -131,11 +131,13 @@ function RecapContent() {
   // (the picker shows "Loading teams…" until ready) and needed for both regular
   // weeks and the Preseason page's own "Upcoming Week 1" picker.
   const teamOptions = useLeagueTeams(leagueId);
-  // Roster id -> name/logo, for the recap graphic's poster cards. Reuses the
-  // same fetch the bowl-pick team pickers already make — no extra network call.
+  // Roster id -> name/logo/username, for the recap graphic's poster cards
+  // and its Winners/Standings sections (which list the real @handle, not
+  // the team's display name). Reuses the same fetch the bowl-pick team
+  // pickers already make — no extra network call.
   const teamsById = useMemo(() => {
-    const map: Record<number, { name: string; avatar: string | null }> = {};
-    for (const t of teamOptions ?? []) map[t.rosterId] = { name: t.teamName, avatar: t.avatar };
+    const map: Record<number, { name: string; avatar: string | null; username: string }> = {};
+    for (const t of teamOptions ?? []) map[t.rosterId] = { name: t.teamName, avatar: t.avatar, username: t.username };
     return map;
   }, [teamOptions]);
   const { config } = useConfig();
@@ -387,6 +389,9 @@ function RecapContent() {
     upcomingMatchup: upcomingBowlPreview,
     upcomingHonorableMatchup: upcomingHonorablePreview,
     teams: teamsById,
+    recapData,
+    ledger: money?.ledger ?? null,
+    playerNames: highScorerNames,
   });
 
   if (!leagueId) {
