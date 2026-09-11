@@ -26,6 +26,7 @@ import { getGoogleAccessToken } from "@/lib/google-auth";
 import { appendWriteupToDoc, DOCS_SCOPE } from "@/lib/google-docs";
 import { WeekRecapData } from "@/lib/league-data";
 import { PayoutLedger } from "@/lib/payouts";
+import { teamAvatarUrlForCanvas } from "@/lib/sleeper";
 
 export interface RecapActionsArgs {
   leagueId: string;
@@ -98,24 +99,35 @@ export function useRecapActions(args: RecapActionsArgs) {
     setGraphicError(null);
     try {
       const canvas = document.createElement("canvas");
+      // Sleeper's avatar CDN doesn't reliably send CORS headers, and a
+      // custom-uploaded team picture can be hosted anywhere — a canvas-bound
+      // <img crossOrigin="anonymous"> (needed to keep the graphic exportable)
+      // silently fails to load either and falls back to initials. Route
+      // every team logo through the same wsrv.nl proxy player headshots
+      // already use (see playerHeadshotUrlForCanvas), just for this export —
+      // the on-screen editor keeps using the raw URL directly.
+      const canvasTeams: Record<number, GraphicTeam> = {};
+      for (const [id, t] of Object.entries(args.teams)) {
+        canvasTeams[Number(id)] = { ...t, avatar: t.avatar ? teamAvatarUrlForCanvas(t.avatar) : null };
+      }
       const avatarByName: Record<string, string | null> = {};
-      for (const t of Object.values(args.teams)) avatarByName[t.name] = t.avatar;
+      for (const t of Object.values(canvasTeams)) avatarByName[t.name] = t.avatar;
       await drawRecapGraphic(canvas, body, args.model, {
-        bowl: decidedMatchupFor(args.teams, args.bowlMatchup),
-        honorable: decidedMatchupFor(args.teams, args.honorableMatchup),
-        upcoming: previewMatchupFor(args.teams, args.upcomingMatchup),
-        upcomingHonorable: previewMatchupFor(args.teams, args.upcomingHonorableMatchup),
+        bowl: decidedMatchupFor(canvasTeams, args.bowlMatchup),
+        honorable: decidedMatchupFor(canvasTeams, args.honorableMatchup),
+        upcoming: previewMatchupFor(canvasTeams, args.upcomingMatchup),
+        upcomingHonorable: previewMatchupFor(canvasTeams, args.upcomingHonorableMatchup),
         highScorer: highScorerForGraphic(
           args.recapData,
           args.ledger,
           args.week,
-          args.teams,
+          canvasTeams,
           args.playerNames,
           args.model?.highScorerDetail ?? ""
         ),
-        winners: winnersForGraphic(args.recapData, args.ledger, args.week, args.teams),
-        lastWeek: lastWeekForGraphic(args.recapData, args.ledger, args.week, args.teams),
-        standings: standingsForGraphic(args.recapData, args.ledger, args.week, args.teams),
+        winners: winnersForGraphic(args.recapData, args.ledger, args.week, canvasTeams),
+        lastWeek: lastWeekForGraphic(args.recapData, args.ledger, args.week, canvasTeams),
+        standings: standingsForGraphic(args.recapData, args.ledger, args.week, canvasTeams),
         avatarByName,
         displayFontFamily: recapDisplayFont.style.fontFamily,
         include: args.model?.include,

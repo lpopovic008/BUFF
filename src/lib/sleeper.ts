@@ -388,6 +388,22 @@ export function playerHeadshotUrlForCanvas(playerId: string): string {
   return `https://wsrv.nl/?url=${encodeURIComponent(raw)}`;
 }
 
+/**
+ * A team avatar/logo, routed through the same wsrv.nl proxy as
+ * playerHeadshotUrlForCanvas above — team logos come from teamAvatarUrl(),
+ * which for a custom-uploaded team picture (`metadata.avatar`) can be
+ * hosted anywhere, and even Sleeper's own avatar CDN doesn't reliably send
+ * CORS headers for every avatar. A canvas-bound `<img crossOrigin="anonymous">`
+ * silently fails to load without them and falls back to initials — exactly
+ * what was happening to team logos in the exported graphic. DOM usage
+ * elsewhere (the on-screen write-up editor, War Room) keeps using the raw
+ * URL from teamAvatarUrl() directly — no canvas involved, no CORS need, and
+ * no reason to add a network hop there.
+ */
+export function teamAvatarUrlForCanvas(url: string): string {
+  return `https://wsrv.nl/?url=${encodeURIComponent(url.replace(/^https:\/\//, ""))}`;
+}
+
 /** Walks the previous_league_id chain to find every linked season, newest first. */
 export async function getLeagueHistoryChain(leagueId: string): Promise<SleeperLeague[]> {
   const chain: SleeperLeague[] = [];
