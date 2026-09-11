@@ -241,7 +241,18 @@ function drawAvatarCircle(
   ctx.closePath();
   ctx.clip();
   if (img) {
-    ctx.drawImage(img, cx - r, cy - r, r * 2, r * 2);
+    // Crop to a centered square first (like CSS object-fit: cover) instead
+    // of stretching the whole source into the circle — player headshots in
+    // particular are taller than they are wide, and drawing the full frame
+    // into a square squeezed them horizontally, distorting every face.
+    const iw = img.naturalWidth || img.width;
+    const ih = img.naturalHeight || img.height;
+    if (iw > 0 && ih > 0) {
+      const side = Math.min(iw, ih);
+      ctx.drawImage(img, (iw - side) / 2, (ih - side) / 2, side, side, cx - r, cy - r, r * 2, r * 2);
+    } else {
+      ctx.drawImage(img, cx - r, cy - r, r * 2, r * 2);
+    }
   } else {
     ctx.fillStyle = "#2c261c";
     ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
