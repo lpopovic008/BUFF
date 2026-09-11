@@ -9,6 +9,7 @@ import { MenuIcon } from "@/components/ui/Icon";
 
 const links = [
   { href: "/", label: "Dashboard" },
+  { href: "/recap", label: "Recap" },
   { href: "/values", label: "Values" },
   { href: "/draft", label: "Draft" },
   { href: "/settings", label: "Settings" },
