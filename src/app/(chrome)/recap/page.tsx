@@ -467,9 +467,14 @@ function RecapContent() {
             />
           </div>
           {money?.profile.writeupDocId && googleClientId ? (
-            // Saving to the commish's Google Doc IS the archive for a league
-            // with one configured — no need for a separate local-only copy
-            // or a plain-text clipboard step on top of it.
+            // Typing directly into the Doc already leaves a plain-text copy
+            // there, so Save to Doc stands in for Copy Text here — but
+            // Save to Archive still has its own job (below): it's the only
+            // thing that writes into this browser's local storage, which is
+            // both what /recap/archive reads and what Google Sync (Settings)
+            // pushes to Drive so the same saved write-up shows up when
+            // signing into that Drive account elsewhere. Save to Doc never
+            // touches either of those.
             <IconButton
               icon={actions.docStatus === "saved" ? <CheckIcon /> : <UploadIcon />}
               label={
@@ -480,18 +485,13 @@ function RecapContent() {
               disabled={actions.docStatus === "saving"}
             />
           ) : (
-            // No Google Doc configured for this league — Save to archive is
-            // the only thing that persists edits at all (nothing else here
-            // writes to localStorage), so it stays required here.
-            <>
-              <IconButton
-                icon={actions.copied ? <CheckIcon /> : <CopyIcon />}
-                label={actions.copied ? "Copied plain text" : "Copy plain text"}
-                onClick={actions.handleCopy}
-              />
-              <IconButton icon={<SaveIcon />} label="Save to archive" variant="primary" onClick={actions.handleSave} />
-            </>
+            <IconButton
+              icon={actions.copied ? <CheckIcon /> : <CopyIcon />}
+              label={actions.copied ? "Copied plain text" : "Copy plain text"}
+              onClick={actions.handleCopy}
+            />
           )}
+          <IconButton icon={<SaveIcon />} label="Save to archive" variant="primary" onClick={actions.handleSave} />
         </div>
       </div>
 
@@ -501,12 +501,11 @@ function RecapContent() {
           <p className="mt-1 text-sm text-ink-secondary">{header.subtitle}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 text-xs text-ink-muted">
-          {!(money?.profile.writeupDocId && googleClientId) &&
-            (actions.lastSavedAt ? (
-              <span>Saved {new Date(actions.lastSavedAt).toLocaleString()}</span>
-            ) : (
-              <span>Not saved yet</span>
-            ))}
+          {actions.lastSavedAt ? (
+            <span>Saved {new Date(actions.lastSavedAt).toLocaleString()}</span>
+          ) : (
+            <span>Not saved yet</span>
+          )}
           {money?.profile.writeupDocId && !googleClientId ? (
             <a href="/settings" className="underline decoration-dotted hover:text-ink-secondary">
               Connect Google Docs in Settings to save write-ups there
