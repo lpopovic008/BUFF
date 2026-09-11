@@ -374,6 +374,20 @@ export function playerHeadshotUrl(playerId: string): string {
   return `https://sleepercdn.com/content/nfl/players/thumb/${playerId}.jpg`;
 }
 
+/**
+ * The same headshot, routed through wsrv.nl's image proxy. Unlike Sleeper's
+ * team-avatar CDN (which does send CORS headers), the player-photo path
+ * above doesn't — so a canvas-bound `<img crossOrigin="anonymous">` (needed
+ * to keep the recap graphic exportable) fails to load it and falls back to
+ * initials. wsrv.nl fetches the image server-side and re-serves it with
+ * `Access-Control-Allow-Origin: *`, sidestepping that without touching the
+ * plain <img> usage elsewhere (PlayerHeadshot), which has no CORS need.
+ */
+export function playerHeadshotUrlForCanvas(playerId: string): string {
+  const raw = playerHeadshotUrl(playerId).replace(/^https:\/\//, "");
+  return `https://wsrv.nl/?url=${encodeURIComponent(raw)}`;
+}
+
 /** Walks the previous_league_id chain to find every linked season, newest first. */
 export async function getLeagueHistoryChain(leagueId: string): Promise<SleeperLeague[]> {
   const chain: SleeperLeague[] = [];

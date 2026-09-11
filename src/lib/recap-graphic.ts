@@ -413,43 +413,52 @@ class Layout {
       if (paint) {
         this.teamColumn(true, leftCx, rowY, colWidth, avatarR, data.winner, { alpha: 1, nameColor: COLOR.primary, ring: true });
         this.teamColumn(true, rightCx, rowY, colWidth, avatarR, data.loser, { alpha: 0.5, nameColor: COLOR.muted, ring: false });
-        this.resultLine(cx, rowY + avatarR);
+        this.resultLine(leftCx, rightCx, rowY + avatarR, avatarR);
       }
       h += Math.max(winnerH, loserH);
       return h;
     });
   }
 
-  /** "W  defeated  L" centered at (cx, y) — the winner/loser badge lives here, in the space between the two logos, instead of covering either one. */
-  private resultLine(cx: number, y: number) {
+  /**
+   * "W  defeated  L" in the space between the two logos, not on top of
+   * either. "defeated" sits centered between them; W and L each sit at the
+   * midpoint between their own logo and "defeated" — splitting the
+   * difference — rather than clustering tight against the word. W/L render
+   * at half the logos' diameter, so they read as a real result, not a tiny
+   * label.
+   */
+  private resultLine(leftCx: number, rightCx: number, y: number, avatarR: number) {
     const ctx = this.ctx;
-    const winFont = `800 17px ${FONT_STACK}`;
-    const midFont = `600 13px ${FONT_STACK}`;
-    const midText = "  defeated  ";
+    const cx = (leftCx + rightCx) / 2;
+    // A bold sans's cap-height runs ~0.72 of its nominal font-size, so hitting
+    // an actual glyph height of avatarR (half the logos' diameter, 2*avatarR)
+    // needs a bigger font-size than avatarR itself.
+    const letterSize = Math.round(avatarR / 0.72);
+    const letterFont = `800 ${letterSize}px ${FONT_STACK}`;
+    const midFont = `600 ${Math.round(letterSize * 0.24)}px ${FONT_STACK}`;
+    const midText = "defeated";
 
-    ctx.font = winFont;
-    const wWidth = ctx.measureText("W").width;
-    const lWidth = ctx.measureText("L").width;
     ctx.font = midFont;
     const midWidth = ctx.measureText(midText).width;
+    const midLeft = cx - midWidth / 2;
+    const midRight = cx + midWidth / 2;
+    const wCx = (leftCx + midLeft) / 2;
+    const lCx = (midRight + rightCx) / 2;
 
-    let x = cx - (wWidth + midWidth + lWidth) / 2;
-    ctx.textAlign = "left";
+    ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-
-    ctx.font = winFont;
-    ctx.fillStyle = COLOR.win;
-    ctx.fillText("W", x, y);
-    x += wWidth;
 
     ctx.font = midFont;
     ctx.fillStyle = COLOR.secondary;
-    ctx.fillText(midText, x, y);
-    x += midWidth;
+    ctx.fillText(midText, cx, y);
 
-    ctx.font = winFont;
+    ctx.font = letterFont;
+    ctx.fillStyle = COLOR.win;
+    ctx.fillText("W", wCx, y);
+
     ctx.fillStyle = COLOR.loss;
-    ctx.fillText("L", x, y);
+    ctx.fillText("L", lCx, y);
   }
 
   /** The upcoming marquee matchup: same poster treatment, centered names beneath both logos, but neither team is bright, dimmed, or badged — nobody's won yet. */
@@ -496,7 +505,7 @@ class Layout {
     });
   }
 
-  /** "📈 High Scorer", the top-3-scoring teams' logos (3rd, 2nd, 1st left to right, centered names beneath each), and — sharing those same 3 column positions — the winning team's top 3 players as headshots in a triangle: highest scorer on top (center column), 2nd bottom-left, 3rd bottom-right, each with their score above their photo. The write-up's own sentence + detail render small and gray beneath, like a caption. */
+  /** "📈 High Scorer": the top-3-scoring teams on the left (3rd/2nd/1st left to right — a small rank label above each logo, 2nd/3rd dimmed, that team's points below the logo instead of its name) and the winning team's top 3 players on the right, headshots triangled: highest scorer on top, 2nd bottom-left, 3rd bottom-right, each with their score above their photo. The write-up's own sentence + detail render small and gray beneath, like a caption. */
   highScorerPodium(data: HighScorerGraphicData) {
     this.card((paint, inner) => {
       let h = drawText(this.ctx, paint, inner.x, inner.y, inner.width, "📈 High Scorer", {
@@ -505,46 +514,66 @@ class Layout {
         color: COLOR.accent,
         lineHeight: 20,
       });
-      h += 20;
+      h += 22;
+      const rowY = inner.y + h;
 
+      // Left half: the 3 highest-scoring teams, side by side.
       const ordered = [...data.runnersUp].reverse(); // [2nd, 3rd] -> [3rd, 2nd]
       ordered.push({ team: data.team, points: data.points }); // -> [3rd, 2nd, 1st]
-
-      // Shared left/center/right columns, reused below by the player
-      // triangle, so the two rows read as one connected composite.
-      const centerX = inner.x + inner.width / 2;
-      const offsetX = inner.width * 0.22;
-      const columnX = [centerX - offsetX, centerX, centerX + offsetX];
-      const colWidth = offsetX * 1.5;
-      const avatarR = 36;
-      const rowY = inner.y + h;
-      const heights = ordered.map((entry, i) => {
-        const isWinner = i === ordered.length - 1;
-        return this.teamColumn(paint, columnX[i], rowY, colWidth, isWinner ? avatarR + 6 : avatarR, entry.team, {
-          alpha: isWinner ? 1 : 0.85,
-          nameColor: isWinner ? COLOR.primary : COLOR.secondary,
-          ring: isWinner,
+      const leftW = inner.width * 0.46;
+      const teamColW = leftW / ordered.length;
+      let teamsH = 0;
+      ordered.forEach((entry, i) => {
+        const isTop = i === ordered.length - 1;
+        const isSecond = i === ordered.length - 2;
+        const rankLabel = isTop ? "1ST" : isSecond ? "2ND" : "3RD";
+        const r = isTop ? 36 : isSecond ? 30 : 26;
+        const cx = inner.x + teamColW * (i + 0.5);
+        let rowH = drawText(this.ctx, paint, cx, rowY, teamColW, rankLabel, {
+          size: 11,
+          weight: "700",
+          color: isTop ? COLOR.primary : COLOR.muted,
+          lineHeight: 14,
+          align: "center",
         });
+        rowH += 8;
+        if (paint) {
+          const img = entry.team.avatarUrl ? (this.gctx.images.get(entry.team.avatarUrl) ?? null) : null;
+          drawAvatarCircle(this.ctx, cx, rowY + rowH + r, r, img, entry.team.name, { ring: isTop, alpha: isTop ? 1 : 0.75 });
+        }
+        rowH += r * 2 + 10;
+        rowH += drawText(this.ctx, paint, cx, rowY + rowH, teamColW, entry.points, {
+          size: isTop ? 16 : 13,
+          weight: isTop ? "800" : "600",
+          color: isTop ? COLOR.primary : COLOR.secondary,
+          lineHeight: 18,
+          align: "center",
+        });
+        teamsH = Math.max(teamsH, rowH);
       });
-      h += Math.max(...heights);
-      h += 30;
 
-      // The winner's top 3 players, triangled: highest on top, 2nd bottom-left, 3rd bottom-right.
+      // Right half: the winner's top 3 players, triangled — highest on top, 2nd bottom-left, 3rd bottom-right.
       const players = [0, 1, 2].map((i) => data.topPlayers[i] ?? { name: "?", points: "–", photoUrl: null });
-      const topR = 44;
-      const botR = 38;
-      const scoreH = 22;
+      const rightX = inner.x + inner.width * 0.56;
+      const rightW = inner.width * 0.44;
+      const centerX = rightX + rightW / 2;
+      const offsetX = rightW * 0.3;
+      const columnX = [centerX - offsetX, centerX, centerX + offsetX];
+      const topR = 36;
+      const botR = 30;
+      const scoreH = 20;
 
-      const topY = inner.y + h;
-      if (paint) this.playerPhoto(centerX, topY, topR, scoreH, players[0]);
+      if (paint) this.playerPhoto(columnX[1], rowY, topR, scoreH, players[0]);
       const topBlockH = scoreH + topR * 2;
-
-      const botY = topY + topBlockH + 22;
+      const botY = rowY + topBlockH + 18;
       if (paint) {
         this.playerPhoto(columnX[0], botY, botR, scoreH, players[1]);
         this.playerPhoto(columnX[2], botY, botR, scoreH, players[2]);
       }
-      h += topBlockH + 22 + scoreH + botR * 2;
+      const playersH = topBlockH + 18 + scoreH + botR * 2;
+
+      h += Math.max(teamsH, playersH);
+      h += 26;
 
       for (const line of data.captionLines) {
         if (!line.trim()) continue;

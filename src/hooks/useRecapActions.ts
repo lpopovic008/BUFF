@@ -27,7 +27,7 @@ import { WeekRecapData } from "@/lib/league-data";
 import { PayoutLedger, summarizeWeek, standingsThroughWeek } from "@/lib/payouts";
 import { findWeekTopStarters } from "@/lib/format-recap";
 import { formatPoints } from "@/lib/format";
-import { playerHeadshotUrl } from "@/lib/sleeper";
+import { playerHeadshotUrlForCanvas } from "@/lib/sleeper";
 
 type GraphicTeam = { name: string; avatar: string | null; username: string };
 
@@ -99,7 +99,7 @@ function highScorerForGraphic(
   const players = findWeekTopStarters(summary.highScorer.rosterId, recapData.games, 3).map((l) => ({
     name: playerNames[l.playerId] ?? "Unknown Player",
     points: formatPoints(l.points),
-    photoUrl: playerHeadshotUrl(l.playerId),
+    photoUrl: playerHeadshotUrlForCanvas(l.playerId),
   }));
   return {
     team: teamFrom(top3[0]),
