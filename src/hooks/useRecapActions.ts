@@ -73,6 +73,7 @@ function winnersForGraphic(recapData: WeekRecapData | null, ledger: PayoutLedger
   return summary.winners.slice(0, 5).map((w) => ({
     name: teams[w.rosterId]?.username ?? w.name,
     avatarUrl: teams[w.rosterId]?.avatar ?? null,
+    amountLabel: `$${w.payout}`,
     marginLabel: `+${formatPoints(margins.get(w.rosterId) ?? 0)}`,
     highlight: summary.highScorer?.rosterId === w.rosterId,
   }));

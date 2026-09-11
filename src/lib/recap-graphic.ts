@@ -19,7 +19,7 @@
 // beyond the canvas itself, and not theme-reactive — this is a fixed-look
 // card, not a live page.
 
-import { RecapModel, RECAP_HEADERS, RecapSectionKey, isSectionIncluded } from "./recap-model";
+import { RecapModel, RECAP_HEADERS, RecapSectionKey, isSectionIncluded, upcomingWeekLabel } from "./recap-model";
 
 const WIDTH = 1080;
 const PADDING = 56;
@@ -92,6 +92,8 @@ export interface HighScorerGraphicData {
 export interface WinnerGraphicRow {
   name: string;
   avatarUrl: string | null;
+  /** e.g. "$30" — how much they won this week, shown above their logo. Blank when there's no payout to show yet. */
+  amountLabel: string;
   /** e.g. "+12.34" — blank when there's no real matchup to diff against yet. */
   marginLabel: string;
   highlight: boolean;
@@ -211,14 +213,20 @@ function drawAvatarCircle(
   r: number,
   img: HTMLImageElement | null,
   name: string,
-  opts: { ring?: boolean; alpha?: number; result?: "W" | "L" } = {}
+  opts: { ring?: boolean; alpha?: number } = {}
 ) {
   ctx.save();
   ctx.globalAlpha = opts.alpha ?? 1;
   if (opts.ring) {
+    // A thicker colored ring, held apart from the logo itself by a thin
+    // white gap so the two never blend together.
     ctx.beginPath();
-    ctx.arc(cx, cy, r + 5, 0, Math.PI * 2);
-    ctx.fillStyle = neonGradient(ctx, cx - r - 5, cy - r - 5, cx + r + 5, cy + r + 5);
+    ctx.arc(cx, cy, r + 10, 0, Math.PI * 2);
+    ctx.fillStyle = neonGradient(ctx, cx - r - 10, cy - r - 10, cx + r + 10, cy + r + 10);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r + 3, 0, Math.PI * 2);
+    ctx.fillStyle = "#ffffff";
     ctx.fill();
   }
   ctx.beginPath();
@@ -237,27 +245,6 @@ function drawAvatarCircle(
     ctx.fillText(initialsFor(name), cx, cy + 1);
   }
   ctx.restore();
-
-  if (opts.result) {
-    const badgeR = Math.max(14, r * 0.42);
-    const bx = cx + r * 0.6;
-    const by = cy + r * 0.6;
-    ctx.save();
-    ctx.globalAlpha = opts.alpha ?? 1;
-    ctx.beginPath();
-    ctx.arc(bx, by, badgeR, 0, Math.PI * 2);
-    ctx.fillStyle = opts.result === "W" ? COLOR.win : COLOR.loss;
-    ctx.fill();
-    ctx.lineWidth = 2.5;
-    ctx.strokeStyle = COLOR.bgBottom;
-    ctx.stroke();
-    ctx.fillStyle = "#ffffff";
-    ctx.font = `900 ${Math.round(badgeR * 1.2)}px ${FONT_STACK}`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(opts.result, bx, by + 1);
-    ctx.restore();
-  }
 }
 
 interface TextOpts {
@@ -360,7 +347,6 @@ interface TeamColumnOpts {
   alpha: number;
   nameColor: string;
   ring: boolean;
-  result?: "W" | "L";
 }
 
 /** One vertical cursor shared by every section. Each card measures its own content once (regardless of `paint`) to size itself, then — only when actually painting — draws its background before its content, so nothing is ever painted over an unsized box. */
@@ -380,7 +366,21 @@ class Layout {
     this.y += drawText(this.ctx, this.paint, PADDING, this.y, CONTENT_WIDTH, text, opts);
   }
 
-  /** Bowl of the Week / Honorable Mention as a poster: the name in the display font, both logos with centered names beneath, a green "W"/red "L" badge on the inside of each. */
+  /** A standalone title between Updated Standings and the upcoming matchup posters — not inside a card, same display font as the bowl names but bigger. */
+  upcomingTitle(text: string) {
+    const cx = PADDING + CONTENT_WIDTH / 2;
+    this.y += drawText(this.ctx, this.paint, cx, this.y, CONTENT_WIDTH, text.toUpperCase(), {
+      size: 44,
+      weight: "800",
+      color: COLOR.primary,
+      lineHeight: 50,
+      align: "center",
+      family: this.gctx.displayFamily,
+    });
+    this.space(16);
+  }
+
+  /** Bowl of the Week / Honorable Mention as a poster: the name in the display font, both logos with centered names beneath, "W  defeated  L" in the middle — not on the logos themselves, which stay clear. */
   decidedMatchup(data: DecidedMatchup) {
     this.posterCard((paint, inner) => {
       const cx = inner.x + inner.width / 2;
@@ -403,27 +403,53 @@ class Layout {
         alpha: 1,
         nameColor: COLOR.primary,
         ring: true,
-        result: "W",
       });
       const loserH = this.teamColumn(false, rightCx, rowY, colWidth, avatarR, data.loser, {
         alpha: 0.5,
         nameColor: COLOR.muted,
         ring: false,
-        result: "L",
       });
 
       if (paint) {
-        this.teamColumn(true, leftCx, rowY, colWidth, avatarR, data.winner, { alpha: 1, nameColor: COLOR.primary, ring: true, result: "W" });
-        this.teamColumn(true, rightCx, rowY, colWidth, avatarR, data.loser, { alpha: 0.5, nameColor: COLOR.muted, ring: false, result: "L" });
-        this.ctx.fillStyle = COLOR.muted;
-        this.ctx.font = `700 13px ${FONT_STACK}`;
-        this.ctx.textAlign = "center";
-        this.ctx.textBaseline = "middle";
-        this.ctx.fillText("def.", cx, rowY + avatarR);
+        this.teamColumn(true, leftCx, rowY, colWidth, avatarR, data.winner, { alpha: 1, nameColor: COLOR.primary, ring: true });
+        this.teamColumn(true, rightCx, rowY, colWidth, avatarR, data.loser, { alpha: 0.5, nameColor: COLOR.muted, ring: false });
+        this.resultLine(cx, rowY + avatarR);
       }
       h += Math.max(winnerH, loserH);
       return h;
     });
+  }
+
+  /** "W  defeated  L" centered at (cx, y) — the winner/loser badge lives here, in the space between the two logos, instead of covering either one. */
+  private resultLine(cx: number, y: number) {
+    const ctx = this.ctx;
+    const winFont = `800 17px ${FONT_STACK}`;
+    const midFont = `600 13px ${FONT_STACK}`;
+    const midText = "  defeated  ";
+
+    ctx.font = winFont;
+    const wWidth = ctx.measureText("W").width;
+    const lWidth = ctx.measureText("L").width;
+    ctx.font = midFont;
+    const midWidth = ctx.measureText(midText).width;
+
+    let x = cx - (wWidth + midWidth + lWidth) / 2;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+
+    ctx.font = winFont;
+    ctx.fillStyle = COLOR.win;
+    ctx.fillText("W", x, y);
+    x += wWidth;
+
+    ctx.font = midFont;
+    ctx.fillStyle = COLOR.secondary;
+    ctx.fillText(midText, x, y);
+    x += midWidth;
+
+    ctx.font = winFont;
+    ctx.fillStyle = COLOR.loss;
+    ctx.fillText("L", x, y);
   }
 
   /** The upcoming marquee matchup: same poster treatment, centered names beneath both logos, but neither team is bright, dimmed, or badged — nobody's won yet. */
@@ -470,20 +496,31 @@ class Layout {
     });
   }
 
-  /** The top-3-scoring teams' logos (3rd, 2nd, 1st left to right, centered names beneath each) plus the winning team's top 3 players as headshots in a triangle — highest scorer on top, 2nd bottom-left, 3rd bottom-right, each with their score above their photo. The write-up's own sentence + detail render small and gray beneath, like a caption. */
+  /** "📈 High Scorer", the top-3-scoring teams' logos (3rd, 2nd, 1st left to right, centered names beneath each), and — sharing those same 3 column positions — the winning team's top 3 players as headshots in a triangle: highest scorer on top (center column), 2nd bottom-left, 3rd bottom-right, each with their score above their photo. The write-up's own sentence + detail render small and gray beneath, like a caption. */
   highScorerPodium(data: HighScorerGraphicData) {
     this.card((paint, inner) => {
-      let h = 0;
+      let h = drawText(this.ctx, paint, inner.x, inner.y, inner.width, "📈 High Scorer", {
+        size: 15,
+        weight: "700",
+        color: COLOR.accent,
+        lineHeight: 20,
+      });
+      h += 20;
+
       const ordered = [...data.runnersUp].reverse(); // [2nd, 3rd] -> [3rd, 2nd]
       ordered.push({ team: data.team, points: data.points }); // -> [3rd, 2nd, 1st]
 
-      const colWidth = inner.width / 3;
-      const avatarR = 38;
+      // Shared left/center/right columns, reused below by the player
+      // triangle, so the two rows read as one connected composite.
+      const centerX = inner.x + inner.width / 2;
+      const offsetX = inner.width * 0.22;
+      const columnX = [centerX - offsetX, centerX, centerX + offsetX];
+      const colWidth = offsetX * 1.5;
+      const avatarR = 36;
       const rowY = inner.y + h;
       const heights = ordered.map((entry, i) => {
         const isWinner = i === ordered.length - 1;
-        const cx = inner.x + i * colWidth + colWidth / 2;
-        return this.teamColumn(paint, cx, rowY, colWidth, isWinner ? avatarR + 6 : avatarR, entry.team, {
+        return this.teamColumn(paint, columnX[i], rowY, colWidth, isWinner ? avatarR + 6 : avatarR, entry.team, {
           alpha: isWinner ? 1 : 0.85,
           nameColor: isWinner ? COLOR.primary : COLOR.secondary,
           ring: isWinner,
@@ -494,7 +531,6 @@ class Layout {
 
       // The winner's top 3 players, triangled: highest on top, 2nd bottom-left, 3rd bottom-right.
       const players = [0, 1, 2].map((i) => data.topPlayers[i] ?? { name: "?", points: "–", photoUrl: null });
-      const centerX = inner.x + inner.width / 2;
       const topR = 44;
       const botR = 38;
       const scoreH = 22;
@@ -503,11 +539,10 @@ class Layout {
       if (paint) this.playerPhoto(centerX, topY, topR, scoreH, players[0]);
       const topBlockH = scoreH + topR * 2;
 
-      const botOffsetX = inner.width * 0.2;
       const botY = topY + topBlockH + 22;
       if (paint) {
-        this.playerPhoto(centerX - botOffsetX, botY, botR, scoreH, players[1]);
-        this.playerPhoto(centerX + botOffsetX, botY, botR, scoreH, players[2]);
+        this.playerPhoto(columnX[0], botY, botR, scoreH, players[1]);
+        this.playerPhoto(columnX[2], botY, botR, scoreH, players[2]);
       }
       h += topBlockH + 22 + scoreH + botR * 2;
 
@@ -536,7 +571,7 @@ class Layout {
     drawAvatarCircle(this.ctx, cx, y + scoreH + r, r, img, player.name);
   }
 
-  /** Usernames with how much they won their matchup by, highest scorer first — no bars, just who and by how much. */
+  /** Usernames with how much they won this week (above the logo) and how much they won their matchup by (below the username), highest scorer first — no bars, just who and how much. */
   winnersRow(header: string, rows: WinnerGraphicRow[]) {
     if (rows.length === 0) return;
     this.card((paint, inner) => {
@@ -550,12 +585,25 @@ class Layout {
       const n = rows.length;
       const colW = inner.width / n;
       const avatarR = 34;
+      // The dollar amount gets its own reserved band above the avatar row,
+      // so it can never climb back up into the header above it.
+      const amountBaselineY = inner.y + h + 16;
+      h += 34;
       const rowY = inner.y + h;
 
       if (paint) {
         for (let i = 0; i < n; i++) {
           const row = rows[i];
           const cx = inner.x + i * colW + colW / 2;
+
+          if (row.amountLabel) {
+            this.ctx.font = "800 16px " + FONT_STACK;
+            this.ctx.fillStyle = COLOR.primary;
+            this.ctx.textAlign = "center";
+            this.ctx.textBaseline = "alphabetic";
+            this.ctx.fillText(row.amountLabel, cx, amountBaselineY);
+          }
+
           const img = row.avatarUrl ? (this.gctx.images.get(row.avatarUrl) ?? null) : null;
           drawAvatarCircle(this.ctx, cx, rowY + avatarR, avatarR, img, row.name, { ring: row.highlight });
 
@@ -578,7 +626,7 @@ class Layout {
     });
   }
 
-  /** A stack of bills per team, taller than a bar chart on purpose — quantized so each bill is worth at least $5 — the dollar total above the stack, the username below it. */
+  /** A stack of bills per team, taller than a bar chart on purpose — quantized so each bill is worth at least $15 — the dollar total above the stack, the username below it. */
   standingsCashStacks(header: string, rows: StandingsGraphicRow[]) {
     if (rows.length === 0) return;
     this.card((paint, inner) => {
@@ -595,7 +643,7 @@ class Layout {
       const BILL_GAP = 3;
       const MAX_BILLS = 16;
       const maxAmount = Math.max(...rows.map((r) => r.amount), 0);
-      const unit = Math.max(5, Math.ceil(maxAmount / MAX_BILLS / 5) * 5);
+      const unit = Math.max(15, Math.ceil(maxAmount / MAX_BILLS / 15) * 15);
       const billCounts = rows.map((r) => (r.amount > 0 ? Math.max(1, Math.round(r.amount / unit)) : 0));
       const stackH = Math.max(...billCounts, 1) * (BILL_H + BILL_GAP);
       const amountLabelH = 24;
@@ -667,6 +715,13 @@ class Layout {
 
       if (paint) {
         const ctx = this.ctx;
+        // One gradient spanning the full floor-to-ceiling range, reused for
+        // every row's (narrower) fill — so a low scorer's bar only
+        // "uncovers" the gradient's early portion, and only the highest
+        // scorer's bar (at barCeilingPx) ever shows the whole pink-to-green
+        // sweep, rather than every bar re-stretching its own copy across
+        // whatever width it happens to be.
+        const sharedBarGradient = neonGradient(ctx, inner.x, inner.y, inner.x + barCeilingPx, inner.y, 0.14);
         for (const row of rows) {
           const rowY = inner.y + h;
           const barW = row.resolved
@@ -676,7 +731,7 @@ class Layout {
             : floor;
 
           roundRectPath(ctx, inner.x - 4, rowY + 2, barW + 4, rowH - 6, 8);
-          ctx.fillStyle = neonGradient(ctx, inner.x, rowY, inner.x + barW, rowY, 0.12);
+          ctx.fillStyle = sharedBarGradient;
           ctx.fill();
 
           const baseline = rowY + 22;
@@ -710,7 +765,7 @@ class Layout {
   private teamColumn(paint: boolean, cx: number, y: number, colWidth: number, avatarR: number, team: MatchupTeam, opts: TeamColumnOpts): number {
     if (paint) {
       const img = team.avatarUrl ? (this.gctx.images.get(team.avatarUrl) ?? null) : null;
-      drawAvatarCircle(this.ctx, cx, y + avatarR, avatarR, img, team.name, { ring: opts.ring, alpha: opts.alpha, result: opts.result });
+      drawAvatarCircle(this.ctx, cx, y + avatarR, avatarR, img, team.name, { ring: opts.ring, alpha: opts.alpha });
     }
     let h = avatarR * 2 + 12;
     h += drawText(this.ctx, paint, cx, y + h, colWidth, team.name, {
@@ -787,6 +842,7 @@ function winnerRowsFromModel(model: RecapModel, avatarByName: Record<string, str
   return parseWinners(model.winners).map((w) => ({
     name: w.name,
     avatarUrl: lookupAvatar(avatarByName, w.name),
+    amountLabel: "",
     marginLabel: "",
     highlight: w.highlight,
   }));
@@ -864,6 +920,9 @@ function runLayout(
       l.standingsCashStacks(RECAP_HEADERS.standings, matchups.standings ?? standingsRowsFromModel(model, matchups.avatarByName));
     }
 
+    if (included("upcomingBowl") || included("upcomingHonorable")) {
+      l.upcomingTitle(upcomingWeekLabel(model.upcomingWeek));
+    }
     if (included("upcomingBowl")) l.previewMatchup(RECAP_HEADERS.upcomingBowl, matchups.upcoming ?? PLACEHOLDER_PREVIEW);
     if (included("upcomingHonorable")) l.previewMatchup(RECAP_HEADERS.upcomingHonorable, matchups.upcomingHonorable ?? PLACEHOLDER_PREVIEW);
   } else if (restBody.trim()) {
