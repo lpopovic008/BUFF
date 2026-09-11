@@ -218,16 +218,20 @@ function drawAvatarCircle(
   ctx.save();
   ctx.globalAlpha = opts.alpha ?? 1;
   if (opts.ring) {
-    // A thicker colored ring, held apart from the logo itself by a thin
-    // white gap so the two never blend together.
+    // A thicker colored ring, held apart from the logo itself by a gap —
+    // punched fully transparent (destination-out) rather than painted
+    // white, so whatever's actually behind it (the card's own background)
+    // shows through instead of a hard white line.
     ctx.beginPath();
     ctx.arc(cx, cy, r + 10, 0, Math.PI * 2);
     ctx.fillStyle = neonGradient(ctx, cx - r - 10, cy - r - 10, cx + r + 10, cy + r + 10);
     ctx.fill();
+    ctx.globalCompositeOperation = "destination-out";
     ctx.beginPath();
     ctx.arc(cx, cy, r + 3, 0, Math.PI * 2);
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = "rgba(0, 0, 0, 1)";
     ctx.fill();
+    ctx.globalCompositeOperation = "source-over";
   }
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -249,7 +253,7 @@ function drawAvatarCircle(
 
 interface TextOpts {
   size: number;
-  color: string;
+  color: string | CanvasGradient;
   weight?: string;
   style?: string;
   lineHeight?: number;
@@ -349,6 +353,28 @@ interface TeamColumnOpts {
   ring: boolean;
 }
 
+/**
+ * Section-card titles used only by the graphic itself — shorter, and with a
+ * more literal emoji, than the write-up's own RECAP_HEADERS text.
+ * RECAP_HEADERS stays exactly as saved recaps already have it (it's the
+ * literal line recap-model.ts's parser matches on to read an archived
+ * write-up back into structured fields), so these are graphic-only and
+ * never touch the flattened text that gets saved/copied/posted.
+ */
+const GRAPHIC_SECTION_TITLE = {
+  highScorer: "🏆 High Scorer",
+  winners: "💵 Winners",
+  lastWeek: "📊 Last Week",
+  standings: "💰 Standings",
+};
+
+/** Gold / silver / bronze, each a light-metal-light sweep for a shiny highlight rather than a flat tint. */
+const RANK_METAL: Record<1 | 2 | 3, [string, string, string]> = {
+  1: ["#fff6d8", "#d4af37", "#fff6d8"],
+  2: ["#f6f7f8", "#a7abb0", "#f6f7f8"],
+  3: ["#f4c99a", "#a9653a", "#f4c99a"],
+};
+
 /** One vertical cursor shared by every section. Each card measures its own content once (regardless of `paint`) to size itself, then — only when actually painting — draws its background before its content, so nothing is ever painted over an unsized box. */
 class Layout {
   y = PADDING;
@@ -395,8 +421,8 @@ class Layout {
 
       const avatarR = 44;
       const colWidth = inner.width / 2 - 20;
-      const leftCx = inner.x + colWidth / 2 + 4;
-      const rightCx = inner.x + inner.width - colWidth / 2 - 4;
+      const leftCx = inner.x + inner.width * 0.25;
+      const rightCx = inner.x + inner.width * 0.75;
       const rowY = inner.y + h;
 
       const winnerH = this.teamColumn(false, leftCx, rowY, colWidth, avatarR, data.winner, {
@@ -423,10 +449,11 @@ class Layout {
   /**
    * "W  defeated  L" in the space between the two logos, not on top of
    * either. "defeated" sits centered between them; W and L each sit at the
-   * midpoint between their own logo and "defeated" — splitting the
-   * difference — rather than clustering tight against the word. W/L render
-   * at half the logos' diameter, so they read as a real result, not a tiny
-   * label.
+   * midpoint of the actual gap between their own logo's edge and
+   * "defeated" — splitting the difference of the visible space, not the
+   * distance between logo centers, which would drag them out toward the
+   * logos instead of in toward the word. W/L render at half the logos'
+   * diameter, so they read as a real result, not a tiny label.
    */
   private resultLine(leftCx: number, rightCx: number, y: number, avatarR: number) {
     const ctx = this.ctx;
@@ -443,8 +470,10 @@ class Layout {
     const midWidth = ctx.measureText(midText).width;
     const midLeft = cx - midWidth / 2;
     const midRight = cx + midWidth / 2;
-    const wCx = (leftCx + midLeft) / 2;
-    const lCx = (midRight + rightCx) / 2;
+    const leftLogoEdge = leftCx + avatarR;
+    const rightLogoEdge = rightCx - avatarR;
+    const wCx = (leftLogoEdge + midLeft) / 2;
+    const lCx = (midRight + rightLogoEdge) / 2;
 
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -484,8 +513,8 @@ class Layout {
 
       const avatarR = 40;
       const colWidth = inner.width / 2 - 20;
-      const leftCx = inner.x + colWidth / 2 + 4;
-      const rightCx = inner.x + inner.width - colWidth / 2 - 4;
+      const leftCx = inner.x + inner.width * 0.25;
+      const rightCx = inner.x + inner.width * 0.75;
       const rowY = inner.y + h;
 
       const aH = this.teamColumn(false, leftCx, rowY, colWidth, avatarR, data.teamA, { alpha: 1, nameColor: COLOR.primary, ring: false });
@@ -505,51 +534,67 @@ class Layout {
     });
   }
 
-  /** "📈 High Scorer": the top-3-scoring teams on the left (3rd/2nd/1st left to right — a small rank label above each logo, 2nd/3rd dimmed, that team's points below the logo instead of its name) and the winning team's top 3 players on the right, headshots triangled: highest scorer on top, 2nd bottom-left, 3rd bottom-right, each with their score above their photo. The write-up's own sentence + detail render small and gray beneath, like a caption. */
-  highScorerPodium(data: HighScorerGraphicData) {
+  /** "🏆 High Scorer": the top-3-scoring teams on the left — a shiny gold/silver/bronze rank label above each logo, staggered into a real podium (1st highest, 2nd a bit lower, 3rd lower still), 2nd/3rd dimmed, that team's points below the logo instead of its name — and the winning team's top 3 players on the right, headshots triangled: highest scorer on top, 2nd bottom-left, 3rd bottom-right, each with their score above their photo. The write-up's own sentence + detail render small and gray beneath, like a caption. */
+  highScorerPodium(header: string, data: HighScorerGraphicData) {
     this.card((paint, inner) => {
-      let h = drawText(this.ctx, paint, inner.x, inner.y, inner.width, "📈 High Scorer", {
-        size: 15,
-        weight: "700",
-        color: COLOR.accent,
-        lineHeight: 20,
-      });
-      h += 22;
+      let h = this.sectionHeader(paint, inner, header);
+      h += 28;
       const rowY = inner.y + h;
 
-      // Left half: the 3 highest-scoring teams, side by side.
+      // Left half: the 3 highest-scoring teams, side by side, staggered
+      // into a podium — 1st sits highest (no offset), 2nd a step lower,
+      // 3rd lower still.
       const ordered = [...data.runnersUp].reverse(); // [2nd, 3rd] -> [3rd, 2nd]
       ordered.push({ team: data.team, points: data.points }); // -> [3rd, 2nd, 1st]
       const leftW = inner.width * 0.46;
       const teamColW = leftW / ordered.length;
+      const labelSize = 17;
+      const STAGGER_STEP = 20;
       let teamsH = 0;
       ordered.forEach((entry, i) => {
         const isTop = i === ordered.length - 1;
         const isSecond = i === ordered.length - 2;
-        const rankLabel = isTop ? "1ST" : isSecond ? "2ND" : "3RD";
+        const rank: 1 | 2 | 3 = isTop ? 1 : isSecond ? 2 : 3;
+        const rankLabel = rank === 1 ? "1ST" : rank === 2 ? "2ND" : "3RD";
         const r = isTop ? 36 : isSecond ? 30 : 26;
         const cx = inner.x + teamColW * (i + 0.5);
-        let rowH = drawText(this.ctx, paint, cx, rowY, teamColW, rankLabel, {
-          size: 11,
-          weight: "700",
-          color: isTop ? COLOR.primary : COLOR.muted,
-          lineHeight: 14,
+        const stagger = (ordered.length - 1 - i) * STAGGER_STEP;
+        const colY = rowY + stagger;
+
+        let labelColor: string | CanvasGradient = COLOR.primary;
+        if (paint) {
+          this.ctx.font = `800 ${labelSize}px ${FONT_STACK}`;
+          const labelW = this.ctx.measureText(rankLabel).width;
+          const [c0, c1, c2] = RANK_METAL[rank];
+          const g = this.ctx.createLinearGradient(cx - labelW / 2, colY, cx + labelW / 2, colY);
+          g.addColorStop(0, c0);
+          g.addColorStop(0.5, c1);
+          g.addColorStop(1, c2);
+          labelColor = g;
+        }
+        // Extra clearance below the label (on top of its own line-height)
+        // so the bigger label never crowds 1st place's outer ring.
+        let rowH = drawText(this.ctx, paint, cx, colY, teamColW, rankLabel, {
+          size: labelSize,
+          weight: "800",
+          color: labelColor,
+          lineHeight: labelSize + 6,
           align: "center",
         });
-        rowH += 8;
+        rowH += 14;
         if (paint) {
           const img = entry.team.avatarUrl ? (this.gctx.images.get(entry.team.avatarUrl) ?? null) : null;
-          drawAvatarCircle(this.ctx, cx, rowY + rowH + r, r, img, entry.team.name, { ring: isTop, alpha: isTop ? 1 : 0.75 });
+          drawAvatarCircle(this.ctx, cx, colY + rowH + r, r, img, entry.team.name, { ring: isTop, alpha: isTop ? 1 : 0.75 });
         }
         rowH += r * 2 + 10;
-        rowH += drawText(this.ctx, paint, cx, rowY + rowH, teamColW, entry.points, {
+        rowH += drawText(this.ctx, paint, cx, colY + rowH, teamColW, entry.points, {
           size: isTop ? 16 : 13,
           weight: isTop ? "800" : "600",
           color: isTop ? COLOR.primary : COLOR.secondary,
           lineHeight: 18,
           align: "center",
         });
-        teamsH = Math.max(teamsH, rowH);
+        teamsH = Math.max(teamsH, stagger + rowH);
       });
 
       // Right half: the winner's top 3 players, triangled — highest on top, 2nd bottom-left, 3rd bottom-right.
@@ -604,13 +649,8 @@ class Layout {
   winnersRow(header: string, rows: WinnerGraphicRow[]) {
     if (rows.length === 0) return;
     this.card((paint, inner) => {
-      let h = drawText(this.ctx, paint, inner.x, inner.y, inner.width, header, {
-        size: 15,
-        weight: "700",
-        color: COLOR.accent,
-        lineHeight: 20,
-      });
-      h += 20;
+      let h = this.sectionHeader(paint, inner, header);
+      h += 28;
       const n = rows.length;
       const colW = inner.width / n;
       const avatarR = 34;
@@ -659,13 +699,8 @@ class Layout {
   standingsCashStacks(header: string, rows: StandingsGraphicRow[]) {
     if (rows.length === 0) return;
     this.card((paint, inner) => {
-      let h = drawText(this.ctx, paint, inner.x, inner.y, inner.width, header, {
-        size: 15,
-        weight: "700",
-        color: COLOR.accent,
-        lineHeight: 20,
-      });
-      h += 24;
+      let h = this.sectionHeader(paint, inner, header);
+      h += 28;
 
       const BILL_W = 46;
       const BILL_H = 14;
@@ -726,13 +761,8 @@ class Layout {
   lastWeekTable(header: string, rows: { name: string; pointsLabel: string; points: number; won: boolean; resolved: boolean }[], barFloorPx: number) {
     if (rows.length === 0) return;
     this.card((paint, inner) => {
-      let h = drawText(this.ctx, paint, inner.x, inner.y, inner.width, header, {
-        size: 15,
-        weight: "700",
-        color: COLOR.accent,
-        lineHeight: 20,
-      });
-      h += 14;
+      let h = this.sectionHeader(paint, inner, header);
+      h += 28;
       const rowH = 34;
       const iconX = inner.x + inner.width - 6;
       const barCeilingPx = inner.width - 46; // stop short of the W/L column
@@ -787,6 +817,19 @@ class Layout {
         h += rowH * rows.length;
       }
       return h;
+    });
+  }
+
+  /** A section card's title: centered, bigger than the body text (though still smaller than a matchup's own bowl name), gradient-filled — every plain list section (High Scorer/Winners/Last Week/Standings) uses this; the 4 matchup posters keep their own distinct header treatment. */
+  private sectionHeader(paint: boolean, inner: { x: number; y: number; width: number }, text: string): number {
+    const cx = inner.x + inner.width / 2;
+    const grad = neonGradient(this.ctx, inner.x, inner.y, inner.x + inner.width, inner.y);
+    return drawText(this.ctx, paint, cx, inner.y, inner.width, text, {
+      size: 24,
+      weight: "800",
+      color: grad,
+      lineHeight: 30,
+      align: "center",
     });
   }
 
@@ -931,22 +974,25 @@ function runLayout(
     if (included("bowl")) l.decidedMatchup(matchups.bowl ?? PLACEHOLDER_MATCHUP);
     if (included("honorable")) l.decidedMatchup(matchups.honorable ?? PLACEHOLDER_MATCHUP);
     if (included("highScorer")) {
-      l.highScorerPodium(matchups.highScorer ?? { ...PLACEHOLDER_HIGH_SCORER, captionLines: [model.highScorer, model.highScorerDetail] });
+      l.highScorerPodium(
+        GRAPHIC_SECTION_TITLE.highScorer,
+        matchups.highScorer ?? { ...PLACEHOLDER_HIGH_SCORER, captionLines: [model.highScorer, model.highScorerDetail] }
+      );
     }
 
     const winnerRows = matchups.winners ?? winnerRowsFromModel(model, matchups.avatarByName);
-    if (included("winners")) l.winnersRow(RECAP_HEADERS.winners, winnerRows);
+    if (included("winners")) l.winnersRow(GRAPHIC_SECTION_TITLE.winners, winnerRows);
 
     if (included("lastWeek")) {
       const barFloorPx = measureLongestUsername(
         ctx,
         winnerRows.map((w) => w.name)
       );
-      l.lastWeekTable(RECAP_HEADERS.lastWeek, parseScoreboardRows(model.lastWeek), barFloorPx);
+      l.lastWeekTable(GRAPHIC_SECTION_TITLE.lastWeek, parseScoreboardRows(model.lastWeek), barFloorPx);
     }
 
     if (included("standings")) {
-      l.standingsCashStacks(RECAP_HEADERS.standings, matchups.standings ?? standingsRowsFromModel(model, matchups.avatarByName));
+      l.standingsCashStacks(GRAPHIC_SECTION_TITLE.standings, matchups.standings ?? standingsRowsFromModel(model, matchups.avatarByName));
     }
 
     if (included("upcomingBowl") || included("upcomingHonorable")) {
