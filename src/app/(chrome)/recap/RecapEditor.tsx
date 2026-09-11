@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { RecapModel } from "@/lib/recap-model";
 import { BowlMatchupResult, BowlMatchupPreview } from "@/lib/bowl-narrative";
 import { LeagueTeamOption } from "@/hooks/useLeagueTeams";
@@ -8,6 +9,56 @@ import { PayoutLedger } from "@/lib/payouts";
 import { GraphicTeam } from "@/lib/recap-graphic-data";
 import { recapBodyFont } from "@/lib/fonts";
 import { RecapSectionsEditor } from "./RecapSectionsEditor";
+
+// The graphic replica has a fixed authored width (see recap-neon.css's
+// .recap-neon) — every size inside it (avatars, fonts, paddings) is
+// hand-tuned at that width, so letting the CSS box itself shrink squeezes
+// rows meant to sit side by side into overlapping mush. Keep it in sync with
+// recap-neon.css's `.recap-neon { width: ... }`.
+const GRAPHIC_WIDTH = 640;
+
+/**
+ * Uniformly shrinks its fixed-width child to fit whatever width is actually
+ * available — like zooming out on the exported image — instead of letting
+ * the child's own CSS reflow it. A narrow/mobile screen gets a smaller but
+ * completely undistorted copy of the same layout, edge to edge, no
+ * horizontal scrolling needed.
+ */
+function ScaleToFit({ width, children }: { width: number; children: React.ReactNode }) {
+  const outerRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+  const [height, setHeight] = useState<number>();
+
+  useEffect(() => {
+    const outer = outerRef.current;
+    const inner = innerRef.current;
+    if (!outer || !inner) return;
+
+    function recompute() {
+      const nextScale = Math.min(1, outer!.clientWidth / width);
+      setScale(nextScale);
+      setHeight(inner!.scrollHeight * nextScale);
+    }
+
+    recompute();
+    // Two observers, not one: the outer wrapper resizes with the viewport,
+    // the inner content resizes as sections load in or rows are added —
+    // either one changing the right-sized scale/height.
+    const ro = new ResizeObserver(recompute);
+    ro.observe(outer);
+    ro.observe(inner);
+    return () => ro.disconnect();
+  }, [width]);
+
+  return (
+    <div ref={outerRef} style={{ width: "100%", height, overflow: "hidden" }}>
+      <div ref={innerRef} style={{ width, transform: `scale(${scale})`, transformOrigin: "top left" }}>
+        {children}
+      </div>
+    </div>
+  );
+}
 
 /**
  * The write-up's editable body — every header box (see RecapSectionsEditor)
@@ -77,32 +128,34 @@ export function RecapEditor({
   }
 
   return (
-    // Full-bleed (cancels ChromeLayout's page gutter) and horizontally
-    // scrollable — the graphic replica below has a fixed width (see
-    // recap-neon.css) instead of a responsive one, so a narrow/mobile
-    // viewport scrolls sideways to see the rest of it instead of every
-    // component inside squeezing to fit.
-    <div className={`${recapBodyFont.className} -mx-3 overflow-x-auto px-3 sm:-mx-6 sm:px-6`}>
-      <RecapSectionsEditor
-        model={model}
-        onChange={onModelChange}
-        bowlMatchup={bowlMatchup}
-        honorableMatchup={honorableMatchup}
-        upcomingMatchup={upcomingMatchup}
-        upcomingHonorableMatchup={upcomingHonorableMatchup}
-        teams={teams}
-        teamOptions={teamOptions}
-        recapData={recapData}
-        ledger={ledger}
-        week={week}
-        playerNames={playerNames}
-        onRenameBowl={onRenameBowl}
-        onRenameHonorable={onRenameHonorable}
-        onRenameUpcomingBowl={onRenameUpcomingBowl}
-        onRenameUpcomingHonorable={onRenameUpcomingHonorable}
-        onChangeUpcomingBowlTeam={onChangeUpcomingBowlTeam}
-        onChangeUpcomingHonorableTeam={onChangeUpcomingHonorableTeam}
-      />
+    // Full-bleed (cancels ChromeLayout's page gutter) and scaled to fit — the
+    // graphic replica below has a fixed authored width (see GRAPHIC_WIDTH
+    // above and recap-neon.css) instead of a responsive one, so on a narrow/
+    // mobile screen ScaleToFit shrinks the whole thing uniformly to fit edge
+    // to edge, rather than each component squeezing/wrapping on its own.
+    <div className={`${recapBodyFont.className} -mx-3 px-3 sm:-mx-6 sm:px-6`}>
+      <ScaleToFit width={GRAPHIC_WIDTH}>
+        <RecapSectionsEditor
+          model={model}
+          onChange={onModelChange}
+          bowlMatchup={bowlMatchup}
+          honorableMatchup={honorableMatchup}
+          upcomingMatchup={upcomingMatchup}
+          upcomingHonorableMatchup={upcomingHonorableMatchup}
+          teams={teams}
+          teamOptions={teamOptions}
+          recapData={recapData}
+          ledger={ledger}
+          week={week}
+          playerNames={playerNames}
+          onRenameBowl={onRenameBowl}
+          onRenameHonorable={onRenameHonorable}
+          onRenameUpcomingBowl={onRenameUpcomingBowl}
+          onRenameUpcomingHonorable={onRenameUpcomingHonorable}
+          onChangeUpcomingBowlTeam={onChangeUpcomingBowlTeam}
+          onChangeUpcomingHonorableTeam={onChangeUpcomingHonorableTeam}
+        />
+      </ScaleToFit>
     </div>
   );
 }
