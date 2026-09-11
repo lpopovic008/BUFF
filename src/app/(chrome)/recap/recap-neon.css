@@ -33,6 +33,15 @@
   display: flex;
   flex-direction: column;
   gap: var(--rn-gap);
+  /* A fixed width, not a responsive one — this is a live replica of a fixed
+     1080px canvas graphic, and every size inside it (avatars, fonts,
+     paddings) is hand-tuned to that width. Letting it shrink on a narrow
+     viewport squeezes rows meant to sit side by side (team columns, podium
+     spots, winner/standing rows) into overlapping mush instead. Its
+     scroll wrapper (see RecapEditor.tsx) handles narrow screens by scrolling
+     horizontally instead, the same way you'd pan around the exported image. */
+  width: 640px;
+  flex-shrink: 0;
 }
 
 .recap-neon .rn-badge {

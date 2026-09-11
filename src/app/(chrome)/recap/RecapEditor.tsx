@@ -77,7 +77,12 @@ export function RecapEditor({
   }
 
   return (
-    <div className={recapBodyFont.className}>
+    // Full-bleed (cancels ChromeLayout's page gutter) and horizontally
+    // scrollable — the graphic replica below has a fixed width (see
+    // recap-neon.css) instead of a responsive one, so a narrow/mobile
+    // viewport scrolls sideways to see the rest of it instead of every
+    // component inside squeezing to fit.
+    <div className={`${recapBodyFont.className} -mx-3 overflow-x-auto px-3 sm:-mx-6 sm:px-6`}>
       <RecapSectionsEditor
         model={model}
         onChange={onModelChange}
