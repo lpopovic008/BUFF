@@ -25,6 +25,22 @@ const GIS_SRC = "https://accounts.google.com/gsi/client";
 
 let gisReady: Promise<void> | null = null;
 
+/**
+ * Fetches and initializes the Google Identity Services script ahead of any
+ * click, if it isn't already loading — call this as early as possible (see
+ * AutoSync.tsx) so that by the time someone clicks Connect Google Sync or
+ * Save to Doc, getGoogleAccessToken below only has to call
+ * requestAccessToken() with no network round-trip first. Some browsers
+ * (mobile Safari and Chrome-on-iOS in particular, both WebKit) treat a
+ * sign-in popup opened after an intervening await as no longer "from a user
+ * gesture" and silently swallow it — the click appears to do nothing at
+ * all, with no error, because the popup that would have shown the actual
+ * consent screen never opens.
+ */
+export function preloadGoogleIdentityServices(): Promise<void> {
+  return loadGoogleIdentityServices();
+}
+
 function loadGoogleIdentityServices(): Promise<void> {
   if (gisReady) return gisReady;
   gisReady = new Promise((resolve, reject) => {

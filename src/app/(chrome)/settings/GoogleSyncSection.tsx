@@ -28,6 +28,29 @@ export function GoogleSyncSection({ config }: { config: AppConfig }) {
   const [result, setResult] = useState<SyncAction | null>(null);
   const [lastSyncedAt, setLastSyncedAt] = useState<number>(() => getSyncState().lastSyncedAt);
 
+  // Google's own sign-in popup can hang indefinitely with no callback ever
+  // firing — iOS Safari and Chrome-on-iOS (same WebKit engine) in
+  // particular can block the popup's cross-window messaging outright under
+  // strict cookie/tracking-prevention settings. Without a timeout, that
+  // looks exactly like "nothing happened" — the button silently reverts to
+  // idle/"Never synced" with no error at all. A firm timeout turns that
+  // into a real, actionable error message instead.
+  function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error(message)), ms);
+      promise.then(
+        (v) => {
+          clearTimeout(timer);
+          resolve(v);
+        },
+        (err) => {
+          clearTimeout(timer);
+          reject(err);
+        }
+      );
+    });
+  }
+
   async function handleSync() {
     if (!clientId) {
       setStatus("error");
@@ -37,7 +60,11 @@ export function GoogleSyncSection({ config }: { config: AppConfig }) {
     setStatus("syncing");
     setError(null);
     try {
-      const action = await reconcile(clientId);
+      const action = await withTimeout(
+        reconcile(clientId),
+        25000,
+        "Sign-in didn't finish — this can happen if a pop-up was blocked or the sign-in window was closed. Check this browser's pop-up settings for this site and try again."
+      );
       startAutoSync(clientId);
       setResult(action);
       setLastSyncedAt(getSyncState().lastSyncedAt);
@@ -73,6 +100,12 @@ export function GoogleSyncSection({ config }: { config: AppConfig }) {
         )}
       </div>
 
+      {!clientId ? (
+        <p className="text-xs text-ink-muted">
+          Paste a Google Client ID into the Google Docs section above first — on this device too, since that&rsquo;s
+          stored per-browser and doesn&rsquo;t carry over on its own until sync is connected here.
+        </p>
+      ) : null}
       {error ? <p className="text-xs text-status-critical">{error}</p> : null}
       {status === "synced" && result ? (
         <p className="text-xs text-status-good">{ACTION_MESSAGE[result]} Changes now sync automatically for the rest of this session.</p>
