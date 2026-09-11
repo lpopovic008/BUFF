@@ -19,7 +19,7 @@
 // beyond the canvas itself, and not theme-reactive — this is a fixed-look
 // card, not a live page.
 
-import { RecapModel, RECAP_HEADERS, RecapSectionKey, isSectionIncluded, upcomingWeekLabel } from "./recap-model";
+import { RecapModel, RecapSectionKey, isSectionIncluded, upcomingWeekLabel, WHO_WILL_PREVAIL, GOOD_LUCK_TO_ALL } from "./recap-model";
 
 const WIDTH = 1080;
 const PADDING = 56;
@@ -114,6 +114,8 @@ export interface RecapGraphicExtras {
   upcomingHonorable?: PreviewMatchup | null;
   highScorer?: HighScorerGraphicData | null;
   winners?: WinnerGraphicRow[] | null;
+  /** Live per-team rows for Last Week Results, by team name (not the ledger's real-person manager name, which is what the flattened text's own Last Week block uses). Null falls back to parsing that flattened text. */
+  lastWeek?: { name: string; pointsLabel: string; points: number; won: boolean; resolved: boolean }[] | null;
   standings?: StandingsGraphicRow[] | null;
   /** Every team's logo, keyed by the exact display name used in the write-up text — how sections without their own structured data above (an older/plain recap) find a team's logo, since the underlying text only ever has names. */
   avatarByName?: Record<string, string | null>;
@@ -218,20 +220,19 @@ function drawAvatarCircle(
   ctx.save();
   ctx.globalAlpha = opts.alpha ?? 1;
   if (opts.ring) {
-    // A thicker colored ring, held apart from the logo itself by a gap —
-    // punched fully transparent (destination-out) rather than painted
-    // white, so whatever's actually behind it (the card's own background)
-    // shows through instead of a hard white line.
+    // A stroked ring (not a filled disk) held a few px off the logo — the
+    // gap is simply never painted, so it just shows whatever's already
+    // there (the card's own background), rather than relying on a
+    // transparency trick that different viewers/paste targets can render
+    // differently (some show real alpha as white).
+    const gap = 3;
+    const thickness = 7;
+    const ringRadius = r + gap + thickness / 2;
     ctx.beginPath();
-    ctx.arc(cx, cy, r + 10, 0, Math.PI * 2);
-    ctx.fillStyle = neonGradient(ctx, cx - r - 10, cy - r - 10, cx + r + 10, cy + r + 10);
-    ctx.fill();
-    ctx.globalCompositeOperation = "destination-out";
-    ctx.beginPath();
-    ctx.arc(cx, cy, r + 3, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(0, 0, 0, 1)";
-    ctx.fill();
-    ctx.globalCompositeOperation = "source-over";
+    ctx.arc(cx, cy, ringRadius, 0, Math.PI * 2);
+    ctx.lineWidth = thickness;
+    ctx.strokeStyle = neonGradient(ctx, cx - ringRadius, cy - ringRadius, cx + ringRadius, cy + ringRadius);
+    ctx.stroke();
   }
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -353,19 +354,32 @@ interface TeamColumnOpts {
   ring: boolean;
 }
 
+interface SectionTitle {
+  emoji: string;
+  label: string;
+}
+
 /**
  * Section-card titles used only by the graphic itself — shorter, and with a
  * more literal emoji, than the write-up's own RECAP_HEADERS text.
  * RECAP_HEADERS stays exactly as saved recaps already have it (it's the
  * literal line recap-model.ts's parser matches on to read an archived
  * write-up back into structured fields), so these are graphic-only and
- * never touch the flattened text that gets saved/copied/posted.
+ * never touch the flattened text that gets saved/copied/posted. Emoji and
+ * label are kept separate (see sectionHeader) so the emoji can be drawn
+ * with a plain fillStyle — a CanvasGradient fillStyle applied across an
+ * emoji glyph can make it render tinted instead of its native color.
  */
-const GRAPHIC_SECTION_TITLE = {
-  highScorer: "🏆 High Scorer",
-  winners: "💵 Winners",
-  lastWeek: "📊 Last Week",
-  standings: "💰 Standings",
+const GRAPHIC_SECTION_TITLE: Record<
+  "highScorer" | "winners" | "lastWeek" | "standings" | "upcomingBowl" | "upcomingHonorable",
+  SectionTitle
+> = {
+  highScorer: { emoji: "🏆", label: "High Scorer" },
+  winners: { emoji: "💵", label: "Winners" },
+  lastWeek: { emoji: "📊", label: "Last Week" },
+  standings: { emoji: "💰", label: "Standings" },
+  upcomingBowl: { emoji: "🏈", label: "Matchup of the Week" },
+  upcomingHonorable: { emoji: "🎖️", label: "Honorable Mention" },
 };
 
 /** Gold / silver / bronze, each a light-metal-light sweep for a shiny highlight rather than a flat tint. */
@@ -374,6 +388,9 @@ const RANK_METAL: Record<1 | 2 | 3, [string, string, string]> = {
   2: ["#f6f7f8", "#a7abb0", "#f6f7f8"],
   3: ["#f4c99a", "#a9653a", "#f4c99a"],
 };
+
+/** The theme's green, as a light-green-light shiny sweep — used for the "WHO WILL PREVAIL?!"/"Good Luck to All!" trailer, which sits at the end of the upcoming matchups' detail text. */
+const GREEN_SHINE: [string, string, string] = ["#eafff2", NEON.green, "#eafff2"];
 
 /** One vertical cursor shared by every section. Each card measures its own content once (regardless of `paint`) to size itself, then — only when actually painting — draws its background before its content, so nothing is ever painted over an unsized box. */
 class Layout {
@@ -406,8 +423,8 @@ class Layout {
     this.space(16);
   }
 
-  /** Bowl of the Week / Honorable Mention as a poster: the name in the display font, both logos with centered names beneath, "W  defeated  L" in the middle — not on the logos themselves, which stay clear. */
-  decidedMatchup(data: DecidedMatchup) {
+  /** Bowl of the Week / Honorable Mention as a poster: the name in the display font, both logos with centered names beneath, "W  defeated  L" in the middle — not on the logos themselves, which stay clear — and, when there's commentary, the write-up's own Detail text in bright white beneath it all. */
+  decidedMatchup(data: DecidedMatchup, detail?: string) {
     this.posterCard((paint, inner) => {
       const cx = inner.x + inner.width / 2;
       let h = drawText(this.ctx, paint, cx, inner.y, inner.width, data.bowlName.toUpperCase(), {
@@ -442,6 +459,16 @@ class Layout {
         this.resultLine(leftCx, rightCx, rowY + avatarR, avatarR);
       }
       h += Math.max(winnerH, loserH);
+
+      if (detail?.trim()) {
+        h += 20;
+        h += drawText(this.ctx, paint, cx, inner.y + h, inner.width, detail, {
+          size: 15,
+          color: COLOR.primary,
+          lineHeight: 21,
+          align: "center",
+        });
+      }
       return h;
     });
   }
@@ -490,18 +517,19 @@ class Layout {
     ctx.fillText("L", lCx, y);
   }
 
-  /** The upcoming marquee matchup: same poster treatment, centered names beneath both logos, but neither team is bright, dimmed, or badged — nobody's won yet. */
-  previewMatchup(header: string, data: PreviewMatchup) {
+  /**
+   * The upcoming marquee matchup: same poster treatment, centered names
+   * beneath both logos, but neither team is bright, dimmed, or badged —
+   * nobody's won yet. `detail` (the write-up's own commentary) renders
+   * bright white beneath the matchup, and `trailer` (WHO_WILL_PREVAIL /
+   * GOOD_LUCK_TO_ALL) renders right after it in the theme's green, exactly
+   * where the flattened text has it — at the end of the detail.
+   */
+  previewMatchup(title: SectionTitle, data: PreviewMatchup, detail?: string, trailer?: string) {
     this.posterCard((paint, inner) => {
       const cx = inner.x + inner.width / 2;
-      let h = drawText(this.ctx, paint, cx, inner.y, inner.width, header, {
-        size: 14,
-        weight: "700",
-        color: COLOR.accent,
-        lineHeight: 18,
-        align: "center",
-      });
-      h += 12;
+      let h = this.sectionHeader(paint, inner, title);
+      h += 16;
       h += drawText(this.ctx, paint, cx, inner.y + h, inner.width, data.bowlName.toUpperCase(), {
         size: 30,
         color: COLOR.primary,
@@ -530,14 +558,41 @@ class Layout {
         this.ctx.fillText("VS", cx, rowY + avatarR);
       }
       h += Math.max(aH, bH);
+
+      if (detail?.trim()) {
+        h += 20;
+        h += drawText(this.ctx, paint, cx, inner.y + h, inner.width, detail, {
+          size: 15,
+          color: COLOR.primary,
+          lineHeight: 21,
+          align: "center",
+        });
+      }
+      if (trailer) {
+        h += 14;
+        if (paint) {
+          const ctx = this.ctx;
+          ctx.font = `800 18px ${FONT_STACK}`;
+          const w = ctx.measureText(trailer).width;
+          const g = ctx.createLinearGradient(cx - w / 2, 0, cx + w / 2, 0);
+          g.addColorStop(0, GREEN_SHINE[0]);
+          g.addColorStop(0.5, GREEN_SHINE[1]);
+          g.addColorStop(1, GREEN_SHINE[2]);
+          ctx.fillStyle = g;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "alphabetic";
+          ctx.fillText(trailer, cx, inner.y + h + 18);
+        }
+        h += 24;
+      }
       return h;
     });
   }
 
   /** "🏆 High Scorer": the top-3-scoring teams on the left — a shiny gold/silver/bronze rank label above each logo, staggered into a real podium (1st highest, 2nd a bit lower, 3rd lower still), 2nd/3rd dimmed, that team's points below the logo instead of its name — and the winning team's top 3 players on the right, headshots triangled: highest scorer on top, 2nd bottom-left, 3rd bottom-right, each with their score above their photo. The write-up's own sentence + detail render small and gray beneath, like a caption. */
-  highScorerPodium(header: string, data: HighScorerGraphicData) {
+  highScorerPodium(title: SectionTitle, data: HighScorerGraphicData) {
     this.card((paint, inner) => {
-      let h = this.sectionHeader(paint, inner, header);
+      let h = this.sectionHeader(paint, inner, title);
       h += 28;
       const rowY = inner.y + h;
 
@@ -625,8 +680,7 @@ class Layout {
         h += 14;
         h += drawText(this.ctx, paint, inner.x, inner.y + h, inner.width, line, {
           size: 15,
-          style: "italic",
-          color: COLOR.muted,
+          color: COLOR.primary,
           lineHeight: 20,
         });
       }
@@ -646,10 +700,10 @@ class Layout {
   }
 
   /** Usernames with how much they won this week (above the logo) and how much they won their matchup by (below the username), highest scorer first — no bars, just who and how much. */
-  winnersRow(header: string, rows: WinnerGraphicRow[]) {
+  winnersRow(title: SectionTitle, rows: WinnerGraphicRow[], detail?: string) {
     if (rows.length === 0) return;
     this.card((paint, inner) => {
-      let h = this.sectionHeader(paint, inner, header);
+      let h = this.sectionHeader(paint, inner, title);
       h += 28;
       const n = rows.length;
       const colW = inner.width / n;
@@ -691,15 +745,24 @@ class Layout {
         }
       }
       h += avatarR * 2 + 56;
+
+      if (detail?.trim()) {
+        h += 6;
+        h += drawText(this.ctx, paint, inner.x, inner.y + h, inner.width, detail, {
+          size: 15,
+          color: COLOR.primary,
+          lineHeight: 21,
+        });
+      }
       return h;
     });
   }
 
   /** A stack of bills per team, taller than a bar chart on purpose — quantized so each bill is worth at least $15 — the dollar total above the stack, the username below it. */
-  standingsCashStacks(header: string, rows: StandingsGraphicRow[]) {
+  standingsCashStacks(title: SectionTitle, rows: StandingsGraphicRow[], detail?: string) {
     if (rows.length === 0) return;
     this.card((paint, inner) => {
-      let h = this.sectionHeader(paint, inner, header);
+      let h = this.sectionHeader(paint, inner, title);
       h += 28;
 
       const BILL_W = 46;
@@ -753,15 +816,29 @@ class Layout {
         }
       }
       h += amountLabelH + stackH + 40;
+
+      if (detail?.trim()) {
+        h += 6;
+        h += drawText(this.ctx, paint, inner.x, inner.y + h, inner.width, detail, {
+          size: 15,
+          color: COLOR.primary,
+          lineHeight: 21,
+        });
+      }
       return h;
     });
   }
 
   /** Name on the left, score in the middle with a faint bar behind the row scaled to that score, a green "W"/red "L" on the right — one row per team. `barFloorPx` is the minimum bar width (at least the longest username in the Winners section, so even the lowest scorer's bar isn't a sliver) and `barCeilingPx` the most any bar can reach (short of the W/L column). */
-  lastWeekTable(header: string, rows: { name: string; pointsLabel: string; points: number; won: boolean; resolved: boolean }[], barFloorPx: number) {
+  lastWeekTable(
+    title: SectionTitle,
+    rows: { name: string; pointsLabel: string; points: number; won: boolean; resolved: boolean }[],
+    barFloorPx: number,
+    detail?: string
+  ) {
     if (rows.length === 0) return;
     this.card((paint, inner) => {
-      let h = this.sectionHeader(paint, inner, header);
+      let h = this.sectionHeader(paint, inner, title);
       h += 28;
       const rowH = 34;
       const iconX = inner.x + inner.width - 6;
@@ -816,21 +893,48 @@ class Layout {
       } else {
         h += rowH * rows.length;
       }
+
+      if (detail?.trim()) {
+        h += 16;
+        h += drawText(this.ctx, paint, inner.x, inner.y + h, inner.width, detail, {
+          size: 15,
+          color: COLOR.primary,
+          lineHeight: 21,
+        });
+      }
       return h;
     });
   }
 
-  /** A section card's title: centered, bigger than the body text (though still smaller than a matchup's own bowl name), gradient-filled — every plain list section (High Scorer/Winners/Last Week/Standings) uses this; the 4 matchup posters keep their own distinct header treatment. */
-  private sectionHeader(paint: boolean, inner: { x: number; y: number; width: number }, text: string): number {
-    const cx = inner.x + inner.width / 2;
-    const grad = neonGradient(this.ctx, inner.x, inner.y, inner.x + inner.width, inner.y);
-    return drawText(this.ctx, paint, cx, inner.y, inner.width, text, {
-      size: 24,
-      weight: "800",
-      color: grad,
-      lineHeight: 30,
-      align: "center",
-    });
+  /**
+   * A section card's title: centered, bigger than the body text (though
+   * still smaller than a matchup's own bowl name), the label gradient-filled
+   * — every section (including the two upcoming-matchup previews) uses
+   * this. The emoji is drawn as its own fillText with a plain fillStyle,
+   * not the gradient — a CanvasGradient fillStyle applied across an emoji
+   * glyph can make some renderers tint it instead of leaving its native
+   * color.
+   */
+  private sectionHeader(paint: boolean, inner: { x: number; y: number; width: number }, title: SectionTitle): number {
+    const ctx = this.ctx;
+    const size = 24;
+    const lineHeight = 30;
+    if (paint) {
+      ctx.font = `800 ${size}px ${FONT_STACK}`;
+      const gap = 10;
+      const emojiW = ctx.measureText(title.emoji).width;
+      const labelW = ctx.measureText(title.label).width;
+      const totalW = emojiW + gap + labelW;
+      const cx = inner.x + inner.width / 2;
+      const startX = cx - totalW / 2;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
+      ctx.fillStyle = COLOR.primary;
+      ctx.fillText(title.emoji, startX, inner.y + size);
+      ctx.fillStyle = neonGradient(ctx, startX + emojiW + gap, inner.y, startX + totalW, inner.y);
+      ctx.fillText(title.label, startX + emojiW + gap, inner.y + size);
+    }
+    return lineHeight;
   }
 
   /** A circular logo (or an initials fallback, when there's no avatar or it failed to load) with the team's name centered beneath it — always the same height for a given avatar radius, so measure and paint passes can never disagree. */
@@ -971,8 +1075,8 @@ function runLayout(
   const included = (key: RecapSectionKey) => isSectionIncluded({ include: matchups.include ?? {} }, key);
 
   if (model) {
-    if (included("bowl")) l.decidedMatchup(matchups.bowl ?? PLACEHOLDER_MATCHUP);
-    if (included("honorable")) l.decidedMatchup(matchups.honorable ?? PLACEHOLDER_MATCHUP);
+    if (included("bowl")) l.decidedMatchup(matchups.bowl ?? PLACEHOLDER_MATCHUP, model.bowlDetail);
+    if (included("honorable")) l.decidedMatchup(matchups.honorable ?? PLACEHOLDER_MATCHUP, model.honorableDetail);
     if (included("highScorer")) {
       l.highScorerPodium(
         GRAPHIC_SECTION_TITLE.highScorer,
@@ -981,25 +1085,38 @@ function runLayout(
     }
 
     const winnerRows = matchups.winners ?? winnerRowsFromModel(model, matchups.avatarByName);
-    if (included("winners")) l.winnersRow(GRAPHIC_SECTION_TITLE.winners, winnerRows);
+    if (included("winners")) l.winnersRow(GRAPHIC_SECTION_TITLE.winners, winnerRows, model.winnersDetail);
 
     if (included("lastWeek")) {
       const barFloorPx = measureLongestUsername(
         ctx,
         winnerRows.map((w) => w.name)
       );
-      l.lastWeekTable(GRAPHIC_SECTION_TITLE.lastWeek, parseScoreboardRows(model.lastWeek), barFloorPx);
+      l.lastWeekTable(GRAPHIC_SECTION_TITLE.lastWeek, matchups.lastWeek ?? parseScoreboardRows(model.lastWeek), barFloorPx, model.lastWeekDetail);
     }
 
     if (included("standings")) {
-      l.standingsCashStacks(GRAPHIC_SECTION_TITLE.standings, matchups.standings ?? standingsRowsFromModel(model, matchups.avatarByName));
+      l.standingsCashStacks(
+        GRAPHIC_SECTION_TITLE.standings,
+        matchups.standings ?? standingsRowsFromModel(model, matchups.avatarByName),
+        model.standingsDetail
+      );
     }
 
     if (included("upcomingBowl") || included("upcomingHonorable")) {
       l.upcomingTitle(upcomingWeekLabel(model.upcomingWeek));
     }
-    if (included("upcomingBowl")) l.previewMatchup(RECAP_HEADERS.upcomingBowl, matchups.upcoming ?? PLACEHOLDER_PREVIEW);
-    if (included("upcomingHonorable")) l.previewMatchup(RECAP_HEADERS.upcomingHonorable, matchups.upcomingHonorable ?? PLACEHOLDER_PREVIEW);
+    if (included("upcomingBowl")) {
+      l.previewMatchup(GRAPHIC_SECTION_TITLE.upcomingBowl, matchups.upcoming ?? PLACEHOLDER_PREVIEW, model.upcomingBowlDetail, WHO_WILL_PREVAIL);
+    }
+    if (included("upcomingHonorable")) {
+      l.previewMatchup(
+        GRAPHIC_SECTION_TITLE.upcomingHonorable,
+        matchups.upcomingHonorable ?? PLACEHOLDER_PREVIEW,
+        model.upcomingHonorableDetail,
+        GOOD_LUCK_TO_ALL
+      );
+    }
   } else if (restBody.trim()) {
     l.text(restBody, { size: 19, color: COLOR.secondary, lineHeight: 27 });
     l.space(20);

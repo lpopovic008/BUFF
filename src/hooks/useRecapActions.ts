@@ -18,6 +18,7 @@ import {
   HighScorerGraphicData,
   WinnerGraphicRow,
   StandingsGraphicRow,
+  RecapGraphicExtras,
 } from "@/lib/recap-graphic";
 import { BowlMatchupResult, BowlMatchupPreview } from "@/lib/bowl-narrative";
 import { recapDisplayFont } from "@/lib/fonts";
@@ -108,6 +109,25 @@ function highScorerForGraphic(
     topPlayers: players,
     captionLines,
   };
+}
+
+/** The Last Week Results section's live rows for the graphic — every team that played, by team name (not the ledger's real-person manager name, which is what the flattened text's own Last Week block is built from). Null when nothing's been played yet, so the graphic falls back to parsing that flattened text. */
+function lastWeekForGraphic(
+  recapData: WeekRecapData | null,
+  ledger: PayoutLedger | null,
+  week: number,
+  teams: Record<number, GraphicTeam>
+): RecapGraphicExtras["lastWeek"] {
+  if (!recapData || !ledger) return null;
+  const summary = summarizeWeek(ledger, week);
+  if (!summary || summary.scoreboard.length === 0) return null;
+  return summary.scoreboard.map((row) => ({
+    name: teams[row.rosterId]?.name ?? row.name,
+    pointsLabel: formatPoints(row.points),
+    points: row.points,
+    won: row.won,
+    resolved: true,
+  }));
 }
 
 /** The Updated Standings section's live rows for the graphic — running earnings through this write-up's own week, by username. Null when there's no ledger data yet (preseason), so the graphic falls back to its bracket placeholder. */
@@ -209,6 +229,7 @@ export function useRecapActions(args: RecapActionsArgs) {
         upcomingHonorable: previewMatchupFor(args.teams, args.upcomingHonorableMatchup),
         highScorer: highScorerForGraphic(args.recapData, args.ledger, args.week, args.teams, args.playerNames, captionLines),
         winners: winnersForGraphic(args.recapData, args.ledger, args.week, args.teams),
+        lastWeek: lastWeekForGraphic(args.recapData, args.ledger, args.week, args.teams),
         standings: standingsForGraphic(args.recapData, args.ledger, args.week, args.teams),
         avatarByName,
         displayFontFamily: recapDisplayFont.style.fontFamily,
