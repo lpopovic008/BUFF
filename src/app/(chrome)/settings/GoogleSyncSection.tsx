@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { IconButton } from "@/components/ui/IconButton";
 import { CheckIcon, UploadIcon } from "@/components/ui/Icon";
 import { AppConfig, getSyncState } from "@/lib/localStore";
 import { resolveGoogleClientId } from "@/lib/google-config";
-import { reconcile, startAutoSync, SyncAction } from "@/lib/google-drive-sync";
+import { reconcile, startAutoSync, DRIVE_SYNC_SCOPE, SyncAction } from "@/lib/google-drive-sync";
+import { JUST_SIGNED_IN_SCOPE_KEY } from "@/lib/google-auth";
 
 const ACTION_MESSAGE: Record<SyncAction, string> = {
   "apply-remote": "Pulled the newer copy from Drive into this browser.",
@@ -74,6 +75,31 @@ export function GoogleSyncSection({ config }: { config: AppConfig }) {
       setError(err instanceof Error ? err.message : "Sync failed.");
     }
   }
+
+  // Standalone/home-screen mode (see google-auth.ts) signs in via a full
+  // redirect to Google and back instead of a popup — this page remounts
+  // fresh on the way back, so the sync that redirect interrupted needs to
+  // finish on its own rather than making the commish tap "Sync now" again
+  // right after they just signed in.
+  const autoResumedRef = useRef(false);
+  useEffect(() => {
+    if (autoResumedRef.current || !clientId) return;
+    let flaggedScope: string | null = null;
+    try {
+      flaggedScope = window.sessionStorage.getItem(JUST_SIGNED_IN_SCOPE_KEY);
+    } catch {
+      flaggedScope = null;
+    }
+    if (flaggedScope !== DRIVE_SYNC_SCOPE) return;
+    autoResumedRef.current = true;
+    try {
+      window.sessionStorage.removeItem(JUST_SIGNED_IN_SCOPE_KEY);
+    } catch {
+      // Not fatal — worst case this fires again on a future mount.
+    }
+    queueMicrotask(() => handleSync());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientId]);
 
   const alreadyConnected = lastSyncedAt > 0;
 
