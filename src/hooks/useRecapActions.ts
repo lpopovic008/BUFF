@@ -87,7 +87,8 @@ function highScorerForGraphic(
   week: number,
   teams: Record<number, GraphicTeam>,
   playerNames: Record<string, string>,
-  captionLines: string[]
+  sentence: string,
+  detail: string
 ): HighScorerGraphicData | null {
   if (!recapData || !ledger) return null;
   const summary = summarizeWeek(ledger, week);
@@ -107,7 +108,8 @@ function highScorerForGraphic(
     points: formatPoints(top3[0].points),
     runnersUp: top3.slice(1).map((row) => ({ team: teamFrom(row), points: formatPoints(row.points) })),
     topPlayers: players,
-    captionLines,
+    sentence,
+    detail,
   };
 }
 
@@ -221,13 +223,20 @@ export function useRecapActions(args: RecapActionsArgs) {
       const canvas = document.createElement("canvas");
       const avatarByName: Record<string, string | null> = {};
       for (const t of Object.values(args.teams)) avatarByName[t.name] = t.avatar;
-      const captionLines = [args.model?.highScorer ?? "", args.model?.highScorerDetail ?? ""];
       await drawRecapGraphic(canvas, body, args.model, {
         bowl: decidedMatchupFor(args.teams, args.bowlMatchup),
         honorable: decidedMatchupFor(args.teams, args.honorableMatchup),
         upcoming: previewMatchupFor(args.teams, args.upcomingMatchup),
         upcomingHonorable: previewMatchupFor(args.teams, args.upcomingHonorableMatchup),
-        highScorer: highScorerForGraphic(args.recapData, args.ledger, args.week, args.teams, args.playerNames, captionLines),
+        highScorer: highScorerForGraphic(
+          args.recapData,
+          args.ledger,
+          args.week,
+          args.teams,
+          args.playerNames,
+          args.model?.highScorer ?? "",
+          args.model?.highScorerDetail ?? ""
+        ),
         winners: winnersForGraphic(args.recapData, args.ledger, args.week, args.teams),
         lastWeek: lastWeekForGraphic(args.recapData, args.ledger, args.week, args.teams),
         standings: standingsForGraphic(args.recapData, args.ledger, args.week, args.teams),
