@@ -430,8 +430,14 @@ class Layout {
   constructor(
     private ctx: CanvasRenderingContext2D,
     private paint: boolean,
-    private gctx: GraphicContext
+    private gctx: GraphicContext,
+    /** When given, records `this.y` right after every whole card/poster-card finishes — the Y coordinates a multi-image split (see drawRecapGraphicParts) is allowed to cut at, since a cut anywhere else would slice a section in half. Only meaningful on the measure pass; the paint pass doesn't need it. */
+    private boundaries?: number[]
   ) {}
+
+  private markBoundary() {
+    this.boundaries?.push(this.y);
+  }
 
   space(px: number) {
     this.y += px;
@@ -1065,6 +1071,7 @@ class Layout {
       render(true, { x: innerX, y: this.y + CARD_PAD_Y, width: innerWidth });
     }
     this.y += cardHeight + CARD_GAP;
+    this.markBoundary();
   }
 
   private posterCard(render: (paint: boolean, inner: { x: number; y: number; width: number }) => number) {
@@ -1085,6 +1092,7 @@ class Layout {
       render(true, { x: innerX, y: this.y + padY, width: innerWidth });
     }
     this.y += cardHeight + CARD_GAP + 4;
+    this.markBoundary();
   }
 }
 
@@ -1174,9 +1182,11 @@ function runLayout(
   restBody: string,
   matchups: RecapGraphicExtras,
   gctx: GraphicContext,
-  paint: boolean
+  paint: boolean,
+  /** Collects the Y coordinate after every whole section, for drawRecapGraphicParts to cut a multi-image split at — see Layout's markBoundary. Omit when a plain single-image render (measure or paint) is all that's needed. */
+  boundaries?: number[]
 ): number {
-  const l = new Layout(ctx, paint, gctx);
+  const l = new Layout(ctx, paint, gctx, boundaries);
 
   const badgeW = 92;
   const badgeH = 32;
@@ -1341,12 +1351,12 @@ async function ensureDisplayFont(family: string | undefined): Promise<string> {
  * display font and any team logos/player photos to finish loading before it
  * can lay anything out.
  */
-export async function drawRecapGraphic(
-  canvas: HTMLCanvasElement,
+/** Everything drawRecapGraphic and drawRecapGraphicParts both need before they can lay a single pixel out: the body split into its header/rest, and every team logo/player photo preloaded plus the display font ready. Pulled out so a multi-image split only preloads once, not once per part. */
+async function prepareGraphic(
   body: string,
   model: RecapModel | null,
-  matchups: RecapGraphicExtras = {}
-): Promise<void> {
+  matchups: RecapGraphicExtras
+): Promise<{ header: string; restBody: string; gctx: GraphicContext }> {
   const lines = body.split("\n");
   const header = lines[0] ?? "";
   const restBody = model ? "" : lines.slice(1).join("\n").replace(/^\n+/, "");
@@ -1369,7 +1379,16 @@ export async function drawRecapGraphic(
     ...Object.values(matchups.avatarByName ?? {}),
   ];
   const [images, displayFamily] = await Promise.all([preloadImages(avatarUrls), ensureDisplayFont(matchups.displayFontFamily)]);
-  const gctx: GraphicContext = { images, displayFamily, avatarByName: matchups.avatarByName };
+  return { header, restBody, gctx: { images, displayFamily, avatarByName: matchups.avatarByName } };
+}
+
+export async function drawRecapGraphic(
+  canvas: HTMLCanvasElement,
+  body: string,
+  model: RecapModel | null,
+  matchups: RecapGraphicExtras = {}
+): Promise<void> {
+  const { header, restBody, gctx } = await prepareGraphic(body, model, matchups);
 
   const measureCtx = document.createElement("canvas").getContext("2d");
   if (!measureCtx) throw new Error("Couldn't measure the graphic — canvas isn't supported here.");
@@ -1389,4 +1408,95 @@ export async function drawRecapGraphic(
   ctx.fillRect(0, 0, WIDTH, height);
 
   runLayout(ctx, header, model, restBody, matchups, gctx, true);
+}
+
+/**
+ * Picks up to `parts - 1` interior cut points from `boundaries` (each the Y
+ * right after some whole section — see Layout.markBoundary), each as close
+ * as possible to its even-Nths target, so a 3-way split lands close to
+ * thirds without ever cutting through the middle of a section. Returns
+ * fewer cuts than requested when there aren't enough section boundaries to
+ * work with (e.g. only 1-2 sections included) rather than forcing an
+ * uneven or mid-section split.
+ */
+function choosePartCuts(boundaries: number[], totalHeight: number, parts: number): number[] {
+  const need = parts - 1;
+  if (need <= 0) return [];
+  const candidates = Array.from(new Set(boundaries.filter((b) => b > 0 && b < totalHeight))).sort((a, b) => a - b);
+  const cuts: number[] = [];
+  for (let i = 1; i <= need; i++) {
+    const target = (totalHeight * i) / parts;
+    let best: number | null = null;
+    let bestDist = Infinity;
+    for (const b of candidates) {
+      if (cuts.length > 0 && b <= cuts[cuts.length - 1]) continue;
+      const dist = Math.abs(b - target);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = b;
+      }
+    }
+    if (best === null) break;
+    cuts.push(best);
+  }
+  return cuts;
+}
+
+/**
+ * The same graphic as drawRecapGraphic, but sliced into up to `parts`
+ * separate canvases instead of one continuous one — each short enough to
+ * display in full inline in a chat app that bubble-collapses very tall
+ * images behind a "tap to view" instead of showing them outright (iMessage
+ * in particular). Cuts only ever land between whole sections (see
+ * choosePartCuts), so every piece still reads as a complete, self-contained
+ * graphic rather than a section sliced in half. Each canvas is painted
+ * against the exact same background gradient the single-image graphic
+ * would use for that same vertical stretch, so the pieces still look like
+ * one continuous picture if someone lines them back up. Returns fewer than
+ * `parts` canvases when the write-up doesn't have enough distinct sections
+ * to cut cleanly that many times.
+ */
+export async function drawRecapGraphicParts(
+  body: string,
+  model: RecapModel | null,
+  matchups: RecapGraphicExtras = {},
+  parts = 3
+): Promise<HTMLCanvasElement[]> {
+  const { header, restBody, gctx } = await prepareGraphic(body, model, matchups);
+
+  const measureCtx = document.createElement("canvas").getContext("2d");
+  if (!measureCtx) throw new Error("Couldn't measure the graphic — canvas isn't supported here.");
+  const boundaries: number[] = [];
+  const totalHeight = runLayout(measureCtx, header, model, restBody, matchups, gctx, false, boundaries);
+
+  const cuts = choosePartCuts(boundaries, totalHeight, parts);
+  const edges = [0, ...cuts, totalHeight];
+
+  const scale = 2;
+  const canvases: HTMLCanvasElement[] = [];
+  for (let i = 0; i < edges.length - 1; i++) {
+    const top = edges[i];
+    const bottom = edges[i + 1];
+    const canvas = document.createElement("canvas");
+    canvas.width = WIDTH * scale;
+    canvas.height = (bottom - top) * scale;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Couldn't draw the graphic — canvas isn't supported here.");
+    ctx.scale(scale, scale);
+    // Shifts this part's slice of the whole [0, totalHeight) drawing down
+    // to the canvas's own origin — everything outside [top, bottom) then
+    // simply falls outside this (much shorter) canvas and is never
+    // rendered, no per-shape clipping logic needed.
+    ctx.translate(0, -top);
+
+    const grad = ctx.createLinearGradient(0, 0, 0, totalHeight);
+    grad.addColorStop(0, COLOR.bgTop);
+    grad.addColorStop(1, COLOR.bgBottom);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, WIDTH, totalHeight);
+
+    runLayout(ctx, header, model, restBody, matchups, gctx, true);
+    canvases.push(canvas);
+  }
+  return canvases;
 }

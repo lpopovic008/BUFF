@@ -11,7 +11,7 @@
 import { useEffect, useRef, useState } from "react";
 import { saveRecap } from "@/lib/localStore";
 import { RecapModel, joinRecapModel } from "@/lib/recap-model";
-import { drawRecapGraphic } from "@/lib/recap-graphic";
+import { drawRecapGraphic, drawRecapGraphicParts, RecapGraphicExtras } from "@/lib/recap-graphic";
 import {
   GraphicTeam,
   decidedMatchupFor,
@@ -61,6 +61,16 @@ export function useRecapActions(args: RecapActionsArgs) {
   const [copied, setCopied] = useState(false);
   const [graphicStatus, setGraphicStatus] = useState<"idle" | "copying" | "copied" | "error">("idle");
   const [graphicError, setGraphicError] = useState<string | null>(null);
+  // The 3-image split (see handleCopySplitGraphic) tries copying every part
+  // to the clipboard in one shot first; "needs-parts" is the fallback state
+  // for a browser that won't accept multiple ClipboardItems in one write()
+  // call, at which point splitParts holds each part for handleCopySplitPart
+  // to copy individually and partCopied tracks which of those the commish
+  // has actually clicked so the UI can check them off one at a time.
+  const [splitStatus, setSplitStatus] = useState<"idle" | "generating" | "copied" | "needs-parts" | "error">("idle");
+  const [splitError, setSplitError] = useState<string | null>(null);
+  const [splitParts, setSplitParts] = useState<Promise<Blob>[] | null>(null);
+  const [partCopied, setPartCopied] = useState<boolean[]>([]);
   const [lastSavedAt, setLastSavedAt] = useState(args.savedAt);
   const [docStatus, setDocStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [docError, setDocError] = useState<string | null>(null);
@@ -85,6 +95,10 @@ export function useRecapActions(args: RecapActionsArgs) {
     setCopied(false);
     setGraphicStatus("idle");
     setGraphicError(null);
+    setSplitStatus("idle");
+    setSplitError(null);
+    setSplitParts(null);
+    setPartCopied([]);
     setDocStatus("idle");
     setDocError(null);
   }
@@ -101,6 +115,57 @@ export function useRecapActions(args: RecapActionsArgs) {
     setTimeout(() => setCopied(false), 2000);
   }
 
+  /**
+   * Everything drawRecapGraphic/drawRecapGraphicParts need beyond the body
+   * text itself — shared by the full-graphic and split-graphic exports so
+   * neither can drift from what the other draws.
+   */
+  function buildGraphicExtras(): RecapGraphicExtras {
+    // Sleeper's avatar CDN doesn't reliably send CORS headers, and a
+    // custom-uploaded team picture can be hosted anywhere — a canvas-bound
+    // <img crossOrigin="anonymous"> (needed to keep the graphic exportable)
+    // silently fails to load either and falls back to initials. Route
+    // every team logo through the same wsrv.nl proxy player headshots
+    // already use (see playerHeadshotUrlForCanvas), just for this export —
+    // the on-screen editor keeps using the raw URL directly.
+    const canvasTeams: Record<number, GraphicTeam> = {};
+    for (const [id, t] of Object.entries(args.teams)) {
+      canvasTeams[Number(id)] = { ...t, avatar: t.avatar ? teamAvatarUrlForCanvas(t.avatar) : null };
+    }
+    const avatarByName: Record<string, string | null> = {};
+    for (const t of Object.values(canvasTeams)) avatarByName[t.name] = t.avatar;
+    return {
+      bowl: decidedMatchupFor(canvasTeams, args.bowlMatchup),
+      honorable: decidedMatchupFor(canvasTeams, args.honorableMatchup),
+      upcoming: previewMatchupFor(canvasTeams, args.upcomingMatchup),
+      upcomingHonorable: previewMatchupFor(canvasTeams, args.upcomingHonorableMatchup),
+      highScorer: highScorerForGraphic(
+        args.recapData,
+        args.ledger,
+        args.week,
+        canvasTeams,
+        args.playerNames,
+        args.model?.highScorerDetail ?? ""
+      ),
+      winners: winnersForGraphic(args.recapData, args.ledger, args.week, canvasTeams),
+      lastWeek: lastWeekForGraphic(args.recapData, args.ledger, args.week, canvasTeams),
+      standings: standingsForGraphic(args.recapData, args.ledger, args.week, canvasTeams),
+      records: recordsStandingsForGraphic(args.recapData, canvasTeams),
+      avatarByName,
+      displayFontFamily: recapDisplayFont.style.fontFamily,
+      include: args.model?.include,
+    };
+  }
+
+  function canvasToBlobPromise(canvas: HTMLCanvasElement): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error("Couldn't render the graphic."));
+      }, "image/png");
+    });
+  }
+
   /** Renders the write-up and its stats as a single image (see recap-graphic.ts)
    * and copies that image to the clipboard, ready to paste into a group chat or
    * post — a shareable graphic instead of formatted text. */
@@ -109,55 +174,63 @@ export function useRecapActions(args: RecapActionsArgs) {
     setGraphicError(null);
     try {
       const canvas = document.createElement("canvas");
-      // Sleeper's avatar CDN doesn't reliably send CORS headers, and a
-      // custom-uploaded team picture can be hosted anywhere — a canvas-bound
-      // <img crossOrigin="anonymous"> (needed to keep the graphic exportable)
-      // silently fails to load either and falls back to initials. Route
-      // every team logo through the same wsrv.nl proxy player headshots
-      // already use (see playerHeadshotUrlForCanvas), just for this export —
-      // the on-screen editor keeps using the raw URL directly.
-      const canvasTeams: Record<number, GraphicTeam> = {};
-      for (const [id, t] of Object.entries(args.teams)) {
-        canvasTeams[Number(id)] = { ...t, avatar: t.avatar ? teamAvatarUrlForCanvas(t.avatar) : null };
-      }
-      const avatarByName: Record<string, string | null> = {};
-      for (const t of Object.values(canvasTeams)) avatarByName[t.name] = t.avatar;
-      await drawRecapGraphic(canvas, body, args.model, {
-        bowl: decidedMatchupFor(canvasTeams, args.bowlMatchup),
-        honorable: decidedMatchupFor(canvasTeams, args.honorableMatchup),
-        upcoming: previewMatchupFor(canvasTeams, args.upcomingMatchup),
-        upcomingHonorable: previewMatchupFor(canvasTeams, args.upcomingHonorableMatchup),
-        highScorer: highScorerForGraphic(
-          args.recapData,
-          args.ledger,
-          args.week,
-          canvasTeams,
-          args.playerNames,
-          args.model?.highScorerDetail ?? ""
-        ),
-        winners: winnersForGraphic(args.recapData, args.ledger, args.week, canvasTeams),
-        lastWeek: lastWeekForGraphic(args.recapData, args.ledger, args.week, canvasTeams),
-        standings: standingsForGraphic(args.recapData, args.ledger, args.week, canvasTeams),
-        records: recordsStandingsForGraphic(args.recapData, canvasTeams),
-        avatarByName,
-        displayFontFamily: recapDisplayFont.style.fontFamily,
-        include: args.model?.include,
-      });
+      await drawRecapGraphic(canvas, body, args.model, buildGraphicExtras());
       // Passed as a Promise (not awaited first) rather than an already-resolved
       // Blob — Safari ties clipboard-write permission to the triggering click,
       // and only accepts that if ClipboardItem gets the still-pending promise.
-      const blobPromise = new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob((blob) => {
-          if (blob) resolve(blob);
-          else reject(new Error("Couldn't render the graphic."));
-        }, "image/png");
-      });
-      await navigator.clipboard.write([new ClipboardItem({ "image/png": blobPromise })]);
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": canvasToBlobPromise(canvas) })]);
       setGraphicStatus("copied");
       setTimeout(() => setGraphicStatus("idle"), 2000);
     } catch (err) {
       setGraphicStatus("error");
       setGraphicError(err instanceof Error ? err.message : "Couldn't copy the graphic.");
+    }
+  }
+
+  /**
+   * Same picture as handleCopyGraphic, but cut into 3 shorter images (see
+   * drawRecapGraphicParts) instead of one tall one — iMessage (and other
+   * chat apps) bubble-collapse a sufficiently tall image behind a "tap to
+   * view" instead of showing it inline, which a single image can't avoid
+   * once the write-up has more than a few sections included. Tries copying
+   * all 3 parts to the clipboard in one go first; not every browser accepts
+   * multiple ClipboardItems in a single write() call, so a failure there
+   * falls back to "needs-parts" — copying each part individually via
+   * handleCopySplitPart — instead of just failing outright.
+   */
+  async function handleCopySplitGraphic() {
+    setSplitStatus("generating");
+    setSplitError(null);
+    setSplitParts(null);
+    setPartCopied([]);
+    try {
+      const canvases = await drawRecapGraphicParts(body, args.model, buildGraphicExtras(), 3);
+      const blobPromises = canvases.map(canvasToBlobPromise);
+      try {
+        await navigator.clipboard.write(blobPromises.map((p) => new ClipboardItem({ "image/png": p })));
+        setSplitStatus("copied");
+        setTimeout(() => setSplitStatus("idle"), 2000);
+      } catch {
+        setSplitParts(blobPromises);
+        setPartCopied(blobPromises.map(() => false));
+        setSplitStatus("needs-parts");
+      }
+    } catch (err) {
+      setSplitStatus("error");
+      setSplitError(err instanceof Error ? err.message : "Couldn't render the split graphic.");
+    }
+  }
+
+  /** Copies just one already-rendered part from the last handleCopySplitGraphic call — the fallback UI for a browser that wouldn't accept all of them in one clipboard write. */
+  async function handleCopySplitPart(index: number) {
+    const part = splitParts?.[index];
+    if (!part) return;
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": part })]);
+      setPartCopied((prev) => prev.map((v, i) => (i === index ? true : v)));
+    } catch (err) {
+      setSplitStatus("error");
+      setSplitError(err instanceof Error ? err.message : "Couldn't copy that part.");
     }
   }
 
@@ -210,11 +283,18 @@ export function useRecapActions(args: RecapActionsArgs) {
     copied,
     graphicStatus,
     graphicError,
+    splitStatus,
+    splitError,
+    /** How many parts the last split render actually produced — see drawRecapGraphicParts, which can return fewer than 3 when there aren't enough sections to cut cleanly. */
+    splitPartCount: splitParts?.length ?? 0,
+    partCopied,
     docStatus,
     docError,
     lastSavedAt,
     handleCopy,
     handleCopyGraphic,
+    handleCopySplitGraphic,
+    handleCopySplitPart,
     handleSaveToDoc,
   };
 }

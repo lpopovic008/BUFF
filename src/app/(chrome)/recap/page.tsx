@@ -10,7 +10,6 @@ import {
   ChevronRightIcon,
   DocumentIcon,
   CopyIcon,
-  ImageIcon,
   CheckIcon,
   UploadIcon,
 } from "@/components/ui/Icon";
@@ -44,6 +43,7 @@ import { displayManagerName } from "@/lib/format";
 import { useLeagueTeams } from "@/hooks/useLeagueTeams";
 import { recapDisplayFont } from "@/lib/fonts";
 import { RecapEditor } from "./RecapEditor";
+import { GraphicCopyMenu } from "./GraphicCopyMenu";
 
 // week=0 is a sentinel for the preseason write-up — a free-write space that
 // exists before there's any real matchup data to auto-generate a recap from.
@@ -477,25 +477,17 @@ function RecapContent() {
 
         <div className="flex flex-wrap items-center gap-2">
           <IconLink href={`/recap/archive?id=${leagueId}`} icon={<DocumentIcon />} label="Recap archive" />
-          <div className="relative">
-            <IconButton
-              icon={actions.graphicStatus === "copied" ? <CheckIcon /> : <ImageIcon />}
-              label={
-                actions.graphicStatus === "copying"
-                  ? "Rendering graphic…"
-                  : actions.graphicStatus === "copied"
-                    ? "Copied graphic"
-                    : "Copy graphic"
-              }
-              onClick={actions.handleCopyGraphic}
-              disabled={actions.graphicStatus === "copying"}
-            />
-            {/* A sliver of the graphic's own neon theme along the bottom edge — ties this button to what it produces. */}
-            <span
-              aria-hidden
-              className="pointer-events-none absolute inset-x-0 bottom-0 h-[3px] bg-gradient-to-r from-[#ff2e9a] via-[#22d3ee] to-[#39ff8e]"
-            />
-          </div>
+          <GraphicCopyMenu
+            graphicStatus={actions.graphicStatus}
+            graphicError={actions.graphicError}
+            splitStatus={actions.splitStatus}
+            splitError={actions.splitError}
+            splitPartCount={actions.splitPartCount}
+            partCopied={actions.partCopied}
+            onCopyFull={actions.handleCopyGraphic}
+            onCopySplit={actions.handleCopySplitGraphic}
+            onCopySplitPart={actions.handleCopySplitPart}
+          />
           {money?.profile.writeupDocId && googleClientId ? (
             // Typing directly into the Doc already leaves a plain-text copy
             // there, so Save to Doc stands in for Copy Text here.
