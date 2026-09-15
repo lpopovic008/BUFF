@@ -148,6 +148,23 @@ function beginRedirectSignIn(clientId: string, scope: string): never {
   throw new Error("Redirecting to Google sign-in…");
 }
 
+function freshCachedToken(scope: string): CachedToken | null {
+  const cached = cachedTokens.get(scope) ?? readSessionToken(scope);
+  return cached && cached.expiresAt > Date.now() + 30_000 ? cached : null;
+}
+
+/**
+ * Whether a still-valid access token for `scope` is already cached (in
+ * memory, or in sessionStorage from an earlier sign-in this browsing
+ * session) — true only when a background caller can safely reuse it without
+ * ever popping a consent prompt. A stale or missing token isn't refreshed
+ * here; that only happens inside getGoogleAccessToken, which is allowed to
+ * prompt because it's meant to be called from a user gesture.
+ */
+export function hasFreshAccessToken(scope: string): boolean {
+  return freshCachedToken(scope) !== null;
+}
+
 /**
  * Resolves to a valid OAuth access token for `scope`, reusing a cached one
  * (in-memory, or from sessionStorage if a redirect sign-in stored it there)
@@ -158,8 +175,8 @@ function beginRedirectSignIn(clientId: string, scope: string): never {
  * redirect case never returns; the page navigates away instead.
  */
 export async function getGoogleAccessToken(clientId: string, scope: string): Promise<string> {
-  const cached = cachedTokens.get(scope) ?? readSessionToken(scope);
-  if (cached && cached.expiresAt > Date.now() + 30_000) {
+  const cached = freshCachedToken(scope);
+  if (cached) {
     cachedTokens.set(scope, cached);
     return cached.accessToken;
   }

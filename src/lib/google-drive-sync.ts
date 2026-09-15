@@ -22,7 +22,7 @@ import {
   saveSyncState,
   SyncState,
 } from "./localStore";
-import { getGoogleAccessToken } from "./google-auth";
+import { getGoogleAccessToken, hasFreshAccessToken } from "./google-auth";
 
 export const DRIVE_SYNC_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
 
@@ -153,6 +153,25 @@ export async function reconcile(clientId: string): Promise<SyncAction> {
   }
 
   return action;
+}
+
+/**
+ * The same reconciliation as `reconcile`, but only when this browser already
+ * has an unexpired cached access token for the Drive scope — i.e. it can run
+ * with zero chance of popping a sign-in prompt. Returns null (does nothing)
+ * otherwise, since getGoogleAccessToken would have to fall back to a fresh
+ * consent popup, and that's blocked (or silently swallowed on mobile) unless
+ * it's called from a genuine user gesture. Without a periodic or on-load
+ * reconcile at all, nothing ever pulled a newer remote copy down — the only
+ * way this browser ever learned about another device's changes was the
+ * commish manually clicking "Sync now" in Settings again. This is what lets
+ * an already-signed-in browser pick changes up on its own; a browser that's
+ * never authenticated this session (a fresh tab, a cold reopen) still needs
+ * one deliberate click, same as always.
+ */
+export async function reconcileIfSignedIn(clientId: string): Promise<SyncAction | null> {
+  if (!hasFreshAccessToken(DRIVE_SYNC_SCOPE)) return null;
+  return reconcile(clientId);
 }
 
 const PUSH_DEBOUNCE_MS = 3000;

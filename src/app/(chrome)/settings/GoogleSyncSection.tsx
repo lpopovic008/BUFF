@@ -70,6 +70,14 @@ export function GoogleSyncSection({ config }: { config: AppConfig }) {
       setResult(action);
       setLastSyncedAt(getSyncState().lastSyncedAt);
       setStatus("synced");
+      // A pulled-down copy lands in localStorage, but every already-mounted
+      // component (this page's own tracked-league list included) read its
+      // state once on mount and has no way to notice — without a reload the
+      // sync would look like it did nothing even though it just worked.
+      if (action === "apply-remote") {
+        window.location.reload();
+        return;
+      }
     } catch (err) {
       setStatus("error");
       setError(err instanceof Error ? err.message : "Sync failed.");
