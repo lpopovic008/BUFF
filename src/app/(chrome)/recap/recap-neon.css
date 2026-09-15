@@ -493,6 +493,34 @@
   color: var(--rn-secondary);
 }
 
+/* Season standings (win-loss records) — logo left of the name, record tight to the right edge */
+.recap-neon .rn-records-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.recap-neon .rn-records-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.recap-neon .rn-records-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--rn-secondary);
+  font-size: 15px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recap-neon .rn-records-record {
+  flex-shrink: 0;
+  color: var(--rn-primary);
+  font-weight: 800;
+  font-size: 15px;
+}
+
 /* Text bodies */
 .recap-neon .rn-sentence {
   font-size: 18px;

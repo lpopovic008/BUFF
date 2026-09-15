@@ -11,7 +11,8 @@ import {
   GOOD_LUCK_TO_ALL,
   upcomingWeekLabel,
 } from "@/lib/recap-model";
-import { BowlMatchupResult, BowlMatchupPreview } from "@/lib/bowl-narrative";
+import { BowlMatchupResult } from "@/lib/bowl-narrative";
+import { BowlGamePick } from "@/lib/localStore";
 import { LeagueTeamOption } from "@/hooks/useLeagueTeams";
 import { WeekRecapData } from "@/lib/league-data";
 import { PayoutLedger } from "@/lib/payouts";
@@ -23,6 +24,7 @@ import {
   highScorerForGraphic,
   lastWeekForGraphic,
   standingsForGraphic,
+  recordsStandingsForGraphic,
 } from "@/lib/recap-graphic-data";
 
 type FieldKey = keyof RecapModel;
@@ -151,20 +153,20 @@ function DecidedMatchupBody({ matchup, teams }: { matchup: BowlMatchupResult | n
   );
 }
 
-/** The two teams playing an upcoming matchup — not decided yet, so no winner/loser, just who's in it. Picking a team here writes straight back to the shared bowl pick (see recap/page.tsx), same as renaming the header above it. */
+/** The two teams playing an upcoming matchup — not decided yet, so no winner/loser, just who's in it. Bound to the raw pick (not a resolved preview, which is null until both a name and two teams exist) so a team already picked shows up immediately, even before a bowl name has been typed. Picking a team here writes straight back to the shared bowl pick (see recap/page.tsx), same as renaming the header above it. */
 function PreviewMatchupBody({
-  preview,
+  pick,
   teamOptions,
   onChangeTeam,
 }: {
-  preview: BowlMatchupPreview | null;
+  pick: BowlGamePick | null;
   teamOptions: LeagueTeamOption[] | null;
   onChangeTeam: (slot: 0 | 1, rosterId: number | "") => void;
 }) {
   if (!teamOptions) {
     return <p className="rn-caption">Loading teams…</p>;
   }
-  const rosterIds = preview?.rosterIds ?? [];
+  const rosterIds = pick?.rosterIds ?? [];
   return (
     <div className="rn-team-row">
       <TeamSelect value={rosterIds[0] ?? ""} options={teamOptions} onChange={(id) => onChangeTeam(0, id)} />
@@ -308,6 +310,25 @@ function StandingsBody({ recapData, ledger, week, teams }: LiveWeekData) {
   );
 }
 
+/** Every team's season win-loss record, ranked best to worst — logo on the left of the team name, the record held tight to the right edge, one row per team — same data and layout as the graphic's Season Standings section. */
+function RecordsStandingsBody({ recapData, teams }: { recapData: WeekRecapData | null; teams: Record<number, GraphicTeam> }) {
+  const rows = recordsStandingsForGraphic(recapData, teams);
+  if (!rows || rows.length === 0) {
+    return <p className="rn-caption">Calculated from live standings once games are underway — not editable.</p>;
+  }
+  return (
+    <div className="rn-records-rows">
+      {rows.map((r, i) => (
+        <div key={i} className="rn-records-row">
+          <Avatar url={r.avatarUrl} name={r.name} small />
+          <span className="rn-records-name">{r.name}</span>
+          <span className="rn-records-record">{r.record}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // Matches SECTION_TINT's old per-section variety, but every card in this
 // theme shares the same translucent-white surface (see recap-graphic.ts's
 // COLOR.card) — the graphic doesn't tint cards per section, so neither does
@@ -317,6 +338,7 @@ const SECTION_TITLE: Record<Exclude<RecapSectionKey, "bowl" | "honorable">, { em
   winners: { emoji: "💵", label: "Winners" },
   lastWeek: { emoji: "📊", label: "Last Week" },
   standings: { emoji: "💰", label: "Standings" },
+  records: { emoji: "📋", label: "Season Standings" },
   upcomingBowl: { emoji: "🏈", label: "Matchup of the Week" },
   upcomingHonorable: { emoji: "🥈", label: "Honorable Mention" },
 };
@@ -384,8 +406,10 @@ export function RecapSectionsEditor({
   onChange,
   bowlMatchup,
   honorableMatchup,
-  upcomingMatchup,
-  upcomingHonorableMatchup,
+  bowlPick,
+  honorablePick,
+  upcomingBowlPick,
+  upcomingHonorablePick,
   teams,
   teamOptions,
   recapData,
@@ -403,8 +427,11 @@ export function RecapSectionsEditor({
   onChange: (model: RecapModel) => void;
   bowlMatchup: BowlMatchupResult | null;
   honorableMatchup: BowlMatchupResult | null;
-  upcomingMatchup: BowlMatchupPreview | null;
-  upcomingHonorableMatchup: BowlMatchupPreview | null;
+  /** Raw, always-present picks the name inputs and team selects bind to — never null-gated or trimmed like the resolved matchups above, so typing a name before picking teams (or vice versa) always shows exactly what's stored. */
+  bowlPick: BowlGamePick | null;
+  honorablePick: BowlGamePick | null;
+  upcomingBowlPick: BowlGamePick | null;
+  upcomingHonorablePick: BowlGamePick | null;
   teams: Record<number, GraphicTeam>;
   /** The league's roster pool for the upcoming-matchup team pickers below — null until useLeagueTeams finishes loading. */
   teamOptions: LeagueTeamOption[] | null;
@@ -445,7 +472,7 @@ export function RecapSectionsEditor({
         included={included("bowl")}
         onToggleIncluded={() => toggleIncluded("bowl")}
         header={
-          <BowlNameInput value={bowlMatchup?.bowlName ?? ""} placeholder="Name the Bowl of the Week…" onRename={onRenameBowl} />
+          <BowlNameInput value={bowlPick?.name ?? ""} placeholder="Name the Bowl of the Week…" onRename={onRenameBowl} />
         }
         detailShown={detailShown("bowl")}
         onToggleDetail={() => toggleDetail("bowl")}
@@ -464,7 +491,7 @@ export function RecapSectionsEditor({
         onToggleIncluded={() => toggleIncluded("honorable")}
         header={
           <BowlNameInput
-            value={honorableMatchup?.bowlName ?? ""}
+            value={honorablePick?.name ?? ""}
             placeholder="Name the Honorable Mention…"
             onRename={onRenameHonorable}
           />
@@ -525,6 +552,17 @@ export function RecapSectionsEditor({
         <StandingsBody {...live} />
       </SectionBox>
 
+      <SectionBox
+        included={included("records")}
+        onToggleIncluded={() => toggleIncluded("records")}
+        header={<SectionHeader emoji={SECTION_TITLE.records.emoji} label={SECTION_TITLE.records.label} />}
+        detailShown={detailShown("records")}
+        onToggleDetail={() => toggleDetail("records")}
+        detail={<DetailField value={model.recordsDetail} onChange={(v) => set("recordsDetail", v)} />}
+      >
+        <RecordsStandingsBody recapData={recapData} teams={teams} />
+      </SectionBox>
+
       <div className="rn-divider" />
       <p className={`${recapDisplayFont.className} rn-upcoming-title`}>{upcomingWeekLabel(model.upcomingWeek)}</p>
 
@@ -536,7 +574,7 @@ export function RecapSectionsEditor({
           <>
             <SectionHeader emoji={SECTION_TITLE.upcomingBowl.emoji} label={SECTION_TITLE.upcomingBowl.label} />
             <BowlNameInput
-              value={upcomingMatchup?.bowlName ?? ""}
+              value={upcomingBowlPick?.name ?? ""}
               placeholder="Name next week's Matchup of the Week…"
               onRename={onRenameUpcomingBowl}
             />
@@ -546,7 +584,7 @@ export function RecapSectionsEditor({
         onToggleDetail={() => toggleDetail("upcomingBowl")}
         detail={<DetailField value={model.upcomingBowlDetail} onChange={(v) => set("upcomingBowlDetail", v)} />}
       >
-        <PreviewMatchupBody preview={upcomingMatchup} teamOptions={teamOptions} onChangeTeam={onChangeUpcomingBowlTeam} />
+        <PreviewMatchupBody pick={upcomingBowlPick} teamOptions={teamOptions} onChangeTeam={onChangeUpcomingBowlTeam} />
         <p className="rn-trailer">{WHO_WILL_PREVAIL}</p>
       </SectionBox>
 
@@ -558,7 +596,7 @@ export function RecapSectionsEditor({
           <>
             <SectionHeader emoji={SECTION_TITLE.upcomingHonorable.emoji} label={SECTION_TITLE.upcomingHonorable.label} />
             <BowlNameInput
-              value={upcomingHonorableMatchup?.bowlName ?? ""}
+              value={upcomingHonorablePick?.name ?? ""}
               placeholder="Name next week's Honorable Mention…"
               onRename={onRenameUpcomingHonorable}
             />
@@ -569,7 +607,7 @@ export function RecapSectionsEditor({
         detail={<DetailField value={model.upcomingHonorableDetail} onChange={(v) => set("upcomingHonorableDetail", v)} />}
       >
         <PreviewMatchupBody
-          preview={upcomingHonorableMatchup}
+          pick={upcomingHonorablePick}
           teamOptions={teamOptions}
           onChangeTeam={onChangeUpcomingHonorableTeam}
         />

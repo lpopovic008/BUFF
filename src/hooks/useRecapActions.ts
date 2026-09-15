@@ -20,6 +20,7 @@ import {
   highScorerForGraphic,
   lastWeekForGraphic,
   standingsForGraphic,
+  recordsStandingsForGraphic,
 } from "@/lib/recap-graphic-data";
 import { BowlMatchupResult, BowlMatchupPreview } from "@/lib/bowl-narrative";
 import { recapDisplayFont } from "@/lib/fonts";
@@ -137,6 +138,7 @@ export function useRecapActions(args: RecapActionsArgs) {
         winners: winnersForGraphic(args.recapData, args.ledger, args.week, canvasTeams),
         lastWeek: lastWeekForGraphic(args.recapData, args.ledger, args.week, canvasTeams),
         standings: standingsForGraphic(args.recapData, args.ledger, args.week, canvasTeams),
+        records: recordsStandingsForGraphic(args.recapData, canvasTeams),
         avatarByName,
         displayFontFamily: recapDisplayFont.style.fontFamily,
         include: args.model?.include,

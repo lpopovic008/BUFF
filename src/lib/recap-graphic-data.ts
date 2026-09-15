@@ -7,7 +7,15 @@
 // money, or by how much. Previously lived only inside useRecapActions.ts,
 // where only the canvas renderer could reach them.
 
-import { DecidedMatchup, PreviewMatchup, MatchupTeam, HighScorerGraphicData, WinnerGraphicRow, StandingsGraphicRow } from "./recap-graphic";
+import {
+  DecidedMatchup,
+  PreviewMatchup,
+  MatchupTeam,
+  HighScorerGraphicData,
+  WinnerGraphicRow,
+  StandingsGraphicRow,
+  RecordsGraphicRow,
+} from "./recap-graphic";
 import { BowlMatchupResult, BowlMatchupPreview } from "./bowl-narrative";
 import { WeekRecapData } from "./league-data";
 import { PayoutLedger, summarizeWeek, standingsThroughWeek } from "./payouts";
@@ -149,4 +157,19 @@ export function standingsForGraphic(
     amount: r.amount,
     amountLabel: `$${r.amount}`,
   }));
+}
+
+/** The Season Standings section's live rows — every team's win-loss record through this write-up's own week, ranked best to worst, by team name. Null before there's any matchup data yet (preseason). */
+export function recordsStandingsForGraphic(
+  recapData: WeekRecapData | null,
+  teams: Record<number, GraphicTeam>
+): RecordsGraphicRow[] | null {
+  if (!recapData || recapData.standingsAfter.length === 0) return null;
+  return [...recapData.standingsAfter]
+    .sort((a, b) => a.rank - b.rank)
+    .map((row) => ({
+      name: teams[row.rosterId]?.name ?? row.teamName,
+      avatarUrl: teams[row.rosterId]?.avatar ?? null,
+      record: `${row.wins}-${row.losses}${row.ties ? `-${row.ties}` : ""}`,
+    }));
 }

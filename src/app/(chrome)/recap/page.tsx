@@ -118,6 +118,13 @@ function RecapContent() {
 
   const [money, setMoney] = useState<LeagueMoney | null>(null);
   const [upcomingPicks, setUpcomingPicks] = useState<RecapBowlPicks | null>(null);
+  // This week's own bowl picks, raw and untrimmed — the source the bowl/
+  // honorable name inputs bind to directly, instead of the *resolved*
+  // bowlMatchup/honorableMatchup below (which is null until both a name AND
+  // two teams exist, and trims the name for display). Binding a text input
+  // to a value that can vanish or get silently trimmed mid-edit is exactly
+  // what made the name field feel broken — see renameResultBowl.
+  const [resultPicks, setResultPicks] = useState<RecapBowlPicks | null>(null);
   const [teamNames, setTeamNames] = useState<Record<number, string>>({});
   // Player id -> display name, for the High Scorer section's live "led by"
   // callout (see RecapSectionsEditor) — resolved once per week from the
@@ -169,6 +176,7 @@ function RecapContent() {
       setFreshModel(null);
       setMoney(null);
       setUpcomingPicks(null);
+      setResultPicks(null);
       setTeamNames({});
       setHighScorerNames({});
       setBowlMatchup(null);
@@ -258,6 +266,7 @@ function RecapContent() {
           const resultPick = getBowlPicks(leagueId, data.league.season, week);
           const upcoming = getBowlPicks(leagueId, data.league.season, week + 1);
           setUpcomingPicks(upcoming);
+          setResultPicks(resultPick);
           setBowlMatchup(resolveBowlMatchup(resultPick.bowlOfWeek, data.games));
           setHonorableMatchup(resolveBowlMatchup(resultPick.honorableBowl, data.games));
           setUpcomingBowlPreview(resolveBowlMatchupPreview(upcoming.bowlOfWeek));
@@ -363,6 +372,7 @@ function RecapContent() {
     const updatedPick = { ...current[field], name };
     const updated: RecapBowlPicks = { ...current, [field]: updatedPick };
     saveBowlPicks(leagueId, header.season, week, updated);
+    setResultPicks(updated);
 
     const matchup = resolveBowlMatchup(updatedPick, recapData.games);
     if (field === "bowlOfWeek") setBowlMatchup(matchup);
@@ -538,8 +548,10 @@ function RecapContent() {
             freshModel={freshModel}
             bowlMatchup={bowlMatchup}
             honorableMatchup={honorableMatchup}
-            upcomingMatchup={upcomingBowlPreview}
-            upcomingHonorableMatchup={upcomingHonorablePreview}
+            bowlPick={resultPicks?.bowlOfWeek ?? null}
+            honorablePick={resultPicks?.honorableBowl ?? null}
+            upcomingBowlPick={upcomingPicks?.bowlOfWeek ?? null}
+            upcomingHonorablePick={upcomingPicks?.honorableBowl ?? null}
             teams={teamsById}
             teamOptions={teamOptions}
             recapData={recapData}

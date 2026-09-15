@@ -17,6 +17,7 @@ export const RECAP_HEADERS = {
   winners: "🤑 Winners this week who will receive commission:",
   lastWeek: "🗓️Last week Results:",
   standings: "💰 Updated Standings:",
+  records: "📋 Season Standings:",
   upcomingBowl: "🥇 Matchup of the Week:",
   upcomingHonorable: "🥈Honorable Mention:",
 } as const;
@@ -36,6 +37,7 @@ export const RECAP_SECTIONS = [
   { key: "winners", label: "🤑 Winners Podium" },
   { key: "lastWeek", label: "🗓️ Last Week Results" },
   { key: "standings", label: "💰 Updated Standings" },
+  { key: "records", label: "📋 Season Standings" },
   { key: "upcomingBowl", label: "🥇 Matchup of the Week" },
   { key: "upcomingHonorable", label: "🥈 Honorable Mention Preview" },
 ] as const;
@@ -59,6 +61,9 @@ export interface RecapModel {
   /** One line per team's running total. */
   standings: string;
   standingsDetail: string;
+  /** One line per team's season win-loss record, ranked best to worst. */
+  records: string;
+  recordsDetail: string;
   upcomingWeek: number;
   upcomingBowlLines: string;
   upcomingBowlDetail: string;
@@ -83,6 +88,7 @@ export const DETAIL_FIELD: Record<RecapSectionKey, keyof RecapModel> = {
   winners: "winnersDetail",
   lastWeek: "lastWeekDetail",
   standings: "standingsDetail",
+  records: "recordsDetail",
   upcomingBowl: "upcomingBowlDetail",
   upcomingHonorable: "upcomingHonorableDetail",
 };
@@ -114,6 +120,8 @@ export const EMPTY_RECAP_MODEL: RecapModel = {
   lastWeekDetail: "",
   standings: "",
   standingsDetail: "",
+  records: "",
+  recordsDetail: "",
   upcomingWeek: 1,
   upcomingBowlLines: "",
   upcomingBowlDetail: "",
@@ -144,6 +152,11 @@ export function joinRecapModel(model: RecapModel): string {
   if (included("standings")) {
     lines.push(RECAP_HEADERS.standings, ...model.standings.split("\n"));
     if (model.standingsDetail) lines.push("", model.standingsDetail);
+    lines.push("");
+  }
+  if (included("records")) {
+    lines.push(RECAP_HEADERS.records, ...model.records.split("\n"));
+    if (model.recordsDetail) lines.push("", model.recordsDetail);
     lines.push("");
   }
   lines.push(upcomingWeekLabel(model.upcomingWeek), "");
@@ -243,6 +256,11 @@ export function parseRecapModel(body: string): RecapModel | null {
   const standings = readBlockUntilBlank(lines, i);
   i = standings.next;
 
+  if (lines[i] !== RECAP_HEADERS.records) return null;
+  i++;
+  const records = readBlockUntilBlank(lines, i);
+  i = records.next;
+
   const upcomingMatch = lines[i]?.match(/^UPCOMING WEEK (\d+):$/);
   if (!upcomingMatch) return null;
   const upcomingWeek = Number(upcomingMatch[1]);
@@ -284,6 +302,8 @@ export function parseRecapModel(body: string): RecapModel | null {
     lastWeekDetail: "",
     standings: standings.block.join("\n"),
     standingsDetail: "",
+    records: records.block.join("\n"),
+    recordsDetail: "",
     upcomingWeek,
     upcomingBowlLines: upcomingBowl.lines.join("\n"),
     upcomingBowlDetail: upcomingBowl.detail.join("\n"),

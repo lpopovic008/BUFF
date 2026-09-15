@@ -121,6 +121,10 @@ export function buildWeeklyRecapModel({
       ? standingsRows.map((row) => `$${row.amount} ${row.name}`)
       : ["[most profitable team profit so far] [most profitable team name]"];
 
+  const records = [...data.standingsAfter]
+    .sort((a, b) => a.rank - b.rank)
+    .map((row) => `${row.teamName} ${row.wins}-${row.losses}${row.ties ? `-${row.ties}` : ""}`);
+
   return {
     title: `🚨📋 Week ${week} Recap`,
     bowlResult: bowlResultLine,
@@ -135,6 +139,8 @@ export function buildWeeklyRecapModel({
     lastWeekDetail: "",
     standings: standings.join("\n"),
     standingsDetail: "",
+    records: records.join("\n"),
+    recordsDetail: "",
     upcomingWeek: week + 1,
     upcomingBowlLines: upcomingBowlLines.join("\n"),
     upcomingBowlDetail: details.upcomingBowl,
@@ -193,6 +199,8 @@ export function buildPreseasonRecapModel({
     lastWeekDetail: "",
     standings: "[most profitable team profit so far] [most profitable team name]",
     standingsDetail: "",
+    records: "[team] [wins]-[losses]",
+    recordsDetail: "",
     upcomingWeek: 1,
     upcomingBowlLines: upcomingBowlLines.join("\n"),
     upcomingBowlDetail: details.upcomingBowl,

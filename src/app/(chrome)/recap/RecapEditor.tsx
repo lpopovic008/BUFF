@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { RecapModel } from "@/lib/recap-model";
-import { BowlMatchupResult, BowlMatchupPreview } from "@/lib/bowl-narrative";
+import { BowlMatchupResult } from "@/lib/bowl-narrative";
+import { BowlGamePick } from "@/lib/localStore";
 import { LeagueTeamOption } from "@/hooks/useLeagueTeams";
 import { WeekRecapData } from "@/lib/league-data";
 import { PayoutLedger } from "@/lib/payouts";
@@ -75,8 +76,10 @@ export function RecapEditor({
   freshModel,
   bowlMatchup,
   honorableMatchup,
-  upcomingMatchup,
-  upcomingHonorableMatchup,
+  bowlPick,
+  honorablePick,
+  upcomingBowlPick,
+  upcomingHonorablePick,
   teams,
   teamOptions,
   recapData,
@@ -98,8 +101,11 @@ export function RecapEditor({
   freshModel: RecapModel | null;
   bowlMatchup: BowlMatchupResult | null;
   honorableMatchup: BowlMatchupResult | null;
-  upcomingMatchup: BowlMatchupPreview | null;
-  upcomingHonorableMatchup: BowlMatchupPreview | null;
+  /** Raw, always-present picks the name inputs and team selects bind to directly — see RecapSectionsEditor's BowlNameInput/PreviewMatchupBody. */
+  bowlPick: BowlGamePick | null;
+  honorablePick: BowlGamePick | null;
+  upcomingBowlPick: BowlGamePick | null;
+  upcomingHonorablePick: BowlGamePick | null;
   /** Roster id -> team name/logo/username, resolving the matchups above into names to display. */
   teams: Record<number, GraphicTeam>;
   /** The league's roster pool for the upcoming-matchup team pickers — null until useLeagueTeams finishes loading. */
@@ -164,8 +170,10 @@ export function RecapEditor({
           onChange={onModelChange}
           bowlMatchup={bowlMatchup}
           honorableMatchup={honorableMatchup}
-          upcomingMatchup={upcomingMatchup}
-          upcomingHonorableMatchup={upcomingHonorableMatchup}
+          bowlPick={bowlPick}
+          honorablePick={honorablePick}
+          upcomingBowlPick={upcomingBowlPick}
+          upcomingHonorablePick={upcomingHonorablePick}
           teams={teams}
           teamOptions={teamOptions}
           recapData={recapData}

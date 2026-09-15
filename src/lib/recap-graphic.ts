@@ -109,6 +109,14 @@ export interface StandingsGraphicRow {
   amountLabel: string;
 }
 
+/** One row of the Season Standings section — a team's logo and name on the left, their win-loss record tight to the right edge. */
+export interface RecordsGraphicRow {
+  name: string;
+  avatarUrl: string | null;
+  /** e.g. "8-2" or "8-2-1" when the league allows ties. */
+  record: string;
+}
+
 export interface RecapGraphicExtras {
   bowl?: DecidedMatchup | null;
   honorable?: DecidedMatchup | null;
@@ -119,6 +127,8 @@ export interface RecapGraphicExtras {
   /** Live per-team rows for Last Week Results, by team name (not the ledger's real-person manager name, which is what the flattened text's own Last Week block uses). Null falls back to parsing that flattened text. */
   lastWeek?: { name: string; pointsLabel: string; points: number; won: boolean; resolved: boolean }[] | null;
   standings?: StandingsGraphicRow[] | null;
+  /** Live per-team season records for the Season Standings section, ranked best to worst. Null falls back to parsing the flattened text. */
+  records?: RecordsGraphicRow[] | null;
   /** Every team's logo, keyed by the exact display name used in the write-up text — how sections without their own structured data above (an older/plain recap) find a team's logo, since the underlying text only ever has names. */
   avatarByName?: Record<string, string | null>;
   /** CSS font-family for the "college sports" display font (see fonts.ts) — falls back to the body font stack if omitted or it fails to load in time. */
@@ -395,13 +405,14 @@ interface SectionTitle {
  * emoji glyph can make it render tinted instead of its native color.
  */
 const GRAPHIC_SECTION_TITLE: Record<
-  "highScorer" | "winners" | "lastWeek" | "standings" | "upcomingBowl" | "upcomingHonorable",
+  "highScorer" | "winners" | "lastWeek" | "standings" | "records" | "upcomingBowl" | "upcomingHonorable",
   SectionTitle
 > = {
   highScorer: { emoji: "🏆", label: "High Scorer" },
   winners: { emoji: "💵", label: "Winners" },
   lastWeek: { emoji: "📊", label: "Last Week" },
   standings: { emoji: "💰", label: "Standings" },
+  records: { emoji: "📋", label: "Season Standings" },
   upcomingBowl: { emoji: "🏈", label: "Matchup of the Week" },
   upcomingHonorable: { emoji: "🥈", label: "Honorable Mention" },
 };
@@ -860,6 +871,59 @@ class Layout {
     });
   }
 
+  /** Every team's season win-loss record, ranked best to worst — a small logo on the left of the team name, the record ("8-2") held tight to the card's right edge, one row per team. No bar; this is a plain ranked list. */
+  recordsStandings(title: SectionTitle, rows: RecordsGraphicRow[], detail?: string) {
+    if (rows.length === 0) return;
+    this.card((paint, inner) => {
+      let h = this.sectionHeader(paint, inner, title);
+      h += 28;
+      const rowH = 44;
+      const avatarR = 16;
+
+      if (paint) {
+        const ctx = this.ctx;
+        for (const row of rows) {
+          const rowY = inner.y + h;
+          const cy = rowY + rowH / 2;
+          const img = row.avatarUrl ? (this.gctx.images.get(row.avatarUrl) ?? null) : null;
+          drawAvatarCircle(ctx, inner.x + avatarR, cy, avatarR, img, row.name);
+
+          ctx.font = `800 18px ${FONT_STACK}`;
+          const recordW = ctx.measureText(row.record).width;
+
+          ctx.font = `600 17px ${FONT_STACK}`;
+          const nameX = inner.x + avatarR * 2 + 14;
+          const maxNameWidth = inner.width - avatarR * 2 - 14 - recordW - 16;
+          const name = truncateToWidth(ctx, row.name, maxNameWidth);
+          ctx.fillStyle = COLOR.secondary;
+          ctx.textAlign = "left";
+          ctx.textBaseline = "middle";
+          ctx.fillText(name, nameX, cy);
+
+          ctx.font = `800 18px ${FONT_STACK}`;
+          ctx.fillStyle = COLOR.primary;
+          ctx.textAlign = "right";
+          ctx.fillText(row.record, inner.x + inner.width, cy);
+
+          h += rowH;
+        }
+      } else {
+        h += rowH * rows.length;
+      }
+
+      if (detail?.trim()) {
+        h += 12;
+        h += drawText(this.ctx, paint, inner.x, inner.y + h, inner.width, detail, {
+          size: 18,
+          weight: "800",
+          color: COLOR.primary,
+          lineHeight: 24,
+        });
+      }
+      return h;
+    });
+  }
+
   /** Name on the left, score in the middle with a faint bar behind the row scaled to that score, a green "W"/red "L" on the right — one row per team. `barFloorPx` is the minimum bar width (past the longest name actually shown here, so a bar never starts underneath its own row's name, and even the lowest scorer's bar isn't a sliver) and `barCeilingPx` the most any bar can reach (short of the W/L column). */
   lastWeekTable(
     title: SectionTitle,
@@ -1069,6 +1133,34 @@ function standingsRowsFromModel(model: RecapModel, avatarByName: Record<string, 
   }));
 }
 
+/**
+ * "Luka 8-2\nIvan 7-3..." -> one row per team, keeping the original record
+ * text verbatim. Falls back to the whole line as the name with a "–" record
+ * when it isn't in that shape yet. Only used as a fallback for a recap with
+ * no structured records data.
+ */
+function parseRecordsRows(text: string): { name: string; record: string }[] {
+  const rows: { name: string; record: string }[] = [];
+  for (const line of text.split("\n")) {
+    if (!line.trim()) continue;
+    const match = line.match(/^(.+?)\s+(\d+-\d+(?:-\d+)?)$/);
+    if (match) {
+      rows.push({ name: match[1].trim(), record: match[2] });
+    } else {
+      rows.push({ name: line.trim(), record: "–" });
+    }
+  }
+  return rows;
+}
+
+function recordsRowsFromModel(model: RecapModel, avatarByName: Record<string, string | null> | undefined): RecordsGraphicRow[] {
+  return parseRecordsRows(model.records).map((r) => ({
+    name: r.name,
+    avatarUrl: lookupAvatar(avatarByName, r.name),
+    record: r.record,
+  }));
+}
+
 /** The longest of `names` at the given font — the floor for Last Week Results' score bars, so a bar's start (and its "0") never lands underneath the name text instead of past the end of it, and even the lowest scorer's bar still reads as a bar rather than a sliver. `font` must match whatever the caller actually renders those names in, or this floor is measuring the wrong thing. */
 function measureLongestText(ctx: CanvasRenderingContext2D, texts: string[], font: string): number {
   ctx.font = font;
@@ -1148,6 +1240,14 @@ function runLayout(
         GRAPHIC_SECTION_TITLE.standings,
         matchups.standings ?? standingsRowsFromModel(model, matchups.avatarByName),
         model.standingsDetail
+      );
+    }
+
+    if (included("records")) {
+      l.recordsStandings(
+        GRAPHIC_SECTION_TITLE.records,
+        matchups.records ?? recordsRowsFromModel(model, matchups.avatarByName),
+        model.recordsDetail
       );
     }
 
@@ -1265,6 +1365,7 @@ export async function drawRecapGraphic(
     ...(matchups.highScorer?.topPlayers.map((p) => p.photoUrl) ?? []),
     ...(matchups.winners?.map((w) => w.avatarUrl) ?? []),
     ...(matchups.standings?.map((s) => s.avatarUrl) ?? []),
+    ...(matchups.records?.map((r) => r.avatarUrl) ?? []),
     ...Object.values(matchups.avatarByName ?? {}),
   ];
   const [images, displayFamily] = await Promise.all([preloadImages(avatarUrls), ensureDisplayFont(matchups.displayFontFamily)]);
