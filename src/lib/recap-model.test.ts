@@ -15,6 +15,7 @@ function sampleModel(overrides: Partial<RecapModel> = {}): RecapModel {
     winners: "🔹The Sharks\n▫️The Otters\n▫️The Minnows",
     lastWeek: "The Sharks\n154.20 ✅\nThe Otters\n120.10 ✅",
     standings: "$140 The Sharks\n$90 The Otters",
+    records: "The Sharks 8-2\nThe Otters 6-4\nThe Minnows 2-8",
     upcomingWeek: 5,
     upcomingBowlLines: "THE GATOR BOWL\nThe Sharks vs The Whales\n\nThe Sharks has scored 500.5 which ranks 1st in the league",
     upcomingBowlDetail: "Should be a good one.",

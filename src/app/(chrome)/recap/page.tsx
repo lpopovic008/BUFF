@@ -21,7 +21,7 @@ import {
   buildPreseasonRecapModel,
   findWeekTopStarters,
 } from "@/lib/format-recap";
-import { RecapModel, parseRecapModel } from "@/lib/recap-model";
+import { RecapModel, parseRecapModel, EMPTY_RECAP_MODEL } from "@/lib/recap-model";
 import {
   formatBowlResultLine,
   formatUpcomingBowlBlock,
@@ -67,7 +67,12 @@ function resolveHouseStyleState(
   saved: SavedRecap | null
 ): { model: RecapModel | null; plainBody: string; fresh: RecapModel } {
   if (!saved) return { model: fresh, plainBody: "", fresh };
-  if (saved.model) return { model: saved.model, plainBody: "", fresh };
+  // A model saved before a field existed (e.g. records/recordsDetail, added
+  // for the Season Standings section) simply won't have that key in its
+  // JSON — spreading it over EMPTY_RECAP_MODEL backfills anything missing
+  // instead of leaving it undefined, which every reader here (joinRecapModel,
+  // isDetailShown, ...) assumes is always at least an empty string.
+  if (saved.model) return { model: { ...EMPTY_RECAP_MODEL, ...saved.model }, plainBody: "", fresh };
   const parsed = parseRecapModel(saved.body);
   return parsed ? { model: parsed, plainBody: "", fresh } : { model: null, plainBody: saved.body, fresh };
 }
