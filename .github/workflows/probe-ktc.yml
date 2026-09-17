@@ -1,0 +1,23 @@
+name: Probe KTC page structure
+
+# Temporary — diagnoses why fetch-player-values.ts's extraction fails on
+# keeptradecut.com/fantasy-rankings specifically. Deleted once the real fix
+# lands (this sandbox can't reach keeptradecut.com directly to debug it
+# locally, same reasoning as the earlier Sleeper stats probe).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsx scripts/probe-ktc.ts
