@@ -227,6 +227,69 @@ function extractNestedValue(obj: Record<string, unknown>, key: string): number |
   return null;
 }
 
+/**
+ * Scans `text` (typically one <script> tag's body) for every *top-level*
+ * bracket-matched array — using extractBalancedArray so a nested array
+ * doesn't get mistaken for the end of an outer one — skipping past each
+ * match once found so nested arrays inside it aren't also returned
+ * separately. Quote-tracked the same way extractBalancedArray is, so a `[`
+ * or `]` inside a string literal is ignored rather than treated as a
+ * bracket.
+ */
+function extractAllTopLevelArrays(text: string): string[] {
+  const found: string[] = [];
+  let quote: string | null = null;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (quote) {
+      if (ch === "\\") i++;
+      else if (ch === quote) quote = null;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      continue;
+    }
+    if (ch === "[") {
+      const arrayText = extractBalancedArray(text, i);
+      if (arrayText) {
+        found.push(arrayText);
+        i += arrayText.length - 1; // resume scanning right after this array
+      }
+    }
+  }
+  return found;
+}
+
+/**
+ * The real ~500-player table turns out not to be assigned to any variable
+ * at all — it's a bare JSON array that IS the entire body of its own
+ * <script> tag (confirmed via a live probe run: "var playersArray" only
+ * ever matches a much smaller "trending players" widget elsewhere on the
+ * page). This checks every <script> block's every top-level array and
+ * keeps whichever one both parses as JSON and is shaped like a full
+ * player-values table, largest first — independent of any variable name,
+ * so it isn't tied to KTC's current naming at all.
+ */
+function extractLargestPlayerArray(html: string): unknown[] | null {
+  const scriptBlobs = [...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+  let best: unknown[] | null = null;
+  for (const blob of scriptBlobs) {
+    for (const arrayText of extractAllTopLevelArrays(blob)) {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(arrayText);
+      } catch {
+        continue;
+      }
+      if (Array.isArray(parsed) && parsed.length >= 20 && parsed.every(looksLikePlayerRecord)) {
+        if (!best || parsed.length > best.length) best = parsed;
+      }
+    }
+  }
+  return best;
+}
+
 function normalize(raw: unknown[]): PlayerValue[] {
   const rows: PlayerValue[] = [];
   for (const item of raw) {
@@ -249,15 +312,25 @@ async function fetchRanking(url: string, label: string): Promise<PlayerValue[]> 
   const html = await fetchHtml(url);
   console.log(`  received ${html.length} bytes`);
 
+  const largest = extractLargestPlayerArray(html);
+  if (largest) {
+    console.log(`  found a full player-values array (${largest.length} entries) inside a <script> tag`);
+    const normalized = normalize(largest);
+    if (normalized.length > 0) return normalized;
+    // Our guessed field names didn't match anything — dump a real record so
+    // the actual keys are visible in the CI log instead of guessing again blind.
+    console.log(`  normalize() found 0 valid rows; sample raw entry:`);
+    console.log(JSON.stringify(largest[0], null, 2));
+  }
+
+  // Fallbacks, in case KTC's page structure changes again: a bare
+  // `var playersArray = [...]` (the pattern several other open-source KTC
+  // tools rely on) or a Next.js __NEXT_DATA__ hydration blob.
   const literal = extractPlayersArrayLiteral(html);
   if (literal) {
     console.log(`  found playersArray literal with ${literal.length} entries`);
     const normalized = normalize(literal);
     if (normalized.length > 0) return normalized;
-    // Our guessed field names didn't match anything — dump a real record so
-    // the actual keys are visible in the CI log instead of guessing again blind.
-    console.log(`  normalize() found 0 valid rows; sample raw entry:`);
-    console.log(JSON.stringify(literal[0], null, 2));
   }
 
   const nextData = extractNextData(html);
@@ -268,25 +341,6 @@ async function fetchRanking(url: string, label: string): Promise<PlayerValue[]> 
       console.log(`  located a player-shaped array inside __NEXT_DATA__ with ${found.length} entries`);
       const normalized = normalize(found);
       if (normalized.length > 0) return normalized;
-    }
-  }
-
-  // Last resort: hunt for ANY inline <script> JSON blob shaped like player data.
-  const scriptBlobs = [...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)]
-    .map((m) => m[1])
-    .filter((s) => s.includes("value") || s.includes("Value"));
-  for (const blob of scriptBlobs) {
-    const arrayMatch = blob.match(/(\[\s*\{[\s\S]*?\}\s*\])/);
-    if (!arrayMatch) continue;
-    try {
-      const parsed = JSON.parse(arrayMatch[1]);
-      if (Array.isArray(parsed) && parsed.length >= 20 && parsed.every(looksLikePlayerRecord)) {
-        console.log(`  found a raw script-tag array with ${parsed.length} entries`);
-        const normalized = normalize(parsed);
-        if (normalized.length > 0) return normalized;
-      }
-    } catch {
-      // not this one
     }
   }
 
