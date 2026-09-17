@@ -108,14 +108,14 @@ function LeagueDetailContent() {
       </div>
 
       {carousel && carousel.games.length > 0 ? (
-        <Card className="p-3 animate-[rise_0.5s_ease-out_backwards] [animation-delay:80ms] sm:p-5">
+        <div className="animate-[rise_0.5s_ease-out_backwards] [animation-delay:80ms]">
           <LeagueMatchupCarousel
             leagueId={leagueId}
             games={carousel.games}
             valueRankLabel={carousel.valueRankLabel}
             myRosterId={myRow?.rosterId ?? null}
           />
-        </Card>
+        </div>
       ) : null}
 
       {money ? (

@@ -15,14 +15,16 @@ function slotLabel(slot: string): string {
 }
 
 // Fixed column widths so every row's headshot/name/Pos Rk/value-rank/points
-// line up under the header labels above them. This view is only ~150px wide
-// per side on a phone (main's px-3 + the Card's own p-3 leave little room),
-// and a headshot plus two real rank columns plus points already claim most
-// of that. Names go through abbreviateFirstName ("Josh Allen" -> "J. Allen")
-// so the row text can run a size up (text-[11px] instead of the plain
-// text-xs used elsewhere) while still fitting most names without truncating.
-// Mirrored left-to-right for the "their" side, which reads right-to-left
-// (points nearest the middle, headshot on the outside).
+// line up under the header labels above them. Even unboxed (see the league
+// page, which dropped the Card wrapper around this component specifically
+// to give it more width) this is still only ~165px wide per side on a phone
+// (main's own px-3 is the only padding left), and a headshot plus two real
+// rank columns plus points already claim most of that. Names go through
+// abbreviateFirstName ("Josh Allen" -> "J. Allen") so the row text can run a
+// size up (text-[11px] instead of the plain text-xs used elsewhere) while
+// still fitting most names without truncating. Mirrored left-to-right for
+// the "their" side, which reads right-to-left (points nearest the middle,
+// headshot on the outside).
 const MY_ROW_COLS = "grid-cols-[22px_minmax(0,1fr)_1.2rem_1.2rem_1.75rem]";
 const THEIR_ROW_COLS = "grid-cols-[1.75rem_1.2rem_1.2rem_minmax(0,1fr)_22px]";
 
