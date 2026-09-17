@@ -5,6 +5,7 @@
 // a matchup for the dashboard.
 
 import { LeagueFormat, PlayerValuesSnapshot, TEPremium, valueFor } from "./player-values";
+import { PlayerStatsSnapshot, ppgFor } from "./player-stats";
 import { ResolvedPlayer } from "./players";
 import { normalizeName } from "./name-match";
 
@@ -77,4 +78,75 @@ export function topPlayersByValue(
   metric: ValueMetric = DEFAULT_VALUE_METRIC
 ): RankedPlayer[] {
   return rankPlayersByValue(players, livePointsById, snapshot, metric).slice(0, count);
+}
+
+// --- Position-scoped ranks (lineup view's "Pos Rk" / "Dynasty"/"Fantasy" columns) ---
+//
+// The Values page's own `rank` is computed across every position at once
+// (see app/(chrome)/values/page.tsx) — not what a lineup row wants, since
+// "Chris Olave is dynasty #47 overall" is a meaningless number next to a
+// bare position column. These instead rank a player only against others at
+// their own position, e.g. Chris Olave -> WR13.
+
+const positionValueRankCache = new Map<string, Map<string, number>>();
+let positionRankedValueSnapshot: PlayerValuesSnapshot | null = null;
+
+/** A player's dynasty/fantasy rank among every player at their own position (1 = most valuable), keyed by normalized name. */
+export function positionValueRankIndexFor(snapshot: PlayerValuesSnapshot, metric: ValueMetric): Map<string, number> {
+  if (positionRankedValueSnapshot !== snapshot) {
+    positionValueRankCache.clear();
+    positionRankedValueSnapshot = snapshot;
+  }
+  const key = `${metric.listType}:${metric.format}:${metric.tep}`;
+  const cached = positionValueRankCache.get(key);
+  if (cached) return cached;
+
+  const list = metric.listType === "dynasty" ? snapshot.dynasty : snapshot.fantasy;
+  const byPosition = new Map<string, typeof list>();
+  for (const p of list) {
+    const group = byPosition.get(p.position);
+    if (group) group.push(p);
+    else byPosition.set(p.position, [p]);
+  }
+
+  const idx = new Map<string, number>();
+  for (const group of byPosition.values()) {
+    const ranked = [...group].sort((a, b) => valueFor(b, metric.format, metric.tep) - valueFor(a, metric.format, metric.tep));
+    ranked.forEach((p, i) => idx.set(normalizeName(p.name), i + 1));
+  }
+  positionValueRankCache.set(key, idx);
+  return idx;
+}
+
+const positionPpgRankCache = new Map<string, Map<string, number>>();
+let positionRankedStatsSnapshot: PlayerStatsSnapshot | null = null;
+
+/** A player's points-per-game rank among every player at their own position this season (1 = highest PPG), keyed by Sleeper player id. */
+export function positionPpgRankIndexFor(
+  snapshot: PlayerStatsSnapshot,
+  scoringSettings?: Record<string, number>
+): Map<string, number> {
+  if (positionRankedStatsSnapshot !== snapshot) {
+    positionPpgRankCache.clear();
+    positionRankedStatsSnapshot = snapshot;
+  }
+  const key = JSON.stringify(scoringSettings ?? {});
+  const cached = positionPpgRankCache.get(key);
+  if (cached) return cached;
+
+  const byPosition = new Map<string, typeof snapshot.players>();
+  for (const line of snapshot.players) {
+    if (line.gamesPlayed <= 0) continue; // no games played yet -> no meaningful PPG to rank
+    const group = byPosition.get(line.position);
+    if (group) group.push(line);
+    else byPosition.set(line.position, [line]);
+  }
+
+  const idx = new Map<string, number>();
+  for (const group of byPosition.values()) {
+    const ranked = [...group].sort((a, b) => ppgFor(b, scoringSettings) - ppgFor(a, scoringSettings));
+    ranked.forEach((line, i) => idx.set(line.playerId, i + 1));
+  }
+  positionPpgRankCache.set(key, idx);
+  return idx;
 }

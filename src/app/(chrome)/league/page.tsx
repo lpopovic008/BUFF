@@ -57,7 +57,7 @@ function LeagueDetailContent() {
   }, [leagueId]);
 
   const myRow = summary?.standings.find((r) => r.ownerId === config.sleeperUserId) ?? null;
-  const carouselGames = useLeagueMatchupCarousel(leagueId, week);
+  const carousel = useLeagueMatchupCarousel(leagueId, week);
 
   if (!leagueId) {
     return <Card className="p-12 text-center text-sm text-ink-secondary">No league selected.</Card>;
@@ -107,9 +107,14 @@ function LeagueDetailContent() {
         </div>
       </div>
 
-      {carouselGames && carouselGames.length > 0 ? (
+      {carousel && carousel.games.length > 0 ? (
         <Card className="p-3 animate-[rise_0.5s_ease-out_backwards] [animation-delay:80ms] sm:p-5">
-          <LeagueMatchupCarousel leagueId={leagueId} games={carouselGames} myRosterId={myRow?.rosterId ?? null} />
+          <LeagueMatchupCarousel
+            leagueId={leagueId}
+            games={carousel.games}
+            valueRankLabel={carousel.valueRankLabel}
+            myRosterId={myRow?.rosterId ?? null}
+          />
         </Card>
       ) : null}
 

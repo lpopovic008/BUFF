@@ -1,0 +1,61 @@
+name: Update player stats
+
+# Daily during the season — season-long per-player point/games-played totals
+# don't change intra-week except as games are played, so a daily refresh
+# (plus on demand) keeps the lineup view's "Pos Rk" column current without
+# hammering Sleeper's undocumented stats endpoint.
+on:
+  schedule:
+    - cron: "0 13 * * *" # 13:00 UTC daily (~8am ET / 9am ET DST)
+  workflow_dispatch:
+    inputs:
+      probe:
+        description: "Probe Sleeper's stats endpoint for the real response shape (minimal-cost) instead of a full fetch — writes nothing"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: player-stats
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - if: ${{ github.event.inputs.probe == 'true' }}
+        run: npx tsx scripts/fetch-player-stats.ts --probe
+      - if: ${{ github.event.inputs.probe != 'true' }}
+        run: npx tsx scripts/fetch-player-stats.ts
+      - name: Commit updated player stats
+        id: commit
+        if: ${{ github.event.inputs.probe != 'true' }}
+        run: |
+          if [ -z "$(git status --porcelain src/data/player-stats.json)" ]; then
+            echo "No change in player stats."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/data/player-stats.json
+          git commit -m "Update player stats"
+          git push
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+      - name: Trigger deploy
+        # A push made with the default GITHUB_TOKEN does not cascade into
+        # other workflows' `on: push` triggers (GitHub's loop-prevention), so
+        # the commit above would otherwise sit undeployed until the next
+        # unrelated push to main. Dispatch deploy.yml explicitly instead.
+        if: steps.commit.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run deploy.yml --ref main
