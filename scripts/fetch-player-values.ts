@@ -38,12 +38,53 @@ async function fetchHtml(url: string): Promise<string> {
   return res.text();
 }
 
+/**
+ * Finds the JSON array literal starting at `html[openBracket]` (which must be
+ * `[`) by walking bracket depth char by char — respecting string literals
+ * (so a `[` or `]` inside a quoted value doesn't miscount) — until the
+ * opening bracket's own matching close. Returns the full `[...]` substring,
+ * or null if the brackets never balance before the string ends.
+ *
+ * A regex can't do this reliably: a shortest-match (non-greedy) pattern
+ * stops at the FIRST "];" it finds, which is wrong whenever the real array
+ * contains any nested array that happens to close right before a semicolon
+ * elsewhere in the script — exactly what broke this scraper on KTC's
+ * fantasy-rankings page (it grabbed an unrelated ~4KB team-stats array
+ * instead of the real ~1.5MB, 500-player one just past it).
+ */
+function extractBalancedArray(html: string, openBracket: number): string | null {
+  if (html[openBracket] !== "[") return null;
+  let depth = 0;
+  let quote: string | null = null;
+  for (let i = openBracket; i < html.length; i++) {
+    const ch = html[i];
+    if (quote) {
+      if (ch === "\\") i++; // skip whatever's escaped, including an escaped quote
+      else if (ch === quote) quote = null;
+      continue;
+    }
+    if (ch === '"' || ch === "'") quote = ch;
+    else if (ch === "[") depth++;
+    else if (ch === "]") {
+      depth--;
+      if (depth === 0) return html.slice(openBracket, i + 1);
+    }
+  }
+  return null;
+}
+
 /** Classic scraping target used by several open-source KTC tools: a bare `var playersArray = [...]`. */
 function extractPlayersArrayLiteral(html: string): unknown[] | null {
-  const match = html.match(/var\s+playersArray\s*=\s*(\[[\s\S]*?\]);/);
-  if (!match) return null;
+  const marker = html.indexOf("var playersArray");
+  if (marker === -1) return null;
+  const equals = html.indexOf("=", marker);
+  if (equals === -1) return null;
+  const openBracket = html.indexOf("[", equals);
+  if (openBracket === -1) return null;
+  const arrayText = extractBalancedArray(html, openBracket);
+  if (!arrayText) return null;
   try {
-    return JSON.parse(match[1]);
+    return JSON.parse(arrayText);
   } catch {
     return null;
   }

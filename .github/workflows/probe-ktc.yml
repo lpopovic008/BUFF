@@ -20,4 +20,4 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx tsx scripts/probe-ktc.ts
+      - run: npx tsx scripts/fetch-player-values.ts --dry-run
