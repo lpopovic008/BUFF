@@ -1,6 +1,6 @@
 "use client";
 
-import { RefObject, useEffect, useMemo, useRef, useState } from "react";
+import { MouseEvent as ReactMouseEvent, RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { NFLGame, isOutsideUS } from "@/lib/nfl-schedule";
 import { computeKickoffSlots, gameMapPosition, internationalSlotPosition, kickoffSlotColor, kickoffSlotLabel } from "@/lib/game-map";
 import { formatKickoff } from "@/lib/my-starters";
@@ -43,6 +43,24 @@ interface PositionedGame {
   entry: MappedGame;
   x: number;
   y: number;
+  /** The dot's actual drawn radius (before the small hover/active-state bump, which is cosmetic only) — also what click hit-testing uses, so "is this point inside the dot" always means the same thing whether or not the dot happens to be the one currently highlighted. */
+  r: number;
+}
+
+/** Every positioned game whose dot geometrically contains (x, y) — not just whichever one the browser would hand a native click event to (the topmost in paint order), which is exactly the dot that's invisible/unclickable when two games fully overlap. */
+function hitTest(positioned: PositionedGame[], x: number, y: number): PositionedGame[] {
+  return positioned.filter((p) => Math.hypot(x - p.x, y - p.y) <= p.r);
+}
+
+/** Converts a pointer event's screen coordinates into this SVG's own viewBox coordinate space, accounting for however `preserveAspectRatio` and the element's on-page size have scaled it — the same coordinate space every dot's cx/cy/r is already defined in. */
+function svgPointFromEvent(svg: SVGSVGElement, e: { clientX: number; clientY: number }): { x: number; y: number } | null {
+  const ctm = svg.getScreenCTM();
+  if (!ctm) return null;
+  const pt = svg.createSVGPoint();
+  pt.x = e.clientX;
+  pt.y = e.clientY;
+  const transformed = pt.matrixTransform(ctm.inverse());
+  return { x: transformed.x, y: transformed.y };
 }
 
 /** One player's row in the preview card — name plus the logo of every league they're started in. `align="right"` mirrors the row (logos before the name) for the opponents column, so both columns read outward from the card's center gutter. */
@@ -165,9 +183,11 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
   const cardRef = useRef<HTMLDivElement | null>(null);
 
   // Tapping anywhere outside the open preview — elsewhere on the map, or
-  // anywhere else on the page — dismisses it. A tap on a dot is left alone
-  // here; the dot's own onClick already decides whether that switches or
-  // closes the preview.
+  // anywhere else on the page — dismisses it. A tap that lands on a dot is
+  // left alone here (even though dots have no onClick of their own anymore —
+  // see handleMapClick, which does its own hit-testing on the SVG's click
+  // event instead of relying on which element the browser targeted); the
+  // click handler decides on its own whether that opens, switches, or closes.
   useEffect(() => {
     if (!clicked) return;
     function handlePointerDown(e: PointerEvent) {
@@ -186,16 +206,17 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
     .filter((g) => isOutsideUS(g.game))
     .map((entry, i) => {
       const [x, y] = internationalSlotPosition(i);
-      return { entry, x, y };
+      return { entry, x, y, r: dotRadius(entry.starters.length) * 0.6 };
     });
   const plotted: PositionedGame[] = games
     .map((entry) => {
       const pos = gameMapPosition(entry.game);
-      return pos ? { entry, x: pos[0], y: pos[1] } : null;
+      return pos ? { entry, x: pos[0], y: pos[1], r: dotRadius(entry.starters.length) } : null;
     })
     .filter((p): p is PositionedGame => p !== null)
     // Biggest last so a game you care about is never hidden under an empty one.
     .sort((a, b) => a.entry.starters.length - b.entry.starters.length);
+  const allPositioned = [...abroad, ...plotted];
 
   const { slotIndexByGameId, slots } = useMemo(
     () => computeKickoffSlots(games.map((g) => g.game)),
@@ -204,10 +225,38 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
   const colorFor = (gameId: string) =>
     kickoffSlotColor(slotIndexByGameId.get(gameId) ?? 0, slots.length || 1);
 
-  const findPositioned = (id: string | null) =>
-    (id && ([...plotted, ...abroad].find((p) => p.entry.game.id === id))) || null;
+  const findPositioned = (id: string | null) => (id && allPositioned.find((p) => p.entry.game.id === id)) || null;
   const active = findPositioned(hovered);
   const selected = findPositioned(clicked);
+
+  /**
+   * Resolves a click to every dot actually under it (see hitTest) rather
+   * than trusting which one the browser happened to dispatch the native
+   * event to — that'd always be whichever dot paints on top, permanently
+   * hiding anything fully behind it (two teams sharing a metro area, e.g.
+   * both LA games sit on the exact same point). Clicking a spot with one
+   * game under it just opens/toggles it as before. A spot with several
+   * overlapping games opens the earliest-kickoff one first; clicking that
+   * same overlapping spot again — including a click that starts a *new*
+   * overlap set as long as the currently-open game is one of its members —
+   * advances to the next game there in kickoff order, wrapping back to the
+   * earliest after the last.
+   */
+  function handleMapClick(e: ReactMouseEvent<SVGSVGElement>) {
+    const point = svgPointFromEvent(e.currentTarget, e);
+    if (!point) return;
+    const candidates = hitTest(allPositioned, point.x, point.y).sort(
+      (a, b) => new Date(a.entry.game.kickoff).getTime() - new Date(b.entry.game.kickoff).getTime()
+    );
+    if (candidates.length === 0) return;
+    if (candidates.length === 1) {
+      toggleClicked(candidates[0].entry.game.id);
+      return;
+    }
+    const currentIndex = candidates.findIndex((p) => p.entry.game.id === clicked);
+    const next = currentIndex === -1 ? candidates[0] : candidates[(currentIndex + 1) % candidates.length];
+    setClicked(next.entry.game.id);
+  }
 
   const toggleClicked = (id: string) => setClicked((current) => (current === id ? null : id));
 
@@ -222,15 +271,15 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
           className="block w-full"
           role="img"
           aria-label={`${plotted.length} games plotted across the United States`}
+          onClick={handleMapClick}
         >
           <path d={US_OUTLINE_PATH} fill="var(--surface)" stroke="var(--border)" strokeWidth="0.6" />
           <path d={US_STATE_LINES_PATH} fill="none" stroke="var(--grid-hairline)" strokeWidth="0.4" />
-          {[...abroad, ...plotted].map(({ entry, x, y }) => {
+          {allPositioned.map(({ entry, x, y, r: baseR }) => {
             const isAbroad = isOutsideUS(entry.game);
             const isActive = entry.game.id === hovered || entry.game.id === clicked;
             const hasPlayers = entry.starters.length > 0;
-            const scale = isAbroad ? 0.6 : 1;
-            const r = dotRadius(entry.starters.length) * scale + (isActive ? 1.4 * scale : 0);
+            const r = baseR + (isActive ? 1.4 * (isAbroad ? 0.6 : 1) : 0);
             const color = colorFor(entry.game.id);
             return (
               <circle
@@ -246,7 +295,6 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
                 className="cursor-pointer transition-[r,fill-opacity,stroke-opacity]"
                 onMouseEnter={() => setHovered(entry.game.id)}
                 onMouseLeave={() => setHovered((id) => (id === entry.game.id ? null : id))}
-                onClick={() => toggleClicked(entry.game.id)}
               >
                 <title>
                   {`${gameLabel(entry.game)}${isAbroad ? " (outside the US)" : ""} — ${formatKickoff(entry.game.kickoff)}${
