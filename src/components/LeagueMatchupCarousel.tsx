@@ -14,20 +14,19 @@ function slotLabel(slot: string): string {
   return slot === "SUPER_FLEX" ? "SF" : slot;
 }
 
-// The "Pos Rk" / "Dynasty"-"Fantasy" ranks ride as a compact third line under
-// the position/team line rather than their own table columns — this view is
-// only ~150px wide per side on a phone (main's px-3 + the Card's own p-3
-// leave little room even for a player's name), and a real column layout for
-// two extra numbers per side left almost nothing for the name itself.
-// Spelling the labels out on every row ("Pos Rk 5 · Dynasty 13") overflowed
-// that same narrow width and clipped the numbers themselves — the one thing
-// that actually has to be legible — so each row shows bare numbers and the
-// slide explains what they mean once, in RankLegend below.
-function RankLine({ resolved, align }: { resolved: ResolvedSlot; align: "left" | "right" }) {
+// The "Pos Rk" / "Dynasty"-"Fantasy" ranks sit right on the name's own line
+// (shrink-0, so they're never the thing that gets clipped) rather than a
+// table column or a separate line — this view is only ~150px wide per side
+// on a phone (main's px-3 + the Card's own p-3 leave little room even for a
+// player's name), so anything that isn't the name itself has to earn its
+// keep in a handful of pixels. Bare numbers only; the slide explains what
+// they mean once, in RankLegend below, instead of spelling the labels out
+// (and clipping) on every row.
+function RankBadge({ resolved }: { resolved: ResolvedSlot }) {
   return (
-    <div className={`truncate text-[9px] tabular-nums text-ink-muted ${align === "right" ? "text-right" : ""}`}>
-      {resolved.posRank ?? "–"} · {resolved.valueRank ?? "–"}
-    </div>
+    <span className="shrink-0 tabular-nums text-[9px] text-ink-muted">
+      {resolved.posRank ?? "–"}·{resolved.valueRank ?? "–"}
+    </span>
   );
 }
 
@@ -39,12 +38,14 @@ function MySlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
     <div className="flex min-w-0 items-center gap-2">
       <PlayerHeadshot playerId={resolved.player.playerId} size={32} />
       <div className="min-w-0 flex-1">
-        <div className="truncate text-xs font-medium text-ink-primary">{resolved.player.name}</div>
+        <div className="flex min-w-0 items-baseline gap-1.5">
+          <span className="truncate text-xs font-medium text-ink-primary">{resolved.player.name}</span>
+          <RankBadge resolved={resolved} />
+        </div>
         <div className="truncate text-[10px] text-ink-muted">
           {resolved.player.position}
           {resolved.player.team ? ` · ${resolved.player.team}` : ""}
         </div>
-        <RankLine resolved={resolved} align="left" />
       </div>
       <span className="shrink-0 tabular-nums text-xs text-ink-secondary">{formatPoints(resolved.livePoints)}</span>
     </div>
@@ -59,23 +60,25 @@ function TheirSlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
     <div className="flex min-w-0 items-center gap-2">
       <span className="shrink-0 tabular-nums text-xs text-ink-secondary">{formatPoints(resolved.livePoints)}</span>
       <div className="min-w-0 flex-1 text-right">
-        <div className="truncate text-xs font-medium text-ink-primary">{resolved.player.name}</div>
+        <div className="flex min-w-0 items-baseline justify-end gap-1.5">
+          <RankBadge resolved={resolved} />
+          <span className="truncate text-xs font-medium text-ink-primary">{resolved.player.name}</span>
+        </div>
         <div className="truncate text-[10px] text-ink-muted">
           {resolved.player.position}
           {resolved.player.team ? ` · ${resolved.player.team}` : ""}
         </div>
-        <RankLine resolved={resolved} align="right" />
       </div>
       <PlayerHeadshot playerId={resolved.player.playerId} size={32} />
     </div>
   );
 }
 
-/** Explains the two bare numbers under each player once per slide, instead of spelling the labels out (and clipping) on every row. */
+/** Explains the two bare numbers next to each name once per slide, instead of spelling the labels out (and clipping) on every row. */
 function RankLegend({ valueRankLabel }: { valueRankLabel: "Dynasty" | "Fantasy" }) {
   return (
     <div className="text-center text-[10px] text-ink-muted">
-      Below each player: <span className="font-medium">Pos Rk</span> · <span className="font-medium">{valueRankLabel}</span> rank
+      Next to each name: <span className="font-medium">Pos Rk</span> · <span className="font-medium">{valueRankLabel}</span> rank
     </div>
   );
 }
