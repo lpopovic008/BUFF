@@ -6,7 +6,7 @@ import { ResolvedMatchupGame, ResolvedSlot } from "@/hooks/useLeagueMatchupCarou
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { IconButton } from "@/components/ui/IconButton";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/ui/Icon";
-import { formatPoints } from "@/lib/format";
+import { abbreviateFirstName, formatPoints } from "@/lib/format";
 import { POSITION_SOFT_BG } from "@/lib/position-colors";
 
 // Sleeper's own slot code — abbreviate the one that's spelled out.
@@ -18,21 +18,22 @@ function slotLabel(slot: string): string {
 // line up under the header labels above them. This view is only ~150px wide
 // per side on a phone (main's px-3 + the Card's own p-3 leave little room),
 // and a headshot plus two real rank columns plus points already claim most
-// of that — the row text runs smaller than the rest of the app (text-[10px]
-// instead of text-xs) so the player's own name still has room to read.
+// of that. Names go through abbreviateFirstName ("Josh Allen" -> "J. Allen")
+// so the row text can run a size up (text-[11px] instead of the plain
+// text-xs used elsewhere) while still fitting most names without truncating.
 // Mirrored left-to-right for the "their" side, which reads right-to-left
 // (points nearest the middle, headshot on the outside).
-const MY_ROW_COLS = "grid-cols-[20px_minmax(0,1fr)_1.2rem_1.2rem_1.75rem]";
-const THEIR_ROW_COLS = "grid-cols-[1.75rem_1.2rem_1.2rem_minmax(0,1fr)_20px]";
+const MY_ROW_COLS = "grid-cols-[22px_minmax(0,1fr)_1.2rem_1.2rem_1.75rem]";
+const THEIR_ROW_COLS = "grid-cols-[1.75rem_1.2rem_1.2rem_minmax(0,1fr)_22px]";
 
 function RankCell({ value }: { value: number | null }) {
-  return <span className="text-center tabular-nums text-[9px] text-ink-muted">{value ?? "–"}</span>;
+  return <span className="text-center tabular-nums text-[10px] text-ink-muted">{value ?? "–"}</span>;
 }
 
 function MySlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
   if (!resolved.player) {
     return (
-      <div className={`grid ${MY_ROW_COLS} items-center gap-1 text-[10px] text-ink-muted`}>
+      <div className={`grid ${MY_ROW_COLS} items-center gap-1 text-[11px] text-ink-muted`}>
         <span />
         <span>Empty</span>
         <span />
@@ -43,11 +44,11 @@ function MySlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
   }
   return (
     <div className={`grid ${MY_ROW_COLS} items-center gap-1`}>
-      <PlayerHeadshot playerId={resolved.player.playerId} size={20} />
-      <span className="truncate text-[10px] font-medium text-ink-primary">{resolved.player.name}</span>
+      <PlayerHeadshot playerId={resolved.player.playerId} size={22} />
+      <span className="truncate text-[11px] font-medium text-ink-primary">{abbreviateFirstName(resolved.player.name)}</span>
       <RankCell value={resolved.posRank} />
       <RankCell value={resolved.valueRank} />
-      <span className="text-right tabular-nums text-[10px] text-ink-secondary">{formatPoints(resolved.livePoints)}</span>
+      <span className="text-right tabular-nums text-[11px] text-ink-secondary">{formatPoints(resolved.livePoints)}</span>
     </div>
   );
 }
@@ -55,7 +56,7 @@ function MySlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
 function TheirSlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
   if (!resolved.player) {
     return (
-      <div className={`grid ${THEIR_ROW_COLS} items-center gap-1 text-[10px] text-ink-muted`}>
+      <div className={`grid ${THEIR_ROW_COLS} items-center gap-1 text-[11px] text-ink-muted`}>
         <span />
         <span />
         <span />
@@ -66,11 +67,11 @@ function TheirSlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
   }
   return (
     <div className={`grid ${THEIR_ROW_COLS} items-center gap-1`}>
-      <span className="tabular-nums text-[10px] text-ink-secondary">{formatPoints(resolved.livePoints)}</span>
+      <span className="tabular-nums text-[11px] text-ink-secondary">{formatPoints(resolved.livePoints)}</span>
       <RankCell value={resolved.valueRank} />
       <RankCell value={resolved.posRank} />
-      <span className="truncate text-right text-[10px] font-medium text-ink-primary">{resolved.player.name}</span>
-      <PlayerHeadshot playerId={resolved.player.playerId} size={20} />
+      <span className="truncate text-right text-[11px] font-medium text-ink-primary">{abbreviateFirstName(resolved.player.name)}</span>
+      <PlayerHeadshot playerId={resolved.player.playerId} size={22} />
     </div>
   );
 }

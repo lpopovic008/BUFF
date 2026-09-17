@@ -45,6 +45,19 @@ export function displaySleeperUsername(user: { username?: string | null; display
 }
 
 /**
+ * "Josh Allen" -> "J. Allen" — compact enough for the lineup view's narrow
+ * rows on a phone. Keeps everything from the second word on (so a suffix
+ * like "Odell Beckham Jr." comes out "O. Beckham Jr.", not truncated to just
+ * the last word) and passes single-word names (the rare DST edge case)
+ * through unchanged, since there's no first name to abbreviate.
+ */
+export function abbreviateFirstName(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length < 2) return name;
+  return `${parts[0][0]}. ${parts.slice(1).join(" ")}`;
+}
+
+/**
  * Splits a name into two lines at the space closest to the midpoint, so both
  * lines come out as close to equal length as possible. Returns null for a
  * single word — there's no space to break on.
