@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ResolvedMatchupGame, ResolvedSlot } from "@/hooks/useLeagueMatchupCarousel";
-import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { IconButton } from "@/components/ui/IconButton";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/ui/Icon";
 import { formatPoints } from "@/lib/format";
@@ -14,71 +13,89 @@ function slotLabel(slot: string): string {
   return slot === "SUPER_FLEX" ? "SF" : slot;
 }
 
-// The "Pos Rk" / "Dynasty"-"Fantasy" ranks sit right on the name's own line
-// (shrink-0, so they're never the thing that gets clipped) rather than a
-// table column or a separate line — this view is only ~150px wide per side
-// on a phone (main's px-3 + the Card's own p-3 leave little room even for a
-// player's name), so anything that isn't the name itself has to earn its
-// keep in a handful of pixels. Bare numbers only; the slide explains what
-// they mean once, in RankLegend below, instead of spelling the labels out
-// (and clipping) on every row.
-function RankBadge({ resolved }: { resolved: ResolvedSlot }) {
-  return (
-    <span className="shrink-0 tabular-nums text-[9px] text-ink-muted">
-      {resolved.posRank ?? "–"}·{resolved.valueRank ?? "–"}
-    </span>
-  );
+// Fixed column widths so every row's name/Pos Rk/value-rank/points line up
+// under the header labels above them. This view is only ~150px wide per
+// side on a phone (main's px-3 + the Card's own p-3 leave little room), and
+// two real rank columns plus points already claim most of that — the
+// headshot was dropped and the position/team subtitle removed so the
+// player's own name still has room to read, with the ranks landing in a
+// true aligned column rather than competing with the name on its own line.
+// Mirrored left-to-right for the "their" side, which reads right-to-left
+// (points nearest the middle).
+const MY_ROW_COLS = "grid-cols-[minmax(0,1fr)_1.3rem_1.3rem_1.75rem]";
+const THEIR_ROW_COLS = "grid-cols-[1.75rem_1.3rem_1.3rem_minmax(0,1fr)]";
+
+function RankCell({ value }: { value: number | null }) {
+  return <span className="text-center tabular-nums text-[10px] text-ink-muted">{value ?? "–"}</span>;
 }
 
 function MySlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
   if (!resolved.player) {
-    return <div className="flex min-w-0 items-center gap-2 text-xs text-ink-muted">Empty</div>;
+    return (
+      <div className={`grid ${MY_ROW_COLS} items-center gap-1 text-xs text-ink-muted`}>
+        <span>Empty</span>
+        <span />
+        <span />
+        <span />
+      </div>
+    );
   }
   return (
-    <div className="flex min-w-0 items-center gap-2">
-      <PlayerHeadshot playerId={resolved.player.playerId} size={32} />
-      <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 items-baseline gap-1.5">
-          <span className="truncate text-xs font-medium text-ink-primary">{resolved.player.name}</span>
-          <RankBadge resolved={resolved} />
-        </div>
-        <div className="truncate text-[10px] text-ink-muted">
-          {resolved.player.position}
-          {resolved.player.team ? ` · ${resolved.player.team}` : ""}
-        </div>
-      </div>
-      <span className="shrink-0 tabular-nums text-xs text-ink-secondary">{formatPoints(resolved.livePoints)}</span>
+    <div className={`grid ${MY_ROW_COLS} items-center gap-1`}>
+      <span className="truncate text-xs font-medium text-ink-primary">{resolved.player.name}</span>
+      <RankCell value={resolved.posRank} />
+      <RankCell value={resolved.valueRank} />
+      <span className="text-right tabular-nums text-xs text-ink-secondary">{formatPoints(resolved.livePoints)}</span>
     </div>
   );
 }
 
 function TheirSlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
   if (!resolved.player) {
-    return <div className="flex min-w-0 items-center justify-end gap-2 text-xs text-ink-muted">Empty</div>;
+    return (
+      <div className={`grid ${THEIR_ROW_COLS} items-center gap-1 text-xs text-ink-muted`}>
+        <span />
+        <span />
+        <span />
+        <span className="text-right">Empty</span>
+      </div>
+    );
   }
   return (
-    <div className="flex min-w-0 items-center gap-2">
-      <span className="shrink-0 tabular-nums text-xs text-ink-secondary">{formatPoints(resolved.livePoints)}</span>
-      <div className="min-w-0 flex-1 text-right">
-        <div className="flex min-w-0 items-baseline justify-end gap-1.5">
-          <RankBadge resolved={resolved} />
-          <span className="truncate text-xs font-medium text-ink-primary">{resolved.player.name}</span>
-        </div>
-        <div className="truncate text-[10px] text-ink-muted">
-          {resolved.player.position}
-          {resolved.player.team ? ` · ${resolved.player.team}` : ""}
-        </div>
-      </div>
-      <PlayerHeadshot playerId={resolved.player.playerId} size={32} />
+    <div className={`grid ${THEIR_ROW_COLS} items-center gap-1`}>
+      <span className="tabular-nums text-xs text-ink-secondary">{formatPoints(resolved.livePoints)}</span>
+      <RankCell value={resolved.valueRank} />
+      <RankCell value={resolved.posRank} />
+      <span className="truncate text-right text-xs font-medium text-ink-primary">{resolved.player.name}</span>
     </div>
   );
 }
 
-/** Explains the two bare numbers next to each name once per slide, instead of spelling the labels out (and clipping) on every row. */
-function RankLegend({ valueRankLabel }: { valueRankLabel: "Dynasty" | "Fantasy" }) {
+function ColumnHeader({ valueRankLabel }: { valueRankLabel: "Dynasty" | "Fantasy" }) {
+  const valueLabel = valueRankLabel === "Dynasty" ? "Dyn" : "Fan";
   return (
-    <div className="text-center text-[10px] text-ink-muted">
-      Next to each name: <span className="font-medium">Pos Rk</span> · <span className="font-medium">{valueRankLabel}</span> rank
+    <div className="grid grid-cols-[1fr_2rem_1fr] items-center gap-2 text-[9px] font-medium uppercase tracking-wide text-ink-muted">
+      <div className={`grid ${MY_ROW_COLS} items-center gap-1`}>
+        <span />
+        <span className="text-center" title="Points-per-game rank at position">
+          Pos
+        </span>
+        <span className="text-center" title={`${valueRankLabel} rank at position`}>
+          {valueLabel}
+        </span>
+        <span />
+      </div>
+      <span />
+      <div className={`grid ${THEIR_ROW_COLS} items-center gap-1`}>
+        <span />
+        <span className="text-center" title={`${valueRankLabel} rank at position`}>
+          {valueLabel}
+        </span>
+        <span className="text-center" title="Points-per-game rank at position">
+          Pos
+        </span>
+        <span />
+      </div>
     </div>
   );
 }
@@ -137,7 +154,7 @@ function MatchupSlide({
           <span>{formatPoints(mine.points)}</span>
           {other ? <span>{formatPoints(other.points)}</span> : null}
         </div>
-        <RankLegend valueRankLabel={valueRankLabel} />
+        <ColumnHeader valueRankLabel={valueRankLabel} />
         <div className="flex flex-col gap-2.5">
           {mine.slots.map((slot, i) => (
             <SlotRow key={i} slot={slot.slot} my={slot} their={other?.slots[i]} />
