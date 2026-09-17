@@ -73,21 +73,38 @@ function extractBalancedArray(html: string, openBracket: number): string | null 
   return null;
 }
 
-/** Classic scraping target used by several open-source KTC tools: a bare `var playersArray = [...]`. */
+/**
+ * Classic scraping target used by several open-source KTC tools: a bare
+ * `var playersArray = [...]`. The page actually declares this more than
+ * once — a small "trending players" widget gets one too, earlier in the
+ * script than the real ~500-player table — so every occurrence is
+ * extracted and the largest resulting array wins, rather than assuming the
+ * first match is the real one.
+ */
 function extractPlayersArrayLiteral(html: string): unknown[] | null {
-  const marker = html.indexOf("var playersArray");
-  if (marker === -1) return null;
-  const equals = html.indexOf("=", marker);
-  if (equals === -1) return null;
-  const openBracket = html.indexOf("[", equals);
-  if (openBracket === -1) return null;
-  const arrayText = extractBalancedArray(html, openBracket);
-  if (!arrayText) return null;
-  try {
-    return JSON.parse(arrayText);
-  } catch {
-    return null;
+  let best: unknown[] | null = null;
+  let searchFrom = 0;
+  for (;;) {
+    const marker = html.indexOf("var playersArray", searchFrom);
+    if (marker === -1) break;
+    searchFrom = marker + "var playersArray".length;
+
+    const equals = html.indexOf("=", marker);
+    if (equals === -1) continue;
+    const openBracket = html.indexOf("[", equals);
+    if (openBracket === -1) continue;
+    const arrayText = extractBalancedArray(html, openBracket);
+    if (!arrayText) continue;
+    try {
+      const parsed = JSON.parse(arrayText);
+      if (Array.isArray(parsed) && (!best || parsed.length > best.length)) {
+        best = parsed;
+      }
+    } catch {
+      // not valid JSON at this occurrence — keep looking
+    }
   }
+  return best;
 }
 
 /** Next.js apps commonly embed their page's fetched data in this script tag. */
