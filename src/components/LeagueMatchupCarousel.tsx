@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ResolvedMatchupGame, ResolvedSlot } from "@/hooks/useLeagueMatchupCarousel";
+import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { IconButton } from "@/components/ui/IconButton";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/ui/Icon";
 import { formatPoints } from "@/lib/format";
@@ -13,26 +14,26 @@ function slotLabel(slot: string): string {
   return slot === "SUPER_FLEX" ? "SF" : slot;
 }
 
-// Fixed column widths so every row's name/Pos Rk/value-rank/points line up
-// under the header labels above them. This view is only ~150px wide per
-// side on a phone (main's px-3 + the Card's own p-3 leave little room), and
-// two real rank columns plus points already claim most of that — the
-// headshot was dropped and the position/team subtitle removed so the
-// player's own name still has room to read, with the ranks landing in a
-// true aligned column rather than competing with the name on its own line.
+// Fixed column widths so every row's headshot/name/Pos Rk/value-rank/points
+// line up under the header labels above them. This view is only ~150px wide
+// per side on a phone (main's px-3 + the Card's own p-3 leave little room),
+// and a headshot plus two real rank columns plus points already claim most
+// of that — the row text runs smaller than the rest of the app (text-[10px]
+// instead of text-xs) so the player's own name still has room to read.
 // Mirrored left-to-right for the "their" side, which reads right-to-left
-// (points nearest the middle).
-const MY_ROW_COLS = "grid-cols-[minmax(0,1fr)_1.3rem_1.3rem_1.75rem]";
-const THEIR_ROW_COLS = "grid-cols-[1.75rem_1.3rem_1.3rem_minmax(0,1fr)]";
+// (points nearest the middle, headshot on the outside).
+const MY_ROW_COLS = "grid-cols-[20px_minmax(0,1fr)_1.2rem_1.2rem_1.75rem]";
+const THEIR_ROW_COLS = "grid-cols-[1.75rem_1.2rem_1.2rem_minmax(0,1fr)_20px]";
 
 function RankCell({ value }: { value: number | null }) {
-  return <span className="text-center tabular-nums text-[10px] text-ink-muted">{value ?? "–"}</span>;
+  return <span className="text-center tabular-nums text-[9px] text-ink-muted">{value ?? "–"}</span>;
 }
 
 function MySlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
   if (!resolved.player) {
     return (
-      <div className={`grid ${MY_ROW_COLS} items-center gap-1 text-xs text-ink-muted`}>
+      <div className={`grid ${MY_ROW_COLS} items-center gap-1 text-[10px] text-ink-muted`}>
+        <span />
         <span>Empty</span>
         <span />
         <span />
@@ -42,10 +43,11 @@ function MySlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
   }
   return (
     <div className={`grid ${MY_ROW_COLS} items-center gap-1`}>
-      <span className="truncate text-xs font-medium text-ink-primary">{resolved.player.name}</span>
+      <PlayerHeadshot playerId={resolved.player.playerId} size={20} />
+      <span className="truncate text-[10px] font-medium text-ink-primary">{resolved.player.name}</span>
       <RankCell value={resolved.posRank} />
       <RankCell value={resolved.valueRank} />
-      <span className="text-right tabular-nums text-xs text-ink-secondary">{formatPoints(resolved.livePoints)}</span>
+      <span className="text-right tabular-nums text-[10px] text-ink-secondary">{formatPoints(resolved.livePoints)}</span>
     </div>
   );
 }
@@ -53,20 +55,22 @@ function MySlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
 function TheirSlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
   if (!resolved.player) {
     return (
-      <div className={`grid ${THEIR_ROW_COLS} items-center gap-1 text-xs text-ink-muted`}>
+      <div className={`grid ${THEIR_ROW_COLS} items-center gap-1 text-[10px] text-ink-muted`}>
         <span />
         <span />
         <span />
         <span className="text-right">Empty</span>
+        <span />
       </div>
     );
   }
   return (
     <div className={`grid ${THEIR_ROW_COLS} items-center gap-1`}>
-      <span className="tabular-nums text-xs text-ink-secondary">{formatPoints(resolved.livePoints)}</span>
+      <span className="tabular-nums text-[10px] text-ink-secondary">{formatPoints(resolved.livePoints)}</span>
       <RankCell value={resolved.valueRank} />
       <RankCell value={resolved.posRank} />
-      <span className="truncate text-right text-xs font-medium text-ink-primary">{resolved.player.name}</span>
+      <span className="truncate text-right text-[10px] font-medium text-ink-primary">{resolved.player.name}</span>
+      <PlayerHeadshot playerId={resolved.player.playerId} size={20} />
     </div>
   );
 }
@@ -76,6 +80,7 @@ function ColumnHeader({ valueRankLabel }: { valueRankLabel: "Dynasty" | "Fantasy
   return (
     <div className="grid grid-cols-[1fr_2rem_1fr] items-center gap-2 text-[9px] font-medium uppercase tracking-wide text-ink-muted">
       <div className={`grid ${MY_ROW_COLS} items-center gap-1`}>
+        <span />
         <span />
         <span className="text-center" title="Points-per-game rank at position">
           Pos
@@ -94,6 +99,7 @@ function ColumnHeader({ valueRankLabel }: { valueRankLabel: "Dynasty" | "Fantasy
         <span className="text-center" title="Points-per-game rank at position">
           Pos
         </span>
+        <span />
         <span />
       </div>
     </div>
