@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // The native iOS project (see capacitor.config.ts) — App/App/public is
+    // `cap sync`'s own copy of `out/`, and the rest is Xcode/Swift project
+    // files, neither of which this config has any business linting.
+    "ios/**",
   ]),
 ]);
 
