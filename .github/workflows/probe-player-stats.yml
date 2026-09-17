@@ -1,0 +1,24 @@
+name: Probe player stats endpoint
+
+# Temporary — exists only to confirm the shape of Sleeper's undocumented
+# stats endpoint from a runner with real network access (the sandboxed dev
+# environment this was written in has api.sleeper.app blocked by policy).
+# Deleted once src/lib/player-stats.ts and the real fetch script are built
+# and this has served its purpose.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsx scripts/fetch-player-stats.ts --probe
