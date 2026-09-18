@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-17T17:36:10.773Z",
+  "updatedAt": "2026-09-18T17:03:00.868Z",
   "source": "yafsb",
   "dynastyOneQB": [
     {
@@ -187,12 +187,6 @@
       "position": "WR",
       "team": "LAC",
       "adp": 32
-    },
-    {
-      "name": "A.J. Brown",
-      "position": "WR",
-      "team": "NE",
-      "adp": 33.9
     },
     {
       "name": "Garrett Wilson",
@@ -597,12 +591,6 @@
       "adp": 101
     },
     {
-      "name": "De'Zhaun Stribling",
-      "position": "WR",
-      "team": "SF",
-      "adp": 101.2
-    },
-    {
       "name": "Quentin Johnston",
       "position": "WR",
       "team": "LAC",
@@ -699,12 +687,6 @@
       "adp": 116.3
     },
     {
-      "name": "Jordan Mason",
-      "position": "RB",
-      "team": "MIN",
-      "adp": 117.6
-    },
-    {
       "name": "Woody Marks",
       "position": "RB",
       "team": "HOU",
@@ -763,12 +745,6 @@
       "position": "RB",
       "team": "LV",
       "adp": 129.1
-    },
-    {
-      "name": "Ja'Kobi Lane",
-      "position": "WR",
-      "team": "BAL",
-      "adp": 129.7
     },
     {
       "name": "Matthew Stafford",
@@ -835,12 +811,6 @@
       "position": "WR",
       "team": "WAS",
       "adp": 138.6
-    },
-    {
-      "name": "Eli Stowers",
-      "position": "TE",
-      "team": "PHI",
-      "adp": 139.7
     },
     {
       "name": "Chris Bell",
@@ -960,12 +930,6 @@
       "name": "Kayshon Boutte",
       "position": "WR",
       "team": "HOU",
-      "adp": 161.3
-    },
-    {
-      "name": "Dylan Sampson",
-      "position": "RB",
-      "team": "CLE",
       "adp": 161.3
     },
     {
@@ -1225,12 +1189,6 @@
       "position": "RB",
       "team": "MIA",
       "adp": 207.5
-    },
-    {
-      "name": "Malik Davis",
-      "position": "RB",
-      "team": "DAL",
-      "adp": 211.7
     },
     {
       "name": "Seth McGowan",
@@ -1689,12 +1647,6 @@
       "adp": 253.9
     },
     {
-      "name": "Jake Tonges",
-      "position": "TE",
-      "team": "SF",
-      "adp": 254.8
-    },
-    {
       "name": "Noah Gray",
       "position": "TE",
       "team": "KC",
@@ -2067,12 +2019,6 @@
       "position": "QB",
       "team": "KC",
       "adp": 43.6
-    },
-    {
-      "name": "A.J. Brown",
-      "position": "WR",
-      "team": "NE",
-      "adp": 44
     },
     {
       "name": "Ladd McConkey",
@@ -2513,12 +2459,6 @@
       "adp": 115.1
     },
     {
-      "name": "De'Zhaun Stribling",
-      "position": "WR",
-      "team": "SF",
-      "adp": 115.6
-    },
-    {
       "name": "Chuba Hubbard",
       "position": "RB",
       "team": "CAR",
@@ -2603,12 +2543,6 @@
       "adp": 129.8
     },
     {
-      "name": "Jordan Mason",
-      "position": "RB",
-      "team": "MIN",
-      "adp": 131.7
-    },
-    {
       "name": "Brenton Strange",
       "position": "TE",
       "team": "JAX",
@@ -2657,12 +2591,6 @@
       "adp": 139.9
     },
     {
-      "name": "Eli Stowers",
-      "position": "TE",
-      "team": "PHI",
-      "adp": 140.4
-    },
-    {
       "name": "Mike Washington",
       "position": "RB",
       "team": "LV",
@@ -2691,12 +2619,6 @@
       "position": "DB",
       "team": "JAX",
       "adp": 147
-    },
-    {
-      "name": "Ja'Kobi Lane",
-      "position": "WR",
-      "team": "BAL",
-      "adp": 147.6
     },
     {
       "name": "MarShawn Lloyd",
@@ -2853,12 +2775,6 @@
       "position": "TE",
       "team": "LAR",
       "adp": 173.2
-    },
-    {
-      "name": "Dylan Sampson",
-      "position": "RB",
-      "team": "CLE",
-      "adp": 173.3
     },
     {
       "name": "Braelon Allen",
@@ -3191,12 +3107,6 @@
       "adp": 229.5
     },
     {
-      "name": "Malik Davis",
-      "position": "RB",
-      "team": "DAL",
-      "adp": 233
-    },
-    {
       "name": "Jaylen Wright",
       "position": "RB",
       "team": "MIA",
@@ -3291,12 +3201,6 @@
       "position": "WR",
       "team": "SEA",
       "adp": 248.8
-    },
-    {
-      "name": "Jake Tonges",
-      "position": "TE",
-      "team": "SF",
-      "adp": 249.3
     },
     {
       "name": "Justin Joly",
@@ -3549,6 +3453,12 @@
       "position": "QB",
       "team": "TB",
       "adp": 271.8
+    },
+    {
+      "name": "Miller Moss",
+      "position": "QB",
+      "team": "CHI",
+      "adp": 274.6
     },
     {
       "name": "Emanuel Wilson",
@@ -4039,12 +3949,6 @@
       "adp": 17.4
     },
     {
-      "name": "A.J. Brown",
-      "position": "WR",
-      "team": "NE",
-      "adp": 18.1
-    },
-    {
       "name": "Ashton Jeanty",
       "position": "RB",
       "team": "LV",
@@ -4513,12 +4417,6 @@
       "adp": 97
     },
     {
-      "name": "Jordan Mason",
-      "position": "RB",
-      "team": "MIN",
-      "adp": 99.6
-    },
-    {
       "name": "Jordan Addison",
       "position": "WR",
       "team": "MIN",
@@ -4649,12 +4547,6 @@
       "position": "QB",
       "team": "KC",
       "adp": 120.9
-    },
-    {
-      "name": "De'Zhaun Stribling",
-      "position": "WR",
-      "team": "SF",
-      "adp": 121
     },
     {
       "name": "Dallas Goedert",
@@ -4805,12 +4697,6 @@
       "position": "K",
       "team": "JAX",
       "adp": 145.4
-    },
-    {
-      "name": "Ja'Kobi Lane",
-      "position": "WR",
-      "team": "BAL",
-      "adp": 147.2
     },
     {
       "name": "Baker Mayfield",
@@ -5116,12 +5002,6 @@
       "name": "LAC",
       "position": "DEF",
       "team": "LAC",
-      "adp": 169.4
-    },
-    {
-      "name": "Dylan Sampson",
-      "position": "RB",
-      "team": "CLE",
       "adp": 169.4
     },
     {
@@ -5437,12 +5317,6 @@
       "position": "TE",
       "team": "LV",
       "adp": 24.8
-    },
-    {
-      "name": "A.J. Brown",
-      "position": "WR",
-      "team": "NE",
-      "adp": 25
     },
     {
       "name": "Jalen Hurts",
@@ -5967,12 +5841,6 @@
       "adp": 113
     },
     {
-      "name": "Jordan Mason",
-      "position": "RB",
-      "team": "MIN",
-      "adp": 114.6
-    },
-    {
       "name": "Jake Ferguson",
       "position": "TE",
       "team": "DAL",
@@ -6054,12 +5922,6 @@
       "name": "Brandon Aubrey",
       "position": "K",
       "team": "DAL",
-      "adp": 124.9
-    },
-    {
-      "name": "De'Zhaun Stribling",
-      "position": "WR",
-      "team": "SF",
       "adp": 124.9
     },
     {
@@ -6271,12 +6133,6 @@
       "position": "TE",
       "team": "MIN",
       "adp": 158
-    },
-    {
-      "name": "Ja'Kobi Lane",
-      "position": "WR",
-      "team": "BAL",
-      "adp": 158.4
     },
     {
       "name": "Oronde Gadsden",
@@ -6513,12 +6369,6 @@
       "adp": 177.7
     },
     {
-      "name": "Malik Davis",
-      "position": "RB",
-      "team": "DAL",
-      "adp": 179
-    },
-    {
       "name": "Cyrus Allen",
       "position": "WR",
       "team": "KC",
@@ -6613,12 +6463,6 @@
       "position": "RB",
       "team": "NYG",
       "adp": 184.3
-    },
-    {
-      "name": "Dylan Sampson",
-      "position": "RB",
-      "team": "CLE",
-      "adp": 184.4
     },
     {
       "name": "Chris Boswell",
@@ -6811,12 +6655,6 @@
       "position": "K",
       "team": "TB",
       "adp": 201.6
-    },
-    {
-      "name": "Jake Tonges",
-      "position": "TE",
-      "team": "SF",
-      "adp": 202.4
     },
     {
       "name": "Ted Hurst",
