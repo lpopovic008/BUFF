@@ -1,0 +1,16 @@
+# A Deployment's pods get replaced constantly (crashes, rollouts) and each
+# replacement gets a new internal IP — nothing else could reliably talk to
+# "the API" without this. A Service is the stable address that always
+# routes to whichever pods currently match its selector and are passing
+# their readiness probe, so callers never need to know pod IPs exist.
+apiVersion: v1
+kind: Service
+metadata:
+  name: buff-api
+spec:
+  selector:
+    app: buff-api
+  ports:
+    - port: 80
+      targetPort: 8000
+  type: ClusterIP

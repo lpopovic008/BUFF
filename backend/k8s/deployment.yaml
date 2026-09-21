@@ -1,0 +1,63 @@
+# "N copies of this container, restarted if they crash, rolled out without
+# downtime" — this Deployment is what actually describes that desired
+# state; kubectl apply hands it to the cluster and the control loop keeps
+# making reality match it, not just running it once.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: buff-api
+  labels:
+    app: buff-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: buff-api
+  template:
+    metadata:
+      labels:
+        app: buff-api
+    spec:
+      containers:
+        - name: buff-api
+          image: buff-api:dev
+          # IfNotPresent, not Always: this image isn't pushed to any
+          # registry (see k8s/README.md) — `kind load docker-image` copies
+          # it straight into the cluster's node, so a pull would just fail.
+          # A real deploy target would push to a registry and use Always
+          # (or a digest pin) instead.
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          # Readiness controls traffic: fails -> this pod is pulled out of
+          # the Service's rotation, but nothing restarts. Use this for "not
+          # ready to take requests yet."
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          # Liveness controls the pod's lifecycle: fails repeatedly -> the
+          # kubelet kills and restarts the container. Use this for "this
+          # process is stuck/broken," not "temporarily busy" — the two
+          # probes exist separately because those are different problems
+          # with different correct responses.
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            # requests: what the scheduler reserves when deciding which
+            # node has room for this pod.
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            # limits: a hard ceiling the container can't cross — CPU gets
+            # throttled past this, memory past this gets the container
+            # OOM-killed.
+            limits:
+              cpu: "250m"
+              memory: "128Mi"
