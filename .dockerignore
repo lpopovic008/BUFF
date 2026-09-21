@@ -1,0 +1,16 @@
+# Scoped to what backend/Dockerfile actually needs from a repo-root build
+# context (backend/app + src/data) — everything else here would just slow
+# down `docker build` and bloat the image for no reason.
+
+node_modules
+.next
+out
+.git
+ios
+
+backend/.venv
+backend/tests
+backend/README.md
+**/__pycache__
+*.pyc
+.pytest_cache
