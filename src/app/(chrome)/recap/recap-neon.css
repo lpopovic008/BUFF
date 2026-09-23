@@ -567,6 +567,33 @@
   color: var(--rn-muted);
 }
 
+/* "Generate with AI" — a small pill button, not a poster-style control, since it triggers an action rather than editing a value directly */
+.recap-neon .rn-generate-button {
+  border: 1px solid var(--neon-pink);
+  border-radius: 999px;
+  padding: 6px 14px;
+  background: rgba(255, 46, 154, 0.1);
+  color: var(--rn-primary);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.recap-neon .rn-generate-button:hover:not(:disabled) {
+  background: rgba(255, 46, 154, 0.2);
+  border-color: var(--neon-blue);
+}
+.recap-neon .rn-generate-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.recap-neon .rn-generate-error {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--neon-pink);
+}
+
 /* Preview matchup team picker — a plain select, restyled to blend but stay a real dropdown */
 .recap-neon .rn-team-select {
   width: 100%;

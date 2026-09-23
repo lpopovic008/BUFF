@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import "./recap-neon.css";
 import {
   RecapModel,
@@ -17,6 +18,7 @@ import { LeagueTeamOption } from "@/hooks/useLeagueTeams";
 import { WeekRecapData } from "@/lib/league-data";
 import { PayoutLedger } from "@/lib/payouts";
 import { recapDisplayFont } from "@/lib/fonts";
+import { generateAiRecap } from "@/lib/recap-ai";
 import {
   GraphicTeam,
   decidedMatchupFor,
@@ -329,11 +331,96 @@ function RecordsStandingsBody({ recapData, teams }: { recapData: WeekRecapData |
   );
 }
 
+/** One line per real matchup this week, in the same "W def. L 128.4-101.2" shape the backend's prompt expects — byes (a game with only one team) are skipped since there's nothing to narrate. */
+function buildMatchupLines(recapData: WeekRecapData): string[] {
+  return recapData.games
+    .filter((g) => g.teams.length === 2)
+    .map((g) => {
+      const [a, b] = g.teams;
+      const fmt = (n: number) => n.toFixed(1);
+      if (a.points === b.points) return `${a.teamName} tied ${b.teamName} ${fmt(a.points)}-${fmt(b.points)}`;
+      const [winner, loser] = a.points > b.points ? [a, b] : [b, a];
+      return `${winner.teamName} def. ${loser.teamName} ${fmt(winner.points)}-${fmt(loser.points)}`;
+    });
+}
+
+/**
+ * The AI-written lede — a textarea the commish can freely edit (nothing here
+ * is ever silently overwritten), plus a button that calls the deployed
+ * backend for a first draft. Facts are sourced from the same live data the
+ * mechanical sections above already computed (recapData's matchups, the High
+ * Scorer sentence, the Season Standings leader) rather than re-deriving
+ * anything — see src/lib/recap-ai.ts for the actual request.
+ */
+function AiRecapBody({
+  value,
+  onChange,
+  recapData,
+  week,
+  highScorer,
+  standingsLeader,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  recapData: WeekRecapData | null;
+  week: number;
+  highScorer: string;
+  standingsLeader: string;
+}) {
+  const [status, setStatus] = useState<"idle" | "generating" | "error">("idle");
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleGenerate() {
+    if (!recapData) return;
+    setStatus("generating");
+    setError(null);
+    try {
+      const text = await generateAiRecap({
+        leagueName: recapData.league.name,
+        week,
+        matchups: buildMatchupLines(recapData),
+        highScorer,
+        standingsLeader: standingsLeader.split("\n")[0] ?? "",
+      });
+      onChange(text);
+      setStatus("idle");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong.");
+      setStatus("error");
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder='Click "Generate with AI" for a first draft, or write your own lede here…'
+        rows={3}
+        className="rn-detail-textarea"
+      />
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={handleGenerate}
+          disabled={!recapData || status === "generating"}
+          className="rn-generate-button"
+        >
+          {status === "generating" ? "Generating…" : "✨ Generate with AI"}
+        </button>
+        {!recapData ? <span className="rn-caption">Available once this week&rsquo;s matchups are in.</span> : null}
+        {status === "error" && error ? <span className="rn-generate-error">{error}</span> : null}
+      </div>
+    </div>
+  );
+}
+
 // Matches SECTION_TINT's old per-section variety, but every card in this
 // theme shares the same translucent-white surface (see recap-graphic.ts's
 // COLOR.card) — the graphic doesn't tint cards per section, so neither does
 // this.
 const SECTION_TITLE: Record<Exclude<RecapSectionKey, "bowl" | "honorable">, { emoji: string; label: string }> = {
+  aiRecap: { emoji: "✨", label: "AI Recap" },
   highScorer: { emoji: "🏆", label: "High Scorer" },
   winners: { emoji: "💵", label: "Winners" },
   lastWeek: { emoji: "📊", label: "Last Week" },
@@ -466,6 +553,24 @@ export function RecapSectionsEditor({
         <TitleField value={model.title} onChange={(v) => set("title", v)} />
         <div className="rn-underline" />
       </div>
+
+      <SectionBox
+        included={included("aiRecap")}
+        onToggleIncluded={() => toggleIncluded("aiRecap")}
+        header={<SectionHeader emoji={SECTION_TITLE.aiRecap.emoji} label={SECTION_TITLE.aiRecap.label} />}
+        detailShown={detailShown("aiRecap")}
+        onToggleDetail={() => toggleDetail("aiRecap")}
+        detail={<DetailField value={model.aiRecapDetail} onChange={(v) => set("aiRecapDetail", v)} />}
+      >
+        <AiRecapBody
+          value={model.aiRecap}
+          onChange={(v) => set("aiRecap", v)}
+          recapData={recapData}
+          week={week}
+          highScorer={model.highScorer}
+          standingsLeader={model.records}
+        />
+      </SectionBox>
 
       <SectionBox
         poster

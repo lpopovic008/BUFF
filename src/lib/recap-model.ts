@@ -14,6 +14,7 @@
 // between the joiner and the parser (and the editor's on-screen labels) so
 // they can never drift out of sync with each other.
 export const RECAP_HEADERS = {
+  aiRecap: "✨ AI Recap:",
   winners: "🤑 Winners this week who will receive commission:",
   lastWeek: "🗓️Last week Results:",
   standings: "💰 Updated Standings:",
@@ -31,6 +32,7 @@ export function upcomingWeekLabel(week: number): string {
 
 /** Every section the write-up/graphic can show, in the order they appear — the single source of truth the include/exclude checkboxes (and the graphic's own section toggles) are built from, so the two can never drift apart. */
 export const RECAP_SECTIONS = [
+  { key: "aiRecap", label: "✨ AI Recap" },
   { key: "bowl", label: "👑 Bowl of the Week" },
   { key: "honorable", label: "🏆 Honorable Mention" },
   { key: "highScorer", label: "📈 High Scorer" },
@@ -46,6 +48,9 @@ export type RecapSectionKey = (typeof RECAP_SECTIONS)[number]["key"];
 
 export interface RecapModel {
   title: string;
+  /** One short LLM-ghostwritten paragraph — the lede above the detailed stat sections below it. Never auto-generated on load; only ever set by the "Generate with AI" button. */
+  aiRecap: string;
+  aiRecapDetail: string;
   bowlResult: string;
   bowlDetail: string;
   honorableResult: string;
@@ -82,6 +87,7 @@ export function isSectionIncluded(model: Pick<RecapModel, "include">, key: Recap
 
 /** Which model field holds a given section's optional free-write commentary — the single place that maps a section to its Detail field, so the "+" toggle and the flattener can't drift apart on which field goes with which section. */
 export const DETAIL_FIELD: Record<RecapSectionKey, keyof RecapModel> = {
+  aiRecap: "aiRecapDetail",
   bowl: "bowlDetail",
   honorable: "honorableDetail",
   highScorer: "highScorerDetail",
@@ -108,6 +114,8 @@ export function isDetailShown(model: RecapModel, key: RecapSectionKey): boolean 
 /** Every field defaults to this until real data or a hand-typed edit replaces it. */
 export const EMPTY_RECAP_MODEL: RecapModel = {
   title: "",
+  aiRecap: "",
+  aiRecapDetail: "",
   bowlResult: "",
   bowlDetail: "",
   honorableResult: "",
@@ -136,6 +144,11 @@ export function joinRecapModel(model: RecapModel): string {
   const included = (key: RecapSectionKey) => isSectionIncluded(model, key);
   const lines: string[] = [];
   lines.push(model.title, "");
+  if (included("aiRecap") && model.aiRecap.trim()) {
+    lines.push(RECAP_HEADERS.aiRecap, model.aiRecap);
+    if (model.aiRecapDetail) lines.push("", model.aiRecapDetail);
+    lines.push("");
+  }
   if (included("bowl")) lines.push(model.bowlResult, model.bowlDetail, "");
   if (included("honorable")) lines.push(model.honorableResult, model.honorableDetail, "");
   if (included("highScorer")) lines.push(model.highScorer, model.highScorerDetail, "");
@@ -229,6 +242,17 @@ export function parseRecapModel(body: string): RecapModel | null {
   if (lines[i] !== "") return null;
   i++;
 
+  // Optional: absent on every recap saved before this section existed, and
+  // on any recap where the commish never clicked "Generate with AI" — unlike
+  // every other header below, its absence is not a parse failure.
+  let aiRecap = "";
+  if (lines[i] === RECAP_HEADERS.aiRecap) {
+    i++;
+    const aiRecapBlock = readBlockUntilBlank(lines, i);
+    aiRecap = aiRecapBlock.block.join("\n");
+    i = aiRecapBlock.next;
+  }
+
   const bowl = readBlockUntilBlank(lines, i);
   if (bowl.block.length === 0) return null;
   i = bowl.next;
@@ -282,6 +306,8 @@ export function parseRecapModel(body: string): RecapModel | null {
 
   return {
     title,
+    aiRecap,
+    aiRecapDetail: "",
     bowlResult: bowl.block[0],
     bowlDetail: bowl.block.slice(1).join("\n"),
     honorableResult: honorable.block[0],

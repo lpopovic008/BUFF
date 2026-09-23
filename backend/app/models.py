@@ -65,3 +65,27 @@ class PlayerStatsResponse(BaseModel):
     through_week: int | None
     count: int
     players: list[PlayerStat]
+
+
+class RecapGenerateRequest(BaseModel):
+    """
+    Facts, not raw app data — the frontend already computes team names,
+    scores, and the high scorer/standings leader for its own on-screen
+    sections (see src/lib/format-recap.ts), so it sends those same strings
+    here rather than this service re-deriving them from Sleeper. Keeps this
+    endpoint a pure "facts in, prose out" ghostwriter instead of a second
+    place that has to know how a fantasy league's scoring works.
+    """
+
+    league_name: str
+    week: int
+    matchups: list[str] = Field(
+        min_length=1, description="One line per matchup, e.g. \"Gary's Boys def. Danger Zone 128.4-101.2\""
+    )
+    high_scorer: str | None = None
+    standings_leader: str | None = None
+    tone: str = "a witty, lightly roasting fantasy football league commissioner"
+
+
+class RecapGenerateResponse(BaseModel):
+    text: str

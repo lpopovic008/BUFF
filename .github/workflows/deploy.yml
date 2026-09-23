@@ -32,6 +32,14 @@ jobs:
           # until the repo has a "GOOGLE_CLIENT_ID" Actions variable configured;
           # the button stays hidden in the meantime.
           NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
+          # Base URL of the deployed backend/ FastAPI service (e.g.
+          # https://buff-api.onrender.com), used only by the "Generate with
+          # AI" recap button (see src/lib/recap-ai.ts). Not a secret — it's a
+          # public URL baked into the static site — but kept out of source so
+          # it's easy to repoint. Unset until the repo has an "API_BASE_URL"
+          # Actions variable configured; the button stays disabled in the
+          # meantime.
+          NEXT_PUBLIC_API_BASE_URL: ${{ vars.API_BASE_URL }}
         # Requires Pages to already be enabled on the repo with Source set to
         # "GitHub Actions" (Settings → Pages). That is a one-time manual step:
         # the workflow's GITHUB_TOKEN is not permitted to create a Pages site,

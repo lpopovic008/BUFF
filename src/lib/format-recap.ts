@@ -127,6 +127,8 @@ export function buildWeeklyRecapModel({
 
   return {
     title: `🚨📋 Week ${week} Recap`,
+    aiRecap: "",
+    aiRecapDetail: "",
     bowlResult: bowlResultLine,
     bowlDetail: details.bowlResult,
     honorableResult: honorableResultLine,
@@ -180,6 +182,8 @@ export function buildPreseasonRecapModel({
 }): RecapModel {
   return {
     title: `🚨📋 ${leagueName} — ${season} Preseason`,
+    aiRecap: "",
+    aiRecapDetail: "",
     bowlResult: "👑 [team] won the [bowl game name]! Congrats to [team]!",
     bowlDetail: details.bowlResult,
     honorableResult: "🏆 [team] won the [bowl game name]! Congrats to [team]!",
