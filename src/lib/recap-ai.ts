@@ -1,6 +1,6 @@
 // Talks to the separately-deployed FastAPI backend's POST /recap/generate —
 // the one feature in this static-export site that needs a real server, since
-// the Claude API key it calls with can't live in client-side code. The base
+// the Gemini API key it calls with can't live in client-side code. The base
 // URL is baked in at build time (see .github/workflows/deploy.yml's
 // NEXT_PUBLIC_API_BASE_URL) the same way NEXT_PUBLIC_GOOGLE_CLIENT_ID is.
 

@@ -21,9 +21,9 @@ data behind it, rather than a tutorial's placeholder API.
 - `GET /players/stats?position=WR&min_games=0&limit=1000`
 - `POST /recap/generate` — ghostwrites one short paragraph for the weekly
   recap from facts the frontend already computed (team names, scores, high
-  scorer, standings leader). Requires `ANTHROPIC_API_KEY` to be set in the
-  server's environment; returns `503` if it isn't. See
-  `app/routers/recap.py` for the request/response shape.
+  scorer, standings leader), via Gemini's free tier. Requires
+  `GEMINI_API_KEY` to be set in the server's environment; returns `503` if
+  it isn't. See `app/routers/recap.py` for the request/response shape.
 
 Full interactive docs (auto-generated from the Pydantic models) are at
 `/docs` once the server is running.
@@ -36,7 +36,7 @@ python3 -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
-export ANTHROPIC_API_KEY=sk-ant-...   # only needed for /recap/generate
+export GEMINI_API_KEY=...             # only needed for /recap/generate — free at https://aistudio.google.com/apikey
 uvicorn app.main:app --reload --port 8000
 # then: curl http://localhost:8000/health
 ```
@@ -59,9 +59,9 @@ backend/
     data.py            Loads the JSON snapshots from src/data/
     routers/
       players.py       /players/values, /players/stats
-      recap.py         /recap/generate (calls the Claude API)
+      recap.py         /recap/generate (calls the Gemini API)
   tests/
     test_players.py   pytest + FastAPI's TestClient
-    test_recap.py     mocks the Anthropic client, never calls the real API
+    test_recap.py     mocks the Gemini client, never calls the real API
   requirements.txt
 ```
