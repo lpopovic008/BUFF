@@ -273,8 +273,8 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
           aria-label={`${plotted.length} games plotted across the United States`}
           onClick={handleMapClick}
         >
-          <path d={US_OUTLINE_PATH} fill="var(--surface)" stroke="var(--border)" strokeWidth="0.6" />
-          <path d={US_STATE_LINES_PATH} fill="none" stroke="var(--grid-hairline)" strokeWidth="0.4" />
+          <path d={US_OUTLINE_PATH} fill="var(--surface)" stroke="var(--map-outline)" strokeWidth="0.6" />
+          <path d={US_STATE_LINES_PATH} fill="none" stroke="var(--map-grid)" strokeWidth="0.4" />
           {allPositioned.map(({ entry, x, y, r: baseR }) => {
             const isAbroad = isOutsideUS(entry.game);
             const isActive = entry.game.id === hovered || entry.game.id === clicked;
@@ -316,7 +316,7 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
         ) : null}
       </div>
 
-      <div className="mt-1 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 opacity-25 transition-opacity hover:opacity-90">
+      <div className="mt-1 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 opacity-90 transition-opacity hover:opacity-90 dark:opacity-25">
         <p className="text-[9px] text-ink-muted">
           {active
             ? `${gameLabel(active.entry.game)} · ${active.entry.game.venue?.city ?? "—"} · ${

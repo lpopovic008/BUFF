@@ -180,70 +180,76 @@ export default function DashboardPage() {
     <div className="flex flex-col gap-6">
       <h1 className="sr-only">Dashboard</h1>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {leagues.map(({ tracked, summary }, i) => {
-          const myRow = summary.standings.find((r) => r.ownerId === config.sleeperUserId);
-          const matchup = matchups[tracked.leagueId];
-          const opponentRank = matchup?.opponent
-            ? summary.standings.find((r) => r.rosterId === matchup.opponent!.rosterId)?.rank
-            : undefined;
-          return (
-            <Link
-              key={tracked.leagueId}
-              href={`/league?id=${tracked.leagueId}`}
-              className="flex min-w-0 flex-col gap-4 border border-border bg-page p-5 transition-colors animate-[rise_0.5s_ease-out_backwards] hover:border-ink-primary/40"
-              style={{ animationDelay: `${i * 70}ms` }}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0 text-balance text-base font-semibold text-ink-primary sm:truncate sm:text-lg">
-                  {summary.league.name}
-                </div>
-                {myRow ? (
-                  <div className="shrink-0 text-lg font-semibold tabular-nums text-ink-primary">
-                    {formatRecord(myRow.wins, myRow.losses, myRow.ties)}
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+        {/* Map, then your leagues underneath it — always a single column, never side by side. */}
+        <div className="flex min-w-0 flex-1 flex-col gap-6">
+          {weekGames.length > 0 ? (
+            <div className="-mx-3 animate-[rise_0.5s_ease-out_backwards] sm:-mx-6 lg:mx-0">
+              <h2 className="mb-3 px-3 text-sm font-semibold uppercase tracking-wide text-ink-muted sm:px-6 lg:px-0">
+                Week {week} around the league
+              </h2>
+              <GameMap games={mappedGames} legend={legend} />
+            </div>
+          ) : null}
+
+          <div className="flex flex-col gap-4 animate-[rise_0.5s_ease-out_backwards] [animation-delay:70ms]">
+            {leagues.map(({ tracked, summary }, i) => {
+              const myRow = summary.standings.find((r) => r.ownerId === config.sleeperUserId);
+              const matchup = matchups[tracked.leagueId];
+              const opponentRank = matchup?.opponent
+                ? summary.standings.find((r) => r.rosterId === matchup.opponent!.rosterId)?.rank
+                : undefined;
+              return (
+                <Link
+                  key={tracked.leagueId}
+                  href={`/league?id=${tracked.leagueId}`}
+                  className="flex min-w-0 flex-col gap-4 border border-border bg-page p-5 transition-colors animate-[rise_0.5s_ease-out_backwards] hover:border-ink-primary/40"
+                  style={{ animationDelay: `${140 + i * 70}ms` }}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 text-balance text-base font-semibold text-ink-primary sm:truncate sm:text-lg">
+                      {summary.league.name}
+                    </div>
+                    {myRow ? (
+                      <div className="shrink-0 text-lg font-semibold tabular-nums text-ink-primary">
+                        {formatRecord(myRow.wins, myRow.losses, myRow.ties)}
+                      </div>
+                    ) : null}
                   </div>
-                ) : null}
-              </div>
 
-              {myRow ? (
-                <DashboardMatchupCard matchup={matchup} myRank={myRow.rank} opponentRank={opponentRank} />
-              ) : null}
-            </Link>
-          );
-        })}
-      </div>
-
-      {weekGames.length > 0 ? (
-        <div className="-mx-3 animate-[rise_0.5s_ease-out_backwards] [animation-delay:140ms] sm:-mx-6">
-          <h2 className="mb-3 px-3 text-sm font-semibold uppercase tracking-wide text-ink-muted sm:px-6">
-            Week {week} around the league
-          </h2>
-          <GameMap games={mappedGames} legend={legend} />
+                  {myRow ? (
+                    <DashboardMatchupCard matchup={matchup} myRank={myRow.rank} opponentRank={opponentRank} />
+                  ) : null}
+                </Link>
+              );
+            })}
+          </div>
         </div>
-      ) : null}
 
-      <div className="-mx-3 animate-[rise_0.5s_ease-out_backwards] [animation-delay:200ms] sm:-mx-6">
-        <h2 className="mb-4 px-3 text-sm font-semibold uppercase tracking-wide text-ink-muted sm:px-6">
-          My starters by game
-        </h2>
-        {myStarters === null ? (
-          <p className="px-3 text-sm text-ink-secondary sm:px-6">Loading your lineups…</p>
-        ) : weekGames.length === 0 ? (
-          // Without the schedule every starter would fall into "not playing",
-          // which would read as a league-wide bye rather than a failed fetch.
-          <p className="px-3 text-sm text-ink-secondary sm:px-6">
-            Couldn&rsquo;t load this week&rsquo;s NFL schedule, so there&rsquo;s nothing to group
-            your starters under yet.
-          </p>
-        ) : (
-          <StartersByGame
-            games={grouped.games}
-            notPlaying={grouped.notPlaying}
-            legend={legend}
-            selectedLeagueIds={effectiveSelected}
-            onToggleLeague={toggleLeague}
-          />
-        )}
+        {/* Starters by game — one continuous column running alongside the map and leagues. */}
+        <div className="w-full animate-[rise_0.5s_ease-out_backwards] [animation-delay:200ms] lg:w-80 lg:shrink-0">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-muted">
+            My starters by game
+          </h2>
+          {myStarters === null ? (
+            <p className="text-sm text-ink-secondary">Loading your lineups…</p>
+          ) : weekGames.length === 0 ? (
+            // Without the schedule every starter would fall into "not playing",
+            // which would read as a league-wide bye rather than a failed fetch.
+            <p className="text-sm text-ink-secondary">
+              Couldn&rsquo;t load this week&rsquo;s NFL schedule, so there&rsquo;s nothing to group
+              your starters under yet.
+            </p>
+          ) : (
+            <StartersByGame
+              games={grouped.games}
+              notPlaying={grouped.notPlaying}
+              legend={legend}
+              selectedLeagueIds={effectiveSelected}
+              onToggleLeague={toggleLeague}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

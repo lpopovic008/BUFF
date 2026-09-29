@@ -10,6 +10,13 @@
   --grid-hairline: #e1e0d9;
   --baseline: #c3c2b7;
   --border: rgba(11, 11, 11, 0.1);
+  /* Dedicated to the US game map's own outline/state-line strokes — the
+     regular --border/--grid-hairline are too faint to read as a map outline
+     in light mode (they're tuned for subtle UI borders, not a graphic that
+     needs to read at a glance). Dark mode keeps the original --border/
+     --grid-hairline values, since it wasn't the complaint. */
+  --map-outline: rgba(11, 11, 11, 0.65);
+  --map-grid: #9c998c;
 
   --series-1: #2a78d6; /* blue */
   --series-2: #eb6834; /* orange */
@@ -50,6 +57,8 @@
     --grid-hairline: #2c2c2a;
     --baseline: #383835;
     --border: rgba(255, 255, 255, 0.1);
+    --map-outline: rgba(255, 255, 255, 0.1);
+    --map-grid: #2c2c2a;
 
     --series-1: #3987e5;
     --series-2: #d95926;
