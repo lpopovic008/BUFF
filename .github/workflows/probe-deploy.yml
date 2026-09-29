@@ -1,0 +1,21 @@
+name: Probe deployed site for API_BASE_URL
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch recap page and its JS chunks, grep for the Render URL
+        run: |
+          page=$(curl -sSL https://lpopovic008.github.io/BUFF/recap)
+          urls=$(echo "$page" | grep -oE '/BUFF/_next/static/[^"]+\.js' | sort -u)
+          found=0
+          for u in $urls; do
+            if curl -sSL "https://lpopovic008.github.io$u" | grep -q "onrender.com"; then
+              echo "FOUND in $u"
+              found=1
+            fi
+          done
+          if [ "$found" -eq 0 ]; then
+            echo "NOT FOUND in any of: $urls"
+            exit 1
+          fi
