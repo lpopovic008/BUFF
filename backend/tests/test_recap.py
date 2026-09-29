@@ -80,7 +80,7 @@ def test_generate_recap_sends_the_facts_to_gemini():
         client.post("/recap/generate", json=VALID_REQUEST)
         sent = fake.models.last_kwargs
         assert sent is not None
-        assert sent["model"] == "gemini-3.8-flash"
+        assert sent["model"] == "gemini-3.5-flash-lite"
         user_content = sent["contents"]
         assert "Gary's Boys def. Danger Zone 128.4-101.2" in user_content
         assert "Josh Allen" in user_content

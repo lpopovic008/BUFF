@@ -28,7 +28,7 @@ from ..models import RecapGenerateRequest, RecapGenerateResponse
 
 router = APIRouter(prefix="/recap", tags=["recap"])
 
-GEMINI_MODEL = "gemini-3.8-flash"
+GEMINI_MODEL = "gemini-3.5-flash-lite"
 
 
 def get_gemini_client() -> genai.Client:
