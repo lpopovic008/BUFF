@@ -8,6 +8,6 @@ jobs:
         run: curl -sS -f https://buff-api-2bzm.onrender.com/health
       - name: Recap generate
         run: |
-          curl -sS -f -X POST https://buff-api-2bzm.onrender.com/recap/generate \
+          curl -sS -w "\nHTTP %{http_code}\n" -X POST https://buff-api-2bzm.onrender.com/recap/generate \
             -H "Content-Type: application/json" \
             -d '{"league_name":"Test League","week":1,"matchups":["Team A def. Team B 120.5-99.2"]}'
