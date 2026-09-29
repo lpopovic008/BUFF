@@ -131,8 +131,8 @@ tests, both documented inline in `src/lib/payouts.test.ts`:
 ## How it's hosted
 
 This is a fully static Next.js export (`output: "export"`) — there's no
-server, no API routes, and no build-time secrets. Everything runs **in your
-browser**:
+server-side rendering and no build-time secrets. Almost everything runs
+**in your browser**:
 
 - Every request to Sleeper's public API (`api.sleeper.app`) is made
   client-side. No API key or login needed — it's read-only and keyed off
@@ -142,6 +142,13 @@ browser**:
   backend to write to. That means they're per-browser, not synced across
   devices. Use **Settings → Export backup** to save a JSON file, and
   **Import backup** to bring it into another browser/device.
+
+The one exception is the recap page's **"Generate with AI"** button, which
+calls a small separately-deployed FastAPI service (`backend/`) — the only
+part of this project that needs a server, since it holds an LLM API key
+that can't live in client-side code. See [`docs/architecture.md`](docs/architecture.md)
+for the full system design, including how that service is built,
+containerized, and deployed.
 
 ### Deploying
 

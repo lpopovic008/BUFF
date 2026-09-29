@@ -1,0 +1,225 @@
+# Architecture
+
+BUFF is two deployed systems, not one:
+
+1. **The dashboard** — a statically-exported Next.js site, hosted on GitHub
+   Pages. Everything except the AI recap button runs entirely in the
+   browser, reading pre-fetched JSON and calling Sleeper's public API
+   directly from the client.
+2. **The API** (`backend/`) — a small FastAPI service, containerized and
+   deployed separately, that exists for exactly one reason the static site
+   can't do on its own: calling an LLM with a secret key.
+
+```
+┌─────────────────────────────┐        ┌──────────────────────────────┐
+│  GitHub Pages (static)      │        │  Render (buff-api)            │
+│  lpopovic008.github.io/BUFF │        │  buff-api-2bzm.onrender.com    │
+│                              │  POST  │                                │
+│  Next.js app, client-side ──┼───────►│  FastAPI  ──►  Gemini API      │
+│  fetch to Sleeper's API     │  JSON  │  (Docker container)            │
+│  directly for everything    │◄───────┼                                │
+│  else                       │        │                                │
+└─────────────────────────────┘        └──────────────────────────────┘
+        ▲                                        ▲
+        │ npm run build, on every push           │ docker build + push,
+        │ (.github/workflows/deploy.yml)         │ only when backend/**
+        │                                        │ changes
+        │                                        │ (.github/workflows/backend-ci.yml)
+        └────────────── main branch ─────────────┘
+```
+
+Two separate CI pipelines, on purpose: a frontend-only commit shouldn't
+rebuild a Docker image that didn't change, and a backend-only commit
+shouldn't wait on a Next.js build. `backend-ci.yml` is path-filtered to
+`backend/**` for exactly this reason.
+
+## Why a separate backend exists at all
+
+The rest of BUFF works as a static site because nothing else it does needs
+a secret. Sleeper's API is public and read-only, so the browser can call it
+directly with no server in between — that's most of the app.
+
+The AI recap feature breaks that pattern: it needs an LLM API key, and an
+API key baked into a static site's JavaScript is public the instant the
+site ships (anyone can read it from the browser's network tab). The
+backend's entire reason to exist is to hold that one secret server-side.
+Everything else it serves (`/players/values`, `/players/stats`) is really
+a bonus — a live-over-HTTP version of data the frontend already has at
+build time — added because once a real backend existed, it was worth
+learning to build one properly (tests, Docker, Kubernetes, CI/CD) rather
+than writing a single-purpose endpoint.
+
+## Request walkthrough: clicking "Generate with AI"
+
+This is the one path that touches every piece of the system end to end.
+
+1. **Browser** — `RecapSectionsEditor.tsx`'s `AiRecapBody` component builds
+   the week's facts (matchup scores, high scorer, standings leader) from
+   data already computed client-side for the rest of the page — no new
+   data fetch, just reshaping what's already there (see
+   `buildMatchupLines` in `RecapSectionsEditor.tsx`).
+2. **Client → API** — `src/lib/recap-ai.ts` POSTs those facts as JSON to
+   `${NEXT_PUBLIC_API_BASE_URL}/recap/generate`. That env var is inlined
+   into the static JS at build time (see `deploy.yml`'s `env:` block) —
+   there's no runtime config on a static export, so "which backend to
+   call" has to be baked in when the site is built.
+3. **FastAPI** (`backend/app/routers/recap.py`) — validates the request
+   against a Pydantic model (`RecapGenerateRequest`), builds a system
+   prompt that constrains the model to the real facts it was given (no
+   inventing stats), and calls Gemini.
+4. **Gemini** — `gemini-3.5-flash-lite`, chosen for its free-tier quota
+   (500 requests/day vs. 20 for the newer `gemini-3.8-flash`) — see the
+   model-swap history below. `GEMINI_API_KEY` lives only in Render's
+   environment, injected into the container at runtime; it is never in
+   git, never sent to the browser.
+5. **Response flows back** — Gemini's text → FastAPI wraps it in
+   `RecapGenerateResponse` → the browser drops it into the `aiRecap` field
+   of the recap model, which the commish can then edit freely like any
+   other section.
+
+If `GEMINI_API_KEY` isn't set, step 3 fails fast with a `503` before ever
+calling Gemini (`get_gemini_client`'s dependency check) — a FastAPI
+`Depends()` rather than a module-level client specifically so
+`tests/test_recap.py` can swap in a fake client and test every branch
+(missing key, validation failure, empty response) without spending real
+API calls or needing a real key in CI.
+
+## Docker
+
+`backend/Dockerfile` builds from the **repo root**, not from inside
+`backend/` — the image needs both `backend/app` (the code) and
+`src/data/*.json` (the same snapshots the frontend reads at build time),
+so the build context has to be one level above `backend/`:
+
+```bash
+docker build -f backend/Dockerfile -t buff-api .
+```
+
+Notable choices, and why:
+- **Dependencies copied and installed before app code.** Docker caches each
+  instruction as a layer keyed on its inputs; as long as
+  `requirements.txt` hasn't changed, `docker build` reuses the cached
+  `pip install` layer instead of re-running it on every code edit.
+- **Runs as a non-root user** (`appuser`, uid 1000). Containers run as root
+  by default, which is more privilege than a web service ever needs — if a
+  dependency ever had an exploitable bug, a non-root process limits what
+  it could do to the container's filesystem.
+- **`HEALTHCHECK` hits `/health`.** This is the same endpoint Kubernetes'
+  readiness/liveness probes call — defined once, reused by both `docker
+  run` and the cluster.
+- **Data baked into the image, not fetched live.** The container serves
+  whatever `src/data/*.json` snapshot was committed when the image was
+  built. A real production version would read from a database or object
+  store per-request instead; this project stops short of that since
+  nothing here actually needs live data freshness at the API layer (the
+  scheduled Node scripts already keep the committed JSON current).
+
+## Kubernetes (`backend/k8s/`)
+
+Two manifests, `kind`-tested (see `backend/k8s/README.md` for the exact
+verification steps — creating a local cluster, loading the image with
+`kind load docker-image`, confirming 2/2 pods ready, and deliberately
+deleting a pod to watch the Deployment replace it):
+
+- **`deployment.yaml`** — 2 replicas. Separate readiness and liveness
+  probes on purpose: readiness failing pulls a pod out of the Service's
+  rotation without restarting it ("not ready for traffic yet"); liveness
+  failing gets the container killed and restarted ("this process is stuck
+  or broken"). Those are different problems that call for different
+  responses, which is why Kubernetes has two probes instead of one.
+  Resource `requests` (what the scheduler reserves) vs. `limits` (a hard
+  ceiling — CPU throttles past it, memory gets OOM-killed past it) are set
+  deliberately low (50m/64Mi requests) since this is a small FastAPI
+  service, not a real ceiling for a production workload.
+- **`service.yaml`** — a stable `ClusterIP` address in front of whichever
+  pods currently match `app: buff-api` and are passing readiness. Pods get
+  replaced constantly (crashes, rollouts) and each replacement gets a new
+  IP; nothing could reliably call "the API" without this indirection.
+
+This cluster is **local-only** — `kind` has no public IP, and this project
+doesn't run a persistent Kubernetes cluster anywhere. The K8s manifests
+exist to prove the container is production-shaped (proper probes, resource
+limits, self-healing) and to have actually operated a real cluster, not
+because BUFF is deployed on Kubernetes today. The real deploy target is
+Render (see below) — a deliberately simpler platform for a project this
+size.
+
+## CI/CD
+
+Two independent pipelines:
+
+- **`.github/workflows/deploy.yml`** — runs on every push to `main`.
+  Builds the Next.js static export and publishes it to GitHub Pages. No
+  path filter, since a Next.js build is cheap and there's only one deploy
+  target.
+- **`.github/workflows/backend-ci.yml`** — path-filtered to `backend/**`.
+  Two jobs, `build-and-push needs: test`, so a red test suite blocks a new
+  image from ever being published. `build-and-push` also only runs on
+  pushes to `main`, not on PRs — a fork PR can't publish an image under
+  this project's name just by opening one. Pushes to
+  `ghcr.io/lpopovic008/buff-api`, tagged both `:latest` and `:<commit-sha>`
+  (the SHA tag makes any specific build reproducible/rollback-able, not
+  just "whatever's newest"), authenticated with the auto-minted
+  `GITHUB_TOKEN` — no separately managed registry credential to rotate or
+  leak.
+
+Neither pipeline deploys the backend anywhere by itself — CI's job ends at
+"a tested, versioned image exists in a registry." Getting that image
+running somewhere public (Render) is a manual step, done once, not
+re-triggered by CI. **Render does not auto-redeploy on a new `:latest`
+push** — the free tier requires a manual "Deploy latest image" click on
+Render's dashboard after `backend-ci.yml` finishes, which is a real
+operational gap for a from-scratch project at this scale (a paid Render
+plan, or a deploy-hook call added to `backend-ci.yml`, would close it).
+
+## The Gemini model swap
+
+Worth documenting because it's a real lesson, not just a config change:
+the backend originally called the Claude API, then switched to Google's
+Gemini API for one concrete reason — Gemini has a genuinely free tier
+(no card, meaningful daily quota) where Anthropic's API is pay-per-token
+with no ongoing free tier. For a feature that generates one short
+paragraph once a week, that tradeoff was clearly worth it.
+
+Getting a live, working Gemini call took three iterations, each diagnosed
+from a real error returned by Google's own API rather than guessed at:
+
+1. **"The bound service account is deleted or disabled."** — the first
+   API key was auto-attached to a Google Cloud project whose service
+   account was disabled. Fixed by generating a new key in a fresh Cloud
+   project via AI Studio.
+2. **"This model … is no longer available to new users."** —
+   `gemini-2.5-flash` had been deprecated; Google's error named the
+   replacement (`gemini-3.8-flash`) directly.
+3. **"This model is currently experiencing high demand."** —
+   `gemini-3.8-flash` had shipped days earlier and was capacity-constrained
+   on the free tier. Switched to `gemini-3.5-flash-lite`: an established,
+   lighter model with a much larger free quota (500 requests/day vs. 20),
+   which is also just a better fit for a once-a-week feature.
+
+Each of these was confirmed with a real HTTP request against the live
+deployed service (via a temporary GitHub Actions workflow that curled the
+live Render URL, since this development environment's own network egress
+is restricted to code hosts and can't reach arbitrary APIs directly) —
+never assumed fixed from reading the code alone.
+
+## Where things run
+
+| Piece | Where | Trigger |
+|---|---|---|
+| Static dashboard | GitHub Pages | Push to `main` (`deploy.yml`) |
+| FastAPI image | GHCR (`ghcr.io/lpopovic008/buff-api`) | Push to `main` touching `backend/**` (`backend-ci.yml`) |
+| FastAPI container | Render (`buff-api-2bzm.onrender.com`) | Manual redeploy, pulling `:latest` from GHCR |
+| Player values/stats data | Committed JSON in `src/data/` | Scheduled Node scripts, separate from this backend |
+
+## What's deliberately out of scope
+
+- **No database.** The API reads static JSON snapshots; there's no
+  persistent state to store.
+- **No ConfigMap/Secret in `backend/k8s/`.** Added a real Secret only once
+  there was a real value to put in one (`GEMINI_API_KEY`) — and by the
+  time that existed, Render (not the local `kind` cluster) was the actual
+  deploy target, so the Secret lives in Render's dashboard instead.
+- **No auto-redeploy from GHCR to Render.** A known gap (see CI/CD above),
+  left as a manual step rather than solved with a paid plan or a webhook
+  this project doesn't otherwise need.
