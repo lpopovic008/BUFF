@@ -208,10 +208,13 @@ export async function getGoogleAccessToken(clientId: string, scope: string): Pro
   });
 }
 
-// Set by the auth-callback page right before it sends the browser back, and
-// read once by GoogleSyncSection.tsx — lets Settings auto-finish the sync
-// that a redirect sign-in interrupted, instead of making the commish tap
-// "Sync now" a second time right after signing in.
+// Set by the auth-callback page right before it sends the browser back.
+// Used to let a specific scope's Settings section auto-resume whatever a
+// redirect sign-in interrupted, instead of making the commish tap its
+// button a second time right after signing in — currently unread (the one
+// section that used it, Google Drive sync, was replaced by real accounts;
+// see docs/architecture.md), left in place since Docs' own redirect flow
+// still relies on the token-caching this same callback page does.
 export const JUST_SIGNED_IN_SCOPE_KEY = "buff:just-signed-in-scope";
 
 export type RedirectSignInResult = { ok: true; scope: string; returnTo: string } | { ok: false; error: string };

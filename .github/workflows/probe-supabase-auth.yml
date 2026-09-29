@@ -1,0 +1,33 @@
+name: Probe Supabase auth + sync round trip
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Start dev server
+        run: nohup npm run dev > dev.log 2>&1 &
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: "https://uybcjhzfwidbetnzfxwu.supabase.co"
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_5LsoA6Lo0Jo1L8baoil5gw_j0b5WOey"
+      - name: Wait for dev server
+        run: |
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/BUFF/settings || true)
+            if [ "$code" = "200" ]; then echo ready; exit 0; fi
+            sleep 1
+          done
+          echo "dev server never came up"; cat dev.log; exit 1
+      - name: Run verification script
+        run: node verify-auth.mjs
+        env:
+          PROBE_BASE_URL: "http://localhost:3000/BUFF"
+      - name: Dev server log (always, for debugging)
+        if: always()
+        run: cat dev.log

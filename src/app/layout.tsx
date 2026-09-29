@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Julius_Sans_One } from "next/font/google";
 import { AutoSync } from "@/components/AutoSync";
+import { AutoSupabaseSync } from "@/components/AutoSupabaseSync";
 import "./globals.css";
 
 const juliusSansOne = Julius_Sans_One({
@@ -42,6 +43,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-full bg-page">
         <AutoSync />
+        <AutoSupabaseSync />
         {children}
       </body>
     </html>

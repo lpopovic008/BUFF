@@ -63,8 +63,9 @@ function isBrowser(): boolean {
   return typeof window !== "undefined";
 }
 
-// A tiny pub-sub so google-drive-sync.ts can push to Drive shortly after any
-// local write, without this file needing to know sync exists. Fired from the
+// A tiny pub-sub so supabase-sync.ts can push to a signed-in user's account
+// shortly after any local write, without this file needing to know sync
+// exists. Fired from the
 // 4 low-level write functions below — every higher-level setter (saveRecap,
 // upsertLeague, saveBowlPicks, ...) already funnels through one of them.
 const localWriteListeners = new Set<() => void>();

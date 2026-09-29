@@ -236,9 +236,9 @@ export function useRecapActions(args: RecapActionsArgs) {
 
   // Auto-saves to this browser's local archive shortly after an edit
   // settles — no more manual "Save to archive" click needed. This is also
-  // what Google Sync (see google-drive-sync.ts's onLocalWrite listener)
-  // pushes to Drive, so a saved write-up shows up on any other device
-  // signed into the same Google account without a separate step.
+  // what account sync (see supabase-sync.ts's onLocalWrite listener) pushes
+  // up, so a saved write-up shows up on any other device signed into the
+  // same account without a separate step.
   useEffect(() => {
     if (!args.loaded) return;
     if (lastSavedBodyRef.current === body) return;

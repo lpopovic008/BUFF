@@ -10,7 +10,7 @@ import { defaultSeason } from "@/lib/app-defaults";
 import { DiscoverForm } from "./DiscoverForm";
 import { ExternalLeaguesSection } from "./ExternalLeaguesSection";
 import { GoogleDocsSection } from "./GoogleDocsSection";
-import { GoogleSyncSection } from "./GoogleSyncSection";
+import { AccountSection } from "./AccountSection";
 
 export default function SettingsPage() {
   const { config, loaded, refresh } = useConfig();
@@ -151,9 +151,9 @@ export default function SettingsPage() {
 
       <Card className="p-5">
         <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-muted">
-          Google Sync
+          Account
         </h2>
-        <GoogleSyncSection config={config} />
+        <AccountSection />
       </Card>
 
       <Card className="p-5">

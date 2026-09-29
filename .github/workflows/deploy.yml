@@ -40,6 +40,15 @@ jobs:
           # Actions variable configured; the button stays disabled in the
           # meantime.
           NEXT_PUBLIC_API_BASE_URL: ${{ vars.API_BASE_URL }}
+          # Supabase project for accounts + cross-device sync (see
+          # src/lib/supabase.ts, docs/architecture.md). Committed directly,
+          # not gated on a repo variable — this is the publishable key, the
+          # safe-to-expose client-side key (same privilege level the old
+          # "anon" key had); every real access rule lives in Postgres Row
+          # Level Security (see supabase/schema.sql), not in keeping this
+          # value secret.
+          NEXT_PUBLIC_SUPABASE_URL: "https://uybcjhzfwidbetnzfxwu.supabase.co"
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_5LsoA6Lo0Jo1L8baoil5gw_j0b5WOey"
         # Requires Pages to already be enabled on the repo with Source set to
         # "GitHub Actions" (Settings → Pages). That is a one-time manual step:
         # the workflow's GITHUB_TOKEN is not permitted to create a Pages site,
