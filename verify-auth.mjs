@@ -22,7 +22,7 @@ async function bodyText() {
 await page.goto(`${baseUrl}/settings`, { waitUntil: "networkidle" });
 log("Account section heading present", (await page.locator("h2:has-text('Account')").count()) > 0);
 
-const testEmail = `buff-test-${Date.now()}@example.com`;
+const testEmail = `buff-verify-${Date.now()}@gmail.com`;
 const testPassword = "correct horse battery staple 42";
 
 await page.locator('input[type="email"]').waitFor({ state: "visible", timeout: 10000 });
