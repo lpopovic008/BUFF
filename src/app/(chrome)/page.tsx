@@ -180,12 +180,12 @@ export default function DashboardPage() {
     <div className="flex flex-col gap-6">
       <h1 className="sr-only">Dashboard</h1>
 
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-        {/* Map, then your leagues underneath it — always a single column, never side by side. */}
-        <div className="flex min-w-0 flex-1 flex-col gap-6">
+      <div className="flex flex-col gap-6 md:flex-row md:items-start">
+        {/* Map, then your leagues underneath it — always a single column, never side by side. Its own scroll container at md+, independent of the starters column beside it. */}
+        <div className="flex min-w-0 flex-1 flex-col gap-6 md:sticky md:top-6 md:max-h-[calc(100vh-3rem)] md:overflow-y-auto">
           {weekGames.length > 0 ? (
-            <div className="-mx-3 animate-[rise_0.5s_ease-out_backwards] sm:-mx-6 lg:mx-0">
-              <h2 className="mb-3 px-3 text-sm font-semibold uppercase tracking-wide text-ink-muted sm:px-6 lg:px-0">
+            <div className="-mx-3 animate-[rise_0.5s_ease-out_backwards] sm:-mx-6 md:mx-0">
+              <h2 className="mb-3 px-3 text-sm font-semibold uppercase tracking-wide text-ink-muted sm:px-6 md:px-0">
                 Week {week} around the league
               </h2>
               <GameMap games={mappedGames} legend={legend} />
@@ -226,8 +226,8 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Starters by game — one continuous column running alongside the map and leagues. */}
-        <div className="w-full animate-[rise_0.5s_ease-out_backwards] [animation-delay:200ms] lg:w-80 lg:shrink-0">
+        {/* Starters by game — one continuous column running alongside the map and leagues, with its own independent scroll at md+ so a long list here doesn't push the left column around or vice versa. */}
+        <div className="w-full animate-[rise_0.5s_ease-out_backwards] [animation-delay:200ms] md:sticky md:top-6 md:max-h-[calc(100vh-3rem)] md:w-72 md:shrink-0 md:overflow-y-auto lg:w-80">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-muted">
             My starters by game
           </h2>
