@@ -10,6 +10,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm install --no-save playwright
       - run: npx playwright install --with-deps chromium
       - name: Start dev server
         run: nohup npm run dev > dev.log 2>&1 &
