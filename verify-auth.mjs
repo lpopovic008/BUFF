@@ -51,9 +51,15 @@ console.log("RESULT: signed up and signed in immediately (email confirmation is 
 
 // Push: click "Sync now" and confirm it reports success against the real app_data table (RLS: insert own row).
 await page.getByRole("button", { name: /Sync now|Syncing/ }).click();
-await page.waitForTimeout(3000);
+await page.waitForTimeout(5000);
 text = await bodyText();
-log("Sync status after first sync", text.includes("Pushed this browser's data") || text.includes("Already up to date") ? "OK" : "UNEXPECTED: " + text.slice(text.indexOf("ACCOUNT"), text.indexOf("ACCOUNT") + 400));
+const signedInAt = text.indexOf("Signed in as");
+log(
+  "Sync status after first sync",
+  text.includes("Pushed this browser's data") || text.includes("Already up to date")
+    ? "OK"
+    : "UNEXPECTED: " + text.slice(signedInAt, signedInAt + 400)
+);
 
 // Sign out, then sign back in — confirms the row created above is readable on a fresh session (RLS: select own row) and pulls it down.
 await page.getByRole("button", { name: "Sign out" }).click();
@@ -63,8 +69,8 @@ log("Back to sign-in form after sign-out", text.includes("Sign in with Google") 
 
 await page.locator('input[type="email"]').fill(testEmail);
 await page.locator('input[type="password"]').fill(testPassword);
-await page.getByRole("button", { name: "Sign in" }).click();
-await page.waitForTimeout(4000);
+await page.getByRole("button", { name: "Sign in", exact: true }).click();
+await page.waitForTimeout(5000);
 text = await bodyText();
 log("Signed back in", text.includes(`Signed in as ${testEmail}`) ? "OK" : "FAILED: " + text.slice(0, 500));
 
