@@ -1,0 +1,13 @@
+name: Probe live Render backend
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Health check
+        run: curl -sS -f https://buff-api-2bzm.onrender.com/health
+      - name: Recap generate
+        run: |
+          curl -sS -f -X POST https://buff-api-2bzm.onrender.com/recap/generate \
+            -H "Content-Type: application/json" \
+            -d '{"league_name":"Test League","week":1,"matchups":["Team A def. Team B 120.5-99.2"]}'
