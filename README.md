@@ -138,17 +138,20 @@ server-side rendering and no build-time secrets. Almost everything runs
   client-side. No API key or login needed — it's read-only and keyed off
   your Sleeper username.
 - Your settings (linked username, tracked leagues, commish flags) and the
-  recap archive are saved in this **browser's `localStorage`** — there's no
-  backend to write to. That means they're per-browser, not synced across
-  devices. Use **Settings → Export backup** to save a JSON file, and
-  **Import backup** to bring it into another browser/device.
+  recap archive are saved in this **browser's `localStorage`** by default —
+  per-browser, not synced across devices. Use **Settings → Export backup**
+  to save a JSON file, **Import backup** to bring it into another
+  browser/device, or sign in under **Settings → Account** to sync it
+  automatically instead (optional — everything above still works with no
+  account at all).
 
-The one exception is the recap page's **"Generate with AI"** button, which
-calls a small separately-deployed FastAPI service (`backend/`) — the only
-part of this project that needs a server, since it holds an LLM API key
-that can't live in client-side code. See [`docs/architecture.md`](docs/architecture.md)
-for the full system design, including how that service is built,
-containerized, and deployed.
+Two things need more than a static file. The recap page's **"Generate with
+AI"** button calls a small separately-deployed FastAPI service
+(`backend/`), since it holds an LLM API key that can't live in
+client-side code. And optional account sync talks to Supabase (Postgres +
+Auth) directly from the browser — no server of this project's own
+involved there. See [`docs/architecture.md`](docs/architecture.md) for the
+full system design.
 
 ### Deploying
 

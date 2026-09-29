@@ -1,14 +1,17 @@
 # Architecture
 
-BUFF is two deployed systems, not one:
+BUFF is three systems, not one:
 
 1. **The dashboard** — a statically-exported Next.js site, hosted on GitHub
-   Pages. Everything except the AI recap button runs entirely in the
-   browser, reading pre-fetched JSON and calling Sleeper's public API
-   directly from the client.
+   Pages. Everything except the AI recap button and account sync runs
+   entirely in the browser, reading pre-fetched JSON and calling Sleeper's
+   public API directly from the client.
 2. **The API** (`backend/`) — a small FastAPI service, containerized and
    deployed separately, that exists for exactly one reason the static site
    can't do on its own: calling an LLM with a secret key.
+3. **Supabase** — a managed Postgres database plus Auth, used entirely
+   client-side (no server of this app's own involved) for optional user
+   accounts and cross-device sync. See "Accounts and sync" below.
 
 ```
 ┌─────────────────────────────┐        ┌──────────────────────────────┐
@@ -203,6 +206,62 @@ live Render URL, since this development environment's own network egress
 is restricted to code hosts and can't reach arbitrary APIs directly) —
 never assumed fixed from reading the code alone.
 
+## Accounts and sync (Supabase)
+
+The dashboard has always worked with zero account — a Sleeper username is
+enough, and everything else (settings, the recap archive, bowl picks,
+draft targets) lives in that one browser's `localStorage`
+(`src/lib/localStore.ts`). That's still true today; an account is
+**optional**, and turns on one thing: the same data synced across every
+device signed into it.
+
+This used to be Google Drive sync (`google-drive-sync.ts`, since removed)
+— a hidden file in the signed-in Google account's Drive `appDataFolder`,
+pushed to and pulled from with a last-write-wins reconciliation. It was
+replaced outright with real accounts rather than run alongside them, for
+the sake of the app and its users, not just to add a resume line:
+hand-rolled auth is a real place a solo project's first attempt puts real
+people's credentials at risk — password hashing, session/JWT handling,
+and the OAuth exchange are all things Supabase gets right by default,
+not things this app re-derives.
+
+**Design**: a single `app_data` table (`supabase/schema.sql`), one `jsonb`
+row per user, holding exactly what `localStore.ts`'s
+`exportAllData()`/`importAllData()` already produce and consume — the
+same shape Drive sync kept in its own file, just in Postgres instead, with
+Row Level Security scoping every read/write to `auth.uid() = user_id`. Not
+normalized into relational tables: nothing today needs a cross-user or
+cross-league query, and a single blob reuses the export/import logic
+verbatim instead of re-deriving a schema that has to stay in sync with
+`AppConfig`'s TypeScript shape by hand.
+
+`src/lib/supabase-sync.ts` is a near-direct port of the old Drive sync's
+`decideSyncAction`/`reconcile` — same last-write-wins tradeoff (this is
+for one person's own devices, never two people editing at once), same
+three-way decision (pull the remote copy down / push the local copy up /
+do nothing), just comparing against a Postgres row's `updated_at` instead
+of a Drive file's timestamp. `src/components/AutoSupabaseSync.tsx`
+(mounted in `layout.tsx`) wires it to Supabase's auth state: sign-in
+reconciles once and starts auto-pushing every local write (debounced);
+sign-out stops.
+
+Critically, **`localStore.ts`'s synchronous read/write API never
+changed** — every page that calls `getConfig`/`saveRecap`/`getDraftTargets`/
+etc. does so exactly as it did before accounts existed. `localStorage` is
+synchronous; Postgres isn't. Rather than thread async loading states
+through every consumer (`league`, `values`, `warroom`, `recap`,
+`DraftRoom`, Settings, the dashboard all read `AppConfig` via one shared
+hook, `useConfig`), `localStorage` stays the always-on, synchronous source
+of truth, and Supabase sync runs as a parallel layer underneath it — the
+same shape Drive sync already had, just swapped for a real database.
+
+Sign-in supports email/password and Google OAuth (via Supabase's own
+`signInWithOAuth`, a standard authorization-code+PKCE flow through
+Supabase's callback — unrelated to the Google Identity Services token
+flow `google-auth.ts` uses for the separate Save-to-Doc feature; the two
+share no code and don't conflict, just the same OAuth provider on Google's
+side).
+
 ## Where things run
 
 | Piece | Where | Trigger |
@@ -211,11 +270,14 @@ never assumed fixed from reading the code alone.
 | FastAPI image | GHCR (`ghcr.io/lpopovic008/buff-api`) | Push to `main` touching `backend/**` (`backend-ci.yml`) |
 | FastAPI container | Render (`buff-api-2bzm.onrender.com`) | Manual redeploy, pulling `:latest` from GHCR |
 | Player values/stats data | Committed JSON in `src/data/` | Scheduled Node scripts, separate from this backend |
+| Accounts + sync data | Supabase (Postgres + Auth) | Client-side only — no CI/CD step involved; schema changes are applied by hand via `supabase/schema.sql` in the SQL Editor |
 
 ## What's deliberately out of scope
 
-- **No database.** The API reads static JSON snapshots; there's no
-  persistent state to store.
+- **No database behind the API.** It reads static JSON snapshots; there's
+  no persistent state on that side. The database that does exist
+  (Supabase) is used directly from the browser for accounts/sync, not
+  through this backend.
 - **No ConfigMap/Secret in `backend/k8s/`.** Added a real Secret only once
   there was a real value to put in one (`GEMINI_API_KEY`) — and by the
   time that existed, Render (not the local `kind` cluster) was the actual
