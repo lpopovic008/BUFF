@@ -1,12 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Julius_Sans_One } from "next/font/google";
+import { Inconsolata } from "next/font/google";
 import { AutoSync } from "@/components/AutoSync";
 import { AutoSupabaseSync } from "@/components/AutoSupabaseSync";
 import "./globals.css";
 
-const juliusSansOne = Julius_Sans_One({
-  variable: "--font-julius-sans-one",
-  weight: "400",
+const inconsolata = Inconsolata({
+  variable: "--font-inconsolata",
+  weight: ["400", "500", "600", "700"],
   subsets: ["latin"],
 });
 
@@ -30,7 +30,7 @@ const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${juliusSansOne.variable} h-full antialiased`}>
+    <html lang="en" className={`${inconsolata.variable} h-full antialiased`}>
       <head>
         <link rel="manifest" href={`${basePath}/manifest.json`} />
         <link rel="icon" href={`${basePath}/icons/favicon-32.png`} sizes="32x32" type="image/png" />
