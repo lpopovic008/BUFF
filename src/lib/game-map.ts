@@ -152,3 +152,26 @@ export function kickoffSlotLabel(sortTime: number): string {
   const meridiem = at.getHours() < 12 ? "a" : "p";
   return `${weekday} ${hour}${meridiem}`;
 }
+
+// Named windows for the same coarse 3-hour blocks kickoffBucketKey groups
+// games into, in block order starting at midnight — what turns "Sunday,
+// hour block 4" into "Sunday Noon" for a section header, rather than the
+// map legend's compact "Sun 1p".
+const HOUR_BLOCK_NAMES = [
+  "Overnight",
+  "Early Morning",
+  "Morning",
+  "Late Morning",
+  "Noon",
+  "Afternoon",
+  "Night",
+  "Late Night",
+];
+
+/** A human-readable "Thursday Night" / "Sunday Morning" label for a kickoff window, for a section header with room to spell it out (unlike the map legend's compact kickoffSlotLabel). */
+export function kickoffSlotLongLabel(sortTime: number): string {
+  const at = new Date(sortTime);
+  const weekday = at.toLocaleDateString([], { weekday: "long" });
+  const hourBlock = Math.min(HOUR_BLOCK_NAMES.length - 1, Math.floor(at.getHours() / 3));
+  return `${weekday} ${HOUR_BLOCK_NAMES[hourBlock]}`;
+}

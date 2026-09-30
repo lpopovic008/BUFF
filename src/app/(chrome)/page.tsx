@@ -226,11 +226,8 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Starters by game — one continuous column running alongside the map and leagues, with its own independent scroll at md+ so a long list here doesn't push the left column around or vice versa. */}
-        <div className="w-full animate-[rise_0.5s_ease-out_backwards] [animation-delay:200ms] md:sticky md:top-6 md:max-h-[calc(100vh-3rem)] md:w-72 md:shrink-0 md:overflow-y-auto lg:w-80">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-muted">
-            My starters by game
-          </h2>
+        {/* Starters by game — one continuous column running alongside the map and leagues, with its own independent scroll at md+ so a long list here doesn't push the left column around or vice versa. Always a quarter of the window wide once side-by-side. */}
+        <div className="w-full animate-[rise_0.5s_ease-out_backwards] [animation-delay:200ms] md:sticky md:top-6 md:max-h-[calc(100vh-3rem)] md:w-[25vw] md:shrink-0 md:overflow-y-auto">
           {myStarters === null ? (
             <p className="text-sm text-ink-secondary">Loading your lineups…</p>
           ) : weekGames.length === 0 ? (

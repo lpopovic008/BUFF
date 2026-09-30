@@ -3,7 +3,7 @@
 // window. Pure logic — the fetching lives in hooks/useMyStarters.ts.
 
 import { NFLGame } from "./nfl-schedule";
-import { computeKickoffSlots, kickoffSlotLabel } from "./game-map";
+import { computeKickoffSlots, kickoffSlotColor, kickoffSlotLongLabel } from "./game-map";
 
 export interface StarterEntry {
   playerId: string;
@@ -125,6 +125,13 @@ export function formatKickoff(kickoff: string, now: Date = new Date()): string {
   return `${time} ${day}`;
 }
 
+/** Just the kickoff time, e.g. "8:20 PM" — no weekday, for a header that already states the day elsewhere. */
+export function formatKickoffTime(kickoff: string): string {
+  const at = new Date(kickoff);
+  if (Number.isNaN(at.getTime())) return "TBD";
+  return at.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
 /** The whole game header, e.g. "SF @ LAR — 8:20 PM Thu" — standard away-@-home notation. */
 export function formatGameHeader(game: NFLGame, now: Date = new Date()): string {
   return `${formatTeamMatchup(game)} — ${formatKickoff(game.kickoff, now)}`;
@@ -137,9 +144,11 @@ export function formatTeamMatchup(game: NFLGame): string {
 
 /** One kickoff window's worth of games — one column in the starters-by-game swipe view. */
 export interface TimeBlockColumn {
-  /** e.g. "Wed 8p" — same labeling as the map's kickoff legend, so the two stay recognizable as the same scale. */
+  /** e.g. "Sunday Noon" — a spelled-out window name, since the map's own legend already has the compact "Sun 1p" form. */
   label: string;
   games: GameStarters[];
+  /** The same colour the map uses for this kickoff window (see kickoffSlotColor) — undefined for the trailing TBD column, which isn't a real window. */
+  color?: string;
 }
 
 /**
@@ -153,9 +162,10 @@ export interface TimeBlockColumn {
  */
 export function groupGamesByTimeBlock(games: GameStarters[]): TimeBlockColumn[] {
   const { slotIndexByGameId, slots } = computeKickoffSlots(games.map((g) => g.game));
-  const columns: TimeBlockColumn[] = slots.map((slot) => ({
-    label: kickoffSlotLabel(slot.sortTime),
+  const columns: TimeBlockColumn[] = slots.map((slot, i) => ({
+    label: kickoffSlotLongLabel(slot.sortTime),
     games: [],
+    color: kickoffSlotColor(i, slots.length),
   }));
 
   const unresolved: GameStarters[] = [];

@@ -136,7 +136,7 @@ test("games are bucketed into one column per kickoff window, earliest first", ()
   );
   assert.deepEqual(
     columns.map((c) => c.label),
-    ["Wed 11p", "Sun 1p", "Mon 8p"]
+    ["Wednesday Late Night", "Sunday Noon", "Monday Night"]
   );
 });
 
