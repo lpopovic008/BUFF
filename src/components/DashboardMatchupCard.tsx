@@ -1,12 +1,10 @@
 import { DashboardMatchupView } from "@/hooks/useDashboardMatchups";
-import { formatPoints, ordinal, splitNameTwoLines } from "@/lib/format";
+import { formatPoints, ordinal } from "@/lib/format";
 
 /**
  * A team's name, plain — no rank suffix here anymore (that now sits next to
- * the score, on the side facing the other team). On mobile, any name with
- * at least one space is forced onto two lines split as evenly as possible;
- * a single word stays on one line. Desktop always stays single line
- * (truncating if it has to).
+ * the score, on the side facing the other team). Always a single truncating
+ * line, on mobile and desktop alike.
  */
 function TeamNameLabel({
   name,
@@ -17,24 +15,9 @@ function TeamNameLabel({
   align: "left" | "right";
   colorClass: string;
 }) {
-  const split = splitNameTwoLines(name);
   const alignClass = align === "right" ? "text-right" : "";
 
-  return (
-    <div className={`min-w-0 min-h-[2.5rem] text-sm font-medium ${colorClass} ${alignClass} sm:min-h-0`}>
-      <div className="sm:hidden">
-        {split ? (
-          <>
-            <div>{split[0]}</div>
-            <div>{split[1]}</div>
-          </>
-        ) : (
-          <div>{name}</div>
-        )}
-      </div>
-      <div className="hidden truncate sm:block">{name}</div>
-    </div>
-  );
+  return <div className={`min-w-0 truncate text-sm font-medium ${colorClass} ${alignClass}`}>{name}</div>;
 }
 
 /** A rank badge tucked right against the score it belongs to, on the side facing the other team's score. */
