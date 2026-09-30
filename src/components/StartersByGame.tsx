@@ -20,21 +20,19 @@ function PlayerRow({
     .map((id) => legendByLeagueId.get(id)?.leagueName ?? id)
     .join(", ");
   return (
-    <div className="flex items-center justify-between gap-2 py-0.5" title={`${player.name} — ${leagueNames}`}>
-      <span className="flex min-w-0 items-center gap-1">
-        <span className="truncate text-[11px] leading-tight text-ink-primary">{player.name}</span>
-        <span className="flex shrink-0 items-center gap-0.5">
-          {player.leagueIds.map((id) => (
-            <LeagueMark key={id} league={legendByLeagueId.get(id)} className="h-2.5 w-2.5" />
-          ))}
-        </span>
-      </span>
+    <div className="flex items-center gap-1.5 py-0.5" title={`${player.name} — ${leagueNames}`}>
       <span
         className={`shrink-0 text-[9px] font-semibold uppercase tracking-wide ${
           POSITION_TEXT_COLOR[player.position] ?? "text-ink-muted"
         }`}
       >
         {player.position}
+      </span>
+      <span className="min-w-0 flex-1 truncate text-[11px] leading-tight text-ink-primary">{player.name}</span>
+      <span className="flex shrink-0 items-center gap-0.5">
+        {player.leagueIds.map((id) => (
+          <LeagueMark key={id} league={legendByLeagueId.get(id)} className="h-2.5 w-2.5" />
+        ))}
       </span>
     </div>
   );
@@ -64,13 +62,13 @@ function pad(n: number): string {
   return String(n).padStart(2, "0");
 }
 
+/** Always plain hours:minutes:seconds — no day rollover, even a week out. */
 function formatCountdown(ms: number): string {
   const totalSeconds = Math.floor(ms / 1000);
-  const days = Math.floor(totalSeconds / 86400);
-  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
-  return days > 0 ? `${days}d ${pad(hours)}:${pad(minutes)}:${pad(seconds)}` : `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+  return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 }
 
 /** A live-ticking countdown to the next kickoff among your games this week — the next time block about to go live. Renders nothing once every game has already kicked off. */

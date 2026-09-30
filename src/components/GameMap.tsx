@@ -275,6 +275,26 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
         >
           <path d={US_OUTLINE_PATH} fill="var(--surface)" stroke="var(--map-outline)" strokeWidth="0.6" />
           <path d={US_STATE_LINES_PATH} fill="none" stroke="var(--map-grid)" strokeWidth="0.4" />
+          {slots.length > 1 ? (
+            // Tucked into the bottom-left corner, empty of any team dot ever
+            // since AK/HI were dropped from the outline — the kickoff-window
+            // legend lives on the map itself now instead of a row underneath it.
+            <g opacity={0.85}>
+              {slots.map((slot, i) => {
+                const rowH = 8;
+                const bottomPad = 4;
+                const y = VIEWBOX_H - bottomPad - (slots.length - 1 - i) * rowH;
+                return (
+                  <g key={i}>
+                    <circle cx={9} cy={y - 2} r={2} fill={kickoffSlotColor(i, slots.length)} />
+                    <text x={14} y={y} fontSize={6} fill="var(--ink-muted)">
+                      {kickoffSlotLabel(slot.sortTime)}
+                    </text>
+                  </g>
+                );
+              })}
+            </g>
+          ) : null}
           {allPositioned.map(({ entry, x, y, r: baseR }) => {
             const isAbroad = isOutsideUS(entry.game);
             const isActive = entry.game.id === hovered || entry.game.id === clicked;
@@ -316,29 +336,13 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
         ) : null}
       </div>
 
-      <div className="mt-1 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 opacity-90 transition-opacity hover:opacity-90 dark:opacity-25">
-        <p className="text-[9px] text-ink-muted">
-          {active
-            ? `${gameLabel(active.entry.game)} · ${active.entry.game.venue?.city ?? "—"} · ${
-                active.entry.starters.length || "no"
-              } of your starters`
-            : "Bigger dot = more of your starters in that game."}
+      {active ? (
+        <p className="mt-1 text-[9px] text-ink-muted">
+          {`${gameLabel(active.entry.game)} · ${active.entry.game.venue?.city ?? "—"} · ${
+            active.entry.starters.length || "no"
+          } of your starters`}
         </p>
-
-        {slots.length > 1 ? (
-          <div className="flex items-center gap-1.5">
-            {slots.map((slot, i) => (
-              <span key={i} className="flex items-center gap-0.5">
-                <span
-                  className="h-1.5 w-1.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: kickoffSlotColor(i, slots.length) }}
-                />
-                <span className="text-[9px] text-ink-muted">{kickoffSlotLabel(slot.sortTime)}</span>
-              </span>
-            ))}
-          </div>
-        ) : null}
-      </div>
+      ) : null}
     </div>
   );
 }

@@ -180,49 +180,51 @@ export default function DashboardPage() {
     <div className="flex flex-col gap-6">
       <h1 className="sr-only">Dashboard</h1>
 
-      <div className="flex flex-col gap-6 md:flex-row md:items-start">
-        {/* Map, then your leagues underneath it — always a single column, never side by side. Its own scroll container at md+, independent of the starters column beside it. */}
-        <div className="flex min-w-0 flex-1 flex-col gap-6 md:sticky md:top-6 md:max-h-[calc(100vh-3rem)] md:overflow-y-auto">
-          {weekGames.length > 0 ? (
-            <div className="-mx-3 animate-[rise_0.5s_ease-out_backwards] sm:-mx-6 md:mx-0">
-              <h2 className="mb-3 px-3 text-sm font-semibold uppercase tracking-wide text-ink-muted sm:px-6 md:px-0">
-                Week {week} around the league
-              </h2>
-              <GameMap games={mappedGames} legend={legend} />
-            </div>
-          ) : null}
+      <div className="flex flex-col gap-6 md:flex-row md:items-start md:gap-3">
+        {/* Map, then your leagues underneath it — always a single column, never side by side. Its own scroll container at md+, independent of the starters column beside it. Flipped to rtl so its scrollbar sits on the column's own left edge instead of in the gutter between the two columns — the inner wrapper flips back to ltr so the content itself still reads normally. */}
+        <div className="min-w-0 flex-1 md:sticky md:top-6 md:max-h-[calc(100vh-3rem)] md:overflow-y-auto md:[direction:rtl]">
+          <div className="flex flex-col gap-6 md:[direction:ltr]">
+            {weekGames.length > 0 ? (
+              <div className="-mx-3 animate-[rise_0.5s_ease-out_backwards] sm:-mx-6 md:mx-0">
+                <h2 className="mb-3 px-3 text-sm font-semibold uppercase tracking-wide text-ink-muted sm:px-6 md:px-0">
+                  Week {week} around the league
+                </h2>
+                <GameMap games={mappedGames} legend={legend} />
+              </div>
+            ) : null}
 
-          <div className="flex flex-col gap-4 animate-[rise_0.5s_ease-out_backwards] [animation-delay:70ms]">
-            {leagues.map(({ tracked, summary }, i) => {
-              const myRow = summary.standings.find((r) => r.ownerId === config.sleeperUserId);
-              const matchup = matchups[tracked.leagueId];
-              const opponentRank = matchup?.opponent
-                ? summary.standings.find((r) => r.rosterId === matchup.opponent!.rosterId)?.rank
-                : undefined;
-              return (
-                <Link
-                  key={tracked.leagueId}
-                  href={`/league?id=${tracked.leagueId}`}
-                  className="flex min-w-0 flex-col gap-4 border border-border bg-page p-5 transition-colors animate-[rise_0.5s_ease-out_backwards] hover:border-ink-primary/40"
-                  style={{ animationDelay: `${140 + i * 70}ms` }}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 text-balance text-base font-semibold text-ink-primary sm:truncate sm:text-lg">
-                      {summary.league.name}
-                    </div>
-                    {myRow ? (
-                      <div className="shrink-0 text-lg font-semibold tabular-nums text-ink-primary">
-                        {formatRecord(myRow.wins, myRow.losses, myRow.ties)}
+            <div className="flex flex-col gap-4 animate-[rise_0.5s_ease-out_backwards] [animation-delay:70ms]">
+              {leagues.map(({ tracked, summary }, i) => {
+                const myRow = summary.standings.find((r) => r.ownerId === config.sleeperUserId);
+                const matchup = matchups[tracked.leagueId];
+                const opponentRank = matchup?.opponent
+                  ? summary.standings.find((r) => r.rosterId === matchup.opponent!.rosterId)?.rank
+                  : undefined;
+                return (
+                  <Link
+                    key={tracked.leagueId}
+                    href={`/league?id=${tracked.leagueId}`}
+                    className="flex min-w-0 flex-col gap-4 border border-border bg-page p-5 transition-colors animate-[rise_0.5s_ease-out_backwards] hover:border-ink-primary/40"
+                    style={{ animationDelay: `${140 + i * 70}ms` }}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 text-balance text-base font-semibold text-ink-primary sm:truncate sm:text-lg">
+                        {summary.league.name}
                       </div>
-                    ) : null}
-                  </div>
+                      {myRow ? (
+                        <div className="shrink-0 text-lg font-semibold tabular-nums text-ink-primary">
+                          {formatRecord(myRow.wins, myRow.losses, myRow.ties)}
+                        </div>
+                      ) : null}
+                    </div>
 
-                  {myRow ? (
-                    <DashboardMatchupCard matchup={matchup} myRank={myRow.rank} opponentRank={opponentRank} />
-                  ) : null}
-                </Link>
-              );
-            })}
+                    {myRow ? (
+                      <DashboardMatchupCard matchup={matchup} myRank={myRow.rank} opponentRank={opponentRank} />
+                    ) : null}
+                  </Link>
+                );
+              })}
+            </div>
           </div>
         </div>
 

@@ -44,6 +44,6 @@ export function teamColor(team: string | null): string {
 }
 
 /** The same colour at low opacity, for softly tinting a team's half of a matchup title. */
-export function teamTint(team: string | null, percent = 16): string {
+export function teamTint(team: string | null, percent = 32): string {
   return `color-mix(in srgb, ${teamColor(team)} ${percent}%, transparent)`;
 }
