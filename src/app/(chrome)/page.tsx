@@ -208,7 +208,7 @@ export default function DashboardPage() {
                     style={{ animationDelay: `${140 + i * 70}ms` }}
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 text-balance text-base font-semibold text-ink-primary sm:truncate sm:text-lg">
+                      <div className="min-w-0 truncate text-base font-semibold text-ink-primary sm:text-lg">
                         {summary.league.name}
                       </div>
                       {myRow ? (
