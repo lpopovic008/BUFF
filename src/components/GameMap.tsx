@@ -4,7 +4,15 @@ import { MouseEvent as ReactMouseEvent, RefObject, useEffect, useMemo, useRef, u
 import { NFLGame, isOutsideUS } from "@/lib/nfl-schedule";
 import { computeKickoffSlots, gameMapPosition, internationalSlotPosition, kickoffSlotColor, kickoffSlotLabel } from "@/lib/game-map";
 import { formatKickoff } from "@/lib/my-starters";
-import { US_MAP_VIEWBOX, US_NATION_OUTLINE_PATH, US_STATE_LINES_PATH } from "@/lib/warroom-team-cities";
+import {
+  FLAT_MAP_HEIGHT,
+  MAP_TOP_OUTLINE,
+  MAP_TOP_STATE_LINES,
+  MAP_VIEW,
+  MAP_VIEWBOX,
+  MAP_WALL_LAYERS,
+  projectMapPoint,
+} from "@/lib/map-perspective";
 import { LeagueLegendEntry, LeagueMark } from "./LeagueMark";
 
 /** One of your starters in a mapped game, enough to show on the click-to-preview card. */
@@ -22,8 +30,6 @@ export interface MappedGame {
   opponentStarters: MappedStarter[];
 }
 
-const VIEWBOX_H = 200;
-
 function dotRadius(starterCount: number): number {
   if (starterCount === 0) return 3.5;
   return Math.min(4.5 + starterCount * 1.6, 20);
@@ -34,44 +40,31 @@ function dotRadius(starterCount: number): number {
 // own. Flip back to true to restore them.
 const SHOW_GAME_DOTS = false;
 
-// The map always sits on its own dark panel, whatever the app theme — the
-// look is a grey landmass with sharp white edges against near-black.
-const MAP_PANEL_BG = "#0b0b0c";
-const LAND_TOP = "#3a3c40";
-const LAND_WALL = "#1d1e21";
-const EDGE = "#f4f4f4";
-const STATE_LINE = "rgba(255, 255, 255, 0.16)";
-
-// How far (viewBox units) the slab's base sits below its top face, and how
-// many stacked copies fill the side wall between them.
-const SLAB_DEPTH = 3;
-const SLAB_STEPS = 8;
-
 /**
- * The US drawn as a raised slab: a dark side wall (the national outline
- * repeated a few units lower, so only the south-facing edges show it) with its own
- * thin white base edge, a grey top face, and a thick white rim on top. The
- * rim is a wide white stroke with a narrower grey stroke laid over its
- * middle, which leaves two sharp white lines — one just outside the coast,
- * one just inside — for the double-edged border.
+ * The US drawn as a raised slab, seen from slightly south (see
+ * map-perspective.ts): a side wall built from stacked layers between ground
+ * and top, whose ground layer carries its own thin edge line — the tilt
+ * exposes it along the south-facing coasts — then the top face with a thick
+ * rim. The rim is a wide edge-colored stroke with a narrower land-colored
+ * stroke over its middle, leaving two sharp lines (just outside and just
+ * inside the coast) for a double-edged border. Colors are theme tokens:
+ * grey land with white edges on black in dark mode, inverted in light mode.
  */
 function RaisedUSOutline() {
   return (
-    <g>
-      {Array.from({ length: SLAB_STEPS }, (_, i) => (
+    <g strokeLinejoin="round">
+      {MAP_WALL_LAYERS.map((d, i) => (
         <path
           key={i}
-          d={US_NATION_OUTLINE_PATH}
-          transform={`translate(0 ${((i + 1) * SLAB_DEPTH) / SLAB_STEPS})`}
-          fill={LAND_WALL}
-          stroke={i === SLAB_STEPS - 1 ? EDGE : LAND_WALL}
-          strokeWidth={i === SLAB_STEPS - 1 ? 0.5 : 0.6}
-          strokeLinejoin="round"
+          d={d}
+          fill="var(--map-wall)"
+          stroke={i === 0 ? "var(--map-edge)" : "var(--map-wall)"}
+          strokeWidth={i === 0 ? 0.5 : 0.6}
         />
       ))}
-      <path d={US_NATION_OUTLINE_PATH} fill={LAND_TOP} stroke={EDGE} strokeWidth={1.8} strokeLinejoin="round" />
-      <path d={US_NATION_OUTLINE_PATH} fill="none" stroke={LAND_TOP} strokeWidth={0.7} strokeLinejoin="round" />
-      <path d={US_STATE_LINES_PATH} fill="none" stroke={STATE_LINE} strokeWidth={0.35} />
+      <path d={MAP_TOP_OUTLINE} fill="var(--map-land)" stroke="var(--map-edge)" strokeWidth={1.8} />
+      <path d={MAP_TOP_OUTLINE} fill="none" stroke="var(--map-land)" strokeWidth={0.7} />
+      <path d={MAP_TOP_STATE_LINES} fill="none" stroke="var(--map-state-line)" strokeWidth={0.35} />
     </g>
   );
 }
@@ -161,7 +154,7 @@ function GamePreviewCard({
   // the dot is near the middle, and centering is what "pop up in the center
   // of the map" actually asks for. Vertically it still tracks the dot,
   // opening toward whichever half has room so it stays near what you clicked.
-  const opensDown = y < VIEWBOX_H / 2;
+  const opensDown = y < MAP_VIEW.y + MAP_VIEW.height / 2;
   const summaryLine = [gameLabel(entry.game), formatKickoff(entry.game.kickoff), venueLabel(entry.game)]
     .filter(Boolean)
     .join(" · ");
@@ -173,7 +166,7 @@ function GamePreviewCard({
       className="absolute z-10 w-80 max-w-[calc(100%-1rem)] border border-grid bg-page p-3 text-xs shadow-sm"
       style={{
         left: "50%",
-        top: `${(y / VIEWBOX_H) * 100}%`,
+        top: `${((y - MAP_VIEW.y) / MAP_VIEW.height) * 100}%`,
         transform: `translate(-50%, ${opensDown ? "0.5rem" : "calc(-100% - 0.5rem)"})`,
       }}
     >
@@ -252,13 +245,15 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
   const abroad: PositionedGame[] = games
     .filter((g) => isOutsideUS(g.game))
     .map((entry, i) => {
-      const [x, y] = internationalSlotPosition(i);
+      const [x, y] = projectMapPoint(...internationalSlotPosition(i));
       return { entry, x, y, r: dotRadius(entry.starters.length) * 0.6 };
     });
   const plotted: PositionedGame[] = games
     .map((entry) => {
       const pos = gameMapPosition(entry.game);
-      return pos ? { entry, x: pos[0], y: pos[1], r: dotRadius(entry.starters.length) } : null;
+      if (!pos) return null;
+      const [x, y] = projectMapPoint(pos[0], pos[1]);
+      return { entry, x, y, r: dotRadius(entry.starters.length) };
     })
     .filter((p): p is PositionedGame => p !== null)
     // Biggest last so a game you care about is never hidden under an empty one.
@@ -309,9 +304,9 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-[44rem]">
-      <div className="relative px-4 pb-6 pt-4 sm:px-6 sm:pb-8 sm:pt-6" style={{ backgroundColor: MAP_PANEL_BG }}>
+      <div className="relative">
         <svg
-          viewBox={US_MAP_VIEWBOX}
+          viewBox={MAP_VIEWBOX}
           preserveAspectRatio="xMidYMid meet"
           className="block w-full overflow-visible"
           role="img"
@@ -327,11 +322,13 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
               {slots.map((slot, i) => {
                 const rowH = 8;
                 const bottomPad = 4;
-                const y = VIEWBOX_H - bottomPad - (slots.length - 1 - i) * rowH;
+                const flatY = FLAT_MAP_HEIGHT - bottomPad - (slots.length - 1 - i) * rowH;
+                const [cx, cy] = projectMapPoint(9, flatY - 2, 0);
+                const [tx, ty] = projectMapPoint(14, flatY, 0);
                 return (
                   <g key={i}>
-                    <circle cx={9} cy={y - 2} r={2} fill={kickoffSlotColor(i, slots.length)} />
-                    <text x={14} y={y} fontSize={6} fill="var(--ink-muted)">
+                    <circle cx={cx} cy={cy} r={2} fill={kickoffSlotColor(i, slots.length)} />
+                    <text x={tx} y={ty} fontSize={6} fill="var(--ink-muted)">
                       {kickoffSlotLabel(slot.sortTime)}
                     </text>
                   </g>
