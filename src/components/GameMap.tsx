@@ -4,7 +4,15 @@ import { MouseEvent as ReactMouseEvent, RefObject, useEffect, useId, useMemo, us
 import { NFLGame, isOutsideUS } from "@/lib/nfl-schedule";
 import { computeKickoffSlots, gameMapPosition, internationalSlotPosition, kickoffSlotColor, kickoffSlotLabel } from "@/lib/game-map";
 import { formatKickoff } from "@/lib/my-starters";
-import { FLAT_MAP_HEIGHT, MAP_OUTLINE, MAP_STATE_LINES, MAP_VIEW, MAP_VIEWBOX, projectMapPoint } from "@/lib/map-perspective";
+import {
+  FLAT_MAP_HEIGHT,
+  MAP_OUTLINE,
+  MAP_STATE_LINES,
+  MAP_VIEW,
+  MAP_VIEWBOX,
+  MAP_WALL_LAYERS,
+  projectMapPoint,
+} from "@/lib/map-perspective";
 import { LeagueLegendEntry, LeagueMark } from "./LeagueMark";
 
 /** One of your starters in a mapped game, enough to show on the click-to-preview card. */
@@ -33,10 +41,13 @@ function dotRadius(starterCount: number): number {
 const SHOW_GAME_DOTS = false;
 
 /**
- * The tilted US (see map-perspective.ts): grey land, faint state borders,
- * and the coast/national border as a single line a little heavier than
- * them. Colors are theme tokens — white lines on black in dark mode,
- * inverted in light mode.
+ * The tilted US (see map-perspective.ts): a raised slab whose side wall
+ * shows along the south-facing coasts, grey land on top, faint state
+ * borders, and the coast/national border as a line a little heavier than
+ * them. The border is stroked *behind* the land at double width, so the
+ * land covers its inner half and it only extends outward — it never eats
+ * into small coastal states. Colors are theme tokens — white lines on black
+ * in dark mode, inverted in light mode.
  */
 function USOutline() {
   // The coast is smoothed but the state lines aren't, so a line's coastal end
@@ -49,6 +60,10 @@ function USOutline() {
           <path d={MAP_OUTLINE} />
         </clipPath>
       </defs>
+      {MAP_WALL_LAYERS.map((d, i) => (
+        <path key={i} d={d} fill="var(--map-wall)" stroke="var(--map-wall)" strokeWidth={0.6} />
+      ))}
+      <path d={MAP_OUTLINE} fill="none" stroke="var(--map-edge)" strokeWidth={1.7} />
       <path d={MAP_OUTLINE} fill="var(--map-land)" />
       <path
         d={MAP_STATE_LINES}
@@ -57,7 +72,6 @@ function USOutline() {
         strokeWidth={0.45}
         clipPath={`url(#${clipId})`}
       />
-      <path d={MAP_OUTLINE} fill="none" stroke="var(--map-edge)" strokeWidth={0.85} />
     </g>
   );
 }
@@ -316,8 +330,8 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
                 const rowH = 8;
                 const bottomPad = 4;
                 const flatY = FLAT_MAP_HEIGHT - bottomPad - (slots.length - 1 - i) * rowH;
-                const [cx, cy] = projectMapPoint(9, flatY - 2);
-                const [tx, ty] = projectMapPoint(14, flatY);
+                const [cx, cy] = projectMapPoint(9, flatY - 2, 0);
+                const [tx, ty] = projectMapPoint(14, flatY, 0);
                 return (
                   <g key={i}>
                     <circle cx={cx} cy={cy} r={2} fill={kickoffSlotColor(i, slots.length)} />
