@@ -53,6 +53,99 @@ function hitTest(positioned: PositionedGame[], x: number, y: number): Positioned
   return positioned.filter((p) => Math.hypot(x - p.x, y - p.y) <= p.r);
 }
 
+interface LabelBox {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+}
+
+function boxesOverlap(a: LabelBox, b: LabelBox): boolean {
+  return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+}
+
+/** A dot's stem + label, angled away from straight-up when that would otherwise collide with a label already placed nearby. */
+interface DotLayout {
+  stemX2: number;
+  stemY2: number;
+  labelX: number;
+  labelY: number;
+  labelAnchor: "start" | "end";
+  showStem: boolean;
+  showLabel: boolean;
+}
+
+const LABEL_FONT_SIZE = 4;
+// A rough per-character width estimate for the label font, just precise
+// enough to catch real overlaps without measuring actual text metrics.
+const LABEL_CHAR_WIDTH = LABEL_FONT_SIZE * 0.62;
+// Straight up first, then a small fan of alternatives tried in order until
+// one doesn't collide with an already-placed label.
+const STEM_ANGLES_DEG = [0, -30, 30, -55, 55];
+
+/**
+ * Lays out every dot's stem + label, tilting a stem away from vertical when
+ * straight-up would land its label on top of one already placed — games
+ * sharing a metro area (both New York teams, both LA teams) would otherwise
+ * stack unreadable labels directly on each other. Processes dots with
+ * starters in them first (and bigger ones before smaller), so a game that
+ * actually matters claims the straight-up slot and an empty one is the more
+ * likely to get bumped to an angle.
+ */
+function layoutDots(positioned: PositionedGame[]): Map<string, DotLayout> {
+  const byPriority = [...positioned].sort((a, b) => {
+    const aHas = a.entry.starters.length > 0 ? 1 : 0;
+    const bHas = b.entry.starters.length > 0 ? 1 : 0;
+    if (aHas !== bHas) return bHas - aHas;
+    return b.entry.starters.length - a.entry.starters.length;
+  });
+
+  function candidateFor(p: PositionedGame, angleDeg: number, textWidth: number) {
+    const rad = (angleDeg * Math.PI) / 180;
+    const stemLen = p.r + 12;
+    const endX = Math.min(VIEWBOX_W - 4, Math.max(4, p.x + Math.sin(rad) * stemLen));
+    const endY = Math.max(4, p.y - Math.cos(rad) * stemLen);
+    const anchor: "start" | "end" =
+      angleDeg > 2 ? "start" : angleDeg < -2 ? "end" : p.x > VIEWBOX_W / 2 ? "end" : "start";
+    const labelX = endX + (anchor === "start" ? 2 : -2);
+    const labelY = endY - 1;
+    const textHeight = LABEL_FONT_SIZE * 1.3;
+    const box: LabelBox =
+      anchor === "start"
+        ? { left: labelX, right: labelX + textWidth, top: labelY - textHeight, bottom: labelY + 0.5 }
+        : { left: labelX - textWidth, right: labelX, top: labelY - textHeight, bottom: labelY + 0.5 };
+    return { endX, endY, anchor, labelX, labelY, box };
+  }
+
+  const placedBoxes: LabelBox[] = [];
+  const layoutById = new Map<string, DotLayout>();
+  for (const p of byPriority) {
+    const textWidth = gameLabel(p.entry.game).length * LABEL_CHAR_WIDTH;
+    let chosen = candidateFor(p, STEM_ANGLES_DEG[0], textWidth);
+    if (placedBoxes.some((b) => boxesOverlap(chosen.box, b))) {
+      for (const angle of STEM_ANGLES_DEG.slice(1)) {
+        const candidate = candidateFor(p, angle, textWidth);
+        if (!placedBoxes.some((b) => boxesOverlap(candidate.box, b))) {
+          chosen = candidate;
+          break;
+        }
+      }
+    }
+    placedBoxes.push(chosen.box);
+    const stemHeight = p.y - chosen.endY;
+    layoutById.set(p.entry.game.id, {
+      stemX2: chosen.endX,
+      stemY2: chosen.endY,
+      labelX: chosen.labelX,
+      labelY: chosen.labelY,
+      labelAnchor: chosen.anchor,
+      showStem: stemHeight > 1,
+      showLabel: stemHeight > 2,
+    });
+  }
+  return layoutById;
+}
+
 /** Converts a pointer event's screen coordinates into this SVG's own viewBox coordinate space, accounting for however `preserveAspectRatio` and the element's on-page size have scaled it — the same coordinate space every dot's cx/cy/r is already defined in. */
 function svgPointFromEvent(svg: SVGSVGElement, e: { clientX: number; clientY: number }): { x: number; y: number } | null {
   const ctm = svg.getScreenCTM();
@@ -218,6 +311,7 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
     // Biggest last so a game you care about is never hidden under an empty one.
     .sort((a, b) => a.entry.starters.length - b.entry.starters.length);
   const allPositioned = [...abroad, ...plotted];
+  const dotLayouts = layoutDots(allPositioned);
 
   const { slotIndexByGameId, slots } = useMemo(
     () => computeKickoffSlots(games.map((g) => g.game)),
@@ -274,14 +368,6 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
           aria-label={`${plotted.length} games plotted across the United States`}
           onClick={handleMapClick}
         >
-          <defs>
-            {/* A soft blurred halo behind each dot's crisp core — stdDeviation is
-                in viewBox units (not CSS pixels) so the glow scales with the
-                map at any rendered size, same as every other dimension here. */}
-            <filter id="game-map-dot-glow" x="-200%" y="-200%" width="500%" height="500%">
-              <feGaussianBlur stdDeviation="1.4" />
-            </filter>
-          </defs>
           <path d={US_OUTLINE_PATH} fill="var(--surface)" stroke="var(--map-outline)" strokeWidth="0.6" />
           <path d={US_STATE_LINES_PATH} fill="none" stroke="var(--map-grid)" strokeWidth="0.4" />
           {slots.length > 1 ? (
@@ -310,45 +396,21 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
             const hasPlayers = entry.starters.length > 0;
             const r = baseR + (isActive ? 1.4 * (isAbroad ? 0.6 : 1) : 0);
             const color = colorFor(entry.game.id);
-            // A radar-ping look: a thin stem rising straight from the dot's
-            // center to the matchup's name, with a couple of faint rings
-            // around the dot itself. The stem is drawn from the dot's
-            // *center* (so it's drawn under the dot, which paints over the
-            // bottom r units of it) but its length past the dot's edge is a
-            // fixed 12 units regardless of r — a big, many-starter dot's own
-            // radius would otherwise swallow the whole stem, leaving nothing
-            // visible above it. Clamped to the dot's distance from the map's
-            // top edge so the stem/label never run off it — the Pacific
-            // Northwest teams and the international cluster tucked in the
-            // corner both sit close to y=0.
-            const stemTop = Math.max(4, y - r - 12);
-            const stemHeight = y - stemTop;
-            const labelAnchor = x > VIEWBOX_W / 2 ? "end" : "start";
-            const labelX = x + (labelAnchor === "end" ? -2 : 2);
+            const layout = dotLayouts.get(entry.game.id)!;
             const labelOpacity = hasPlayers ? (isActive ? 1 : 0.85) : isActive ? 0.7 : 0.4;
             return (
               <g key={entry.game.id}>
-                {stemHeight > 1 ? (
+                {layout.showStem ? (
                   <line
                     x1={x}
                     y1={y}
-                    x2={x}
-                    y2={stemTop}
+                    x2={layout.stemX2}
+                    y2={layout.stemY2}
                     stroke={color}
                     strokeWidth={0.4}
                     strokeOpacity={hasPlayers ? 0.7 : 0.3}
                   />
                 ) : null}
-                <circle
-                  cx={x}
-                  cy={y}
-                  r={r + 5}
-                  fill="none"
-                  stroke={color}
-                  strokeWidth={0.25}
-                  strokeOpacity={hasPlayers ? 0.22 : 0.1}
-                  className="transition-[r]"
-                />
                 <circle
                   cx={x}
                   cy={y}
@@ -359,17 +421,6 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
                   strokeOpacity={hasPlayers ? 0.4 : 0.18}
                   className="transition-[r]"
                 />
-                {hasPlayers ? (
-                  <circle
-                    cx={x}
-                    cy={y}
-                    r={r * 1.5}
-                    fill={color}
-                    opacity={isActive ? 0.65 : 0.45}
-                    filter="url(#game-map-dot-glow)"
-                    className="pointer-events-none transition-[r]"
-                  />
-                ) : null}
                 <circle
                   cx={x}
                   cy={y}
@@ -389,12 +440,12 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
                     }`}
                   </title>
                 </circle>
-                {stemHeight > 2 ? (
+                {layout.showLabel ? (
                   <text
-                    x={labelX}
-                    y={stemTop - 1}
-                    fontSize={4}
-                    textAnchor={labelAnchor}
+                    x={layout.labelX}
+                    y={layout.labelY}
+                    fontSize={LABEL_FONT_SIZE}
+                    textAnchor={layout.labelAnchor}
                     fill="var(--ink-primary)"
                     fillOpacity={labelOpacity}
                     className="pointer-events-none select-none"
