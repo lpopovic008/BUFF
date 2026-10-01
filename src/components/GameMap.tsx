@@ -22,7 +22,6 @@ export interface MappedGame {
   opponentStarters: MappedStarter[];
 }
 
-const VIEWBOX_W = 320;
 const VIEWBOX_H = 200;
 
 function dotRadius(starterCount: number): number {
@@ -51,99 +50,6 @@ interface PositionedGame {
 /** Every positioned game whose dot geometrically contains (x, y) — not just whichever one the browser would hand a native click event to (the topmost in paint order), which is exactly the dot that's invisible/unclickable when two games fully overlap. */
 function hitTest(positioned: PositionedGame[], x: number, y: number): PositionedGame[] {
   return positioned.filter((p) => Math.hypot(x - p.x, y - p.y) <= p.r);
-}
-
-interface LabelBox {
-  left: number;
-  right: number;
-  top: number;
-  bottom: number;
-}
-
-function boxesOverlap(a: LabelBox, b: LabelBox): boolean {
-  return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
-}
-
-/** A dot's stem + label, angled away from straight-up when that would otherwise collide with a label already placed nearby. */
-interface DotLayout {
-  stemX2: number;
-  stemY2: number;
-  labelX: number;
-  labelY: number;
-  labelAnchor: "start" | "end";
-  showStem: boolean;
-  showLabel: boolean;
-}
-
-const LABEL_FONT_SIZE = 4;
-// A rough per-character width estimate for the label font, just precise
-// enough to catch real overlaps without measuring actual text metrics.
-const LABEL_CHAR_WIDTH = LABEL_FONT_SIZE * 0.62;
-// Straight up first, then a small fan of alternatives tried in order until
-// one doesn't collide with an already-placed label.
-const STEM_ANGLES_DEG = [0, -30, 30, -55, 55];
-
-/**
- * Lays out every dot's stem + label, tilting a stem away from vertical when
- * straight-up would land its label on top of one already placed — games
- * sharing a metro area (both New York teams, both LA teams) would otherwise
- * stack unreadable labels directly on each other. Processes dots with
- * starters in them first (and bigger ones before smaller), so a game that
- * actually matters claims the straight-up slot and an empty one is the more
- * likely to get bumped to an angle.
- */
-function layoutDots(positioned: PositionedGame[]): Map<string, DotLayout> {
-  const byPriority = [...positioned].sort((a, b) => {
-    const aHas = a.entry.starters.length > 0 ? 1 : 0;
-    const bHas = b.entry.starters.length > 0 ? 1 : 0;
-    if (aHas !== bHas) return bHas - aHas;
-    return b.entry.starters.length - a.entry.starters.length;
-  });
-
-  function candidateFor(p: PositionedGame, angleDeg: number, textWidth: number) {
-    const rad = (angleDeg * Math.PI) / 180;
-    const stemLen = p.r + 12;
-    const endX = Math.min(VIEWBOX_W - 4, Math.max(4, p.x + Math.sin(rad) * stemLen));
-    const endY = Math.max(4, p.y - Math.cos(rad) * stemLen);
-    const anchor: "start" | "end" =
-      angleDeg > 2 ? "start" : angleDeg < -2 ? "end" : p.x > VIEWBOX_W / 2 ? "end" : "start";
-    const labelX = endX + (anchor === "start" ? 2 : -2);
-    const labelY = endY - 1;
-    const textHeight = LABEL_FONT_SIZE * 1.3;
-    const box: LabelBox =
-      anchor === "start"
-        ? { left: labelX, right: labelX + textWidth, top: labelY - textHeight, bottom: labelY + 0.5 }
-        : { left: labelX - textWidth, right: labelX, top: labelY - textHeight, bottom: labelY + 0.5 };
-    return { endX, endY, anchor, labelX, labelY, box };
-  }
-
-  const placedBoxes: LabelBox[] = [];
-  const layoutById = new Map<string, DotLayout>();
-  for (const p of byPriority) {
-    const textWidth = gameLabel(p.entry.game).length * LABEL_CHAR_WIDTH;
-    let chosen = candidateFor(p, STEM_ANGLES_DEG[0], textWidth);
-    if (placedBoxes.some((b) => boxesOverlap(chosen.box, b))) {
-      for (const angle of STEM_ANGLES_DEG.slice(1)) {
-        const candidate = candidateFor(p, angle, textWidth);
-        if (!placedBoxes.some((b) => boxesOverlap(candidate.box, b))) {
-          chosen = candidate;
-          break;
-        }
-      }
-    }
-    placedBoxes.push(chosen.box);
-    const stemHeight = p.y - chosen.endY;
-    layoutById.set(p.entry.game.id, {
-      stemX2: chosen.endX,
-      stemY2: chosen.endY,
-      labelX: chosen.labelX,
-      labelY: chosen.labelY,
-      labelAnchor: chosen.anchor,
-      showStem: stemHeight > 1,
-      showLabel: stemHeight > 2,
-    });
-  }
-  return layoutById;
 }
 
 /** Converts a pointer event's screen coordinates into this SVG's own viewBox coordinate space, accounting for however `preserveAspectRatio` and the element's on-page size have scaled it — the same coordinate space every dot's cx/cy/r is already defined in. */
@@ -311,7 +217,6 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
     // Biggest last so a game you care about is never hidden under an empty one.
     .sort((a, b) => a.entry.starters.length - b.entry.starters.length);
   const allPositioned = [...abroad, ...plotted];
-  const dotLayouts = layoutDots(allPositioned);
 
   const { slotIndexByGameId, slots } = useMemo(
     () => computeKickoffSlots(games.map((g) => g.game)),
@@ -396,64 +301,27 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
             const hasPlayers = entry.starters.length > 0;
             const r = baseR + (isActive ? 1.4 * (isAbroad ? 0.6 : 1) : 0);
             const color = colorFor(entry.game.id);
-            const layout = dotLayouts.get(entry.game.id)!;
-            const labelOpacity = hasPlayers ? (isActive ? 1 : 0.85) : isActive ? 0.7 : 0.4;
             return (
-              <g key={entry.game.id}>
-                {layout.showStem ? (
-                  <line
-                    x1={x}
-                    y1={y}
-                    x2={layout.stemX2}
-                    y2={layout.stemY2}
-                    stroke={color}
-                    strokeWidth={0.4}
-                    strokeOpacity={hasPlayers ? 0.7 : 0.3}
-                  />
-                ) : null}
-                <circle
-                  cx={x}
-                  cy={y}
-                  r={r + 2.5}
-                  fill="none"
-                  stroke={color}
-                  strokeWidth={0.35}
-                  strokeOpacity={hasPlayers ? 0.4 : 0.18}
-                  className="transition-[r]"
-                />
-                <circle
-                  cx={x}
-                  cy={y}
-                  r={r}
-                  fill={hasPlayers ? color : "none"}
-                  fillOpacity={hasPlayers ? (isActive ? 0.82 : 0.62) : undefined}
-                  stroke={hasPlayers ? "var(--surface-raised)" : color}
-                  strokeWidth={hasPlayers ? 0.5 : 1.2}
-                  strokeOpacity={hasPlayers ? undefined : isActive ? 0.9 : 0.65}
-                  className="cursor-pointer transition-[r,fill-opacity,stroke-opacity]"
-                  onMouseEnter={() => setHovered(entry.game.id)}
-                  onMouseLeave={() => setHovered((id) => (id === entry.game.id ? null : id))}
-                >
-                  <title>
-                    {`${gameLabel(entry.game)}${isAbroad ? " (outside the US)" : ""} — ${formatKickoff(entry.game.kickoff)}${
-                      entry.starters.length ? ` — ${entry.starters.length} of your starters` : ""
-                    }`}
-                  </title>
-                </circle>
-                {layout.showLabel ? (
-                  <text
-                    x={layout.labelX}
-                    y={layout.labelY}
-                    fontSize={LABEL_FONT_SIZE}
-                    textAnchor={layout.labelAnchor}
-                    fill="var(--ink-primary)"
-                    fillOpacity={labelOpacity}
-                    className="pointer-events-none select-none"
-                  >
-                    {gameLabel(entry.game)}
-                  </text>
-                ) : null}
-              </g>
+              <circle
+                key={entry.game.id}
+                cx={x}
+                cy={y}
+                r={r}
+                fill={hasPlayers ? color : "none"}
+                fillOpacity={hasPlayers ? (isActive ? 0.82 : 0.62) : undefined}
+                stroke={hasPlayers ? "var(--surface-raised)" : color}
+                strokeWidth={hasPlayers ? 0.5 : 1.2}
+                strokeOpacity={hasPlayers ? undefined : isActive ? 0.9 : 0.65}
+                className="cursor-pointer transition-[r,fill-opacity,stroke-opacity]"
+                onMouseEnter={() => setHovered(entry.game.id)}
+                onMouseLeave={() => setHovered((id) => (id === entry.game.id ? null : id))}
+              >
+                <title>
+                  {`${gameLabel(entry.game)}${isAbroad ? " (outside the US)" : ""} — ${formatKickoff(entry.game.kickoff)}${
+                    entry.starters.length ? ` — ${entry.starters.length} of your starters` : ""
+                  }`}
+                </title>
+              </circle>
             );
           })}
         </svg>
