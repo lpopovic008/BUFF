@@ -274,6 +274,14 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
           aria-label={`${plotted.length} games plotted across the United States`}
           onClick={handleMapClick}
         >
+          <defs>
+            {/* A soft blurred halo behind each dot's crisp core — stdDeviation is
+                in viewBox units (not CSS pixels) so the glow scales with the
+                map at any rendered size, same as every other dimension here. */}
+            <filter id="game-map-dot-glow" x="-200%" y="-200%" width="500%" height="500%">
+              <feGaussianBlur stdDeviation="1.4" />
+            </filter>
+          </defs>
           <path d={US_OUTLINE_PATH} fill="var(--surface)" stroke="var(--map-outline)" strokeWidth="0.6" />
           <path d={US_STATE_LINES_PATH} fill="none" stroke="var(--map-grid)" strokeWidth="0.4" />
           {slots.length > 1 ? (
@@ -351,6 +359,17 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
                   strokeOpacity={hasPlayers ? 0.4 : 0.18}
                   className="transition-[r]"
                 />
+                {hasPlayers ? (
+                  <circle
+                    cx={x}
+                    cy={y}
+                    r={r * 1.5}
+                    fill={color}
+                    opacity={isActive ? 0.65 : 0.45}
+                    filter="url(#game-map-dot-glow)"
+                    className="pointer-events-none transition-[r]"
+                  />
+                ) : null}
                 <circle
                   cx={x}
                   cy={y}
