@@ -10,13 +10,12 @@
   --grid-hairline: #e1e0d9;
   --baseline: #c3c2b7;
   --border: rgba(11, 11, 11, 0.1);
-  /* The dashboard's raised-slab US map (see GameMap.tsx). Dark mode is grey
-     land with sharp white edges on black; light mode inverts it — light grey
-     land with sharp dark edges on the page background. */
+  /* The dashboard's US map (see GameMap.tsx). Dark mode is grey land with
+     white lines on black; light mode inverts it — light grey land with dark
+     lines on the page background. */
   --map-land: #d9dadd;
-  --map-wall: #9a9ca2;
   --map-edge: #121212;
-  --map-state-line: rgba(0, 0, 0, 0.16);
+  --map-state-line: rgba(0, 0, 0, 0.22);
 
   --series-1: #2a78d6; /* blue */
   --series-2: #eb6834; /* orange */
@@ -57,9 +56,8 @@
     --baseline: #383835;
     --border: rgba(255, 255, 255, 0.1);
     --map-land: #3a3c40;
-    --map-wall: #1d1e21;
     --map-edge: #f4f4f4;
-    --map-state-line: rgba(255, 255, 255, 0.16);
+    --map-state-line: rgba(255, 255, 255, 0.24);
 
     --series-1: #3987e5;
     --series-2: #d95926;

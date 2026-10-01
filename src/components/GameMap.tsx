@@ -4,15 +4,7 @@ import { MouseEvent as ReactMouseEvent, RefObject, useEffect, useId, useMemo, us
 import { NFLGame, isOutsideUS } from "@/lib/nfl-schedule";
 import { computeKickoffSlots, gameMapPosition, internationalSlotPosition, kickoffSlotColor, kickoffSlotLabel } from "@/lib/game-map";
 import { formatKickoff } from "@/lib/my-starters";
-import {
-  FLAT_MAP_HEIGHT,
-  MAP_TOP_OUTLINE,
-  MAP_TOP_STATE_LINES,
-  MAP_VIEW,
-  MAP_VIEWBOX,
-  MAP_WALL_LAYERS,
-  projectMapPoint,
-} from "@/lib/map-perspective";
+import { FLAT_MAP_HEIGHT, MAP_OUTLINE, MAP_STATE_LINES, MAP_VIEW, MAP_VIEWBOX, projectMapPoint } from "@/lib/map-perspective";
 import { LeagueLegendEntry, LeagueMark } from "./LeagueMark";
 
 /** One of your starters in a mapped game, enough to show on the click-to-preview card. */
@@ -41,44 +33,31 @@ function dotRadius(starterCount: number): number {
 const SHOW_GAME_DOTS = false;
 
 /**
- * The US drawn as a raised slab, seen from slightly south (see
- * map-perspective.ts): a side wall built from stacked layers between ground
- * and top, whose ground layer carries its own thin edge line — the tilt
- * exposes it along the south-facing coasts — then the top face with a thick
- * rim. The rim is a wide edge-colored stroke with a narrower land-colored
- * stroke over its middle, leaving two sharp lines (just outside and just
- * inside the coast) for a double-edged border. Colors are theme tokens:
- * grey land with white edges on black in dark mode, inverted in light mode.
+ * The tilted US (see map-perspective.ts): grey land, faint state borders,
+ * and the coast/national border as a single line a little heavier than
+ * them. Colors are theme tokens — white lines on black in dark mode,
+ * inverted in light mode.
  */
-function RaisedUSOutline() {
+function USOutline() {
   // The coast is smoothed but the state lines aren't, so a line's coastal end
-  // can sit a hair outside the land — clip them to the top face.
+  // can sit a hair outside the land — clip them to it.
   const clipId = useId();
   return (
     <g strokeLinejoin="round">
       <defs>
         <clipPath id={clipId}>
-          <path d={MAP_TOP_OUTLINE} />
+          <path d={MAP_OUTLINE} />
         </clipPath>
       </defs>
-      {MAP_WALL_LAYERS.map((d, i) => (
-        <path
-          key={i}
-          d={d}
-          fill="var(--map-wall)"
-          stroke={i === 0 ? "var(--map-edge)" : "var(--map-wall)"}
-          strokeWidth={i === 0 ? 0.5 : 0.6}
-        />
-      ))}
-      <path d={MAP_TOP_OUTLINE} fill="var(--map-land)" stroke="var(--map-edge)" strokeWidth={1.8} />
-      <path d={MAP_TOP_OUTLINE} fill="none" stroke="var(--map-land)" strokeWidth={0.7} />
+      <path d={MAP_OUTLINE} fill="var(--map-land)" />
       <path
-        d={MAP_TOP_STATE_LINES}
+        d={MAP_STATE_LINES}
         fill="none"
         stroke="var(--map-state-line)"
-        strokeWidth={0.35}
+        strokeWidth={0.45}
         clipPath={`url(#${clipId})`}
       />
+      <path d={MAP_OUTLINE} fill="none" stroke="var(--map-edge)" strokeWidth={0.85} />
     </g>
   );
 }
@@ -327,7 +306,7 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
           aria-label={`${plotted.length} games plotted across the United States`}
           onClick={handleMapClick}
         >
-          <RaisedUSOutline />
+          <USOutline />
           {SHOW_GAME_DOTS && slots.length > 1 ? (
             // Tucked into the bottom-left corner, empty of any team dot ever
             // since AK/HI were dropped from the outline — the kickoff-window
@@ -337,8 +316,8 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
                 const rowH = 8;
                 const bottomPad = 4;
                 const flatY = FLAT_MAP_HEIGHT - bottomPad - (slots.length - 1 - i) * rowH;
-                const [cx, cy] = projectMapPoint(9, flatY - 2, 0);
-                const [tx, ty] = projectMapPoint(14, flatY, 0);
+                const [cx, cy] = projectMapPoint(9, flatY - 2);
+                const [tx, ty] = projectMapPoint(14, flatY);
                 return (
                   <g key={i}>
                     <circle cx={cx} cy={cy} r={2} fill={kickoffSlotColor(i, slots.length)} />
