@@ -22,16 +22,16 @@ function PlayerRow({
   return (
     <div className="flex items-center gap-1.5 py-0.5" title={`${player.name} — ${leagueNames}`}>
       <span
-        className={`shrink-0 text-[9px] font-semibold uppercase tracking-wide ${
+        className={`w-[2.4em] shrink-0 text-[0.6875rem] font-semibold uppercase tracking-wide ${
           POSITION_TEXT_COLOR[player.position] ?? "text-ink-muted"
         }`}
       >
         {player.position}
       </span>
-      <span className="min-w-0 flex-1 truncate text-[11px] leading-tight text-ink-primary">{player.name}</span>
+      <span className="min-w-0 flex-1 truncate text-[0.8125rem] leading-snug text-ink-primary">{player.name}</span>
       <span className="flex shrink-0 items-center gap-0.5">
         {player.leagueIds.map((id) => (
-          <LeagueMark key={id} league={legendByLeagueId.get(id)} className="h-2.5 w-2.5" />
+          <LeagueMark key={id} league={legendByLeagueId.get(id)} className="h-3 w-3" />
         ))}
       </span>
     </div>
@@ -42,7 +42,7 @@ function PlayerRow({
 function GameHeader({ game }: { game: NFLGame }) {
   return (
     <div className="flex items-baseline justify-between gap-2">
-      <h3 className="flex items-baseline gap-1 text-xs font-semibold uppercase tracking-wide text-ink-primary">
+      <h3 className="flex items-baseline gap-1 text-sm font-semibold uppercase tracking-wide text-ink-primary">
         <span className="px-1" style={{ backgroundColor: teamTint(game.awayTeam) }}>
           {game.awayTeam}
         </span>
@@ -51,7 +51,7 @@ function GameHeader({ game }: { game: NFLGame }) {
           {game.homeTeam}
         </span>
       </h3>
-      <span className="shrink-0 text-[10px] uppercase tracking-wide text-ink-muted">
+      <span className="shrink-0 text-xs uppercase tracking-wide text-ink-muted">
         {formatKickoffTime(game.kickoff)}
       </span>
     </div>
@@ -99,8 +99,8 @@ function NextKickoffClock({ games }: { games: GameStarters[] }) {
 
   return (
     <div className="flex flex-col items-center gap-0.5 border-b border-grid pb-3 text-center">
-      <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">Next kickoff</span>
-      <span className="text-2xl font-bold tabular-nums text-ink-primary">{formatCountdown(remaining)}</span>
+      <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Next kickoff</span>
+      <span className="text-3xl font-bold tabular-nums text-ink-primary">{formatCountdown(remaining)}</span>
     </div>
   );
 }
@@ -145,11 +145,11 @@ export function StartersByGame({
               type="button"
               onClick={() => onToggleLeague(league.leagueId)}
               aria-pressed={selected}
-              className={`flex items-center gap-1.5 text-xs transition-opacity ${
+              className={`flex items-center gap-1.5 text-[0.8125rem] transition-opacity ${
                 selected ? "text-ink-secondary" : "text-ink-muted opacity-40"
               }`}
             >
-              <LeagueMark league={league} className="h-2.5 w-2.5" />
+              <LeagueMark league={league} className="h-3 w-3" />
               <span className="text-balance text-left">{league.leagueName}</span>
             </button>
           );
@@ -168,7 +168,7 @@ export function StartersByGame({
             {columns.map((column) => (
               <div key={column.label} className="flex flex-col gap-2">
                 <div
-                  className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-ink-primary"
+                  className="px-2 py-1 text-xs font-semibold uppercase tracking-wide text-ink-primary"
                   style={{
                     backgroundColor: column.color
                       ? `color-mix(in srgb, ${column.color} 18%, transparent)`
@@ -195,7 +195,7 @@ export function StartersByGame({
 
           {notPlaying.length > 0 ? (
             <div className="flex flex-col gap-1.5 border-t border-grid pt-3">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">
                 Not playing this week
               </h3>
               <div className="grid grid-cols-1 gap-1">

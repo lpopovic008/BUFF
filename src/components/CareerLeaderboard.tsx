@@ -21,13 +21,13 @@ export function CareerLeaderboard({ managers }: { managers: ManagerCareerStats[]
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[720px] text-sm">
+      <table className="w-full text-xs sm:text-sm">
         <thead>
           <tr className="border-b border-grid text-xs uppercase tracking-wide text-ink-muted">
             <SortHeader sortKey="manager" state={sortState} onSort={toggleSort}>
               Manager
             </SortHeader>
-            <SortHeader sortKey="seasons" state={sortState} onSort={toggleSort} align="right">
+            <SortHeader sortKey="seasons" state={sortState} onSort={toggleSort} align="right" className="hidden sm:table-cell">
               Seasons
             </SortHeader>
             <SortHeader sortKey="record" state={sortState} onSort={toggleSort} align="right">
@@ -36,36 +36,38 @@ export function CareerLeaderboard({ managers }: { managers: ManagerCareerStats[]
             <SortHeader sortKey="winPct" state={sortState} onSort={toggleSort} align="right">
               Win%
             </SortHeader>
-            <SortHeader sortKey="pointsFor" state={sortState} onSort={toggleSort} align="right">
+            <SortHeader sortKey="pointsFor" state={sortState} onSort={toggleSort} align="right" className="hidden sm:table-cell">
               PF
             </SortHeader>
             <SortHeader sortKey="bestFinish" state={sortState} onSort={toggleSort} align="right">
-              Best finish
+              <span className="sm:hidden">Best</span>
+              <span className="hidden sm:inline">Best finish</span>
             </SortHeader>
             <SortHeader sortKey="championships" state={sortState} onSort={toggleSort}>
-              Championships
+              <span className="sm:hidden">Titles</span>
+              <span className="hidden sm:inline">Championships</span>
             </SortHeader>
           </tr>
         </thead>
         <tbody>
           {sorted.map((m) => (
             <tr key={m.userId} className="border-b border-grid last:border-0">
-              <td className="py-2 pr-3 font-medium text-ink-primary">{m.displayName}</td>
-              <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">{m.seasonsPlayed}</td>
-              <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">
+              <td className="py-2 pr-2 font-medium text-ink-primary sm:pr-3">{m.displayName}</td>
+              <td className="hidden py-2 pr-3 text-right tabular-nums text-ink-secondary sm:table-cell">{m.seasonsPlayed}</td>
+              <td className="whitespace-nowrap py-2 pr-2 text-right tabular-nums text-ink-secondary sm:pr-3">
                 {m.wins}-{m.losses}
                 {m.ties ? `-${m.ties}` : ""}
               </td>
-              <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">
+              <td className="whitespace-nowrap py-2 pr-2 text-right tabular-nums text-ink-secondary sm:pr-3">
                 {formatPct(winPct(m.wins, m.losses, m.ties))}
               </td>
-              <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">{formatPoints(m.pointsFor)}</td>
-              <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">
+              <td className="hidden py-2 pr-3 text-right tabular-nums text-ink-secondary sm:table-cell">{formatPoints(m.pointsFor)}</td>
+              <td className="whitespace-nowrap py-2 pr-2 text-right tabular-nums text-ink-secondary sm:pr-3">
                 {m.bestFinishRank ? ordinal(m.bestFinishRank) : "—"}
               </td>
-              <td className="py-2 pr-3">
+              <td className="py-2 pr-2 sm:pr-3">
                 <div className="flex items-center gap-2">
-                  <div className="h-2 w-24 overflow-hidden bg-page">
+                  <div className="h-2 w-10 overflow-hidden bg-page sm:w-24">
                     <div
                       className="h-full bg-series-1 transition-[width] duration-500"
                       style={{ width: `${(m.championships / maxChampionships) * 100}%` }}

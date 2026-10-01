@@ -5,7 +5,7 @@ export default function ChromeLayout({ children }: { children: React.ReactNode }
   return (
     <div className="flex min-h-full flex-col">
       <NavBar />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-3 py-8 sm:px-6">{children}</main>
+      <main className="mx-auto w-full max-w-[90rem] flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">{children}</main>
     </div>
   );
 }

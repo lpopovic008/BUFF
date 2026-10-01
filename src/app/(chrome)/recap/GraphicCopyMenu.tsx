@@ -136,14 +136,14 @@ export function GraphicCopyMenu({
                 <span>Split into 3 images</span>
                 {splitStatus === "generating" ? <span className="text-xs text-ink-muted">Rendering…</span> : null}
               </button>
-              <p className="px-3 pb-1.5 pt-0.5 text-[11px] text-ink-muted">
+              <p className="px-3 pb-1.5 pt-0.5 text-xs text-ink-muted">
                 Splits a tall graphic into shorter images so apps like iMessage show them in full, instead of collapsing one long
                 image behind &ldquo;tap to view.&rdquo;
               </p>
             </div>
           ) : (
             <div className="flex flex-col p-1">
-              <p className="px-3 pb-1 pt-2 text-[11px] text-ink-muted">
+              <p className="px-3 pb-1 pt-2 text-xs text-ink-muted">
                 This browser can only copy one image at a time — copy each below, pasting it into the chat before copying the
                 next.
               </p>

@@ -120,6 +120,15 @@
   --font-mono: var(--font-inconsolata);
 }
 
+/* Fluid root size: every rem-based value in the app (Tailwind's text sizes,
+   spacing, max-widths) scales with it, so the whole UI grows smoothly from
+   a phone (16px) through a 2560px display (24px) instead of staying a small
+   fixed-size column in a sea of white space. Breakpoint media queries are
+   unaffected — those resolve rem against the browser default, not this. */
+html {
+  font-size: clamp(16px, 14.6px + 0.366vw, 24px);
+}
+
 body {
   background: var(--color-page);
   color: var(--color-ink-primary);

@@ -132,17 +132,17 @@ function LeagueDetailContent() {
         </section>
       ) : null}
 
-      <Card className="animate-[rise_0.5s_ease-out_backwards] p-5 [animation-delay:210ms]">
+      <Card className="animate-[rise_0.5s_ease-out_backwards] p-4 sm:p-5 [animation-delay:210ms]">
         <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-muted">Standings</h2>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[480px] text-sm">
+          <table className="w-full text-xs sm:text-sm">
             <thead>
               <tr className="border-b border-grid text-left text-xs uppercase tracking-wide text-ink-muted">
-                <th className="py-2 pr-3 font-medium">Rank</th>
-                <th className="py-2 pr-3 font-medium">Team</th>
-                <th className="py-2 pr-3 font-medium text-right">Record</th>
-                <th className="py-2 pr-3 font-medium text-right">PF</th>
-                <th className="py-2 pr-3 font-medium text-right">PA</th>
+                <th className="py-2 pr-2 sm:pr-3 font-medium">Rank</th>
+                <th className="py-2 pr-2 sm:pr-3 font-medium">Team</th>
+                <th className="whitespace-nowrap py-2 pr-2 text-right font-medium sm:pr-3">Record</th>
+                <th className="whitespace-nowrap py-2 pr-2 text-right font-medium sm:pr-3">PF</th>
+                <th className="whitespace-nowrap py-2 pr-2 text-right font-medium sm:pr-3">PA</th>
               </tr>
             </thead>
             <tbody>
@@ -153,19 +153,19 @@ function LeagueDetailContent() {
                     row.ownerId === config.sleeperUserId ? "bg-series-1/5" : ""
                   }`}
                 >
-                  <td className="py-2 pr-3 tabular-nums text-ink-secondary">{ordinal(row.rank)}</td>
-                  <td className="py-2 pr-3 font-medium text-ink-primary">
+                  <td className="py-2 pr-2 sm:pr-3 tabular-nums text-ink-secondary">{ordinal(row.rank)}</td>
+                  <td className="py-2 pr-2 sm:pr-3 font-medium text-ink-primary">
                     <Link href={`/team?league=${leagueId}&roster=${row.rosterId}`} className="hover:underline">
                       {row.teamName}
                     </Link>
                   </td>
-                  <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">
+                  <td className="py-2 pr-2 sm:pr-3 whitespace-nowrap text-right tabular-nums text-ink-secondary">
                     {formatRecord(row.wins, row.losses, row.ties)}
                   </td>
-                  <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">
+                  <td className="py-2 pr-2 sm:pr-3 whitespace-nowrap text-right tabular-nums text-ink-secondary">
                     {formatPoints(row.pointsFor)}
                   </td>
-                  <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">
+                  <td className="py-2 pr-2 sm:pr-3 whitespace-nowrap text-right tabular-nums text-ink-secondary">
                     {formatPoints(row.pointsAgainst)}
                   </td>
                 </tr>

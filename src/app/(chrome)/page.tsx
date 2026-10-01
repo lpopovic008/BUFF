@@ -185,8 +185,8 @@ export default function DashboardPage() {
         <div className="min-w-0 flex-1 md:sticky md:top-6 md:max-h-[calc(100vh-3rem)] md:overflow-y-auto md:[direction:rtl]">
           <div className="flex flex-col gap-6 md:[direction:ltr]">
             {weekGames.length > 0 ? (
-              <div className="-mx-3 animate-[rise_0.5s_ease-out_backwards] sm:-mx-6 md:mx-0">
-                <h2 className="mb-3 px-3 text-sm font-semibold uppercase tracking-wide text-ink-muted sm:px-6 md:px-0">
+              <div className="animate-[rise_0.5s_ease-out_backwards]">
+                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-muted">
                   Week {week} around the league
                 </h2>
                 <GameMap games={mappedGames} legend={legend} />

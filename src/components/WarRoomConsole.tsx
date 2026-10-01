@@ -182,7 +182,7 @@ function GaugeDial({ label, youVal, cmpVal }: { label: string; youVal: number; c
       </svg>
       <div className="gauge-value">
         {youVal}
-        <span style={{ color: "var(--ink-dim)", fontSize: "9px" }}>%</span>
+        <span style={{ color: "var(--ink-dim)", fontSize: "0.5625rem" }}>%</span>
       </div>
       <div className="gauge-label">{label}</div>
     </div>
@@ -948,7 +948,7 @@ export function WarRoomConsole({
               <div className="card-flags"><span className="flag cmp">↔ HIGHLIGHTS</span></div>
             </div>
             <div className="heat-wrap">
-              <div className="heat-weeks" style={{ gridTemplateColumns: `58px repeat(${heatWeekCount}, 1fr)` }}>
+              <div className="heat-weeks" style={{ gridTemplateColumns: `3.625rem repeat(${heatWeekCount}, 1fr)` }}>
                 <span />
                 {Array.from({ length: heatWeekCount }, (_, i) => (
                   <span key={i}>W{i + 1}</span>
@@ -962,7 +962,7 @@ export function WarRoomConsole({
                     <div
                       key={m.rosterId}
                       className={`heat-row${isYou ? " you" : ""}${isSel ? " selected" : ""}`}
-                      style={{ gridTemplateColumns: `58px repeat(${heatWeekCount}, 1fr)` }}
+                      style={{ gridTemplateColumns: `3.625rem repeat(${heatWeekCount}, 1fr)` }}
                     >
                       <span className="heat-name">{m.name}</span>
                       {m.seasonForm.map((pct, w) => (

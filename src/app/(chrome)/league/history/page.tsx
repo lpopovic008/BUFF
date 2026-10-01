@@ -72,7 +72,7 @@ function MoneyTable({ managers }: { managers: MoneyManager[] }) {
   const { sorted, sortState, toggleSort } = useTableSort(managers, MONEY_COLUMNS);
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[420px] text-sm">
+      <table className="w-full text-xs sm:text-sm">
         <thead>
           <tr className="border-b border-grid text-xs uppercase tracking-wide text-ink-muted">
             <SortHeader sortKey="manager" state={sortState} onSort={toggleSort}>
@@ -92,12 +92,12 @@ function MoneyTable({ managers }: { managers: MoneyManager[] }) {
         <tbody>
           {sorted.map((m) => (
             <tr key={m.rosterId} className="border-b border-grid last:border-0">
-              <td className="py-2 pr-3 font-medium text-ink-primary">{m.name}</td>
-              <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">{m.wins}</td>
-              <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">
+              <td className="py-2 pr-2 sm:pr-3 font-medium text-ink-primary">{m.name}</td>
+              <td className="whitespace-nowrap py-2 pr-2 text-right sm:pr-3 tabular-nums text-ink-secondary">{m.wins}</td>
+              <td className="whitespace-nowrap py-2 pr-2 text-right sm:pr-3 tabular-nums text-ink-secondary">
                 {m.highScoreWeeks.length}
               </td>
-              <td className="py-2 pr-3 text-right font-semibold tabular-nums text-ink-primary">
+              <td className="whitespace-nowrap py-2 pr-2 text-right sm:pr-3 font-semibold tabular-nums text-ink-primary">
                 ${m.total}
               </td>
             </tr>
@@ -123,7 +123,7 @@ function StandingsTable({ season }: { season: SeasonRecord }) {
   const { sorted, sortState, toggleSort } = useTableSort(season.standings, STANDINGS_COLUMNS);
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[480px] text-sm">
+      <table className="w-full text-xs sm:text-sm">
         <thead>
           <tr className="border-b border-grid text-xs uppercase tracking-wide text-ink-muted">
             <SortHeader sortKey="rank" state={sortState} onSort={toggleSort}>
@@ -146,10 +146,10 @@ function StandingsTable({ season }: { season: SeasonRecord }) {
         <tbody>
           {sorted.map((row) => (
             <tr key={row.rosterId} className="border-b border-grid last:border-0">
-              <td className="py-2 pr-3 tabular-nums text-ink-secondary">
+              <td className="py-2 pr-2 sm:pr-3 tabular-nums text-ink-secondary">
                 {season.hasResults ? ordinal(row.rank) : "—"}
               </td>
-              <td className="py-2 pr-3 font-medium text-ink-primary">
+              <td className="py-2 pr-2 sm:pr-3 font-medium text-ink-primary">
                 <Link href={`/team?league=${season.leagueId}&roster=${row.rosterId}`} className="hover:underline">
                   {row.teamName}
                 </Link>
@@ -159,13 +159,13 @@ function StandingsTable({ season }: { season: SeasonRecord }) {
                   <span className="ml-2 text-xs text-ink-muted">Runner-up</span>
                 ) : null}
               </td>
-              <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">
+              <td className="whitespace-nowrap py-2 pr-2 text-right sm:pr-3 tabular-nums text-ink-secondary">
                 {formatRecord(row.wins, row.losses, row.ties)}
               </td>
-              <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">
+              <td className="whitespace-nowrap py-2 pr-2 text-right sm:pr-3 tabular-nums text-ink-secondary">
                 {formatPoints(row.pointsFor)}
               </td>
-              <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">
+              <td className="whitespace-nowrap py-2 pr-2 text-right sm:pr-3 tabular-nums text-ink-secondary">
                 {formatPoints(row.pointsAgainst)}
               </td>
             </tr>

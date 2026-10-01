@@ -19,11 +19,11 @@ import { RecapSectionsEditor } from "./RecapSectionsEditor";
 const GRAPHIC_WIDTH = 640;
 
 /**
- * Uniformly shrinks its fixed-width child to fit whatever width is actually
- * available — like zooming out on the exported image — instead of letting
- * the child's own CSS reflow it. A narrow/mobile screen gets a smaller but
- * completely undistorted copy of the same layout, edge to edge, no
- * horizontal scrolling needed.
+ * Uniformly scales its fixed-width child to the available width — like
+ * zooming on the exported image — instead of letting the child's own CSS
+ * reflow it. A phone gets a smaller but undistorted copy edge to edge; a
+ * wide screen gets a larger centered one, capped to grow in step with the
+ * app's fluid root size so it doesn't balloon past the rest of the UI.
  */
 function ScaleToFit({ width, children }: { width: number; children: React.ReactNode }) {
   const outerRef = useRef<HTMLDivElement>(null);
@@ -37,7 +37,8 @@ function ScaleToFit({ width, children }: { width: number; children: React.ReactN
     if (!outer || !inner) return;
 
     function recompute() {
-      const nextScale = Math.min(1, outer!.clientWidth / width);
+      const rootPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+      const nextScale = Math.min((rootPx / 16) * 1.15, outer!.clientWidth / width);
       setScale(nextScale);
       setHeight(inner!.scrollHeight * nextScale);
     }
@@ -53,9 +54,11 @@ function ScaleToFit({ width, children }: { width: number; children: React.ReactN
   }, [width]);
 
   return (
-    <div ref={outerRef} style={{ width: "100%", height, overflow: "hidden" }}>
-      <div ref={innerRef} style={{ width, transform: `scale(${scale})`, transformOrigin: "top left" }}>
-        {children}
+    <div ref={outerRef} style={{ width: "100%" }}>
+      <div style={{ width: width * scale, height, overflow: "hidden", margin: "0 auto" }}>
+        <div ref={innerRef} style={{ width, transform: `scale(${scale})`, transformOrigin: "top left" }}>
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -158,12 +161,11 @@ export function RecapEditor({
   }
 
   return (
-    // Full-bleed (cancels ChromeLayout's page gutter) and scaled to fit — the
-    // graphic replica below has a fixed authored width (see GRAPHIC_WIDTH
-    // above and recap-neon.css) instead of a responsive one, so on a narrow/
-    // mobile screen ScaleToFit shrinks the whole thing uniformly to fit edge
-    // to edge, rather than each component squeezing/wrapping on its own.
-    <div className={`${recapBodyFont.className} -mx-3 px-3 sm:-mx-6 sm:px-6`}>
+    // Scaled to fit — the graphic replica below has a fixed authored width
+    // (see GRAPHIC_WIDTH above and recap-neon.css) instead of a responsive
+    // one, so ScaleToFit zooms the whole thing uniformly to the available
+    // width, rather than each component squeezing/wrapping on its own.
+    <div className={recapBodyFont.className}>
       <ScaleToFit width={GRAPHIC_WIDTH}>
         <RecapSectionsEditor
           model={model}

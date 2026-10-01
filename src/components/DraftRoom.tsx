@@ -321,8 +321,8 @@ export function DraftRoom() {
     });
   }
 
-  const boardGridColumns = `40px repeat(${settings.teams}, minmax(96px, 1fr))`;
-  const poolGridColumns = `repeat(${settings.rounds}, minmax(52px, 1fr))`;
+  const boardGridColumns = `2.5rem repeat(${settings.teams}, minmax(6rem, 1fr))`;
+  const poolGridColumns = `repeat(${settings.rounds}, minmax(3.25rem, 1fr))`;
 
   return (
     <div className="warroom-console">
@@ -361,7 +361,7 @@ export function DraftRoom() {
           </div>
         </header>
 
-        <article className="card" style={{ marginBottom: 12 }}>
+        <article className="card" style={{ marginBottom: "0.75rem" }}>
           <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
           <div className="card-head">
             <div className="card-head-left">
@@ -458,7 +458,7 @@ export function DraftRoom() {
           </p>
         </article>
 
-        <article className="card" style={{ marginBottom: 12 }}>
+        <article className="card" style={{ marginBottom: "0.75rem" }}>
           <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
           <div className="card-head">
             <div className="card-head-left">
@@ -620,7 +620,7 @@ export function DraftRoom() {
         </article>
 
         {draftComplete ? (
-          <article className="card" style={{ marginTop: 12 }}>
+          <article className="card" style={{ marginTop: "0.75rem" }}>
             <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
             <div className="card-head">
               <div className="card-head-left">

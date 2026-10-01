@@ -44,7 +44,7 @@ function WeekGrid({ money: m }: { money: LeagueMoney }) {
   return (
     <div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] border-separate border-spacing-0 text-sm">
+        <table className="w-full min-w-[45rem] border-separate border-spacing-0 text-sm">
           <thead>
             <tr className="text-xs uppercase tracking-wide text-ink-muted">
               <th className="sticky left-0 z-10 bg-surface-raised py-2 pr-3 text-left font-medium">
@@ -182,30 +182,30 @@ export function MoneyBoard({ money: m }: { money: LeagueMoney }) {
           Record &amp; high scores
         </h3>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[480px] text-sm">
+          <table className="w-full text-xs sm:text-sm">
             <thead>
               <tr className="border-b border-grid text-left text-xs uppercase tracking-wide text-ink-muted">
-                <th className="py-2 pr-3 font-medium">Manager</th>
-                <th className="py-2 pr-3 text-right font-medium">Record</th>
-                <th className="py-2 pr-3 text-right font-medium">Points for</th>
-                <th className="py-2 pr-3 text-right font-medium">High-score weeks</th>
-                <th className="py-2 pr-3 text-right font-medium">Earned</th>
+                <th className="py-2 pr-2 font-medium sm:pr-3">Manager</th>
+                <th className="whitespace-nowrap py-2 pr-2 text-right font-medium sm:pr-3">Record</th>
+                <th className="hidden whitespace-nowrap py-2 pr-3 text-right font-medium sm:table-cell">Points for</th>
+                <th className="whitespace-nowrap py-2 pr-2 text-right font-medium sm:pr-3">High-score weeks</th>
+                <th className="whitespace-nowrap py-2 pr-2 text-right font-medium sm:pr-3">Earned</th>
               </tr>
             </thead>
             <tbody>
               {ledger.managers.map((mgr) => (
                 <tr key={mgr.rosterId} className="border-b border-grid last:border-0">
-                  <td className="py-2 pr-3 font-medium text-ink-primary">{mgr.name}</td>
-                  <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">
+                  <td className="py-2 pr-2 font-medium sm:pr-3 text-ink-primary">{mgr.name}</td>
+                  <td className="whitespace-nowrap py-2 pr-2 text-right sm:pr-3 tabular-nums text-ink-secondary">
                     {formatRecord(mgr.wins, mgr.losses, mgr.ties)}
                   </td>
-                  <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">
+                  <td className="hidden py-2 pr-3 text-right tabular-nums text-ink-secondary sm:table-cell">
                     {mgr.pointsFor.toFixed(2)}
                   </td>
-                  <td className="py-2 pr-3 text-right tabular-nums text-ink-secondary">
+                  <td className="whitespace-nowrap py-2 pr-2 text-right sm:pr-3 tabular-nums text-ink-secondary">
                     {mgr.highScoreWeeks.length > 0 ? mgr.highScoreWeeks.join(", ") : "—"}
                   </td>
-                  <td className="py-2 pr-3 text-right font-semibold tabular-nums text-ink-primary">
+                  <td className="whitespace-nowrap py-2 pr-2 text-right sm:pr-3 font-semibold tabular-nums text-ink-primary">
                     {money(mgr.total)}
                   </td>
                 </tr>

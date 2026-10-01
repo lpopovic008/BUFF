@@ -127,7 +127,7 @@ function GamePreviewCard({
       style={{
         left: "50%",
         top: `${(y / VIEWBOX_H) * 100}%`,
-        transform: `translate(-50%, ${opensDown ? "8px" : "calc(-100% - 8px)"})`,
+        transform: `translate(-50%, ${opensDown ? "0.5rem" : "calc(-100% - 0.5rem)"})`,
       }}
     >
       <div className="flex items-start justify-between gap-2">
@@ -147,13 +147,13 @@ function GamePreviewCard({
       {hasAnyone ? (
         <div className="mt-2 grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1">
-            <span className="text-[9px] font-semibold uppercase tracking-wide text-ink-muted">You</span>
+            <span className="text-[0.625rem] font-semibold uppercase tracking-wide text-ink-muted">You</span>
             {entry.starters.map((starter) => (
               <PlayerRow key={starter.playerId} starter={starter} legendByLeagueId={legendByLeagueId} align="left" />
             ))}
           </div>
           <div className="flex flex-col items-end gap-1 text-right">
-            <span className="text-[9px] font-semibold uppercase tracking-wide text-ink-muted">Opponent</span>
+            <span className="text-[0.625rem] font-semibold uppercase tracking-wide text-ink-muted">Opponent</span>
             {entry.opponentStarters.map((starter) => (
               <PlayerRow key={starter.playerId} starter={starter} legendByLeagueId={legendByLeagueId} align="right" />
             ))}
@@ -261,13 +261,11 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
   const toggleClicked = (id: string) => setClicked((current) => (current === id ? null : id));
 
   return (
-    <div className="min-w-0 px-3 sm:px-6">
-      <div className="relative mx-auto w-full max-w-[560px]">
+    <div className="mx-auto w-full min-w-0 max-w-[44rem]">
+      <div className="relative">
         <svg
           viewBox={US_MAP_VIEWBOX}
           preserveAspectRatio="xMidYMid meet"
-          // Capped so the map stays a glanceable strip rather than swallowing
-          // the page — its 320x200 viewBox is otherwise ~700px tall at full width.
           className="block w-full"
           role="img"
           aria-label={`${plotted.length} games plotted across the United States`}
@@ -337,7 +335,7 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
       </div>
 
       {active ? (
-        <p className="mt-1 text-[9px] text-ink-muted">
+        <p className="mt-1 text-xs text-ink-muted">
           {`${gameLabel(active.entry.game)} · ${active.entry.game.venue?.city ?? "—"} · ${
             active.entry.starters.length || "no"
           } of your starters`}

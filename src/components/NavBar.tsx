@@ -20,8 +20,8 @@ export function NavBar() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="relative border-b border-border bg-surface-raised">
-      <div className="mx-auto grid max-w-6xl grid-cols-[1fr_auto_1fr] items-center gap-3 px-6 py-4">
+    <header className="border-b border-border bg-surface-raised">
+      <div className="relative mx-auto grid max-w-[90rem] grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-4 sm:px-6 lg:px-8">
         <Link href="/" className="justify-self-start text-lg font-semibold tracking-tight">
           <span className="text-ink-primary">BUFF</span>
           <span className="text-ink-muted">/</span>
@@ -47,21 +47,21 @@ export function NavBar() {
             onClick={() => setOpen((v) => !v)}
           />
         </div>
+        {open ? (
+          <nav className="absolute right-4 top-full z-20 mt-1 flex w-40 flex-col overflow-hidden border border-border bg-surface-raised shadow-md animate-[dropdown_0.15s_ease-out] sm:right-6 lg:right-8">
+            {links.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setOpen(false)}
+                className="px-4 py-2.5 text-sm font-medium text-ink-secondary transition-colors hover:bg-page hover:text-ink-primary"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+        ) : null}
       </div>
-      {open ? (
-        <nav className="absolute right-6 top-full z-20 mt-1 flex w-40 flex-col overflow-hidden border border-border bg-surface-raised shadow-md animate-[dropdown_0.15s_ease-out]">
-          {links.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={() => setOpen(false)}
-              className="px-4 py-2.5 text-sm font-medium text-ink-secondary transition-colors hover:bg-page hover:text-ink-primary"
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-      ) : null}
     </header>
   );
 }

@@ -15,27 +15,38 @@ function slotLabel(slot: string): string {
 }
 
 // Fixed column widths so every row's headshot/name/Pos Rk/value-rank/points
-// line up under the header labels above them. Even unboxed (see the league
-// page, which dropped the Card wrapper around this component specifically
-// to give it more width) this is still only ~165px wide per side on a phone
-// (main's own px-3 is the only padding left), and a headshot plus two real
-// rank columns plus points already claim most of that. Names go through
-// abbreviateFirstName ("Josh Allen" -> "J. Allen") so the row text can run a
-// size up (text-[11px] instead of the plain text-xs used elsewhere) while
-// still fitting most names without truncating. Mirrored left-to-right for
+// line up under the header labels above them. On a phone this is only
+// ~150px wide per side, and a headshot plus two rank columns plus points
+// claim most of that — so names go through abbreviateFirstName ("Josh Allen"
+// -> "J. Allen") there, and from sm up the columns widen and show the full
+// name. All rem, so it scales with the fluid root. Mirrored left-to-right for
 // the "their" side, which reads right-to-left (points nearest the middle,
 // headshot on the outside).
-const MY_ROW_COLS = "grid-cols-[22px_minmax(0,1fr)_1.2rem_1.2rem_1.75rem]";
-const THEIR_ROW_COLS = "grid-cols-[1.75rem_1.2rem_1.2rem_minmax(0,1fr)_22px]";
+const MY_ROW_COLS =
+  "grid-cols-[1.375rem_minmax(0,1fr)_1.1rem_1.1rem_1.75rem] sm:grid-cols-[1.375rem_minmax(0,1fr)_1.5rem_1.5rem_2.5rem]";
+const THEIR_ROW_COLS =
+  "grid-cols-[1.75rem_1.1rem_1.1rem_minmax(0,1fr)_1.375rem] sm:grid-cols-[2.5rem_1.5rem_1.5rem_minmax(0,1fr)_1.375rem]";
+const SLOT_COLS = "grid-cols-[1fr_1.875rem_1fr] sm:grid-cols-[1fr_2.75rem_1fr]";
+const ROW_TEXT = "text-[0.6875rem] sm:text-[0.8125rem]";
+
+/** "J. Allen" on a phone, "Josh Allen" from sm up. */
+function PlayerName({ name }: { name: string }) {
+  return (
+    <>
+      <span className="sm:hidden">{abbreviateFirstName(name)}</span>
+      <span className="hidden sm:inline">{name}</span>
+    </>
+  );
+}
 
 function RankCell({ value }: { value: number | null }) {
-  return <span className="text-center tabular-nums text-[10px] text-ink-muted">{value ?? "–"}</span>;
+  return <span className="text-center tabular-nums text-[0.625rem] text-ink-muted sm:text-[0.6875rem]">{value ?? "–"}</span>;
 }
 
 function MySlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
   if (!resolved.player) {
     return (
-      <div className={`grid ${MY_ROW_COLS} items-center gap-1 text-[11px] text-ink-muted`}>
+      <div className={`grid ${MY_ROW_COLS} items-center gap-0.5 sm:gap-1 ${ROW_TEXT} text-ink-muted`}>
         <span />
         <span>Empty</span>
         <span />
@@ -45,12 +56,12 @@ function MySlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
     );
   }
   return (
-    <div className={`grid ${MY_ROW_COLS} items-center gap-1`}>
+    <div className={`grid ${MY_ROW_COLS} items-center gap-0.5 sm:gap-1`}>
       <PlayerHeadshot playerId={resolved.player.playerId} size={22} />
-      <span className="truncate text-[11px] font-medium text-ink-primary">{abbreviateFirstName(resolved.player.name)}</span>
+      <span className={`truncate ${ROW_TEXT} font-medium text-ink-primary`}><PlayerName name={resolved.player.name} /></span>
       <RankCell value={resolved.posRank} />
       <RankCell value={resolved.valueRank} />
-      <span className="text-right tabular-nums text-[11px] text-ink-secondary">{formatPoints(resolved.livePoints)}</span>
+      <span className={`text-right tabular-nums ${ROW_TEXT} text-ink-secondary`}>{formatPoints(resolved.livePoints)}</span>
     </div>
   );
 }
@@ -58,7 +69,7 @@ function MySlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
 function TheirSlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
   if (!resolved.player) {
     return (
-      <div className={`grid ${THEIR_ROW_COLS} items-center gap-1 text-[11px] text-ink-muted`}>
+      <div className={`grid ${THEIR_ROW_COLS} items-center gap-0.5 sm:gap-1 ${ROW_TEXT} text-ink-muted`}>
         <span />
         <span />
         <span />
@@ -68,11 +79,11 @@ function TheirSlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
     );
   }
   return (
-    <div className={`grid ${THEIR_ROW_COLS} items-center gap-1`}>
-      <span className="tabular-nums text-[11px] text-ink-secondary">{formatPoints(resolved.livePoints)}</span>
+    <div className={`grid ${THEIR_ROW_COLS} items-center gap-0.5 sm:gap-1`}>
+      <span className={`tabular-nums ${ROW_TEXT} text-ink-secondary`}>{formatPoints(resolved.livePoints)}</span>
       <RankCell value={resolved.valueRank} />
       <RankCell value={resolved.posRank} />
-      <span className="truncate text-right text-[11px] font-medium text-ink-primary">{abbreviateFirstName(resolved.player.name)}</span>
+      <span className={`truncate text-right ${ROW_TEXT} font-medium text-ink-primary`}><PlayerName name={resolved.player.name} /></span>
       <PlayerHeadshot playerId={resolved.player.playerId} size={22} />
     </div>
   );
@@ -81,8 +92,8 @@ function TheirSlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
 function ColumnHeader({ valueRankLabel }: { valueRankLabel: "Dynasty" | "Fantasy" }) {
   const valueLabel = valueRankLabel === "Dynasty" ? "Dyn" : "Fan";
   return (
-    <div className="grid grid-cols-[1fr_2rem_1fr] items-center gap-2 text-[9px] font-medium uppercase tracking-wide text-ink-muted">
-      <div className={`grid ${MY_ROW_COLS} items-center gap-1`}>
+    <div className={`grid ${SLOT_COLS} items-center gap-1 sm:gap-2 text-[0.5625rem] font-medium uppercase tracking-wide text-ink-muted sm:text-[0.625rem]`}>
+      <div className={`grid ${MY_ROW_COLS} items-center gap-0.5 sm:gap-1`}>
         <span />
         <span />
         <span className="text-center" title="Points-per-game rank at position">
@@ -94,7 +105,7 @@ function ColumnHeader({ valueRankLabel }: { valueRankLabel: "Dynasty" | "Fantasy
         <span />
       </div>
       <span />
-      <div className={`grid ${THEIR_ROW_COLS} items-center gap-1`}>
+      <div className={`grid ${THEIR_ROW_COLS} items-center gap-0.5 sm:gap-1`}>
         <span />
         <span className="text-center" title={`${valueRankLabel} rank at position`}>
           {valueLabel}
@@ -112,10 +123,10 @@ function ColumnHeader({ valueRankLabel }: { valueRankLabel: "Dynasty" | "Fantasy
 function SlotRow({ slot, my, their }: { slot: string; my: ResolvedSlot; their: ResolvedSlot | undefined }) {
   const colorClasses = POSITION_SOFT_BG[slot];
   return (
-    <div className="grid grid-cols-[1fr_2rem_1fr] items-center gap-2">
+    <div className={`grid ${SLOT_COLS} items-center gap-1 sm:gap-2`}>
       <MySlotPlayer resolved={my} />
       <span
-        className={`px-1 py-0.5 text-center text-[10px] font-medium uppercase ${
+        className={`px-1 py-0.5 text-center text-[0.625rem] font-medium uppercase sm:text-[0.6875rem] ${
           colorClasses ?? "text-ink-muted"
         }`}
       >

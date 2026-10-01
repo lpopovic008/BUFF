@@ -12,18 +12,21 @@ export function SortHeader({
   state,
   onSort,
   align = "left",
+  className = "",
   children,
 }: {
   sortKey: string;
   state: SortState | null;
   onSort: (key: string) => void;
   align?: "left" | "right";
+  /** Extra classes for the cell, e.g. "hidden sm:table-cell" to drop a secondary column on phones. */
+  className?: string;
   children: React.ReactNode;
 }) {
   const active = state?.key === sortKey;
   return (
     <th
-      className={`py-2 pr-3 font-medium ${align === "right" ? "text-right" : "text-left"}`}
+      className={`whitespace-nowrap py-2 pr-2 font-medium sm:pr-3 ${align === "right" ? "text-right" : "text-left"} ${className}`}
       aria-sort={ariaSortFor(state, sortKey)}
     >
       <button
