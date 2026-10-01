@@ -1,6 +1,6 @@
 "use client";
 
-import { MouseEvent as ReactMouseEvent, RefObject, useEffect, useMemo, useRef, useState } from "react";
+import { MouseEvent as ReactMouseEvent, RefObject, useEffect, useId, useMemo, useRef, useState } from "react";
 import { NFLGame, isOutsideUS } from "@/lib/nfl-schedule";
 import { computeKickoffSlots, gameMapPosition, internationalSlotPosition, kickoffSlotColor, kickoffSlotLabel } from "@/lib/game-map";
 import { formatKickoff } from "@/lib/my-starters";
@@ -51,8 +51,16 @@ const SHOW_GAME_DOTS = false;
  * grey land with white edges on black in dark mode, inverted in light mode.
  */
 function RaisedUSOutline() {
+  // The coast is smoothed but the state lines aren't, so a line's coastal end
+  // can sit a hair outside the land — clip them to the top face.
+  const clipId = useId();
   return (
     <g strokeLinejoin="round">
+      <defs>
+        <clipPath id={clipId}>
+          <path d={MAP_TOP_OUTLINE} />
+        </clipPath>
+      </defs>
       {MAP_WALL_LAYERS.map((d, i) => (
         <path
           key={i}
@@ -64,7 +72,13 @@ function RaisedUSOutline() {
       ))}
       <path d={MAP_TOP_OUTLINE} fill="var(--map-land)" stroke="var(--map-edge)" strokeWidth={1.8} />
       <path d={MAP_TOP_OUTLINE} fill="none" stroke="var(--map-land)" strokeWidth={0.7} />
-      <path d={MAP_TOP_STATE_LINES} fill="none" stroke="var(--map-state-line)" strokeWidth={0.35} />
+      <path
+        d={MAP_TOP_STATE_LINES}
+        fill="none"
+        stroke="var(--map-state-line)"
+        strokeWidth={0.35}
+        clipPath={`url(#${clipId})`}
+      />
     </g>
   );
 }

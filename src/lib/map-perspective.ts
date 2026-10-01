@@ -4,7 +4,7 @@
 // drawn as a slab raised a few units off the ground. Precomputed once at
 // module load: the paths are only ~1,000 points.
 
-import { US_MAP_VIEWBOX, US_NATION_OUTLINE_PATH, US_STATE_LINES_PATH } from "./warroom-team-cities";
+import { US_MAP_VIEWBOX, US_SIMPLE_OUTLINE_PATH, US_SIMPLE_STATE_LINES_PATH } from "./warroom-team-cities";
 
 const [, , MAP_W, MAP_H] = US_MAP_VIEWBOX.split(" ").map(Number);
 /** Height of the flat (untilted) map space that projectMapPoint takes its input in. */
@@ -46,12 +46,12 @@ function projectPath(d: string, height: number): string {
 }
 
 /** The land's top face (coast and national borders only). */
-export const MAP_TOP_OUTLINE = projectPath(US_NATION_OUTLINE_PATH, SLAB_HEIGHT);
+export const MAP_TOP_OUTLINE = projectPath(US_SIMPLE_OUTLINE_PATH, SLAB_HEIGHT);
 /** Interior state borders, on the top face. */
-export const MAP_TOP_STATE_LINES = projectPath(US_STATE_LINES_PATH, SLAB_HEIGHT);
+export const MAP_TOP_STATE_LINES = projectPath(US_SIMPLE_STATE_LINES_PATH, SLAB_HEIGHT);
 /** The side wall, ground level first — layer 0 is the slab's base edge. */
 export const MAP_WALL_LAYERS = Array.from({ length: WALL_STEPS }, (_, i) =>
-  projectPath(US_NATION_OUTLINE_PATH, (i * SLAB_HEIGHT) / WALL_STEPS)
+  projectPath(US_SIMPLE_OUTLINE_PATH, (i * SLAB_HEIGHT) / WALL_STEPS)
 );
 
 function bounds(paths: string[]) {
