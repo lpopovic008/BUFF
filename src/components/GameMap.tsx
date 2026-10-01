@@ -4,7 +4,7 @@ import { MouseEvent as ReactMouseEvent, RefObject, useEffect, useMemo, useRef, u
 import { NFLGame, isOutsideUS } from "@/lib/nfl-schedule";
 import { computeKickoffSlots, gameMapPosition, internationalSlotPosition, kickoffSlotColor, kickoffSlotLabel } from "@/lib/game-map";
 import { formatKickoff } from "@/lib/my-starters";
-import { US_MAP_VIEWBOX, US_OUTLINE_PATH, US_STATE_LINES_PATH } from "@/lib/warroom-team-cities";
+import { US_MAP_VIEWBOX, US_NATION_OUTLINE_PATH, US_STATE_LINES_PATH } from "@/lib/warroom-team-cities";
 import { LeagueLegendEntry, LeagueMark } from "./LeagueMark";
 
 /** One of your starters in a mapped game, enough to show on the click-to-preview card. */
@@ -27,6 +27,53 @@ const VIEWBOX_H = 200;
 function dotRadius(starterCount: number): number {
   if (starterCount === 0) return 3.5;
   return Math.min(4.5 + starterCount * 1.6, 20);
+}
+
+// Game dots (and the kickoff legend/hover line that only make sense with
+// them) are hidden while the map's new raised-slab look is reviewed on its
+// own. Flip back to true to restore them.
+const SHOW_GAME_DOTS = false;
+
+// The map always sits on its own dark panel, whatever the app theme — the
+// look is a grey landmass with sharp white edges against near-black.
+const MAP_PANEL_BG = "#0b0b0c";
+const LAND_TOP = "#3a3c40";
+const LAND_WALL = "#1d1e21";
+const EDGE = "#f4f4f4";
+const STATE_LINE = "rgba(255, 255, 255, 0.16)";
+
+// How far (viewBox units) the slab's base sits below its top face, and how
+// many stacked copies fill the side wall between them.
+const SLAB_DEPTH = 3;
+const SLAB_STEPS = 8;
+
+/**
+ * The US drawn as a raised slab: a dark side wall (the national outline
+ * repeated a few units lower, so only the south-facing edges show it) with its own
+ * thin white base edge, a grey top face, and a thick white rim on top. The
+ * rim is a wide white stroke with a narrower grey stroke laid over its
+ * middle, which leaves two sharp white lines — one just outside the coast,
+ * one just inside — for the double-edged border.
+ */
+function RaisedUSOutline() {
+  return (
+    <g>
+      {Array.from({ length: SLAB_STEPS }, (_, i) => (
+        <path
+          key={i}
+          d={US_NATION_OUTLINE_PATH}
+          transform={`translate(0 ${((i + 1) * SLAB_DEPTH) / SLAB_STEPS})`}
+          fill={LAND_WALL}
+          stroke={i === SLAB_STEPS - 1 ? EDGE : LAND_WALL}
+          strokeWidth={i === SLAB_STEPS - 1 ? 0.5 : 0.6}
+          strokeLinejoin="round"
+        />
+      ))}
+      <path d={US_NATION_OUTLINE_PATH} fill={LAND_TOP} stroke={EDGE} strokeWidth={1.8} strokeLinejoin="round" />
+      <path d={US_NATION_OUTLINE_PATH} fill="none" stroke={LAND_TOP} strokeWidth={0.7} strokeLinejoin="round" />
+      <path d={US_STATE_LINES_PATH} fill="none" stroke={STATE_LINE} strokeWidth={0.35} />
+    </g>
+  );
 }
 
 /** Away team first, "@" meaning "at" the home team — matching the game headers in the starters list below the map. */
@@ -262,18 +309,17 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-[44rem]">
-      <div className="relative">
+      <div className="relative px-4 pb-6 pt-4 sm:px-6 sm:pb-8 sm:pt-6" style={{ backgroundColor: MAP_PANEL_BG }}>
         <svg
           viewBox={US_MAP_VIEWBOX}
           preserveAspectRatio="xMidYMid meet"
-          className="block w-full"
+          className="block w-full overflow-visible"
           role="img"
           aria-label={`${plotted.length} games plotted across the United States`}
           onClick={handleMapClick}
         >
-          <path d={US_OUTLINE_PATH} fill="var(--surface)" stroke="var(--map-outline)" strokeWidth="0.6" />
-          <path d={US_STATE_LINES_PATH} fill="none" stroke="var(--map-grid)" strokeWidth="0.4" />
-          {slots.length > 1 ? (
+          <RaisedUSOutline />
+          {SHOW_GAME_DOTS && slots.length > 1 ? (
             // Tucked into the bottom-left corner, empty of any team dot ever
             // since AK/HI were dropped from the outline — the kickoff-window
             // legend lives on the map itself now instead of a row underneath it.
@@ -293,7 +339,7 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
               })}
             </g>
           ) : null}
-          {allPositioned.map(({ entry, x, y, r: baseR }) => {
+          {SHOW_GAME_DOTS && allPositioned.map(({ entry, x, y, r: baseR }) => {
             const isAbroad = isOutsideUS(entry.game);
             const isActive = entry.game.id === hovered || entry.game.id === clicked;
             const hasPlayers = entry.starters.length > 0;
