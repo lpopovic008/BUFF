@@ -22,6 +22,7 @@ export interface MappedGame {
   opponentStarters: MappedStarter[];
 }
 
+const VIEWBOX_W = 320;
 const VIEWBOX_H = 200;
 
 function dotRadius(starterCount: number): number {
@@ -301,27 +302,88 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
             const hasPlayers = entry.starters.length > 0;
             const r = baseR + (isActive ? 1.4 * (isAbroad ? 0.6 : 1) : 0);
             const color = colorFor(entry.game.id);
+            // A radar-ping look: a thin stem rising straight from the dot's
+            // center to the matchup's name, with a couple of faint rings
+            // around the dot itself. The stem is drawn from the dot's
+            // *center* (so it's drawn under the dot, which paints over the
+            // bottom r units of it) but its length past the dot's edge is a
+            // fixed 12 units regardless of r — a big, many-starter dot's own
+            // radius would otherwise swallow the whole stem, leaving nothing
+            // visible above it. Clamped to the dot's distance from the map's
+            // top edge so the stem/label never run off it — the Pacific
+            // Northwest teams and the international cluster tucked in the
+            // corner both sit close to y=0.
+            const stemTop = Math.max(4, y - r - 12);
+            const stemHeight = y - stemTop;
+            const labelAnchor = x > VIEWBOX_W / 2 ? "end" : "start";
+            const labelX = x + (labelAnchor === "end" ? -2 : 2);
+            const labelOpacity = hasPlayers ? (isActive ? 1 : 0.85) : isActive ? 0.7 : 0.4;
             return (
-              <circle
-                key={entry.game.id}
-                cx={x}
-                cy={y}
-                r={r}
-                fill={hasPlayers ? color : "none"}
-                fillOpacity={hasPlayers ? (isActive ? 0.82 : 0.62) : undefined}
-                stroke={hasPlayers ? "var(--surface-raised)" : color}
-                strokeWidth={hasPlayers ? 0.5 : 1.2}
-                strokeOpacity={hasPlayers ? undefined : isActive ? 0.9 : 0.65}
-                className="cursor-pointer transition-[r,fill-opacity,stroke-opacity]"
-                onMouseEnter={() => setHovered(entry.game.id)}
-                onMouseLeave={() => setHovered((id) => (id === entry.game.id ? null : id))}
-              >
-                <title>
-                  {`${gameLabel(entry.game)}${isAbroad ? " (outside the US)" : ""} — ${formatKickoff(entry.game.kickoff)}${
-                    entry.starters.length ? ` — ${entry.starters.length} of your starters` : ""
-                  }`}
-                </title>
-              </circle>
+              <g key={entry.game.id}>
+                {stemHeight > 1 ? (
+                  <line
+                    x1={x}
+                    y1={y}
+                    x2={x}
+                    y2={stemTop}
+                    stroke={color}
+                    strokeWidth={0.4}
+                    strokeOpacity={hasPlayers ? 0.7 : 0.3}
+                  />
+                ) : null}
+                <circle
+                  cx={x}
+                  cy={y}
+                  r={r + 5}
+                  fill="none"
+                  stroke={color}
+                  strokeWidth={0.25}
+                  strokeOpacity={hasPlayers ? 0.22 : 0.1}
+                  className="transition-[r]"
+                />
+                <circle
+                  cx={x}
+                  cy={y}
+                  r={r + 2.5}
+                  fill="none"
+                  stroke={color}
+                  strokeWidth={0.35}
+                  strokeOpacity={hasPlayers ? 0.4 : 0.18}
+                  className="transition-[r]"
+                />
+                <circle
+                  cx={x}
+                  cy={y}
+                  r={r}
+                  fill={hasPlayers ? color : "none"}
+                  fillOpacity={hasPlayers ? (isActive ? 0.82 : 0.62) : undefined}
+                  stroke={hasPlayers ? "var(--surface-raised)" : color}
+                  strokeWidth={hasPlayers ? 0.5 : 1.2}
+                  strokeOpacity={hasPlayers ? undefined : isActive ? 0.9 : 0.65}
+                  className="cursor-pointer transition-[r,fill-opacity,stroke-opacity]"
+                  onMouseEnter={() => setHovered(entry.game.id)}
+                  onMouseLeave={() => setHovered((id) => (id === entry.game.id ? null : id))}
+                >
+                  <title>
+                    {`${gameLabel(entry.game)}${isAbroad ? " (outside the US)" : ""} — ${formatKickoff(entry.game.kickoff)}${
+                      entry.starters.length ? ` — ${entry.starters.length} of your starters` : ""
+                    }`}
+                  </title>
+                </circle>
+                {stemHeight > 2 ? (
+                  <text
+                    x={labelX}
+                    y={stemTop - 1}
+                    fontSize={4}
+                    textAnchor={labelAnchor}
+                    fill="var(--ink-primary)"
+                    fillOpacity={labelOpacity}
+                    className="pointer-events-none select-none"
+                  >
+                    {gameLabel(entry.game)}
+                  </text>
+                ) : null}
+              </g>
             );
           })}
         </svg>
