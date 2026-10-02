@@ -9,6 +9,7 @@ import {
   clampTilt,
   isDefaultCamera,
   normalizeYaw,
+  surfaceHeight,
 } from "./map-perspective";
 
 const aspect = (s: { view: { width: number; height: number } }) => s.view.width / s.view.height;
@@ -66,4 +67,21 @@ test("depth runs from the near (south) edge to the far (north) edge, and turns w
   assert.ok(miami < 0.15 && seattle > 0.85);
   const flipped = buildMapScene({ ...DEFAULT_CAMERA, yaw: 180 });
   assert.ok(flipped.depth(281, 186) > flipped.depth(49, 17));
+});
+
+test("the terrain rises where the real country does — Denver stands far above Miami and New Orleans", () => {
+  const denver = surfaceHeight(126.14, 88.63);
+  const miami = surfaceHeight(281, 186);
+  const newOrleans = surfaceHeight(213, 166);
+  assert.ok(denver > miami + 5, `Denver ${denver} vs Miami ${miami}`);
+  assert.equal(miami, newOrleans);
+});
+
+test("terraces climb from the lowest band to the highest", () => {
+  const scene = buildMapScene(DEFAULT_CAMERA);
+  assert.ok(scene.terraces.length >= 5);
+  for (const t of scene.terraces) {
+    assert.ok(t.walls.length >= 1);
+    assert.ok(t.top.length > 0);
+  }
 });

@@ -1,10 +1,10 @@
 "use client";
 
-import { RefObject, useEffect, useId, useMemo, useRef, useState } from "react";
+import { RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { NFLGame, isOutsideUS } from "@/lib/nfl-schedule";
 import { gameMapPosition, internationalSlotPosition } from "@/lib/game-map";
 import { formatKickoff } from "@/lib/my-starters";
-import { DEFAULT_SCENE, MapScene, buildMapScene } from "@/lib/map-perspective";
+import { DEFAULT_SCENE, MapScene, TERRAIN_LEVELS, buildMapScene, surfaceHeight } from "@/lib/map-perspective";
 import { PlacedLabel, placeLabels } from "@/lib/map-labels";
 import { useMapCamera } from "@/hooks/useMapCamera";
 import { LeagueLegendEntry, LeagueMark } from "./LeagueMark";
@@ -47,38 +47,41 @@ const FAR_OPACITY = 0.25;
 const MIN_HEADROOM_REM = 1.5;
 
 /**
- * The tilted US (see map-perspective.ts): a raised slab whose side wall
- * shows along the camera-facing coasts, grey land on top, faint state
- * borders, and the coast/national border in a stronger color but the same
- * thickness as them. The border is stroked *behind* the land at double the
- * state lines' width, so the land covers its inner half and what shows
- * matches them — and only extends outward, never eating into small coastal
- * states. Colors are theme tokens — white lines on black
- * in dark mode, inverted in light mode.
+ * The tilted US (see map-perspective.ts) as real 3D terrain: a slab whose
+ * side wall shows along the camera-facing coasts, and on it the country's
+ * elevation in terraces — each band lifted to its altitude with its own
+ * wall, its top tinted lighter the higher it sits — so the mountains stand
+ * up off the plains. State borders and the raised parts of the national
+ * border ride the terrain. The coast/national border at sea level is
+ * stroked *behind* the land at double the state lines' width, so the land
+ * covers its inner half and it only extends outward — never eating into
+ * small coastal states. Colors are theme tokens — light lines on dark in
+ * dark mode, inverted in light mode.
  */
 function USOutline({ scene }: { scene: MapScene }) {
-  // Clip the state lines to the land so no coastal end pokes past the
-  // border line.
-  const clipId = useId();
   return (
     <g strokeLinejoin="miter" strokeMiterlimit={4}>
-      <defs>
-        <clipPath id={clipId}>
-          <path d={scene.outline} />
-        </clipPath>
-      </defs>
       {scene.wallLayers.map((d, i) => (
         <path key={i} d={d} fill="var(--map-wall)" stroke="var(--map-wall)" strokeWidth={0.6} />
       ))}
       <path d={scene.outline} fill="none" stroke="var(--map-edge)" strokeWidth={LINE_WIDTH * 2} />
       <path d={scene.outline} fill="var(--map-land)" />
-      <path
-        d={scene.stateLines}
-        fill="none"
-        stroke="var(--map-state-line)"
-        strokeWidth={LINE_WIDTH}
-        clipPath={`url(#${clipId})`}
-      />
+      {scene.terraces.map(({ walls, top }, band) => (
+        <g key={band}>
+          {walls.map((d, i) => (
+            <path key={i} d={d} fill="var(--map-wall)" stroke="var(--map-wall)" strokeWidth={0.5} fillRule="evenodd" />
+          ))}
+          <path
+            d={top}
+            fill={`color-mix(in srgb, var(--map-peak) ${Math.round(((band + 1) / TERRAIN_LEVELS) * 100)}%, var(--map-land))`}
+            stroke="var(--map-terrace-edge)"
+            strokeWidth={LINE_WIDTH * 0.6}
+            fillRule="evenodd"
+          />
+        </g>
+      ))}
+      <path d={scene.stateLines} fill="none" stroke="var(--map-state-line)" strokeWidth={LINE_WIDTH} />
+      <path d={scene.raisedBorder} fill="none" stroke="var(--map-edge)" strokeWidth={LINE_WIDTH} />
     </g>
   );
 }
@@ -111,6 +114,8 @@ interface Tag {
   id: string;
   entry: MappedGame;
   pos: [number, number];
+  /** The terrain's height at the site, where its stem starts. */
+  ground: number;
   title: string;
 }
 
@@ -119,7 +124,7 @@ function layoutTags(tags: Tag[], scene: MapScene, width: number, rootPx: number,
   const k = width / scene.view.width;
   return placeLabels(
     tags.map((t) => {
-      const [x, y] = scene.project(t.pos[0], t.pos[1]);
+      const [x, y] = scene.project(t.pos[0], t.pos[1], t.ground);
       return { id: t.id, x: (x - scene.view.x) * k, y: (y - scene.view.y) * k, ...tagSize(t.title, rootPx) };
     }),
     { baseGap: 0.2 * rootPx, step: 0.1 * rootPx, tries: 140, margin: 1, minTop, side: TAG_SIDE }
@@ -281,7 +286,7 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
       .map((entry): Tag | null => {
         const pos = isOutsideUS(entry.game) ? internationalSlotPosition(abroadIndex++) : gameMapPosition(entry.game);
         if (!pos) return null;
-        return { id: entry.game.id, entry, pos, title: tagTitle(entry.game) };
+        return { id: entry.game.id, entry, pos, ground: surfaceHeight(pos[0], pos[1]), title: tagTitle(entry.game) };
       })
       .filter((t) => t !== null);
   }, [games]);
