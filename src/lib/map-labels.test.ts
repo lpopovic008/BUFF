@@ -72,3 +72,15 @@ test("left-hanging tags collide by their left-side footprint", () => {
   const left = placeLabels([site("a", 100, 100), site("b", 170, 100)], { ...OPTIONS, side: "left" });
   assert.equal(left[0].stem, left[1].stem);
 });
+
+test("a site's own gap sets its stem in place of the shared baseGap", () => {
+  const [tall, short] = placeLabels(
+    [
+      { id: "tall", x: 0, y: 100, width: 10, height: 8, gap: 30 },
+      { id: "short", x: 500, y: 90, width: 10, height: 8 },
+    ],
+    { baseGap: 5, step: 0, tries: 1, margin: 0 }
+  );
+  assert.equal(tall.stem, 8 + 30);
+  assert.equal(short.stem, 8 + 5);
+});

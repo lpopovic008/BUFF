@@ -61,8 +61,11 @@ const MAX_TAG_SCALE = 1.2;
 // screens, where the Northeast's tags have to stack higher).
 const MIN_HEADROOM_REM = 1.5;
 const ZOOM_STEP = 1.25;
-// Clearance between a tag's bottom and its site, in rem — the visible stem.
+// Clearance between a tag's bottom and its site, in rem — the visible stem
+// (see stemRem: it grows with the game's starters, like the ring).
 const STEM_REM = 0.6;
+const STEM_REM_PER_STARTER = 0.3;
+const MAX_STEM_REM = 4;
 // Points around the ring marking a game's site, and its outline in screen px.
 const RING_SEGMENTS = 32;
 const RING_STROKE_PX = 1.25;
@@ -70,6 +73,16 @@ const RING_STROKE_PX = 1.25;
 /** A game site's ring radius in flat map units: the more starters in the game — yours and your opponents' together — the wider. */
 function ringRadius(starterCount: number): number {
   return starterCount === 0 ? 2.8 : Math.min(3.6 + starterCount * 0.9, 16);
+}
+
+/** A game's stem in rem: the more starters in it (both sides), the taller — the ring's count, read upward. */
+function stemRem(starterCount: number): number {
+  return Math.min(STEM_REM + starterCount * STEM_REM_PER_STARTER, MAX_STEM_REM);
+}
+
+/** Every starter in a game, yours and your opponents'. */
+function starterCount(entry: MappedGame): number {
+  return entry.starters.length + entry.opponentStarters.length;
 }
 
 /** A ring on the slab's top face around a flat-map point, projected — it tilts, turns and zooms with the map. */
@@ -185,10 +198,16 @@ function layoutTags(tags: Tag[], scene: MapScene, width: number, rootPx: number,
       const t01 = Math.min(1, Math.max(0, (s - scene.farScale) / span));
       byId.set(t.id, { tag: t, scale, opacity: FAR_OPACITY + (1 - FAR_OPACITY) * t01 });
       const [x, y] = scene.project(t.pos[0], t.pos[1], t.ground);
-      return { id: t.id, x: (x - scene.view.x) * k, y: (y - scene.view.y) * k, ...tagSize(t.title, t.subtitle, rootPx, scale) };
+      return {
+        id: t.id,
+        x: (x - scene.view.x) * k,
+        y: (y - scene.view.y) * k,
+        gap: stemRem(starterCount(t.entry)) * rootPx,
+        ...tagSize(t.title, t.subtitle, rootPx, scale),
+      };
     }),
-    // Tags may overlap: every stem is the same short height (tries: 1), rather
-    // than stacking colliding tags ever higher.
+    // Tags may overlap: each stem is just its game's own height (tries: 1),
+    // rather than stacking colliding tags ever higher.
     { baseGap: STEM_REM * rootPx, step: 0, tries: 1, margin: 0, minTop, side: TAG_SIDE }
   );
   return layout.map((l) => ({ ...l, ...byId.get(l.id)! }));
@@ -540,7 +559,7 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
                 {placed.map(({ id, tag, opacity }) => (
                   <path
                     key={id}
-                    d={ringPath(scene, tag.pos, ringRadius(tag.entry.starters.length + tag.entry.opponentStarters.length), tag.ground)}
+                    d={ringPath(scene, tag.pos, ringRadius(starterCount(tag.entry)), tag.ground)}
                     opacity={selected === id ? 1 : opacity}
                     // The ring's size follows the map; its outline stays a thin line.
                     vectorEffect="non-scaling-stroke"
