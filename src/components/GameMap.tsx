@@ -67,9 +67,9 @@ const STEM_REM = 0.6;
 const RING_SEGMENTS = 32;
 const RING_STROKE_PX = 1.25;
 
-/** A game site's ring radius in flat map units: the more of your starters in the game, the wider. */
+/** A game site's ring radius in flat map units: the more starters in the game — yours and your opponents' together — the wider. */
 function ringRadius(starterCount: number): number {
-  return starterCount === 0 ? 2.8 : Math.min(3.6 + starterCount * 1.3, 16);
+  return starterCount === 0 ? 2.8 : Math.min(3.6 + starterCount * 0.9, 16);
 }
 
 /** A ring on the slab's top face around a flat-map point, projected — it tilts, turns and zooms with the map. */
@@ -531,12 +531,12 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
             >
               <SlabOutline camera={camera} />
               {/* Each game's ring sits on the map itself, so it tilts, turns and
-                  zooms with the land — wider the more of your starters play in it. */}
+                  zooms with the land — wider the more starters (both sides) play in it. */}
               <g fill="none" stroke="var(--map-edge)" strokeWidth={RING_STROKE_PX}>
                 {placed.map(({ id, tag, opacity }) => (
                   <path
                     key={id}
-                    d={ringPath(scene, tag.pos, ringRadius(tag.entry.starters.length), tag.ground)}
+                    d={ringPath(scene, tag.pos, ringRadius(tag.entry.starters.length + tag.entry.opponentStarters.length), tag.ground)}
                     opacity={selected === id ? 1 : opacity}
                     // The ring's size follows the map; its outline stays a thin line.
                     vectorEffect="non-scaling-stroke"

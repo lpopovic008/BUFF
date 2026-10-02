@@ -137,12 +137,12 @@ export function DashboardMatchupCard({
         ) : null}
       </div>
       <div className="flex items-center justify-between gap-3 text-lg font-semibold tabular-nums text-ink-primary">
-        <span className="flex items-center gap-1.5">
+        <span className="flex items-center gap-3">
           <PointsRankBadges pointsRanks={my.pointsRanks} leagueSize={leagueSize} align="left" />
           {formatPoints(matchup.my.points)}
         </span>
         {matchup.opponent ? (
-          <span className="flex items-center gap-1.5">
+          <span className="flex items-center gap-3">
             {formatPoints(matchup.opponent.points)}
             <PointsRankBadges pointsRanks={opponent?.pointsRanks} leagueSize={leagueSize} align="right" />
           </span>
