@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { RefObject, useEffect, useId, useMemo, useRef, useState } from "react";
 import { NFLGame, isOutsideUS } from "@/lib/nfl-schedule";
 import { gameMapPosition, internationalSlotPosition } from "@/lib/game-map";
+import { formatKickoff } from "@/lib/my-starters";
 import { DEFAULT_SCENE, MapScene, buildMapScene } from "@/lib/map-perspective";
 import { PlacedLabel, placeLabels } from "@/lib/map-labels";
 import { useMapCamera } from "@/hooks/useMapCamera";
+import { LeagueLegendEntry, LeagueMark } from "./LeagueMark";
 
-/** One of your starters in a mapped game. */
+/** One of your starters in a mapped game, enough to show on the preview card. */
 export interface MappedStarter {
   playerId: string;
   name: string;
@@ -16,9 +18,9 @@ export interface MappedStarter {
 
 export interface MappedGame {
   game: NFLGame;
-  /** Your starters in this game — listed under the game's tag. */
+  /** Your starters in this game — the preview card's left column. */
   starters: MappedStarter[];
-  /** Your current-week opponents' starters in this game, across every tracked league. */
+  /** Your current-week opponents' starters in this game, across every tracked league — the preview card's right column. */
   opponentStarters: MappedStarter[];
 }
 
@@ -26,18 +28,17 @@ export interface MappedGame {
 // land, so the half that shows matches them (see USOutline).
 const LINE_WIDTH = 0.38;
 
-// Game tag type sizes, in rem. Inconsolata is monospaced (every glyph is
+// Game tag type size, in rem. Inconsolata is monospaced (every glyph is
 // 0.5em wide), so a tag's size is known from its text alone — the stem
 // layout needs every tag's size before anything is drawn.
-const TITLE_REM = 0.625;
-const NAME_REM = 0.625;
+const TAG_REM = 0.625;
 const LINE_HEIGHT = 1.3;
 const PAD_EM = 0.35;
-const TITLE_PAD_Y_EM = 0.12;
+const PAD_Y_EM = 0.12;
 // Room kept above the map for the tags of its northernmost sites — at
 // least this much, more when the opening view's tags need it (narrow
 // screens, where the Northeast's tags have to stack higher).
-const MIN_HEADROOM_REM = 2.5;
+const MIN_HEADROOM_REM = 1.5;
 
 /**
  * The tilted US (see map-perspective.ts): a raised slab whose side wall
@@ -76,28 +77,35 @@ function USOutline({ scene }: { scene: MapScene }) {
   );
 }
 
-/** Away team first, "@" meaning "at" the home team — matching the game headers in the starters list. Games abroad add their city, since their spot on the map is just a holding corner. */
-function tagTitle(game: NFLGame): string {
-  const title = `${game.awayTeam} @ ${game.homeTeam}`;
-  return isOutsideUS(game) && game.venue?.city ? `${title} · ${game.venue.city}` : title;
+/** Away team first, "@" meaning "at" the home team — matching the game headers in the starters list. */
+function gameLabel(game: NFLGame): string {
+  return `${game.awayTeam} @ ${game.homeTeam}`;
 }
 
-/** A tag's size in px, from its text (see TITLE_REM). */
-function tagSize(title: string, names: string[], rootPx: number): { width: number; height: number } {
-  const titlePx = TITLE_REM * rootPx;
-  const namePx = NAME_REM * rootPx;
-  const titleW = (title.length * 0.5 + PAD_EM * 2) * titlePx;
-  const titleH = (LINE_HEIGHT + TITLE_PAD_Y_EM * 2) * titlePx;
-  const namesW = names.length ? (Math.max(...names.map((n) => n.length)) * 0.5 + PAD_EM * 2) * namePx : 0;
-  const namesH = names.length * LINE_HEIGHT * namePx;
-  return { width: Math.ceil(Math.max(titleW, namesW)) + 2, height: Math.ceil(titleH + namesH) + 2 };
+/** Games abroad add their city, since their spot on the map is just a holding corner. */
+function tagTitle(game: NFLGame): string {
+  return isOutsideUS(game) && game.venue?.city ? `${gameLabel(game)} · ${game.venue.city}` : gameLabel(game);
+}
+
+function venueLabel(game: NFLGame): string | null {
+  if (!game.venue?.city) return null;
+  return game.venue.state ? `${game.venue.city}, ${game.venue.state}` : game.venue.city;
+}
+
+/** A tag's size in px, from its text (see TAG_REM). */
+function tagSize(title: string, rootPx: number): { width: number; height: number } {
+  const px = TAG_REM * rootPx;
+  return {
+    width: Math.ceil((title.length * 0.5 + PAD_EM * 2) * px) + 2,
+    height: Math.ceil((LINE_HEIGHT + PAD_Y_EM * 2) * px) + 2,
+  };
 }
 
 interface Tag {
   id: string;
+  entry: MappedGame;
   pos: [number, number];
   title: string;
-  names: string[];
 }
 
 /** Stem layout for every tag, in px from the map's top-left, for one camera view. */
@@ -106,27 +114,128 @@ function layoutTags(tags: Tag[], scene: MapScene, width: number, rootPx: number,
   return placeLabels(
     tags.map((t) => {
       const [x, y] = scene.project(t.pos[0], t.pos[1]);
-      return { id: t.id, x: (x - scene.view.x) * k, y: (y - scene.view.y) * k, ...tagSize(t.title, t.names, rootPx) };
+      return { id: t.id, x: (x - scene.view.x) * k, y: (y - scene.view.y) * k, ...tagSize(t.title, rootPx) };
     }),
     { baseGap: 0.4 * rootPx, step: 0.35 * rootPx, tries: 40, margin: 2, minTop }
   );
 }
 
+/** One player's row in the preview card — name plus the logo of every league they're started in. `align="right"` mirrors the row (logos before the name) for the opponents column, so both columns read outward from the card's center gutter. */
+function PlayerRow({
+  starter,
+  legendByLeagueId,
+  align,
+}: {
+  starter: MappedStarter;
+  legendByLeagueId: Map<string, LeagueLegendEntry>;
+  align: "left" | "right";
+}) {
+  const marks = (
+    <span className="flex shrink-0 items-center gap-0.5">
+      {starter.leagueIds.map((id) => (
+        <LeagueMark key={id} league={legendByLeagueId.get(id)} className="h-3 w-3" />
+      ))}
+    </span>
+  );
+  const name = <span className="truncate">{starter.name}</span>;
+  return (
+    <div className={`flex items-center gap-1 text-ink-secondary ${align === "right" ? "flex-row-reverse" : ""}`}>
+      {name}
+      {marks}
+    </div>
+  );
+}
+
+/**
+ * The click-to-preview card: one line up top with the matchup, kickoff, and
+ * venue, then two columns below it — your starters in that game on the
+ * left, that week's opposing starters (across every tracked league) on the
+ * right — each with the logo of every league they're started in next to
+ * their name. Centered across the map, and vertically hugging the clicked
+ * tag, opening toward whichever half of the map has room.
+ */
+function GamePreviewCard({
+  entry,
+  top,
+  opensDown,
+  legendByLeagueId,
+  onClose,
+  cardRef,
+}: {
+  entry: MappedGame;
+  /** px from the top of the map area, where the card's near edge sits. */
+  top: number;
+  opensDown: boolean;
+  legendByLeagueId: Map<string, LeagueLegendEntry>;
+  onClose: () => void;
+  cardRef: RefObject<HTMLDivElement | null>;
+}) {
+  const summaryLine = [gameLabel(entry.game), formatKickoff(entry.game.kickoff), venueLabel(entry.game)]
+    .filter(Boolean)
+    .join(" · ");
+  const hasAnyone = entry.starters.length > 0 || entry.opponentStarters.length > 0;
+
+  return (
+    <div
+      ref={cardRef}
+      className="absolute z-20 w-80 max-w-[calc(100%-1rem)] border border-grid bg-page p-3 text-xs shadow-sm"
+      style={{ left: "50%", top, transform: `translate(-50%, ${opensDown ? "0" : "-100%"})` }}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <span className="font-semibold text-ink-primary">
+          {summaryLine}
+          {isOutsideUS(entry.game) ? " · outside the US" : ""}
+        </span>
+        <button
+          type="button"
+          aria-label="Close preview"
+          onClick={onClose}
+          className="shrink-0 leading-none text-ink-muted hover:text-ink-primary"
+        >
+          ×
+        </button>
+      </div>
+      {hasAnyone ? (
+        <div className="mt-2 grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1">
+            <span className="text-[0.625rem] font-semibold uppercase tracking-wide text-ink-muted">You</span>
+            {entry.starters.map((starter) => (
+              <PlayerRow key={starter.playerId} starter={starter} legendByLeagueId={legendByLeagueId} align="left" />
+            ))}
+          </div>
+          <div className="flex flex-col items-end gap-1 text-right">
+            <span className="text-[0.625rem] font-semibold uppercase tracking-wide text-ink-muted">Opponent</span>
+            {entry.opponentStarters.map((starter) => (
+              <PlayerRow key={starter.playerId} starter={starter} legendByLeagueId={legendByLeagueId} align="right" />
+            ))}
+          </div>
+        </div>
+      ) : (
+        <p className="mt-2 text-ink-secondary">None of your starters or opponents&rsquo; starters are in this game.</p>
+      )}
+    </div>
+  );
+}
+
 /**
  * This week's games on the interactive US map. Each game site sends up a
- * thin vertical stem with a tag hung off its top, always to the right of
- * the stem however the map is turned: the matchup on a fixed high-contrast
- * plate, and your starters in that game listed under it. Stems are screen-
- * vertical and sized in px, so tags stay upright and readable at any angle;
- * where tags would collide, the nearer one keeps the shorter stem and the
- * others rise above it (see placeLabels). Games played abroad can't sit on
- * the US outline, so they rise from a holding corner off the Northeast.
+ * thin vertical stem with the matchup on a fixed high-contrast tag hung off
+ * its top, always to the right of the stem however the map is turned.
+ * Stems are screen-vertical and sized in px, so tags stay upright and
+ * readable at any angle; where tags would collide, the nearer one keeps the
+ * shorter stem and the others rise above it (see placeLabels). Tapping a
+ * tag opens a preview of that game's fantasy starters, yours and your
+ * opponents'. Games played abroad can't sit on the US outline, so they rise
+ * from a holding corner off the Northeast.
  */
-export function GameMap({ games }: { games: MappedGame[] }) {
-  const { camera, isDefault, reset, handlers } = useMapCamera();
+export function GameMap({ games, legend }: { games: MappedGame[]; legend: LeagueLegendEntry[] }) {
+  const { camera, isDefault, reset, wasDrag, handlers } = useMapCamera();
   const scene = useMemo(() => buildMapScene(camera), [camera]);
   const mapRef = useRef<HTMLDivElement | null>(null);
+  const cardRef = useRef<HTMLDivElement | null>(null);
   const [measure, setMeasure] = useState<{ width: number; rootPx: number } | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
+  const legendByLeagueId = useMemo(() => new Map(legend.map((l) => [l.leagueId, l])), [legend]);
 
   // The tags are laid out in px, so track the map's rendered width (and the
   // fluid root font size, which changes with the viewport too).
@@ -143,13 +252,28 @@ export function GameMap({ games }: { games: MappedGame[] }) {
     return () => observer.disconnect();
   }, []);
 
+  // Tapping anywhere outside the open preview — elsewhere on the map, or
+  // anywhere else on the page — dismisses it. A tap on a tag is left to the
+  // tag's own click, which opens, switches, or closes the preview.
+  useEffect(() => {
+    if (!selected) return;
+    function handlePointerDown(e: PointerEvent) {
+      const target = e.target as Element | null;
+      if (cardRef.current?.contains(target)) return;
+      if (target?.closest("[data-game-tag]")) return;
+      setSelected(null);
+    }
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [selected]);
+
   const tags = useMemo(() => {
     let abroadIndex = 0;
     return games
       .map((entry): Tag | null => {
         const pos = isOutsideUS(entry.game) ? internationalSlotPosition(abroadIndex++) : gameMapPosition(entry.game);
         if (!pos) return null;
-        return { id: entry.game.id, pos, title: tagTitle(entry.game), names: entry.starters.map((s) => s.name) };
+        return { id: entry.game.id, entry, pos, title: tagTitle(entry.game) };
       })
       .filter((t) => t !== null);
   }, [games]);
@@ -173,71 +297,104 @@ export function GameMap({ games }: { games: MappedGame[] }) {
     return layout.map((l) => ({ ...l, tag: byId.get(l.id)! })).sort((a, b) => a.y - b.y);
   }, [measure, headroomPx, scene, tags]);
 
-  return (
-    // Tags may run past the map's own box — up into the headroom, and right
-    // up to the column's edge — but are cut off there: they never cover the
-    // page around the map or make it scroll sideways.
-    <div className="w-full overflow-clip" style={{ paddingTop: headroomPx === null ? `${MIN_HEADROOM_REM}rem` : headroomPx }}>
-      <div className="mx-auto w-full min-w-0 max-w-[44rem]">
-        <div
-          ref={mapRef}
-          className="relative cursor-grab touch-none select-none outline-none [-webkit-touch-callout:none] active:cursor-grabbing focus-visible:ring-1 focus-visible:ring-ink-muted"
-          tabIndex={0}
-          aria-label="US map. Drag to spin and tilt it, arrow keys to nudge, double-click or Home to reset the view."
-          {...handlers}
-        >
-          <svg
-            viewBox={scene.viewBox}
-            preserveAspectRatio="xMidYMid meet"
-            className="block w-full overflow-visible"
-            role="img"
-            aria-label={`${tags.length} games across the United States`}
-          >
-            <USOutline scene={scene} />
-          </svg>
+  const selectedTag = placed.find((p) => p.id === selected) ?? null;
+  const headroom = headroomPx ?? 0;
+  const mapHeight = measure ? (measure.width * scene.view.height) / scene.view.width : 0;
+  const gap = 0.4 * (measure?.rootPx ?? 16);
 
-          <div className="pointer-events-none absolute inset-0">
-            {placed.map(({ id, x, y, stem, tag }) => (
-              <div key={id} className="absolute left-0 top-0" style={{ transform: `translate(${x}px, ${y}px)` }}>
-                <span
-                  className="absolute -left-[0.15rem] -top-[0.15rem] h-[0.3rem] w-[0.3rem] rounded-full bg-[var(--map-tag)]"
-                  aria-hidden
-                />
-                <span className="absolute left-0 w-px bg-[var(--map-edge)]" style={{ top: -stem, height: stem }} aria-hidden />
-                <div className="absolute left-0 whitespace-nowrap" style={{ top: -stem, lineHeight: LINE_HEIGHT }}>
-                  <div
-                    className="w-fit bg-[var(--map-tag)] font-bold text-[var(--map-tag-ink)]"
-                    style={{ fontSize: `${TITLE_REM}rem`, padding: `${TITLE_PAD_Y_EM}em ${PAD_EM}em` }}
+  function handleTagClick(id: string) {
+    // The click a drag ends with is just the end of turning the map.
+    if (wasDrag()) return;
+    setSelected((current) => (current === id ? null : id));
+  }
+
+  return (
+    // Positions the preview card, which may spill past the map's clipped area.
+    <div className="relative">
+      {/* Tags may run past the map's own box — up into the headroom, and
+          right up to the column's edge — but are cut off there: they never
+          cover the page around the map or make it scroll sideways. */}
+      <div className="w-full overflow-clip" style={{ paddingTop: headroomPx === null ? `${MIN_HEADROOM_REM}rem` : headroomPx }}>
+        <div className="mx-auto w-full min-w-0 max-w-[44rem]">
+          <div
+            ref={mapRef}
+            className="relative cursor-grab touch-none select-none outline-none [-webkit-touch-callout:none] active:cursor-grabbing focus-visible:ring-1 focus-visible:ring-ink-muted"
+            tabIndex={0}
+            aria-label="US map. Drag to spin and tilt it, arrow keys to nudge, double-click or Home to reset the view."
+            {...handlers}
+          >
+            <svg
+              viewBox={scene.viewBox}
+              preserveAspectRatio="xMidYMid meet"
+              className="block w-full overflow-visible"
+              role="img"
+              aria-label={`${tags.length} games across the United States`}
+            >
+              <USOutline scene={scene} />
+            </svg>
+
+            <div className="pointer-events-none absolute inset-0">
+              {placed.map(({ id, x, y, stem, tag }) => (
+                <div key={id} className="absolute left-0 top-0" style={{ transform: `translate(${x}px, ${y}px)` }}>
+                  <span
+                    className="absolute -left-[0.15rem] -top-[0.15rem] h-[0.3rem] w-[0.3rem] rounded-full bg-[var(--map-tag)]"
+                    aria-hidden
+                  />
+                  <span className="absolute left-0 w-px bg-[var(--map-edge)]" style={{ top: -stem, height: stem }} aria-hidden />
+                  <button
+                    type="button"
+                    data-game-tag
+                    aria-pressed={selected === id}
+                    aria-label={`${tag.title} — show starters`}
+                    onClick={() => handleTagClick(id)}
+                    onDoubleClick={(e) => e.stopPropagation()}
+                    className={`pointer-events-auto absolute left-0 cursor-pointer whitespace-nowrap bg-[var(--map-tag)] font-bold text-[var(--map-tag-ink)] outline-offset-1 hover:brightness-110 ${
+                      selected === id ? "outline outline-2 outline-[var(--map-edge)]" : ""
+                    }`}
+                    style={{
+                      top: -stem,
+                      fontSize: `${TAG_REM}rem`,
+                      lineHeight: LINE_HEIGHT,
+                      padding: `${PAD_Y_EM}em ${PAD_EM}em`,
+                    }}
                   >
                     {tag.title}
-                  </div>
-                  {tag.names.map((name) => (
-                    <div
-                      key={name}
-                      className="font-medium text-ink-primary [text-shadow:0_0_2px_var(--page),0_0_4px_var(--page)]"
-                      style={{ fontSize: `${NAME_REM}rem`, paddingLeft: `${PAD_EM}em` }}
-                    >
-                      {name}
-                    </div>
-                  ))}
+                  </button>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
 
-          {isDefault ? null : (
-            <button
-              type="button"
-              onClick={reset}
-              onPointerDown={(e) => e.stopPropagation()}
-              onDoubleClick={(e) => e.stopPropagation()}
-              className="absolute right-0 top-0 z-10 border border-grid bg-page px-2 py-1 text-xs text-ink-secondary hover:text-ink-primary"
-            >
-              Reset view
-            </button>
-          )}
+            {isDefault ? null : (
+              <button
+                type="button"
+                onClick={reset}
+                onPointerDown={(e) => e.stopPropagation()}
+                onDoubleClick={(e) => e.stopPropagation()}
+                className="absolute right-0 top-0 z-10 border border-grid bg-page px-2 py-1 text-xs text-ink-secondary hover:text-ink-primary"
+              >
+                Reset view
+              </button>
+            )}
+          </div>
         </div>
       </div>
+
+      {selectedTag ? (
+        (() => {
+          const tagTop = selectedTag.y - selectedTag.stem;
+          const opensDown = tagTop + selectedTag.height / 2 < mapHeight / 2;
+          return (
+            <GamePreviewCard
+              entry={selectedTag.tag.entry}
+              top={headroom + (opensDown ? tagTop + selectedTag.height + gap : tagTop - gap)}
+              opensDown={opensDown}
+              legendByLeagueId={legendByLeagueId}
+              onClose={() => setSelected(null)}
+              cardRef={cardRef}
+            />
+          );
+        })()
+      ) : null}
     </div>
   );
 }

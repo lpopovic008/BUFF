@@ -8,6 +8,8 @@ import { DEFAULT_CAMERA, MapCamera, clampTilt, isDefaultCamera, normalizeYaw } f
 const YAW_PER_WIDTH = 200;
 const TILT_PER_WIDTH = 110;
 const RESET_MS = 450;
+// A pointer that moves less than this between down and up was a tap, not a drag.
+const DRAG_SLOP = 6;
 // Degrees per millisecond a released flick may keep spinning at.
 const MAX_COAST_SPEED = 0.3;
 
@@ -32,6 +34,7 @@ export function useMapCamera() {
   const frame = useRef<number | null>(null);
   const animation = useRef<number | null>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const travelled = useRef(0);
   const yawVelocity = useRef(0);
   const lastMoveAt = useRef(0);
 
@@ -96,9 +99,9 @@ export function useMapCamera() {
     (e: PointerEvent<HTMLElement>) => {
       if (e.pointerType === "mouse" && e.button !== 0) return;
       stopAnimation();
+      if (pointers.current.size === 0) travelled.current = 0;
       pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
       yawVelocity.current = 0;
-      e.currentTarget.setPointerCapture?.(e.pointerId);
     },
     [stopAnimation]
   );
@@ -110,6 +113,13 @@ export function useMapCamera() {
       const dx = e.clientX - prev.x;
       const dy = e.clientY - prev.y;
       pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      // Only capture the pointer once it's clearly a drag: capturing on
+      // pointerdown would retarget a tap's click away from whatever was
+      // tapped (a game tag), and the tap would never register.
+      travelled.current += Math.abs(dx) + Math.abs(dy);
+      if (travelled.current > DRAG_SLOP && !e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+        e.currentTarget.setPointerCapture?.(e.pointerId);
+      }
       const width = e.currentTarget.clientWidth || 1;
       const cam = live.current;
       if (pointers.current.size > 1) {
@@ -142,6 +152,9 @@ export function useMapCamera() {
   const onPointerUp = useCallback((e: PointerEvent<HTMLElement>) => endPointer(e, false), [endPointer]);
   const onPointerCancel = useCallback((e: PointerEvent<HTMLElement>) => endPointer(e, true), [endPointer]);
 
+  /** True when the pointer gesture that just ended was a drag — tap targets on the map use it to ignore the click a drag ends with. */
+  const wasDrag = useCallback(() => travelled.current > DRAG_SLOP, []);
+
   const onKeyDown = useCallback(
     (e: KeyboardEvent<HTMLElement>) => {
       const cam = live.current;
@@ -167,6 +180,7 @@ export function useMapCamera() {
     camera,
     isDefault: isDefaultCamera(camera),
     reset,
+    wasDrag,
     handlers: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel, onKeyDown, onDoubleClick: reset },
   };
 }
