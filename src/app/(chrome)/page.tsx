@@ -189,7 +189,7 @@ export default function DashboardPage() {
                 <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-muted">
                   Week {week} around the league
                 </h2>
-                <GameMap games={mappedGames} legend={legend} />
+                <GameMap games={mappedGames} />
               </div>
             ) : null}
 

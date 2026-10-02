@@ -7,8 +7,6 @@ import { DEFAULT_CAMERA, MapCamera, clampTilt, isDefaultCamera, normalizeYaw } f
 // turns the map a bit over half way round.
 const YAW_PER_WIDTH = 200;
 const TILT_PER_WIDTH = 110;
-// A pointer that moves less than this between down and up was a tap, not a drag.
-const DRAG_SLOP = 6;
 const RESET_MS = 450;
 // Degrees per millisecond a released flick may keep spinning at.
 const MAX_COAST_SPEED = 0.3;
@@ -34,7 +32,6 @@ export function useMapCamera() {
   const frame = useRef<number | null>(null);
   const animation = useRef<number | null>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
-  const travelled = useRef(0);
   const yawVelocity = useRef(0);
   const lastMoveAt = useRef(0);
 
@@ -99,7 +96,6 @@ export function useMapCamera() {
     (e: PointerEvent<HTMLElement>) => {
       if (e.pointerType === "mouse" && e.button !== 0) return;
       stopAnimation();
-      if (pointers.current.size === 0) travelled.current = 0;
       pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
       yawVelocity.current = 0;
       e.currentTarget.setPointerCapture?.(e.pointerId);
@@ -114,7 +110,6 @@ export function useMapCamera() {
       const dx = e.clientX - prev.x;
       const dy = e.clientY - prev.y;
       pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      travelled.current += Math.abs(dx) + Math.abs(dy);
       const width = e.currentTarget.clientWidth || 1;
       const cam = live.current;
       if (pointers.current.size > 1) {
@@ -168,14 +163,10 @@ export function useMapCamera() {
     [commit, reset, stopAnimation]
   );
 
-  /** True when the pointer gesture that just ended was a drag — the map's click handler uses it to ignore the click a drag ends with. */
-  const wasDrag = useCallback(() => travelled.current > DRAG_SLOP, []);
-
   return {
     camera,
     isDefault: isDefaultCamera(camera),
     reset,
-    wasDrag,
     handlers: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel, onKeyDown, onDoubleClick: reset },
   };
 }

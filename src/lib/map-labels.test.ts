@@ -1,0 +1,65 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { LabelSite, placeLabels } from "./map-labels";
+
+const OPTIONS = { baseGap: 4, step: 6, tries: 20, margin: 2 };
+
+function site(id: string, x: number, y: number, width = 60, height = 20): LabelSite {
+  return { id, x, y, width, height };
+}
+
+function overlaps(a: { x: number; y: number; width: number; height: number; stem: number }, b: typeof a): boolean {
+  const aTop = a.y - a.stem;
+  const bTop = b.y - b.stem;
+  return a.x < b.x + b.width && b.x < a.x + a.width && aTop < bTop + b.height && bTop < aTop + a.height;
+}
+
+test("a lone site gets the shortest stem, keeping its tag just clear of the site", () => {
+  const [label] = placeLabels([site("a", 100, 100)], OPTIONS);
+  assert.equal(label.stem, 24);
+});
+
+test("tags far apart don't affect each other", () => {
+  const labels = placeLabels([site("a", 0, 100), site("b", 300, 100)], OPTIONS);
+  assert.deepEqual(
+    labels.map((l) => l.stem),
+    [24, 24]
+  );
+});
+
+test("sites sharing a spot stack their tags up the stems instead of overlapping", () => {
+  const labels = placeLabels([site("a", 100, 100), site("b", 100, 100), site("c", 104, 98)], OPTIONS);
+  for (let i = 0; i < labels.length; i++) {
+    for (let j = i + 1; j < labels.length; j++) assert.ok(!overlaps(labels[i], labels[j]));
+  }
+  assert.equal(new Set(labels.map((l) => l.stem)).size, 3);
+});
+
+test("the nearest site (lowest on screen) is placed first with the shortest stem", () => {
+  const labels = placeLabels([site("far", 100, 90), site("near", 100, 100)], OPTIONS);
+  assert.equal(labels[0].id, "near");
+  assert.equal(labels[0].stem, 24);
+  assert.ok(labels[1].stem > 24);
+});
+
+test("when nothing clears, the least-overlapping candidate wins rather than giving up", () => {
+  const crowded = Array.from({ length: 6 }, (_, i) => site(String(i), 100, 100));
+  const labels = placeLabels(crowded, { ...OPTIONS, tries: 2 });
+  assert.equal(labels.length, 6);
+  for (const l of labels) assert.ok(l.stem === 24 || l.stem === 30);
+});
+
+test("a tag avoids running into another site's stem", () => {
+  // "far" sits just right of "near"; at its shortest stem its tag would cover near's stem.
+  const labels = placeLabels([site("near", 130, 100), site("far", 100, 95)], OPTIONS);
+  const near = labels.find((l) => l.id === "near")!;
+  const far = labels.find((l) => l.id === "far")!;
+  assert.ok(far.y - far.stem + far.height <= near.y - near.stem - OPTIONS.margin || far.x + far.width <= near.x);
+});
+
+test("tags rising above the ceiling are pulled back down when there's room", () => {
+  const [label] = placeLabels([site("a", 100, 30)], { ...OPTIONS, minTop: 0 });
+  assert.equal(label.stem, 24);
+  const stacked = placeLabels([site("a", 100, 60), site("b", 100, 60)], { ...OPTIONS, minTop: 0 });
+  for (const l of stacked) assert.ok(l.y - l.stem >= 0);
+});

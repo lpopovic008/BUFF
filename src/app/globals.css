@@ -18,6 +18,9 @@
   --map-wall: #a8aaaf;
   --map-edge: #121212;
   --map-state-line: rgba(0, 0, 0, 0.22);
+  /* Game tags on the map: one fixed high-contrast plate, the same in both themes. */
+  --map-tag: #ffd23f;
+  --map-tag-ink: #111111;
 
   --series-1: #2a78d6; /* blue */
   --series-2: #eb6834; /* orange */
