@@ -1,9 +1,8 @@
 "use client";
 
-import { RefObject, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { NFLGame, isOutsideUS } from "@/lib/nfl-schedule";
 import { gameMapPosition, internationalSlotPosition } from "@/lib/game-map";
-import { formatKickoff } from "@/lib/my-starters";
 import {
   DEFAULT_SCALES,
   DEFAULT_SCENE,
@@ -192,122 +191,190 @@ function layoutTags(tags: Tag[], scene: MapScene, width: number, rootPx: number,
   return layout.map((l) => ({ ...l, ...byId.get(l.id)! }));
 }
 
-/** One player's row in the preview card — name plus the logo of every league they're started in. `align="right"` mirrors the row (logos before the name) for the opponents column, so both columns read outward from the card's center gutter. */
-function PlayerRow({
-  starter,
-  legendByLeagueId,
-  align,
-}: {
-  starter: MappedStarter;
-  legendByLeagueId: Map<string, LeagueLegendEntry>;
-  align: "left" | "right";
-}) {
-  const marks = (
-    <span className="flex shrink-0 items-center gap-0.5">
-      {starter.leagueIds.map((id) => (
-        <LeagueMark key={id} league={legendByLeagueId.get(id)} className="h-3 w-3" />
-      ))}
-    </span>
-  );
-  const name = <span className="truncate">{starter.name}</span>;
-  return (
-    <div className={`flex items-center gap-1 text-ink-secondary ${align === "right" ? "flex-row-reverse" : ""}`}>
-      {name}
-      {marks}
-    </div>
-  );
+// How fast an opened game's details type out.
+const TYPE_MS_PER_CHAR = 6;
+
+function prefersReducedMotion(): boolean {
+  return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+/** How many of `total` characters have been "typed" so far — one more every TYPE_MS_PER_CHAR, from mount. */
+function useTypewriter(total: number): number {
+  const [count, setCount] = useState(() => (prefersReducedMotion() ? total : 0));
+  useEffect(() => {
+    if (prefersReducedMotion()) return;
+    let raf = 0;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const n = Math.min(total, Math.floor((now - start) / TYPE_MS_PER_CHAR));
+      setCount(n);
+      if (n < total) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [total]);
+  return count;
+}
+
+/** The opened game's full title: matchup, where, and when — "PIT @ NYJ · East Rutherford, NJ · Sun 1:00 PM". */
+function expandedTitle(game: NFLGame): string {
+  const at = new Date(game.kickoff);
+  const when = Number.isNaN(at.getTime())
+    ? "TBD"
+    : `${at.toLocaleDateString([], { weekday: "short" })} ${at.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+  return [gameLabel(game), venueLabel(game), when].filter(Boolean).join(" · ");
 }
 
 /**
- * The click-to-preview card: one line up top with the matchup, kickoff, and
- * venue, then two columns below it — your starters in that game on the
- * left, that week's opposing starters (across every tracked league) on the
- * right — each with the logo of every league they're started in next to
- * their name. Centered across the map, and vertically hugging the clicked
- * tag, opening toward whichever half of the map has room.
+ * A tapped game, opened up: its stem runs all the way to the top of the
+ * map's frame, and its tag there types itself out, fast, one letter at a
+ * time — first the full title (matchup, place, day and time) straight
+ * across, then the players two columns wide, yours on the left and your
+ * opponents' on the right, one of yours then one of theirs. Each player's
+ * league logos appear once their name is in. Tapping it again closes it.
  */
-function GamePreviewCard({
-  entry,
+function ExpandedTag({
+  tag,
+  x,
+  y,
   top,
-  opensDown,
+  mapWidth,
+  rootPx,
   legendByLeagueId,
-  onClose,
-  cardRef,
+  onTap,
 }: {
-  entry: MappedGame;
-  /** px from the top of the map area, where the card's near edge sits. */
+  tag: Tag;
+  /** The site, in px from the map box's top-left. */
+  x: number;
+  y: number;
+  /** Where the tag's top edge sits, in the same px space — the top of the frame. */
   top: number;
-  opensDown: boolean;
+  mapWidth: number;
+  rootPx: number;
   legendByLeagueId: Map<string, LeagueLegendEntry>;
-  onClose: () => void;
-  cardRef: RefObject<HTMLDivElement | null>;
+  onTap: (clientX: number, clientY: number) => void;
 }) {
-  const summaryLine = [gameLabel(entry.game), formatKickoff(entry.game.kickoff), venueLabel(entry.game)]
-    .filter(Boolean)
-    .join(" · ");
-  const hasAnyone = entry.starters.length > 0 || entry.opponentStarters.length > 0;
+  const { starters: yours, opponentStarters: theirs } = tag.entry;
+  const title = expandedTitle(tag.entry.game);
+  const rows = Math.max(yours.length, theirs.length);
+  const empty = rows === 0 ? "No starters on either side in this game" : null;
+  // Typing order: the title, then row by row — yours, then theirs.
+  const segments = [
+    title,
+    ...Array.from({ length: rows }, (_, i) => [yours[i]?.name ?? "", theirs[i]?.name ?? ""]).flat(),
+    ...(empty ? [empty] : []),
+  ];
+  const offsets: number[] = [];
+  let total = 0;
+  for (const seg of segments) {
+    offsets.push(total);
+    total += seg.length;
+  }
+  const count = useTypewriter(total);
+  const typed = (i: number) => segments[i].slice(0, Math.max(0, Math.min(segments[i].length, count - offsets[i])));
+  const done = (i: number) => count >= offsets[i] + segments[i].length;
+  const typingIndex = segments.findIndex((_, i) => !done(i));
+  const cursor = (i: number) =>
+    typingIndex === i ? <span className="ml-px inline-block w-[0.5em] animate-pulse bg-current" aria-hidden>&nbsp;</span> : null;
+
+  // Size it from its text (monospaced — every glyph 0.5em) so it can hang
+  // beside its stem without running off the map: on TAG_SIDE when there's
+  // room, else the other side, else pinned inside the map's edge.
+  const em = TAG_REM * rootPx;
+  const longest = (list: MappedStarter[]) => Math.max(0, ...list.map((p) => p.name.length * 0.5 + p.leagueIds.length));
+  const width = Math.max(
+    (title.length * 0.5 + PAD_EM * 2 + 1) * em,
+    (longest(yours) + longest(theirs) + 3) * em,
+    empty ? (empty.length * 0.5 + 2) * em : 0
+  );
+  const gap = STEM_GAP_EM * em;
+  let left = TAG_SIDE === "left" ? x - gap - width : x + gap;
+  if (left < 0) left = x + gap;
+  if (left + width > mapWidth) left = Math.max(0, mapWidth - width);
+  // Hanging left of the stem, the title grows toward it (right-aligned).
+  const towardStem = left + width <= x;
+
+  const nameCell = (starter: MappedStarter | undefined, i: number, align: "left" | "right") => (
+    <div className={`flex items-center gap-1 ${align === "right" ? "flex-row-reverse text-right" : ""}`}>
+      <span>
+        {typed(i)}
+        {cursor(i)}
+      </span>
+      {starter && done(i) ? (
+        <span className="flex shrink-0 items-center gap-0.5">
+          {starter.leagueIds.map((id) => (
+            <LeagueMark key={id} league={legendByLeagueId.get(id)} className="h-[0.8em] w-[0.8em]" />
+          ))}
+        </span>
+      ) : null}
+    </div>
+  );
 
   return (
-    <div
-      ref={cardRef}
-      className="absolute z-20 w-80 max-w-[calc(100%-1rem)] border border-grid bg-page p-3 text-xs shadow-sm"
-      style={{ left: "50%", top, transform: `translate(-50%, ${opensDown ? "0" : "-100%"})` }}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <span className="font-semibold text-ink-primary">
-          {summaryLine}
-          {isOutsideUS(entry.game) ? " · outside the US" : ""}
-        </span>
-        <button
-          type="button"
-          aria-label="Close preview"
-          onClick={onClose}
-          className="shrink-0 leading-none text-ink-muted hover:text-ink-primary"
+    <div className="absolute left-0 top-0 z-20" style={{ transform: `translate(${x}px, ${y}px)` }}>
+      <span className="absolute left-0 w-px bg-[var(--map-edge)]" style={{ top: top - y, height: y - top }} aria-hidden />
+      <button
+        type="button"
+        data-game-tag
+        aria-pressed
+        aria-label={`${title}. Your starters: ${yours.map((p) => p.name).join(", ") || "none"}. Opponents' starters: ${
+          theirs.map((p) => p.name).join(", ") || "none"
+        }. Tap to close.`}
+        onClick={(e) => onTap(e.clientX, e.clientY)}
+        onDoubleClick={(e) => e.stopPropagation()}
+        className={`pointer-events-auto absolute flex cursor-pointer flex-col whitespace-nowrap text-left ${
+          towardStem ? "items-end" : "items-start"
+        }`}
+        style={{ top: top - y, left: left - x, width, fontSize: `${TAG_REM}rem`, lineHeight: LINE_HEIGHT }}
+      >
+        <span
+          className="block max-w-full bg-[var(--map-tag)] font-bold text-[var(--map-tag-ink)]"
+          style={{ padding: `${PAD_Y_EM}em ${PAD_EM}em` }}
         >
-          ×
-        </button>
-      </div>
-      {hasAnyone ? (
-        <div className="mt-2 grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1">
-            <span className="text-[0.625rem] font-semibold uppercase tracking-wide text-ink-muted">You</span>
-            {entry.starters.map((starter) => (
-              <PlayerRow key={starter.playerId} starter={starter} legendByLeagueId={legendByLeagueId} align="left" />
-            ))}
+          {typed(0)}
+          {cursor(0)}
+        </span>
+        {done(0) ? (
+          <div className="mt-px w-full bg-page/90 px-[0.35em] py-[0.2em] font-medium text-ink-primary">
+            {empty ? (
+              <span className="text-ink-secondary">
+                {typed(1)}
+                {cursor(1)}
+              </span>
+            ) : (
+              <div className="grid grid-cols-2 gap-x-[1.5em] gap-y-[0.1em]">
+                {Array.from({ length: rows }, (_, r) => [
+                  <div key={`y${r}`}>{nameCell(yours[r], 1 + r * 2, "left")}</div>,
+                  <div key={`t${r}`} className="flex justify-end">
+                    {nameCell(theirs[r], 2 + r * 2, "right")}
+                  </div>,
+                ])}
+              </div>
+            )}
           </div>
-          <div className="flex flex-col items-end gap-1 text-right">
-            <span className="text-[0.625rem] font-semibold uppercase tracking-wide text-ink-muted">Opponent</span>
-            {entry.opponentStarters.map((starter) => (
-              <PlayerRow key={starter.playerId} starter={starter} legendByLeagueId={legendByLeagueId} align="right" />
-            ))}
-          </div>
-        </div>
-      ) : (
-        <p className="mt-2 text-ink-secondary">None of your starters or opponents&rsquo; starters are in this game.</p>
-      )}
+        ) : null}
+      </button>
     </div>
   );
 }
 
 /**
- * This week's games on the interactive 3D US map. Each game site sends up a thin vertical stem with the matchup on a
- * high-contrast neutral tag hung off its top, always on the same side of the
- * stem (TAG_SIDE) however the map is turned. Tags stay upright and readable
- * at any angle, sized and faded by how close their site is to the camera, so
- * they keep their proportion to the map as it turns and zooms; where tags
- * would collide, the nearer one keeps the shorter stem and the others rise
- * above it (see placeLabels). Tapping a tag opens a preview of that game's
- * fantasy starters, yours and your opponents'. Games played abroad can't sit
- * on the US outline, so they rise from just south of the border below New
- * Mexico. The view stays centered on the map's middle; zooming in lets the
- * map run past the edges of its frame, which clips it.
+ * This week's games on the interactive 3D US map. Each game site has a thin
+ * ring on the map (wider the more of your starters play in it) and sends up
+ * a short vertical stem with the matchup on a high-contrast neutral tag hung
+ * off its top, always on the same side of the stem (TAG_SIDE) however the
+ * map is turned. Tags stay upright and a steady size, fading with distance
+ * from the camera; they may overlap, and repeated taps on one spot cycle
+ * through every tag there. Tapping a tag opens it up in place (see
+ * ExpandedTag). Games played abroad can't sit on the US outline, so they
+ * rise from south of the border below New Mexico. Zooming in lets the map
+ * run past the edges of its frame, which clips it.
  */
 export function GameMap({ games, legend }: { games: MappedGame[]; legend: LeagueLegendEntry[] }) {
   const frameRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<HTMLDivElement | null>(null);
   const { camera, isDefault, reset, zoomBy, wasDrag, handlers } = useMapCamera(mapRef);
   const scene = useMemo(() => buildMapScene(camera), [camera]);
-  const cardRef = useRef<HTMLDivElement | null>(null);
   const [measure, setMeasure] = useState<{ width: number; rootPx: number } | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const legendByLeagueId = useMemo(() => new Map(legend.map((l) => [l.leagueId, l])), [legend]);
@@ -341,14 +408,13 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
     return () => frame.removeEventListener("wheel", onWheel);
   }, [zoomBy]);
 
-  // Tapping anywhere outside the open preview — elsewhere on the map, or
-  // anywhere else on the page — dismisses it. A tap on a tag is left to the
-  // tag's own click, which opens, switches, or closes the preview.
+  // Tapping anywhere outside the open game — elsewhere on the map, or
+  // anywhere else on the page — closes it. A tap on a tag is left to the
+  // tag's own click, which opens, switches, or closes it.
   useEffect(() => {
     if (!selected) return;
     function handlePointerDown(e: PointerEvent) {
       const target = e.target as Element | null;
-      if (cardRef.current?.contains(target)) return;
       if (target?.closest("[data-game-tag]")) return;
       setSelected(null);
     }
@@ -392,8 +458,6 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
 
   const selectedTag = placed.find((p) => p.id === selected) ?? null;
   const headroom = headroomPx ?? 0;
-  const mapHeight = measure ? measure.width / MAP_ASPECT : 0;
-  const gap = 0.4 * (measure?.rootPx ?? 16);
 
   /**
    * Tags may overlap, so a tap resolves to every tag under it rather than
@@ -437,7 +501,6 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
   };
 
   return (
-    // Positions the preview card, which may spill past the map's clipped area.
     <div className="relative">
       {/* The map's frame: drags anywhere in it turn the map, and everything —
           the land when zoomed in, tags running up into the headroom or out to
@@ -477,15 +540,15 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
             </svg>
 
             <div className="pointer-events-none absolute inset-0" role="list" aria-label={`${tags.length} games across the United States`}>
-              {placed.map(({ id, x, y, stem, tag, opacity: closenessOpacity, scale }) => {
-                const opacity = selected === id ? 1 : closenessOpacity;
+              {placed.map(({ id, x, y, stem, tag, opacity, scale }) => {
+                // The open game is drawn on its own, opened up, below.
+                if (id === selected) return null;
                 return (
                   <div
                     key={id}
                     role="listitem"
                     className="group absolute left-0 top-0"
-                    // The open game's tag comes to the front of any it overlaps.
-                    style={{ transform: `translate(${x}px, ${y}px)`, zIndex: selected === id ? 5 : undefined }}
+                    style={{ transform: `translate(${x}px, ${y}px)` }}
                   >
                     <span
                       className="absolute left-0 w-px bg-[var(--map-edge)] group-hover:!opacity-100"
@@ -496,13 +559,13 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
                     <button
                       type="button"
                       data-game-tag
-                      aria-pressed={selected === id}
+                      aria-pressed={false}
                       aria-label={`${tag.title} — show starters`}
                       onClick={(e) => handleTagClick(id, e.clientX, e.clientY)}
                       onDoubleClick={(e) => e.stopPropagation()}
-                      className={`pointer-events-auto absolute cursor-pointer whitespace-nowrap font-bold outline-offset-1 ${
+                      className={`pointer-events-auto absolute cursor-pointer whitespace-nowrap font-bold ${
                         TAG_SIDE === "left" ? "right-0" : "left-0"
-                      } ${selected === id ? "outline outline-2 outline-[var(--map-edge)]" : ""}`}
+                      }`}
                       style={{
                         top: -stem,
                         [TAG_SIDE === "left" ? "marginRight" : "marginLeft"]: `${STEM_GAP_EM}em`,
@@ -520,6 +583,20 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
                   </div>
                 );
               })}
+              {selectedTag && measure ? (
+                <ExpandedTag
+                  key={selectedTag.id}
+                  tag={selectedTag.tag}
+                  x={selectedTag.x}
+                  y={selectedTag.y}
+                  // The top of the frame, just inside it.
+                  top={-headroom + 3}
+                  mapWidth={measure.width}
+                  rootPx={measure.rootPx}
+                  legendByLeagueId={legendByLeagueId}
+                  onTap={(cx, cy) => handleTagClick(selectedTag.id, cx, cy)}
+                />
+              ) : null}
             </div>
 
             <div className="absolute left-0 top-0 z-10 flex gap-1">
@@ -539,22 +616,6 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
         </div>
       </div>
 
-      {selectedTag ? (
-        (() => {
-          const tagTop = selectedTag.y - selectedTag.stem;
-          const opensDown = tagTop + selectedTag.height / 2 < mapHeight / 2;
-          return (
-            <GamePreviewCard
-              entry={selectedTag.tag.entry}
-              top={headroom + (opensDown ? tagTop + selectedTag.height + gap : tagTop - gap)}
-              opensDown={opensDown}
-              legendByLeagueId={legendByLeagueId}
-              onClose={() => setSelected(null)}
-              cardRef={cardRef}
-            />
-          );
-        })()
-      ) : null}
     </div>
   );
 }
