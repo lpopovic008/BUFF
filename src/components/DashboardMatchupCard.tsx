@@ -11,7 +11,7 @@ export interface TeamStanding {
 }
 
 /** A green up-triangle for a winning streak, red down-triangle for a losing one, then its length. */
-function StreakBadge({ streak }: { streak?: Streak | null }) {
+export function StreakBadge({ streak }: { streak?: Streak | null }) {
   if (!streak) return null;
   const winning = streak.result === "W";
   return (
@@ -72,7 +72,7 @@ export function rankTone(rank: number, leagueSize: number, higherIsWorse = false
   return tone === "good" ? "bad" : "good";
 }
 
-const TONE_CLASS = { good: "text-status-good", mid: "text-series-4", bad: "text-status-critical" } as const;
+export const TONE_CLASS = { good: "text-status-good", mid: "text-series-4", bad: "text-status-critical" } as const;
 
 /**
  * Where a team's points for and points against rank in the league, stacked

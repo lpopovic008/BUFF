@@ -200,6 +200,17 @@ body {
   }
 }
 
+/* The dashboard's league ticker on phones: its track holds the leagues
+   twice, so sliding it left by half loops back onto an identical frame. */
+@keyframes ticker {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
 /* Base-layer reset so explicit utilities like rounded-full (avatars, legend
    dots) still win — unlayered rules would otherwise beat them regardless of
    specificity, since Tailwind's own utilities are layered. */

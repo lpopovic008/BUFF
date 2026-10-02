@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { DashboardMatchupCard } from "@/components/DashboardMatchupCard";
 import { GameMap, MappedGame } from "@/components/GameMap";
+import { LeagueTicker, TickerLeague } from "@/components/LeagueTicker";
 import { LeagueLegendEntry, StartersByGame } from "@/components/StartersByGame";
 import { useConfig } from "@/hooks/useConfig";
 import { MatchupTarget, useDashboardMatchups } from "@/hooks/useDashboardMatchups";
@@ -188,6 +189,32 @@ export default function DashboardPage() {
     );
   }
 
+  // Each league's matchup and standings, shared by the league boxes and the phone ticker.
+  const leagueCards: TickerLeague[] = leagues.map(({ tracked, summary }) => {
+    const myRow = summary.standings.find((r) => r.ownerId === config.sleeperUserId);
+    const matchup = matchups[tracked.leagueId];
+    const ranks = pointsRanks(summary.standings);
+    const standingOf = (rosterId: number) => {
+      const roster = summary.rosters.find((r) => r.roster_id === rosterId);
+      const row = summary.standings.find((r) => r.rosterId === rosterId);
+      return {
+        rank: row?.rank,
+        record: row ? { wins: row.wins, losses: row.losses, ties: row.ties } : undefined,
+        streak: roster ? rosterStreak(roster) : null,
+        pointsRanks: ranks.get(rosterId),
+      };
+    };
+    return {
+      leagueId: tracked.leagueId,
+      name: summary.league.name,
+      logo: avatarUrl(summary.league.avatar, "full"),
+      matchup,
+      my: myRow ? standingOf(myRow.rosterId) : null,
+      opponent: matchup?.opponent ? standingOf(matchup.opponent.rosterId) : undefined,
+      leagueSize: summary.standings.length,
+    };
+  });
+
   return (
     <div className="flex flex-col gap-6">
       <h1 className="sr-only">Dashboard</h1>
@@ -208,26 +235,13 @@ export default function DashboardPage() {
               </div>
             ) : null}
 
-            <div className="flex flex-col gap-4 animate-[rise_0.5s_ease-out_backwards] [animation-delay:70ms]">
-              {leagues.map(({ tracked, summary }, i) => {
-                const myRow = summary.standings.find((r) => r.ownerId === config.sleeperUserId);
-                const matchup = matchups[tracked.leagueId];
-                const ranks = pointsRanks(summary.standings);
-                const standingOf = (rosterId: number) => {
-                  const roster = summary.rosters.find((r) => r.roster_id === rosterId);
-                  const row = summary.standings.find((r) => r.rosterId === rosterId);
-                  return {
-                    rank: row?.rank,
-                    record: row ? { wins: row.wins, losses: row.losses, ties: row.ties } : undefined,
-                    streak: roster ? rosterStreak(roster) : null,
-                    pointsRanks: ranks.get(rosterId),
-                  };
-                };
-                const logo = avatarUrl(summary.league.avatar, "full");
+            {/* On phones the leagues ride the ticker pinned to the screen's bottom instead (see LeagueTicker). */}
+            <div className="hidden flex-col gap-4 animate-[rise_0.5s_ease-out_backwards] [animation-delay:70ms] md:flex">
+              {leagueCards.map(({ leagueId, name, logo, matchup, my, opponent, leagueSize }, i) => {
                 return (
                   <Link
-                    key={tracked.leagueId}
-                    href={`/league?id=${tracked.leagueId}`}
+                    key={leagueId}
+                    href={`/league?id=${leagueId}`}
                     className="relative isolate flex min-w-0 flex-col gap-2 overflow-hidden border border-border bg-page px-4 py-3 transition-colors animate-[rise_0.5s_ease-out_backwards] hover:border-ink-primary/40"
                     style={{ animationDelay: `${140 + i * 70}ms` }}
                   >
@@ -241,16 +255,11 @@ export default function DashboardPage() {
                       />
                     ) : null}
                     <div className="truncate text-center text-base font-semibold text-ink-primary sm:text-lg">
-                      {summary.league.name}
+                      {name}
                     </div>
 
-                    {myRow ? (
-                      <DashboardMatchupCard
-                        matchup={matchup}
-                        my={standingOf(myRow.rosterId)}
-                        opponent={matchup?.opponent ? standingOf(matchup.opponent.rosterId) : undefined}
-                        leagueSize={summary.standings.length}
-                      />
+                    {my ? (
+                      <DashboardMatchupCard matchup={matchup} my={my} opponent={opponent} leagueSize={leagueSize} />
                     ) : null}
                   </Link>
                 );
@@ -283,6 +292,8 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      <LeagueTicker leagues={leagueCards} />
     </div>
   );
 }
