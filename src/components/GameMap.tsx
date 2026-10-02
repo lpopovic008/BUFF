@@ -43,10 +43,11 @@ const SHOW_GAME_DOTS = false;
 /**
  * The tilted US (see map-perspective.ts): a raised slab whose side wall
  * shows along the south-facing coasts, grey land on top, faint state
- * borders, and the coast/national border as a line a little heavier than
- * them. The border is stroked *behind* the land at double width, so the
- * land covers its inner half and it only extends outward — it never eats
- * into small coastal states. Colors are theme tokens — white lines on black
+ * borders, and the coast/national border in a stronger color but the same
+ * thickness as them. The border is stroked *behind* the land at double the
+ * state lines' width, so the land covers its inner half and what shows
+ * matches them — and only extends outward, never eating into small coastal
+ * states. Colors are theme tokens — white lines on black
  * in dark mode, inverted in light mode.
  */
 function USOutline() {
@@ -63,7 +64,7 @@ function USOutline() {
       {MAP_WALL_LAYERS.map((d, i) => (
         <path key={i} d={d} fill="var(--map-wall)" stroke="var(--map-wall)" strokeWidth={0.6} />
       ))}
-      <path d={MAP_OUTLINE} fill="none" stroke="var(--map-edge)" strokeWidth={1.7} />
+      <path d={MAP_OUTLINE} fill="none" stroke="var(--map-edge)" strokeWidth={0.9} />
       <path d={MAP_OUTLINE} fill="var(--map-land)" />
       <path
         d={MAP_STATE_LINES}
