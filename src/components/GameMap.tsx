@@ -102,8 +102,8 @@ function venueLabel(game: NFLGame): string | null {
 function tagSize(title: string, rootPx: number): { width: number; height: number } {
   const px = TAG_REM * rootPx;
   return {
-    width: Math.ceil((STEM_GAP_EM + title.length * 0.5 + PAD_EM * 2) * px) + 2,
-    height: Math.ceil((LINE_HEIGHT + PAD_Y_EM * 2) * px) + 2,
+    width: Math.ceil((STEM_GAP_EM + title.length * 0.5 + PAD_EM * 2) * px) + 1,
+    height: Math.ceil((LINE_HEIGHT + PAD_Y_EM * 2) * px),
   };
 }
 
@@ -122,7 +122,7 @@ function layoutTags(tags: Tag[], scene: MapScene, width: number, rootPx: number,
       const [x, y] = scene.project(t.pos[0], t.pos[1]);
       return { id: t.id, x: (x - scene.view.x) * k, y: (y - scene.view.y) * k, ...tagSize(t.title, rootPx) };
     }),
-    { baseGap: 0.4 * rootPx, step: 0.35 * rootPx, tries: 40, margin: 2, minTop, side: TAG_SIDE }
+    { baseGap: 0.2 * rootPx, step: 0.1 * rootPx, tries: 140, margin: 1, minTop, side: TAG_SIDE }
   );
 }
 
