@@ -3,7 +3,9 @@
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { DashboardMatchupView } from "@/hooks/useDashboardMatchups";
-import { DashboardMatchupCard, TeamStanding } from "./DashboardMatchupCard";
+import { formatPoints, formatRecord, ordinal } from "@/lib/format";
+import { PointsRanks } from "@/lib/league-data";
+import { StreakBadge, TeamStanding, TONE_CLASS, rankTone } from "./DashboardMatchupCard";
 
 export interface TickerLeague {
   leagueId: string;
@@ -151,10 +153,47 @@ function useTickerMotion(
   }, [viewport, track, count]);
 }
 
+/** A team's second line: its place in the standings, its record, then its streak. */
+function TeamMeta({ standing, align }: { standing: TeamStanding; align: "left" | "right" }) {
+  const { rank, record, streak } = standing;
+  return (
+    <div className={`flex items-center gap-1 whitespace-nowrap text-[0.625rem] ${align === "right" ? "justify-end" : ""}`}>
+      {rank != null ? <span className="font-medium text-series-4">{ordinal(rank)}</span> : null}
+      {record ? (
+        <span className="tabular-nums text-ink-muted">({formatRecord(record.wins, record.losses, record.ties)})</span>
+      ) : null}
+      <StreakBadge streak={streak} />
+    </div>
+  );
+}
+
+/** PF stacked over PA, each rank colored by how good it is. */
+function PointsRanksStacked({ ranks, leagueSize, align }: { ranks?: PointsRanks; leagueSize: number; align: "left" | "right" }) {
+  if (!ranks) return <span />;
+  return (
+    <div
+      className={`flex flex-col whitespace-nowrap text-[0.5625rem] leading-tight text-ink-muted ${
+        align === "right" ? "items-end" : "items-start"
+      }`}
+    >
+      <span>
+        PF <span className={`font-semibold ${TONE_CLASS[rankTone(ranks.pointsFor, leagueSize)]}`}>{ordinal(ranks.pointsFor)}</span>
+      </span>
+      <span>
+        PA{" "}
+        <span className={`font-semibold ${TONE_CLASS[rankTone(ranks.pointsAgainst, leagueSize, true)]}`}>
+          {ordinal(ranks.pointsAgainst)}
+        </span>
+      </span>
+    </div>
+  );
+}
+
 /**
- * One league on the ticker: its league box in miniature — the same layout
- * (centered title over a logo watermark, both teams' lines, the scores with
- * PF/PA outside them), smaller type, each team's name on its own line.
+ * One league on the ticker: its name over your matchup, laid out like a
+ * quote — each team's name, then its rank, record and streak beneath it,
+ * with the two scores facing each other between and their PF/PA ranks
+ * stacked beneath them.
  */
 function TickerItem({ league, minWidth, copy }: { league: TickerLeague; minWidth: string; copy: boolean }) {
   const { matchup, my, opponent, leagueSize } = league;
@@ -164,20 +203,34 @@ function TickerItem({ league, minWidth, copy }: { league: TickerLeague; minWidth
       aria-hidden={copy || undefined}
       tabIndex={copy ? -1 : undefined}
       draggable={false}
-      className="relative isolate flex w-[19rem] shrink-0 flex-col justify-center gap-0.5 overflow-hidden border-r border-border px-3 py-1.5"
+      className="flex shrink-0 flex-col justify-center gap-0.5 border-r border-border px-4 py-1.5"
       style={{ minWidth }}
     >
-      {league.logo ? (
-        // eslint-disable-next-line @next/next/no-img-element -- a remote Sleeper avatar on a static export; nothing for next/image to optimize
-        <img
-          src={league.logo}
-          alt=""
-          draggable={false}
-          className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-12 w-12 -translate-x-1/2 -translate-y-1/2 rounded-full object-cover opacity-30"
-        />
-      ) : null}
-      <div className="truncate text-center text-xs font-semibold text-ink-primary">{league.name}</div>
-      {my ? <DashboardMatchupCard matchup={matchup} my={my} opponent={opponent} leagueSize={leagueSize} compact /> : null}
+      <div className="flex items-center justify-center gap-1.5 text-[0.625rem] font-semibold uppercase tracking-wide text-ink-muted">
+        {league.logo ? (
+          // eslint-disable-next-line @next/next/no-img-element -- a remote Sleeper avatar on a static export; nothing for next/image to optimize
+          <img src={league.logo} alt="" draggable={false} className="h-3 w-3 rounded-full object-cover" />
+        ) : null}
+        <span className="max-w-[16rem] truncate">{league.name}</span>
+      </div>
+      {matchup && my ? (
+        <div className="grid grid-cols-[minmax(0,auto)_auto_auto_minmax(0,auto)] items-baseline justify-center gap-x-3">
+          <span className="max-w-[9rem] truncate text-sm font-medium text-series-1">{matchup.my.teamName}</span>
+          <span className="text-sm font-semibold tabular-nums text-ink-primary">{formatPoints(matchup.my.points)}</span>
+          <span className="text-sm font-semibold tabular-nums text-ink-primary">
+            {matchup.opponent ? formatPoints(matchup.opponent.points) : null}
+          </span>
+          <span className="max-w-[9rem] truncate text-right text-sm font-medium text-ink-primary">
+            {matchup.opponent?.teamName ?? "Bye"}
+          </span>
+          <TeamMeta standing={my} align="left" />
+          <PointsRanksStacked ranks={my.pointsRanks} leagueSize={leagueSize} align="right" />
+          <PointsRanksStacked ranks={opponent?.pointsRanks} leagueSize={leagueSize} align="left" />
+          {opponent ? <TeamMeta standing={opponent} align="right" /> : <span />}
+        </div>
+      ) : (
+        <div className="text-center text-xs text-ink-secondary">No matchup this week</div>
+      )}
     </Link>
   );
 }
