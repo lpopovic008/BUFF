@@ -50,11 +50,11 @@ const SHOW_GAME_DOTS = false;
  * in dark mode, inverted in light mode.
  */
 function USOutline() {
-  // The coast is smoothed but the state lines aren't, so a line's coastal end
-  // can sit a hair outside the land — clip them to it.
+  // Clip the state lines to the land so no coastal end pokes past the
+  // border line.
   const clipId = useId();
   return (
-    <g strokeLinejoin="round">
+    <g strokeLinejoin="miter" strokeMiterlimit={4}>
       <defs>
         <clipPath id={clipId}>
           <path d={MAP_OUTLINE} />
