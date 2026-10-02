@@ -361,9 +361,7 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
                       style={{ top: -stem, height: stem, opacity }}
                       aria-hidden
                     />
-                    {/* The plate fades over a solid page-colored backing, so a far
-                        tag dims toward the background instead of letting the map's
-                        lines show through it. */}
+                    {/* Far tags are genuinely translucent — the map shows through them. */}
                     <button
                       type="button"
                       data-game-tag
@@ -371,7 +369,7 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
                       aria-label={`${tag.title} — show starters`}
                       onClick={() => handleTagClick(id)}
                       onDoubleClick={(e) => e.stopPropagation()}
-                      className={`pointer-events-auto absolute cursor-pointer whitespace-nowrap bg-page font-bold outline-offset-1 ${
+                      className={`pointer-events-auto absolute cursor-pointer whitespace-nowrap font-bold outline-offset-1 ${
                         TAG_SIDE === "left" ? "right-0" : "left-0"
                       } ${selected === id ? "outline outline-2 outline-[var(--map-edge)]" : ""}`}
                       style={{
