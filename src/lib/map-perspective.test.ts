@@ -2,17 +2,27 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   DEFAULT_CAMERA,
+  DEFAULT_SCALES,
   DEFAULT_SCENE,
+  MAP_ASPECT,
   MAX_TILT,
+  MAX_ZOOM,
   MIN_TILT,
+  MIN_ZOOM,
   buildMapScene,
+  buildSlabPaths,
   clampTilt,
+  clampZoom,
+  insideUS,
   isDefaultCamera,
   normalizeYaw,
-  surfaceHeight,
 } from "./map-perspective";
 
 const aspect = (s: { view: { width: number; height: number } }) => s.view.width / s.view.height;
+const center = (s: { view: { x: number; y: number; width: number; height: number } }) => [
+  s.view.x + s.view.width / 2,
+  s.view.y + s.view.height / 2,
+];
 
 test("normalizeYaw folds any angle into (-180, 180]", () => {
   assert.equal(normalizeYaw(0), 0);
@@ -24,64 +34,70 @@ test("normalizeYaw folds any angle into (-180, 180]", () => {
   assert.equal(normalizeYaw(725), 5);
 });
 
-test("clampTilt keeps the camera between straight-ish down and near the horizon", () => {
+test("tilt and zoom are held to their ranges", () => {
   assert.equal(clampTilt(-20), MIN_TILT);
   assert.equal(clampTilt(200), MAX_TILT);
   assert.equal(clampTilt(40), 40);
+  assert.equal(clampZoom(0.1), MIN_ZOOM);
+  assert.equal(clampZoom(50), MAX_ZOOM);
+  assert.equal(clampZoom(2), 2);
 });
 
-test("a full turn is still the default view", () => {
+test("a full turn at the opening zoom is still the default view; any zoom isn't", () => {
   assert.ok(isDefaultCamera(DEFAULT_CAMERA));
   assert.ok(isDefaultCamera({ ...DEFAULT_CAMERA, yaw: 360 }));
   assert.ok(!isDefaultCamera({ ...DEFAULT_CAMERA, yaw: 10 }));
   assert.ok(!isDefaultCamera({ ...DEFAULT_CAMERA, tilt: 50 }));
-  assert.equal(buildMapScene({ ...DEFAULT_CAMERA, yaw: 360 }), DEFAULT_SCENE);
+  assert.ok(!isDefaultCamera({ ...DEFAULT_CAMERA, zoom: 1.5 }));
 });
 
-test("every view keeps the opening view's aspect ratio, so the map never resizes on the page", () => {
+test("turning the map never re-fits it: same size at the same zoom, always centered on the map's middle", () => {
   for (const camera of [
-    { tilt: 32, yaw: 90 },
-    { tilt: MIN_TILT, yaw: 45 },
-    { tilt: MAX_TILT, yaw: -135 },
-    { tilt: 50, yaw: 180 },
+    { tilt: 32, yaw: 90, zoom: 1 },
+    { tilt: MIN_TILT, yaw: 45, zoom: 1 },
+    { tilt: MAX_TILT, yaw: -135, zoom: 1 },
   ]) {
-    assert.ok(Math.abs(aspect(buildMapScene(camera)) - aspect(DEFAULT_SCENE)) < 1e-9);
+    const scene = buildMapScene(camera);
+    assert.ok(Math.abs(scene.view.width - DEFAULT_SCENE.view.width) < 1e-9);
+    assert.ok(Math.abs(scene.view.height - DEFAULT_SCENE.view.height) < 1e-9);
+    const [cx, cy] = center(scene);
+    const [mx, my] = scene.project(160, 100);
+    assert.ok(Math.abs(cx - mx) < 1e-9 && Math.abs(cy - my) < 1e-9);
   }
 });
 
-test("projected points stay inside their scene's view", () => {
-  const scene = buildMapScene({ tilt: 55, yaw: 120 });
-  const { x, y, width, height } = scene.view;
-  for (const d of [scene.outline, ...scene.wallLayers]) {
+test("zooming in shrinks the view about the same center, keeping the aspect", () => {
+  const at1 = buildMapScene({ ...DEFAULT_CAMERA, zoom: 1 });
+  const at2 = buildMapScene({ ...DEFAULT_CAMERA, zoom: 2 });
+  assert.ok(Math.abs(at2.view.width * 2 - at1.view.width) < 1e-9);
+  assert.deepEqual(center(at2).map((n) => n.toFixed(6)), center(at1).map((n) => n.toFixed(6)));
+  assert.ok(Math.abs(aspect(at2) - MAP_ASPECT) < 1e-9);
+});
+
+test("the opening view shows the whole country", () => {
+  const { view } = DEFAULT_SCENE;
+  const slab = buildSlabPaths(DEFAULT_CAMERA);
+  for (const d of [slab.outline, ...slab.wallLayers]) {
     for (const [, px, py] of d.matchAll(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g)) {
-      assert.ok(Number(px) >= x && Number(px) <= x + width);
-      assert.ok(Number(py) >= y && Number(py) <= y + height);
+      assert.ok(Number(px) >= view.x && Number(px) <= view.x + view.width);
+      assert.ok(Number(py) >= view.y && Number(py) <= view.y + view.height);
     }
   }
 });
 
-test("depth runs from the near (south) edge to the far (north) edge, and turns with the map", () => {
+test("perspective magnifies the near (south) edge and shrinks the far (north) one, and turns with the map", () => {
   const scene = buildMapScene(DEFAULT_CAMERA);
-  const miami = scene.depth(281, 186);
-  const seattle = scene.depth(49, 17);
-  assert.ok(miami < 0.15 && seattle > 0.85);
+  const miami = scene.scaleAt(281, 186);
+  const seattle = scene.scaleAt(49, 17);
+  assert.ok(miami > DEFAULT_SCALES.center && seattle < DEFAULT_SCALES.center);
+  assert.ok(DEFAULT_SCALES.near > DEFAULT_SCALES.center && DEFAULT_SCALES.far < DEFAULT_SCALES.center);
   const flipped = buildMapScene({ ...DEFAULT_CAMERA, yaw: 180 });
-  assert.ok(flipped.depth(281, 186) > flipped.depth(49, 17));
+  assert.ok(flipped.scaleAt(281, 186) < flipped.scaleAt(49, 17));
 });
 
-test("the terrain rises where the real country does — Denver stands far above Miami and New Orleans", () => {
-  const denver = surfaceHeight(126.14, 88.63);
-  const miami = surfaceHeight(281, 186);
-  const newOrleans = surfaceHeight(213, 166);
-  assert.ok(denver > miami + 5, `Denver ${denver} vs Miami ${miami}`);
-  assert.equal(miami, newOrleans);
-});
-
-test("terraces climb from the lowest band to the highest", () => {
-  const scene = buildMapScene(DEFAULT_CAMERA);
-  assert.ok(scene.terraces.length >= 5);
-  for (const t of scene.terraces) {
-    assert.ok(t.walls.length >= 1);
-    assert.ok(t.top.length > 0);
-  }
+test("insideUS knows land from sea and from abroad", () => {
+  assert.ok(insideUS(126, 88)); // Denver
+  assert.ok(insideUS(160, 100));
+  assert.ok(!insideUS(5, 195)); // the Pacific, off Mexico
+  assert.ok(!insideUS(106, 158)); // just south of the border below New Mexico
 });
