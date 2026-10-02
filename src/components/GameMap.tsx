@@ -51,8 +51,10 @@ const PAD_EM = 0.35;
 const PAD_Y_EM = 0.12;
 // Space between a stem and its tag.
 const STEM_GAP_EM = 0.35;
-// Which side of its stem every tag hangs on.
+// Which side of its stem a tag hangs on — except where games share a site
+// (see sideBySite): there the later ones take the other side.
 const TAG_SIDE: "left" | "right" = "left";
+const OTHER_SIDE: "left" | "right" = TAG_SIDE === "left" ? "right" : "left";
 // How faded a tag at the land's far edge is; the game nearest the camera is fully opaque.
 const FAR_OPACITY = 0.25;
 // Below this tilt the fade eases off, reaching none at all straight overhead,
@@ -175,6 +177,32 @@ interface Tag {
   title: string;
   /** A second line under the title, plain on the map — a game abroad's city. */
   subtitle?: string;
+  /** Which side of its stem the tag hangs on. */
+  side: "left" | "right";
+}
+
+const kickoffTime = (game: NFLGame) => new Date(game.kickoff).getTime();
+
+/**
+ * Where two or more games share one site (both LA teams at SoFi, both New
+ * York teams at MetLife), the earliest kickoff keeps the usual side of the
+ * stem and every later one hangs on the other, so they don't sit on top of
+ * each other.
+ */
+function sideBySite(tags: Omit<Tag, "side">[]): Tag[] {
+  const bySite = new Map<string, Omit<Tag, "side">[]>();
+  for (const t of tags) {
+    const key = `${t.pos[0]},${t.pos[1]}`;
+    bySite.set(key, [...(bySite.get(key) ?? []), t]);
+  }
+  const later = new Set<string>();
+  for (const group of bySite.values()) {
+    group
+      .sort((a, b) => kickoffTime(a.entry.game) - kickoffTime(b.entry.game) || a.title.localeCompare(b.title))
+      .slice(1)
+      .forEach((t) => later.add(t.id));
+  }
+  return tags.map((t) => ({ ...t, side: later.has(t.id) ? OTHER_SIDE : TAG_SIDE }));
 }
 
 /** A site's perspective magnification — larger is nearer the camera. Zoom plays no part. */
@@ -215,6 +243,7 @@ function layoutTags(tags: Tag[], scene: MapScene, tilt: number, width: number, r
         x: (x - scene.view.x) * k,
         y: (y - scene.view.y) * k,
         gap: stemRem(starterCount(t.entry)) * rootPx,
+        side: t.side,
         ...tagSize(t.title, t.subtitle, rootPx, scale),
       };
     }),
@@ -467,8 +496,8 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
 
   const tags = useMemo(() => {
     let abroadIndex = 0;
-    return games
-      .map((entry): Tag | null => {
+    const sited = games
+      .map((entry): Omit<Tag, "side"> | null => {
         const pos = isOutsideUS(entry.game) ? internationalSlotPosition(abroadIndex++) : gameMapPosition(entry.game);
         if (!pos) return null;
         return {
@@ -481,6 +510,7 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
         };
       })
       .filter((t) => t !== null);
+    return sideBySite(sited);
   }, [games]);
 
   // Sized from the opening view only (per screen width, not per frame), so
@@ -518,15 +548,11 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
     const py = box ? clientY - box.top : NaN;
     const under = placed
       .filter((p) => {
-        const left = TAG_SIDE === "left" ? p.x - p.width : p.x;
+        const left = p.tag.side === "left" ? p.x - p.width : p.x;
         const top = p.y - p.stem;
         return px >= left && px <= left + p.width && py >= top && py <= top + p.height;
       })
-      .sort(
-        (a, b) =>
-          new Date(a.tag.entry.game.kickoff).getTime() - new Date(b.tag.entry.game.kickoff).getTime() ||
-          a.tag.title.localeCompare(b.tag.title)
-      );
+      .sort((a, b) => kickoffTime(a.tag.entry.game) - kickoffTime(b.tag.entry.game) || a.tag.title.localeCompare(b.tag.title));
     if (under.length <= 1) {
       setSelected((current) => (current === id ? null : id));
       return;
@@ -617,11 +643,11 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
                       onClick={(e) => handleTagClick(id, e.clientX, e.clientY)}
                       onDoubleClick={(e) => e.stopPropagation()}
                       className={`pointer-events-auto absolute flex cursor-pointer flex-col whitespace-nowrap font-bold ${
-                        TAG_SIDE === "left" ? "right-0 items-end" : "left-0 items-start"
+                        tag.side === "left" ? "right-0 items-end" : "left-0 items-start"
                       }`}
                       style={{
                         top: -stem,
-                        [TAG_SIDE === "left" ? "marginRight" : "marginLeft"]: `${STEM_GAP_EM}em`,
+                        [tag.side === "left" ? "marginRight" : "marginLeft"]: `${STEM_GAP_EM}em`,
                         fontSize: `${TAG_REM * scale}rem`,
                         lineHeight: LINE_HEIGHT,
                       }}

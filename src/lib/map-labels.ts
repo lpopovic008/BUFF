@@ -15,6 +15,8 @@ export interface LabelSite {
   height: number;
   /** This tag's own clearance above its site, in place of LabelLayoutOptions.baseGap. */
   gap?: number;
+  /** The side of its stem this tag hangs on, in place of LabelLayoutOptions.side. */
+  side?: "left" | "right";
 }
 
 export interface PlacedLabel extends LabelSite {
@@ -79,7 +81,7 @@ export function placeLabels(sites: LabelSite[], options: LabelLayoutOptions): Pl
     let best: { stem: number; box: Box; stemBox: Box; overlap: number } | null = null;
     for (let i = 0; i < tries; i++) {
       const stem = site.height + (site.gap ?? baseGap) + i * step;
-      const box = boxFor(site, stem, side);
+      const box = boxFor(site, stem, site.side ?? side);
       const stemBox = stemBoxFor(site, stem);
       let overlap = box.top < minTop ? (minTop - box.top) * site.width * OUT_OF_BOUNDS_WEIGHT : 0;
       for (const p of placed) {

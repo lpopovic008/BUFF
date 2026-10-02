@@ -84,3 +84,16 @@ test("a site's own gap sets its stem in place of the shared baseGap", () => {
   assert.equal(tall.stem, 8 + 30);
   assert.equal(short.stem, 8 + 5);
 });
+
+test("a site's own side overrides the shared one", () => {
+  const [a, b] = placeLabels(
+    [
+      { id: "a", x: 100, y: 100, width: 40, height: 8 },
+      { id: "b", x: 100, y: 100, width: 40, height: 8, side: "right" },
+    ],
+    { baseGap: 5, step: 0, tries: 1, margin: 0, side: "left" }
+  );
+  // Same spot, opposite sides of one stem: no overlap, so no reason to differ in height.
+  assert.equal(a.stem, b.stem);
+  assert.equal(b.side, "right");
+});
