@@ -274,7 +274,7 @@ export function StartersByGame({
                   </span>
                   <BlockClock games={column.games} now={now} />
                 </button>
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-3 pl-3">
                   {column.games.map(({ game, players }) => (
                     <div key={game.id} className="flex flex-col gap-1">
                       <GameHeader game={game} />
@@ -300,7 +300,7 @@ export function StartersByGame({
               <h3 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">
                 Not playing this week
               </h3>
-              <div className="grid grid-cols-1 gap-1">
+              <div className="grid grid-cols-1 gap-1 pl-3">
                 {notPlaying.map((player) => (
                   <PlayerRow key={player.playerId} player={player} legendByLeagueId={legendByLeagueId} started={false} />
                 ))}
