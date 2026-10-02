@@ -34,22 +34,27 @@ export function StreakBadge({ streak }: { streak?: Streak | null }) {
  * parentheses, then its streak just right of the record. Always a
  * single line, on mobile and desktop alike — only the name ever truncates.
  */
+/** Your own team's name, styled like the map's game tags: solid contrasting fill and ink, bold. */
+export const MY_TEAM_NAME_CLASS = "bg-[var(--map-tag)] px-[0.35em] font-bold text-[var(--map-tag-ink)]";
+const OTHER_TEAM_NAME_CLASS = "font-medium text-ink-primary";
+
 function TeamNameLabel({
   name,
   standing,
   align,
-  colorClass,
+  mine,
 }: {
   name: string;
   standing: TeamStanding;
   align: "left" | "right";
-  colorClass: string;
+  /** Your own team, marked out like a map tag. */
+  mine: boolean;
 }) {
   const { rank, record, streak } = standing;
   return (
     <div className={`flex min-w-0 items-baseline gap-1.5 ${align === "right" ? "justify-end" : ""}`}>
       {rank != null ? <span className="shrink-0 text-xs font-medium text-series-4">{ordinal(rank)}</span> : null}
-      <span className={`min-w-0 truncate text-sm font-medium ${colorClass}`}>{name}</span>
+      <span className={`min-w-0 truncate text-sm ${mine ? MY_TEAM_NAME_CLASS : OTHER_TEAM_NAME_CLASS}`}>{name}</span>
       {record ? (
         <span className="shrink-0 text-xs tabular-nums text-ink-muted">
           ({formatRecord(record.wins, record.losses, record.ties)})
@@ -126,13 +131,13 @@ export function DashboardMatchupCard({
   return (
     <div className="flex flex-col gap-1">
       <div className="grid grid-cols-2 items-baseline gap-3">
-        <TeamNameLabel name={matchup.my.teamName} standing={my} align="left" colorClass="text-series-1" />
+        <TeamNameLabel name={matchup.my.teamName} standing={my} align="left" mine />
         {matchup.opponent ? (
           <TeamNameLabel
             name={matchup.opponent.teamName}
             standing={opponent ?? {}}
             align="right"
-            colorClass="text-ink-primary"
+            mine={false}
           />
         ) : null}
       </div>

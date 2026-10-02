@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { DashboardMatchupView } from "@/hooks/useDashboardMatchups";
 import { formatPoints, formatRecord, ordinal } from "@/lib/format";
-import { StreakBadge, TeamStanding } from "./DashboardMatchupCard";
+import { MY_TEAM_NAME_CLASS, StreakBadge, TeamStanding } from "./DashboardMatchupCard";
 
 export interface TickerLeague {
   leagueId: string;
@@ -163,13 +163,14 @@ function TickerSide({
   points,
   standing,
   side,
-  nameClass,
+  mine,
 }: {
   name: string;
   points: number | null;
   standing?: TeamStanding;
   side: "left" | "right";
-  nameClass: string;
+  /** Your own team, marked out like a map tag. */
+  mine: boolean;
 }) {
   const { rank, record, streak } = standing ?? {};
   const edge = side === "left" ? "items-start text-left" : "items-end text-right";
@@ -179,7 +180,7 @@ function TickerSide({
     <div className="flex items-center justify-between gap-4">
       {side === "right" ? score : null}
       <div className={`flex flex-col ${edge}`}>
-        <span className={`whitespace-nowrap text-sm font-medium ${nameClass}`}>{name}</span>
+        <span className={`whitespace-nowrap text-sm ${mine ? MY_TEAM_NAME_CLASS : "font-medium text-ink-primary"}`}>{name}</span>
         <div className="flex items-center gap-1 whitespace-nowrap text-[0.625rem]">
           {rank != null ? <span className="font-medium text-series-4">{ordinal(rank)}</span> : null}
           {record ? (
@@ -239,13 +240,13 @@ function TickerItem({
       {matchup && my ? (
         // Two 1fr halves in a shrink-to-fit grid both size to the wider one.
         <div className="grid w-full grid-cols-2 gap-x-6">
-          <TickerSide name={matchup.my.teamName} points={matchup.my.points} standing={my} side="left" nameClass="text-series-1" />
+          <TickerSide name={matchup.my.teamName} points={matchup.my.points} standing={my} side="left" mine />
           <TickerSide
             name={matchup.opponent?.teamName ?? "Bye"}
             points={matchup.opponent ? matchup.opponent.points : null}
             standing={opponent}
             side="right"
-            nameClass="text-ink-primary"
+            mine={false}
           />
         </div>
       ) : (
