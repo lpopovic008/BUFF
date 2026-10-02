@@ -275,7 +275,10 @@ function ExpandedTag({
   const done = (i: number) => count >= offsets[i] + segments[i].length;
   const typingIndex = segments.findIndex((_, i) => !done(i));
   const cursor = (i: number) =>
-    typingIndex === i ? <span className="ml-px inline-block w-[0.5em] animate-pulse bg-current" aria-hidden>&nbsp;</span> : null;
+    // A plain block, not a CSS animation: an animated element gets its own
+    // compositing layer, which some browsers (Safari above all) can leave
+    // painted on screen for a moment after the tag closes.
+    typingIndex === i ? <span className="ml-px inline-block w-[0.5em] bg-current" aria-hidden>&nbsp;</span> : null;
 
   // Size it from its text (monospaced — every glyph 0.5em) so it can hang
   // beside its stem without running off the map: on TAG_SIDE when there's
@@ -508,7 +511,10 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
           around it or making it scroll sideways. */}
       <div
         ref={frameRef}
-        className="relative w-full cursor-grab touch-none select-none overflow-clip outline-none [-webkit-touch-callout:none] active:cursor-grabbing focus-visible:ring-1 focus-visible:ring-ink-muted"
+        // isolate + contain:paint give the frame a self-contained paint layer, so
+        // anything removed from inside it (an opened tag closing) is repainted
+        // away cleanly rather than leaving stale pixels behind in some browsers.
+        className="relative isolate w-full cursor-grab touch-none select-none overflow-clip outline-none [contain:paint] [-webkit-touch-callout:none] active:cursor-grabbing focus-visible:ring-1 focus-visible:ring-ink-muted"
         style={{ paddingTop: headroomPx === null ? `${MIN_HEADROOM_REM}rem` : headroomPx }}
         tabIndex={0}
         aria-label="US map. Drag to spin and tilt it; drag with two fingers, Shift or the right mouse button to move it; pinch, Ctrl+scroll or the +/- keys to zoom; arrow keys to turn; double-click or Home to reset the view."
@@ -539,7 +545,11 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
               </g>
             </svg>
 
-            <div className="pointer-events-none absolute inset-0" role="list" aria-label={`${tags.length} games across the United States`}>
+            <div
+              className="pointer-events-none absolute inset-0 [transform:translateZ(0)]"
+              role="list"
+              aria-label={`${tags.length} games across the United States`}
+            >
               {placed.map(({ id, x, y, stem, tag, opacity, scale }) => {
                 // The open game is drawn on its own, opened up, below.
                 if (id === selected) return null;
