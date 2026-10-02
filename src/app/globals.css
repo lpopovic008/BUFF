@@ -14,15 +14,10 @@
      wall for its side. Dark mode is grey land with white lines on black;
      light mode inverts it — light grey land with dark lines on the page
      background. */
-  --map-land: #cfd1d5;
+  --map-land: #d9dadd;
   --map-wall: #a8aaaf;
   --map-edge: #121212;
   --map-state-line: rgba(0, 0, 0, 0.22);
-  /* Terrain (TerrainCanvas): the land blends from --map-land at sea level
-     toward --map-peak at the highest ground, and --map-relief sets how
-     strongly slopes are lit and shaded. */
-  --map-peak: #e7e8eb;
-  --map-relief: 1.6;
   /* Game tags on the map: a neutral plate that contrasts with the land —
      near-black here, near-white in dark mode. */
   --map-tag: #1f1f1f;
@@ -76,8 +71,6 @@
   --map-wall: #26282c;
   --map-edge: #f4f4f4;
   --map-state-line: rgba(255, 255, 255, 0.24);
-  --map-peak: #9a9da3;
-  --map-relief: 1.1;
   --map-tag: #ececec;
   --map-tag-ink: #111111;
 

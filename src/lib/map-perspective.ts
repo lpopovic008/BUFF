@@ -6,9 +6,8 @@
 // middle of the map at a fixed scale for a given zoom: turning the map never
 // re-fits it, so parts of it may run past the edge of its frame.
 //
-// The land is a slab a few units thick with the real terrain on top (see
-// TerrainCanvas, which runs this same math on the GPU); the SVG paths here
-// are the flat slab, the fallback when WebGL isn't available.
+// The land is a slab a few units thick; the tilt shows its camera-facing
+// side wall, which is what sells the perspective.
 
 import { US_MAP_VIEWBOX, US_SIMPLE_OUTLINE_PATH, US_SIMPLE_STATE_LINES_PATH } from "./warroom-team-cities";
 
@@ -37,11 +36,7 @@ export const MAX_ZOOM = 5;
 export const FOCAL = 400;
 /** How high the land's top face (sea level) sits above the ground plane. */
 export const SLAB_HEIGHT = 6;
-// Vertical exaggeration: map units of rise per meter of elevation. Real
-// relief is invisible at map scale (the Rockies are ~0.1% of the country's
-// width), so it's stretched until 3,000 m stands ~15 units tall.
-export const RISE_PER_METER = 15 / 3000;
-// Stacked layers that fill the slab's side wall in the SVG fallback.
+// Stacked layers that fill the slab's side wall.
 const WALL_STEPS = 8;
 const PAD = 4;
 
@@ -74,8 +69,7 @@ export type MapProjector = (x: number, y: number, height?: number) => [number, n
  * The projection itself: [screenX, screenY, perspectiveScale] for a point.
  * The map spins about its center, then rotates back about its near edge; a
  * raised point lifts slightly toward the viewer and up the screen, which is
- * what exposes the land's camera-facing walls. Mirrored in TerrainCanvas's
- * vertex shader — keep the two in step.
+ * what exposes the slab's camera-facing wall.
  */
 export function cameraTransform({ tilt, yaw }: MapCamera): (x: number, y: number, height: number) => [number, number, number] {
   const ts = Math.sin((tilt * Math.PI) / 180);
@@ -123,13 +117,8 @@ function compile(d: string): CompiledPath {
 const OUTLINE = compile(US_SIMPLE_OUTLINE_PATH);
 const STATE_LINES = compile(US_SIMPLE_STATE_LINES_PATH);
 
-/** The mainland outline as [x0, y0, x1, y1, ...], for point-in-US tests and the GPU mask. */
+/** The mainland outline as [x0, y0, x1, y1, ...], for point-in-US tests. */
 export const OUTLINE_POINTS: number[] = OUTLINE.xs.flatMap((x, i) => [x, OUTLINE.ys[i]]);
-
-/** The state borders as polylines of [x0, y0, x1, y1, ...], for the GPU line pass. */
-export const STATE_LINE_POLYLINES: number[][] = US_SIMPLE_STATE_LINES_PATH.split("M")
-  .filter(Boolean)
-  .map((seg) => [...seg.matchAll(POINT)].flatMap((m) => [Number(m[1]), Number(m[2])]));
 
 /** Whether a flat-map point is on US land. */
 export function insideUS(x: number, y: number): boolean {
@@ -170,7 +159,7 @@ export interface MapScene {
   scaleAt: (x: number, y: number, height?: number) => number;
 }
 
-/** The flat slab — the SVG fallback for when the WebGL terrain can't draw. */
+/** The slab's paths for one camera view. */
 export interface SlabPaths {
   /** The land's top face (coast and national borders only). */
   outline: string;

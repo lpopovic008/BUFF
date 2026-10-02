@@ -11,14 +11,13 @@ import {
   MAP_ASPECT,
   MapCamera,
   MapScene,
+  SLAB_HEIGHT,
   buildMapScene,
   buildSlabPaths,
 } from "@/lib/map-perspective";
-import { Heightfield, loadHeightfield, surfaceHeightAt } from "@/lib/us-heightfield";
 import { PlacedLabel, placeLabels } from "@/lib/map-labels";
 import { useMapCamera } from "@/hooks/useMapCamera";
 import { LeagueLegendEntry, LeagueMark } from "./LeagueMark";
-import { TerrainCanvas } from "./TerrainCanvas";
 
 /** One of your starters in a mapped game, enough to show on the preview card. */
 export interface MappedStarter {
@@ -35,8 +34,8 @@ export interface MappedGame {
   opponentStarters: MappedStarter[];
 }
 
-// The state lines' width in the SVG fallback; the border is stroked at twice
-// this behind the land, so the half that shows matches them.
+// The state lines' width; the border is stroked at twice this behind the
+// land, so the half that shows matches them.
 const LINE_WIDTH = 0.38;
 
 // Game tag type size, in rem, for a tag at the map's middle in the opening
@@ -65,10 +64,10 @@ const MIN_HEADROOM_REM = 1.5;
 const ZOOM_STEP = 1.25;
 
 /**
- * The flat slab — the map before the 3D terrain loads, or instead of it
- * where WebGL isn't available: a raised outline with its side wall, faint
- * state borders, and the coast/national border stroked *behind* the land at
- * double the state lines' width, so only its outer half shows.
+ * The land: a raised slab with its side wall showing along the
+ * camera-facing coasts, faint state borders, and the coast/national border
+ * stroked *behind* the land at double the state lines' width, so only its
+ * outer half shows — it never eats into small coastal states.
  */
 function SlabOutline({ camera }: { camera: MapCamera }) {
   const slab = useMemo(() => buildSlabPaths(camera), [camera]);
@@ -256,9 +255,7 @@ function GamePreviewCard({
 }
 
 /**
- * This week's games on the interactive 3D US map (TerrainCanvas draws the
- * land; the flat SVG slab stands in until it loads, or if WebGL can't run).
- * Each game site sends up a thin vertical stem with the matchup on a
+ * This week's games on the interactive 3D US map. Each game site sends up a thin vertical stem with the matchup on a
  * high-contrast neutral tag hung off its top, always on the same side of the
  * stem (TAG_SIDE) however the map is turned. Tags stay upright and readable
  * at any angle, sized and faded by how close their site is to the camera, so
@@ -276,48 +273,21 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
   const frameRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<HTMLDivElement | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
-  const [measure, setMeasure] = useState<{
-    width: number;
-    rootPx: number;
-    /** The map box's offset inside the frame, and the frame's size — the canvas covers the whole frame. */
-    ox: number;
-    oy: number;
-    fw: number;
-    fh: number;
-  } | null>(null);
+  const [measure, setMeasure] = useState<{ width: number; rootPx: number } | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
-  const [heightfield, setHeightfield] = useState<Heightfield | null>(null);
-  const [terrainReady, setTerrainReady] = useState<boolean | null>(null);
   const legendByLeagueId = useMemo(() => new Map(legend.map((l) => [l.leagueId, l])), [legend]);
 
+  // The tags are laid out in px, so track the map's rendered width (and the
+  // fluid root font size, which changes with the viewport too).
   useEffect(() => {
-    let cancelled = false;
-    loadHeightfield()
-      .then((hf) => !cancelled && setHeightfield(hf))
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // The tags are laid out in px, so track the map's rendered size and place
-  // in its frame (and the fluid root font size, which changes with the
-  // viewport too).
-  useEffect(() => {
-    const frame = frameRef.current;
     const map = mapRef.current;
-    if (!frame || !map) return;
+    if (!map) return;
     const observer = new ResizeObserver(() =>
       setMeasure({
         width: map.clientWidth,
         rootPx: parseFloat(getComputedStyle(document.documentElement).fontSize) || 16,
-        ox: map.offsetLeft,
-        oy: map.offsetTop,
-        fw: frame.clientWidth,
-        fh: frame.clientHeight,
       })
     );
-    observer.observe(frame);
     observer.observe(map);
     return () => observer.disconnect();
   }, []);
@@ -361,12 +331,12 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
           id: entry.game.id,
           entry,
           pos,
-          ground: surfaceHeightAt(heightfield, pos[0], pos[1]),
+          ground: SLAB_HEIGHT,
           title: tagTitle(entry.game),
         };
       })
       .filter((t) => t !== null);
-  }, [games, heightfield]);
+  }, [games]);
 
   // Sized from the opening view only (per screen width, not per frame), so
   // turning the map never makes the page around it jump; other views fit
@@ -384,19 +354,6 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
     // Paint far tags first so nearer ones sit on top.
     return layoutTags(tags, scene, camera.zoom, measure.width, measure.rootPx, -headroomPx).sort((a, b) => a.y - b.y);
   }, [measure, headroomPx, scene, camera.zoom, tags]);
-
-  // The canvas covers the whole frame (headroom and the column's margins
-  // too), so zoomed-in land fills the frame instead of stopping at the map box.
-  const canvasView = useMemo(() => {
-    if (!measure) return scene.view;
-    const k = measure.width / scene.view.width;
-    return {
-      x: scene.view.x - measure.ox / k,
-      y: scene.view.y - measure.oy / k,
-      width: measure.fw / k,
-      height: measure.fh / k,
-    };
-  }, [measure, scene]);
 
   const selectedTag = placed.find((p) => p.id === selected) ?? null;
   const headroom = headroomPx ?? 0;
@@ -431,26 +388,17 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
         aria-label="US map. Drag to spin and tilt it; pinch, Ctrl+scroll or the +/- keys to zoom; arrow keys to nudge; double-click or Home to reset the view."
         {...handlers}
       >
-        <TerrainCanvas
-          camera={camera}
-          view={canvasView}
-          onReady={setTerrainReady}
-          className={`pointer-events-none absolute inset-0 h-full w-full transition-opacity duration-500 ${
-            terrainReady ? "opacity-100" : "opacity-0"
-          }`}
-        />
         <div className="mx-auto w-full min-w-0 max-w-[44rem]">
           <div ref={mapRef} className="relative" style={{ aspectRatio: MAP_ASPECT }}>
-            {terrainReady ? null : (
-              <svg
-                viewBox={scene.viewBox}
-                preserveAspectRatio="xMidYMid meet"
-                className="absolute inset-0 block h-full w-full overflow-visible"
-                aria-hidden
-              >
-                <SlabOutline camera={camera} />
-              </svg>
-            )}
+            {/* overflow-visible: zoomed-in land runs on past the map box, out to the frame's edges. */}
+            <svg
+              viewBox={scene.viewBox}
+              preserveAspectRatio="xMidYMid meet"
+              className="absolute inset-0 block h-full w-full overflow-visible"
+              aria-hidden
+            >
+              <SlabOutline camera={camera} />
+            </svg>
 
             <div className="pointer-events-none absolute inset-0" role="list" aria-label={`${tags.length} games across the United States`}>
               {placed.map(({ id, x, y, stem, tag, opacity: closenessOpacity, scale }) => {
