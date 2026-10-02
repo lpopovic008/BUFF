@@ -370,7 +370,7 @@ function ExpandedTag({
  * from the camera; they may overlap, and repeated taps on one spot cycle
  * through every tag there. Tapping a tag opens it up in place (see
  * ExpandedTag). Games played abroad can't sit on the US outline, so they
- * rise from south of the border below New Mexico. Zooming in lets the map
+ * rise from south of the border below Arizona. Zooming in lets the map
  * run past the edges of its frame, which clips it.
  */
 export function GameMap({ games, legend }: { games: MappedGame[]; legend: LeagueLegendEntry[] }) {

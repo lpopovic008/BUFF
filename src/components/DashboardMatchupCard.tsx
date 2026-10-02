@@ -31,7 +31,7 @@ function StreakBadge({ streak }: { streak?: Streak | null }) {
 
 /**
  * A team's line: its place in the standings, its name, its record in
- * parentheses, and its streak on the side facing the other team. Always a
+ * parentheses, then its streak just right of the record. Always a
  * single line, on mobile and desktop alike — only the name ever truncates.
  */
 function TeamNameLabel({
@@ -46,10 +46,8 @@ function TeamNameLabel({
   colorClass: string;
 }) {
   const { rank, record, streak } = standing;
-  const streakBadge = <StreakBadge streak={streak} />;
   return (
     <div className={`flex min-w-0 items-baseline gap-1.5 ${align === "right" ? "justify-end" : ""}`}>
-      {align === "right" ? streakBadge : null}
       {rank != null ? <span className="shrink-0 text-xs font-medium text-series-4">{ordinal(rank)}</span> : null}
       <span className={`min-w-0 truncate text-sm font-medium ${colorClass}`}>{name}</span>
       {record ? (
@@ -57,7 +55,7 @@ function TeamNameLabel({
           ({formatRecord(record.wins, record.losses, record.ties)})
         </span>
       ) : null}
-      {align === "left" ? streakBadge : null}
+      <StreakBadge streak={streak} />
     </div>
   );
 }
@@ -78,8 +76,8 @@ const TONE_CLASS = { good: "text-status-good", mid: "text-series-4", bad: "text-
 
 /**
  * Where a team's points for and points against rank in the league, stacked
- * PF over PA and tucked against its score on the side facing the other
- * team's, each rank colored by how good it is (see rankTone).
+ * PF over PA on the outside of its score (the scores face each other), each
+ * rank colored by how good it is (see rankTone). Aligned toward the score.
  */
 function PointsRankBadges({
   pointsRanks,
@@ -94,7 +92,7 @@ function PointsRankBadges({
   return (
     <span
       className={`flex flex-col whitespace-nowrap text-[0.625rem] font-normal leading-tight text-ink-muted sm:text-[0.6875rem] ${
-        align === "right" ? "items-end" : ""
+        align === "left" ? "items-end" : ""
       }`}
     >
       <span title="Points for — rank in the league (1st = most)">
@@ -140,13 +138,13 @@ export function DashboardMatchupCard({
       </div>
       <div className="flex items-center justify-between gap-3 text-lg font-semibold tabular-nums text-ink-primary">
         <span className="flex items-center gap-1.5">
-          {formatPoints(matchup.my.points)}
           <PointsRankBadges pointsRanks={my.pointsRanks} leagueSize={leagueSize} align="left" />
+          {formatPoints(matchup.my.points)}
         </span>
         {matchup.opponent ? (
           <span className="flex items-center gap-1.5">
-            <PointsRankBadges pointsRanks={opponent?.pointsRanks} leagueSize={leagueSize} align="right" />
             {formatPoints(matchup.opponent.points)}
+            <PointsRankBadges pointsRanks={opponent?.pointsRanks} leagueSize={leagueSize} align="right" />
           </span>
         ) : null}
       </div>

@@ -112,5 +112,5 @@ test("insideUS knows land from sea and from abroad", () => {
   assert.ok(insideUS(126, 88)); // Denver
   assert.ok(insideUS(160, 100));
   assert.ok(!insideUS(5, 195)); // the Pacific, off Mexico
-  assert.ok(!insideUS(106, 158)); // just south of the border below New Mexico
+  assert.ok(!insideUS(80, 150)); // just south of the border below Arizona
 });
