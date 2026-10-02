@@ -1,6 +1,6 @@
 // Stem heights for the dashboard map's game tags. Each game gets a vertical
-// stem rising from its site with its tag hung off the stem's top, always to
-// the right; dense areas (the Northeast corridor, two teams in one metro)
+// stem rising from its site with its tag hung off the stem's top, always on
+// the same side (see LabelLayoutOptions.side); dense areas (the Northeast corridor, two teams in one metro)
 // would stack tags on top of each other at one fixed height, so each tag
 // takes the shortest stem that clears every tag already placed. Pure screen
 // geometry — re-run on every camera move.
@@ -31,6 +31,8 @@ export interface LabelLayoutOptions {
   margin: number;
   /** Tags shouldn't rise above this y (px, may be negative) — anything above is cut off. */
   minTop?: number;
+  /** Which side of its stem every tag hangs on. Defaults to the right. */
+  side?: "left" | "right";
 }
 
 interface Box {
@@ -40,9 +42,10 @@ interface Box {
   bottom: number;
 }
 
-function boxFor(site: LabelSite, stem: number): Box {
+function boxFor(site: LabelSite, stem: number, side: "left" | "right"): Box {
   const top = site.y - stem;
-  return { left: site.x, top, right: site.x + site.width, bottom: top + site.height };
+  const left = side === "left" ? site.x - site.width : site.x;
+  return { left, top, right: left + site.width, bottom: top + site.height };
 }
 
 function overlapArea(a: Box, b: Box, margin: number): number {
@@ -67,14 +70,14 @@ const OUT_OF_BOUNDS_WEIGHT = 4;
  * order.
  */
 export function placeLabels(sites: LabelSite[], options: LabelLayoutOptions): PlacedLabel[] {
-  const { baseGap, step, tries, margin, minTop = -Infinity } = options;
+  const { baseGap, step, tries, margin, minTop = -Infinity, side = "right" } = options;
   const placed: { label: PlacedLabel; box: Box; stemBox: Box }[] = [];
   const ordered = [...sites].sort((a, b) => b.y - a.y || a.x - b.x);
   for (const site of ordered) {
     let best: { stem: number; box: Box; stemBox: Box; overlap: number } | null = null;
     for (let i = 0; i < tries; i++) {
       const stem = site.height + baseGap + i * step;
-      const box = boxFor(site, stem);
+      const box = boxFor(site, stem, side);
       const stemBox = stemBoxFor(site, stem);
       let overlap = box.top < minTop ? (minTop - box.top) * site.width * OUT_OF_BOUNDS_WEIGHT : 0;
       for (const p of placed) {

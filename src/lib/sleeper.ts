@@ -353,9 +353,10 @@ export async function getRecapWeek(): Promise<number> {
   return isTuesday && week > 1 ? week - 1 : week;
 }
 
-export function avatarUrl(avatarId: string | null | undefined): string | null {
+/** A Sleeper avatar's image URL — the small thumbnail by default, `"full"` for one shown large. */
+export function avatarUrl(avatarId: string | null | undefined, size: "thumb" | "full" = "thumb"): string | null {
   if (!avatarId) return null;
-  return `https://sleepercdn.com/avatars/thumbs/${avatarId}`;
+  return size === "full" ? `https://sleepercdn.com/avatars/${avatarId}` : `https://sleepercdn.com/avatars/thumbs/${avatarId}`;
 }
 
 /**

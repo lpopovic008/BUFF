@@ -63,3 +63,12 @@ test("tags rising above the ceiling are pulled back down when there's room", () 
   const stacked = placeLabels([site("a", 100, 60), site("b", 100, 60)], { ...OPTIONS, minTop: 0 });
   for (const l of stacked) assert.ok(l.y - l.stem >= 0);
 });
+
+test("left-hanging tags collide by their left-side footprint", () => {
+  // Side by side, 60px apart: hanging right they'd overlap; hanging left, each
+  // tag sits in the gap to its own left and they clear at the same height.
+  const right = placeLabels([site("a", 100, 100), site("b", 140, 100)], OPTIONS);
+  assert.notEqual(right[0].stem, right[1].stem);
+  const left = placeLabels([site("a", 100, 100), site("b", 170, 100)], { ...OPTIONS, side: "left" });
+  assert.equal(left[0].stem, left[1].stem);
+});

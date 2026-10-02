@@ -15,7 +15,6 @@ import { getLeagueSummary, LeagueSummary, pointsRanks, rosterStreak } from "@/li
 import { groupStartersByGame, GroupedStarter } from "@/lib/my-starters";
 import { avatarUrl, getCurrentWeek } from "@/lib/sleeper";
 import { TrackedLeague } from "@/lib/localStore";
-import { formatRecord } from "@/lib/format";
 
 interface LoadedLeague {
   tracked: TrackedLeague;
@@ -200,28 +199,33 @@ export default function DashboardPage() {
                 const ranks = pointsRanks(summary.standings);
                 const standingOf = (rosterId: number) => {
                   const roster = summary.rosters.find((r) => r.roster_id === rosterId);
+                  const row = summary.standings.find((r) => r.rosterId === rosterId);
                   return {
-                    rank: summary.standings.find((r) => r.rosterId === rosterId)?.rank,
+                    rank: row?.rank,
+                    record: row ? { wins: row.wins, losses: row.losses, ties: row.ties } : undefined,
                     streak: roster ? rosterStreak(roster) : null,
                     pointsRanks: ranks.get(rosterId),
                   };
                 };
+                const logo = avatarUrl(summary.league.avatar, "full");
                 return (
                   <Link
                     key={tracked.leagueId}
                     href={`/league?id=${tracked.leagueId}`}
-                    className="flex min-w-0 flex-col gap-2 border border-border bg-page px-4 py-3 transition-colors animate-[rise_0.5s_ease-out_backwards] hover:border-ink-primary/40"
+                    className="relative isolate flex min-w-0 flex-col gap-2 overflow-hidden border border-border bg-page px-4 py-3 transition-colors animate-[rise_0.5s_ease-out_backwards] hover:border-ink-primary/40"
                     style={{ animationDelay: `${140 + i * 70}ms` }}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 truncate text-base font-semibold text-ink-primary sm:text-lg">
-                        {summary.league.name}
-                      </div>
-                      {myRow ? (
-                        <div className="shrink-0 text-lg font-semibold tabular-nums text-ink-primary">
-                          {formatRecord(myRow.wins, myRow.losses, myRow.ties)}
-                        </div>
-                      ) : null}
+                    {/* The league's logo, centered behind everything as a soft watermark. */}
+                    {logo ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- a remote Sleeper avatar on a static export; nothing for next/image to optimize
+                      <img
+                        src={logo}
+                        alt=""
+                        className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[4.5rem] w-[4.5rem] -translate-x-1/2 -translate-y-1/2 rounded-full object-cover opacity-30"
+                      />
+                    ) : null}
+                    <div className="truncate text-center text-base font-semibold text-ink-primary sm:text-lg">
+                      {summary.league.name}
                     </div>
 
                     {myRow ? (

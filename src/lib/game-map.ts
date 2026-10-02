@@ -54,12 +54,12 @@ export function leagueTint(index: number, percent = 12): string {
 
 /**
  * A fixed slot for a game played abroad. There's no meaningful US position
- * for it, so these sit in the Pacific off the map's southwest corner — the
- * first just off San Diego, each next one a step further out on a diagonal
+ * for it, so these sit just south of the border below New Mexico — the
+ * first right under it, each next one a step further out on a diagonal
  * running southwest, clear of every real stadium.
  */
 export function internationalSlotPosition(index: number): [number, number] {
-  const [originX, originY] = [36, 142];
+  const [originX, originY] = [106, 158];
   const [stepX, stepY] = [-6, 7];
   return [originX + index * stepX, originY + index * stepY];
 }

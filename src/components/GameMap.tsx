@@ -37,8 +37,10 @@ const PAD_EM = 0.35;
 const PAD_Y_EM = 0.12;
 // Space between a stem and its tag.
 const STEM_GAP_EM = 0.35;
+// Which side of its stem every tag hangs on.
+const TAG_SIDE: "left" | "right" = "left";
 // How faded a tag at the map's far edge is; the nearest are fully opaque.
-const FAR_OPACITY = 0.5;
+const FAR_OPACITY = 0.25;
 // Room kept above the map for the tags of its northernmost sites — at
 // least this much, more when the opening view's tags need it (narrow
 // screens, where the Northeast's tags have to stack higher).
@@ -86,7 +88,7 @@ function gameLabel(game: NFLGame): string {
   return `${game.awayTeam} @ ${game.homeTeam}`;
 }
 
-/** Games abroad add their city, since their spot on the map is just a holding area offshore. */
+/** Games abroad add their city, since their spot on the map is just a holding spot below the border. */
 function tagTitle(game: NFLGame): string {
   return isOutsideUS(game) && game.venue?.city ? `${gameLabel(game)} · ${game.venue.city}` : gameLabel(game);
 }
@@ -120,7 +122,7 @@ function layoutTags(tags: Tag[], scene: MapScene, width: number, rootPx: number,
       const [x, y] = scene.project(t.pos[0], t.pos[1]);
       return { id: t.id, x: (x - scene.view.x) * k, y: (y - scene.view.y) * k, ...tagSize(t.title, rootPx) };
     }),
-    { baseGap: 0.4 * rootPx, step: 0.35 * rootPx, tries: 40, margin: 2, minTop }
+    { baseGap: 0.4 * rootPx, step: 0.35 * rootPx, tries: 40, margin: 2, minTop, side: TAG_SIDE }
   );
 }
 
@@ -223,15 +225,16 @@ function GamePreviewCard({
 
 /**
  * This week's games on the interactive US map. Each game site sends up a
- * thin vertical stem with the matchup on a fixed high-contrast tag hung off
- * its top, always to the right of the stem however the map is turned.
+ * thin vertical stem with the matchup on a high-contrast neutral tag hung
+ * off its top, always on the same side of the stem (TAG_SIDE) however the
+ * map is turned.
  * Stems are screen-vertical and sized in px, so tags stay upright and
  * readable at any angle; where tags would collide, the nearer one keeps the
  * shorter stem and the others rise above it (see placeLabels). Tapping a
  * tag opens a preview of that game's fantasy starters, yours and your
  * opponents'. Tags fade a little with distance from the camera, so depth
  * reads in them too. Games played abroad can't sit on the US outline, so
- * they rise from the Pacific, off the map's southwest corner.
+ * they rise from just south of the border below New Mexico.
  */
 export function GameMap({ games, legend }: { games: MappedGame[]; legend: LeagueLegendEntry[] }) {
   const { camera, isDefault, reset, wasDrag, handlers } = useMapCamera();
@@ -349,7 +352,7 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
                 return (
                   <div key={id} className="group absolute left-0 top-0" style={{ transform: `translate(${x}px, ${y}px)` }}>
                     <span
-                      className="absolute -left-[0.15rem] -top-[0.15rem] h-[0.3rem] w-[0.3rem] rounded-full bg-[var(--map-tag)] group-hover:!opacity-100"
+                      className="absolute -left-[0.15rem] -top-[0.15rem] h-[0.3rem] w-[0.3rem] rounded-full bg-[var(--map-edge)] group-hover:!opacity-100"
                       style={{ opacity }}
                       aria-hidden
                     />
@@ -368,10 +371,15 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
                       aria-label={`${tag.title} — show starters`}
                       onClick={() => handleTagClick(id)}
                       onDoubleClick={(e) => e.stopPropagation()}
-                      className={`pointer-events-auto absolute left-0 cursor-pointer whitespace-nowrap bg-page font-bold outline-offset-1 ${
-                        selected === id ? "outline outline-2 outline-[var(--map-edge)]" : ""
-                      }`}
-                      style={{ top: -stem, marginLeft: `${STEM_GAP_EM}em`, fontSize: `${TAG_REM}rem`, lineHeight: LINE_HEIGHT }}
+                      className={`pointer-events-auto absolute cursor-pointer whitespace-nowrap bg-page font-bold outline-offset-1 ${
+                        TAG_SIDE === "left" ? "right-0" : "left-0"
+                      } ${selected === id ? "outline outline-2 outline-[var(--map-edge)]" : ""}`}
+                      style={{
+                        top: -stem,
+                        [TAG_SIDE === "left" ? "marginRight" : "marginLeft"]: `${STEM_GAP_EM}em`,
+                        fontSize: `${TAG_REM}rem`,
+                        lineHeight: LINE_HEIGHT,
+                      }}
                     >
                       <span
                         className="block bg-[var(--map-tag)] text-[var(--map-tag-ink)] group-hover:!opacity-100"

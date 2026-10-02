@@ -1,10 +1,11 @@
 import { DashboardMatchupView } from "@/hooks/useDashboardMatchups";
-import { formatPoints, ordinal } from "@/lib/format";
+import { formatPoints, formatRecord, ordinal } from "@/lib/format";
 import { PointsRanks, Streak } from "@/lib/league-data";
 
 /** One side's standing in its league, shown around its name and score. */
 export interface TeamStanding {
   rank?: number;
+  record?: { wins: number; losses: number; ties: number };
   streak?: Streak | null;
   pointsRanks?: PointsRanks;
 }
@@ -29,40 +30,47 @@ function StreakBadge({ streak }: { streak?: Streak | null }) {
 }
 
 /**
- * A team's name with its streak on the side facing the other team. Always a
- * single truncating line, on mobile and desktop alike — the streak never
- * gets cut, only the name.
+ * A team's line: its place in the standings, its name, its record in
+ * parentheses, and its streak on the side facing the other team. Always a
+ * single line, on mobile and desktop alike — only the name ever truncates.
  */
 function TeamNameLabel({
   name,
-  streak,
+  standing,
   align,
   colorClass,
 }: {
   name: string;
-  streak?: Streak | null;
+  standing: TeamStanding;
   align: "left" | "right";
   colorClass: string;
 }) {
+  const { rank, record, streak } = standing;
+  const streakBadge = <StreakBadge streak={streak} />;
   return (
-    <div className={`flex min-w-0 items-center gap-1.5 ${align === "right" ? "flex-row-reverse" : ""}`}>
+    <div className={`flex min-w-0 items-baseline gap-1.5 ${align === "right" ? "justify-end" : ""}`}>
+      {align === "right" ? streakBadge : null}
+      {rank != null ? <span className="shrink-0 text-xs font-medium text-series-4">{ordinal(rank)}</span> : null}
       <span className={`min-w-0 truncate text-sm font-medium ${colorClass}`}>{name}</span>
-      <StreakBadge streak={streak} />
+      {record ? (
+        <span className="shrink-0 text-xs tabular-nums text-ink-muted">
+          ({formatRecord(record.wins, record.losses, record.ties)})
+        </span>
+      ) : null}
+      {align === "left" ? streakBadge : null}
     </div>
   );
 }
 
 /**
- * The ranks tucked against a score, on the side facing the other team's:
- * the team's place in the standings right beside the score, then where its
- * points for and points against rank in the league. PF/PA always read in
- * that order; on a phone they stack, one over the other, so both teams'
- * sets fit on the score's line.
+ * Where a team's points for and points against rank in the league, tucked
+ * against its score on the side facing the other team's. Always PF then PA;
+ * on a phone they stack, one over the other, so both teams' sets fit on the
+ * score's line.
  */
-function RankBadges({ standing, align }: { standing: TeamStanding; align: "left" | "right" }) {
-  const { rank, pointsRanks } = standing;
-  const place = rank != null ? <span className="text-xs font-medium text-series-4">{ordinal(rank)}</span> : null;
-  const points = pointsRanks ? (
+function PointsRankBadges({ pointsRanks, align }: { pointsRanks?: PointsRanks; align: "left" | "right" }) {
+  if (!pointsRanks) return null;
+  return (
     <span
       className={`flex flex-col whitespace-nowrap text-[0.625rem] font-normal leading-tight text-ink-muted sm:flex-row sm:gap-1.5 sm:text-[0.6875rem] sm:leading-normal ${
         align === "right" ? "items-end" : ""
@@ -71,25 +79,10 @@ function RankBadges({ standing, align }: { standing: TeamStanding; align: "left"
       <span title="Points for — rank in the league (1st = most)">PF {ordinal(pointsRanks.pointsFor)}</span>
       <span title="Points against — rank in the league (1st = most scored against)">PA {ordinal(pointsRanks.pointsAgainst)}</span>
     </span>
-  ) : null;
-  return (
-    <span className="flex items-center gap-1.5 sm:items-baseline">
-      {align === "left" ? (
-        <>
-          {place}
-          {points}
-        </>
-      ) : (
-        <>
-          {points}
-          {place}
-        </>
-      )}
-    </span>
   );
 }
 
-/** The dashboard's per-league matchup section: team names + score left/right. Sits inside a whole-box link, so team names are plain text rather than their own nested links. Who's actually playing is covered once, for every league at once, by the starters-by-game box below the league grid. */
+/** The dashboard's per-league matchup section: each team's line (rank, name, record, streak) over its score, left and right. Sits inside a whole-box link, so team names are plain text rather than their own nested links. Who's actually playing is covered once, for every league at once, by the starters-by-game box below the league grid. */
 export function DashboardMatchupCard({
   matchup,
   my,
@@ -103,25 +96,25 @@ export function DashboardMatchupCard({
 
   return (
     <div className="flex flex-col gap-1">
-      <div className="flex items-start justify-between gap-3">
-        <TeamNameLabel name={matchup.my.teamName} streak={my.streak} align="left" colorClass="text-series-1" />
+      <div className="grid grid-cols-2 items-baseline gap-3">
+        <TeamNameLabel name={matchup.my.teamName} standing={my} align="left" colorClass="text-series-1" />
         {matchup.opponent ? (
           <TeamNameLabel
             name={matchup.opponent.teamName}
-            streak={opponent?.streak}
+            standing={opponent ?? {}}
             align="right"
             colorClass="text-ink-primary"
           />
         ) : null}
       </div>
-      <div className="flex items-center justify-between gap-3 text-lg sm:items-baseline font-semibold tabular-nums text-ink-primary">
+      <div className="flex items-center justify-between gap-3 text-lg font-semibold tabular-nums text-ink-primary sm:items-baseline">
         <span className="flex items-center gap-1.5 sm:items-baseline">
           {formatPoints(matchup.my.points)}
-          <RankBadges standing={my} align="left" />
+          <PointsRankBadges pointsRanks={my.pointsRanks} align="left" />
         </span>
         {matchup.opponent ? (
           <span className="flex items-center gap-1.5 sm:items-baseline">
-            <RankBadges standing={opponent ?? {}} align="right" />
+            <PointsRankBadges pointsRanks={opponent?.pointsRanks} align="right" />
             {formatPoints(matchup.opponent.points)}
           </span>
         ) : null}

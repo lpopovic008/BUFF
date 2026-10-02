@@ -18,9 +18,10 @@
   --map-wall: #a8aaaf;
   --map-edge: #121212;
   --map-state-line: rgba(0, 0, 0, 0.22);
-  /* Game tags on the map: one fixed high-contrast plate, the same in both themes. */
-  --map-tag: #ffd23f;
-  --map-tag-ink: #111111;
+  /* Game tags on the map: a neutral plate that contrasts with the land —
+     near-black here, near-white in dark mode. */
+  --map-tag: #1f1f1f;
+  --map-tag-ink: #f4f4f4;
 
   --series-1: #2a78d6; /* blue */
   --series-2: #eb6834; /* orange */
@@ -70,6 +71,8 @@
   --map-wall: #26282c;
   --map-edge: #f4f4f4;
   --map-state-line: rgba(255, 255, 255, 0.24);
+  --map-tag: #ececec;
+  --map-tag-ink: #111111;
 
   --series-1: #3987e5;
   --series-2: #d95926;
