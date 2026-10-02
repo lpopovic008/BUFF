@@ -6,6 +6,7 @@ import { gameMapPosition, internationalSlotPosition } from "@/lib/game-map";
 import {
   DEFAULT_SCALES,
   DEFAULT_SCENE,
+  DEFAULT_CAMERA,
   MAP_ASPECT,
   MapCamera,
   MapScene,
@@ -53,6 +54,9 @@ const STEM_GAP_EM = 0.35;
 const TAG_SIDE: "left" | "right" = "left";
 // How faded a tag at the land's far edge is; the game nearest the camera is fully opaque.
 const FAR_OPACITY = 0.25;
+// Below this tilt the fade eases off, reaching none at all straight overhead,
+// where nothing is nearer the camera than anything else.
+const FULL_FADE_TILT = 10;
 // The near/far size nudge stays within this range.
 const MIN_TAG_SCALE = 0.85;
 const MAX_TAG_SCALE = 1.2;
@@ -186,17 +190,18 @@ interface PlacedTag extends PlacedLabel {
  * camera: that one is fully opaque, and the rest fade with how much farther
  * back they sit, down to FAR_OPACITY at the far edge of the land.
  */
-function layoutTags(tags: Tag[], scene: MapScene, width: number, rootPx: number, minTop: number): PlacedTag[] {
+function layoutTags(tags: Tag[], scene: MapScene, tilt: number, width: number, rootPx: number, minTop: number): PlacedTag[] {
   const k = width / scene.view.width;
   const byId = new Map<string, { tag: Tag; scale: number; opacity: number }>();
   const nearest = Math.max(...tags.map((t) => siteScale(scene, t)));
   const span = Math.max(1e-6, nearest - scene.farScale);
+  const fade = (1 - FAR_OPACITY) * Math.min(1, Math.max(0, tilt) / FULL_FADE_TILT);
   const layout = placeLabels(
     tags.map((t) => {
       const s = siteScale(scene, t);
       const scale = Math.min(MAX_TAG_SCALE, Math.max(MIN_TAG_SCALE, s / DEFAULT_SCALES.center));
       const t01 = Math.min(1, Math.max(0, (s - scene.farScale) / span));
-      byId.set(t.id, { tag: t, scale, opacity: FAR_OPACITY + (1 - FAR_OPACITY) * t01 });
+      byId.set(t.id, { tag: t, scale, opacity: 1 - fade * (1 - t01) });
       const [x, y] = scene.project(t.pos[0], t.pos[1], t.ground);
       return {
         id: t.id,
@@ -471,7 +476,7 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
   const headroomPx = useMemo(() => {
     if (!measure) return null;
     const { width, rootPx } = measure;
-    const free = layoutTags(tags, DEFAULT_SCENE, width, rootPx, -Infinity);
+    const free = layoutTags(tags, DEFAULT_SCENE, DEFAULT_CAMERA.tilt, width, rootPx, -Infinity);
     const highest = Math.min(0, ...free.map((l) => l.y - l.stem));
     return Math.max(MIN_HEADROOM_REM * rootPx, Math.ceil(-highest) + 4);
   }, [measure, tags]);
@@ -479,8 +484,8 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
   const placed = useMemo(() => {
     if (!measure || headroomPx === null) return [];
     // Paint far tags first so nearer ones sit on top.
-    return layoutTags(tags, scene, measure.width, measure.rootPx, -headroomPx).sort((a, b) => a.y - b.y);
-  }, [measure, headroomPx, scene, tags]);
+    return layoutTags(tags, scene, camera.tilt, measure.width, measure.rootPx, -headroomPx).sort((a, b) => a.y - b.y);
+  }, [measure, headroomPx, scene, camera.tilt, tags]);
 
   const selectedTag = placed.find((p) => p.id === selected) ?? null;
   const headroom = headroomPx ?? 0;
