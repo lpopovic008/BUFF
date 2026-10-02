@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { formatCountdown } from "@/lib/format";
+import { setHeaderKickoff } from "@/lib/header-clock";
 import { formatKickoffTime, GameStarters, groupGamesByTimeBlock, GroupedStarter } from "@/lib/my-starters";
 import { NFLGame } from "@/lib/nfl-schedule";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
@@ -86,19 +88,6 @@ function GameHeader({ game }: { game: NFLGame }) {
   );
 }
 
-function pad(n: number): string {
-  return String(n).padStart(2, "0");
-}
-
-/** Always plain hours:minutes:seconds — no day rollover, even a week out. */
-function formatCountdown(ms: number): string {
-  const totalSeconds = Math.floor(ms / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
-}
-
 /** The earliest kickoff among these games, in ms — null when none has a usable time. */
 function earliestKickoff(games: GameStarters[]): number | null {
   let next: number | null = null;
@@ -125,20 +114,48 @@ function useNow(): number | null {
   return now;
 }
 
+/**
+ * Hands the clock's countdown up to the page header whenever the clock
+ * itself is out of sight — scrolled up under the sticky header or past the
+ * top of its column — and takes it back once it's showing again.
+ */
+function useHeaderWhenHidden(ref: React.RefObject<HTMLElement | null>, target: number | null) {
+  const [hidden, setHidden] = useState(false);
+  // The clock only renders while there's a kickoff ahead; observe it once it does.
+  const showing = target !== null;
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const headerPx = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--header-h")) || 0;
+    const observer = new IntersectionObserver(
+      ([entry]) => setHidden(!entry.isIntersecting && entry.boundingClientRect.top < window.innerHeight / 2),
+      { rootMargin: `-${headerPx}px 0px 0px 0px` }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ref, showing]);
+  useEffect(() => {
+    setHeaderKickoff(hidden ? target : null);
+  }, [hidden, target]);
+  useEffect(() => () => setHeaderKickoff(null), []);
+}
+
 /** A live-ticking countdown to the next kickoff among your games this week — the next time block about to go live. Renders nothing once every game has already kicked off. */
 function NextKickoffClock({ games, now }: { games: GameStarters[]; now: number | null }) {
+  const ref = useRef<HTMLDivElement>(null);
   const target = useMemo(() => {
     if (now === null) return null;
     // The next kickoff still ahead — the earliest overall may already be underway.
     return earliestKickoff(games.filter(({ game }) => new Date(game.kickoff).getTime() > now));
   }, [games, now]);
+  useHeaderWhenHidden(ref, target);
 
   if (target === null || now === null) return null;
   const remaining = target - now;
   if (remaining <= 0) return null;
 
   return (
-    <div className="flex flex-col items-center gap-0.5 border-b border-grid pb-3 text-center">
+    <div ref={ref} className="flex flex-col items-center gap-0.5 border-b border-grid pb-3 text-center">
       <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Next kickoff</span>
       <span className="text-3xl font-bold tabular-nums text-ink-primary">{formatCountdown(remaining)}</span>
     </div>

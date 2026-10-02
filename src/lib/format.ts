@@ -56,3 +56,14 @@ export function abbreviateFirstName(name: string): string {
   if (parts.length < 2) return name;
   return `${parts[0][0]}. ${parts.slice(1).join(" ")}`;
 }
+
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
+/** A countdown as plain hours:minutes:seconds — no day rollover, even a week out. */
+export function formatCountdown(ms: number): string {
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return `${pad2(hours)}:${pad2(minutes)}:${pad2(seconds)}`;
+}
