@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inconsolata } from "next/font/google";
 import { AutoSync } from "@/components/AutoSync";
 import { AutoSupabaseSync } from "@/components/AutoSupabaseSync";
+import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 const inconsolata = Inconsolata({
@@ -30,8 +31,11 @@ const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${inconsolata.variable} h-full antialiased`}>
+    // suppressHydrationWarning: the inline theme script sets data-theme on
+    // <html> before React hydrates, so the server markup never has it.
+    <html lang="en" className={`${inconsolata.variable} h-full antialiased`} suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <link rel="manifest" href={`${basePath}/manifest.json`} />
         <link rel="icon" href={`${basePath}/icons/favicon-32.png`} sizes="32x32" type="image/png" />
         <link rel="icon" href={`${basePath}/icons/favicon-16.png`} sizes="16x16" type="image/png" />

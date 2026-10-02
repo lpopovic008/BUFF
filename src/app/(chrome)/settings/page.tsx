@@ -11,6 +11,7 @@ import { DiscoverForm } from "./DiscoverForm";
 import { ExternalLeaguesSection } from "./ExternalLeaguesSection";
 import { GoogleDocsSection } from "./GoogleDocsSection";
 import { AccountSection } from "./AccountSection";
+import { AppearanceSection } from "./AppearanceSection";
 
 export default function SettingsPage() {
   const { config, loaded, refresh } = useConfig();
@@ -154,6 +155,13 @@ export default function SettingsPage() {
           Account
         </h2>
         <AccountSection />
+      </Card>
+
+      <Card className="p-5">
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-muted">
+          Appearance
+        </h2>
+        <AppearanceSection />
       </Card>
 
       <Card className="p-5">

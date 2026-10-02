@@ -44,46 +44,51 @@
   --kickoff-4: #f0158f;
   --kickoff-5: #ff3d5c;
   --kickoff-6: #ff8a00;
+
+  color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --page: #0d0d0d;
-    --surface: #1a1a19;
-    --surface-raised: #212120;
-    --ink-primary: #ffffff;
-    --ink-secondary: #c3c2b7;
-    --ink-muted: #898781;
-    --grid-hairline: #2c2c2a;
-    --baseline: #383835;
-    --border: rgba(255, 255, 255, 0.1);
-    --map-land: #3a3c40;
-    --map-wall: #26282c;
-    --map-edge: #f4f4f4;
-    --map-state-line: rgba(255, 255, 255, 0.24);
+/* Dark palette. `data-theme` is set on <html> before first paint by the
+   inline script in layout.tsx (see lib/theme.ts) — from the Settings choice,
+   or the OS preference when that's "system". */
+:root[data-theme="dark"] {
+  color-scheme: dark;
 
-    --series-1: #3987e5;
-    --series-2: #d95926;
-    --series-3: #199e70;
-    --series-4: #c98500;
-    --series-5: #d55181;
-    --series-6: #008300;
-    --series-7: #9085e9;
-    --series-8: #e66767;
+  --page: #0d0d0d;
+  --surface: #1a1a19;
+  --surface-raised: #212120;
+  --ink-primary: #ffffff;
+  --ink-secondary: #c3c2b7;
+  --ink-muted: #898781;
+  --grid-hairline: #2c2c2a;
+  --baseline: #383835;
+  --border: rgba(255, 255, 255, 0.1);
+  --map-land: #3a3c40;
+  --map-wall: #26282c;
+  --map-edge: #f4f4f4;
+  --map-state-line: rgba(255, 255, 255, 0.24);
 
-    --status-good: #0ca30c;
-    --status-warning: #fab219;
-    --status-serious: #ec835a;
-    --status-critical: #d03b3b;
-    --success-text: #0ca30c;
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
+  --series-6: #008300;
+  --series-7: #9085e9;
+  --series-8: #e66767;
 
-    --kickoff-1: #3b82f6;
-    --kickoff-2: #8b5cf6;
-    --kickoff-3: #c026d3;
-    --kickoff-4: #f43f9e;
-    --kickoff-5: #ff5c72;
-    --kickoff-6: #ffa726;
-  }
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-serious: #ec835a;
+  --status-critical: #d03b3b;
+  --success-text: #0ca30c;
+
+  --kickoff-1: #3b82f6;
+  --kickoff-2: #8b5cf6;
+  --kickoff-3: #c026d3;
+  --kickoff-4: #f43f9e;
+  --kickoff-5: #ff5c72;
+  --kickoff-6: #ffa726;
 }
 
 @theme inline {
