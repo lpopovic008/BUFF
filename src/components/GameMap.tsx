@@ -11,9 +11,11 @@ import {
   MapCamera,
   MapScene,
   SLAB_HEIGHT,
+  addMapDetail,
   buildMapScene,
   buildSlabPaths,
   buildStatesPath,
+  detailLevelFor,
 } from "@/lib/map-perspective";
 import { PlacedLabel, placeLabels } from "@/lib/map-labels";
 import { useMapCamera } from "@/hooks/useMapCamera";
@@ -113,16 +115,21 @@ function ringPath(scene: MapScene, [x, y]: [number, number], radius: number, gro
  * The map's slab. States hosting a game (`activeStates`) are drawn in the
  * full land shade; the rest sit a shade or two quieter, closer to the page.
  */
-function SlabOutline({ camera, activeStates }: { camera: MapCamera; activeStates: ReadonlySet<string> }) {
-  const slab = useMemo(() => buildSlabPaths(camera), [camera]);
-  const active = useMemo(() => buildStatesPath(camera, activeStates), [camera, activeStates]);
+function SlabOutline({
+  camera,
+  level,
+  activeStates,
+}: {
+  camera: MapCamera;
+  /** Level of detail to draw (see detailLevelFor). */
+  level: number;
+  activeStates: ReadonlySet<string>;
+}) {
+  const slab = useMemo(() => buildSlabPaths(camera, level), [camera, level]);
+  const active = useMemo(() => buildStatesPath(camera, activeStates, level), [camera, activeStates, level]);
   return (
     <g strokeLinejoin="miter" strokeMiterlimit={4}>
-      {slab.wallLayers.map((d, i) => (
-        // The wall layers' own strokes only seal the gaps between them, so
-        // (unlike the lines) they scale with the map.
-        <path key={i} d={d} fill="var(--map-wall)" stroke="var(--map-wall)" strokeWidth={0.6} />
-      ))}
+      <path d={slab.wall} fill="var(--map-wall)" />
       <path
         d={slab.outline}
         fill="none"
@@ -488,6 +495,24 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
     return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, [selected]);
 
+  // Finer coast and borders as the map zooms in. They're a sizable download,
+  // so they load only the first time they're wanted; until then the map
+  // keeps drawing the finest level it has.
+  const wantedLevel = detailLevelFor(camera.zoom);
+  const [loadedLevel, setLoadedLevel] = useState(0);
+  useEffect(() => {
+    if (wantedLevel === 0 || loadedLevel > 0) return;
+    let live = true;
+    import("@/lib/us-detail").then(({ US_DETAIL_LEVELS }) => {
+      addMapDetail(US_DETAIL_LEVELS);
+      if (live) setLoadedLevel(US_DETAIL_LEVELS.length);
+    });
+    return () => {
+      live = false;
+    };
+  }, [wantedLevel, loadedLevel]);
+  const detailLevel = Math.min(wantedLevel, loadedLevel);
+
   // Every state with a game showing.
   const activeStates = useMemo(
     () => new Set(games.map(({ game }) => gameState(game)).filter((code) => code !== null)),
@@ -596,7 +621,7 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
               className="absolute inset-0 block h-full w-full overflow-visible"
               aria-hidden
             >
-              <SlabOutline camera={camera} activeStates={activeStates} />
+              <SlabOutline camera={camera} level={detailLevel} activeStates={activeStates} />
               {/* Each game's ring sits on the map itself, so it tilts, turns and
                   zooms with the land — wider the more starters (both sides) play in it. */}
               <g fill="none" stroke="var(--map-edge)" strokeWidth={RING_STROKE_PX}>

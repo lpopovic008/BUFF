@@ -9,16 +9,19 @@ import {
   MAX_ZOOM,
   MIN_TILT,
   MIN_ZOOM,
+  addMapDetail,
   buildMapScene,
   buildSlabPaths,
   buildStatesPath,
   clampTilt,
   clampZoom,
+  detailLevelFor,
   insideUS,
   isDefaultCamera,
   normalizeYaw,
   unproject,
 } from "./map-perspective";
+import { US_DETAIL_LEVELS } from "./us-detail";
 import { US_STATE_SHAPES } from "./us-states";
 import { TEAM_CITIES } from "./warroom-team-cities";
 
@@ -93,7 +96,7 @@ test("zooming in shrinks the view about the same center, keeping the aspect", ()
 test("the opening view shows the whole country", () => {
   const { view } = DEFAULT_SCENE;
   const slab = buildSlabPaths(DEFAULT_CAMERA);
-  for (const d of [slab.outline, ...slab.wallLayers]) {
+  for (const d of [slab.outline, slab.wall]) {
     for (const [, px, py] of d.matchAll(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g)) {
       assert.ok(Number(px) >= view.x && Number(px) <= view.x + view.width);
       assert.ok(Number(py) >= view.y && Number(py) <= view.y + view.height);
@@ -130,4 +133,30 @@ test("buildStatesPath draws just the states asked for", () => {
   const one = buildStatesPath(DEFAULT_CAMERA, new Set(["CO"]));
   const two = buildStatesPath(DEFAULT_CAMERA, new Set(["CO", "TX"]));
   assert.ok(one.startsWith("M") && two.length > one.length);
+});
+
+test("the level of detail steps up as the map zooms in", () => {
+  assert.equal(detailLevelFor(1), 0);
+  assert.equal(detailLevelFor(1.49), 0);
+  assert.equal(detailLevelFor(1.5), 1);
+  assert.equal(detailLevelFor(3.4), 1);
+  assert.equal(detailLevelFor(3.5), 2);
+  assert.equal(detailLevelFor(MAX_ZOOM), 2);
+});
+
+test("finer levels draw more detailed coast and borders once loaded, and the base until then", () => {
+  const base = buildSlabPaths(DEFAULT_CAMERA, 0);
+  // Not loaded yet: asking for detail still draws the base.
+  assert.equal(buildSlabPaths(DEFAULT_CAMERA, 2).outline, base.outline);
+  addMapDetail(US_DETAIL_LEVELS);
+  const mid = buildSlabPaths(DEFAULT_CAMERA, 1);
+  const full = buildSlabPaths(DEFAULT_CAMERA, 2);
+  assert.ok(base.outline.length < mid.outline.length && mid.outline.length < full.outline.length);
+  assert.ok(base.stateLines.length < mid.stateLines.length && mid.stateLines.length < full.stateLines.length);
+  for (const level of [1, 2]) {
+    for (const { city } of Object.values(TEAM_CITIES)) {
+      assert.ok(US_DETAIL_LEVELS[level - 1].states[city.split(", ").pop()!], `${city} at level ${level}`);
+    }
+    assert.notEqual(buildStatesPath(DEFAULT_CAMERA, new Set(["NY"]), level), "");
+  }
 });
