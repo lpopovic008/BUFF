@@ -89,7 +89,7 @@ export function DraftRoom() {
   // Which players are tagged as targets — keyed by player identity, not
   // grid position, so a tag survives a mode switch (dynasty vs fantasy,
   // 1QB vs superflex) even though that player's cell moves. Persisted to
-  // localStorage (buff:draft-targets) so tags survive a page refresh — see
+  // localStorage (commish:draft-targets) so tags survive a page refresh — see
   // src/lib/localStore.ts. Starts `null` ("not loaded yet") rather than
   // reading storage in the useState initializer: that initializer also
   // runs during static export's server render, where there's no window, so
@@ -329,7 +329,7 @@ export function DraftRoom() {
       <div className="wrap">
         <header className="console-head-top">
           <div className="console-head-left">
-            <span className="badge">BUFF DRAFT ROOM</span>
+            <span className="badge">COMMI$H DRAFT ROOM</span>
           </div>
           <div className="console-head-center">
             <span className="week-badge">

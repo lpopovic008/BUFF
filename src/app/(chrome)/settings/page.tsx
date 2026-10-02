@@ -44,7 +44,7 @@ export default function SettingsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "buff-backup.json";
+    a.download = "commish-backup.json";
     a.click();
     URL.revokeObjectURL(url);
   }

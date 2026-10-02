@@ -1,10 +1,13 @@
 import type { NextConfig } from "next";
 
 // Published as a static site to GitHub Pages, served from
-// https://<user>.github.io/BUFF/ — so it needs a basePath in CI, but not
-// for local `next dev`/`next build`, which stay at the site root.
+// https://<user>.github.io/<repo>/ — so it needs a basePath in CI, but not
+// for local `next dev`/`next build`, which stay at the site root. The path is
+// the repo's own name (GITHUB_REPOSITORY is "owner/repo" in Actions), so
+// renaming the repo moves the site with it, no edit needed here.
 const isGithubActionsBuild = process.env.GITHUB_ACTIONS === "true";
-const repoBasePath = "/BUFF";
+const repoName = process.env.GITHUB_REPOSITORY?.split("/")[1] ?? "BUFF";
+const repoBasePath = `/${repoName}`;
 
 const nextConfig: NextConfig = {
   output: "export",

@@ -5,10 +5,10 @@
 
 import type { RecapModel } from "./recap-model";
 
-const CONFIG_KEY = "buff:config";
-const RECAPS_KEY = "buff:recaps";
-const BOWL_PICKS_KEY = "buff:bowl-picks";
-const DRAFT_TARGETS_KEY = "buff:draft-targets";
+const CONFIG_KEY = "commish:config";
+const RECAPS_KEY = "commish:recaps";
+const BOWL_PICKS_KEY = "commish:bowl-picks";
+const DRAFT_TARGETS_KEY = "commish:draft-targets";
 
 export interface TrackedLeague {
   leagueId: string;
@@ -268,7 +268,7 @@ export function saveDraftTargets(keys: string[]): void {
   notifyLocalWrite();
 }
 
-const SYNC_STATE_KEY = "buff:sync-state";
+const SYNC_STATE_KEY = "commish:sync-state";
 
 /**
  * This browser's own view of where it stands with Google Drive sync — never

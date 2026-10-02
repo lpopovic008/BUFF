@@ -87,7 +87,7 @@ interface CachedToken {
 // that survives the navigation to land.
 const cachedTokens = new Map<string, CachedToken>();
 
-const SESSION_TOKEN_PREFIX = "buff:oauth-token:";
+const SESSION_TOKEN_PREFIX = "commish:oauth-token:";
 
 function readSessionToken(scope: string): CachedToken | null {
   try {
@@ -215,7 +215,7 @@ export async function getGoogleAccessToken(clientId: string, scope: string): Pro
 // section that used it, Google Drive sync, was replaced by real accounts;
 // see docs/architecture.md), left in place since Docs' own redirect flow
 // still relies on the token-caching this same callback page does.
-export const JUST_SIGNED_IN_SCOPE_KEY = "buff:just-signed-in-scope";
+export const JUST_SIGNED_IN_SCOPE_KEY = "commish:just-signed-in-scope";
 
 export type RedirectSignInResult = { ok: true; scope: string; returnTo: string } | { ok: false; error: string };
 

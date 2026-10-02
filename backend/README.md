@@ -1,6 +1,6 @@
-# BUFF API
+# Commi$h API
 
-A small FastAPI service that serves BUFF's player-values and player-stats
+A small FastAPI service that serves Commi$h's player-values and player-stats
 snapshots live over HTTP, instead of only as build-time JSON baked into the
 static frontend. It reads the exact same files the Next.js site reads
 (`../src/data/player-values.json`, `../src/data/player-stats.json`) — the
@@ -9,7 +9,7 @@ from Sleeper/KeepTradeCut, so the site and the API can never disagree.
 
 ## Why this exists
 
-The rest of BUFF is a static export with no server at all. This is the
+The rest of Commi$h is a static export with no server at all. This is the
 first piece of it that runs as an actual backend — the starting point for
 learning FastAPI, Docker, and Kubernetes on a project with real (if small)
 data behind it, rather than a tutorial's placeholder API.

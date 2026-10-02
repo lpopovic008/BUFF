@@ -1,6 +1,6 @@
 # Architecture
 
-BUFF is three systems, not one:
+Commi$h is three systems, not one:
 
 1. **The dashboard** — a statically-exported Next.js site, hosted on GitHub
    Pages. Everything except the AI recap button and account sync runs
@@ -38,7 +38,7 @@ shouldn't wait on a Next.js build. `backend-ci.yml` is path-filtered to
 
 ## Why a separate backend exists at all
 
-The rest of BUFF works as a static site because nothing else it does needs
+The rest of Commi$h works as a static site because nothing else it does needs
 a secret. Sleeper's API is public and read-only, so the browser can call it
 directly with no server in between — that's most of the app.
 
@@ -143,7 +143,7 @@ This cluster is **local-only** — `kind` has no public IP, and this project
 doesn't run a persistent Kubernetes cluster anywhere. The K8s manifests
 exist to prove the container is production-shaped (proper probes, resource
 limits, self-healing) and to have actually operated a real cluster, not
-because BUFF is deployed on Kubernetes today. The real deploy target is
+because Commi$h is deployed on Kubernetes today. The real deploy target is
 Render (see below) — a deliberately simpler platform for a project this
 size.
 

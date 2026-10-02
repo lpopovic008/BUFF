@@ -1,4 +1,4 @@
-# BUFF — Fantasy League HQ
+# Commi$h — Fantasy League HQ
 
 A personal dashboard for tracking your Sleeper fantasy football leagues: live
 standings, a commissioner weekly-recap generator, and career stats pulled
@@ -162,7 +162,7 @@ One-time setup after merging this branch:
 1. In the repo, go to **Settings → Pages**.
 2. Under **Build and deployment → Source**, choose **GitHub Actions**.
 3. Push to `main` (or re-run the workflow from the **Actions** tab) — the
-   site will be published at `https://<your-username>.github.io/BUFF/`.
+   site will be published at `https://<your-username>.github.io/<repo-name>/`.
 
 ### Running locally
 
@@ -172,7 +172,7 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) — local dev runs at the
-site root (no `/BUFF` prefix; that's only added for the GitHub Pages build).
+site root (no `/<repo-name>` prefix; that's only added for the GitHub Pages build).
 
 ## Player values
 

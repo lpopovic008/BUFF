@@ -14,8 +14,8 @@ import type { CapacitorConfig } from "@capacitor/cli";
 // ios` generates the actual Xcode project from this config, and that step
 // still needs to happen on a Mac.
 const config: CapacitorConfig = {
-  appId: "com.lukapopovic.buff",
-  appName: "BUFF",
+  appId: "com.lukapopovic.commish",
+  appName: "Commi$h",
   webDir: "out",
 };
 

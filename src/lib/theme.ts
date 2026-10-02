@@ -9,8 +9,8 @@
 
 export type ThemePreference = "system" | "light" | "dark";
 
-export const THEME_KEY = "buff:theme";
-const CHANGE_EVENT = "buff:theme-change";
+export const THEME_KEY = "commish:theme";
+const CHANGE_EVENT = "commish:theme-change";
 
 export function getThemePreference(): ThemePreference {
   try {

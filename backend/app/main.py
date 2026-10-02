@@ -14,9 +14,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from .routers import players, recap
 
 app = FastAPI(
-    title="BUFF API",
+    title="Commi$h API",
     description=(
-        "Serves the same player-values and player-stats snapshots the BUFF "
+        "Serves the same player-values and player-stats snapshots the Commi$h "
         "dashboard's frontend reads at build time, live over HTTP instead, "
         "plus a POST endpoint that ghostwrites a weekly recap paragraph."
     ),

@@ -358,7 +358,7 @@ export function WarRoomConsole({
       <div className="wrap">
         <header className="console-head-top">
           <div className="console-head-left">
-            <span className="badge">BUFF WAR ROOM</span>
+            <span className="badge">COMMI$H WAR ROOM</span>
           </div>
           <div className="console-head-center">
             <span className="week-badge">

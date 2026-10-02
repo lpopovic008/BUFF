@@ -548,7 +548,7 @@ export function RecapSectionsEditor({
 
   return (
     <div className="recap-neon">
-      <span className="rn-badge">BUFF</span>
+      <span className="rn-badge">Commi$h</span>
       <div className="rn-title-row">
         <TitleField value={model.title} onChange={(v) => set("title", v)} />
         <div className="rn-underline" />

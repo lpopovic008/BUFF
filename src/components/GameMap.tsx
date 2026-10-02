@@ -611,7 +611,7 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
               ) : null}
             </div>
 
-            <div className="absolute left-0 top-0 z-10 flex gap-1">
+            <div className="absolute bottom-0 left-0 z-10 flex gap-1">
               <button type="button" aria-label="Zoom out" onClick={() => zoomBy(1 / ZOOM_STEP)} {...stop} className={controlClass}>
                 −
               </button>

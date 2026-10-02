@@ -23,7 +23,7 @@ export function NavBar() {
     <header className="border-b border-border bg-surface-raised">
       <div className="relative mx-auto grid max-w-[90rem] grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-4 sm:px-6 lg:px-8">
         <Link href="/" className="justify-self-start text-lg font-semibold tracking-tight">
-          <span className="text-ink-primary">BUFF</span>
+          <span className="text-ink-primary">Commi$h</span>
           <span className="text-ink-muted">/</span>
           <span className="text-ink-primary">{phase.season ?? "—"}</span>
         </Link>

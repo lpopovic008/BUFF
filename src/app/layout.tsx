@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inconsolata } from "next/font/google";
 import { AutoSync } from "@/components/AutoSync";
 import { AutoSupabaseSync } from "@/components/AutoSupabaseSync";
+import { STORAGE_MIGRATION_SCRIPT } from "@/lib/storage-migration";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
@@ -12,7 +13,7 @@ const inconsolata = Inconsolata({
 });
 
 export const metadata: Metadata = {
-  title: "BUFF — Fantasy League HQ",
+  title: "Commi$h — Fantasy League HQ",
   description: "Dashboard for tracking Sleeper fantasy leagues, commissioner recaps, and career stats.",
 };
 
@@ -21,7 +22,7 @@ export const viewport: Viewport = {
 };
 
 // Same basePath Next.js itself is built with (see next.config.ts) — GitHub
-// Pages serves this site from /BUFF, but Next's own metadata.manifest/
+// Pages serves this site from /<repo name>, but Next's own metadata.manifest/
 // metadata.icons fields don't get that prefix applied automatically (unlike
 // next/link or next/image), so a plain "/manifest.json" 404s once deployed.
 // Hand-writing these tags with the same prefix google-auth.ts's
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     // <html> before React hydrates, so the server markup never has it.
     <html lang="en" className={`${inconsolata.variable} h-full antialiased`} suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: STORAGE_MIGRATION_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <link rel="manifest" href={`${basePath}/manifest.json`} />
         <link rel="icon" href={`${basePath}/icons/favicon-32.png`} sizes="32x32" type="image/png" />
@@ -43,7 +45,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {/* iOS only ever honored its own prefixed tag for "add to home screen -> full-screen, no Safari chrome" — Next's own metadata API only emits the newer unprefixed mobile-web-app-capable (present too, via generated metadata), which older iOS ignores. */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="BUFF" />
+        <meta name="apple-mobile-web-app-title" content="Commi$h" />
       </head>
       <body className="min-h-full bg-page">
         <AutoSync />

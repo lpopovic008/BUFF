@@ -1198,7 +1198,7 @@ function runLayout(
     ctx.font = `800 15px ${FONT_STACK}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("BUFF", PADDING + badgeW / 2, l.y + badgeH / 2 + 1);
+    ctx.fillText("Commi$h", PADDING + badgeW / 2, l.y + badgeH / 2 + 1);
   }
   l.space(badgeH + 24);
 
@@ -1289,7 +1289,7 @@ function runLayout(
     ctx.stroke();
   }
   l.space(28);
-  l.text("BUFF · Fantasy Recap", { size: 14, weight: "700", color: COLOR.muted });
+  l.text("Commi$h · Fantasy Recap", { size: 14, weight: "700", color: COLOR.muted });
 
   return l.y + PADDING;
 }
