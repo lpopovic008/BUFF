@@ -154,9 +154,9 @@ function useTickerMotion(
 
 /**
  * One side of a matchup, mirrored about the entry's middle: the team's name
- * over its rank, record and streak, with its score beside it on the inside.
- * Both sides get exactly half the width, so a long name truncates within its
- * own half instead of pushing the other side off center.
+ * over its rank, record and streak, pinned to the entry's outer edge, and its
+ * score on the inside, facing the other side's. Names are never cut short —
+ * the entry grows to fit them (see TickerItem).
  */
 function TickerSide({
   name,
@@ -172,14 +172,14 @@ function TickerSide({
   nameClass: string;
 }) {
   const { rank, record, streak } = standing ?? {};
-  const toward = side === "left" ? "items-end text-right" : "items-start text-left";
+  const edge = side === "left" ? "items-start text-left" : "items-end text-right";
   const score =
     points != null ? <span className="shrink-0 text-base font-semibold tabular-nums text-ink-primary">{formatPoints(points)}</span> : null;
   return (
-    <div className={`flex min-w-0 items-center gap-2 ${side === "left" ? "justify-end" : "justify-start"}`}>
+    <div className="flex items-center justify-between gap-4">
       {side === "right" ? score : null}
-      <div className={`flex min-w-0 flex-col ${toward}`}>
-        <span className={`max-w-full truncate text-sm font-medium ${nameClass}`}>{name}</span>
+      <div className={`flex flex-col ${edge}`}>
+        <span className={`whitespace-nowrap text-sm font-medium ${nameClass}`}>{name}</span>
         <div className="flex items-center gap-1 whitespace-nowrap text-[0.625rem]">
           {rank != null ? <span className="font-medium text-series-4">{ordinal(rank)}</span> : null}
           {record ? (
@@ -195,9 +195,11 @@ function TickerSide({
 
 /**
  * One league on the ticker: its name over your matchup, laid out like a
- * quote and balanced about the middle — each team's name with its rank,
- * record and streak beneath, the two scores facing each other between.
- * Every entry is the same width, whatever its team names.
+ * quote and mirrored about the middle — each team's name with its rank,
+ * record and streak beneath at the outer edges, the two scores facing each
+ * other between. The entry is as wide as its longest side needs, twice over:
+ * both halves always match, so the scores stay centered under the title
+ * however long either name runs.
  */
 function TickerItem({ league, minWidth, copy }: { league: TickerLeague; minWidth: string; copy: boolean }) {
   const { matchup, my, opponent } = league;
@@ -207,7 +209,7 @@ function TickerItem({ league, minWidth, copy }: { league: TickerLeague; minWidth
       aria-hidden={copy || undefined}
       tabIndex={copy ? -1 : undefined}
       draggable={false}
-      className="flex w-[23rem] shrink-0 flex-col justify-center gap-0.5 border-r border-border px-3 py-1.5"
+      className="flex w-max shrink-0 flex-col justify-center gap-0.5 border-r border-border px-4 py-1.5"
       style={{ minWidth }}
     >
       <div className="flex items-center justify-center gap-1.5 text-[0.625rem] font-semibold uppercase tracking-wide text-ink-muted">
@@ -215,10 +217,11 @@ function TickerItem({ league, minWidth, copy }: { league: TickerLeague; minWidth
           // eslint-disable-next-line @next/next/no-img-element -- a remote Sleeper avatar on a static export; nothing for next/image to optimize
           <img src={league.logo} alt="" draggable={false} className="h-3 w-3 shrink-0 rounded-full object-cover" />
         ) : null}
-        <span className="min-w-0 truncate">{league.name}</span>
+        <span className="whitespace-nowrap">{league.name}</span>
       </div>
       {matchup && my ? (
-        <div className="grid grid-cols-2 gap-x-4">
+        // Two 1fr halves in a shrink-to-fit grid both size to the wider one.
+        <div className="grid w-full grid-cols-2 gap-x-6">
           <TickerSide name={matchup.my.teamName} points={matchup.my.points} standing={my} side="left" nameClass="text-series-1" />
           <TickerSide
             name={matchup.opponent?.teamName ?? "Bye"}
