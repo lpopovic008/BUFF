@@ -221,7 +221,7 @@ function TickerItem({
       className="relative flex w-max shrink-0 flex-col justify-center gap-0.5 border-r border-border px-4 py-1.5"
       style={{ minWidth }}
     >
-      <span className="absolute left-4 top-1.5 text-[0.625rem] font-medium tabular-nums leading-[1.5] text-ink-muted">
+      <span className="absolute right-4 top-1.5 text-[0.625rem] font-medium tabular-nums leading-[1.5] text-ink-muted">
         {position}/{total}
       </span>
       {/* Padded on both sides so a long title never runs into the position, and stays centered. */}
