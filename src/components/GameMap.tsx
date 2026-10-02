@@ -448,7 +448,7 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
         className="relative w-full cursor-grab touch-none select-none overflow-clip outline-none [-webkit-touch-callout:none] active:cursor-grabbing focus-visible:ring-1 focus-visible:ring-ink-muted"
         style={{ paddingTop: headroomPx === null ? `${MIN_HEADROOM_REM}rem` : headroomPx }}
         tabIndex={0}
-        aria-label="US map. Drag to move it; twist two fingers, or drag with Shift or the right mouse button, to spin and tilt it; pinch, Ctrl+scroll or the +/- keys to zoom; arrow keys to turn; double-click or Home to reset the view."
+        aria-label="US map. Drag to spin and tilt it; drag with two fingers, Shift or the right mouse button to move it; pinch, Ctrl+scroll or the +/- keys to zoom; arrow keys to turn; double-click or Home to reset the view."
         {...handlers}
       >
         <div className="mx-auto w-full min-w-0 max-w-[44rem]">
