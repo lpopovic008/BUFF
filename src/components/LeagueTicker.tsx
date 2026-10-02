@@ -16,6 +16,10 @@ export interface TickerLeague {
   leagueSize: number;
 }
 
+// Whether your own team's name and score are marked out like the map's tags.
+// Off for now, to try the entries without it.
+const HIGHLIGHT_MINE = false;
+
 // How fast the ticker drifts on its own, in px per second.
 const DRIFT_PX_PER_S = 40;
 // A flick's speed fades by e every this many ms, and is capped at this many px/s.
@@ -175,15 +179,16 @@ function TickerTeamRow({
   return (
     <>
       <div className="flex items-center gap-1.5 whitespace-nowrap">
-        {rank != null ? <span className="text-xs font-medium text-series-4">{ordinal(rank)}</span> : null}
-        <span className={`text-sm ${mine ? MY_TEAM_NAME_CLASS : "font-medium text-ink-primary"}`}>{name}</span>
+        {/* A fixed four characters for the place ("4th", "12th"), so every team name starts at the same x. */}
+        <span className="w-[4ch] shrink-0 text-xs font-medium text-series-4">{rank != null ? ordinal(rank) : ""}</span>
+        <span className={`text-sm ${mine && HIGHLIGHT_MINE ? MY_TEAM_NAME_CLASS : "font-medium text-ink-primary"}`}>{name}</span>
         {record ? (
           <span className="text-xs tabular-nums text-ink-muted">({formatRecord(record.wins, record.losses, record.ties)})</span>
         ) : null}
         <StreakBadge streak={streak} />
       </div>
       <span
-        className={`justify-self-end text-base tabular-nums ${mine ? MY_TEAM_NAME_CLASS : "font-semibold text-ink-primary"}`}
+        className={`justify-self-end text-base tabular-nums ${mine && HIGHLIGHT_MINE ? MY_TEAM_NAME_CLASS : "font-semibold text-ink-primary"}`}
       >
         {points != null ? formatPoints(points) : ""}
       </span>
@@ -224,8 +229,8 @@ function TickerItem({
       <span className="absolute right-4 top-1.5 text-[0.625rem] font-medium tabular-nums leading-[1.5] text-ink-muted">
         {position}/{total}
       </span>
-      {/* Padded on both sides so a long title never runs into the position, and stays centered. */}
-      <div className="flex items-center justify-center gap-1.5 px-8 text-[0.625rem] font-semibold uppercase tracking-wide text-ink-muted">
+      {/* Against the left edge, padded on the right so a long title never runs into the position. */}
+      <div className="flex items-center gap-1.5 pr-8 text-[0.625rem] font-semibold uppercase tracking-wide text-ink-muted">
         {league.logo ? (
           // eslint-disable-next-line @next/next/no-img-element -- a remote Sleeper avatar on a static export; nothing for next/image to optimize
           <img src={league.logo} alt="" draggable={false} className="h-3 w-3 shrink-0 rounded-full object-cover" />
