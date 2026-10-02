@@ -72,7 +72,7 @@ export function rankTone(rank: number, leagueSize: number, higherIsWorse = false
   return tone === "good" ? "bad" : "good";
 }
 
-export const TONE_CLASS = { good: "text-status-good", mid: "text-series-4", bad: "text-status-critical" } as const;
+const TONE_CLASS = { good: "text-status-good", mid: "text-series-4", bad: "text-status-critical" } as const;
 
 /**
  * Where a team's points for and points against rank in the league, stacked

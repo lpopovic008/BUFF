@@ -4,8 +4,7 @@ import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { DashboardMatchupView } from "@/hooks/useDashboardMatchups";
 import { formatPoints, formatRecord, ordinal } from "@/lib/format";
-import { PointsRanks } from "@/lib/league-data";
-import { StreakBadge, TeamStanding, TONE_CLASS, rankTone } from "./DashboardMatchupCard";
+import { StreakBadge, TeamStanding } from "./DashboardMatchupCard";
 
 export interface TickerLeague {
   leagueId: string;
@@ -153,80 +152,81 @@ function useTickerMotion(
   }, [viewport, track, count]);
 }
 
-/** A team's second line: its place in the standings, its record, then its streak. */
-function TeamMeta({ standing, align }: { standing: TeamStanding; align: "left" | "right" }) {
-  const { rank, record, streak } = standing;
+/**
+ * One side of a matchup, mirrored about the entry's middle: the team's name
+ * over its rank, record and streak, with its score beside it on the inside.
+ * Both sides get exactly half the width, so a long name truncates within its
+ * own half instead of pushing the other side off center.
+ */
+function TickerSide({
+  name,
+  points,
+  standing,
+  side,
+  nameClass,
+}: {
+  name: string;
+  points: number | null;
+  standing?: TeamStanding;
+  side: "left" | "right";
+  nameClass: string;
+}) {
+  const { rank, record, streak } = standing ?? {};
+  const toward = side === "left" ? "items-end text-right" : "items-start text-left";
+  const score =
+    points != null ? <span className="shrink-0 text-base font-semibold tabular-nums text-ink-primary">{formatPoints(points)}</span> : null;
   return (
-    <div className={`flex items-center gap-1 whitespace-nowrap text-[0.625rem] ${align === "right" ? "justify-end" : ""}`}>
-      {rank != null ? <span className="font-medium text-series-4">{ordinal(rank)}</span> : null}
-      {record ? (
-        <span className="tabular-nums text-ink-muted">({formatRecord(record.wins, record.losses, record.ties)})</span>
-      ) : null}
-      <StreakBadge streak={streak} />
-    </div>
-  );
-}
-
-/** PF stacked over PA, each rank colored by how good it is. */
-function PointsRanksStacked({ ranks, leagueSize, align }: { ranks?: PointsRanks; leagueSize: number; align: "left" | "right" }) {
-  if (!ranks) return <span />;
-  return (
-    <div
-      className={`flex flex-col whitespace-nowrap text-[0.5625rem] leading-tight text-ink-muted ${
-        align === "right" ? "items-end" : "items-start"
-      }`}
-    >
-      <span>
-        PF <span className={`font-semibold ${TONE_CLASS[rankTone(ranks.pointsFor, leagueSize)]}`}>{ordinal(ranks.pointsFor)}</span>
-      </span>
-      <span>
-        PA{" "}
-        <span className={`font-semibold ${TONE_CLASS[rankTone(ranks.pointsAgainst, leagueSize, true)]}`}>
-          {ordinal(ranks.pointsAgainst)}
-        </span>
-      </span>
+    <div className={`flex min-w-0 items-center gap-2 ${side === "left" ? "justify-end" : "justify-start"}`}>
+      {side === "right" ? score : null}
+      <div className={`flex min-w-0 flex-col ${toward}`}>
+        <span className={`max-w-full truncate text-sm font-medium ${nameClass}`}>{name}</span>
+        <div className="flex items-center gap-1 whitespace-nowrap text-[0.625rem]">
+          {rank != null ? <span className="font-medium text-series-4">{ordinal(rank)}</span> : null}
+          {record ? (
+            <span className="tabular-nums text-ink-muted">({formatRecord(record.wins, record.losses, record.ties)})</span>
+          ) : null}
+          <StreakBadge streak={streak} />
+        </div>
+      </div>
+      {side === "left" ? score : null}
     </div>
   );
 }
 
 /**
  * One league on the ticker: its name over your matchup, laid out like a
- * quote — each team's name, then its rank, record and streak beneath it,
- * with the two scores facing each other between and their PF/PA ranks
- * stacked beneath them.
+ * quote and balanced about the middle — each team's name with its rank,
+ * record and streak beneath, the two scores facing each other between.
+ * Every entry is the same width, whatever its team names.
  */
 function TickerItem({ league, minWidth, copy }: { league: TickerLeague; minWidth: string; copy: boolean }) {
-  const { matchup, my, opponent, leagueSize } = league;
+  const { matchup, my, opponent } = league;
   return (
     <Link
       href={`/league?id=${league.leagueId}`}
       aria-hidden={copy || undefined}
       tabIndex={copy ? -1 : undefined}
       draggable={false}
-      className="flex shrink-0 flex-col justify-center gap-0.5 border-r border-border px-4 py-1.5"
+      className="flex w-[23rem] shrink-0 flex-col justify-center gap-0.5 border-r border-border px-3 py-1.5"
       style={{ minWidth }}
     >
       <div className="flex items-center justify-center gap-1.5 text-[0.625rem] font-semibold uppercase tracking-wide text-ink-muted">
         {league.logo ? (
           // eslint-disable-next-line @next/next/no-img-element -- a remote Sleeper avatar on a static export; nothing for next/image to optimize
-          <img src={league.logo} alt="" draggable={false} className="h-3 w-3 rounded-full object-cover" />
+          <img src={league.logo} alt="" draggable={false} className="h-3 w-3 shrink-0 rounded-full object-cover" />
         ) : null}
-        <span className="max-w-[16rem] truncate">{league.name}</span>
+        <span className="min-w-0 truncate">{league.name}</span>
       </div>
       {matchup && my ? (
-        <div className="grid grid-cols-[minmax(0,auto)_auto_auto_minmax(0,auto)] items-baseline justify-center gap-x-3">
-          <span className="max-w-[9rem] truncate text-sm font-medium text-series-1">{matchup.my.teamName}</span>
-          <span className="text-sm font-semibold tabular-nums text-ink-primary">{formatPoints(matchup.my.points)}</span>
-          <span className="text-sm font-semibold tabular-nums text-ink-primary">
-            {matchup.opponent ? formatPoints(matchup.opponent.points) : null}
-          </span>
-          <span className="max-w-[9rem] truncate text-right text-sm font-medium text-ink-primary">
-            {matchup.opponent?.teamName ?? "Bye"}
-          </span>
-          <TeamMeta standing={my} align="left" />
-          <PointsRanksStacked ranks={my.pointsRanks} leagueSize={leagueSize} align="right" />
-          <PointsRanksStacked ranks={opponent?.pointsRanks} leagueSize={leagueSize} align="left" />
-          {opponent ? <TeamMeta standing={opponent} align="right" /> : <span />}
+        <div className="grid grid-cols-2 gap-x-4">
+          <TickerSide name={matchup.my.teamName} points={matchup.my.points} standing={my} side="left" nameClass="text-series-1" />
+          <TickerSide
+            name={matchup.opponent?.teamName ?? "Bye"}
+            points={matchup.opponent ? matchup.opponent.points : null}
+            standing={opponent}
+            side="right"
+            nameClass="text-ink-primary"
+          />
         </div>
       ) : (
         <div className="text-center text-xs text-ink-secondary">No matchup this week</div>

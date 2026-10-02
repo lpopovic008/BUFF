@@ -546,7 +546,9 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
             </svg>
 
             <div
-              className="pointer-events-none absolute inset-0 [transform:translateZ(0)]"
+              // An opened tag runs to the top of the frame, so it lifts the
+              // whole overlay above the zoom/reset buttons sitting up there.
+              className={`pointer-events-none absolute inset-0 [transform:translateZ(0)] ${selectedTag ? "z-20" : ""}`}
               role="list"
               aria-label={`${tags.length} games across the United States`}
             >
@@ -617,8 +619,10 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
                 +
               </button>
               {isDefault ? null : (
-                <button type="button" onClick={reset} {...stop} className={controlClass}>
-                  Reset view
+                <button type="button" aria-label="Reset view" title="Reset view" onClick={reset} {...stop} className={controlClass}>
+                  <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" aria-hidden>
+                    <path d="M2 7.5 8 2l6 5.5M3.5 6.5V14h3.5v-4h2v4h3.5V6.5" />
+                  </svg>
                 </button>
               )}
             </div>
