@@ -316,7 +316,7 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
   return (
     <div className="mx-auto w-full min-w-0 max-w-[44rem]">
       <div
-        className="relative cursor-grab touch-pan-y select-none outline-none active:cursor-grabbing focus-visible:ring-1 focus-visible:ring-ink-muted"
+        className="relative cursor-grab touch-none select-none [-webkit-touch-callout:none] outline-none active:cursor-grabbing focus-visible:ring-1 focus-visible:ring-ink-muted"
         tabIndex={0}
         aria-label="US map. Drag to spin and tilt it, arrow keys to nudge, double-click or Home to reset the view."
         {...handlers}

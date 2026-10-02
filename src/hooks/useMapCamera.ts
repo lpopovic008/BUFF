@@ -19,8 +19,9 @@ function prefersReducedMotion(): boolean {
 
 /**
  * The dashboard map's orbit camera. Drag (or one-finger swipe) sideways to
- * spin it, up/down to tilt it — on touch, a gesture that starts vertical is
- * left to the page so it still scrolls, and a two-finger drag tilts. A flick
+ * spin it, up/down to tilt it; a two-finger drag tilts too. Touches on the
+ * map belong to it alone — the page never scrolls or zooms under them (the
+ * map element sets touch-action: none). A flick
  * keeps spinning and eases to a stop. Double-click (or the reset button) eases
  * back to the default view, which is also where every page load starts —
  * the camera is deliberately never persisted.
