@@ -153,54 +153,49 @@ function useTickerMotion(
 }
 
 /**
- * One side of a matchup, mirrored about the entry's middle: the team's name
- * over its rank, record and streak, pinned to the entry's outer edge, and its
- * score on the inside, facing the other side's. Names are never cut short —
- * the entry grows to fit them (see TickerItem).
+ * One team's row in a ticker entry: its standing on one line — place, name,
+ * record, streak — and its score at the right edge. Your own team's name and
+ * score are marked out like the map's tags. Two cells of the entry's grid,
+ * so both teams' scores line up in one column. Names are never cut short —
+ * the entry grows to fit them.
  */
-function TickerSide({
+function TickerTeamRow({
   name,
   points,
   standing,
-  side,
   mine,
 }: {
   name: string;
   points: number | null;
   standing?: TeamStanding;
-  side: "left" | "right";
   /** Your own team, marked out like a map tag. */
   mine: boolean;
 }) {
   const { rank, record, streak } = standing ?? {};
-  const edge = side === "left" ? "items-start text-left" : "items-end text-right";
-  const score =
-    points != null ? <span className="shrink-0 text-base font-semibold tabular-nums text-ink-primary">{formatPoints(points)}</span> : null;
   return (
-    <div className="flex items-center justify-between gap-4">
-      {side === "right" ? score : null}
-      <div className={`flex flex-col ${edge}`}>
-        <span className={`whitespace-nowrap text-sm ${mine ? MY_TEAM_NAME_CLASS : "font-medium text-ink-primary"}`}>{name}</span>
-        <div className="flex items-center gap-1 whitespace-nowrap text-[0.625rem]">
-          {rank != null ? <span className="font-medium text-series-4">{ordinal(rank)}</span> : null}
-          {record ? (
-            <span className="tabular-nums text-ink-muted">({formatRecord(record.wins, record.losses, record.ties)})</span>
-          ) : null}
-          <StreakBadge streak={streak} />
-        </div>
+    <>
+      <div className="flex items-center gap-1.5 whitespace-nowrap">
+        {rank != null ? <span className="text-xs font-medium text-series-4">{ordinal(rank)}</span> : null}
+        <span className={`text-sm ${mine ? MY_TEAM_NAME_CLASS : "font-medium text-ink-primary"}`}>{name}</span>
+        {record ? (
+          <span className="text-xs tabular-nums text-ink-muted">({formatRecord(record.wins, record.losses, record.ties)})</span>
+        ) : null}
+        <StreakBadge streak={streak} />
       </div>
-      {side === "left" ? score : null}
-    </div>
+      <span
+        className={`justify-self-end text-base tabular-nums ${mine ? MY_TEAM_NAME_CLASS : "font-semibold text-ink-primary"}`}
+      >
+        {points != null ? formatPoints(points) : ""}
+      </span>
+    </>
   );
 }
 
 /**
- * One league on the ticker: its name over your matchup, laid out like a
- * quote and mirrored about the middle — each team's name with its rank,
- * record and streak beneath at the outer edges, the two scores facing each
- * other between. The entry is as wide as its longest side needs, twice over:
- * both halves always match, so the scores stay centered under the title
- * however long either name runs.
+ * One league on the ticker: its name over your matchup, the two teams
+ * stacked — yours on top — each on one line with its score at the right,
+ * the scores in a column of their own. The entry is as wide as its longest
+ * team line needs.
  */
 function TickerItem({
   league,
@@ -238,14 +233,12 @@ function TickerItem({
         <span className="whitespace-nowrap">{league.name}</span>
       </div>
       {matchup && my ? (
-        // Two 1fr halves in a shrink-to-fit grid both size to the wider one.
-        <div className="grid w-full grid-cols-2 gap-x-6">
-          <TickerSide name={matchup.my.teamName} points={matchup.my.points} standing={my} side="left" mine />
-          <TickerSide
+        <div className="grid grid-cols-[1fr_auto] items-center gap-x-6 gap-y-1">
+          <TickerTeamRow name={matchup.my.teamName} points={matchup.my.points} standing={my} mine />
+          <TickerTeamRow
             name={matchup.opponent?.teamName ?? "Bye"}
             points={matchup.opponent ? matchup.opponent.points : null}
             standing={opponent}
-            side="right"
             mine={false}
           />
         </div>
