@@ -4,15 +4,8 @@ import { MouseEvent as ReactMouseEvent, RefObject, useEffect, useId, useMemo, us
 import { NFLGame, isOutsideUS } from "@/lib/nfl-schedule";
 import { computeKickoffSlots, gameMapPosition, internationalSlotPosition, kickoffSlotColor, kickoffSlotLabel } from "@/lib/game-map";
 import { formatKickoff } from "@/lib/my-starters";
-import {
-  FLAT_MAP_HEIGHT,
-  MAP_OUTLINE,
-  MAP_STATE_LINES,
-  MAP_VIEW,
-  MAP_VIEWBOX,
-  MAP_WALL_LAYERS,
-  projectMapPoint,
-} from "@/lib/map-perspective";
+import { FLAT_MAP_HEIGHT, MapScene, MapView, buildMapScene } from "@/lib/map-perspective";
+import { useMapCamera } from "@/hooks/useMapCamera";
 import { LeagueLegendEntry, LeagueMark } from "./LeagueMark";
 
 /** One of your starters in a mapped game, enough to show on the click-to-preview card. */
@@ -40,9 +33,13 @@ function dotRadius(starterCount: number): number {
 // own. Flip back to true to restore them.
 const SHOW_GAME_DOTS = false;
 
+// The state lines' width; the border is stroked at twice this behind the
+// land, so the half that shows matches them (see USOutline).
+const LINE_WIDTH = 0.38;
+
 /**
  * The tilted US (see map-perspective.ts): a raised slab whose side wall
- * shows along the south-facing coasts, grey land on top, faint state
+ * shows along the camera-facing coasts, grey land on top, faint state
  * borders, and the coast/national border in a stronger color but the same
  * thickness as them. The border is stroked *behind* the land at double the
  * state lines' width, so the land covers its inner half and what shows
@@ -50,7 +47,7 @@ const SHOW_GAME_DOTS = false;
  * states. Colors are theme tokens — white lines on black
  * in dark mode, inverted in light mode.
  */
-function USOutline() {
+function USOutline({ scene }: { scene: MapScene }) {
   // Clip the state lines to the land so no coastal end pokes past the
   // border line.
   const clipId = useId();
@@ -58,19 +55,19 @@ function USOutline() {
     <g strokeLinejoin="miter" strokeMiterlimit={4}>
       <defs>
         <clipPath id={clipId}>
-          <path d={MAP_OUTLINE} />
+          <path d={scene.outline} />
         </clipPath>
       </defs>
-      {MAP_WALL_LAYERS.map((d, i) => (
+      {scene.wallLayers.map((d, i) => (
         <path key={i} d={d} fill="var(--map-wall)" stroke="var(--map-wall)" strokeWidth={0.6} />
       ))}
-      <path d={MAP_OUTLINE} fill="none" stroke="var(--map-edge)" strokeWidth={0.9} />
-      <path d={MAP_OUTLINE} fill="var(--map-land)" />
+      <path d={scene.outline} fill="none" stroke="var(--map-edge)" strokeWidth={LINE_WIDTH * 2} />
+      <path d={scene.outline} fill="var(--map-land)" />
       <path
-        d={MAP_STATE_LINES}
+        d={scene.stateLines}
         fill="none"
         stroke="var(--map-state-line)"
-        strokeWidth={0.45}
+        strokeWidth={LINE_WIDTH}
         clipPath={`url(#${clipId})`}
       />
     </g>
@@ -147,11 +144,13 @@ function PlayerRow({
  */
 function GamePreviewCard({
   positioned,
+  view,
   legendByLeagueId,
   onClose,
   cardRef,
 }: {
   positioned: PositionedGame;
+  view: MapView;
   legendByLeagueId: Map<string, LeagueLegendEntry>;
   onClose: () => void;
   cardRef: RefObject<HTMLDivElement | null>;
@@ -162,7 +161,7 @@ function GamePreviewCard({
   // the dot is near the middle, and centering is what "pop up in the center
   // of the map" actually asks for. Vertically it still tracks the dot,
   // opening toward whichever half has room so it stays near what you clicked.
-  const opensDown = y < MAP_VIEW.y + MAP_VIEW.height / 2;
+  const opensDown = y < view.y + view.height / 2;
   const summaryLine = [gameLabel(entry.game), formatKickoff(entry.game.kickoff), venueLabel(entry.game)]
     .filter(Boolean)
     .join(" · ");
@@ -174,7 +173,7 @@ function GamePreviewCard({
       className="absolute z-10 w-80 max-w-[calc(100%-1rem)] border border-grid bg-page p-3 text-xs shadow-sm"
       style={{
         left: "50%",
-        top: `${((y - MAP_VIEW.y) / MAP_VIEW.height) * 100}%`,
+        top: `${((y - view.y) / view.height) * 100}%`,
         transform: `translate(-50%, ${opensDown ? "0.5rem" : "calc(-100% - 0.5rem)"})`,
       }}
     >
@@ -229,6 +228,8 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
   const [hovered, setHovered] = useState<string | null>(null);
   const [clicked, setClicked] = useState<string | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
+  const { camera, isDefault, reset, wasDrag, handlers } = useMapCamera();
+  const scene = useMemo(() => buildMapScene(camera), [camera]);
 
   // Tapping anywhere outside the open preview — elsewhere on the map, or
   // anywhere else on the page — dismisses it. A tap that lands on a dot is
@@ -253,14 +254,14 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
   const abroad: PositionedGame[] = games
     .filter((g) => isOutsideUS(g.game))
     .map((entry, i) => {
-      const [x, y] = projectMapPoint(...internationalSlotPosition(i));
+      const [x, y] = scene.project(...internationalSlotPosition(i));
       return { entry, x, y, r: dotRadius(entry.starters.length) * 0.6 };
     });
   const plotted: PositionedGame[] = games
     .map((entry) => {
       const pos = gameMapPosition(entry.game);
       if (!pos) return null;
-      const [x, y] = projectMapPoint(pos[0], pos[1]);
+      const [x, y] = scene.project(pos[0], pos[1]);
       return { entry, x, y, r: dotRadius(entry.starters.length) };
     })
     .filter((p): p is PositionedGame => p !== null)
@@ -293,6 +294,8 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
    * earliest after the last.
    */
   function handleMapClick(e: ReactMouseEvent<SVGSVGElement>) {
+    // The click a drag ends with is just the end of turning the map.
+    if (wasDrag()) return;
     const point = svgPointFromEvent(e.currentTarget, e);
     if (!point) return;
     const candidates = hitTest(allPositioned, point.x, point.y).sort(
@@ -312,16 +315,21 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-[44rem]">
-      <div className="relative">
+      <div
+        className="relative cursor-grab touch-pan-y select-none outline-none active:cursor-grabbing focus-visible:ring-1 focus-visible:ring-ink-muted"
+        tabIndex={0}
+        aria-label="US map. Drag to spin and tilt it, arrow keys to nudge, double-click or Home to reset the view."
+        {...handlers}
+      >
         <svg
-          viewBox={MAP_VIEWBOX}
+          viewBox={scene.viewBox}
           preserveAspectRatio="xMidYMid meet"
           className="block w-full overflow-visible"
           role="img"
           aria-label={`${plotted.length} games plotted across the United States`}
           onClick={handleMapClick}
         >
-          <USOutline />
+          <USOutline scene={scene} />
           {SHOW_GAME_DOTS && slots.length > 1 ? (
             // Tucked into the bottom-left corner, empty of any team dot ever
             // since AK/HI were dropped from the outline — the kickoff-window
@@ -331,8 +339,8 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
                 const rowH = 8;
                 const bottomPad = 4;
                 const flatY = FLAT_MAP_HEIGHT - bottomPad - (slots.length - 1 - i) * rowH;
-                const [cx, cy] = projectMapPoint(9, flatY - 2, 0);
-                const [tx, ty] = projectMapPoint(14, flatY, 0);
+                const [cx, cy] = scene.project(9, flatY - 2, 0);
+                const [tx, ty] = scene.project(14, flatY, 0);
                 return (
                   <g key={i}>
                     <circle cx={cx} cy={cy} r={2} fill={kickoffSlotColor(i, slots.length)} />
@@ -378,11 +386,24 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
         {selected ? (
           <GamePreviewCard
             positioned={selected}
+            view={scene.view}
             legendByLeagueId={legendByLeagueId}
             onClose={() => setClicked(null)}
             cardRef={cardRef}
           />
         ) : null}
+
+        {isDefault ? null : (
+          <button
+            type="button"
+            onClick={reset}
+            onPointerDown={(e) => e.stopPropagation()}
+            onDoubleClick={(e) => e.stopPropagation()}
+            className="absolute right-0 top-0 border border-grid bg-page px-2 py-1 text-xs text-ink-secondary hover:text-ink-primary"
+          >
+            Reset view
+          </button>
+        )}
       </div>
 
       {active ? (
