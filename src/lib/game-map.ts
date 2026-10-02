@@ -53,16 +53,15 @@ export function leagueTint(index: number, percent = 12): string {
 }
 
 /**
- * A fixed slot for an international game's dot, in a small cluster tucked
- * into the map's top-right corner — there's no meaningful US position for a
- * game played abroad, so these get their own reserved row instead.
+ * A fixed slot for a game played abroad. There's no meaningful US position
+ * for it, so these sit in the Pacific off the map's southwest corner — the
+ * first just off San Diego, each next one a step further out on a diagonal
+ * running southwest, clear of every real stadium.
  */
 export function internationalSlotPosition(index: number): [number, number] {
-  const perRow = 4;
-  const spacing = 14;
-  const originX = 258;
-  const originY = 10;
-  return [originX + (index % perRow) * spacing, originY + Math.floor(index / perRow) * spacing];
+  const [originX, originY] = [36, 142];
+  const [stepX, stepY] = [-6, 7];
+  return [originX + index * stepX, originY + index * stepY];
 }
 
 // Kickoff-time gradient tokens (see globals.css) — cool/dark for the week's
@@ -155,17 +154,18 @@ export function kickoffSlotLabel(sortTime: number): string {
 
 // Named windows for the same coarse 3-hour blocks kickoffBucketKey groups
 // games into, in block order starting at midnight — what turns "Sunday,
-// hour block 4" into "Sunday Noon" for a section header, rather than the
-// map legend's compact "Sun 1p".
+// hour block 4" into "Sunday Midday" for a section header, rather than the
+// map legend's compact "Sun 1p". Every block gets its own word — no
+// "Early"/"Late" qualifiers on a shared one.
 const HOUR_BLOCK_NAMES = [
   "Overnight",
-  "Early Morning",
+  "Pre-Dawn",
   "Morning",
-  "Late Morning",
-  "Noon",
+  "Midmorning",
+  "Midday",
   "Afternoon",
   "Night",
-  "Late Night",
+  "Midnight",
 ];
 
 /** A human-readable "Thursday Night" / "Sunday Morning" label for a kickoff window, for a section header with room to spell it out (unlike the map legend's compact kickoffSlotLabel). */

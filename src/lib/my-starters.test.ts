@@ -25,7 +25,7 @@ function game(id: string, away: string, home: string, kickoff: string): NFLGame 
 }
 
 function starter(name: string, position: string, team: string | null, leagueId = "L1"): StarterEntry {
-  return { playerId: name, name, position, team, leagueId, leagueName: `League ${leagueId}` };
+  return { playerId: name, name, position, team, leagueId, leagueName: `League ${leagueId}`, points: null };
 }
 
 // Real 2026 week 1 slots: the Melbourne opener and a Sunday afternoon game.
@@ -136,7 +136,7 @@ test("games are bucketed into one column per kickoff window, earliest first", ()
   );
   assert.deepEqual(
     columns.map((c) => c.label),
-    ["Wednesday Late Night", "Sunday Noon", "Monday Night"]
+    ["Wednesday Midnight", "Sunday Midday", "Monday Night"]
   );
 });
 

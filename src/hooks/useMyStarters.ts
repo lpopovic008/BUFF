@@ -50,7 +50,7 @@ async function loadOne(source: StarterSource, week: number): Promise<LoadedSides
   const resolved = allIds.length > 0 ? await resolvePlayers(allIds) : [];
   const byId = new Map(resolved.map((p) => [p.playerId, p]));
 
-  const toEntries = (ids: string[]): StarterEntry[] =>
+  const toEntries = (ids: string[], points: Record<string, number> | null | undefined): StarterEntry[] =>
     ids.map((playerId) => {
       const player = byId.get(playerId);
       return {
@@ -60,10 +60,14 @@ async function loadOne(source: StarterSource, week: number): Promise<LoadedSides
         team: player?.team ?? null,
         leagueId: source.leagueId,
         leagueName: source.leagueName,
+        points: points ? (points[playerId] ?? 0) : null,
       };
     });
 
-  return { mine: toEntries(myIds), opponent: toEntries(opponentIds) };
+  return {
+    mine: toEntries(myIds, mine?.players_points),
+    opponent: toEntries(opponentIds, opponentMatchup?.players_points),
+  };
 }
 
 export interface MyStartersResult {

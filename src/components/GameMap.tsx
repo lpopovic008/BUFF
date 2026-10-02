@@ -35,6 +35,10 @@ const TAG_REM = 0.625;
 const LINE_HEIGHT = 1.3;
 const PAD_EM = 0.35;
 const PAD_Y_EM = 0.12;
+// Space between a stem and its tag.
+const STEM_GAP_EM = 0.35;
+// How faded a tag at the map's far edge is; the nearest are fully opaque.
+const FAR_OPACITY = 0.5;
 // Room kept above the map for the tags of its northernmost sites — at
 // least this much, more when the opening view's tags need it (narrow
 // screens, where the Northeast's tags have to stack higher).
@@ -82,7 +86,7 @@ function gameLabel(game: NFLGame): string {
   return `${game.awayTeam} @ ${game.homeTeam}`;
 }
 
-/** Games abroad add their city, since their spot on the map is just a holding corner. */
+/** Games abroad add their city, since their spot on the map is just a holding area offshore. */
 function tagTitle(game: NFLGame): string {
   return isOutsideUS(game) && game.venue?.city ? `${gameLabel(game)} · ${game.venue.city}` : gameLabel(game);
 }
@@ -92,11 +96,11 @@ function venueLabel(game: NFLGame): string | null {
   return game.venue.state ? `${game.venue.city}, ${game.venue.state}` : game.venue.city;
 }
 
-/** A tag's size in px, from its text (see TAG_REM). */
+/** The footprint beside a stem — gap plus tag — in px, from the tag's text (see TAG_REM). */
 function tagSize(title: string, rootPx: number): { width: number; height: number } {
   const px = TAG_REM * rootPx;
   return {
-    width: Math.ceil((title.length * 0.5 + PAD_EM * 2) * px) + 2,
+    width: Math.ceil((STEM_GAP_EM + title.length * 0.5 + PAD_EM * 2) * px) + 2,
     height: Math.ceil((LINE_HEIGHT + PAD_Y_EM * 2) * px) + 2,
   };
 }
@@ -225,8 +229,9 @@ function GamePreviewCard({
  * readable at any angle; where tags would collide, the nearer one keeps the
  * shorter stem and the others rise above it (see placeLabels). Tapping a
  * tag opens a preview of that game's fantasy starters, yours and your
- * opponents'. Games played abroad can't sit on the US outline, so they rise
- * from a holding corner off the Northeast.
+ * opponents'. Tags fade a little with distance from the camera, so depth
+ * reads in them too. Games played abroad can't sit on the US outline, so
+ * they rise from the Pacific, off the map's southwest corner.
  */
 export function GameMap({ games, legend }: { games: MappedGame[]; legend: LeagueLegendEntry[] }) {
   const { camera, isDefault, reset, wasDrag, handlers } = useMapCamera();
@@ -294,7 +299,12 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
     const byId = new Map(tags.map((t) => [t.id, t]));
     const layout = layoutTags(tags, scene, measure.width, measure.rootPx, -headroomPx);
     // Paint far tags first so nearer ones sit on top.
-    return layout.map((l) => ({ ...l, tag: byId.get(l.id)! })).sort((a, b) => a.y - b.y);
+    return layout
+      .map((l) => {
+        const tag = byId.get(l.id)!;
+        return { ...l, tag, opacity: 1 - (1 - FAR_OPACITY) * scene.depth(tag.pos[0], tag.pos[1]) };
+      })
+      .sort((a, b) => a.y - b.y);
   }, [measure, headroomPx, scene, tags]);
 
   const selectedTag = placed.find((p) => p.id === selected) ?? null;
@@ -334,34 +344,45 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
             </svg>
 
             <div className="pointer-events-none absolute inset-0">
-              {placed.map(({ id, x, y, stem, tag }) => (
-                <div key={id} className="absolute left-0 top-0" style={{ transform: `translate(${x}px, ${y}px)` }}>
-                  <span
-                    className="absolute -left-[0.15rem] -top-[0.15rem] h-[0.3rem] w-[0.3rem] rounded-full bg-[var(--map-tag)]"
-                    aria-hidden
-                  />
-                  <span className="absolute left-0 w-px bg-[var(--map-edge)]" style={{ top: -stem, height: stem }} aria-hidden />
-                  <button
-                    type="button"
-                    data-game-tag
-                    aria-pressed={selected === id}
-                    aria-label={`${tag.title} — show starters`}
-                    onClick={() => handleTagClick(id)}
-                    onDoubleClick={(e) => e.stopPropagation()}
-                    className={`pointer-events-auto absolute left-0 cursor-pointer whitespace-nowrap bg-[var(--map-tag)] font-bold text-[var(--map-tag-ink)] outline-offset-1 hover:brightness-110 ${
-                      selected === id ? "outline outline-2 outline-[var(--map-edge)]" : ""
-                    }`}
-                    style={{
-                      top: -stem,
-                      fontSize: `${TAG_REM}rem`,
-                      lineHeight: LINE_HEIGHT,
-                      padding: `${PAD_Y_EM}em ${PAD_EM}em`,
-                    }}
-                  >
-                    {tag.title}
-                  </button>
-                </div>
-              ))}
+              {placed.map(({ id, x, y, stem, tag, opacity: depthOpacity }) => {
+                const opacity = selected === id ? 1 : depthOpacity;
+                return (
+                  <div key={id} className="group absolute left-0 top-0" style={{ transform: `translate(${x}px, ${y}px)` }}>
+                    <span
+                      className="absolute -left-[0.15rem] -top-[0.15rem] h-[0.3rem] w-[0.3rem] rounded-full bg-[var(--map-tag)] group-hover:!opacity-100"
+                      style={{ opacity }}
+                      aria-hidden
+                    />
+                    <span
+                      className="absolute left-0 w-px bg-[var(--map-edge)] group-hover:!opacity-100"
+                      style={{ top: -stem, height: stem, opacity }}
+                      aria-hidden
+                    />
+                    {/* The plate fades over a solid page-colored backing, so a far
+                        tag dims toward the background instead of letting the map's
+                        lines show through it. */}
+                    <button
+                      type="button"
+                      data-game-tag
+                      aria-pressed={selected === id}
+                      aria-label={`${tag.title} — show starters`}
+                      onClick={() => handleTagClick(id)}
+                      onDoubleClick={(e) => e.stopPropagation()}
+                      className={`pointer-events-auto absolute left-0 cursor-pointer whitespace-nowrap bg-page font-bold outline-offset-1 ${
+                        selected === id ? "outline outline-2 outline-[var(--map-edge)]" : ""
+                      }`}
+                      style={{ top: -stem, marginLeft: `${STEM_GAP_EM}em`, fontSize: `${TAG_REM}rem`, lineHeight: LINE_HEIGHT }}
+                    >
+                      <span
+                        className="block bg-[var(--map-tag)] text-[var(--map-tag-ink)] group-hover:!opacity-100"
+                        style={{ opacity, padding: `${PAD_Y_EM}em ${PAD_EM}em` }}
+                      >
+                        {tag.title}
+                      </span>
+                    </button>
+                  </div>
+                );
+              })}
             </div>
 
             {isDefault ? null : (

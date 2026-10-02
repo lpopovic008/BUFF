@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { aggregateCareerStats, finalPlacements, SeasonRecord, StandingsRow } from "./league-data";
-import { SleeperBracketMatch } from "./sleeper";
+import { aggregateCareerStats, finalPlacements, pointsRanks, rosterStreak, SeasonRecord, StandingsRow } from "./league-data";
+import { SleeperBracketMatch, SleeperRoster } from "./sleeper";
 
 /**
  * The brackets below are the real ones Sleeper returned for these leagues —
@@ -179,4 +179,27 @@ test("a championship only counts once the season is complete", () => {
   assert.equal(inProgress.find((s) => s.userId === "owner-1")!.championships, 0);
   const done = aggregateCareerStats([season({ standings, champion: asChampion })]);
   assert.equal(done.find((s) => s.userId === "owner-1")!.championships, 1);
+});
+
+function roster(metadata: SleeperRoster["metadata"]): SleeperRoster {
+  return { roster_id: 1, owner_id: "u", league_id: "L", settings: { wins: 0, losses: 0, ties: 0, fpts: 0, fpts_against: 0 }, metadata };
+}
+
+test("rosterStreak reads Sleeper's streak, falling back to the tail of the record", () => {
+  assert.deepEqual(rosterStreak(roster({ streak: "3W" })), { result: "W", length: 3 });
+  assert.deepEqual(rosterStreak(roster({ streak: "2l" })), { result: "L", length: 2 });
+  assert.deepEqual(rosterStreak(roster({ record: "WLWWW" })), { result: "W", length: 3 });
+  assert.deepEqual(rosterStreak(roster({ record: "WWL" })), { result: "L", length: 1 });
+  assert.equal(rosterStreak(roster({ record: "WLT" })), null);
+  assert.equal(rosterStreak(roster(null)), null);
+  assert.equal(rosterStreak(roster({})), null);
+});
+
+test("pointsRanks ranks points for and against, most first, ties sharing a rank", () => {
+  const row = (rosterId: number, pointsFor: number, pointsAgainst: number) =>
+    ({ rosterId, pointsFor, pointsAgainst }) as StandingsRow;
+  const ranks = pointsRanks([row(1, 500, 400), row(2, 450, 480), row(3, 500, 380)]);
+  assert.deepEqual(ranks.get(1), { pointsFor: 1, pointsAgainst: 2 });
+  assert.deepEqual(ranks.get(2), { pointsFor: 3, pointsAgainst: 1 });
+  assert.deepEqual(ranks.get(3), { pointsFor: 1, pointsAgainst: 3 });
 });

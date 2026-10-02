@@ -13,6 +13,8 @@ export interface StarterEntry {
   team: string | null;
   leagueId: string;
   leagueName: string;
+  /** This week's fantasy points under this league's scoring — null when Sleeper hasn't posted the matchup yet. */
+  points: number | null;
 }
 
 /** A starter deduped across leagues — one row per unique player, with every league they're started in. */
@@ -22,6 +24,9 @@ export interface GroupedStarter {
   position: string;
   team: string | null;
   leagueIds: string[];
+  /** Points under the first league's scoring (leagues can score differently); see pointsByLeague for the rest. */
+  points: number | null;
+  pointsByLeague: Record<string, number | null>;
 }
 
 export interface GameStarters {
@@ -42,6 +47,7 @@ export function dedupeStarters(starters: StarterEntry[]): GroupedStarter[] {
     const existing = byPlayer.get(starter.playerId);
     if (existing) {
       existing.leagueIds.push(starter.leagueId);
+      existing.pointsByLeague[starter.leagueId] = starter.points;
     } else {
       byPlayer.set(starter.playerId, {
         playerId: starter.playerId,
@@ -49,6 +55,8 @@ export function dedupeStarters(starters: StarterEntry[]): GroupedStarter[] {
         position: starter.position,
         team: starter.team,
         leagueIds: [starter.leagueId],
+        points: starter.points,
+        pointsByLeague: { [starter.leagueId]: starter.points },
       });
     }
   }
@@ -144,7 +152,7 @@ export function formatTeamMatchup(game: NFLGame): string {
 
 /** One kickoff window's worth of games — one column in the starters-by-game swipe view. */
 export interface TimeBlockColumn {
-  /** e.g. "Sunday Noon" — a spelled-out window name, since the map's own legend already has the compact "Sun 1p" form. */
+  /** e.g. "Sunday Midday" — a spelled-out window name, since the map's own legend already has the compact "Sun 1p" form. */
   label: string;
   games: GameStarters[];
   /** The same colour the map uses for this kickoff window (see kickoffSlotColor) — undefined for the trailing TBD column, which isn't a real window. */

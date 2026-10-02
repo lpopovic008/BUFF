@@ -11,7 +11,7 @@ import { MatchupTarget, useDashboardMatchups } from "@/hooks/useDashboardMatchup
 import { StarterSource, useMyStarters } from "@/hooks/useMyStarters";
 import { useNFLState } from "@/hooks/useNFLState";
 import { useWeekGames } from "@/hooks/useWeekGames";
-import { getLeagueSummary, LeagueSummary } from "@/lib/league-data";
+import { getLeagueSummary, LeagueSummary, pointsRanks, rosterStreak } from "@/lib/league-data";
 import { groupStartersByGame, GroupedStarter } from "@/lib/my-starters";
 import { avatarUrl, getCurrentWeek } from "@/lib/sleeper";
 import { TrackedLeague } from "@/lib/localStore";
@@ -197,14 +197,20 @@ export default function DashboardPage() {
               {leagues.map(({ tracked, summary }, i) => {
                 const myRow = summary.standings.find((r) => r.ownerId === config.sleeperUserId);
                 const matchup = matchups[tracked.leagueId];
-                const opponentRank = matchup?.opponent
-                  ? summary.standings.find((r) => r.rosterId === matchup.opponent!.rosterId)?.rank
-                  : undefined;
+                const ranks = pointsRanks(summary.standings);
+                const standingOf = (rosterId: number) => {
+                  const roster = summary.rosters.find((r) => r.roster_id === rosterId);
+                  return {
+                    rank: summary.standings.find((r) => r.rosterId === rosterId)?.rank,
+                    streak: roster ? rosterStreak(roster) : null,
+                    pointsRanks: ranks.get(rosterId),
+                  };
+                };
                 return (
                   <Link
                     key={tracked.leagueId}
                     href={`/league?id=${tracked.leagueId}`}
-                    className="flex min-w-0 flex-col gap-4 border border-border bg-page p-5 transition-colors animate-[rise_0.5s_ease-out_backwards] hover:border-ink-primary/40"
+                    className="flex min-w-0 flex-col gap-2 border border-border bg-page px-4 py-3 transition-colors animate-[rise_0.5s_ease-out_backwards] hover:border-ink-primary/40"
                     style={{ animationDelay: `${140 + i * 70}ms` }}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -219,7 +225,11 @@ export default function DashboardPage() {
                     </div>
 
                     {myRow ? (
-                      <DashboardMatchupCard matchup={matchup} myRank={myRow.rank} opponentRank={opponentRank} />
+                      <DashboardMatchupCard
+                        matchup={matchup}
+                        my={standingOf(myRow.rosterId)}
+                        opponent={matchup?.opponent ? standingOf(matchup.opponent.rosterId) : undefined}
+                      />
                     ) : null}
                   </Link>
                 );

@@ -55,6 +55,20 @@ export function isDefaultCamera(camera: MapCamera): boolean {
 /** Projects a flat-map point (x, y in US_MAP_VIEWBOX space), `height` units above the ground, into the view. Defaults to the top face, where everything drawn on the map sits. */
 export type MapProjector = (x: number, y: number, height?: number) => [number, number];
 
+/** How far a top-face point sits from the eye along the view direction (larger is farther). */
+function depthOf({ tilt, yaw }: MapCamera): (x: number, y: number) => number {
+  const ts = Math.sin((tilt * Math.PI) / 180);
+  const tc = Math.cos((tilt * Math.PI) / 180);
+  const ys = Math.sin((yaw * Math.PI) / 180);
+  const yc = Math.cos((yaw * Math.PI) / 180);
+  const cx = MAP_W / 2;
+  const cy = MAP_H / 2;
+  return (x, y) => {
+    const ry = cy + (x - cx) * ys + (y - cy) * yc;
+    return (MAP_H - ry) * ts - SLAB_HEIGHT * tc;
+  };
+}
+
 function projector({ tilt, yaw }: MapCamera): MapProjector {
   const ts = Math.sin((tilt * Math.PI) / 180);
   const tc = Math.cos((tilt * Math.PI) / 180);
@@ -144,6 +158,8 @@ export interface MapScene {
   view: MapView;
   viewBox: string;
   project: MapProjector;
+  /** A flat-map point's distance from the camera, 0 at the land's nearest point to 1 at its farthest. */
+  depth: (x: number, y: number) => number;
 }
 
 function sceneFor(camera: MapCamera, aspect: number | null): MapScene {
@@ -169,7 +185,18 @@ function sceneFor(camera: MapCamera, aspect: number | null): MapScene {
     height,
   };
   const viewBox = `${view.x.toFixed(2)} ${view.y.toFixed(2)} ${view.width.toFixed(2)} ${view.height.toFixed(2)}`;
-  return { outline, stateLines, wallLayers, view, viewBox, project };
+
+  const rawDepth = depthOf(camera);
+  let near = Infinity;
+  let far = -Infinity;
+  for (let i = 0; i < OUTLINE.xs.length; i++) {
+    const d = rawDepth(OUTLINE.xs[i], OUTLINE.ys[i]);
+    if (d < near) near = d;
+    if (d > far) far = d;
+  }
+  const span = far - near || 1;
+  const depth = (x: number, y: number) => Math.min(1, Math.max(0, (rawDepth(x, y) - near) / span));
+  return { outline, stateLines, wallLayers, view, viewBox, project, depth };
 }
 
 /** The opening view, fitted tight — every other view keeps its aspect ratio. */

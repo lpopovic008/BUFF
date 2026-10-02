@@ -58,3 +58,12 @@ test("projected points stay inside their scene's view", () => {
     }
   }
 });
+
+test("depth runs from the near (south) edge to the far (north) edge, and turns with the map", () => {
+  const scene = buildMapScene(DEFAULT_CAMERA);
+  const miami = scene.depth(281, 186);
+  const seattle = scene.depth(49, 17);
+  assert.ok(miami < 0.15 && seattle > 0.85);
+  const flipped = buildMapScene({ ...DEFAULT_CAMERA, yaw: 180 });
+  assert.ok(flipped.depth(281, 186) > flipped.depth(49, 17));
+});

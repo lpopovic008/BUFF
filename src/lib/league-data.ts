@@ -141,6 +141,46 @@ export function buildStandingsThroughWeek(
   return rankStandings(rows);
 }
 
+export interface Streak {
+  result: "W" | "L";
+  length: number;
+}
+
+/**
+ * A team's current winning or losing streak, from Sleeper's own roster
+ * metadata — its `streak` ("3W"), or failing that the tail of its `record`
+ * ("WLWW" ends on 2 wins). Null before any result, or when the latest
+ * result was a tie.
+ */
+export function rosterStreak(roster: SleeperRoster): Streak | null {
+  const streak = roster.metadata?.streak?.trim().toUpperCase();
+  const match = streak?.match(/^(\d+)\s*([WL])$/);
+  if (match && Number(match[1]) > 0) return { result: match[2] as "W" | "L", length: Number(match[1]) };
+  const record = roster.metadata?.record?.trim().toUpperCase();
+  const last = record?.[record.length - 1];
+  if (!record || (last !== "W" && last !== "L")) return null;
+  let length = 0;
+  for (let i = record.length - 1; i >= 0 && record[i] === last; i--) length++;
+  return { result: last, length };
+}
+
+export interface PointsRanks {
+  /** 1 = the most points scored in the league. */
+  pointsFor: number;
+  /** 1 = the most points scored against. */
+  pointsAgainst: number;
+}
+
+/** Every team's league rank in points for and points against, by roster — tied totals share a rank. */
+export function pointsRanks(standings: StandingsRow[]): Map<number, PointsRanks> {
+  const rankOf = (value: number, all: number[]) => 1 + all.filter((v) => v > value + 1e-9).length;
+  const pf = standings.map((r) => r.pointsFor);
+  const pa = standings.map((r) => r.pointsAgainst);
+  return new Map(
+    standings.map((r) => [r.rosterId, { pointsFor: rankOf(r.pointsFor, pf), pointsAgainst: rankOf(r.pointsAgainst, pa) }])
+  );
+}
+
 export interface LeagueSummary {
   league: SleeperLeague;
   rosters: SleeperRoster[];

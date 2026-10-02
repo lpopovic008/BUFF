@@ -9,18 +9,39 @@ import { LeagueLegendEntry, LeagueMark } from "./LeagueMark";
 
 export type { LeagueLegendEntry };
 
+function formatPoints(points: number): string {
+  return points.toFixed(2);
+}
+
+/**
+ * A starter's row: position, name, the logo of every league they're started
+ * in, then their live fantasy points pinned to the right edge. Points use the
+ * first league's scoring; when the player's leagues score them differently,
+ * the tooltip lists each league's number. Before kickoff (or for a player
+ * with no game this week) the points slot holds a dash, keeping every row's
+ * logos lined up.
+ */
 function PlayerRow({
   player,
   legendByLeagueId,
+  started,
 }: {
   player: GroupedStarter;
   legendByLeagueId: Map<string, LeagueLegendEntry>;
+  /** Whether this player's game has kicked off — before that, 0 points is just "not yet". */
+  started: boolean;
 }) {
-  const leagueNames = player.leagueIds
-    .map((id) => legendByLeagueId.get(id)?.leagueName ?? id)
-    .join(", ");
+  const perLeague = player.leagueIds.map((id) => ({
+    name: legendByLeagueId.get(id)?.leagueName ?? id,
+    points: player.pointsByLeague[id] ?? null,
+  }));
+  const scoredDifferently = new Set(perLeague.map((l) => l.points)).size > 1;
+  const showPoints = started && player.points !== null;
+  const title = `${player.name} — ${perLeague
+    .map((l) => (started && scoredDifferently && l.points !== null ? `${l.name}: ${formatPoints(l.points)}` : l.name))
+    .join(", ")}`;
   return (
-    <div className="flex items-center gap-1.5 py-0.5" title={`${player.name} — ${leagueNames}`}>
+    <div className="flex items-center gap-1.5 py-0.5" title={title}>
       <span
         className={`w-[2.4em] shrink-0 text-[0.6875rem] font-semibold uppercase tracking-wide ${
           POSITION_TEXT_COLOR[player.position] ?? "text-ink-muted"
@@ -33,6 +54,13 @@ function PlayerRow({
         {player.leagueIds.map((id) => (
           <LeagueMark key={id} league={legendByLeagueId.get(id)} className="h-3 w-3" />
         ))}
+      </span>
+      <span
+        className={`w-[3.4em] shrink-0 text-right text-[0.8125rem] tabular-nums ${
+          showPoints ? "font-semibold text-ink-primary" : "text-ink-muted"
+        }`}
+      >
+        {showPoints ? formatPoints(player.points!) : "–"}
       </span>
     </div>
   );
@@ -71,27 +99,39 @@ function formatCountdown(ms: number): string {
   return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 }
 
-/** A live-ticking countdown to the next kickoff among your games this week — the next time block about to go live. Renders nothing once every game has already kicked off. */
-function NextKickoffClock({ games }: { games: GameStarters[] }) {
-  const target = useMemo(() => {
-    let next: number | null = null;
-    for (const { game } of games) {
-      const t = new Date(game.kickoff).getTime();
-      if (Number.isNaN(t)) continue;
-      if (next === null || t < next) next = t;
-    }
-    return next;
-  }, [games]);
+/** The earliest kickoff among these games, in ms — null when none has a usable time. */
+function earliestKickoff(games: GameStarters[]): number | null {
+  let next: number | null = null;
+  for (const { game } of games) {
+    const t = new Date(game.kickoff).getTime();
+    if (Number.isNaN(t)) continue;
+    if (next === null || t < next) next = t;
+  }
+  return next;
+}
 
-  // Starts at null (matching SSR) and only picks up a real clock reading once
-  // the first interval tick fires post-mount, rather than reading Date.now()
-  // synchronously during the effect itself.
+/**
+ * One shared once-a-second clock for every countdown in the list. Starts at
+ * null (matching SSR) and only picks up a real clock reading once the first
+ * interval tick fires post-mount, rather than reading Date.now()
+ * synchronously during the effect itself.
+ */
+function useNow(): number | null {
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
-    if (target === null) return;
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
-  }, [target]);
+  }, []);
+  return now;
+}
+
+/** A live-ticking countdown to the next kickoff among your games this week — the next time block about to go live. Renders nothing once every game has already kicked off. */
+function NextKickoffClock({ games, now }: { games: GameStarters[]; now: number | null }) {
+  const target = useMemo(() => {
+    if (now === null) return null;
+    // The next kickoff still ahead — the earliest overall may already be underway.
+    return earliestKickoff(games.filter(({ game }) => new Date(game.kickoff).getTime() > now));
+  }, [games, now]);
 
   if (target === null || now === null) return null;
   const remaining = target - now;
@@ -102,6 +142,28 @@ function NextKickoffClock({ games }: { games: GameStarters[] }) {
       <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Next kickoff</span>
       <span className="text-3xl font-bold tabular-nums text-ink-primary">{formatCountdown(remaining)}</span>
     </div>
+  );
+}
+
+/**
+ * A time block's own clock, pinned to the right of its header: a countdown
+ * to the block's first kickoff, then "Live" once it's underway and "Final"
+ * when every game in it has ended.
+ */
+function BlockClock({ games, now }: { games: GameStarters[]; now: number | null }) {
+  const start = earliestKickoff(games);
+  if (now === null || start === null) return null;
+  if (games.every(({ game }) => game.state === "post")) {
+    return <span className="shrink-0 tabular-nums text-ink-muted">Final</span>;
+  }
+  if (now < start && games.every(({ game }) => game.state === "pre")) {
+    return <span className="shrink-0 tabular-nums">{formatCountdown(start - now)}</span>;
+  }
+  return (
+    <span className="flex shrink-0 items-center gap-1 text-status-critical">
+      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-status-critical" aria-hidden />
+      Live
+    </span>
   );
 }
 
@@ -131,10 +193,11 @@ export function StartersByGame({
   const legendByLeagueId = new Map(legend.map((l) => [l.leagueId, l]));
   const columns = groupGamesByTimeBlock(games);
   const nothingToShow = games.length === 0 && notPlaying.length === 0;
+  const now = useNow();
 
   return (
     <div className="flex flex-col gap-4">
-      <NextKickoffClock games={games} />
+      <NextKickoffClock games={games} now={now} />
 
       <div className="flex flex-wrap gap-x-4 gap-y-1">
         {legend.map((league) => {
@@ -168,14 +231,15 @@ export function StartersByGame({
             {columns.map((column) => (
               <div key={column.label} className="flex flex-col gap-2">
                 <div
-                  className="px-2 py-1 text-xs font-semibold uppercase tracking-wide text-ink-primary"
+                  className="flex items-baseline justify-between gap-2 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-ink-primary"
                   style={{
                     backgroundColor: column.color
                       ? `color-mix(in srgb, ${column.color} 18%, transparent)`
                       : undefined,
                   }}
                 >
-                  {column.label}
+                  <span className="min-w-0 truncate">{column.label}</span>
+                  <BlockClock games={column.games} now={now} />
                 </div>
                 <div className="flex flex-col gap-3">
                   {column.games.map(({ game, players }) => (
@@ -183,7 +247,12 @@ export function StartersByGame({
                       <GameHeader game={game} />
                       <div className="flex flex-col gap-0.5">
                         {players.map((player) => (
-                          <PlayerRow key={player.playerId} player={player} legendByLeagueId={legendByLeagueId} />
+                          <PlayerRow
+                            key={player.playerId}
+                            player={player}
+                            legendByLeagueId={legendByLeagueId}
+                            started={game.state !== "pre"}
+                          />
                         ))}
                       </div>
                     </div>
@@ -200,7 +269,7 @@ export function StartersByGame({
               </h3>
               <div className="grid grid-cols-1 gap-1">
                 {notPlaying.map((player) => (
-                  <PlayerRow key={player.playerId} player={player} legendByLeagueId={legendByLeagueId} />
+                  <PlayerRow key={player.playerId} player={player} legendByLeagueId={legendByLeagueId} started={false} />
                 ))}
               </div>
             </div>
