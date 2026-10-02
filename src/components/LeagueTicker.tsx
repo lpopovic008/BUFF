@@ -87,11 +87,12 @@ function TickerItem({ league, minWidth, copy }: { league: TickerLeague; minWidth
 }
 
 /**
- * Your leagues as a stock-market ticker pinned to the bottom of a phone's
- * screen, scrolling past on a loop (it holds still while touched or hovered,
+ * Your leagues as a stock-market ticker running edge to edge right under the
+ * header, then pinned to the top of a phone's screen once the header scrolls
+ * away. It scrolls past on a loop (holding still while touched or hovered,
  * and for reduced motion, where it scrolls by hand instead). Phones only —
- * wider screens show the full league boxes. Renders a spacer too, so the end
- * of the page isn't hidden behind it.
+ * wider screens show the full league boxes. Render it first on the page: it
+ * pulls itself out of <main>'s padding to sit flush against the header.
  */
 export function LeagueTicker({ leagues }: { leagues: TickerLeague[] }) {
   if (leagues.length === 0) return null;
@@ -99,23 +100,20 @@ export function LeagueTicker({ leagues }: { leagues: TickerLeague[] }) {
   // screen, so even one or two leagues never leave a gap.
   const minWidth = `calc(100vw / ${leagues.length})`;
   return (
-    <>
-      <div aria-hidden className="h-[calc(4.25rem+env(safe-area-inset-bottom))] md:hidden" />
-      <nav
-        aria-label="Your leagues"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-page/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
-      >
-        <div className="h-[4.25rem] overflow-hidden motion-reduce:overflow-x-auto">
-          <div
-            className="flex h-full w-max animate-[ticker_linear_infinite] hover:[animation-play-state:paused] active:[animation-play-state:paused] motion-reduce:animate-none"
-            style={{ animationDuration: `${leagues.length * SECONDS_PER_LEAGUE}s` }}
-          >
-            {[...leagues, ...leagues].map((league, i) => (
-              <TickerItem key={`${league.leagueId}-${i}`} league={league} minWidth={minWidth} copy={i >= leagues.length} />
-            ))}
-          </div>
+    <nav
+      aria-label="Your leagues"
+      className="sticky top-0 z-40 -mx-4 -mt-6 border-b border-border bg-page/95 backdrop-blur sm:-mx-6 sm:-mt-8 md:hidden"
+    >
+      <div className="h-[4.25rem] overflow-hidden motion-reduce:overflow-x-auto">
+        <div
+          className="flex h-full w-max animate-[ticker_linear_infinite] hover:[animation-play-state:paused] active:[animation-play-state:paused] motion-reduce:animate-none"
+          style={{ animationDuration: `${leagues.length * SECONDS_PER_LEAGUE}s` }}
+        >
+          {[...leagues, ...leagues].map((league, i) => (
+            <TickerItem key={`${league.leagueId}-${i}`} league={league} minWidth={minWidth} copy={i >= leagues.length} />
+          ))}
         </div>
-      </nav>
-    </>
+      </div>
+    </nav>
   );
 }

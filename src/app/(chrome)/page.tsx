@@ -218,6 +218,7 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="sr-only">Dashboard</h1>
+      <LeagueTicker leagues={leagueCards} />
 
       <div className="flex flex-col gap-6 md:flex-row md:items-start md:gap-3">
         {/* Map, then your leagues underneath it — always a single column, never side by side. Its own scroll container at md+, independent of the starters column beside it. Flipped to rtl so its scrollbar sits on the column's own left edge instead of in the gutter between the two columns — the inner wrapper flips back to ltr so the content itself still reads normally. */}
@@ -235,7 +236,7 @@ export default function DashboardPage() {
               </div>
             ) : null}
 
-            {/* On phones the leagues ride the ticker pinned to the screen's bottom instead (see LeagueTicker). */}
+            {/* On phones the leagues ride the ticker under the header instead (see LeagueTicker). */}
             <div className="hidden flex-col gap-4 animate-[rise_0.5s_ease-out_backwards] [animation-delay:70ms] md:flex">
               {leagueCards.map(({ leagueId, name, logo, matchup, my, opponent, leagueSize }, i) => {
                 return (
@@ -293,7 +294,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <LeagueTicker leagues={leagueCards} />
     </div>
   );
 }
