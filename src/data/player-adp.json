@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-01T18:49:08.849Z",
+  "updatedAt": "2026-10-02T18:21:28.332Z",
   "source": "yafsb",
   "dynastyOneQB": [
     {
@@ -313,12 +313,6 @@
       "position": "WR",
       "team": "CIN",
       "adp": 53.2
-    },
-    {
-      "name": "Travis Etienne",
-      "position": "RB",
-      "team": "NO",
-      "adp": 54.4
     },
     {
       "name": "Jayden Daniels",
@@ -1051,6 +1045,12 @@
       "position": "WR",
       "team": "LV",
       "adp": 193.1
+    },
+    {
+      "name": "Charlie Kolar",
+      "position": "TE",
+      "team": "LAC",
+      "adp": 195
     },
     {
       "name": "Kimani Vidal",
@@ -2463,12 +2463,6 @@
       "position": "WR",
       "team": "NE",
       "adp": 139.7
-    },
-    {
-      "name": "Zach Charbonnet",
-      "position": "RB",
-      "team": "SEA",
-      "adp": 140.2
     },
     {
       "name": "Mike Washington",
@@ -4507,12 +4501,6 @@
       "adp": 142
     },
     {
-      "name": "Zach Charbonnet",
-      "position": "RB",
-      "team": "SEA",
-      "adp": 142.7
-    },
-    {
       "name": "Jared Goff",
       "position": "QB",
       "team": "DET",
@@ -5887,12 +5875,6 @@
       "position": "K",
       "team": "JAX",
       "adp": 156.1
-    },
-    {
-      "name": "Zach Charbonnet",
-      "position": "RB",
-      "team": "SEA",
-      "adp": 157.1
     },
     {
       "name": "Cameron Dicker",
