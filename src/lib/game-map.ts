@@ -2,7 +2,7 @@
 // league in the starters list.
 
 import { isOutsideUS, NFLGame } from "./nfl-schedule";
-import { TEAM_CITIES } from "./warroom-team-cities";
+import { TEAM_CITIES, TeamCity } from "./warroom-team-cities";
 
 /**
  * A game's [x, y] in the US map's viewBox, or null when it can't be plotted —
@@ -15,6 +15,20 @@ import { TEAM_CITIES } from "./warroom-team-cities";
  * matches.
  */
 export function gameMapPosition(game: NFLGame): [number, number] | null {
+  return gameStadium(game)?.pos ?? null;
+}
+
+/**
+ * The postal code of the state a game is played in — the state of the same
+ * stadium gameMapPosition plots it at — or null abroad or when unknown.
+ */
+export function gameState(game: NFLGame): string | null {
+  const city = gameStadium(game)?.city;
+  return city ? city.slice(city.lastIndexOf(", ") + 2) : null;
+}
+
+/** The stadium a game is placed at (see gameMapPosition). */
+function gameStadium(game: NFLGame): TeamCity | null {
   if (isOutsideUS(game)) return null;
 
   if (game.neutralSite && game.venue?.city) {
@@ -22,10 +36,10 @@ export function gameMapPosition(game: NFLGame): [number, number] | null {
     const match = Object.values(TEAM_CITIES).find(
       (city) => city.city.toLowerCase() === label.toLowerCase()
     );
-    if (match) return match.pos;
+    if (match) return match;
   }
 
-  return TEAM_CITIES[game.homeTeam]?.pos ?? null;
+  return TEAM_CITIES[game.homeTeam] ?? null;
 }
 
 // Distinct hues from the app's own series palette, skipping the status colours

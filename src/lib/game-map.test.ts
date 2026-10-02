@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   computeKickoffSlots,
   gameMapPosition,
+  gameState,
   kickoffSlotColor,
   kickoffSlotLabel,
   kickoffSlotLongLabel,
@@ -146,4 +147,19 @@ test("a 10am and a 9:30am kickoff share one Sunday Morning window", () => {
   assert.equal(slotIndexByGameId.get("lon"), slotIndexByGameId.get("west"));
   assert.equal(kickoffBlockLabel(london), "Sunday Morning");
   assert.equal(kickoffBlockLabel(game({ id: "x", kickoff: "nope" })), "TBD");
+});
+
+test("a game's state is its stadium's: the home team's, a matched neutral venue's, none abroad", () => {
+  assert.equal(gameState(game()), "CA");
+  assert.equal(gameState(game({ homeTeam: "PHI" })), "PA");
+  const atBuffalo = game({
+    venue: { name: "Highmark Stadium", city: "Orchard Park", state: "NY", country: "USA" },
+    neutralSite: true,
+  });
+  assert.equal(gameState(atBuffalo), "NY");
+  const london = game({
+    venue: { name: "Tottenham Hotspur Stadium", city: "London", state: null, country: "England" },
+    neutralSite: true,
+  });
+  assert.equal(gameState(london), null);
 });

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NFLGame, isOutsideUS } from "@/lib/nfl-schedule";
-import { gameMapPosition, internationalSlotPosition } from "@/lib/game-map";
+import { gameMapPosition, gameState, internationalSlotPosition } from "@/lib/game-map";
 import {
   DEFAULT_SCALES,
   DEFAULT_SCENE,
@@ -13,6 +13,7 @@ import {
   SLAB_HEIGHT,
   buildMapScene,
   buildSlabPaths,
+  buildStatesPath,
 } from "@/lib/map-perspective";
 import { PlacedLabel, placeLabels } from "@/lib/map-labels";
 import { useMapCamera } from "@/hooks/useMapCamera";
@@ -106,8 +107,13 @@ function ringPath(scene: MapScene, [x, y]: [number, number], radius: number, gro
  * stroked *behind* the land at double the state lines' width, so only its
  * outer half shows — it never eats into small coastal states.
  */
-function SlabOutline({ camera }: { camera: MapCamera }) {
+/**
+ * The map's slab. States hosting a game (`activeStates`) are drawn in the
+ * full land shade; the rest sit a shade or two quieter, closer to the page.
+ */
+function SlabOutline({ camera, activeStates }: { camera: MapCamera; activeStates: ReadonlySet<string> }) {
   const slab = useMemo(() => buildSlabPaths(camera), [camera]);
+  const active = useMemo(() => buildStatesPath(camera, activeStates), [camera, activeStates]);
   return (
     <g strokeLinejoin="miter" strokeMiterlimit={4}>
       {slab.wallLayers.map((d, i) => (
@@ -122,7 +128,8 @@ function SlabOutline({ camera }: { camera: MapCamera }) {
         strokeWidth={LINE_PX * 2}
         vectorEffect="non-scaling-stroke"
       />
-      <path d={slab.outline} fill="var(--map-land)" />
+      <path d={slab.outline} fill="var(--map-land-quiet)" />
+      {active ? <path d={active} fill="var(--map-land)" /> : null}
       <path
         d={slab.stateLines}
         fill="none"
@@ -452,6 +459,12 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
     return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, [selected]);
 
+  // Every state with a game showing.
+  const activeStates = useMemo(
+    () => new Set(games.map(({ game }) => gameState(game)).filter((code) => code !== null)),
+    [games]
+  );
+
   const tags = useMemo(() => {
     let abroadIndex = 0;
     return games
@@ -557,7 +570,7 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
               className="absolute inset-0 block h-full w-full overflow-visible"
               aria-hidden
             >
-              <SlabOutline camera={camera} />
+              <SlabOutline camera={camera} activeStates={activeStates} />
               {/* Each game's ring sits on the map itself, so it tilts, turns and
                   zooms with the land — wider the more starters (both sides) play in it. */}
               <g fill="none" stroke="var(--map-edge)" strokeWidth={RING_STROKE_PX}>

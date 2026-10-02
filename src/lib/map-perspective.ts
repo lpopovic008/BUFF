@@ -11,6 +11,7 @@
 // The land is a slab a few units thick; the tilt shows its camera-facing
 // side wall, which is what sells the perspective.
 
+import { US_STATE_SHAPES } from "./us-states";
 import { US_MAP_VIEWBOX, US_SIMPLE_OUTLINE_PATH, US_SIMPLE_STATE_LINES_PATH } from "./warroom-team-cities";
 
 export const [, , MAP_W, MAP_H] = US_MAP_VIEWBOX.split(" ").map(Number);
@@ -156,6 +157,16 @@ const STATE_LINES = compile(US_SIMPLE_STATE_LINES_PATH);
 
 /** The mainland outline as [x0, y0, x1, y1, ...], for point-in-US tests. */
 export const OUTLINE_POINTS: number[] = OUTLINE.xs.flatMap((x, i) => [x, OUTLINE.ys[i]]);
+
+const STATES = Object.entries(US_STATE_SHAPES).map(([code, d]) => ({ code, path: compile(d) }));
+
+/** The given states' shapes on the slab's top face, as one path, for this camera. */
+export function buildStatesPath(camera: MapCamera, codes: ReadonlySet<string>): string {
+  const { project } = projectorFor(camera);
+  return STATES.filter((s) => codes.has(s.code))
+    .map((s) => render(s.path, project, SLAB_HEIGHT))
+    .join("");
+}
 
 /** Whether a flat-map point is on US land. */
 export function insideUS(x: number, y: number): boolean {

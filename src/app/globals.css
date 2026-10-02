@@ -15,6 +15,8 @@
      light mode inverts it — light grey land with dark lines on the page
      background. */
   --map-land: #d9dadd;
+  /* States with no game this week: a shade or two closer to the page. */
+  --map-land-quiet: #e8e9eb;
   --map-wall: #a8aaaf;
   --map-edge: #121212;
   --map-state-line: rgba(0, 0, 0, 0.22);
@@ -68,6 +70,7 @@
   --baseline: #383835;
   --border: rgba(255, 255, 255, 0.1);
   --map-land: #3a3c40;
+  --map-land-quiet: #2b2d30;
   --map-wall: #26282c;
   --map-edge: #f4f4f4;
   --map-state-line: rgba(255, 255, 255, 0.24);

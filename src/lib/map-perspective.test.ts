@@ -11,6 +11,7 @@ import {
   MIN_ZOOM,
   buildMapScene,
   buildSlabPaths,
+  buildStatesPath,
   clampTilt,
   clampZoom,
   insideUS,
@@ -18,6 +19,8 @@ import {
   normalizeYaw,
   unproject,
 } from "./map-perspective";
+import { US_STATE_SHAPES } from "./us-states";
+import { TEAM_CITIES } from "./warroom-team-cities";
 
 const aspect = (s: { view: { width: number; height: number } }) => s.view.width / s.view.height;
 const center = (s: { view: { x: number; y: number; width: number; height: number } }) => [
@@ -113,4 +116,18 @@ test("insideUS knows land from sea and from abroad", () => {
   assert.ok(insideUS(160, 100));
   assert.ok(!insideUS(5, 195)); // the Pacific, off Mexico
   assert.ok(!insideUS(80, 150)); // just south of the border below Arizona
+});
+
+test("every NFL stadium's state has a shape to light up", () => {
+  for (const { city } of Object.values(TEAM_CITIES)) {
+    const state = city.split(", ").pop()!;
+    assert.ok(US_STATE_SHAPES[state], city);
+  }
+});
+
+test("buildStatesPath draws just the states asked for", () => {
+  assert.equal(buildStatesPath(DEFAULT_CAMERA, new Set()), "");
+  const one = buildStatesPath(DEFAULT_CAMERA, new Set(["CO"]));
+  const two = buildStatesPath(DEFAULT_CAMERA, new Set(["CO", "TX"]));
+  assert.ok(one.startsWith("M") && two.length > one.length);
 });
