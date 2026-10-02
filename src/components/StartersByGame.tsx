@@ -243,12 +243,8 @@ export function StartersByGame({
                   onClick={() => onToggleBlock(column.label)}
                   aria-pressed={!hiddenBlocks.has(column.label)}
                   title={`${hiddenBlocks.has(column.label) ? "Show" : "Hide"} ${column.label} games on the map`}
-                  className="flex w-full cursor-pointer items-baseline justify-between gap-2 px-2 py-1 text-left text-xs font-semibold uppercase tracking-wide text-ink-primary transition-[filter] hover:brightness-125 active:brightness-90"
-                  style={{
-                    backgroundColor: column.color
-                      ? `color-mix(in srgb, ${column.color} 18%, transparent)`
-                      : undefined,
-                  }}
+                  // Styled like the map's game tags: the same solid contrasting fill and ink.
+                  className="flex w-full cursor-pointer items-baseline justify-between gap-2 bg-[var(--map-tag)] px-2 py-1 text-left text-xs font-bold uppercase tracking-wide text-[var(--map-tag-ink)] transition-opacity hover:opacity-90 active:opacity-80"
                 >
                   <span className="flex min-w-0 items-center gap-2">
                     <span
