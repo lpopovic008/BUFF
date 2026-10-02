@@ -222,7 +222,8 @@ export function StartersByGame({
     <div className="flex flex-col gap-4">
       <NextKickoffClock games={games} now={now} />
 
-      <div className="flex flex-wrap gap-x-4 gap-y-1">
+      {/* One league per line; tapping one shows or hides its starters. */}
+      <div className="flex flex-col gap-1.5">
         {legend.map((league) => {
           const selected = selectedLeagueIds.has(league.leagueId);
           return (
@@ -231,12 +232,12 @@ export function StartersByGame({
               type="button"
               onClick={() => onToggleLeague(league.leagueId)}
               aria-pressed={selected}
-              className={`flex items-center gap-1.5 text-[0.8125rem] transition-opacity ${
+              className={`flex items-start gap-2 text-[0.9375rem] leading-snug transition-opacity ${
                 selected ? "text-ink-secondary" : "text-ink-muted opacity-40"
               }`}
             >
-              <LeagueMark league={league} className="h-3 w-3" />
-              <span className="text-balance text-left">{league.leagueName}</span>
+              <LeagueMark league={league} className="mt-[0.2em] h-4 w-4 shrink-0" />
+              <span className="text-left">{league.leagueName}</span>
             </button>
           );
         })}
