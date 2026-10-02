@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { DashboardMatchupView } from "@/hooks/useDashboardMatchups";
-import { formatPoints, formatRecord, ordinal } from "@/lib/format";
+import { formatPoints, formatRecord } from "@/lib/format";
 import { MY_TEAM_NAME_CLASS, StreakBadge, TeamStanding } from "./DashboardMatchupCard";
 
 export interface TickerLeague {
@@ -179,8 +179,8 @@ function TickerTeamRow({
   return (
     <>
       <div className="flex items-center gap-1.5 whitespace-nowrap">
-        {/* A fixed four characters for the place ("4th", "12th"), so every team name starts at the same x. */}
-        <span className="w-[4ch] shrink-0 text-xs font-medium text-series-4">{rank != null ? ordinal(rank) : ""}</span>
+        {/* The place as a bare number in a fixed two digits, right-aligned, so every team name starts at the same x. */}
+        <span className="w-[2ch] shrink-0 text-right text-xs font-medium tabular-nums text-series-4">{rank ?? ""}</span>
         <span className={`text-sm ${mine && HIGHLIGHT_MINE ? MY_TEAM_NAME_CLASS : "font-medium text-ink-primary"}`}>{name}</span>
         {record ? (
           <span className="text-xs tabular-nums text-ink-muted">({formatRecord(record.wins, record.losses, record.ties)})</span>
