@@ -193,6 +193,8 @@ export interface MapScene {
   project: MapProjector;
   /** How much a spot is magnified by perspective (larger is nearer the camera). */
   scaleAt: (x: number, y: number, height?: number) => number;
+  /** The perspective magnification at the land's farthest point from the camera. */
+  farScale: number;
 }
 
 /** The slab's paths for one camera view. */
@@ -248,7 +250,9 @@ export function buildMapScene(camera: MapCamera): MapScene {
   const halfH = BASE.halfH / camera.zoom;
   const view = { x: cx - halfW, y: cy - halfH, width: halfW * 2, height: halfH * 2 };
   const viewBox = `${view.x.toFixed(2)} ${view.y.toFixed(2)} ${view.width.toFixed(2)} ${view.height.toFixed(2)}`;
-  return { view, viewBox, project, scaleAt };
+  let farScale = Infinity;
+  for (let i = 0; i < OUTLINE.xs.length; i++) farScale = Math.min(farScale, scaleAt(OUTLINE.xs[i], OUTLINE.ys[i]));
+  return { view, viewBox, project, scaleAt, farScale };
 }
 
 export function buildSlabPaths(camera: MapCamera): SlabPaths {

@@ -5,7 +5,6 @@ import { NFLGame, isOutsideUS } from "@/lib/nfl-schedule";
 import { gameMapPosition, internationalSlotPosition } from "@/lib/game-map";
 import { formatKickoff } from "@/lib/my-starters";
 import {
-  DEFAULT_CAMERA,
   DEFAULT_SCALES,
   DEFAULT_SCENE,
   MAP_ASPECT,
@@ -34,12 +33,14 @@ export interface MappedGame {
   opponentStarters: MappedStarter[];
 }
 
-// The state lines' width; the border is stroked at twice this behind the
-// land, so the half that shows matches them.
-const LINE_WIDTH = 0.38;
+// The state lines' width in screen px — a hairline at any zoom, so zooming
+// in never lands you on a thick band of border. The border is stroked at
+// twice this behind the land, so the half that shows matches them.
+const LINE_PX = 1;
 
 // Game tag type size, in rem, for a tag at the map's middle in the opening
-// view — nearer tags grow and farther ones shrink with perspective and zoom.
+// view — nudged a little bigger when near the camera and smaller when far,
+// but never scaled with zoom.
 // Inconsolata is monospaced (every glyph is 0.5em wide), so a tag's size is
 // known from its text alone — the stem layout needs every tag's size before
 // anything is drawn.
@@ -51,12 +52,11 @@ const PAD_Y_EM = 0.12;
 const STEM_GAP_EM = 0.35;
 // Which side of its stem every tag hangs on.
 const TAG_SIDE: "left" | "right" = "left";
-// How faded a tag at the map's far edge (in the opening view) is; the nearest are fully opaque.
+// How faded a tag at the land's far edge is; the game nearest the camera is fully opaque.
 const FAR_OPACITY = 0.25;
-// Tag size multipliers are held to this range, so a far tag stays legible
-// and a near one at full zoom doesn't swallow the map.
-const MIN_TAG_SCALE = 0.55;
-const MAX_TAG_SCALE = 3;
+// The near/far size nudge stays within this range.
+const MIN_TAG_SCALE = 0.85;
+const MAX_TAG_SCALE = 1.2;
 // Room kept above the map for the tags of its northernmost sites — at
 // least this much, more when the opening view's tags need it (narrow
 // screens, where the Northeast's tags have to stack higher).
@@ -95,11 +95,25 @@ function SlabOutline({ camera }: { camera: MapCamera }) {
   return (
     <g strokeLinejoin="miter" strokeMiterlimit={4}>
       {slab.wallLayers.map((d, i) => (
+        // The wall layers' own strokes only seal the gaps between them, so
+        // (unlike the lines) they scale with the map.
         <path key={i} d={d} fill="var(--map-wall)" stroke="var(--map-wall)" strokeWidth={0.6} />
       ))}
-      <path d={slab.outline} fill="none" stroke="var(--map-edge)" strokeWidth={LINE_WIDTH * 2} />
+      <path
+        d={slab.outline}
+        fill="none"
+        stroke="var(--map-edge)"
+        strokeWidth={LINE_PX * 2}
+        vectorEffect="non-scaling-stroke"
+      />
       <path d={slab.outline} fill="var(--map-land)" />
-      <path d={slab.stateLines} fill="none" stroke="var(--map-state-line)" strokeWidth={LINE_WIDTH} />
+      <path
+        d={slab.stateLines}
+        fill="none"
+        stroke="var(--map-state-line)"
+        strokeWidth={LINE_PX}
+        vectorEffect="non-scaling-stroke"
+      />
     </g>
   );
 }
@@ -137,21 +151,9 @@ interface Tag {
   title: string;
 }
 
-/**
- * How close a site is to the camera, relative to the map's middle in the
- * opening view: perspective magnification times zoom. Drives both a tag's
- * size (it stays in proportion to the map around it) and its fade.
- */
-function closeness(scene: MapScene, zoom: number, t: Tag): number {
-  return (scene.scaleAt(t.pos[0], t.pos[1], t.ground) * zoom) / DEFAULT_SCALES.center;
-}
-
-const FAR_CLOSENESS = DEFAULT_SCALES.far / DEFAULT_SCALES.center;
-const NEAR_CLOSENESS = DEFAULT_SCALES.near / DEFAULT_SCALES.center;
-
-function tagOpacity(c: number): number {
-  const t = Math.min(1, Math.max(0, (c - FAR_CLOSENESS) / (NEAR_CLOSENESS - FAR_CLOSENESS)));
-  return FAR_OPACITY + (1 - FAR_OPACITY) * t;
+/** A site's perspective magnification — larger is nearer the camera. Zoom plays no part. */
+function siteScale(scene: MapScene, t: Tag): number {
+  return scene.scaleAt(t.pos[0], t.pos[1], t.ground);
 }
 
 interface PlacedTag extends PlacedLabel {
@@ -161,15 +163,25 @@ interface PlacedTag extends PlacedLabel {
   opacity: number;
 }
 
-/** Stem layout for every tag, in px from the map's top-left, for one camera view. */
-function layoutTags(tags: Tag[], scene: MapScene, zoom: number, width: number, rootPx: number, minTop: number): PlacedTag[] {
+/**
+ * Stem layout for every tag, in px from the map's top-left, for one camera
+ * view. Tags keep a steady on-screen size whatever the zoom (only a mild
+ * nudge bigger when near, smaller when far), so zooming in gives the map
+ * more room around them. Their fade is relative to the game nearest the
+ * camera: that one is fully opaque, and the rest fade with how much farther
+ * back they sit, down to FAR_OPACITY at the far edge of the land.
+ */
+function layoutTags(tags: Tag[], scene: MapScene, width: number, rootPx: number, minTop: number): PlacedTag[] {
   const k = width / scene.view.width;
   const byId = new Map<string, { tag: Tag; scale: number; opacity: number }>();
+  const nearest = Math.max(...tags.map((t) => siteScale(scene, t)));
+  const span = Math.max(1e-6, nearest - scene.farScale);
   const layout = placeLabels(
     tags.map((t) => {
-      const c = closeness(scene, zoom, t);
-      const scale = Math.min(MAX_TAG_SCALE, Math.max(MIN_TAG_SCALE, c));
-      byId.set(t.id, { tag: t, scale, opacity: tagOpacity(c) });
+      const s = siteScale(scene, t);
+      const scale = Math.min(MAX_TAG_SCALE, Math.max(MIN_TAG_SCALE, s / DEFAULT_SCALES.center));
+      const t01 = Math.min(1, Math.max(0, (s - scene.farScale) / span));
+      byId.set(t.id, { tag: t, scale, opacity: FAR_OPACITY + (1 - FAR_OPACITY) * t01 });
       const [x, y] = scene.project(t.pos[0], t.pos[1], t.ground);
       return { id: t.id, x: (x - scene.view.x) * k, y: (y - scene.view.y) * k, ...tagSize(t.title, rootPx, scale) };
     }),
@@ -367,7 +379,7 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
   const headroomPx = useMemo(() => {
     if (!measure) return null;
     const { width, rootPx } = measure;
-    const free = layoutTags(tags, DEFAULT_SCENE, DEFAULT_CAMERA.zoom, width, rootPx, -Infinity);
+    const free = layoutTags(tags, DEFAULT_SCENE, width, rootPx, -Infinity);
     const highest = Math.min(0, ...free.map((l) => l.y - l.stem));
     return Math.max(MIN_HEADROOM_REM * rootPx, Math.ceil(-highest) + 4);
   }, [measure, tags]);
@@ -375,18 +387,46 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
   const placed = useMemo(() => {
     if (!measure || headroomPx === null) return [];
     // Paint far tags first so nearer ones sit on top.
-    return layoutTags(tags, scene, camera.zoom, measure.width, measure.rootPx, -headroomPx).sort((a, b) => a.y - b.y);
-  }, [measure, headroomPx, scene, camera.zoom, tags]);
+    return layoutTags(tags, scene, measure.width, measure.rootPx, -headroomPx).sort((a, b) => a.y - b.y);
+  }, [measure, headroomPx, scene, tags]);
 
   const selectedTag = placed.find((p) => p.id === selected) ?? null;
   const headroom = headroomPx ?? 0;
   const mapHeight = measure ? measure.width / MAP_ASPECT : 0;
   const gap = 0.4 * (measure?.rootPx ?? 16);
 
-  function handleTagClick(id: string) {
-    // The click a drag ends with is just the end of turning the map.
+  /**
+   * Tags may overlap, so a tap resolves to every tag under it rather than
+   * just the one the browser hit (the topmost, which would otherwise hide
+   * the rest for good). One tag there: tapping opens or closes it. Several:
+   * the first tap opens the earliest kickoff among them, and each tap on the
+   * same spot after that moves on to the next, wrapping around.
+   */
+  function handleTagClick(id: string, clientX: number, clientY: number) {
+    // The click a drag ends with is just the end of moving the map.
     if (wasDrag()) return;
-    setSelected((current) => (current === id ? null : id));
+    const box = mapRef.current?.getBoundingClientRect();
+    const px = box ? clientX - box.left : NaN;
+    const py = box ? clientY - box.top : NaN;
+    const under = placed
+      .filter((p) => {
+        const left = TAG_SIDE === "left" ? p.x - p.width : p.x;
+        const top = p.y - p.stem;
+        return px >= left && px <= left + p.width && py >= top && py <= top + p.height;
+      })
+      .sort(
+        (a, b) =>
+          new Date(a.tag.entry.game.kickoff).getTime() - new Date(b.tag.entry.game.kickoff).getTime() ||
+          a.tag.title.localeCompare(b.tag.title)
+      );
+    if (under.length <= 1) {
+      setSelected((current) => (current === id ? null : id));
+      return;
+    }
+    setSelected((current) => {
+      const i = under.findIndex((p) => p.id === current);
+      return under[i === -1 ? 0 : (i + 1) % under.length].id;
+    });
   }
 
   const controlClass =
@@ -408,7 +448,7 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
         className="relative w-full cursor-grab touch-none select-none overflow-clip outline-none [-webkit-touch-callout:none] active:cursor-grabbing focus-visible:ring-1 focus-visible:ring-ink-muted"
         style={{ paddingTop: headroomPx === null ? `${MIN_HEADROOM_REM}rem` : headroomPx }}
         tabIndex={0}
-        aria-label="US map. Drag to spin and tilt it; drag with two fingers, Shift or the right mouse button to move it; pinch, Ctrl+scroll or the +/- keys to zoom; arrow keys to nudge; double-click or Home to reset the view."
+        aria-label="US map. Drag to move it; twist two fingers, or drag with Shift or the right mouse button, to spin and tilt it; pinch, Ctrl+scroll or the +/- keys to zoom; arrow keys to turn; double-click or Home to reset the view."
         {...handlers}
       >
         <div className="mx-auto w-full min-w-0 max-w-[44rem]">
@@ -444,7 +484,8 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
                     key={id}
                     role="listitem"
                     className="group absolute left-0 top-0"
-                    style={{ transform: `translate(${x}px, ${y}px)` }}
+                    // The open game's tag comes to the front of any it overlaps.
+                    style={{ transform: `translate(${x}px, ${y}px)`, zIndex: selected === id ? 5 : undefined }}
                   >
                     <span
                       className="absolute left-0 w-px bg-[var(--map-edge)] group-hover:!opacity-100"
@@ -457,7 +498,7 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
                       data-game-tag
                       aria-pressed={selected === id}
                       aria-label={`${tag.title} — show starters`}
-                      onClick={() => handleTagClick(id)}
+                      onClick={(e) => handleTagClick(id, e.clientX, e.clientY)}
                       onDoubleClick={(e) => e.stopPropagation()}
                       className={`pointer-events-auto absolute cursor-pointer whitespace-nowrap font-bold outline-offset-1 ${
                         TAG_SIDE === "left" ? "right-0" : "left-0"

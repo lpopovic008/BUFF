@@ -43,30 +43,42 @@ function panned(camera: MapCamera, box: DOMRect, dx: number, dy: number): MapCam
   return { ...camera, tx, ty };
 }
 
+/**
+ * `next` (a turned, tilted or zoomed `prev`) with its target moved so that
+ * the map point under the client point (x, y) in `prev` is still under it —
+ * the pivot of a pinch, a twist, or a zoom toward the cursor.
+ */
+function keepUnder(prev: MapCamera, next: MapCamera, box: DOMRect, x: number, y: number): MapCamera {
+  const [ax, ay] = toProjected(prev, box, x, y);
+  const [px, py] = unproject(prev, ax, ay);
+  const { view, project } = buildMapScene(next);
+  const k = box.width / view.width;
+  const [sx, sy] = project(px, py);
+  // The view centers on the target, so put the target where the point's
+  // offset from the box's middle says the middle should be.
+  const [tx, ty] = clampTarget(
+    ...unproject(next, sx - (x - box.left - box.width / 2) / k, sy - (y - box.top - box.height / 2) / k)
+  );
+  return { ...next, tx, ty };
+}
+
 /** The camera zoomed by `factor`, keeping whatever's under the client point (x, y) in place. */
 function zoomedAt(camera: MapCamera, box: DOMRect, factor: number, x: number, y: number): MapCamera {
-  const zoom = clampZoom(camera.zoom * factor);
-  const [ax, ay] = toProjected(camera, box, x, y);
-  const { project } = buildMapScene(camera);
-  const [cx, cy] = project(camera.tx, camera.ty);
-  // The anchor keeps its screen offset from the center, shrunk by the zoom change.
-  const ratio = camera.zoom / zoom;
-  const [tx, ty] = clampTarget(...unproject(camera, ax - (ax - cx) * ratio, ay - (ay - cy) * ratio));
-  return { ...camera, zoom, tx, ty };
+  return keepUnder(camera, { ...camera, zoom: clampZoom(camera.zoom * factor) }, box, x, y);
 }
 
 /**
- * The dashboard map's orbit camera. Drag (or one-finger swipe) sideways to
- * spin it, up/down to tilt it. Pan by dragging with two fingers, with Shift
- * held, or with the right mouse button. Zoom toward any part of the country
- * with a pinch, Ctrl/⌘ + scroll (or a trackpad pinch) — whatever's under the
- * fingers or cursor stays put — or with the +/- keys and zoomBy for
- * on-screen buttons, which zoom about the middle of the view. Touches on the
- * map belong to it alone — the page never scrolls or zooms under them (the
- * map element sets touch-action: none). A flick keeps spinning and eases to
- * a stop. Double-click (or the reset button) eases back to the default view,
- * which is also where every page load starts — the camera is deliberately
- * never persisted.
+ * The dashboard map's camera. One finger (or a plain mouse drag) moves the
+ * map around under it. Two fingers twist to spin it, pinch to zoom — about
+ * the point between them, which stays put — and slide up/down together to
+ * tilt it. With a mouse, drag with the right button (or with Shift held) to
+ * spin and tilt, and zoom toward the cursor with Ctrl/⌘ + scroll (or a
+ * trackpad pinch); the +/- keys and zoomBy for on-screen buttons zoom about
+ * the middle of the view. Touches on the map belong to it alone — the page
+ * never scrolls or zooms under them (the map element sets touch-action:
+ * none). A flicked spin keeps turning and eases to a stop. Double-click (or
+ * the reset button) eases back to the default view, which is also where
+ * every page load starts — the camera is deliberately never persisted.
  *
  * `boxRef` is the map box the scene's view is drawn into — needed to turn
  * pointer positions into points on the map.
@@ -79,7 +91,8 @@ export function useMapCamera(boxRef: RefObject<HTMLElement | null>) {
   const frame = useRef<number | null>(null);
   const animation = useRef<number | null>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
-  const panning = useRef(false);
+  // A mouse drag that spins and tilts rather than moving the map.
+  const orbiting = useRef(false);
   const travelled = useRef(0);
   const yawVelocity = useRef(0);
   const lastMoveAt = useRef(0);
@@ -152,8 +165,7 @@ export function useMapCamera(boxRef: RefObject<HTMLElement | null>) {
       stopAnimation();
       if (pointers.current.size === 0) {
         travelled.current = 0;
-        // Right/middle button, or Shift, drags the map around instead of turning it.
-        panning.current = e.pointerType === "mouse" && (e.button !== 0 || e.shiftKey);
+        orbiting.current = e.pointerType === "mouse" && (e.button !== 0 || e.shiftKey || e.altKey);
       }
       pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
       yawVelocity.current = 0;
@@ -179,19 +191,31 @@ export function useMapCamera(boxRef: RefObject<HTMLElement | null>) {
       const width = box?.width || e.currentTarget.clientWidth || 1;
       const cam = live.current;
       if (pointers.current.size > 1) {
-        // Two fingers: the map follows their midpoint, and the spread
-        // between them zooms about it.
+        // Two fingers: twisting spins the map, the spread between them zooms
+        // about their midpoint, and sliding both up/down tilts. Each event
+        // moves one finger, so the midpoint moves half as far.
         if (!box) return;
         const other = [...pointers.current.entries()].find(([id]) => id !== e.pointerId)?.[1];
         if (!other) return;
         const before = Math.hypot(prev.x - other.x, prev.y - other.y);
         const after = Math.hypot(e.clientX - other.x, e.clientY - other.y);
-        let next = panned(cam, box, dx / 2, dy / 2);
-        if (before > 10) next = zoomedAt(next, box, after / before, (e.clientX + other.x) / 2, (e.clientY + other.y) / 2);
-        commit(next);
+        if (before < 10) return;
+        const twist =
+          Math.atan2(e.clientY - other.y, e.clientX - other.x) - Math.atan2(prev.y - other.y, prev.x - other.x);
+        const dTwist = (((twist + Math.PI * 3) % (Math.PI * 2)) - Math.PI) * (180 / Math.PI);
+        const next: MapCamera = {
+          ...cam,
+          // Twisting the fingers clockwise turns the map clockwise with them.
+          yaw: cam.yaw + dTwist,
+          tilt: clampTilt(cam.tilt - (dy / 2) * (TILT_PER_WIDTH / width)),
+          zoom: clampZoom(cam.zoom * (after / before)),
+        };
+        // Everything turns, tilts and zooms about the point between the fingers.
+        commit(keepUnder(cam, next, box, (prev.x + other.x) / 2, (prev.y + other.y) / 2));
         return;
       }
-      if (panning.current) {
+      if (!orbiting.current) {
+        // One finger, or a plain mouse drag: the map follows it.
         if (box) commit(panned(cam, box, dx, dy));
         return;
       }
@@ -211,16 +235,16 @@ export function useMapCamera(boxRef: RefObject<HTMLElement | null>) {
     (e: PointerEvent<HTMLElement>, cancelled: boolean) => {
       if (!pointers.current.delete(e.pointerId)) return;
       if (pointers.current.size > 0) return;
-      if (!cancelled && !panning.current && performance.now() - lastMoveAt.current < 80) coast();
+      if (!cancelled && orbiting.current && performance.now() - lastMoveAt.current < 80) coast();
       else yawVelocity.current = 0;
-      panning.current = false;
+      orbiting.current = false;
     },
     [coast]
   );
 
   const onPointerUp = useCallback((e: PointerEvent<HTMLElement>) => endPointer(e, false), [endPointer]);
   const onPointerCancel = useCallback((e: PointerEvent<HTMLElement>) => endPointer(e, true), [endPointer]);
-  // The right button pans, so its menu would only get in the way.
+  // The right button spins the map, so its menu would only get in the way.
   const onContextMenu = useCallback((e: MouseEvent<HTMLElement>) => e.preventDefault(), []);
 
   /** True when the pointer gesture that just ended was a drag — tap targets on the map use it to ignore the click a drag ends with. */
