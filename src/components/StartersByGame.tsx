@@ -275,9 +275,11 @@ export function StartersByGame({
                   </span>
                   <BlockClock games={column.games} now={now} />
                 </button>
-                <div className="flex flex-col gap-3 pl-3">
+                <div className="flex flex-col gap-3">
                   {column.games.map(({ game, players }) => (
-                    <div key={game.id} className="flex flex-col gap-1">
+                    // A line down the indent beside each game, from its header
+                    // through its last player; the gap between games breaks it.
+                    <div key={game.id} className="ml-1 flex flex-col gap-1 border-l border-ink-muted/50 pl-2">
                       <GameHeader game={game} />
                       <div className="flex flex-col gap-0.5">
                         {players.map((player) => (
