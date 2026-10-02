@@ -34,13 +34,23 @@ function toProjected(camera: MapCamera, box: DOMRect, clientX: number, clientY: 
   return [view.x + (clientX - box.left) / k, view.y + (clientY - box.top) / k];
 }
 
+/**
+ * A new target from unprojected coordinates, or the old one when there's no
+ * answer: seen edge-on (tilt near 90°) a screen point off the land's line
+ * has no spot on the map under it, and the math runs off to infinity.
+ */
+function retarget(camera: MapCamera, [x, y]: [number, number]): MapCamera {
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return camera;
+  const [tx, ty] = clampTarget(x, y);
+  return { ...camera, tx, ty };
+}
+
 /** The camera moved so the map follows a drag of (dx, dy) px. */
 function panned(camera: MapCamera, box: DOMRect, dx: number, dy: number): MapCamera {
   const { view, project } = buildMapScene(camera);
   const k = box.width / view.width;
   const [cx, cy] = project(camera.tx, camera.ty);
-  const [tx, ty] = clampTarget(...unproject(camera, cx - dx / k, cy - dy / k));
-  return { ...camera, tx, ty };
+  return retarget(camera, unproject(camera, cx - dx / k, cy - dy / k));
 }
 
 /**
@@ -51,15 +61,16 @@ function panned(camera: MapCamera, box: DOMRect, dx: number, dy: number): MapCam
 function keepUnder(prev: MapCamera, next: MapCamera, box: DOMRect, x: number, y: number): MapCamera {
   const [ax, ay] = toProjected(prev, box, x, y);
   const [px, py] = unproject(prev, ax, ay);
+  if (!Number.isFinite(px) || !Number.isFinite(py)) return { ...next, tx: prev.tx, ty: prev.ty };
   const { view, project } = buildMapScene(next);
   const k = box.width / view.width;
   const [sx, sy] = project(px, py);
   // The view centers on the target, so put the target where the point's
   // offset from the box's middle says the middle should be.
-  const [tx, ty] = clampTarget(
-    ...unproject(next, sx - (x - box.left - box.width / 2) / k, sy - (y - box.top - box.height / 2) / k)
+  return retarget(
+    { ...next, tx: prev.tx, ty: prev.ty },
+    unproject(next, sx - (x - box.left - box.width / 2) / k, sy - (y - box.top - box.height / 2) / k)
   );
-  return { ...next, tx, ty };
 }
 
 /** The camera zoomed by `factor`, keeping whatever's under the client point (x, y) in place. */
