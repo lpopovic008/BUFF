@@ -236,23 +236,21 @@ export function StartersByGame({
           <div className="flex flex-col gap-4">
             {columns.map((column) => (
               <div key={column.label} className="flex flex-col gap-2">
-                <div
-                  className="flex items-baseline justify-between gap-2 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-ink-primary"
+                {/* The whole bar toggles its slate on the map: a filled dot when
+                    its games are showing, an outlined one when hidden. */}
+                <button
+                  type="button"
+                  onClick={() => onToggleBlock(column.label)}
+                  aria-pressed={!hiddenBlocks.has(column.label)}
+                  title={`${hiddenBlocks.has(column.label) ? "Show" : "Hide"} ${column.label} games on the map`}
+                  className="flex w-full cursor-pointer items-baseline justify-between gap-2 px-2 py-1 text-left text-xs font-semibold uppercase tracking-wide text-ink-primary transition-[filter] hover:brightness-125 active:brightness-90"
                   style={{
                     backgroundColor: column.color
                       ? `color-mix(in srgb, ${column.color} 18%, transparent)`
                       : undefined,
                   }}
                 >
-                  {/* The block's name toggles its whole slate on the map: a filled
-                      dot when its games are showing, an outlined one when hidden. */}
-                  <button
-                    type="button"
-                    onClick={() => onToggleBlock(column.label)}
-                    aria-pressed={!hiddenBlocks.has(column.label)}
-                    title={`${hiddenBlocks.has(column.label) ? "Show" : "Hide"} ${column.label} games on the map`}
-                    className="flex min-w-0 items-center gap-2 text-left uppercase tracking-wide"
-                  >
+                  <span className="flex min-w-0 items-center gap-2">
                     <span
                       aria-hidden
                       className={`h-2 w-2 shrink-0 rounded-full border border-current ${
@@ -260,9 +258,9 @@ export function StartersByGame({
                       }`}
                     />
                     <span className="min-w-0 truncate">{column.label}</span>
-                  </button>
+                  </span>
                   <BlockClock games={column.games} now={now} />
-                </div>
+                </button>
                 <div className="flex flex-col gap-3">
                   {column.games.map(({ game, players }) => (
                     <div key={game.id} className="flex flex-col gap-1">
