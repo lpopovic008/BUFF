@@ -43,7 +43,7 @@ function PlayerRow({
     .map((l) => (started && scoredDifferently && l.points !== null ? `${l.name}: ${formatPoints(l.points)}` : l.name))
     .join(", ")}`;
   return (
-    <div className="flex items-center gap-1.5 py-0.5" title={title}>
+    <div className="flex items-center gap-1.5 leading-tight" title={title}>
       <span
         className={`w-[2.4em] shrink-0 text-[0.6875rem] font-semibold uppercase tracking-wide ${
           POSITION_TEXT_COLOR[player.position] ?? "text-ink-muted"
@@ -51,7 +51,7 @@ function PlayerRow({
       >
         {player.position}
       </span>
-      <span className="min-w-0 flex-1 truncate text-[0.8125rem] leading-snug text-ink-primary">{player.name}</span>
+      <span className="min-w-0 flex-1 truncate text-[0.8125rem] text-ink-primary">{player.name}</span>
       <span className="flex shrink-0 items-center gap-0.5">
         {player.leagueIds.map((id) => (
           <LeagueMark key={id} league={legendByLeagueId.get(id)} className="h-3 w-3" />
@@ -281,7 +281,7 @@ export function StartersByGame({
                     // through its last player; the gap between games breaks it.
                     <div key={game.id} className="ml-1 flex flex-col gap-1 border-l border-ink-muted/50 pl-2">
                       <GameHeader game={game} />
-                      <div className="flex flex-col gap-0.5">
+                      <div className="flex flex-col">
                         {players.map((player) => (
                           <PlayerRow
                             key={player.playerId}
