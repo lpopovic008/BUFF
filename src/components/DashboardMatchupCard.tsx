@@ -11,7 +11,7 @@ export interface TeamStanding {
 }
 
 /** A green up-triangle for a winning streak, red down-triangle for a losing one, then its length. */
-export function StreakBadge({ streak }: { streak?: Streak | null }) {
+function StreakBadge({ streak }: { streak?: Streak | null }) {
   if (!streak) return null;
   const winning = streak.result === "W";
   return (
@@ -31,21 +31,38 @@ export function StreakBadge({ streak }: { streak?: Streak | null }) {
 
 /**
  * A team's line: its place in the standings, its name, its record in
- * parentheses, then its streak just right of the record. Always a
- * single line, on mobile and desktop alike — only the name ever truncates.
+ * parentheses, then its streak just right of the record. One line, where
+ * only the name ever truncates — or, `stacked`, the name on its own line
+ * with the rest beneath it, in the same order.
  */
 function TeamNameLabel({
   name,
   standing,
   align,
   colorClass,
+  stacked = false,
 }: {
   name: string;
   standing: TeamStanding;
   align: "left" | "right";
   colorClass: string;
+  stacked?: boolean;
 }) {
   const { rank, record, streak } = standing;
+  if (stacked) {
+    return (
+      <div className={`flex min-w-0 flex-col ${align === "right" ? "items-end" : ""}`}>
+        <span className={`max-w-full truncate text-xs font-medium ${colorClass}`}>{name}</span>
+        <div className="flex items-baseline gap-1 text-[0.625rem]">
+          {rank != null ? <span className="font-medium text-series-4">{ordinal(rank)}</span> : null}
+          {record ? (
+            <span className="tabular-nums text-ink-muted">({formatRecord(record.wins, record.losses, record.ties)})</span>
+          ) : null}
+          <StreakBadge streak={streak} />
+        </div>
+      </div>
+    );
+  }
   return (
     <div className={`flex min-w-0 items-baseline gap-1.5 ${align === "right" ? "justify-end" : ""}`}>
       {rank != null ? <span className="shrink-0 text-xs font-medium text-series-4">{ordinal(rank)}</span> : null}
@@ -72,7 +89,7 @@ export function rankTone(rank: number, leagueSize: number, higherIsWorse = false
   return tone === "good" ? "bad" : "good";
 }
 
-export const TONE_CLASS = { good: "text-status-good", mid: "text-series-4", bad: "text-status-critical" } as const;
+const TONE_CLASS = { good: "text-status-good", mid: "text-series-4", bad: "text-status-critical" } as const;
 
 /**
  * Where a team's points for and points against rank in the league, stacked
@@ -108,35 +125,42 @@ function PointsRankBadges({
   );
 }
 
-/** The dashboard's per-league matchup section: each team's line (rank, name, record, streak) over its score, left and right. Sits inside a whole-box link, so team names are plain text rather than their own nested links. Who's actually playing is covered once, for every league at once, by the starters-by-game box below the league grid. */
+/** The dashboard's per-league matchup section: each team's line (rank, name, record, streak) over its score, left and right. `compact` is the same layout in smaller type with each team's name on its own line (the phone ticker). Sits inside a whole-box link, so team names are plain text rather than their own nested links. Who's actually playing is covered once, for every league at once, by the starters-by-game box below the league grid. */
 export function DashboardMatchupCard({
   matchup,
   my,
   opponent,
   leagueSize,
+  compact = false,
 }: {
   matchup: DashboardMatchupView | null | undefined;
   my: TeamStanding;
   opponent?: TeamStanding;
   /** Teams in the league, for coloring ranks by where they fall in it. */
   leagueSize: number;
+  compact?: boolean;
 }) {
   if (!matchup) return null;
 
   return (
-    <div className="flex flex-col gap-1">
-      <div className="grid grid-cols-2 items-baseline gap-3">
-        <TeamNameLabel name={matchup.my.teamName} standing={my} align="left" colorClass="text-series-1" />
+    <div className={`flex flex-col ${compact ? "gap-0.5" : "gap-1"}`}>
+      <div className={`grid grid-cols-2 gap-3 ${compact ? "items-start" : "items-baseline"}`}>
+        <TeamNameLabel name={matchup.my.teamName} standing={my} align="left" colorClass="text-series-1" stacked={compact} />
         {matchup.opponent ? (
           <TeamNameLabel
             name={matchup.opponent.teamName}
             standing={opponent ?? {}}
             align="right"
             colorClass="text-ink-primary"
+            stacked={compact}
           />
         ) : null}
       </div>
-      <div className="flex items-center justify-between gap-3 text-lg font-semibold tabular-nums text-ink-primary">
+      <div
+        className={`flex items-center justify-between gap-3 font-semibold tabular-nums text-ink-primary ${
+          compact ? "text-base" : "text-lg"
+        }`}
+      >
         <span className="flex items-center gap-3">
           <PointsRankBadges pointsRanks={my.pointsRanks} leagueSize={leagueSize} align="left" />
           {formatPoints(matchup.my.points)}
