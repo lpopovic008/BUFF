@@ -122,9 +122,9 @@ function gameLabel(game: NFLGame): string {
   return `${game.awayTeam} @ ${game.homeTeam}`;
 }
 
-/** Games abroad add their city, since their spot on the map is just a holding spot below the border. */
-function tagTitle(game: NFLGame): string {
-  return isOutsideUS(game) && game.venue?.city ? `${gameLabel(game)} · ${game.venue.city}` : gameLabel(game);
+/** Games abroad name their city under the tag, since their spot on the map is just a holding spot below the border. */
+function tagSubtitle(game: NFLGame): string | undefined {
+  return isOutsideUS(game) && game.venue?.city ? game.venue.city : undefined;
 }
 
 function venueLabel(game: NFLGame): string | null {
@@ -133,11 +133,12 @@ function venueLabel(game: NFLGame): string | null {
 }
 
 /** The footprint beside a stem — gap plus tag — in px, from the tag's text at a size multiplier (see TAG_REM). */
-function tagSize(title: string, rootPx: number, scale: number): { width: number; height: number } {
+function tagSize(title: string, subtitle: string | undefined, rootPx: number, scale: number): { width: number; height: number } {
   const px = TAG_REM * rootPx * scale;
+  const chars = Math.max(title.length, subtitle?.length ?? 0);
   return {
-    width: Math.ceil((STEM_GAP_EM + title.length * 0.5 + PAD_EM * 2) * px) + 1,
-    height: Math.ceil((LINE_HEIGHT + PAD_Y_EM * 2) * px),
+    width: Math.ceil((STEM_GAP_EM + chars * 0.5 + PAD_EM * 2) * px) + 1,
+    height: Math.ceil((LINE_HEIGHT * (subtitle ? 2 : 1) + PAD_Y_EM * 2) * px),
   };
 }
 
@@ -148,6 +149,8 @@ interface Tag {
   /** The terrain's height at the site, where its stem starts. */
   ground: number;
   title: string;
+  /** A second line under the title, plain on the map — a game abroad's city. */
+  subtitle?: string;
 }
 
 /** A site's perspective magnification — larger is nearer the camera. Zoom plays no part. */
@@ -182,7 +185,7 @@ function layoutTags(tags: Tag[], scene: MapScene, width: number, rootPx: number,
       const t01 = Math.min(1, Math.max(0, (s - scene.farScale) / span));
       byId.set(t.id, { tag: t, scale, opacity: FAR_OPACITY + (1 - FAR_OPACITY) * t01 });
       const [x, y] = scene.project(t.pos[0], t.pos[1], t.ground);
-      return { id: t.id, x: (x - scene.view.x) * k, y: (y - scene.view.y) * k, ...tagSize(t.title, rootPx, scale) };
+      return { id: t.id, x: (x - scene.view.x) * k, y: (y - scene.view.y) * k, ...tagSize(t.title, t.subtitle, rootPx, scale) };
     }),
     // Tags may overlap: every stem is the same short height (tries: 1), rather
     // than stacking colliding tags ever higher.
@@ -436,7 +439,8 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
           entry,
           pos,
           ground: SLAB_HEIGHT,
-          title: tagTitle(entry.game),
+          title: gameLabel(entry.game),
+          subtitle: tagSubtitle(entry.game),
         };
       })
       .filter((t) => t !== null);
@@ -572,11 +576,11 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
                       type="button"
                       data-game-tag
                       aria-pressed={false}
-                      aria-label={`${tag.title} — show starters`}
+                      aria-label={`${tag.title}${tag.subtitle ? `, ${tag.subtitle}` : ""} — show starters`}
                       onClick={(e) => handleTagClick(id, e.clientX, e.clientY)}
                       onDoubleClick={(e) => e.stopPropagation()}
-                      className={`pointer-events-auto absolute cursor-pointer whitespace-nowrap font-bold ${
-                        TAG_SIDE === "left" ? "right-0" : "left-0"
+                      className={`pointer-events-auto absolute flex cursor-pointer flex-col whitespace-nowrap font-bold ${
+                        TAG_SIDE === "left" ? "right-0 items-end" : "left-0 items-start"
                       }`}
                       style={{
                         top: -stem,
@@ -591,6 +595,14 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
                       >
                         {tag.title}
                       </span>
+                      {tag.subtitle ? (
+                        <span
+                          className="block font-semibold text-ink-primary group-hover:!opacity-100"
+                          style={{ opacity, padding: `0 ${PAD_EM}em` }}
+                        >
+                          {tag.subtitle}
+                        </span>
+                      ) : null}
                     </button>
                   </div>
                 );
