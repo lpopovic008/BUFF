@@ -201,7 +201,20 @@ function TickerSide({
  * both halves always match, so the scores stay centered under the title
  * however long either name runs.
  */
-function TickerItem({ league, minWidth, copy }: { league: TickerLeague; minWidth: string; copy: boolean }) {
+function TickerItem({
+  league,
+  position,
+  total,
+  minWidth,
+  copy,
+}: {
+  league: TickerLeague;
+  /** Where this league falls in your own ordering of them (1-based), and out of how many. */
+  position: number;
+  total: number;
+  minWidth: string;
+  copy: boolean;
+}) {
   const { matchup, my, opponent } = league;
   return (
     <Link
@@ -209,10 +222,14 @@ function TickerItem({ league, minWidth, copy }: { league: TickerLeague; minWidth
       aria-hidden={copy || undefined}
       tabIndex={copy ? -1 : undefined}
       draggable={false}
-      className="flex w-max shrink-0 flex-col justify-center gap-0.5 border-r border-border px-4 py-1.5"
+      className="relative flex w-max shrink-0 flex-col justify-center gap-0.5 border-r border-border px-4 py-1.5"
       style={{ minWidth }}
     >
-      <div className="flex items-center justify-center gap-1.5 text-[0.625rem] font-semibold uppercase tracking-wide text-ink-muted">
+      <span className="absolute left-4 top-1.5 text-[0.625rem] font-medium tabular-nums leading-[1.5] text-ink-muted">
+        {position}/{total}
+      </span>
+      {/* Padded on both sides so a long title never runs into the position, and stays centered. */}
+      <div className="flex items-center justify-center gap-1.5 px-8 text-[0.625rem] font-semibold uppercase tracking-wide text-ink-muted">
         {league.logo ? (
           // eslint-disable-next-line @next/next/no-img-element -- a remote Sleeper avatar on a static export; nothing for next/image to optimize
           <img src={league.logo} alt="" draggable={false} className="h-3 w-3 shrink-0 rounded-full object-cover" />
@@ -262,7 +279,14 @@ export function LeagueTicker({ leagues }: { leagues: TickerLeague[] }) {
       <div ref={viewport} className="select-none overflow-hidden [touch-action:pan-y]">
         <div ref={track} className="flex w-max will-change-transform">
           {[...leagues, ...leagues].map((league, i) => (
-            <TickerItem key={`${league.leagueId}-${i}`} league={league} minWidth={minWidth} copy={i >= leagues.length} />
+            <TickerItem
+              key={`${league.leagueId}-${i}`}
+              league={league}
+              position={(i % leagues.length) + 1}
+              total={leagues.length}
+              minWidth={minWidth}
+              copy={i >= leagues.length}
+            />
           ))}
         </div>
       </div>

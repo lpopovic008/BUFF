@@ -255,7 +255,11 @@ export default function DashboardPage() {
                         className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[4.5rem] w-[4.5rem] -translate-x-1/2 -translate-y-1/2 rounded-full object-cover opacity-30"
                       />
                     ) : null}
-                    <div className="truncate text-center text-base font-semibold text-ink-primary sm:text-lg">
+                    {/* Where this league falls in your own ordering of them, e.g. 2/4. */}
+                    <span className="absolute left-3 top-2 text-xs font-medium tabular-nums text-ink-muted">
+                      {i + 1}/{leagueCards.length}
+                    </span>
+                    <div className="truncate px-8 text-center text-base font-semibold text-ink-primary sm:text-lg">
                       {name}
                     </div>
 
