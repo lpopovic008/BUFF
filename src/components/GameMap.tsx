@@ -62,6 +62,27 @@ const MAX_TAG_SCALE = 3;
 // screens, where the Northeast's tags have to stack higher).
 const MIN_HEADROOM_REM = 1.5;
 const ZOOM_STEP = 1.25;
+// Clearance between a tag's bottom and its site, in rem — the visible stem.
+const STEM_REM = 0.6;
+// Points around the ring marking a game's site, and its outline in screen px.
+const RING_SEGMENTS = 32;
+const RING_STROKE_PX = 1.25;
+
+/** A game site's ring radius in flat map units: the more of your starters in the game, the wider. */
+function ringRadius(starterCount: number): number {
+  return starterCount === 0 ? 2.8 : Math.min(3.6 + starterCount * 1.3, 16);
+}
+
+/** A ring on the slab's top face around a flat-map point, projected — it tilts, turns and zooms with the map. */
+function ringPath(scene: MapScene, [x, y]: [number, number], radius: number, ground: number): string {
+  let d = "";
+  for (let i = 0; i < RING_SEGMENTS; i++) {
+    const a = (i / RING_SEGMENTS) * Math.PI * 2;
+    const [px, py] = scene.project(x + Math.cos(a) * radius, y + Math.sin(a) * radius, ground);
+    d += `${i ? "L" : "M"}${px.toFixed(2)},${py.toFixed(2)}`;
+  }
+  return d + "Z";
+}
 
 /**
  * The land: a raised slab with its side wall showing along the
@@ -152,7 +173,9 @@ function layoutTags(tags: Tag[], scene: MapScene, zoom: number, width: number, r
       const [x, y] = scene.project(t.pos[0], t.pos[1], t.ground);
       return { id: t.id, x: (x - scene.view.x) * k, y: (y - scene.view.y) * k, ...tagSize(t.title, rootPx, scale) };
     }),
-    { baseGap: 0.2 * rootPx, step: 0.1 * rootPx, tries: 140, margin: 1, minTop, side: TAG_SIDE }
+    // Tags may overlap: every stem is the same short height (tries: 1), rather
+    // than stacking colliding tags ever higher.
+    { baseGap: STEM_REM * rootPx, step: 0, tries: 1, margin: 0, minTop, side: TAG_SIDE }
   );
   return layout.map((l) => ({ ...l, ...byId.get(l.id)! }));
 }
@@ -268,10 +291,10 @@ function GamePreviewCard({
  * map run past the edges of its frame, which clips it.
  */
 export function GameMap({ games, legend }: { games: MappedGame[]; legend: LeagueLegendEntry[] }) {
-  const { camera, isDefault, reset, zoomBy, wasDrag, handlers } = useMapCamera();
-  const scene = useMemo(() => buildMapScene(camera), [camera]);
   const frameRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<HTMLDivElement | null>(null);
+  const { camera, isDefault, reset, zoomBy, wasDrag, handlers } = useMapCamera(mapRef);
+  const scene = useMemo(() => buildMapScene(camera), [camera]);
   const cardRef = useRef<HTMLDivElement | null>(null);
   const [measure, setMeasure] = useState<{ width: number; rootPx: number } | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
@@ -300,7 +323,7 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
     const onWheel = (e: WheelEvent) => {
       if (!e.ctrlKey && !e.metaKey) return;
       e.preventDefault();
-      zoomBy(Math.exp(-e.deltaY * 0.01));
+      zoomBy(Math.exp(-e.deltaY * 0.01), { x: e.clientX, y: e.clientY });
     };
     frame.addEventListener("wheel", onWheel, { passive: false });
     return () => frame.removeEventListener("wheel", onWheel);
@@ -385,7 +408,7 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
         className="relative w-full cursor-grab touch-none select-none overflow-clip outline-none [-webkit-touch-callout:none] active:cursor-grabbing focus-visible:ring-1 focus-visible:ring-ink-muted"
         style={{ paddingTop: headroomPx === null ? `${MIN_HEADROOM_REM}rem` : headroomPx }}
         tabIndex={0}
-        aria-label="US map. Drag to spin and tilt it; pinch, Ctrl+scroll or the +/- keys to zoom; arrow keys to nudge; double-click or Home to reset the view."
+        aria-label="US map. Drag to spin and tilt it; drag with two fingers, Shift or the right mouse button to move it; pinch, Ctrl+scroll or the +/- keys to zoom; arrow keys to nudge; double-click or Home to reset the view."
         {...handlers}
       >
         <div className="mx-auto w-full min-w-0 max-w-[44rem]">
@@ -398,6 +421,19 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
               aria-hidden
             >
               <SlabOutline camera={camera} />
+              {/* Each game's ring sits on the map itself, so it tilts, turns and
+                  zooms with the land — wider the more of your starters play in it. */}
+              <g fill="none" stroke="var(--map-edge)" strokeWidth={RING_STROKE_PX}>
+                {placed.map(({ id, tag, opacity }) => (
+                  <path
+                    key={id}
+                    d={ringPath(scene, tag.pos, ringRadius(tag.entry.starters.length), tag.ground)}
+                    opacity={selected === id ? 1 : opacity}
+                    // The ring's size follows the map; its outline stays a thin line.
+                    vectorEffect="non-scaling-stroke"
+                  />
+                ))}
+              </g>
             </svg>
 
             <div className="pointer-events-none absolute inset-0" role="list" aria-label={`${tags.length} games across the United States`}>
@@ -410,11 +446,6 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
                     className="group absolute left-0 top-0"
                     style={{ transform: `translate(${x}px, ${y}px)` }}
                   >
-                    <span
-                      className="absolute -left-[0.15rem] -top-[0.15rem] h-[0.3rem] w-[0.3rem] rounded-full bg-[var(--map-edge)] group-hover:!opacity-100"
-                      style={{ opacity }}
-                      aria-hidden
-                    />
                     <span
                       className="absolute left-0 w-px bg-[var(--map-edge)] group-hover:!opacity-100"
                       style={{ top: -stem, height: stem, opacity }}

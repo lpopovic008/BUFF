@@ -1,7 +1,17 @@
 "use client";
 
-import { KeyboardEvent, PointerEvent, useCallback, useEffect, useRef, useState } from "react";
-import { DEFAULT_CAMERA, MapCamera, clampTilt, clampZoom, isDefaultCamera, normalizeYaw } from "@/lib/map-perspective";
+import { KeyboardEvent, MouseEvent, PointerEvent, RefObject, useCallback, useEffect, useRef, useState } from "react";
+import {
+  DEFAULT_CAMERA,
+  MapCamera,
+  buildMapScene,
+  clampTarget,
+  clampTilt,
+  clampZoom,
+  isDefaultCamera,
+  normalizeYaw,
+  unproject,
+} from "@/lib/map-perspective";
 
 // Degrees per pixel dragged, relative to the map's width: a full-width swipe
 // turns the map a bit over half way round.
@@ -17,18 +27,51 @@ function prefersReducedMotion(): boolean {
   return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
+/** Where a client (page) point falls in the camera's projected space, given the map box it's drawn in. */
+function toProjected(camera: MapCamera, box: DOMRect, clientX: number, clientY: number): [number, number] {
+  const { view } = buildMapScene(camera);
+  const k = box.width / view.width;
+  return [view.x + (clientX - box.left) / k, view.y + (clientY - box.top) / k];
+}
+
+/** The camera moved so the map follows a drag of (dx, dy) px. */
+function panned(camera: MapCamera, box: DOMRect, dx: number, dy: number): MapCamera {
+  const { view, project } = buildMapScene(camera);
+  const k = box.width / view.width;
+  const [cx, cy] = project(camera.tx, camera.ty);
+  const [tx, ty] = clampTarget(...unproject(camera, cx - dx / k, cy - dy / k));
+  return { ...camera, tx, ty };
+}
+
+/** The camera zoomed by `factor`, keeping whatever's under the client point (x, y) in place. */
+function zoomedAt(camera: MapCamera, box: DOMRect, factor: number, x: number, y: number): MapCamera {
+  const zoom = clampZoom(camera.zoom * factor);
+  const [ax, ay] = toProjected(camera, box, x, y);
+  const { project } = buildMapScene(camera);
+  const [cx, cy] = project(camera.tx, camera.ty);
+  // The anchor keeps its screen offset from the center, shrunk by the zoom change.
+  const ratio = camera.zoom / zoom;
+  const [tx, ty] = clampTarget(...unproject(camera, ax - (ax - cx) * ratio, ay - (ay - cy) * ratio));
+  return { ...camera, zoom, tx, ty };
+}
+
 /**
  * The dashboard map's orbit camera. Drag (or one-finger swipe) sideways to
- * spin it, up/down to tilt it; with two fingers, pinch to zoom and drag to
- * tilt. Ctrl/⌘ + scroll (and a trackpad pinch) zoom too, as do the +/- keys
- * and zoomBy for on-screen buttons. Touches on the map belong to it alone —
- * the page never scrolls or zooms under them (the map element sets
- * touch-action: none). A flick keeps spinning and eases to a stop.
- * Double-click (or the reset button) eases back to the default view, which
- * is also where every page load starts — the camera is deliberately never
- * persisted.
+ * spin it, up/down to tilt it. Pan by dragging with two fingers, with Shift
+ * held, or with the right mouse button. Zoom toward any part of the country
+ * with a pinch, Ctrl/⌘ + scroll (or a trackpad pinch) — whatever's under the
+ * fingers or cursor stays put — or with the +/- keys and zoomBy for
+ * on-screen buttons, which zoom about the middle of the view. Touches on the
+ * map belong to it alone — the page never scrolls or zooms under them (the
+ * map element sets touch-action: none). A flick keeps spinning and eases to
+ * a stop. Double-click (or the reset button) eases back to the default view,
+ * which is also where every page load starts — the camera is deliberately
+ * never persisted.
+ *
+ * `boxRef` is the map box the scene's view is drawn into — needed to turn
+ * pointer positions into points on the map.
  */
-export function useMapCamera() {
+export function useMapCamera(boxRef: RefObject<HTMLElement | null>) {
   const [camera, setCamera] = useState<MapCamera>(DEFAULT_CAMERA);
   // The latest camera, ahead of React: pointer moves update this and commit
   // at most once per frame.
@@ -36,6 +79,7 @@ export function useMapCamera() {
   const frame = useRef<number | null>(null);
   const animation = useRef<number | null>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const panning = useRef(false);
   const travelled = useRef(0);
   const yawVelocity = useRef(0);
   const lastMoveAt = useRef(0);
@@ -64,7 +108,7 @@ export function useMapCamera() {
 
   const reset = useCallback(() => {
     stopAnimation();
-    const from = { tilt: live.current.tilt, yaw: normalizeYaw(live.current.yaw), zoom: live.current.zoom };
+    const from = { ...live.current, yaw: normalizeYaw(live.current.yaw) };
     if (prefersReducedMotion()) {
       commit(DEFAULT_CAMERA);
       return;
@@ -73,11 +117,14 @@ export function useMapCamera() {
     const step = (now: number) => {
       const t = Math.min(1, (now - start) / RESET_MS);
       const ease = 1 - (1 - t) ** 3;
+      const lerp = (a: number, b: number) => a + (b - a) * ease;
       commit({
-        tilt: from.tilt + (DEFAULT_CAMERA.tilt - from.tilt) * ease,
-        yaw: from.yaw + (DEFAULT_CAMERA.yaw - from.yaw) * ease,
+        tilt: lerp(from.tilt, DEFAULT_CAMERA.tilt),
+        yaw: lerp(from.yaw, DEFAULT_CAMERA.yaw),
         // Zoom eases geometrically, so zooming back from 4x feels as even as from 1.5x.
         zoom: from.zoom * (DEFAULT_CAMERA.zoom / from.zoom) ** ease,
+        tx: lerp(from.tx, DEFAULT_CAMERA.tx),
+        ty: lerp(from.ty, DEFAULT_CAMERA.ty),
       });
       animation.current = t < 1 ? requestAnimationFrame(step) : null;
     };
@@ -101,9 +148,13 @@ export function useMapCamera() {
 
   const onPointerDown = useCallback(
     (e: PointerEvent<HTMLElement>) => {
-      if (e.pointerType === "mouse" && e.button !== 0) return;
+      if (e.pointerType === "mouse" && e.button !== 0 && e.button !== 1 && e.button !== 2) return;
       stopAnimation();
-      if (pointers.current.size === 0) travelled.current = 0;
+      if (pointers.current.size === 0) {
+        travelled.current = 0;
+        // Right/middle button, or Shift, drags the map around instead of turning it.
+        panning.current = e.pointerType === "mouse" && (e.button !== 0 || e.shiftKey);
+      }
       pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
       yawVelocity.current = 0;
     },
@@ -124,17 +175,24 @@ export function useMapCamera() {
       if (travelled.current > DRAG_SLOP && !e.currentTarget.hasPointerCapture?.(e.pointerId)) {
         e.currentTarget.setPointerCapture?.(e.pointerId);
       }
-      const width = e.currentTarget.clientWidth || 1;
+      const box = boxRef.current?.getBoundingClientRect();
+      const width = box?.width || e.currentTarget.clientWidth || 1;
       const cam = live.current;
       if (pointers.current.size > 1) {
-        // Two fingers: the spread between them zooms, and each one's move
-        // counts half toward a tilt, so the pair tilts by their average.
-        const others = [...pointers.current.entries()].filter(([id]) => id !== e.pointerId).map(([, p]) => p);
-        const other = others[0];
+        // Two fingers: the map follows their midpoint, and the spread
+        // between them zooms about it.
+        if (!box) return;
+        const other = [...pointers.current.entries()].find(([id]) => id !== e.pointerId)?.[1];
+        if (!other) return;
         const before = Math.hypot(prev.x - other.x, prev.y - other.y);
         const after = Math.hypot(e.clientX - other.x, e.clientY - other.y);
-        const zoom = before > 10 ? clampZoom(cam.zoom * (after / before)) : cam.zoom;
-        commit({ ...cam, zoom, tilt: clampTilt(cam.tilt - (dy / pointers.current.size) * (TILT_PER_WIDTH / width)) });
+        let next = panned(cam, box, dx / 2, dy / 2);
+        if (before > 10) next = zoomedAt(next, box, after / before, (e.clientX + other.x) / 2, (e.clientY + other.y) / 2);
+        commit(next);
+        return;
+      }
+      if (panning.current) {
+        if (box) commit(panned(cam, box, dx, dy));
         return;
       }
       // Grab-and-turn: dragging the near edge right spins the map that way.
@@ -146,32 +204,37 @@ export function useMapCamera() {
       // Dragging up pushes the map away (more tilt); down pulls it toward straight-down.
       commit({ ...cam, yaw: cam.yaw + dYaw, tilt: clampTilt(cam.tilt - dy * (TILT_PER_WIDTH / width)) });
     },
-    [commit]
+    [boxRef, commit]
   );
 
   const endPointer = useCallback(
     (e: PointerEvent<HTMLElement>, cancelled: boolean) => {
       if (!pointers.current.delete(e.pointerId)) return;
       if (pointers.current.size > 0) return;
-      if (!cancelled && performance.now() - lastMoveAt.current < 80) coast();
+      if (!cancelled && !panning.current && performance.now() - lastMoveAt.current < 80) coast();
       else yawVelocity.current = 0;
+      panning.current = false;
     },
     [coast]
   );
 
   const onPointerUp = useCallback((e: PointerEvent<HTMLElement>) => endPointer(e, false), [endPointer]);
   const onPointerCancel = useCallback((e: PointerEvent<HTMLElement>) => endPointer(e, true), [endPointer]);
+  // The right button pans, so its menu would only get in the way.
+  const onContextMenu = useCallback((e: MouseEvent<HTMLElement>) => e.preventDefault(), []);
 
   /** True when the pointer gesture that just ended was a drag — tap targets on the map use it to ignore the click a drag ends with. */
   const wasDrag = useCallback(() => travelled.current > DRAG_SLOP, []);
 
-  /** Zooms in (factor > 1) or out about the map's center. */
+  /** Zooms in (factor > 1) or out — toward a client point when given (a cursor), else about the middle of the view. */
   const zoomBy = useCallback(
-    (factor: number) => {
+    (factor: number, at?: { x: number; y: number }) => {
       stopAnimation();
-      commit({ ...live.current, zoom: clampZoom(live.current.zoom * factor) });
+      const box = boxRef.current?.getBoundingClientRect();
+      const cam = live.current;
+      commit(at && box ? zoomedAt(cam, box, factor, at.x, at.y) : { ...cam, zoom: clampZoom(cam.zoom * factor) });
     },
-    [commit, stopAnimation]
+    [boxRef, commit, stopAnimation]
   );
 
   const onKeyDown = useCallback(
@@ -204,6 +267,6 @@ export function useMapCamera() {
     reset,
     zoomBy,
     wasDrag,
-    handlers: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel, onKeyDown, onDoubleClick: reset },
+    handlers: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel, onKeyDown, onContextMenu, onDoubleClick: reset },
   };
 }

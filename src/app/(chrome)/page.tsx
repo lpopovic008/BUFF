@@ -14,6 +14,7 @@ import { useWeekGames } from "@/hooks/useWeekGames";
 import { getLeagueSummary, LeagueSummary, pointsRanks, rosterStreak } from "@/lib/league-data";
 import { groupStartersByGame, GroupedStarter } from "@/lib/my-starters";
 import { avatarUrl, getCurrentWeek } from "@/lib/sleeper";
+import { kickoffBlockLabel } from "@/lib/game-map";
 import { TrackedLeague } from "@/lib/localStore";
 
 interface LoadedLeague {
@@ -98,6 +99,18 @@ export default function DashboardPage() {
       const next = new Set(base);
       if (next.has(leagueId)) next.delete(leagueId);
       else next.add(leagueId);
+      return next;
+    });
+  };
+
+  // Kickoff windows ("Sunday Noon") whose games are hidden from the map —
+  // toggled from the starters list's block headers. Everything shows by default.
+  const [hiddenBlocks, setHiddenBlocks] = useState<Set<string>>(() => new Set());
+  const toggleBlock = (label: string) => {
+    setHiddenBlocks((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
       return next;
     });
   };
@@ -188,7 +201,10 @@ export default function DashboardPage() {
                 <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-muted">
                   Week {week} around the league
                 </h2>
-                <GameMap games={mappedGames} legend={legend} />
+                <GameMap
+                  games={mappedGames.filter((g) => !hiddenBlocks.has(kickoffBlockLabel(g.game)))}
+                  legend={legend}
+                />
               </div>
             ) : null}
 
@@ -233,6 +249,7 @@ export default function DashboardPage() {
                         matchup={matchup}
                         my={standingOf(myRow.rosterId)}
                         opponent={matchup?.opponent ? standingOf(matchup.opponent.rosterId) : undefined}
+                        leagueSize={summary.standings.length}
                       />
                     ) : null}
                   </Link>
@@ -260,6 +277,8 @@ export default function DashboardPage() {
               legend={legend}
               selectedLeagueIds={effectiveSelected}
               onToggleLeague={toggleLeague}
+              hiddenBlocks={hiddenBlocks}
+              onToggleBlock={toggleBlock}
             />
           )}
         </div>

@@ -5,6 +5,8 @@ import {
   gameMapPosition,
   kickoffSlotColor,
   kickoffSlotLabel,
+  kickoffSlotLongLabel,
+  kickoffBlockLabel,
   leagueColor,
   leagueTint,
 } from "./game-map";
@@ -123,4 +125,25 @@ test("kickoff label reads like \"Wed 7p\"", () => {
   assert.equal(kickoffSlotLabel(new Date("2026-09-09T19:00:00").getTime()), "Wed 7p");
   assert.equal(kickoffSlotLabel(new Date("2026-09-13T13:00:00").getTime()), "Sun 1p");
   assert.equal(kickoffSlotLabel(new Date("2026-09-13T00:00:00").getTime()), "Sun 12a");
+});
+
+test("kickoff windows are only ever Morning, Noon, Afternoon or Night", () => {
+  const label = (iso: string) => kickoffSlotLongLabel(new Date(iso).getTime());
+  assert.equal(label("2026-09-13T09:30:00"), "Sunday Morning");
+  assert.equal(label("2026-09-13T10:00:00"), "Sunday Morning");
+  assert.equal(label("2026-09-13T13:00:00"), "Sunday Noon");
+  assert.equal(label("2026-09-13T16:25:00"), "Sunday Afternoon");
+  assert.equal(label("2026-09-13T20:20:00"), "Sunday Night");
+  // Past midnight still counts as the night before.
+  assert.equal(label("2026-09-14T00:30:00"), "Sunday Night");
+});
+
+test("a 10am and a 9:30am kickoff share one Sunday Morning window", () => {
+  const london = game({ id: "lon", kickoff: "2026-09-13T09:30:00" });
+  const west = game({ id: "west", kickoff: "2026-09-13T10:00:00" });
+  const { slots, slotIndexByGameId } = computeKickoffSlots([london, west]);
+  assert.equal(slots.length, 1);
+  assert.equal(slotIndexByGameId.get("lon"), slotIndexByGameId.get("west"));
+  assert.equal(kickoffBlockLabel(london), "Sunday Morning");
+  assert.equal(kickoffBlockLabel(game({ id: "x", kickoff: "nope" })), "TBD");
 });

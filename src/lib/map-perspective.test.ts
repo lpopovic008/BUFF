@@ -16,6 +16,7 @@ import {
   insideUS,
   isDefaultCamera,
   normalizeYaw,
+  unproject,
 } from "./map-perspective";
 
 const aspect = (s: { view: { width: number; height: number } }) => s.view.width / s.view.height;
@@ -49,20 +50,32 @@ test("a full turn at the opening zoom is still the default view; any zoom isn't"
   assert.ok(!isDefaultCamera({ ...DEFAULT_CAMERA, yaw: 10 }));
   assert.ok(!isDefaultCamera({ ...DEFAULT_CAMERA, tilt: 50 }));
   assert.ok(!isDefaultCamera({ ...DEFAULT_CAMERA, zoom: 1.5 }));
+  assert.ok(!isDefaultCamera({ ...DEFAULT_CAMERA, tx: 250 }));
 });
 
-test("turning the map never re-fits it: same size at the same zoom, always centered on the map's middle", () => {
+test("turning the map never re-fits it: same size at the same zoom, always centered on the camera's target", () => {
   for (const camera of [
-    { tilt: 32, yaw: 90, zoom: 1 },
-    { tilt: MIN_TILT, yaw: 45, zoom: 1 },
-    { tilt: MAX_TILT, yaw: -135, zoom: 1 },
+    { tilt: 32, yaw: 90, zoom: 1, tx: 160, ty: 100 },
+    { tilt: MIN_TILT, yaw: 45, zoom: 1, tx: 280, ty: 180 },
+    { tilt: MAX_TILT, yaw: -135, zoom: 1, tx: 40, ty: 30 },
   ]) {
     const scene = buildMapScene(camera);
     assert.ok(Math.abs(scene.view.width - DEFAULT_SCENE.view.width) < 1e-9);
     assert.ok(Math.abs(scene.view.height - DEFAULT_SCENE.view.height) < 1e-9);
     const [cx, cy] = center(scene);
-    const [mx, my] = scene.project(160, 100);
+    const [mx, my] = scene.project(camera.tx, camera.ty);
     assert.ok(Math.abs(cx - mx) < 1e-9 && Math.abs(cy - my) < 1e-9);
+  }
+});
+
+test("unproject finds the map point under any screen point, at any angle", () => {
+  for (const camera of [DEFAULT_CAMERA, { ...DEFAULT_CAMERA, tilt: 60, yaw: 130 }, { ...DEFAULT_CAMERA, tilt: MIN_TILT, yaw: -70 }]) {
+    const scene = buildMapScene(camera);
+    for (const [x, y] of [[281, 186], [49, 17], [160, 100], [0, 200]]) {
+      const [sx, sy] = scene.project(x, y);
+      const [ux, uy] = unproject(camera, sx, sy);
+      assert.ok(Math.abs(ux - x) < 1e-6 && Math.abs(uy - y) < 1e-6, `${x},${y} -> ${ux},${uy}`);
+    }
   }
 });
 

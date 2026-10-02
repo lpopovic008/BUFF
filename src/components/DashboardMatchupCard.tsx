@@ -63,21 +63,49 @@ function TeamNameLabel({
 }
 
 /**
- * Where a team's points for and points against rank in the league, tucked
- * against its score on the side facing the other team's. Always PF then PA;
- * on a phone they stack, one over the other, so both teams' sets fit on the
- * score's line.
+ * A rank's color by where it falls in the league: the top third green, the
+ * middle amber, the bottom third red. `higherIsWorse` flips it for points
+ * against, where 1st means the most points scored on you.
  */
-function PointsRankBadges({ pointsRanks, align }: { pointsRanks?: PointsRanks; align: "left" | "right" }) {
+export function rankTone(rank: number, leagueSize: number, higherIsWorse = false): "good" | "mid" | "bad" {
+  const third = Math.max(1, leagueSize) / 3;
+  const tone = rank <= third ? "good" : rank >= leagueSize - third + 1 ? "bad" : "mid";
+  if (!higherIsWorse || tone === "mid") return tone;
+  return tone === "good" ? "bad" : "good";
+}
+
+const TONE_CLASS = { good: "text-status-good", mid: "text-series-4", bad: "text-status-critical" } as const;
+
+/**
+ * Where a team's points for and points against rank in the league, stacked
+ * PF over PA and tucked against its score on the side facing the other
+ * team's, each rank colored by how good it is (see rankTone).
+ */
+function PointsRankBadges({
+  pointsRanks,
+  leagueSize,
+  align,
+}: {
+  pointsRanks?: PointsRanks;
+  leagueSize: number;
+  align: "left" | "right";
+}) {
   if (!pointsRanks) return null;
   return (
     <span
-      className={`flex flex-col whitespace-nowrap text-[0.625rem] font-normal leading-tight text-ink-muted sm:flex-row sm:gap-1.5 sm:text-[0.6875rem] sm:leading-normal ${
+      className={`flex flex-col whitespace-nowrap text-[0.625rem] font-normal leading-tight text-ink-muted sm:text-[0.6875rem] ${
         align === "right" ? "items-end" : ""
       }`}
     >
-      <span title="Points for — rank in the league (1st = most)">PF {ordinal(pointsRanks.pointsFor)}</span>
-      <span title="Points against — rank in the league (1st = most scored against)">PA {ordinal(pointsRanks.pointsAgainst)}</span>
+      <span title="Points for — rank in the league (1st = most)">
+        PF <span className={`font-semibold ${TONE_CLASS[rankTone(pointsRanks.pointsFor, leagueSize)]}`}>{ordinal(pointsRanks.pointsFor)}</span>
+      </span>
+      <span title="Points against — rank in the league (1st = most scored against)">
+        PA{" "}
+        <span className={`font-semibold ${TONE_CLASS[rankTone(pointsRanks.pointsAgainst, leagueSize, true)]}`}>
+          {ordinal(pointsRanks.pointsAgainst)}
+        </span>
+      </span>
     </span>
   );
 }
@@ -87,10 +115,13 @@ export function DashboardMatchupCard({
   matchup,
   my,
   opponent,
+  leagueSize,
 }: {
   matchup: DashboardMatchupView | null | undefined;
   my: TeamStanding;
   opponent?: TeamStanding;
+  /** Teams in the league, for coloring ranks by where they fall in it. */
+  leagueSize: number;
 }) {
   if (!matchup) return null;
 
@@ -107,14 +138,14 @@ export function DashboardMatchupCard({
           />
         ) : null}
       </div>
-      <div className="flex items-center justify-between gap-3 text-lg font-semibold tabular-nums text-ink-primary sm:items-baseline">
-        <span className="flex items-center gap-1.5 sm:items-baseline">
+      <div className="flex items-center justify-between gap-3 text-lg font-semibold tabular-nums text-ink-primary">
+        <span className="flex items-center gap-1.5">
           {formatPoints(matchup.my.points)}
-          <PointsRankBadges pointsRanks={my.pointsRanks} align="left" />
+          <PointsRankBadges pointsRanks={my.pointsRanks} leagueSize={leagueSize} align="left" />
         </span>
         {matchup.opponent ? (
-          <span className="flex items-center gap-1.5 sm:items-baseline">
-            <PointsRankBadges pointsRanks={opponent?.pointsRanks} align="right" />
+          <span className="flex items-center gap-1.5">
+            <PointsRankBadges pointsRanks={opponent?.pointsRanks} leagueSize={leagueSize} align="right" />
             {formatPoints(matchup.opponent.points)}
           </span>
         ) : null}

@@ -152,7 +152,7 @@ export function formatTeamMatchup(game: NFLGame): string {
 
 /** One kickoff window's worth of games — one column in the starters-by-game swipe view. */
 export interface TimeBlockColumn {
-  /** e.g. "Sunday Midday" — a spelled-out window name, since the map's own legend already has the compact "Sun 1p" form. */
+  /** e.g. "Sunday Noon" — a spelled-out window name, since the map's own legend already has the compact "Sun 1p" form. */
   label: string;
   games: GameStarters[];
   /** The same colour the map uses for this kickoff window (see kickoffSlotColor) — undefined for the trailing TBD column, which isn't a real window. */

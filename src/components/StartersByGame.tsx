@@ -183,12 +183,18 @@ export function StartersByGame({
   legend,
   selectedLeagueIds,
   onToggleLeague,
+  hiddenBlocks,
+  onToggleBlock,
 }: {
   games: GameStarters[];
   notPlaying: GroupedStarter[];
   legend: LeagueLegendEntry[];
   selectedLeagueIds: Set<string>;
   onToggleLeague: (leagueId: string) => void;
+  /** Kickoff windows whose games are hidden from the map. */
+  hiddenBlocks: Set<string>;
+  /** Shows or hides one kickoff window's games on the map. */
+  onToggleBlock: (label: string) => void;
 }) {
   const legendByLeagueId = new Map(legend.map((l) => [l.leagueId, l]));
   const columns = groupGamesByTimeBlock(games);
@@ -238,7 +244,23 @@ export function StartersByGame({
                       : undefined,
                   }}
                 >
-                  <span className="min-w-0 truncate">{column.label}</span>
+                  {/* The block's name toggles its whole slate on the map: a filled
+                      dot when its games are showing, an outlined one when hidden. */}
+                  <button
+                    type="button"
+                    onClick={() => onToggleBlock(column.label)}
+                    aria-pressed={!hiddenBlocks.has(column.label)}
+                    title={`${hiddenBlocks.has(column.label) ? "Show" : "Hide"} ${column.label} games on the map`}
+                    className="flex min-w-0 items-center gap-2 text-left uppercase tracking-wide"
+                  >
+                    <span
+                      aria-hidden
+                      className={`h-2 w-2 shrink-0 rounded-full border border-current ${
+                        hiddenBlocks.has(column.label) ? "" : "bg-current"
+                      }`}
+                    />
+                    <span className="min-w-0 truncate">{column.label}</span>
+                  </button>
                   <BlockClock games={column.games} now={now} />
                 </div>
                 <div className="flex flex-col gap-3">

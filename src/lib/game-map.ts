@@ -54,12 +54,12 @@ export function leagueTint(index: number, percent = 12): string {
 
 /**
  * A fixed slot for a game played abroad. There's no meaningful US position
- * for it, so these sit just south of the border below New Mexico — the
- * first right under it, each next one a step further out on a diagonal
- * running southwest, clear of every real stadium.
+ * for it, so these sit south of the border below New Mexico — the first about
+ * half a state's height clear of it, each next one a step further out on a
+ * diagonal running southwest, clear of every real stadium.
  */
 export function internationalSlotPosition(index: number): [number, number] {
-  const [originX, originY] = [106, 158];
+  const [originX, originY] = [106, 172];
   const [stepX, stepY] = [-6, 7];
   return [originX + index * stepX, originY + index * stepY];
 }
@@ -81,19 +81,44 @@ export interface KickoffSlot {
   sortTime: number;
 }
 
+// The four parts of a day a kickoff window can fall in, by local start hour.
+// Anything before 5am belongs to the previous day's Night (a late West Coast
+// kickoff seen from further east is still that evening's game).
+const DAYPARTS: { name: string; from: number }[] = [
+  { name: "Morning", from: 5 },
+  { name: "Noon", from: 12 },
+  { name: "Afternoon", from: 15 },
+  { name: "Night", from: 18 },
+];
+const NIGHT_SPILLS_UNTIL = 5;
+
+/** The calendar day (local) a kickoff counts toward, and which part of it. */
+function daypart(at: Date): { day: Date; part: number } {
+  const hour = at.getHours();
+  if (hour < NIGHT_SPILLS_UNTIL) {
+    const day = new Date(at);
+    day.setDate(day.getDate() - 1);
+    return { day, part: DAYPARTS.length - 1 };
+  }
+  let part = 0;
+  DAYPARTS.forEach((p, i) => {
+    if (hour >= p.from) part = i;
+  });
+  return { day: at, part };
+}
+
 /**
- * Buckets games into their kickoff window — weekday plus a coarse 3-hour
- * block, so every Thursday-night game lands together, every Sunday-1pm game
- * lands together, distinct from the 4:05/4:25 window and from Sunday night —
- * without hardcoding the league's actual slot schedule (byes, flexes, and
- * international windows all still fall out naturally).
+ * Buckets games into their kickoff window — the day plus Morning, Noon,
+ * Afternoon or Night — so every Thursday-night game lands together, every
+ * Sunday-1pm game lands together, distinct from the 4:05/4:25 window and
+ * from Sunday night — without hardcoding the league's actual slot schedule
+ * (byes, flexes, and international windows all still fall out naturally).
  */
 function kickoffBucketKey(kickoff: string): { key: string; sortTime: number } | null {
   const at = new Date(kickoff);
   if (Number.isNaN(at.getTime())) return null;
-  const weekday = at.getDay();
-  const hourBlock = Math.floor(at.getHours() / 3);
-  return { key: `${weekday}-${hourBlock}`, sortTime: at.getTime() };
+  const { day, part } = daypart(at);
+  return { key: `${day.getFullYear()}-${day.getMonth()}-${day.getDate()}-${part}`, sortTime: at.getTime() };
 }
 
 /**
@@ -152,26 +177,14 @@ export function kickoffSlotLabel(sortTime: number): string {
   return `${weekday} ${hour}${meridiem}`;
 }
 
-// Named windows for the same coarse 3-hour blocks kickoffBucketKey groups
-// games into, in block order starting at midnight — what turns "Sunday,
-// hour block 4" into "Sunday Midday" for a section header, rather than the
-// map legend's compact "Sun 1p". Every block gets its own word — no
-// "Early"/"Late" qualifiers on a shared one.
-const HOUR_BLOCK_NAMES = [
-  "Overnight",
-  "Pre-Dawn",
-  "Morning",
-  "Midmorning",
-  "Midday",
-  "Afternoon",
-  "Night",
-  "Midnight",
-];
-
-/** A human-readable "Thursday Night" / "Sunday Morning" label for a kickoff window, for a section header with room to spell it out (unlike the map legend's compact kickoffSlotLabel). */
+/** A human-readable "Thursday Night" / "Sunday Noon" label for a kickoff window — only ever Morning, Noon, Afternoon or Night — for a section header with room to spell it out (unlike the map legend's compact kickoffSlotLabel). */
 export function kickoffSlotLongLabel(sortTime: number): string {
-  const at = new Date(sortTime);
-  const weekday = at.toLocaleDateString([], { weekday: "long" });
-  const hourBlock = Math.min(HOUR_BLOCK_NAMES.length - 1, Math.floor(at.getHours() / 3));
-  return `${weekday} ${HOUR_BLOCK_NAMES[hourBlock]}`;
+  const { day, part } = daypart(new Date(sortTime));
+  return `${day.toLocaleDateString([], { weekday: "long" })} ${DAYPARTS[part].name}`;
+}
+
+/** The kickoff window label a game falls in (see kickoffSlotLongLabel), or "TBD" when its kickoff can't be read — the key the dashboard toggles whole slates by. */
+export function kickoffBlockLabel(game: NFLGame): string {
+  const t = new Date(game.kickoff).getTime();
+  return Number.isNaN(t) ? "TBD" : kickoffSlotLongLabel(t);
 }

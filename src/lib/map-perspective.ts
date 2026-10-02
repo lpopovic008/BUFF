@@ -2,9 +2,11 @@
 // projected through a camera that orbits it: `yaw` spins the map about its
 // center, `tilt` rotates it back (pitch), as if seen from a camera low over
 // its near edge — the near side sits close and the far side recedes — and
-// `zoom` moves the camera in or out. The view always stays centered on the
-// middle of the map at a fixed scale for a given zoom: turning the map never
-// re-fits it, so parts of it may run past the edge of its frame.
+// `zoom` moves the camera in or out, and the view centers on a `target`
+// point of the map — the middle of the country to start, anywhere the user
+// pans or zooms toward after that. The scale is fixed for a given zoom:
+// turning the map never re-fits it, so parts of it may run past the edge of
+// its frame.
 //
 // The land is a slab a few units thick; the tilt shows its camera-facing
 // side wall, which is what sells the perspective.
@@ -22,10 +24,13 @@ export interface MapCamera {
   yaw: number;
   /** 1 = the opening view; 2 = everything twice as large. */
   zoom: number;
+  /** The flat-map point the view is centered on. */
+  tx: number;
+  ty: number;
 }
 
 /** The view the map always opens on. */
-export const DEFAULT_CAMERA: MapCamera = { tilt: 32, yaw: 0, zoom: 1 };
+export const DEFAULT_CAMERA: MapCamera = { tilt: 32, yaw: 0, zoom: 1, tx: 160, ty: 100 };
 export const MIN_TILT = 8;
 export const MAX_TILT = 70;
 export const MIN_ZOOM = 0.6;
@@ -48,6 +53,11 @@ export function clampZoom(zoom: number): number {
   return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom));
 }
 
+/** Keeps the view's target on the map, so it can't be panned off into empty space. */
+export function clampTarget(tx: number, ty: number): [number, number] {
+  return [Math.min(MAP_W, Math.max(0, tx)), Math.min(MAP_H, Math.max(0, ty))];
+}
+
 /** `yaw` folded into (-180, 180], so a full turn reads as no turn. */
 export function normalizeYaw(yaw: number): number {
   const y = ((yaw % 360) + 360) % 360;
@@ -58,7 +68,9 @@ export function isDefaultCamera(camera: MapCamera): boolean {
   return (
     Math.abs(camera.tilt - DEFAULT_CAMERA.tilt) < 0.5 &&
     Math.abs(normalizeYaw(camera.yaw - DEFAULT_CAMERA.yaw)) < 0.5 &&
-    Math.abs(camera.zoom - DEFAULT_CAMERA.zoom) < 0.01
+    Math.abs(camera.zoom - DEFAULT_CAMERA.zoom) < 0.01 &&
+    Math.abs(camera.tx - DEFAULT_CAMERA.tx) < 0.5 &&
+    Math.abs(camera.ty - DEFAULT_CAMERA.ty) < 0.5
   );
 }
 
@@ -89,6 +101,30 @@ export function cameraTransform({ tilt, yaw }: MapCamera): (x: number, y: number
     const scale = FOCAL / (FOCAL + depth);
     return [cx + (rx - cx) * scale, MAP_H - up * scale, scale];
   };
+}
+
+/**
+ * The inverse of cameraTransform: the flat-map point that lands at projected
+ * position (sx, sy) when lifted `height` units — what's under the user's
+ * finger or cursor, for zooming toward it and dragging the map around.
+ */
+export function unproject({ tilt, yaw }: MapCamera, sx: number, sy: number, height = SLAB_HEIGHT): [number, number] {
+  const ts = Math.sin((tilt * Math.PI) / 180);
+  const tc = Math.cos((tilt * Math.PI) / 180);
+  const ys = Math.sin((yaw * Math.PI) / 180);
+  const yc = Math.cos((yaw * Math.PI) / 180);
+  const cx = MAP_W / 2;
+  const cy = MAP_H / 2;
+  // Solve the tilt for how far back the point sits, then undo the spin.
+  const u = MAP_H - sy;
+  const back = (FOCAL * height * ts - u * FOCAL + u * height * tc) / (u * ts - FOCAL * tc);
+  const depth = back * ts - height * tc;
+  const scale = FOCAL / (FOCAL + depth);
+  const rx = cx + (sx - cx) / scale;
+  const ry = MAP_H - back;
+  const dx = rx - cx;
+  const dy = ry - cy;
+  return [cx + dx * yc + dy * ys, cy - dx * ys + dy * yc];
 }
 
 const POINT = /(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g;
@@ -151,7 +187,7 @@ export interface MapView {
 }
 
 export interface MapScene {
-  /** The view's rectangle in projected space — centered on the map's middle, sized by zoom. */
+  /** The view's rectangle in projected space — centered on the camera's target, sized by zoom. */
   view: MapView;
   viewBox: string;
   project: MapProjector;
@@ -207,7 +243,7 @@ export const MAP_ASPECT = BASE.halfW / BASE.halfH;
 
 export function buildMapScene(camera: MapCamera): MapScene {
   const { project, scaleAt } = projectorFor(camera);
-  const [cx, cy] = project(CENTER[0], CENTER[1]);
+  const [cx, cy] = project(camera.tx, camera.ty);
   const halfW = BASE.halfW / camera.zoom;
   const halfH = BASE.halfH / camera.zoom;
   const view = { x: cx - halfW, y: cy - halfH, width: halfW * 2, height: halfH * 2 };
