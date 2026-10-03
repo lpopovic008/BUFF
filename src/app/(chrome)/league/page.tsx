@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
@@ -12,7 +12,7 @@ import { useConfig } from "@/hooks/useConfig";
 import { useLeagueMatchupCarousel } from "@/hooks/useLeagueMatchupCarousel";
 import { getLeagueSummary, computeWeekRecap, LeagueSummary, WeekRecapData } from "@/lib/league-data";
 import { loadLeagueSeason, LeagueSeason } from "@/lib/league-money";
-import { emptyPlan, PayoutPlan, planFromProfile } from "@/lib/payout-plan";
+import { computePlanLedger, emptyPlan, formatMoney, PayoutPlan, planFromProfile } from "@/lib/payout-plan";
 import { getPayoutPlan, savePayoutPlan } from "@/lib/localStore";
 import { getCurrentWeek } from "@/lib/sleeper";
 import { formatPoints, formatRecord, ordinal } from "@/lib/format";
@@ -71,6 +71,12 @@ function LeagueDetailContent() {
     },
     [leagueId]
   );
+
+  // The season played through the payout setup: the money section and the
+  // standings' high-score and earnings columns both read it.
+  const ledger = useMemo(() => (money && plan ? computePlanLedger(plan, money.results) : null), [money, plan]);
+  const moneyByRoster = new Map(ledger?.managers.map((m) => [m.rosterId, m]) ?? []);
+  const showEarned = !!plan && plan.rules.length > 0;
 
   const myRow = summary?.standings.find((r) => r.ownerId === config.sleeperUserId) ?? null;
   const carousel = useLeagueMatchupCarousel(leagueId, week);
@@ -144,7 +150,7 @@ function LeagueDetailContent() {
               Write this week&rsquo;s recap →
             </Link>
           </div>
-          <MoneyBoard season={money} plan={plan} onPlanChange={changePlan} />
+          {ledger ? <MoneyBoard season={money} plan={plan} ledger={ledger} onPlanChange={changePlan} /> : null}
         </section>
       ) : null}
 
@@ -158,7 +164,12 @@ function LeagueDetailContent() {
                 <th className="py-2 pr-2 sm:pr-3 font-medium">Team</th>
                 <th className="whitespace-nowrap py-2 pr-2 text-right font-medium sm:pr-3">Record</th>
                 <th className="whitespace-nowrap py-2 pr-2 text-right font-medium sm:pr-3">PF</th>
-                <th className="whitespace-nowrap py-2 pr-2 text-right font-medium sm:pr-3">PA</th>
+                <th className="hidden whitespace-nowrap py-2 pr-2 text-right font-medium sm:table-cell sm:pr-3">PA</th>
+                <th className="whitespace-nowrap py-2 pr-2 text-right font-medium sm:pr-3" title="Weeks with the league's highest score">
+                  <span className="sm:hidden">Highs</span>
+                  <span className="hidden sm:inline">High scores</span>
+                </th>
+                {showEarned ? <th className="whitespace-nowrap py-2 pr-2 text-right font-medium sm:pr-3">Earned</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -174,6 +185,9 @@ function LeagueDetailContent() {
                     <Link href={`/team?league=${leagueId}&roster=${row.rosterId}`} className="hover:underline">
                       {row.teamName}
                     </Link>
+                    {moneyByRoster.get(row.rosterId) ? (
+                      <div className="text-xs font-normal text-ink-muted">{moneyByRoster.get(row.rosterId)!.name}</div>
+                    ) : null}
                   </td>
                   <td className="py-2 pr-2 sm:pr-3 whitespace-nowrap text-right tabular-nums text-ink-secondary">
                     {formatRecord(row.wins, row.losses, row.ties)}
@@ -181,9 +195,35 @@ function LeagueDetailContent() {
                   <td className="py-2 pr-2 sm:pr-3 whitespace-nowrap text-right tabular-nums text-ink-secondary">
                     {formatPoints(row.pointsFor)}
                   </td>
-                  <td className="py-2 pr-2 sm:pr-3 whitespace-nowrap text-right tabular-nums text-ink-secondary">
+                  <td className="hidden py-2 pr-2 sm:pr-3 whitespace-nowrap text-right tabular-nums text-ink-secondary sm:table-cell">
                     {formatPoints(row.pointsAgainst)}
                   </td>
+                  <td
+                    className="py-2 pr-2 sm:pr-3 whitespace-nowrap text-right tabular-nums text-ink-secondary"
+                    title={
+                      moneyByRoster.get(row.rosterId)?.highScoreWeeks.length
+                        ? `Weeks ${moneyByRoster.get(row.rosterId)!.highScoreWeeks.join(", ")}`
+                        : undefined
+                    }
+                  >
+                    {(() => {
+                      const weeks = moneyByRoster.get(row.rosterId)?.highScoreWeeks ?? [];
+                      if (!weeks.length) return "—";
+                      return (
+                        <>
+                          <span className="sm:hidden">{weeks.length}</span>
+                          <span className="hidden sm:inline">
+                            {weeks.length} <span className="text-ink-muted">(wk {weeks.join(", ")})</span>
+                          </span>
+                        </>
+                      );
+                    })()}
+                  </td>
+                  {showEarned ? (
+                    <td className="py-2 pr-2 sm:pr-3 whitespace-nowrap text-right font-semibold tabular-nums text-ink-primary">
+                      {formatMoney(moneyByRoster.get(row.rosterId)?.total ?? 0)}
+                    </td>
+                  ) : null}
                 </tr>
               ))}
             </tbody>

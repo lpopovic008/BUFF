@@ -1,20 +1,17 @@
 "use client";
 
-import { useMemo } from "react";
 import { Card } from "@/components/ui/Card";
 import { StatTile } from "@/components/ui/StatTile";
 import { PayoutSetup } from "@/components/PayoutSetup";
 import { LeagueSeason } from "@/lib/league-money";
 import {
   awardInfo,
-  computePlanLedger,
   describeRecipients,
   formatMoney as money,
   PayoutPlan,
   PlanLedger,
   RulePayment,
 } from "@/lib/payout-plan";
-import { formatRecord } from "@/lib/format";
 
 /** Earnings leaderboard. One series, so the title names it and no legend is needed. */
 function EarningsChart({ ledger }: { ledger: PlanLedger }) {
@@ -143,13 +140,15 @@ function WeekGrid({ ledger, plan }: { ledger: PlanLedger; plan: PayoutPlan }) {
 export function MoneyBoard({
   season,
   plan,
+  ledger,
   onPlanChange,
 }: {
   season: LeagueSeason;
   plan: PayoutPlan;
+  /** computePlanLedger(plan, season.results), computed by the page (the standings table reads it too). */
+  ledger: PlanLedger;
   onPlanChange: (plan: PayoutPlan) => void;
 }) {
-  const ledger = useMemo(() => computePlanLedger(plan, season.results), [plan, season.results]);
   const lastPlayed = ledger.weeksPlayed.at(-1) ?? 0;
   const stillToPay = Math.max(0, ledger.committed - ledger.paidToDate);
   const seasonPrizes = ledger.budgets
@@ -177,39 +176,6 @@ export function MoneyBoard({
         <WeekGrid ledger={ledger} plan={plan} />
       </Card>
 
-      <Card className="p-5">
-        <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-muted">Record &amp; high scores</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs sm:text-sm">
-            <thead>
-              <tr className="border-b border-grid text-left text-xs uppercase tracking-wide text-ink-muted">
-                <th className="py-2 pr-2 font-medium sm:pr-3">Manager</th>
-                <th className="whitespace-nowrap py-2 pr-2 text-right font-medium sm:pr-3">Record</th>
-                <th className="hidden whitespace-nowrap py-2 pr-3 text-right font-medium sm:table-cell">Points for</th>
-                <th className="whitespace-nowrap py-2 pr-2 text-right font-medium sm:pr-3">High-score weeks</th>
-                <th className="whitespace-nowrap py-2 pr-2 text-right font-medium sm:pr-3">Earned</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ledger.managers.map((mgr) => (
-                <tr key={mgr.rosterId} className="border-b border-grid last:border-0">
-                  <td className="py-2 pr-2 font-medium text-ink-primary sm:pr-3">{mgr.name}</td>
-                  <td className="whitespace-nowrap py-2 pr-2 text-right tabular-nums text-ink-secondary sm:pr-3">
-                    {formatRecord(mgr.wins, mgr.losses, mgr.ties)}
-                  </td>
-                  <td className="hidden py-2 pr-3 text-right tabular-nums text-ink-secondary sm:table-cell">{mgr.pointsFor.toFixed(2)}</td>
-                  <td className="whitespace-nowrap py-2 pr-2 text-right tabular-nums text-ink-secondary sm:pr-3">
-                    {mgr.highScoreWeeks.length > 0 ? mgr.highScoreWeeks.join(", ") : "—"}
-                  </td>
-                  <td className="whitespace-nowrap py-2 pr-2 text-right font-semibold tabular-nums text-ink-primary sm:pr-3">
-                    {money(mgr.total)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
     </div>
   );
 }
