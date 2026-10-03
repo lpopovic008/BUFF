@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import {
   AmountKind,
   AWARDS,
   awardInfo,
+  computePlanLedger,
   AwardKind,
   defaultRule,
   describeRecipients,
@@ -17,6 +18,7 @@ import {
   RankSpec,
   SeasonResults,
 } from "@/lib/payout-plan";
+import { PayoutReading, readPayoutDescription } from "@/lib/payout-ai";
 
 const FIELD =
   "border border-border bg-page px-2 py-1.5 text-sm text-ink-primary outline-none focus:border-series-1";
@@ -152,9 +154,11 @@ function BuyIns({
   );
 }
 
-/** Whether teams can tie for a rule's award (nobody ties in the final finishing order). */
+/** Whether teams can tie for a rule's award (nobody ties in a finishing order: the final standings or survivor). */
 const canTie = (rule: PayoutRule) =>
-  awardInfo(rule.award).ranked && rule.award !== "finalPlace";
+  awardInfo(rule.award).ranked &&
+  rule.award !== "finalPlace" &&
+  rule.award !== "survivor";
 
 /** A rule in plain English: "Pay $15 to every matchup winner, every regular-season week (1–14)." */
 function RuleSentence({
@@ -384,9 +388,22 @@ function RuleEditor({
             </label>
           ) : null}
 
-          {info.timing === "weekly" ? (
+          {rule.award === "finalPlace" ? (
+            <div className="flex flex-col gap-1">
+              <span className={LABEL}>When</span>
+              <span className="py-1.5 text-sm text-ink-secondary">
+                After the championship (week {season.lastWeek})
+              </span>
+            </div>
+          ) : (
             <label className="flex flex-col gap-1">
-              <span className={LABEL}>Weeks</span>
+              <span className={LABEL}>
+                {info.timing === "weekly"
+                  ? "Weeks"
+                  : rule.award === "survivor"
+                    ? "Eliminations, weeks"
+                    : "Judged on weeks"}
+              </span>
               <span className="flex items-center gap-1.5 text-sm text-ink-secondary">
                 <NumberField
                   label="From week"
@@ -405,15 +422,6 @@ function RuleEditor({
                 />
               </span>
             </label>
-          ) : (
-            <div className="flex flex-col gap-1">
-              <span className={LABEL}>When</span>
-              <span className="py-1.5 text-sm text-ink-secondary">
-                {rule.award === "finalPlace"
-                  ? `After the championship (week ${season.lastWeek})`
-                  : `After week ${season.regularSeasonWeeks}`}
-              </span>
-            </div>
           )}
 
           {canTie(rule) ? (
@@ -457,6 +465,170 @@ function RuleEditor({
  * The league's money setup: everyone's buy-in, and the payout rules, which
  * are played through the season's results to fill the week-by-week grid.
  */
+const EXAMPLE =
+  "e.g. $100 buy-in. $10 to every matchup winner each week, but the week's high scorer gets $20 instead. " +
+  "Survivor pool: lowest scorer each week is out, last one standing gets $100. " +
+  "Champ gets 50% of the pot, 2nd gets 20%, 3rd gets whatever's left. Last place buys dinner.";
+
+/**
+ * Describe the league's payouts in your own words: the backend's model reads
+ * it into notes and rules (see payout-ai.ts), shown here to check before
+ * they replace the setup below. The rules then run through the same engine
+ * as hand-made ones.
+ */
+function DescribePayouts({
+  plan,
+  season,
+  onApply,
+}: {
+  plan: PayoutPlan;
+  season: SeasonResults;
+  onApply: (plan: PayoutPlan) => void;
+}) {
+  const [text, setText] = useState(plan.description ?? "");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [reading, setReading] = useState<PayoutReading | null>(null);
+  const draft = useMemo(
+    () => (reading ? computePlanLedger(reading.plan, season) : null),
+    [reading, season],
+  );
+  const draftBudgets = new Map(draft?.budgets.map((b) => [b.ruleId, b]) ?? []);
+
+  const read = async () => {
+    setBusy(true);
+    setError(null);
+    setReading(null);
+    try {
+      setReading(await readPayoutDescription(text.trim(), season));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn’t read that just now.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-3">
+      <label className="flex flex-col gap-1.5">
+        <span className={LABEL}>Describe your league’s payouts</span>
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          rows={5}
+          placeholder={EXAMPLE}
+          className={`${FIELD} resize-y leading-relaxed`}
+        />
+      </label>
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={read}
+          disabled={busy || !text.trim()}
+          className="bg-[var(--map-tag)] px-3 py-1.5 text-sm font-semibold text-[var(--map-tag-ink)] hover:opacity-90 disabled:opacity-40"
+        >
+          {busy ? "Reading…" : "Read my payouts"}
+        </button>
+        <span className="text-xs text-ink-muted">
+          Buy-ins, weekly prizes, placements, survivor or guillotine pools,
+          mid-season prizes: say it however you would to the league.
+        </span>
+      </div>
+      {error ? <p className="text-sm text-status-critical">{error}</p> : null}
+
+      {reading && draft ? (
+        <div className="flex flex-col gap-4 border border-border bg-page/40 p-3 sm:p-4">
+          <div>
+            <h4 className={`${LABEL} mb-1.5`}>How I read it</h4>
+            <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-ink-primary">
+              {reading.notes.map((n, i) => (
+                <li key={i}>{n}</li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h4 className={`${LABEL} mb-1.5`}>
+              Rules · pot {formatMoney(draft.pot)}
+            </h4>
+            {reading.plan.rules.length ? (
+              <ol className="flex list-decimal flex-col gap-1.5 pl-5">
+                {reading.plan.rules.map((r) => (
+                  <li key={r.id}>
+                    <RuleSentence
+                      rule={r}
+                      perPayout={draftBudgets.get(r.id)?.perPayout ?? 0}
+                      pot={draft.pot}
+                      regularSeasonWeeks={season.regularSeasonWeeks}
+                    />
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="text-sm text-ink-secondary">
+                No payouts found in that description.
+              </p>
+            )}
+            {reading.plan.rules.length ? (
+              <p
+                className={`mt-2 text-sm tabular-nums ${Math.abs(draft.unallocated) < 0.005 ? "text-status-good" : "text-status-critical"}`}
+              >
+                {Math.abs(draft.unallocated) < 0.005
+                  ? "Balanced: these rules pay out the whole pot."
+                  : draft.unallocated > 0
+                    ? `${formatMoney(draft.unallocated)} of the pot isn’t paid out by any rule.`
+                    : `These rules pay out about ${formatMoney(-draft.unallocated)} more than the pot.`}
+              </p>
+            ) : null}
+          </div>
+          {reading.unsupported.length ? (
+            <div>
+              <h4 className={`${LABEL} mb-1.5`}>Not tracked as payouts</h4>
+              <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-ink-secondary">
+                {reading.unsupported.map((n, i) => (
+                  <li key={i}>{n}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {reading.questions.length ? (
+            <div>
+              <h4 className={`${LABEL} mb-1.5`}>Worth double-checking</h4>
+              <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-ink-secondary">
+                {reading.questions.map((n, i) => (
+                  <li key={i}>{n}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                onApply(reading.plan);
+                setReading(null);
+              }}
+              className="bg-[var(--map-tag)] px-3 py-1.5 text-sm font-semibold text-[var(--map-tag-ink)] hover:opacity-90"
+            >
+              Use these rules
+            </button>
+            <button
+              type="button"
+              onClick={() => setReading(null)}
+              className="border border-border px-3 py-1.5 text-sm font-semibold text-ink-secondary hover:text-ink-primary"
+            >
+              Discard
+            </button>
+          </div>
+          <p className="text-xs text-ink-muted">
+            Using them replaces the buy-ins and rules below. You can still
+            fine-tune any rule by hand afterwards.
+          </p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function PayoutSetup({
   plan,
   season,
@@ -479,9 +651,14 @@ export function PayoutSetup({
         Payout setup
       </h3>
       <p className="mb-4 text-xs text-ink-secondary">
-        What everyone buys in for, and how the pot gets paid out. Rules run in
-        order, top to bottom.
+        What everyone buys in for, and how the pot gets paid out.
       </p>
+
+      <DescribePayouts plan={plan} season={season} onApply={onChange} />
+
+      <h4 className={`${LABEL} mb-3 mt-6 border-t border-grid pt-4`}>
+        The setup · rules run in order, top to bottom
+      </h4>
 
       <BuyIns
         plan={plan}
@@ -493,8 +670,8 @@ export function PayoutSetup({
       <div className="mt-5 flex flex-col gap-3">
         {plan.rules.length === 0 ? (
           <p className="border border-dashed border-border p-4 text-center text-sm text-ink-secondary">
-            No payout rules yet. Add one for each way the pot pays out: weekly
-            high scores, matchup wins, the champion, and so on.
+            No payout rules yet. Describe your payouts above, or add rules one
+            at a time by hand.
           </p>
         ) : (
           <ol className="flex flex-col gap-3">
@@ -533,9 +710,9 @@ export function PayoutSetup({
               setAdded((a) => new Set(a).add(rule.id));
               setRules([...plan.rules, rule]);
             }}
-            className="bg-[var(--map-tag)] px-3 py-1.5 text-sm font-semibold text-[var(--map-tag-ink)] hover:opacity-90"
+            className="border border-border px-3 py-1.5 text-sm font-semibold text-ink-secondary hover:text-ink-primary"
           >
-            + Add a payout rule
+            + Add a rule by hand
           </button>
           <p
             className={`text-sm tabular-nums ${balanced ? "text-status-good" : "text-status-critical"}`}

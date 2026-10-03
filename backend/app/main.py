@@ -11,14 +11,15 @@ written by hand.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routers import players, recap
+from .routers import payouts, players, recap
 
 app = FastAPI(
     title="Commi$h API",
     description=(
         "Serves the same player-values and player-stats snapshots the Commi$h "
         "dashboard's frontend reads at build time, live over HTTP instead, "
-        "plus a POST endpoint that ghostwrites a weekly recap paragraph."
+        "plus POST endpoints that ghostwrite a weekly recap paragraph and read a "
+        "commissioner's payout description into payout rules."
     ),
     version="0.1.0",
 )
@@ -27,7 +28,7 @@ app = FastAPI(
 # server are different origins than this API, so without CORS headers the
 # browser blocks the response before frontend code ever sees it — this is
 # the browser's own same-origin policy, not something this API chooses.
-# POST is only needed for /recap/generate; every other route is read-only GET.
+# POST is only needed for /recap/generate and /payouts/parse; every other route is read-only GET.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -40,6 +41,7 @@ app.add_middleware(
 
 app.include_router(players.router)
 app.include_router(recap.router)
+app.include_router(payouts.router)
 
 
 @app.get("/health")

@@ -119,6 +119,14 @@ export async function loadLeagueSeason(leagueId: string): Promise<LeagueSeason |
     leagueName: league.name,
     season: league.season,
     profile,
-    results: { rosterIds: rosters.map((r) => r.roster_id), names, matchupsByWeek, regularSeasonWeeks, lastWeek, finalOrder },
+    results: {
+      rosterIds: rosters.map((r) => r.roster_id),
+      names,
+      matchupsByWeek,
+      regularSeasonWeeks,
+      lastWeek,
+      finalOrder,
+      playoffTeams: Number(league.settings.playoff_teams) || undefined,
+    },
   };
 }

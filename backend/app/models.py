@@ -13,6 +13,7 @@ same thing in both languages.
 """
 
 from enum import Enum
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -89,3 +90,77 @@ class RecapGenerateRequest(BaseModel):
 
 class RecapGenerateResponse(BaseModel):
     text: str
+
+
+# ---- Payout reading (POST /payouts/parse) ---------------------------------
+# Mirrors src/lib/payout-plan.ts: the award, amount and rank vocabularies are
+# the same strings on both sides, so the frontend can apply a parsed rule
+# directly to its payout engine.
+
+AwardKind = Literal[
+    "weekHighScore",
+    "weekLowScore",
+    "matchupWinner",
+    "matchupLoser",
+    "biggestWin",
+    "closestWin",
+    "highScoreInLoss",
+    "lowScoreInWin",
+    "aboveMedian",
+    "weekTopPlayer",
+    "finalPlace",
+    "regularSeasonPlace",
+    "seasonPoints",
+    "seasonPointsAgainst",
+    "mostHighScores",
+    "seasonHighWeek",
+    "seasonLowWeek",
+    "allPlayRecord",
+    "longestWinStreak",
+    "survivor",
+]
+
+
+class PayoutManager(BaseModel):
+    roster_id: int
+    name: str
+
+
+class PayoutParseRequest(BaseModel):
+    """The commish's own description of their league's money, plus the facts
+    about the league the model needs to turn it into rules."""
+
+    description: str = Field(min_length=1, max_length=6000)
+    team_count: int = Field(ge=2, le=40)
+    regular_season_weeks: int = Field(ge=1, le=18)
+    last_week: int = Field(ge=1, le=18)
+    playoff_teams: int | None = Field(default=None, ge=0, le=40)
+    managers: list[PayoutManager] = Field(default_factory=list)
+
+
+class ParsedRule(BaseModel):
+    award: AwardKind
+    rank_mode: Literal["place", "top", "bottom"]
+    rank_n: int
+    amount_kind: Literal["dollars", "percent", "remainder"]
+    amount: float
+    from_week: int
+    to_week: int
+    ties: Literal["split", "each"]
+    skip_if_paid: bool
+
+
+class BuyInOverride(BaseModel):
+    roster_id: int
+    amount: float
+
+
+class ParsedPayouts(BaseModel):
+    """What the model hands back, and what the endpoint returns."""
+
+    notes: list[str] = Field(description="How the payout structure reads, as short plain-English bullet points.")
+    buy_in: float = Field(description="What each manager buys in for (0 if never stated).")
+    buy_in_overrides: list[BuyInOverride] = Field(description="Managers whose buy-in differs from buy_in.")
+    rules: list[ParsedRule]
+    unsupported: list[str] = Field(description="Parts of the description that aren't payouts the app can track.")
+    questions: list[str] = Field(description="Anything ambiguous enough that the commish should confirm it.")

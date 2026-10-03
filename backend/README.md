@@ -24,6 +24,13 @@ data behind it, rather than a tutorial's placeholder API.
   scorer, standings leader), via Gemini's free tier. Requires
   `GEMINI_API_KEY` to be set in the server's environment; returns `503` if
   it isn't. See `app/routers/recap.py` for the request/response shape.
+- `POST /payouts/parse` — reads a commissioner's own description of their
+  league's payouts into the payout rules the dashboard's payout engine runs
+  (`src/lib/payout-plan.ts`), plus plain-English notes, anything that isn't
+  a trackable payout, and anything worth confirming. Gemini only translates
+  (structured output, validated against `ParsedPayouts`); the frontend does
+  all the money math. Same `GEMINI_API_KEY` requirement. See
+  `app/routers/payouts.py`.
 
 Full interactive docs (auto-generated from the Pydantic models) are at
 `/docs` once the server is running.

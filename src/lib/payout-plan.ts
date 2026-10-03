@@ -26,12 +26,19 @@ export type AwardKind =
   | "closestWin"
   | "highScoreInLoss"
   | "lowScoreInWin"
+  | "aboveMedian"
+  | "weekTopPlayer"
   // End of season
   | "finalPlace"
   | "regularSeasonPlace"
   | "seasonPoints"
   | "seasonPointsAgainst"
-  | "mostHighScores";
+  | "mostHighScores"
+  | "seasonHighWeek"
+  | "seasonLowWeek"
+  | "allPlayRecord"
+  | "longestWinStreak"
+  | "survivor";
 
 /**
  * Which of an award's ranked teams get paid: exactly the `n`th ("place"),
@@ -50,7 +57,12 @@ export interface PayoutRule {
   amountKind: AmountKind;
   /** Dollars, or percent of the pot; unused for "remainder". */
   amount: number;
-  /** For weekly awards: the weeks it pays, inclusive. */
+  /**
+   * The weeks it covers, inclusive: for a weekly award, the weeks it pays;
+   * for a season award, the weeks it's judged on (so "best record after
+   * week 7" is a mid-season prize); for survivor, the weeks teams are
+   * eliminated. Final finish ignores it.
+   */
   fromWeek: number;
   toWeek: number;
   /** Teams tied for a paid spot: split that spot's money, or each get the full amount. */
@@ -69,6 +81,8 @@ export interface PayoutPlan {
   buyIns: Record<number, number>;
   /** Applied in order — which matters for skipIfPaid. */
   rules: PayoutRule[];
+  /** The commish's own description these rules were read from, if any (see payout-ai.ts). */
+  description?: string;
 }
 
 export interface AwardInfo {
@@ -91,11 +105,18 @@ export const AWARDS: AwardInfo[] = [
   { kind: "closestWin", label: "Narrowest win", timing: "weekly", ranked: true, modes: ["place", "top"] },
   { kind: "highScoreInLoss", label: "Highest score in a loss", timing: "weekly", ranked: true, modes: ["place", "top"] },
   { kind: "lowScoreInWin", label: "Lowest score in a win", timing: "weekly", ranked: true, modes: ["place", "top"] },
+  { kind: "aboveMedian", label: "Every team above the week's median", timing: "weekly", ranked: false, modes: [] },
+  { kind: "weekTopPlayer", label: "Started the week's top-scoring player", timing: "weekly", ranked: true, modes: ["place", "top"] },
   { kind: "finalPlace", label: "Final finish (after the playoffs)", timing: "season", ranked: true, modes: ["place", "top", "bottom"] },
-  { kind: "regularSeasonPlace", label: "Regular-season standings", timing: "season", ranked: true, modes: ["place", "top", "bottom"] },
-  { kind: "seasonPoints", label: "Points scored, regular season", timing: "season", ranked: true, modes: ["place", "top", "bottom"] },
-  { kind: "seasonPointsAgainst", label: "Points against, regular season", timing: "season", ranked: true, modes: ["place", "top", "bottom"] },
-  { kind: "mostHighScores", label: "Weekly high scores, regular season", timing: "season", ranked: true, modes: ["place", "top"] },
+  { kind: "regularSeasonPlace", label: "Standings (record, then points)", timing: "season", ranked: true, modes: ["place", "top", "bottom"] },
+  { kind: "seasonPoints", label: "Points scored", timing: "season", ranked: true, modes: ["place", "top", "bottom"] },
+  { kind: "seasonPointsAgainst", label: "Points against", timing: "season", ranked: true, modes: ["place", "top", "bottom"] },
+  { kind: "mostHighScores", label: "Most weekly high scores", timing: "season", ranked: true, modes: ["place", "top"] },
+  { kind: "seasonHighWeek", label: "Best single-week score", timing: "season", ranked: true, modes: ["place", "top"] },
+  { kind: "seasonLowWeek", label: "Worst single-week score", timing: "season", ranked: true, modes: ["place", "top"] },
+  { kind: "allPlayRecord", label: "All-play record (vs. every team, every week)", timing: "season", ranked: true, modes: ["place", "top", "bottom"] },
+  { kind: "longestWinStreak", label: "Longest winning streak", timing: "season", ranked: true, modes: ["place", "top"] },
+  { kind: "survivor", label: "Survivor / guillotine (last team standing)", timing: "season", ranked: true, modes: ["place", "top"] },
 ];
 
 export function awardInfo(kind: AwardKind): AwardInfo {
@@ -193,6 +214,22 @@ export function describeRecipients(rule: PayoutRule): string {
       return mode === "top" ? `each of the ${n} highest scores in a loss` : one ? "the highest score in a loss" : `the ${nth}-highest score in a loss`;
     case "lowScoreInWin":
       return mode === "top" ? `each of the ${n} lowest scores in a win` : one ? "the lowest score in a win" : `the ${nth}-lowest score in a win`;
+    case "aboveMedian":
+      return "every team that scores above the week's median";
+    case "weekTopPlayer":
+      return mode === "top" ? `the teams that started each of the week's top ${n} players` : one ? "the team that started the week's top-scoring player" : `the team that started the week's ${nth}-highest-scoring player`;
+    case "seasonHighWeek":
+      return mode === "top" ? `each of the season's ${n} best single-week scores` : one ? "the season's best single-week score" : `the season's ${nth}-best single-week score`;
+    case "seasonLowWeek":
+      return mode === "top" ? `each of the season's ${n} worst single-week scores` : one ? "the season's worst single-week score" : `the season's ${nth}-worst single-week score`;
+    case "allPlayRecord":
+      if (mode === "top") return `each of the top ${n} all-play records`;
+      if (mode === "bottom") return n === 1 ? "the worst all-play record" : `each of the bottom ${n} all-play records`;
+      return n === 1 ? "the best all-play record" : `the ${nth}-best all-play record`;
+    case "longestWinStreak":
+      return mode === "top" ? `each of the ${n} longest winning streaks` : one ? "the longest winning streak" : `the ${nth}-longest winning streak`;
+    case "survivor":
+      return mode === "top" ? `each of the last ${n} teams standing in survivor` : one ? "the last team standing in survivor" : `the ${nth}-to-last team standing in survivor`;
     case "finalPlace":
       if (mode === "top") return `each of the top ${n} finishers`;
       if (mode === "bottom") return n === 1 ? "the last-place finisher" : `each of the bottom ${n} finishers`;
@@ -218,7 +255,12 @@ export function describeRecipients(rule: PayoutRule): string {
 export function describeTiming(rule: PayoutRule, regularSeasonWeeks: number): string {
   const info = awardInfo(rule.award);
   if (info.timing === "season") {
-    return rule.award === "finalPlace" ? "once the playoffs are over" : "once the regular season is over";
+    if (rule.award === "finalPlace") return "once the playoffs are over";
+    if (rule.award === "survivor") {
+      return `once one team is left (the week's lowest scorer is knocked out each week from week ${rule.fromWeek}${rule.toWeek < regularSeasonWeeks ? ` to ${rule.toWeek}` : ""})`;
+    }
+    if (rule.fromWeek <= 1 && rule.toWeek === regularSeasonWeeks) return "once the regular season is over";
+    return rule.fromWeek <= 1 ? `after week ${rule.toWeek}` : `over weeks ${rule.fromWeek}–${rule.toWeek}, paid after week ${rule.toWeek}`;
   }
   if (rule.fromWeek === rule.toWeek) return `in week ${rule.fromWeek} only`;
   if (rule.fromWeek === 1 && rule.toWeek === regularSeasonWeeks) return `every regular-season week (1–${regularSeasonWeeks})`;
@@ -237,12 +279,21 @@ export interface SeasonResults {
   lastWeek: number;
   /** Roster ids in final finishing order, once the season is decided; null until then. */
   finalOrder: number[] | null;
+  /** How many teams make the playoffs, when the league says. */
+  playoffTeams?: number;
 }
 
 interface Game {
   rosterId: number;
   points: number;
   oppPoints: number;
+  /** The best single score among the players this team started. */
+  topPlayer: number;
+}
+
+function topStarter(m: SleeperMatchup): number {
+  const pts = m.players_points ?? {};
+  return Math.max(0, ...(m.starters ?? []).map((p) => pts[p] ?? 0));
 }
 
 /** A week's games (both teams scored), or null if it hasn't been played. */
@@ -257,8 +308,8 @@ function gamesOf(matchups: SleeperMatchup[] | undefined): Game[] | null {
   for (const pair of byId.values()) {
     if (pair.length !== 2) continue;
     const [a, b] = pair;
-    games.push({ rosterId: a.roster_id, points: a.points, oppPoints: b.points });
-    games.push({ rosterId: b.roster_id, points: b.points, oppPoints: a.points });
+    games.push({ rosterId: a.roster_id, points: a.points, oppPoints: b.points, topPlayer: topStarter(a) });
+    games.push({ rosterId: b.roster_id, points: b.points, oppPoints: a.points, topPlayer: topStarter(b) });
   }
   return games.length ? games : null;
 }
@@ -280,7 +331,7 @@ function positions(rank: RankSpec, count: number): number[] {
 /** How many payouts a rule makes each time it pays, for budgeting. */
 function slotsPer(rule: PayoutRule, teamCount: number): number {
   const info = awardInfo(rule.award);
-  if (!info.ranked) return Math.floor(teamCount / 2);
+  if (!info.ranked) return Math.floor(teamCount / 2); // winners, losers, or above the median: about half the league
   if (rule.rank.mode === "place") return 1;
   return Math.max(1, Math.floor(rule.rank.n));
 }
@@ -327,6 +378,8 @@ function weeklyCandidates(rule: PayoutRule, games: Game[]): Ranked[] | null {
       return losers.map((g) => ({ rosterId: g.rosterId, key: -g.points }));
     case "lowScoreInWin":
       return winners.map((g) => ({ rosterId: g.rosterId, key: g.points }));
+    case "weekTopPlayer":
+      return games.map((g) => ({ rosterId: g.rosterId, key: -g.topPlayer }));
     default:
       return null;
   }
@@ -417,6 +470,110 @@ function projectedPayouts(rule: PayoutRule, index: number, rules: PayoutRule[], 
   return slots * ruleWeeks(rule, lastWeek).length;
 }
 
+function medianOf(values: number[]): number {
+  const v = [...values].sort((a, b) => a - b);
+  if (!v.length) return 0;
+  const mid = Math.floor(v.length / 2);
+  return v.length % 2 ? v[mid] : (v[mid - 1] + v[mid]) / 2;
+}
+
+interface RangeStats {
+  wins: number;
+  ties: number;
+  pointsFor: number;
+  pointsAgainst: number;
+  highScores: number;
+  bestWeek: number;
+  worstWeek: number;
+  allPlayWins: number;
+  longestStreak: number;
+}
+
+/** Each team's numbers over weeks `from`–`to`, for season awards judged on a stretch of the season. */
+function rangeStats(rosterIds: number[], gamesByWeek: Map<number, Game[]>, from: number, to: number): Map<number, RangeStats> {
+  const stats = new Map<number, RangeStats>(
+    rosterIds.map((id) => [id, { wins: 0, ties: 0, pointsFor: 0, pointsAgainst: 0, highScores: 0, bestWeek: 0, worstWeek: Infinity, allPlayWins: 0, longestStreak: 0 }])
+  );
+  const streak = new Map<number, number>();
+  const weeks = [...gamesByWeek.keys()].filter((w) => w >= from && w <= to).sort((a, b) => a - b);
+  for (const w of weeks) {
+    const games = gamesByWeek.get(w)!;
+    const top = Math.max(...games.map((g) => g.points));
+    for (const g of games) {
+      const s = stats.get(g.rosterId);
+      if (!s) continue;
+      s.pointsFor += g.points;
+      s.pointsAgainst += g.oppPoints;
+      if (g.points > g.oppPoints) s.wins++;
+      else if (g.points === g.oppPoints) s.ties++;
+      if (g.points === top) s.highScores++;
+      s.bestWeek = Math.max(s.bestWeek, g.points);
+      s.worstWeek = Math.min(s.worstWeek, g.points);
+      // All-play: a win for every team this score beat this week, half for a tie.
+      s.allPlayWins += games.filter((o) => o.rosterId !== g.rosterId && o.points < g.points).length;
+      s.allPlayWins += games.filter((o) => o.rosterId !== g.rosterId && o.points === g.points).length / 2;
+      const run = g.points > g.oppPoints ? (streak.get(g.rosterId) ?? 0) + 1 : 0;
+      streak.set(g.rosterId, run);
+      s.longestStreak = Math.max(s.longestStreak, run);
+    }
+  }
+  for (const s of stats.values()) if (s.worstWeek === Infinity) s.worstWeek = 0;
+  return stats;
+}
+
+/** A team's sort key for a season award (lower ranks first). */
+function seasonKey(award: AwardKind, s: RangeStats): number {
+  switch (award) {
+    case "regularSeasonPlace":
+      return -((s.wins + s.ties / 2) * 1e6 + s.pointsFor);
+    case "seasonPoints":
+      return -s.pointsFor;
+    case "seasonPointsAgainst":
+      return -s.pointsAgainst;
+    case "mostHighScores":
+      return -s.highScores;
+    case "seasonHighWeek":
+      return -s.bestWeek;
+    case "seasonLowWeek":
+      return s.worstWeek;
+    case "allPlayRecord":
+      return -(s.allPlayWins * 1e6 + s.pointsFor);
+    case "longestWinStreak":
+      return -s.longestStreak;
+    default:
+      return 0;
+  }
+}
+
+/**
+ * Survivor (a guillotine league's chopping block, too): from week `from`,
+ * each week's lowest scorer among the teams still standing is knocked out
+ * (a tie goes against whoever has scored less since `from`). Returns the
+ * finishing order — the last team standing first, then everyone else in
+ * reverse order of elimination — once one team is left or week `to` has
+ * been played (then those still standing rank by points); null until then.
+ */
+function survivorOrder(rosterIds: number[], gamesByWeek: Map<number, Game[]>, from: number, to: number): number[] | null {
+  const standing = new Set(rosterIds);
+  const out: number[] = [];
+  const total = new Map<number, number>();
+  const weeks = [...gamesByWeek.keys()].filter((w) => w >= from && w <= to).sort((a, b) => a - b);
+  for (const w of weeks) {
+    if (standing.size <= 1) break;
+    const games = gamesByWeek.get(w)!.filter((g) => standing.has(g.rosterId));
+    for (const g of games) total.set(g.rosterId, (total.get(g.rosterId) ?? 0) + g.points);
+    if (!games.length) continue;
+    const loser = [...games].sort(
+      (a, b) => a.points - b.points || (total.get(a.rosterId) ?? 0) - (total.get(b.rosterId) ?? 0) || b.rosterId - a.rosterId
+    )[0];
+    standing.delete(loser.rosterId);
+    out.push(loser.rosterId);
+  }
+  if (standing.size > 1 && !weeks.includes(to)) return null;
+  const left = [...standing].sort((a, b) => (total.get(b) ?? 0) - (total.get(a) ?? 0));
+  return [...left, ...out.reverse()];
+}
+
 export function computePlanLedger(plan: PayoutPlan, season: SeasonResults): PlanLedger {
   const teamCount = season.rosterIds.length;
   const pot = season.rosterIds.reduce((sum, id) => sum + (plan.buyIns[id] ?? 0), 0);
@@ -496,7 +653,13 @@ export function computePlanLedger(plan: PayoutPlan, season: SeasonResults): Plan
         const eligible = rule.skipIfPaid ? games.filter((g) => !paidThisWeek.has(g.rosterId)) : games;
         let pay: Map<number, number>;
         if (!info.ranked) {
-          const want = rule.award === "matchupWinner" ? (g: Game) => g.points > g.oppPoints : (g: Game) => g.points < g.oppPoints;
+          const median = medianOf(games.map((g) => g.points));
+          const want =
+            rule.award === "matchupWinner"
+              ? (g: Game) => g.points > g.oppPoints
+              : rule.award === "matchupLoser"
+                ? (g: Game) => g.points < g.oppPoints
+                : (g: Game) => g.points > median;
           pay = new Map(eligible.filter(want).map((g) => [g.rosterId, perPayout[i]]));
         } else {
           const ranked = (weeklyCandidates(rule, eligible) ?? []).sort((a, b) => a.key - b.key);
@@ -514,21 +677,21 @@ export function computePlanLedger(plan: PayoutPlan, season: SeasonResults): Plan
 
     // Season awards, once they're decided.
     const paidAtEnd = new Set<number>();
-    const list = [...managers.values()];
     plan.rules.forEach((rule, i) => {
       const info = awardInfo(rule.award);
       if (info.timing !== "season") return;
       let ordered: Ranked[] | null = null;
       if (rule.award === "finalPlace") {
         if (season.finalOrder) ordered = season.finalOrder.map((id, k) => ({ rosterId: id, key: k }));
-      } else if (regularSeasonOver) {
-        const keyOf: Record<string, (m: PlanManager) => number> = {
-          regularSeasonPlace: (m) => -((m.wins + m.ties / 2) * 1e6 + m.pointsFor),
-          seasonPoints: (m) => -m.pointsFor,
-          seasonPointsAgainst: (m) => -m.pointsAgainst,
-          mostHighScores: (m) => -m.highScoreWeeks.length,
-        };
-        ordered = list.map((m) => ({ rosterId: m.rosterId, key: Math.round(keyOf[rule.award](m) * 100) / 100 }));
+      } else if (rule.award === "survivor") {
+        const order = survivorOrder(season.rosterIds, gamesByWeek, rule.fromWeek, Math.min(rule.toWeek, season.lastWeek));
+        if (order) ordered = order.map((id, k) => ({ rosterId: id, key: k }));
+      } else {
+        const to = Math.min(rule.toWeek, season.lastWeek);
+        if (weeksPlayed.some((w) => w >= to)) {
+          const stats = rangeStats(season.rosterIds, gamesByWeek, rule.fromWeek, to);
+          ordered = season.rosterIds.map((id) => ({ rosterId: id, key: Math.round(seasonKey(rule.award, stats.get(id)!) * 100) / 100 }));
+        }
       }
       if (!ordered) return;
       if (rule.skipIfPaid) ordered = ordered.filter((o) => !paidAtEnd.has(o.rosterId));

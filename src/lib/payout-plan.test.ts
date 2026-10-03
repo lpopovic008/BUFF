@@ -118,3 +118,36 @@ test("rules read as sentences", () => {
   assert.equal(describeTiming(rule({}), 14), "every regular-season week (1–14)");
   assert.equal(describeTiming(rule({ fromWeek: 17, toWeek: 17 }), 14), "in week 17 only");
 });
+
+test("survivor: the week's lowest scorer still standing is knocked out until one team is left", () => {
+  // 10 teams, 14 weeks: nine eliminations, done by week 9.
+  const plan: PayoutPlan = { version: 1, buyIns: {}, rules: [rule({ award: "survivor", amount: 100 })] };
+  const done = computePlanLedger(plan, season2025());
+  const winners = done.managers.filter((m) => m.seasonEnd > 0);
+  assert.equal(winners.length, 1);
+  assert.equal(winners[0].seasonEnd, 100);
+  // Not decided while more than one team stands.
+  const early = computePlanLedger(plan, { ...season2025(), matchupsByWeek: new Map([...buildMatchups()].filter(([w]) => w <= 3)) });
+  assert.equal(early.managers.reduce((s, m) => s + m.seasonEnd, 0), 0);
+  // Week 1's lowest scorer (Owen, 108.52) can't be the winner.
+  assert.notEqual(winners[0].rosterId, 4);
+});
+
+test("above the median, mid-season standings, and all-play", () => {
+  const plan: PayoutPlan = {
+    version: 1,
+    buyIns: {},
+    rules: [
+      rule({ award: "aboveMedian", amount: 1, toWeek: 1 }),
+      rule({ award: "regularSeasonPlace", amount: 50, toWeek: 7 }),
+      rule({ award: "allPlayRecord", amount: 25 }),
+    ],
+  };
+  const ledger = computePlanLedger(plan, season2025());
+  // Week 1: half the league beats the median.
+  assert.equal(ledger.managers.filter((m) => (m.weekly[1] ?? 0) === 1).length, 5);
+  // One mid-season leader and one all-play leader get paid.
+  assert.equal(ledger.managers.filter((m) => m.seasonDetail.some((p) => p.ruleId === plan.rules[1].id)).length, 1);
+  assert.equal(ledger.managers.filter((m) => m.seasonDetail.some((p) => p.ruleId === plan.rules[2].id)).length, 1);
+  assert.match(describeTiming(plan.rules[1], 14), /after week 7/);
+});
