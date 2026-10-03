@@ -3,14 +3,17 @@
 import { Card } from "@/components/ui/Card";
 import { StatTile } from "@/components/ui/StatTile";
 import { useState } from "react";
-import { PayoutSetup, ruleColor } from "@/components/PayoutSetup";
+import { PayoutSetup } from "@/components/PayoutSetup";
+import { paymentSwatch, placeSwatch, ruleSwatches } from "@/lib/payout-colors";
 import { LeagueSeason } from "@/lib/league-money";
 import {
   awardInfo,
   describeRecipients,
   formatMoney as money,
   PayoutPlan,
+  ordinal,
   PayoutRule,
+  podiumSplit,
   PlanLedger,
   RulePayment,
 } from "@/lib/payout-plan";
@@ -43,6 +46,11 @@ function legendLine(rule: PayoutRule, ledger: PlanLedger, regularSeasonWeeks: nu
       : rule.amountKind === "percent"
         ? `${rule.amount}% of the pot (${money((ledger.pot * rule.amount) / 100)})`
         : `The rest of the pot (about ${money(per)})`;
+  if (rule.award === "podium") {
+    return `${amount} for the podium: ${podiumSplit(rule)
+      .map((pct, k) => `${ordinal(k + 1)} ${+pct.toFixed(2)}% (${money((per * pct) / 100)})`)
+      .join(" · ")}`;
+  }
   const weekly = awardInfo(rule.award).timing === "weekly";
   const fullStretch = rule.fromWeek > regularSeasonWeeks || (rule.fromWeek <= 1 && rule.toWeek >= regularSeasonWeeks);
   const weeks =
@@ -75,15 +83,15 @@ function WeekGrid({
   currentWeek: number | null;
 }) {
   const ruleText = new Map(plan.rules.map((r) => [r.id, describeRecipients(r)]));
-  const colorOf = new Map(plan.rules.map((r, i) => [r.id, ruleColor(i)]));
+  const swatches = ruleSwatches(plan.rules, regularSeasonWeeks);
   /** A paid amount, in the color of the rule that paid the most of it. */
   const paid = (amount: number, payments: RulePayment[] | undefined, bold = false) => {
     const top = [...(payments ?? [])].sort((a, b) => b.amount - a.amount)[0];
-    const c = top ? colorOf.get(top.ruleId) : undefined;
+    const c = top ? paymentSwatch(top, swatches) : undefined;
     return c ? (
       <span
-        className={`px-1 py-0.5 text-[var(--rule-ink)] ${bold ? "font-bold" : "font-semibold"}`}
-        style={{ backgroundColor: c }}
+        className={`px-1 py-0.5 ${bold ? "font-bold" : "font-semibold"}`}
+        style={{ backgroundColor: c.bg, color: c.ink }}
       >
         {money(amount)}
       </span>
@@ -237,17 +245,25 @@ function WeekGrid({
       {plan.rules.length ? (
         <div className="mt-4 flex flex-col gap-3">
           {RULE_GROUPS.map((group) => {
-            const rules = plan.rules
-              .map((r, i) => ({ r, i }))
-              .filter(({ r }) => ruleGroup(r, regularSeasonWeeks) === group);
+            const rules = plan.rules.filter((r) => ruleGroup(r, regularSeasonWeeks) === group);
             if (!rules.length) return null;
             return (
               <div key={group}>
                 <h4 className="mb-1 text-[0.625rem] font-semibold uppercase tracking-wider text-ink-muted">{group}</h4>
                 <ol className="flex flex-col gap-1">
-                  {rules.map(({ r, i }) => (
+                  {rules.map((r) => (
                     <li key={r.id} className="flex items-center gap-2 text-xs text-ink-primary">
-                      <span className="h-3 w-3 shrink-0" style={{ backgroundColor: ruleColor(i) }} aria-hidden />
+                      {r.award === "podium" ? (
+                        <span className="flex shrink-0 gap-0.5" aria-hidden>
+                          {podiumSplit(r)
+                            .slice(0, 3)
+                            .map((_, k) => (
+                              <span key={k} className="h-3 w-3" style={{ backgroundColor: placeSwatch(k + 1)!.bg }} />
+                            ))}
+                        </span>
+                      ) : (
+                        <span className="h-3 w-3 shrink-0" style={{ backgroundColor: swatches.get(r.id)!.bg }} aria-hidden />
+                      )}
                       <span>{legendLine(r, ledger, regularSeasonWeeks)}</span>
                     </li>
                   ))}

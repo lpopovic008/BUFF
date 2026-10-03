@@ -38,7 +38,8 @@ export type AwardKind =
   | "seasonLowWeek"
   | "allPlayRecord"
   | "longestWinStreak"
-  | "survivor";
+  | "survivor"
+  | "podium";
 
 /**
  * Which of an award's ranked teams get paid: exactly the `n`th ("place"),
@@ -73,6 +74,11 @@ export interface PayoutRule {
    * ranked award goes to the next team in line.
    */
   skipIfPaid: boolean;
+  /**
+   * For the podium: how the rule's amount is split by final finish, as
+   * percentages for 1st, 2nd, 3rd... (e.g. [50, 30, 20]).
+   */
+  split?: number[];
 }
 
 export interface PayoutPlan {
@@ -107,6 +113,7 @@ export const AWARDS: AwardInfo[] = [
   { kind: "lowScoreInWin", label: "Lowest score in a win", timing: "weekly", ranked: true, modes: ["place", "top"] },
   { kind: "aboveMedian", label: "Every team above the week's median", timing: "weekly", ranked: false, modes: [] },
   { kind: "weekTopPlayer", label: "Started the week's top-scoring player", timing: "weekly", ranked: true, modes: ["place", "top"] },
+  { kind: "podium", label: "Podium (final finish, split by %)", timing: "season", ranked: false, modes: [] },
   { kind: "finalPlace", label: "Final finish (after the playoffs)", timing: "season", ranked: true, modes: ["place", "top", "bottom"] },
   { kind: "regularSeasonPlace", label: "Standings (record, then points)", timing: "season", ranked: true, modes: ["place", "top", "bottom"] },
   { kind: "seasonPoints", label: "Points scored", timing: "season", ranked: true, modes: ["place", "top", "bottom"] },
@@ -131,6 +138,29 @@ let idCounter = 0;
 export function newRuleId(): string {
   idCounter += 1;
   return `r${Date.now().toString(36)}${idCounter}`;
+}
+
+/** The podium's split when none is set: 50% to the champion, 30% to 2nd, 20% to 3rd. */
+export const DEFAULT_PODIUM_SPLIT = [50, 30, 20];
+
+export function podiumSplit(rule: PayoutRule): number[] {
+  return rule.split?.length ? rule.split : DEFAULT_PODIUM_SPLIT;
+}
+
+/** A podium rule: an amount set aside for the top finishers, split by percentage. */
+export function podiumRule(regularSeasonWeeks: number): PayoutRule {
+  return {
+    id: newRuleId(),
+    award: "podium",
+    rank: { mode: "place", n: 1 },
+    amountKind: "percent",
+    amount: 30,
+    fromWeek: 1,
+    toWeek: regularSeasonWeeks,
+    ties: "split",
+    skipIfPaid: false,
+    split: [...DEFAULT_PODIUM_SPLIT],
+  };
 }
 
 /** A sensible first rule: the week's high scorer, every regular-season week. */
@@ -173,8 +203,14 @@ export function planFromProfile(profile: LeagueProfile, rosterIds: number[]): Pa
       skipIfPaid: !r.highScoreStacks && r.weeklyHighScore > 0,
     });
   }
-  for (const p of r.finalPayouts) {
-    rules.push({ id: newRuleId(), award: "finalPlace", rank: { mode: "place", n: p.place }, amountKind: "dollars", amount: p.amount, fromWeek: 1, toWeek: r.regularSeasonWeeks, ties: "split", skipIfPaid: false });
+  const podiumTotal = r.finalPayouts.reduce((sum, p) => sum + p.amount, 0);
+  if (podiumTotal > 0) {
+    const places = [...r.finalPayouts].sort((a, b) => a.place - b.place);
+    const split = Array.from({ length: places.at(-1)!.place }, (_, k) => {
+      const p = places.find((x) => x.place === k + 1);
+      return p ? (p.amount / podiumTotal) * 100 : 0;
+    });
+    rules.push({ ...podiumRule(r.regularSeasonWeeks), amountKind: "dollars", amount: podiumTotal, split });
   }
   return { version: 1, buyIns: Object.fromEntries(rosterIds.map((id) => [id, r.buyIn])), rules };
 }
@@ -228,6 +264,10 @@ export function describeRecipients(rule: PayoutRule): string {
       return n === 1 ? "the best all-play record" : `the ${nth}-best all-play record`;
     case "longestWinStreak":
       return mode === "top" ? `each of the ${n} longest winning streaks` : one ? "the longest winning streak" : `the ${nth}-longest winning streak`;
+    case "podium":
+      return `the podium (${podiumSplit(rule)
+        .map((pct, k) => `${ordinal(k + 1)} ${+pct.toFixed(2)}%`)
+        .join(" · ")})`;
     case "survivor":
       return mode === "top" ? `each of the last ${n} teams standing in survivor` : one ? "the last team standing in survivor" : `the ${nth}-to-last team standing in survivor`;
     case "finalPlace":
@@ -255,7 +295,7 @@ export function describeRecipients(rule: PayoutRule): string {
 export function describeTiming(rule: PayoutRule, regularSeasonWeeks: number): string {
   const info = awardInfo(rule.award);
   if (info.timing === "season") {
-    if (rule.award === "finalPlace") return "once the playoffs are over";
+    if (rule.award === "finalPlace" || rule.award === "podium") return "once the playoffs are over";
     if (rule.award === "survivor") {
       return `once one team is left (the week's lowest scorer is knocked out each week from week ${rule.fromWeek}${rule.toWeek < regularSeasonWeeks ? ` to ${rule.toWeek}` : ""})`;
     }
@@ -331,6 +371,8 @@ function positions(rank: RankSpec, count: number): number[] {
 /** How many payouts a rule makes each time it pays, for budgeting. */
 function slotsPer(rule: PayoutRule, teamCount: number): number {
   const info = awardInfo(rule.award);
+  // The podium is one pot, set aside whole and shared out by the split.
+  if (rule.award === "podium") return 1;
   if (!info.ranked) return Math.floor(teamCount / 2); // winners, losers, or above the median: about half the league
   if (rule.rank.mode === "place") return 1;
   return Math.max(1, Math.floor(rule.rank.n));
@@ -390,6 +432,8 @@ function weeklyCandidates(rule: PayoutRule, games: Game[]): Ranked[] | null {
 export interface RulePayment {
   ruleId: string;
   amount: number;
+  /** The final finish it was for, when it's a podium payout. */
+  place?: number;
 }
 
 export interface PlanManager {
@@ -681,6 +725,19 @@ export function computePlanLedger(plan: PayoutPlan, season: SeasonResults): Plan
       const info = awardInfo(rule.award);
       if (info.timing !== "season") return;
       let ordered: Ranked[] | null = null;
+      if (rule.award === "podium") {
+        // The amount set aside, shared by final finish per the split.
+        if (!season.finalOrder) return;
+        podiumSplit(rule).forEach((pct, k) => {
+          const rosterId = season.finalOrder![k];
+          const amount = (perPayout[i] * pct) / 100;
+          if (rosterId == null || amount <= 0) return;
+          paidAtEnd.add(rosterId);
+          paidByRule[i] += amount;
+          seasonEnd.set(rosterId, [...(seasonEnd.get(rosterId) ?? []), { ruleId: rule.id, amount, place: k + 1 }]);
+        });
+        return;
+      }
       if (rule.award === "finalPlace") {
         if (season.finalOrder) ordered = season.finalOrder.map((id, k) => ({ rosterId: id, key: k }));
       } else if (rule.award === "survivor") {

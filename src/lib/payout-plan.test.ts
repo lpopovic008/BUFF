@@ -151,3 +151,19 @@ test("above the median, mid-season standings, and all-play", () => {
   assert.equal(ledger.managers.filter((m) => m.seasonDetail.some((p) => p.ruleId === plan.rules[2].id)).length, 1);
   assert.match(describeTiming(plan.rules[1], 14), /after week 7/);
 });
+
+test("the podium sets an amount aside and splits it by final finish", () => {
+  const plan: PayoutPlan = {
+    version: 1,
+    buyIns: Object.fromEntries(ROSTERS.map((id) => [id, 100])),
+    rules: [rule({ award: "podium", amountKind: "percent", amount: 30, split: [50, 30, 20] })],
+  };
+  assert.equal(computePlanLedger(plan, season2025()).committed, 300);
+  const done = computePlanLedger(plan, season2025([7, 2, 9, 1, 3, 4, 5, 6, 8, 10]));
+  const byId = new Map(done.managers.map((m) => [m.rosterId, m]));
+  assert.equal(byId.get(7)!.seasonEnd, 150);
+  assert.equal(byId.get(2)!.seasonEnd, 90);
+  assert.equal(byId.get(9)!.seasonEnd, 60);
+  assert.deepEqual(byId.get(7)!.seasonDetail.map((p) => p.place), [1]);
+  assert.equal(describeRecipients(plan.rules[0]), "the podium (1st 50% · 2nd 30% · 3rd 20%)");
+});

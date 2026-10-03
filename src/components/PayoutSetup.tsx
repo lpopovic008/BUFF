@@ -6,6 +6,9 @@ import {
   AmountKind,
   AWARDS,
   awardInfo,
+  ordinal,
+  podiumRule,
+  podiumSplit,
   computePlanLedger,
   AwardKind,
   defaultRule,
@@ -19,6 +22,7 @@ import {
   SeasonResults,
 } from "@/lib/payout-plan";
 import { PayoutReading, readPayoutDescription } from "@/lib/payout-ai";
+import { placeSwatch, ruleSwatches, Swatch } from "@/lib/payout-colors";
 
 const FIELD =
   "border border-border bg-page px-2 py-1.5 text-sm text-ink-primary outline-none focus:border-series-1";
@@ -154,18 +158,10 @@ function BuyIns({
   );
 }
 
-/**
- * Each rule's color, in rule order: eight muted tones defined for both themes
- * in globals.css (--rule-1..8, with --rule-ink for text on them), cycling if
- * there are more rules. The week grid paints what a rule paid in its color.
- */
-export function ruleColor(index: number): string {
-  return `var(--rule-${(index % 8) + 1})`;
-}
-
 /** Whether teams can tie for a rule's award (nobody ties in a finishing order: the final standings or survivor). */
 const canTie = (rule: PayoutRule) =>
   awardInfo(rule.award).ranked &&
+  rule.award !== "podium" &&
   rule.award !== "finalPlace" &&
   rule.award !== "survivor";
 
@@ -224,8 +220,11 @@ function RuleEditor({
   onMove,
   onRemove,
   startOpen,
+  swatch,
 }: {
   startOpen: boolean;
+  /** The rule's color (see lib/payout-colors.ts). */
+  swatch: Swatch;
   rule: PayoutRule;
   index: number;
   count: number;
@@ -244,15 +243,15 @@ function RuleEditor({
     const rank: RankSpec = next.modes.includes(rule.rank.mode)
       ? rule.rank
       : { mode: "place", n: 1 };
-    set({ award, rank });
+    set({ award, rank, split: award === "podium" ? podiumSplit(rule) : rule.split });
   };
 
   return (
     <li className="flex flex-col gap-3 border border-border bg-page/40 p-3 sm:p-4">
       <div className="flex items-start gap-3">
         <span
-          className="mt-0.5 px-1.5 text-xs font-bold tabular-nums text-[var(--rule-ink)]"
-          style={{ backgroundColor: ruleColor(index) }}
+          className="mt-0.5 px-1.5 text-xs font-bold tabular-nums"
+          style={{ backgroundColor: swatch.bg, color: swatch.ink }}
         >
           {index + 1}
         </span>
@@ -400,7 +399,11 @@ function RuleEditor({
             </label>
           ) : null}
 
-          {rule.award === "finalPlace" ? (
+          {rule.award === "podium" ? (
+            <PodiumSplit split={podiumSplit(rule)} amount={budget?.perPayout ?? 0} onChange={(split) => set({ split })} />
+          ) : null}
+
+          {rule.award === "finalPlace" || rule.award === "podium" ? (
             <div className="flex flex-col gap-1">
               <span className={LABEL}>When</span>
               <span className="py-1.5 text-sm text-ink-secondary">
@@ -453,7 +456,7 @@ function RuleEditor({
             </label>
           ) : null}
 
-          {index > 0 ? (
+          {index > 0 && rule.award !== "podium" ? (
             <label className="flex items-center gap-2 py-1.5 text-sm text-ink-secondary">
               <input
                 type="checkbox"
@@ -470,6 +473,71 @@ function RuleEditor({
         </div>
       ) : null}
     </li>
+  );
+}
+
+/**
+ * The podium's split: a percentage per finishing place, gold/silver/bronze
+ * for the top three, adding up to 100.
+ */
+function PodiumSplit({
+  split,
+  amount,
+  onChange,
+}: {
+  split: number[];
+  amount: number;
+  onChange: (split: number[]) => void;
+}) {
+  const total = split.reduce((s, p) => s + p, 0);
+  const ok = Math.abs(total - 100) < 0.01;
+  return (
+    <div className="flex w-full flex-col gap-1.5">
+      <span className={LABEL}>Split by final finish</span>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        {split.map((pct, k) => {
+          const sw = placeSwatch(k + 1);
+          return (
+            <span key={k} className="flex items-center gap-1.5 text-sm text-ink-secondary">
+              <span
+                className="px-1.5 text-xs font-bold"
+                style={sw ? { backgroundColor: sw.bg, color: sw.ink } : undefined}
+              >
+                {ordinal(k + 1)}
+              </span>
+              <NumberField
+                label={`${ordinal(k + 1)} place share`}
+                value={pct}
+                step={0.5}
+                onChange={(n) => onChange(split.map((v, j) => (j === k ? n : v)))}
+                className="w-16"
+              />
+              %
+              <span className="text-xs tabular-nums text-ink-muted">({formatMoney((amount * pct) / 100)})</span>
+            </span>
+          );
+        })}
+        <button
+          type="button"
+          onClick={() => onChange([...split, 0])}
+          className="border border-border px-2 py-1 text-xs font-semibold text-ink-secondary hover:text-ink-primary"
+        >
+          + place
+        </button>
+        {split.length > 1 ? (
+          <button
+            type="button"
+            onClick={() => onChange(split.slice(0, -1))}
+            className="border border-border px-2 py-1 text-xs font-semibold text-ink-secondary hover:text-ink-primary"
+          >
+            − place
+          </button>
+        ) : null}
+        <span className={`text-xs tabular-nums ${ok ? "text-ink-muted" : "text-status-critical"}`}>
+          {ok ? "Adds up to 100%" : `Adds up to ${+total.toFixed(2)}%, not 100%`}
+        </span>
+      </div>
+    </div>
   );
 }
 
@@ -656,6 +724,7 @@ export function PayoutSetup({
   embedded?: boolean;
 }) {
   const budgets = new Map(ledger.budgets.map((b) => [b.ruleId, b]));
+  const swatches = ruleSwatches(plan.rules, season.regularSeasonWeeks);
   const [added, setAdded] = useState<Set<string>>(() => new Set());
   const setRules = (rules: PayoutRule[]) => onChange({ ...plan, rules });
   const balanced = Math.abs(ledger.unallocated) < 0.005;
@@ -699,6 +768,7 @@ export function PayoutSetup({
               <RuleEditor
                 key={rule.id}
                 startOpen={added.has(rule.id)}
+                swatch={swatches.get(rule.id)!}
                 rule={rule}
                 index={i}
                 count={plan.rules.length}
@@ -734,6 +804,19 @@ export function PayoutSetup({
           >
             + Add a rule by hand
           </button>
+          {plan.rules.some((r) => r.award === "podium") ? null : (
+            <button
+              type="button"
+              onClick={() => {
+                const rule = podiumRule(season.regularSeasonWeeks);
+                setAdded((a) => new Set(a).add(rule.id));
+                setRules([...plan.rules, rule]);
+              }}
+              className="border border-border px-3 py-1.5 text-sm font-semibold text-ink-secondary hover:text-ink-primary"
+            >
+              + Add podium
+            </button>
+          )}
           <p
             className={`text-sm tabular-nums ${balanced ? "text-status-good" : "text-status-critical"}`}
           >

@@ -37,17 +37,21 @@
   --series-7: #4a3aa7; /* violet */
   --series-8: #e34948; /* red */
 
-  /* Payout rules' colors in the money grid: muted, ink-heavy tones that sit
-     alongside the near-black map tags (solid chips with light ink). */
-  --rule-1: #3f4d63; /* slate */
-  --rule-2: #8a5a3c; /* clay */
-  --rule-3: #4f6447; /* moss */
-  --rule-4: #8a7034; /* ochre */
-  --rule-5: #74506a; /* plum */
-  --rule-6: #3d6569; /* teal */
-  --rule-7: #5b5578; /* dusk */
-  --rule-8: #8d4744; /* brick */
-  --rule-ink: #f6f4ef;
+  /* Payout colors in the money grid (see lib/payout-colors.ts): shades of
+     blue for regular-season rules, gold/silver/bronze for the podium, greys
+     for everything else. Each has an ink for text on it. */
+  --pay-blue-1: #1f3b5c; --pay-blue-1-ink: #f3f6fa;
+  --pay-blue-2: #2f6496; --pay-blue-2-ink: #f3f6fa;
+  --pay-blue-3: #5389bd; --pay-blue-3-ink: #f3f6fa;
+  --pay-blue-4: #86afd6; --pay-blue-4-ink: #0f1d2c;
+  --pay-blue-5: #b8d0e8; --pay-blue-5-ink: #0f1d2c;
+  --pay-blue-6: #3c5577; --pay-blue-6-ink: #f3f6fa;
+  --pay-gold: #c9a43a; --pay-gold-ink: #1d1707;
+  --pay-silver: #aeb4bb; --pay-silver-ink: #15181b;
+  --pay-bronze: #a96a3b; --pay-bronze-ink: #fbf3ec;
+  --pay-grey-1: #4b4e54; --pay-grey-1-ink: #f4f4f4;
+  --pay-grey-2: #6c6f76; --pay-grey-2-ink: #f4f4f4;
+  --pay-grey-3: #393b40; --pay-grey-3-ink: #f4f4f4;
 
   --status-good: #0ca30c;
   --status-warning: #fab219;
@@ -105,15 +109,18 @@
   --series-7: #9085e9;
   --series-8: #e66767;
 
-  --rule-1: #a8b5c9;
-  --rule-2: #d2ab8d;
-  --rule-3: #a9bd9f;
-  --rule-4: #d6bd82;
-  --rule-5: #c7a3bb;
-  --rule-6: #9dc2c5;
-  --rule-7: #b5afd3;
-  --rule-8: #d99c97;
-  --rule-ink: #141414;
+  --pay-blue-1: #b8d0e8; --pay-blue-1-ink: #0f1d2c;
+  --pay-blue-2: #86afd6; --pay-blue-2-ink: #0f1d2c;
+  --pay-blue-3: #5b8fc4; --pay-blue-3-ink: #0f1d2c;
+  --pay-blue-4: #d7e5f3; --pay-blue-4-ink: #0f1d2c;
+  --pay-blue-5: #3f6d9e; --pay-blue-5-ink: #f3f6fa;
+  --pay-blue-6: #9fbbd9; --pay-blue-6-ink: #0f1d2c;
+  --pay-gold: #dcbb55; --pay-gold-ink: #1d1707;
+  --pay-silver: #c7ccd2; --pay-silver-ink: #15181b;
+  --pay-bronze: #c88a57; --pay-bronze-ink: #1c1109;
+  --pay-grey-1: #75787e; --pay-grey-1-ink: #f4f4f4;
+  --pay-grey-2: #5c5f65; --pay-grey-2-ink: #f4f4f4;
+  --pay-grey-3: #8c8f95; --pay-grey-3-ink: #141414;
 
   --status-good: #0ca30c;
   --status-warning: #fab219;

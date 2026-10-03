@@ -118,6 +118,7 @@ AwardKind = Literal[
     "allPlayRecord",
     "longestWinStreak",
     "survivor",
+    "podium",
 ]
 
 
@@ -148,6 +149,7 @@ class ParsedRule(BaseModel):
     to_week: int
     ties: Literal["split", "each"]
     skip_if_paid: bool
+    split: list[float] = Field(default_factory=list, description="podium only: percent of its amount for 1st, 2nd, 3rd...")
 
 
 class BuyInOverride(BaseModel):

@@ -32,6 +32,7 @@ interface ParsedRule {
   to_week: number;
   ties: string;
   skip_if_paid: boolean;
+  split?: number[];
 }
 
 interface ParsedPayouts {
@@ -74,6 +75,7 @@ function toRule(r: ParsedRule, season: SeasonResults): PayoutRule | null {
     ),
     ties: r.ties === "each" ? "each" : "split",
     skipIfPaid: !!r.skip_if_paid,
+    ...(award === "podium" && r.split?.length ? { split: r.split.map((n) => Math.max(0, Number(n) || 0)) } : {}),
   };
 }
 

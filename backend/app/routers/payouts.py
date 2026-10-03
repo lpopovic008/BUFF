@@ -55,11 +55,13 @@ RULE FIELDS
     allPlayRecord      best record if every team played every other team every week
     longestWinStreak   longest winning streak
     survivor           survivor pool / guillotine / last man standing / elimination: each week the lowest scorer still standing is eliminated from from_week; rank 1 is the last team standing
+    podium             one amount set aside for the top finishers, shared by final finish per `split` (percent of that amount for 1st, 2nd, 3rd...). Use it whenever placements are paid from one pool or given as percentages (e.g. "30% of the pot to the top 3, split 50/30/20" = podium, percent 30, split [50, 30, 20]; "champ gets 50% of the pot, 2nd 30%, 3rd 20%" = podium, percent 100, split [50, 30, 20]; "champ $500, 2nd $300, 3rd $200" = podium, dollars 1000, split [50, 30, 20]). Prefer one podium rule over separate finalPlace rules for 1st/2nd/3rd. rank "place", 1; split must add up to 100.
 - rank_mode / rank_n: for ranked awards, "place" + n pays only the nth (place 1 = the winner of the award); "top" + n pays each of the top n; "bottom" + n pays each of the bottom n. For unranked awards (matchupWinner, matchupLoser, aboveMedian) use "place", 1.
   Different amounts for different places ("$10 to the top scorer, $5 to second") = separate rules, each "place".
 - amount_kind / amount: "dollars" (amount = dollars per payout), "percent" (amount = percent of the WHOLE pot per payout, e.g. 50 for half), or "remainder" (whatever the other rules leave in the pot; amount 0). Use remainder for "the rest", "whatever's left", "everything else".
 - from_week / to_week: inclusive weeks, 1..last_week. Weekly payouts usually run through the regular season (1..regular_season_weeks). Playoff weeks are regular_season_weeks+1..last_week. A single week = from_week = to_week.
 - ties: "split" (tied teams share the money) unless the description says each tied team gets the full amount ("each").
+- split: only for podium (otherwise an empty list).
 - skip_if_paid: true when a payout is "instead of" another (no double-dipping): put the bigger payout first and set skip_if_paid true on the later one. Example: "$10 per win, high scorer gets $20 instead" = [weekHighScore $20, then matchupWinner $10 with skip_if_paid true]. If they stack ("plus", "on top of"), false.
 
 Be faithful to the numbers given. If percentages are given for placements, use percent. Convert words to numbers ("a hundred bucks" = 100)."""
