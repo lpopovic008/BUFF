@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
@@ -11,7 +11,9 @@ import { MoneyBoard } from "@/components/MoneyBoard";
 import { useConfig } from "@/hooks/useConfig";
 import { useLeagueMatchupCarousel } from "@/hooks/useLeagueMatchupCarousel";
 import { getLeagueSummary, computeWeekRecap, LeagueSummary, WeekRecapData } from "@/lib/league-data";
-import { loadLeagueMoney, LeagueMoney } from "@/lib/league-money";
+import { loadLeagueSeason, LeagueSeason } from "@/lib/league-money";
+import { emptyPlan, PayoutPlan, planFromProfile } from "@/lib/payout-plan";
+import { getPayoutPlan, savePayoutPlan } from "@/lib/localStore";
 import { getCurrentWeek } from "@/lib/sleeper";
 import { formatPoints, formatRecord, ordinal } from "@/lib/format";
 
@@ -21,7 +23,8 @@ function LeagueDetailContent() {
   const [summary, setSummary] = useState<LeagueSummary | null>(null);
   const [week, setWeek] = useState<number | null>(null);
   const [weekRecap, setWeekRecap] = useState<WeekRecapData | null>(null);
-  const [money, setMoney] = useState<LeagueMoney | null>(null);
+  const [money, setMoney] = useState<LeagueSeason | null>(null);
+  const [plan, setPlan] = useState<PayoutPlan | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -31,6 +34,7 @@ function LeagueDetailContent() {
       setSummary(null);
       setWeekRecap(null);
       setMoney(null);
+      setPlan(null);
       setError(null);
       try {
         const currentWeek = await getCurrentWeek();
@@ -44,9 +48,13 @@ function LeagueDetailContent() {
         setWeek(currentWeek);
         const recap = await computeWeekRecap(leagueId, currentWeek);
         if (!cancelled) setWeekRecap(recap);
-        // Only resolves for leagues with a commissioner profile configured.
-        const m = await loadLeagueMoney(leagueId);
-        if (!cancelled) setMoney(m);
+        // The season's results, for the payout setup to be played against. A
+        // league starts from its saved setup, else from its hand-configured
+        // commissioner rules, else from nothing.
+        const m = await loadLeagueSeason(leagueId);
+        if (cancelled || !m) return;
+        setMoney(m);
+        setPlan(getPayoutPlan(leagueId) ?? (m.profile ? planFromProfile(m.profile, m.results.rosterIds) : emptyPlan()));
       } catch {
         if (!cancelled) setError("Couldn't reach Sleeper's API. Check your connection and try again.");
       }
@@ -55,6 +63,14 @@ function LeagueDetailContent() {
       cancelled = true;
     };
   }, [leagueId]);
+
+  const changePlan = useCallback(
+    (next: PayoutPlan) => {
+      setPlan(next);
+      if (leagueId) savePayoutPlan(leagueId, next);
+    },
+    [leagueId]
+  );
 
   const myRow = summary?.standings.find((r) => r.ownerId === config.sleeperUserId) ?? null;
   const carousel = useLeagueMatchupCarousel(leagueId, week);
@@ -118,17 +134,17 @@ function LeagueDetailContent() {
         </div>
       ) : null}
 
-      {money ? (
+      {money && plan ? (
         <section className="flex flex-col gap-4 animate-[rise_0.5s_ease-out_backwards] [animation-delay:150ms]">
           <div className="flex items-baseline justify-between gap-3">
             <h2 className="text-lg font-semibold text-ink-primary">
-              Money · {money.profile.label}
+              Money{money.profile ? ` · ${money.profile.label}` : ""}
             </h2>
             <Link href={`/recap?id=${leagueId}`} className="text-sm font-medium text-series-1 hover:underline">
               Write this week&rsquo;s recap →
             </Link>
           </div>
-          <MoneyBoard money={money} />
+          <MoneyBoard season={money} plan={plan} onPlanChange={changePlan} />
         </section>
       ) : null}
 

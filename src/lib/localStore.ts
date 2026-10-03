@@ -4,11 +4,13 @@
 // settings and saved recaps are per-browser, not synced across devices.
 
 import type { RecapModel } from "./recap-model";
+import type { PayoutPlan } from "./payout-plan";
 
 const CONFIG_KEY = "commish:config";
 const RECAPS_KEY = "commish:recaps";
 const BOWL_PICKS_KEY = "commish:bowl-picks";
 const DRAFT_TARGETS_KEY = "commish:draft-targets";
+const PAYOUT_PLANS_KEY = "commish:payout-plans";
 
 export interface TrackedLeague {
   leagueId: string;
@@ -268,6 +270,37 @@ export function saveDraftTargets(keys: string[]): void {
   notifyLocalWrite();
 }
 
+/**
+ * Each league's payout setup (buy-ins and payout rules — see payout-plan.ts),
+ * keyed by Sleeper league id. Sleeper mints a new id every season, so a
+ * season's money setup stays with that season.
+ */
+function readPayoutPlans(): Record<string, PayoutPlan> {
+  if (!isBrowser()) return {};
+  try {
+    const raw = window.localStorage.getItem(PAYOUT_PLANS_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, PayoutPlan>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function writePayoutPlans(plans: Record<string, PayoutPlan>): void {
+  if (!isBrowser()) return;
+  window.localStorage.setItem(PAYOUT_PLANS_KEY, JSON.stringify(plans));
+  notifyLocalWrite();
+}
+
+export function getPayoutPlan(leagueId: string): PayoutPlan | null {
+  return readPayoutPlans()[leagueId] ?? null;
+}
+
+export function savePayoutPlan(leagueId: string, plan: PayoutPlan): void {
+  const all = readPayoutPlans();
+  all[leagueId] = plan;
+  writePayoutPlans(all);
+}
+
 const SYNC_STATE_KEY = "commish:sync-state";
 
 /**
@@ -304,7 +337,13 @@ export function saveSyncState(state: SyncState): void {
 /** Exports everything as a JSON blob the user can save as a manual backup or move to another browser. */
 export function exportAllData(): string {
   return JSON.stringify(
-    { config: getConfig(), recaps: readRecaps(), bowlPicks: readBowlPicks(), draftTargets: getDraftTargets() },
+    {
+      config: getConfig(),
+      recaps: readRecaps(),
+      bowlPicks: readBowlPicks(),
+      draftTargets: getDraftTargets(),
+      payoutPlans: readPayoutPlans(),
+    },
     null,
     2
   );
@@ -316,9 +355,11 @@ export function importAllData(json: string): void {
     recaps?: Record<string, SavedRecap>;
     bowlPicks?: Record<string, RecapBowlPicks>;
     draftTargets?: string[];
+    payoutPlans?: Record<string, PayoutPlan>;
   };
   if (parsed.config) saveConfig(parsed.config);
   if (parsed.recaps) writeRecaps(parsed.recaps);
   if (parsed.bowlPicks) writeBowlPicks(parsed.bowlPicks);
   if (parsed.draftTargets) saveDraftTargets(parsed.draftTargets);
+  if (parsed.payoutPlans) writePayoutPlans(parsed.payoutPlans);
 }
