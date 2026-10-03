@@ -94,10 +94,9 @@ function headerPieces(game: NFLGame): string[] {
 }
 
 /**
- * A team's logo, fading in once its header starts typing. Both the light-
- * and dark-mode files are in the page; the theme on <html> shows one (the
- * hidden one isn't fetched, being lazy and out of layout). Falls back to the
- * team's abbreviation if there's no logo for it.
+ * A team's official logo, in black and white (see --logo-filter), fading in once its header
+ * starts typing. Falls back to the team's abbreviation if there's no logo
+ * for it.
  */
 function TeamLogo({ team, visible }: { team: string; visible: boolean }) {
   const [failed, setFailed] = useState(false);
@@ -108,20 +107,18 @@ function TeamLogo({ team, visible }: { team: string; visible: boolean }) {
       </span>
     );
   }
-  const shared = {
-    onError: () => setFailed(true),
-    title: team,
-    loading: "lazy" as const,
-    draggable: false,
-  };
-  const look = `h-5 w-5 shrink-0 object-contain transition-opacity duration-150 ${visible ? "" : "opacity-0"}`;
   return (
-    <>
-      {/* eslint-disable-next-line @next/next/no-img-element -- a static SVG on a static export; nothing for next/image to optimize */}
-      <img {...shared} alt={team} src={nflLogoUrl(team, "light")} className={`${look} [[data-theme=dark]_&]:hidden`} />
-      {/* eslint-disable-next-line @next/next/no-img-element -- as above */}
-      <img {...shared} alt={team} src={nflLogoUrl(team, "dark")} className={`${look} hidden [[data-theme=dark]_&]:block`} />
-    </>
+    // eslint-disable-next-line @next/next/no-img-element -- a static SVG on a static export; nothing for next/image to optimize
+    <img
+      onError={() => setFailed(true)}
+      src={nflLogoUrl(team)}
+      alt={team}
+      title={team}
+      loading="lazy"
+      draggable={false}
+      className={`h-5 w-5 shrink-0 object-contain transition-opacity duration-150 ${visible ? "" : "opacity-0"}`}
+      style={{ filter: "var(--logo-filter)" }}
+    />
   );
 }
 
