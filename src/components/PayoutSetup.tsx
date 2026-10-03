@@ -155,12 +155,12 @@ function BuyIns({
 }
 
 /**
- * Each rule's color, in rule order: the theme's eight categorical series
- * colors (tuned for both themes), cycling if there are more rules. The week
- * grid paints what a rule paid in its color.
+ * Each rule's color, in rule order: eight muted tones defined for both themes
+ * in globals.css (--rule-1..8, with --rule-ink for text on them), cycling if
+ * there are more rules. The week grid paints what a rule paid in its color.
  */
 export function ruleColor(index: number): string {
-  return `var(--series-${(index % 8) + 1})`;
+  return `var(--rule-${(index % 8) + 1})`;
 }
 
 /** Whether teams can tie for a rule's award (nobody ties in a finishing order: the final standings or survivor). */
@@ -251,7 +251,7 @@ function RuleEditor({
     <li className="flex flex-col gap-3 border border-border bg-page/40 p-3 sm:p-4">
       <div className="flex items-start gap-3">
         <span
-          className="mt-0.5 px-1.5 text-xs font-bold tabular-nums text-white"
+          className="mt-0.5 px-1.5 text-xs font-bold tabular-nums text-[var(--rule-ink)]"
           style={{ backgroundColor: ruleColor(index) }}
         >
           {index + 1}

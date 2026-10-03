@@ -3,13 +3,14 @@
 import { Card } from "@/components/ui/Card";
 import { StatTile } from "@/components/ui/StatTile";
 import { useState } from "react";
-import { PayoutSetup, ruleColor, RuleSentence } from "@/components/PayoutSetup";
+import { PayoutSetup, ruleColor } from "@/components/PayoutSetup";
 import { LeagueSeason } from "@/lib/league-money";
 import {
   awardInfo,
   describeRecipients,
   formatMoney as money,
   PayoutPlan,
+  PayoutRule,
   PlanLedger,
   RulePayment,
 } from "@/lib/payout-plan";
@@ -17,9 +18,41 @@ import {
 // The grid's fixed columns (in rem); the weeks share whatever's left equally,
 // regular season and playoffs alike, so the grid reads like a calendar. On
 // narrow screens each week keeps at least MIN_WEEK_REM and the grid scrolls.
-const MANAGER_REM = 8;
-const MONEY_COL_REM = 4.25;
-const MIN_WEEK_REM = 2.75;
+const MANAGER_REM = 6.5;
+const MONEY_COL_REM = 3.75;
+const MIN_WEEK_REM = 2;
+
+const RULE_GROUPS = ["Regular season", "Playoffs", "Season"] as const;
+
+/** Which legend heading a rule sits under: weekly rules by the weeks they pay, everything judged once under Season. */
+function ruleGroup(rule: PayoutRule, regularSeasonWeeks: number): (typeof RULE_GROUPS)[number] {
+  if (awardInfo(rule.award).timing === "season") return "Season";
+  return rule.fromWeek > regularSeasonWeeks ? "Playoffs" : "Regular season";
+}
+
+/**
+ * A rule for the legend, as briefly as it can be said: "$20 to the week's
+ * highest scorer". The heading it sits under says when; weeks are only
+ * spelled out when a rule doesn't cover its whole stretch.
+ */
+function legendLine(rule: PayoutRule, ledger: PlanLedger, regularSeasonWeeks: number): string {
+  const per = ledger.budgets.find((b) => b.ruleId === rule.id)?.perPayout ?? 0;
+  const amount =
+    rule.amountKind === "dollars"
+      ? money(rule.amount)
+      : rule.amountKind === "percent"
+        ? `${rule.amount}% of the pot (${money((ledger.pot * rule.amount) / 100)})`
+        : `The rest of the pot (about ${money(per)})`;
+  const weekly = awardInfo(rule.award).timing === "weekly";
+  const fullStretch = rule.fromWeek > regularSeasonWeeks || (rule.fromWeek <= 1 && rule.toWeek >= regularSeasonWeeks);
+  const weeks =
+    weekly && !fullStretch
+      ? rule.fromWeek === rule.toWeek
+        ? ` (week ${rule.fromWeek})`
+        : ` (weeks ${rule.fromWeek}–${rule.toWeek})`
+      : "";
+  return `${amount} to ${describeRecipients(rule)}${weeks}`;
+}
 
 /**
  * The week grid: rows are managers, columns are the season's weeks (regular
@@ -49,8 +82,8 @@ function WeekGrid({
     const c = top ? colorOf.get(top.ruleId) : undefined;
     return c ? (
       <span
-        className={`px-1.5 py-0.5 ${bold ? "font-bold" : "font-semibold"}`}
-        style={{ color: c, backgroundColor: `color-mix(in srgb, ${c} 14%, transparent)` }}
+        className={`px-1 py-0.5 text-[var(--rule-ink)] ${bold ? "font-bold" : "font-semibold"}`}
+        style={{ backgroundColor: c }}
       >
         {money(amount)}
       </span>
@@ -77,7 +110,7 @@ function WeekGrid({
     <div>
       <div className="overflow-x-auto">
         <table
-          className="w-full table-fixed border-separate border-spacing-0 text-sm"
+          className="w-full table-fixed border-separate border-spacing-0 text-xs xl:text-sm"
           style={{ minWidth: `${MANAGER_REM + weeks.length * MIN_WEEK_REM + (hasSeasonRules ? 3 : 2) * MONEY_COL_REM}rem` }}
         >
           <colgroup>
@@ -107,7 +140,7 @@ function WeekGrid({
               {weeks.map((w) => (
                 <th
                   key={w}
-                  className={`px-1 py-2 text-center font-medium tabular-nums ${w === firstPlayoff ? "border-l border-grid" : ""} ${
+                  className={`px-0.5 py-2 text-center font-medium tabular-nums ${w === firstPlayoff ? "border-l border-grid" : ""} ${
                     w === live ? LIVE_BG : ""
                   }`}
                   title={w === live ? `Week ${w} is in progress: its payouts update live and aren’t final yet` : undefined}
@@ -143,7 +176,7 @@ function WeekGrid({
                   return (
                     <td
                       key={w}
-                      className={`relative border-t border-grid px-1 py-2 text-center tabular-nums ${
+                      className={`relative border-t border-grid px-0.5 py-2 text-center tabular-nums ${
                         w === firstPlayoff ? "border-l" : ""
                       } ${pending ? LIVE_BG : ""}`}
                       title={
@@ -202,19 +235,27 @@ function WeekGrid({
         </table>
       </div>
       {plan.rules.length ? (
-        <ol className="mt-4 flex flex-col gap-1.5">
-          {plan.rules.map((r, i) => (
-            <li key={r.id} className="flex items-start gap-2 [&_p]:text-xs [&_p]:leading-snug">
-              <span className="mt-0.5 h-3 w-3 shrink-0" style={{ backgroundColor: ruleColor(i) }} aria-hidden />
-              <RuleSentence
-                rule={r}
-                perPayout={ledger.budgets.find((b) => b.ruleId === r.id)?.perPayout ?? 0}
-                pot={ledger.pot}
-                regularSeasonWeeks={regularSeasonWeeks}
-              />
-            </li>
-          ))}
-        </ol>
+        <div className="mt-4 flex flex-col gap-3">
+          {RULE_GROUPS.map((group) => {
+            const rules = plan.rules
+              .map((r, i) => ({ r, i }))
+              .filter(({ r }) => ruleGroup(r, regularSeasonWeeks) === group);
+            if (!rules.length) return null;
+            return (
+              <div key={group}>
+                <h4 className="mb-1 text-[0.625rem] font-semibold uppercase tracking-wider text-ink-muted">{group}</h4>
+                <ol className="flex flex-col gap-1">
+                  {rules.map(({ r, i }) => (
+                    <li key={r.id} className="flex items-center gap-2 text-xs text-ink-primary">
+                      <span className="h-3 w-3 shrink-0" style={{ backgroundColor: ruleColor(i) }} aria-hidden />
+                      <span>{legendLine(r, ledger, regularSeasonWeeks)}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            );
+          })}
+        </div>
       ) : (
         <p className="mt-4 text-xs text-ink-secondary">No payout rules yet. Use Edit rules below to set them up.</p>
       )}
