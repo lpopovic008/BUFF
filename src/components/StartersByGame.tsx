@@ -94,9 +94,10 @@ function headerPieces(game: NFLGame): string[] {
 }
 
 /**
- * A team's official logo, in black and white (see --logo-filter), fading in
- * once its header starts typing. Falls back to the team's abbreviation if the
- * logo can't be loaded.
+ * A team's official logo, redrawn in black and white (scripts/team-logos/)
+ * and outlined to stand off the page (--logo-filter), fading in once its
+ * header starts typing. Falls back to the team's abbreviation if there's no
+ * logo for it.
  */
 function TeamLogo({ team, visible }: { team: string; visible: boolean }) {
   const [failed, setFailed] = useState(false);
@@ -108,7 +109,7 @@ function TeamLogo({ team, visible }: { team: string; visible: boolean }) {
     );
   }
   return (
-    // eslint-disable-next-line @next/next/no-img-element -- a remote ESPN logo on a static export; nothing for next/image to optimize
+    // eslint-disable-next-line @next/next/no-img-element -- a static SVG on a static export; nothing for next/image to optimize
     <img
       onError={() => setFailed(true)}
       src={nflLogoUrl(team)}
@@ -116,7 +117,7 @@ function TeamLogo({ team, visible }: { team: string; visible: boolean }) {
       title={team}
       loading="lazy"
       draggable={false}
-      className={`h-5 w-5 shrink-0 object-contain transition-opacity duration-150 ${visible ? "" : "opacity-0"}`}
+      className={`h-6 w-6 shrink-0 object-contain transition-opacity duration-150 ${visible ? "" : "opacity-0"}`}
       style={{ filter: "var(--logo-filter)" }}
     />
   );
@@ -135,7 +136,7 @@ function GameHeader({ game, shown = true }: { game: NFLGame; shown?: boolean }) 
   const count = useTypedCount(shown && seen ? totalChars(pieces) : 0);
   const [vs, time] = typedSlices(pieces, count);
   return (
-    <div ref={ref} className="flex min-h-[1.25rem] items-center justify-between gap-2">
+    <div ref={ref} className="flex min-h-6 items-center justify-between gap-2">
       <h3 className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-ink-muted" aria-label={`${game.awayTeam} at ${game.homeTeam}`}>
         <TeamLogo team={game.awayTeam} visible={count > 0} />
         <span aria-hidden className="w-[2ch]">{vs}</span>

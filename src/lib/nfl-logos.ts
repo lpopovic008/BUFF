@@ -1,11 +1,9 @@
-// Official NFL team logos, served from ESPN's image CDN (the same source as
-// the schedule data). Sleeper and ESPN share team abbreviations except
-// Washington.
+// Each NFL team's official logo, redrawn in pure black and white
+// (scripts/team-logos/), served from the site itself.
 
-const ESPN_CODE: Record<string, string> = { WAS: "wsh" };
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
-/** A team's logo, sized down by ESPN's image combiner. */
-export function nflLogoUrl(team: string, px = 64): string {
-  const code = ESPN_CODE[team] ?? team.toLowerCase();
-  return `https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/${code}.png&w=${px}&h=${px}`;
+/** A team's black-and-white logo, by Sleeper's team abbreviation. */
+export function nflLogoUrl(team: string): string {
+  return `${basePath}/team-logos/${team}.svg`;
 }
