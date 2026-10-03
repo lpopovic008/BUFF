@@ -116,7 +116,7 @@ function TeamLogo({ team, visible }: { team: string; visible: boolean }) {
       title={team}
       loading="lazy"
       draggable={false}
-      className={`h-6 w-6 shrink-0 object-contain transition-opacity duration-150 ${visible ? "" : "opacity-0"}`}
+      className={`h-5 w-5 shrink-0 object-contain transition-opacity duration-150 ${visible ? "" : "opacity-0"}`}
     />
   );
 }
@@ -134,7 +134,7 @@ function GameHeader({ game, shown = true }: { game: NFLGame; shown?: boolean }) 
   const count = useTypedCount(shown && seen ? totalChars(pieces) : 0);
   const [vs, time] = typedSlices(pieces, count);
   return (
-    <div ref={ref} className="flex min-h-6 items-center justify-between gap-2">
+    <div ref={ref} className="flex min-h-[1.25rem] items-center justify-between gap-2">
       <h3 className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-ink-muted" aria-label={`${game.awayTeam} at ${game.homeTeam}`}>
         <TeamLogo team={game.awayTeam} visible={count > 0} />
         <span aria-hidden className="w-[2ch]">{vs}</span>
