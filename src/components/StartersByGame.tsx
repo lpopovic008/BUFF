@@ -7,7 +7,7 @@ import { setHeaderKickoff } from "@/lib/header-clock";
 import { formatKickoffTime, GameStarters, groupGamesByTimeBlock, GroupedStarter } from "@/lib/my-starters";
 import { NFLGame } from "@/lib/nfl-schedule";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
-import { teamTint } from "@/lib/nfl-team-colors";
+import { nflLogoUrl } from "@/lib/nfl-logos";
 import { LeagueLegendEntry, LeagueMark } from "./LeagueMark";
 
 export type { LeagueLegendEntry };
@@ -88,31 +88,58 @@ function PlayerRow({
 }
 
 /** A game's header: matchup title on the left with each team's own colour soft-highlighting its half, kickoff time pinned to the right edge on the same line — no boxed outline, no weekday (the column header above already states the day). Text stays the standard ink colour rather than the team's own hex, since some teams' brand colours (navy, black) read fine as a soft background tint but lose all contrast as literal text in dark mode. */
-/** A game header's text, in typing order: away team, "@", home team, kickoff time. */
+/** A game header's text, in typing order: "vs", then the kickoff time. */
 function headerPieces(game: NFLGame): string[] {
-  return [game.awayTeam, "@", game.homeTeam, formatKickoffTime(game.kickoff)];
+  return ["vs", formatKickoffTime(game.kickoff)];
 }
 
+/**
+ * A team's official logo, in black and white (see --logo-filter), fading in
+ * once its header starts typing. Falls back to the team's abbreviation if the
+ * logo can't be loaded.
+ */
+function TeamLogo({ team, visible }: { team: string; visible: boolean }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return (
+      <span className={`text-xs font-semibold uppercase text-ink-primary transition-opacity duration-150 ${visible ? "" : "opacity-0"}`}>
+        {team}
+      </span>
+    );
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- a remote ESPN logo on a static export; nothing for next/image to optimize
+    <img
+      onError={() => setFailed(true)}
+      src={nflLogoUrl(team)}
+      alt={team}
+      title={team}
+      loading="lazy"
+      draggable={false}
+      className={`h-5 w-5 shrink-0 object-contain transition-opacity duration-150 ${visible ? "" : "opacity-0"}`}
+      style={{ filter: "var(--logo-filter)" }}
+    />
+  );
+}
+
+/**
+ * A game's header: the two teams' logos — away, "vs", home — on the left,
+ * kickoff time pinned to the right edge (no weekday; the block's bar above
+ * already states the day). Types itself in the first time it scrolls into
+ * view, and deletes itself when its block is switched off.
+ */
 function GameHeader({ game, shown = true }: { game: NFLGame; shown?: boolean }) {
-  // Types itself out the first time it scrolls into view; deletes itself when hidden.
   const ref = useRef<HTMLDivElement>(null);
   const seen = useSeenOnce(ref);
   const pieces = headerPieces(game);
   const count = useTypedCount(shown && seen ? totalChars(pieces) : 0);
-  const [away, at, home, time] = typedSlices(pieces, count);
-  // A team's tinted chip only shows once it has a letter in it.
-  const chip = (text: string, team: string) =>
-    text ? (
-      <span className="px-1" style={{ backgroundColor: teamTint(team) }}>
-        {text}
-      </span>
-    ) : null;
+  const [vs, time] = typedSlices(pieces, count);
   return (
-    <div ref={ref} className="flex min-h-[1.25rem] items-baseline justify-between gap-2" aria-label={pieces.slice(0, 3).join(" ")}>
-      <h3 className="flex items-baseline gap-1 text-sm font-semibold uppercase tracking-wide text-ink-primary">
-        {chip(away, game.awayTeam)}
-        <span className="text-ink-muted">{at}</span>
-        {chip(home, game.homeTeam)}
+    <div ref={ref} className="flex min-h-[1.25rem] items-center justify-between gap-2">
+      <h3 className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-ink-muted" aria-label={`${game.awayTeam} at ${game.homeTeam}`}>
+        <TeamLogo team={game.awayTeam} visible={count > 0} />
+        <span aria-hidden className="w-[2ch]">{vs}</span>
+        <TeamLogo team={game.homeTeam} visible={count >= 2} />
       </h3>
       <span className="shrink-0 text-xs uppercase tracking-wide text-ink-muted">{time}</span>
     </div>

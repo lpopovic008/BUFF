@@ -24,6 +24,8 @@
      near-black here, near-white in dark mode. */
   --map-tag: #1f1f1f;
   --map-tag-ink: #f4f4f4;
+  /* NFL team logos in the starters list: black and white only. */
+  --logo-filter: grayscale(1) contrast(1.25);
 
   --series-1: #2a78d6; /* blue */
   --series-2: #eb6834; /* orange */
@@ -76,6 +78,8 @@
   --map-state-line: rgba(255, 255, 255, 0.24);
   --map-tag: #ececec;
   --map-tag-ink: #111111;
+  /* Lifted a touch so dark marks still read on the dark page. */
+  --logo-filter: grayscale(1) contrast(1.15) brightness(1.35);
 
   --series-1: #3987e5;
   --series-2: #d95926;

@@ -223,7 +223,8 @@ export default function DashboardPage() {
       <div className="flex flex-col gap-6 md:flex-row md:items-start md:gap-3">
         {/* Map, then your leagues underneath it — always a single column, never side by side. Its own scroll container at md+, independent of the starters column beside it. Flipped to rtl so its scrollbar sits on the column's own left edge instead of in the gutter between the two columns — the inner wrapper flips back to ltr so the content itself still reads normally. */}
         <div className="min-w-0 flex-1 md:sticky md:top-[calc(var(--header-h,0px)+1.5rem)] md:max-h-[calc(100vh-var(--header-h,0px)-3rem)] md:overflow-y-auto md:[direction:rtl]">
-          <div className="flex flex-col gap-6 md:[direction:ltr]">
+          {/* Bottom padding: room after the last league box, matching the starters column. */}
+          <div className="flex flex-col gap-6 pb-16 md:[direction:ltr]">
             {weekGames.length > 0 ? (
               <div className="animate-[rise_0.5s_ease-out_backwards]">
                 <GameMap
@@ -271,7 +272,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Starters by game — one continuous column running alongside the map and leagues, with its own independent scroll at md+ so a long list here doesn't push the left column around or vice versa. Always a quarter of the window wide once side-by-side. */}
-        <div className="w-full animate-[rise_0.5s_ease-out_backwards] [animation-delay:200ms] md:sticky md:top-[calc(var(--header-h,0px)+1.5rem)] md:max-h-[calc(100vh-var(--header-h,0px)-3rem)] md:w-[25vw] md:shrink-0 md:overflow-y-auto">
+        <div className="w-full animate-[rise_0.5s_ease-out_backwards] [animation-delay:200ms] md:sticky md:top-[calc(var(--header-h,0px)+1.5rem)] md:max-h-[calc(100vh-var(--header-h,0px)-3rem)] md:w-[25vw] md:shrink-0 md:overflow-y-auto pb-16">
           {myStarters === null ? (
             <p className="text-sm text-ink-secondary">Loading your lineups…</p>
           ) : weekGames.length === 0 ? (
