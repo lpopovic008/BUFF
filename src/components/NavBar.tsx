@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useNFLState } from "@/hooks/useNFLState";
 import { useCombinedRecord } from "@/hooks/useCombinedRecord";
-import { IconButton } from "@/components/ui/IconButton";
-import { MenuIcon } from "@/components/ui/Icon";
+import { ChevronLeftIcon, ChevronRightIcon, MenuIcon } from "@/components/ui/Icon";
 import { formatCountdown } from "@/lib/format";
 import { useHeaderKickoff } from "@/lib/header-clock";
 
@@ -31,12 +31,41 @@ function HeaderKickoffClock({ target }: { target: number }) {
   if (now === null || target <= now) return null;
   return (
     <span
-      className="text-sm font-bold tabular-nums text-ink-primary animate-[fade-in_0.2s_ease-out] sm:text-lg"
+      className="text-base font-bold tabular-nums text-ink-secondary animate-[fade-in_0.2s_ease-out] sm:text-2xl"
       title="Next kickoff"
     >
       {formatCountdown(target - now)}
     </span>
   );
+}
+
+// The header's square buttons, styled like the map's own controls.
+const HEADER_BUTTON =
+  "flex h-7 w-7 shrink-0 items-center justify-center border border-grid bg-page text-ink-secondary transition-colors hover:text-ink-primary active:scale-90 disabled:opacity-30 disabled:hover:text-ink-secondary sm:h-9 sm:w-9";
+
+interface NavigationLike extends EventTarget {
+  canGoBack: boolean;
+  canGoForward: boolean;
+}
+
+/**
+ * Whether the browser has a page to go back or forward to, as "10"-style
+ * flags, where the Navigation API can tell; elsewhere both read as available.
+ */
+function useHistoryFlags(): { canGoBack: boolean; canGoForward: boolean } {
+  const flags = useSyncExternalStore(
+    (onChange) => {
+      const nav = (window as unknown as { navigation?: NavigationLike }).navigation;
+      nav?.addEventListener("currententrychange", onChange);
+      return () => nav?.removeEventListener("currententrychange", onChange);
+    },
+    () => {
+      const nav = (window as unknown as { navigation?: NavigationLike }).navigation;
+      return nav ? `${nav.canGoBack ? 1 : 0}${nav.canGoForward ? 1 : 0}` : "11";
+    },
+    () => "11"
+  );
+  return { canGoBack: flags[0] === "1", canGoForward: flags[1] === "1" };
 }
 
 /**
@@ -50,6 +79,8 @@ export function NavBar() {
   const kickoff = useHeaderKickoff();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLElement>(null);
+  const router = useRouter();
+  const { canGoBack, canGoForward } = useHistoryFlags();
 
   useEffect(() => {
     const el = ref.current;
@@ -62,17 +93,29 @@ export function NavBar() {
   }, []);
 
   return (
-    <header ref={ref} className="sticky top-0 z-50 border-b border-border bg-surface-raised">
-      <div className="relative mx-auto grid max-w-[90rem] grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-4 sm:px-6 lg:px-8">
-        <Link href="/" className="justify-self-start text-lg font-semibold tracking-tight">
-          <span className="text-ink-primary">Commi$h</span>
-          <span className="text-ink-muted">/</span>
-          <span className="text-ink-primary">{phase.season ?? "—"}</span>
-        </Link>
+    <header ref={ref} className="sticky top-0 z-50 border-b border-border bg-page/95 backdrop-blur">
+      <div className="relative mx-auto grid max-w-[90rem] grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 py-3 sm:gap-3 sm:px-6 lg:px-8">
+        {/* Back and forward through what you've browsed, then the wordmark — a map tag. */}
+        <div className="flex items-center gap-2 justify-self-start sm:gap-3">
+          <div className="flex gap-1">
+            <button type="button" aria-label="Back" title="Back" disabled={!canGoBack} onClick={() => router.back()} className={HEADER_BUTTON}>
+              <ChevronLeftIcon />
+            </button>
+            <button type="button" aria-label="Forward" title="Forward" disabled={!canGoForward} onClick={() => router.forward()} className={HEADER_BUTTON}>
+              <ChevronRightIcon />
+            </button>
+          </div>
+          <Link
+            href="/"
+            className="bg-[var(--map-tag)] px-1.5 text-sm font-bold leading-relaxed text-[var(--map-tag-ink)] sm:px-2 sm:text-lg"
+          >
+            Commi$h
+          </Link>
+        </div>
 
         {phase.loaded && phase.label ? (
-          <span className="flex items-baseline gap-2 justify-self-center sm:gap-3">
-            <span className="text-lg font-extrabold tracking-tight text-series-2 sm:text-2xl">{phase.label}</span>
+          <span className="flex items-baseline gap-2 justify-self-center sm:gap-4">
+            <span className="text-lg font-extrabold uppercase tracking-wide text-ink-primary sm:text-3xl">{phase.label}</span>
             {/* The dashboard's next-kickoff clock, while it's scrolled out of view. */}
             {kickoff !== null ? <HeaderKickoffClock key={kickoff} target={kickoff} /> : null}
           </span>
@@ -82,23 +125,20 @@ export function NavBar() {
 
         <div className="flex items-center justify-self-end gap-4">
           {record ? (
-            <span className="hidden text-lg font-semibold tracking-tight text-ink-primary sm:inline">{record}</span>
+            <span className="hidden text-lg font-bold tabular-nums tracking-wide text-ink-primary sm:inline">{record}</span>
           ) : null}
-          <IconButton
-            icon={<MenuIcon />}
-            label="Menu"
-            aria-expanded={open}
-            onClick={() => setOpen((v) => !v)}
-          />
+          <button type="button" aria-label="Menu" title="Menu" aria-expanded={open} onClick={() => setOpen((v) => !v)} className={HEADER_BUTTON}>
+            <MenuIcon />
+          </button>
         </div>
         {open ? (
-          <nav className="absolute right-4 top-full z-20 mt-1 flex w-40 flex-col overflow-hidden border border-border bg-surface-raised shadow-md animate-[dropdown_0.15s_ease-out] sm:right-6 lg:right-8">
+          <nav className="absolute right-4 top-full z-20 mt-1 flex w-40 flex-col overflow-hidden border border-grid bg-page shadow-md animate-[dropdown_0.15s_ease-out] sm:right-6 lg:right-8">
             {links.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setOpen(false)}
-                className="px-4 py-2.5 text-sm font-medium text-ink-secondary transition-colors hover:bg-page hover:text-ink-primary"
+                className="px-4 py-2.5 text-sm font-semibold uppercase tracking-wide text-ink-secondary transition-colors hover:bg-[var(--map-tag)] hover:text-[var(--map-tag-ink)]"
               >
                 {link.label}
               </Link>
