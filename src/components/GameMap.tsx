@@ -612,7 +612,12 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
         aria-label="US map. Drag to spin and tilt it; drag with two fingers, Shift or the right mouse button to move it; pinch, Ctrl+scroll or the +/- keys to zoom; arrow keys to turn; double-click or Home to reset the view."
         {...handlers}
       >
-        <div className="mx-auto w-full min-w-0 max-w-[44rem]">
+        {/* As wide as its column allows, but never so tall it can't be seen whole
+            on the screen: the width is capped by the height left under the header. */}
+        <div
+          className="mx-auto w-full min-w-0"
+          style={{ maxWidth: `max(20rem, calc((100vh - var(--header-h, 0px) - 12rem) * ${MAP_ASPECT}))` }}
+        >
           <div ref={mapRef} className="relative" style={{ aspectRatio: MAP_ASPECT }}>
             {/* overflow-visible: zoomed-in land runs on past the map box, out to the frame's edges. */}
             <svg

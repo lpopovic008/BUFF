@@ -5,7 +5,8 @@ export default function ChromeLayout({ children }: { children: React.ReactNode }
   return (
     <div className="flex min-h-full flex-col">
       <NavBar />
-      <main className="mx-auto w-full max-w-[90rem] flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">{children}</main>
+      {/* Phones keep a comfortable gutter; from tablet width up the app runs nearly edge to edge. */}
+      <main className="w-full flex-1 px-4 py-6 sm:px-6 sm:py-8 md:px-1">{children}</main>
     </div>
   );
 }

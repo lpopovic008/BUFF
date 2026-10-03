@@ -94,7 +94,7 @@ export function NavBar() {
 
   return (
     <header ref={ref} className="sticky top-0 z-50 border-b border-border bg-page/95 backdrop-blur">
-      <div className="relative mx-auto grid max-w-[90rem] grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 py-3 sm:gap-3 sm:px-6 lg:px-8">
+      <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 py-3 sm:gap-3 sm:px-6 md:px-1">
         {/* Back and forward through what you've browsed, then the wordmark — a map tag. */}
         <div className="flex items-center gap-2 justify-self-start sm:gap-3">
           <div className="flex gap-1">
@@ -132,7 +132,7 @@ export function NavBar() {
           </button>
         </div>
         {open ? (
-          <nav className="absolute right-4 top-full z-20 mt-1 flex w-40 flex-col overflow-hidden border border-grid bg-page shadow-md animate-[dropdown_0.15s_ease-out] sm:right-6 lg:right-8">
+          <nav className="absolute right-4 top-full z-20 mt-1 flex w-40 flex-col overflow-hidden border border-grid bg-page shadow-md animate-[dropdown_0.15s_ease-out] sm:right-6 md:right-1">
             {links.map((link) => (
               <Link
                 key={link.href}
