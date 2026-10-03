@@ -64,6 +64,20 @@ function LeagueDetailContent() {
     };
   }, [leagueId]);
 
+  // While the season is still being played, refresh its results every couple
+  // of minutes (only while the page is visible), so the week in progress
+  // follows live scoring in the money grid.
+  const seasonLive = !!money && money.results.finalOrder === null;
+  useEffect(() => {
+    if (!leagueId || !seasonLive) return;
+    const id = window.setInterval(async () => {
+      if (document.visibilityState !== "visible") return;
+      const m = await loadLeagueSeason(leagueId).catch(() => null);
+      if (m) setMoney(m);
+    }, 120_000);
+    return () => window.clearInterval(id);
+  }, [leagueId, seasonLive]);
+
   const changePlan = useCallback(
     (next: PayoutPlan) => {
       setPlan(next);
@@ -150,7 +164,7 @@ function LeagueDetailContent() {
               Write this week&rsquo;s recap →
             </Link>
           </div>
-          {ledger ? <MoneyBoard season={money} plan={plan} ledger={ledger} onPlanChange={changePlan} /> : null}
+          {ledger ? <MoneyBoard season={money} plan={plan} ledger={ledger} currentWeek={week} onPlanChange={changePlan} /> : null}
         </section>
       ) : null}
 
