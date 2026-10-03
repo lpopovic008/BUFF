@@ -26,6 +26,7 @@
   --map-tag-ink: #f4f4f4;
   /* NFL team logos in the starters list: black and white only. */
   --logo-filter: grayscale(1) contrast(1.25);
+  --logo-filter-invert: var(--logo-filter);
 
   --series-1: #2a78d6; /* blue */
   --series-2: #eb6834; /* orange */
@@ -80,6 +81,8 @@
   --map-tag-ink: #111111;
   /* Lifted a touch so dark marks still read on the dark page. */
   --logo-filter: grayscale(1) contrast(1.15) brightness(1.35);
+  /* For logos too dark to lift (see nfl-logos.ts): flipped light instead. */
+  --logo-filter-invert: grayscale(1) invert(1) contrast(1.1);
 
   --series-1: #3987e5;
   --series-2: #d95926;

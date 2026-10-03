@@ -7,7 +7,7 @@ import { setHeaderKickoff } from "@/lib/header-clock";
 import { formatKickoffTime, GameStarters, groupGamesByTimeBlock, GroupedStarter } from "@/lib/my-starters";
 import { NFLGame } from "@/lib/nfl-schedule";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
-import { nflLogoUrl } from "@/lib/nfl-logos";
+import { nflLogoFilter, nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import { LeagueLegendEntry, LeagueMark } from "./LeagueMark";
 
 export type { LeagueLegendEntry };
@@ -93,6 +93,9 @@ function headerPieces(game: NFLGame): string[] {
   return ["vs", formatKickoffTime(game.kickoff)];
 }
 
+// Every logo covers about the area of a square this many px on a side.
+const LOGO_SIDE = 20;
+
 /**
  * A team's official logo, in black and white (see --logo-filter), fading in once its header
  * starts typing. Falls back to the team's abbreviation if there's no logo
@@ -116,8 +119,9 @@ function TeamLogo({ team, visible }: { team: string; visible: boolean }) {
       title={team}
       loading="lazy"
       draggable={false}
-      className={`h-5 w-5 shrink-0 object-contain transition-opacity duration-150 ${visible ? "" : "opacity-0"}`}
-      style={{ filter: "var(--logo-filter)" }}
+      {...nflLogoSize(team, LOGO_SIDE)}
+      className={`shrink-0 object-contain transition-opacity duration-150 ${visible ? "" : "opacity-0"}`}
+      style={{ filter: nflLogoFilter(team) }}
     />
   );
 }
