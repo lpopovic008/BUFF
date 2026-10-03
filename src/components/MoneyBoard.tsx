@@ -202,7 +202,7 @@ function WeekGrid({
         </table>
       </div>
       {plan.rules.length ? (
-        <ol className="mt-4 grid grid-cols-1 gap-x-6 gap-y-1.5 lg:grid-cols-2">
+        <ol className="mt-4 flex flex-col gap-1.5">
           {plan.rules.map((r, i) => (
             <li key={r.id} className="flex items-start gap-2 [&_p]:text-xs [&_p]:leading-snug">
               <span className="mt-0.5 h-3 w-3 shrink-0" style={{ backgroundColor: ruleColor(i) }} aria-hidden />
