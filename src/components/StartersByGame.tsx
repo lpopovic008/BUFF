@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { formatCountdown } from "@/lib/format";
+import { TYPE_MS_PER_CHAR, totalChars, typedSlices, useSeenOnce, useTypedCount } from "@/hooks/useTyped";
 import { setHeaderKickoff } from "@/lib/header-clock";
 import { formatKickoffTime, GameStarters, groupGamesByTimeBlock, GroupedStarter } from "@/lib/my-starters";
 import { NFLGame } from "@/lib/nfl-schedule";
@@ -23,16 +24,32 @@ function formatPoints(points: number): string {
  * with no game this week) the points slot holds a dash, keeping every row's
  * logos lined up.
  */
+/** A player row's text, in typing order: position, name, points. */
+function playerPieces(player: GroupedStarter, started: boolean): string[] {
+  const showPoints = started && player.points !== null;
+  return [player.position, player.name, showPoints ? formatPoints(player.points!) : "–"];
+}
+
 function PlayerRow({
   player,
   legendByLeagueId,
   started,
+  shown = true,
 }: {
   player: GroupedStarter;
   legendByLeagueId: Map<string, LeagueLegendEntry>;
   /** Whether this player's game has kicked off — before that, 0 points is just "not yet". */
   started: boolean;
+  /** False while its time block is switched off: the row deletes itself back to nothing. */
+  shown?: boolean;
 }) {
+  // Types itself out the first time it scrolls into view; deletes itself when hidden.
+  const ref = useRef<HTMLDivElement>(null);
+  const seen = useSeenOnce(ref);
+  const pieces = playerPieces(player, started);
+  const total = totalChars(pieces);
+  const count = useTypedCount(shown && seen ? total : 0);
+  const [position, name, points] = typedSlices(pieces, count);
   const perLeague = player.leagueIds.map((id) => ({
     name: legendByLeagueId.get(id)?.leagueName ?? id,
     points: player.pointsByLeague[id] ?? null,
@@ -43,16 +60,18 @@ function PlayerRow({
     .map((l) => (started && scoredDifferently && l.points !== null ? `${l.name}: ${formatPoints(l.points)}` : l.name))
     .join(", ")}`;
   return (
-    <div className="flex items-center gap-1.5 leading-tight" title={title}>
+    <div ref={ref} className="flex items-center gap-1.5 leading-tight" title={title}>
       <span
         className={`w-[2.4em] shrink-0 text-[0.6875rem] font-semibold uppercase tracking-wide ${
           POSITION_TEXT_COLOR[player.position] ?? "text-ink-muted"
         }`}
       >
-        {player.position}
+        {position}
       </span>
-      <span className="min-w-0 flex-1 truncate text-[0.8125rem] text-ink-primary">{player.name}</span>
-      <span className="flex shrink-0 items-center gap-0.5">
+      {/* A zero-width space holds the row's full height before any letter is typed. */}
+      <span className="min-w-0 flex-1 truncate text-[0.8125rem] text-ink-primary">{name || "\u200b"}</span>
+      {/* The league logos show once the row is fully typed out. */}
+      <span className={`flex shrink-0 items-center gap-0.5 transition-opacity duration-150 ${count >= total ? "" : "opacity-0"}`}>
         {player.leagueIds.map((id) => (
           <LeagueMark key={id} league={legendByLeagueId.get(id)} className="h-3 w-3" />
         ))}
@@ -62,28 +81,108 @@ function PlayerRow({
           showPoints ? "font-semibold text-ink-primary" : "text-ink-muted"
         }`}
       >
-        {showPoints ? formatPoints(player.points!) : "–"}
+        {points}
       </span>
     </div>
   );
 }
 
 /** A game's header: matchup title on the left with each team's own colour soft-highlighting its half, kickoff time pinned to the right edge on the same line — no boxed outline, no weekday (the column header above already states the day). Text stays the standard ink colour rather than the team's own hex, since some teams' brand colours (navy, black) read fine as a soft background tint but lose all contrast as literal text in dark mode. */
-function GameHeader({ game }: { game: NFLGame }) {
-  return (
-    <div className="flex items-baseline justify-between gap-2">
-      <h3 className="flex items-baseline gap-1 text-sm font-semibold uppercase tracking-wide text-ink-primary">
-        <span className="px-1" style={{ backgroundColor: teamTint(game.awayTeam) }}>
-          {game.awayTeam}
-        </span>
-        <span className="text-ink-muted">@</span>
-        <span className="px-1" style={{ backgroundColor: teamTint(game.homeTeam) }}>
-          {game.homeTeam}
-        </span>
-      </h3>
-      <span className="shrink-0 text-xs uppercase tracking-wide text-ink-muted">
-        {formatKickoffTime(game.kickoff)}
+/** A game header's text, in typing order: away team, "@", home team, kickoff time. */
+function headerPieces(game: NFLGame): string[] {
+  return [game.awayTeam, "@", game.homeTeam, formatKickoffTime(game.kickoff)];
+}
+
+function GameHeader({ game, shown = true }: { game: NFLGame; shown?: boolean }) {
+  // Types itself out the first time it scrolls into view; deletes itself when hidden.
+  const ref = useRef<HTMLDivElement>(null);
+  const seen = useSeenOnce(ref);
+  const pieces = headerPieces(game);
+  const count = useTypedCount(shown && seen ? totalChars(pieces) : 0);
+  const [away, at, home, time] = typedSlices(pieces, count);
+  // A team's tinted chip only shows once it has a letter in it.
+  const chip = (text: string, team: string) =>
+    text ? (
+      <span className="px-1" style={{ backgroundColor: teamTint(team) }}>
+        {text}
       </span>
+    ) : null;
+  return (
+    <div ref={ref} className="flex min-h-[1.25rem] items-baseline justify-between gap-2" aria-label={pieces.slice(0, 3).join(" ")}>
+      <h3 className="flex items-baseline gap-1 text-sm font-semibold uppercase tracking-wide text-ink-primary">
+        {chip(away, game.awayTeam)}
+        <span className="text-ink-muted">{at}</span>
+        {chip(home, game.homeTeam)}
+      </h3>
+      <span className="shrink-0 text-xs uppercase tracking-wide text-ink-muted">{time}</span>
+    </div>
+  );
+}
+
+/**
+ * A kickoff window's games, collapsing when its block is switched off: every
+ * line deletes itself, letter by letter, then the block folds shut. Switched
+ * back on, it opens and the lines type themselves back in.
+ */
+function BlockGames({
+  games,
+  hidden,
+  legendByLeagueId,
+}: {
+  games: GameStarters[];
+  hidden: boolean;
+  legendByLeagueId: Map<string, LeagueLegendEntry>;
+}) {
+  // Folded only once the deleting has finished — the longest line sets how long.
+  const [prevHidden, setPrevHidden] = useState(hidden);
+  const [folded, setFolded] = useState(hidden);
+  if (hidden !== prevHidden) {
+    setPrevHidden(hidden);
+    setFolded(false);
+  }
+  const longest = Math.max(
+    0,
+    ...games.flatMap(({ game, players }) => [
+      totalChars(headerPieces(game)),
+      ...players.map((p) => totalChars(playerPieces(p, game.state !== "pre"))),
+    ])
+  );
+  useEffect(() => {
+    if (!hidden || folded) return;
+    const id = setTimeout(() => setFolded(true), longest * TYPE_MS_PER_CHAR + 60);
+    return () => clearTimeout(id);
+  }, [hidden, folded, longest]);
+  const collapsed = hidden && folded;
+
+  return (
+    // Folding animates the row height from its content's down to nothing.
+    <div
+      className="grid transition-[grid-template-rows] duration-200 ease-out"
+      style={{ gridTemplateRows: collapsed ? "0fr" : "1fr" }}
+      aria-hidden={collapsed || undefined}
+    >
+      <div className="min-h-0 overflow-hidden">
+        <div className="flex flex-col gap-3 pt-2">
+          {games.map(({ game, players }) => (
+            // A line down the indent beside each game, from its header
+            // through its last player; the gap between games breaks it.
+            <div key={game.id} className="ml-1 flex flex-col gap-1 border-l border-ink-muted/50 pl-2">
+              <GameHeader game={game} shown={!hidden} />
+              <div className="flex flex-col">
+                {players.map((player) => (
+                  <PlayerRow
+                    key={player.playerId}
+                    player={player}
+                    legendByLeagueId={legendByLeagueId}
+                    started={game.state !== "pre"}
+                    shown={!hidden}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -253,7 +352,7 @@ export function StartersByGame({
         <>
           <div className="flex flex-col gap-4">
             {columns.map((column) => (
-              <div key={column.label} className="flex flex-col gap-2">
+              <div key={column.label} className="flex flex-col">
                 {/* The whole bar toggles its slate on the map: a filled dot when
                     its games are showing, an outlined one when hidden. */}
                 <button
@@ -275,25 +374,11 @@ export function StartersByGame({
                   </span>
                   <BlockClock games={column.games} now={now} />
                 </button>
-                <div className="flex flex-col gap-3">
-                  {column.games.map(({ game, players }) => (
-                    // A line down the indent beside each game, from its header
-                    // through its last player; the gap between games breaks it.
-                    <div key={game.id} className="ml-1 flex flex-col gap-1 border-l border-ink-muted/50 pl-2">
-                      <GameHeader game={game} />
-                      <div className="flex flex-col">
-                        {players.map((player) => (
-                          <PlayerRow
-                            key={player.playerId}
-                            player={player}
-                            legendByLeagueId={legendByLeagueId}
-                            started={game.state !== "pre"}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <BlockGames
+                  games={column.games}
+                  hidden={hiddenBlocks.has(column.label)}
+                  legendByLeagueId={legendByLeagueId}
+                />
               </div>
             ))}
           </div>
