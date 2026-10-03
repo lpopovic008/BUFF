@@ -10,7 +10,7 @@ import { buildMatchups } from "./epstein-2025.fixture";
 const EPSTEIN_ISLAND_2025 = { ...EPSTEIN_ISLAND, payouts: payoutsForSeason(EPSTEIN_ISLAND, "2025") };
 
 const rosterNames = new Map<number, string>(
-  Object.entries(EPSTEIN_ISLAND.managerNamesByRosterId).map(([id, name]) => [Number(id), name])
+  Array.from({ length: 10 }, (_, i) => [i + 1, `Team ${i + 1}`] as [number, string])
 );
 
 function ledger() {
@@ -25,16 +25,16 @@ function ledger() {
 test("season totals match the Dynasty sheet after week 14", () => {
   // Straight from the doc's week 14 "Updated Standings" block.
   const expected: Record<string, number> = {
-    Colin: 130,
-    Andres: 100,
-    Karan: 100,
-    "Matt Bj": 100,
-    Luka: 90,
-    Alek: 90,
-    Kye: 80,
-    Owen: 60,
-    Sage: 60,
-    "Matt Ly": 30,
+    "Team 9": 130,
+    "Team 6": 100,
+    "Team 2": 100,
+    "Team 8": 100,
+    "Team 1": 90,
+    "Team 5": 90,
+    "Team 10": 80,
+    "Team 4": 60,
+    "Team 3": 60,
+    "Team 7": 30,
   };
   const actual = Object.fromEntries(ledger().managers.map((m) => [m.name, m.total]));
   assert.deepEqual(actual, expected);
@@ -57,20 +57,20 @@ test("every week pays exactly $60", () => {
 test("win-loss records are internally consistent and match the scores", () => {
   const l = ledger();
   const records = Object.fromEntries(l.managers.map((m) => [m.name, `${m.wins}-${m.losses}`]));
-  assert.equal(records["Colin"], "9-5");
-  assert.equal(records["Andres"], "9-5");
-  assert.equal(records["Karan"], "9-5");
-  assert.equal(records["Alek"], "8-6");
-  assert.equal(records["Luka"], "7-7");
-  assert.equal(records["Matt Bj"], "7-7");
-  assert.equal(records["Kye"], "7-7");
-  assert.equal(records["Owen"], "5-9");
-  assert.equal(records["Matt Ly"], "3-11");
+  assert.equal(records["Team 9"], "9-5");
+  assert.equal(records["Team 6"], "9-5");
+  assert.equal(records["Team 2"], "9-5");
+  assert.equal(records["Team 5"], "8-6");
+  assert.equal(records["Team 1"], "7-7");
+  assert.equal(records["Team 8"], "7-7");
+  assert.equal(records["Team 10"], "7-7");
+  assert.equal(records["Team 4"], "5-9");
+  assert.equal(records["Team 7"], "3-11");
 
-  // Sage is 6-8 by the scores, though the week 14 recap's seeding list wrote
-  // "FootballSage07 (7-7)". That list totals 71 wins across 70 games, so it
-  // cannot be right — one of its entries is a typo, and the scores say Sage.
-  assert.equal(records["Sage"], "6-8");
+  // Team 3 is 6-8 by the scores, though the week 14 recap's seeding list wrote
+  // "<a username> (7-7)". That list totals 71 wins across 70 games, so it
+  // cannot be right — one of its entries is a typo, and the scores say Team 3.
+  assert.equal(records["Team 3"], "6-8");
 
   // Every game produces exactly one win and one loss.
   const wins = l.managers.reduce((s, m) => s + m.wins, 0);
@@ -82,15 +82,15 @@ test("win-loss records are internally consistent and match the scores", () => {
 test("high scorers match the recaps", () => {
   const l = ledger();
   const highBy = (week: number) => summarizeWeek(l, week)?.highScorer?.name;
-  assert.equal(highBy(1), "Colin"); // 184.94
-  assert.equal(highBy(3), "Kye"); // 177.14
-  assert.equal(highBy(4), "Andres"); // 202.98
-  assert.equal(highBy(5), "Karan"); // 205.38
-  assert.equal(highBy(6), "Owen"); // 173.10
-  assert.equal(highBy(7), "Matt Bj"); // 215.38
-  assert.equal(highBy(10), "Luka"); // 255.02
-  assert.equal(highBy(13), "Matt Bj"); // 195.56
-  assert.equal(highBy(14), "Colin"); // 194.78
+  assert.equal(highBy(1), "Team 9"); // 184.94
+  assert.equal(highBy(3), "Team 10"); // 177.14
+  assert.equal(highBy(4), "Team 6"); // 202.98
+  assert.equal(highBy(5), "Team 2"); // 205.38
+  assert.equal(highBy(6), "Team 4"); // 173.10
+  assert.equal(highBy(7), "Team 8"); // 215.38
+  assert.equal(highBy(10), "Team 1"); // 255.02
+  assert.equal(highBy(13), "Team 8"); // 195.56
+  assert.equal(highBy(14), "Team 9"); // 194.78
 });
 
 test("running standings through week 7 match the sheet's cumulative column", () => {
@@ -99,20 +99,20 @@ test("running standings through week 7 match the sheet's cumulative column", () 
   // Summing each manager's week 1-7 cells in the Dynasty sheet.
   //
   // The week 7 write-up's standings block reads $10 higher for most managers
-  // (e.g. "$90 Karan"). That block credited Karan $20 in week 6 when the high
-  // scorer was Owen at 173.10, so a $10 overstatement rode along from week 6
+  // (e.g. "$90 Team 2"). That block credited Team 2 $20 in week 6 when the high
+  // scorer was Team 4 at 173.10, so a $10 overstatement rode along from week 6
   // through week 12 before the doc self-corrected by week 13. The sheet is the
   // authority here: it sums to exactly $840 across the regular season.
-  assert.equal(byName["Karan"], 80);
-  assert.equal(byName["Andres"], 70);
-  assert.equal(byName["Colin"], 60);
-  assert.equal(byName["Alek"], 50);
-  assert.equal(byName["Kye"], 40);
-  assert.equal(byName["Matt Bj"], 30);
-  assert.equal(byName["Owen"], 30);
-  assert.equal(byName["Sage"], 30);
-  assert.equal(byName["Luka"], 20);
-  assert.equal(byName["Matt Ly"], 10);
+  assert.equal(byName["Team 2"], 80);
+  assert.equal(byName["Team 6"], 70);
+  assert.equal(byName["Team 9"], 60);
+  assert.equal(byName["Team 5"], 50);
+  assert.equal(byName["Team 10"], 40);
+  assert.equal(byName["Team 8"], 30);
+  assert.equal(byName["Team 4"], 30);
+  assert.equal(byName["Team 3"], 30);
+  assert.equal(byName["Team 1"], 20);
+  assert.equal(byName["Team 7"], 10);
   // Seven weeks at $60.
   assert.equal(
     rows.reduce((s, r) => s + r.amount, 0),

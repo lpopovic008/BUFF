@@ -1,9 +1,10 @@
-// Per-league commissioner settings: payout rules and real-name mapping.
+// Per-league commissioner settings: payout rules. Managers are always shown
+// by the names Sleeper gives them; nothing here names a person.
 //
 // Matched by league *name* substring rather than league_id, because Sleeper
 // mints a new league_id every season. A profile matched on the current season
 // also applies to every earlier season in that league's previous_league_id
-// chain, so history pages get the same rules and names.
+// chain, so history pages get the same rules.
 
 export interface PayoutRules {
   /** Per-team entry fee. buyIn × teams = the total pot. */
@@ -45,12 +46,6 @@ export interface LeagueProfile {
    * the current season would silently rewrite prior seasons' history too.
    */
   payoutsBySeason?: Record<string, PayoutRules>;
-  /**
-   * roster_id → the manager's real name. Roster IDs are stable within a season
-   * and normally carry across seasons, which makes them a far better key than
-   * team names — this league renames teams almost every week.
-   */
-  managerNamesByRosterId: Record<number, string>;
   /**
    * Google Doc ID for the commish's running write-up doc (the part of a Docs
    * URL between /d/ and /edit), if this league keeps one. When set, the recap
@@ -94,19 +89,6 @@ export const EPSTEIN_ISLAND: LeagueProfile = {
       ],
     },
   },
-  // Mapping taken from the Dynasty sheet's payout tables.
-  managerNamesByRosterId: {
-    1: "Luka",
-    2: "Karan",
-    3: "Sage",
-    4: "Owen",
-    5: "Alek",
-    6: "Andres",
-    7: "Matt Ly",
-    8: "Matt Bj",
-    9: "Colin",
-    10: "Kye",
-  },
 };
 
 export const LEAGUE_PROFILES: LeagueProfile[] = [EPSTEIN_ISLAND];
@@ -139,20 +121,10 @@ export function defaultProfileFor(league: { name: string; settings: { playoff_we
       regularSeasonWeeks: Math.max(1, (league.settings.playoff_week_start ?? 15) - 1),
       finalPayouts: [],
     },
-    managerNamesByRosterId: {},
   };
 }
 
 /** The rules in force for a given season: its override if one exists, else the default. */
 export function payoutsForSeason(profile: LeagueProfile, season: string): PayoutRules {
   return profile.payoutsBySeason?.[season] ?? profile.payouts;
-}
-
-/** Real name for a roster when the profile knows one, else the Sleeper team/display name. */
-export function managerName(
-  profile: LeagueProfile | null,
-  rosterId: number,
-  fallback: string
-): string {
-  return profile?.managerNamesByRosterId[rosterId] ?? fallback;
 }

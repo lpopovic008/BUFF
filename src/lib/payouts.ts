@@ -79,7 +79,7 @@ export function computePayoutLedger({
     if (!l) {
       l = {
         rosterId,
-        name: profile.managerNamesByRosterId[rosterId] ?? rosterNames.get(rosterId) ?? `Roster ${rosterId}`,
+        name: rosterNames.get(rosterId) ?? `Roster ${rosterId}`,
         wins: 0,
         losses: 0,
         ties: 0,

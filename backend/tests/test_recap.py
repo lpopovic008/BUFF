@@ -19,8 +19,8 @@ client = TestClient(app)
 VALID_REQUEST = {
     "league_name": "Test League",
     "week": 3,
-    "matchups": ["Gary's Boys def. Danger Zone 128.4-101.2"],
-    "high_scorer": "Gary's Boys' Josh Allen (34.5 pts)",
+    "matchups": ["Gridiron Gang def. Danger Zone 128.4-101.2"],
+    "high_scorer": "Gridiron Gang' Josh Allen (34.5 pts)",
     "standings_leader": "Danger Zone (7-2)",
 }
 
@@ -82,7 +82,7 @@ def test_generate_recap_sends_the_facts_to_gemini():
         assert sent is not None
         assert sent["model"] == "gemini-3.5-flash-lite"
         user_content = sent["contents"]
-        assert "Gary's Boys def. Danger Zone 128.4-101.2" in user_content
+        assert "Gridiron Gang def. Danger Zone 128.4-101.2" in user_content
         assert "Josh Allen" in user_content
         assert "Danger Zone (7-2)" in user_content
     finally:

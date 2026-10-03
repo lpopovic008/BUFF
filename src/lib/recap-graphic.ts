@@ -324,7 +324,7 @@ function drawText(
   return lines.length * lineHeight;
 }
 
-/** "🔹Luka" / "▫️Ivan" -> { name: "Luka", highlight: true }. Only used as a fallback for a recap with no structured winners data (an older/plain recap) — matchups.winners is preferred whenever it's present. */
+/** "🔹Team A" / "▫️Team B" -> { name: "Team A", highlight: true }. Only used as a fallback for a recap with no structured winners data (an older/plain recap) — matchups.winners is preferred whenever it's present. */
 function parseWinners(text: string): { name: string; highlight: boolean }[] {
   return text
     .split("\n")
@@ -333,7 +333,7 @@ function parseWinners(text: string): { name: string; highlight: boolean }[] {
 }
 
 /**
- * "Luka\n142.40 ✅\nMarko\n118.90 ❌..." -> one row per team, keeping the
+ * "Team A\n142.40 ✅\nMarko\n118.90 ❌..." -> one row per team, keeping the
  * original points text verbatim rather than re-formatting the parsed
  * number. A pair that isn't a real score yet (still the bracketed
  * placeholder text, e.g. "[team 1 points] [✅ for a win, ❌ for a loss]")
@@ -357,7 +357,7 @@ function parseScoreboardRows(text: string): { name: string; points: number; poin
 }
 
 /**
- * "$75 Luka\n$60 Ivan..." -> one row per team, keeping the original dollar
+ * "$75 Team A\n$60 Team B..." -> one row per team, keeping the original dollar
  * text verbatim. Falls back to the whole line as an unresolved placeholder
  * row (amount 0, "–" label) when it isn't in that shape yet. Only used as a
  * fallback for a recap with no structured standings data.
@@ -1142,7 +1142,7 @@ function standingsRowsFromModel(model: RecapModel, avatarByName: Record<string, 
 }
 
 /**
- * "Luka 8-2\nIvan 7-3..." -> one row per team, keeping the original record
+ * "Team A 8-2\nIvan 7-3..." -> one row per team, keeping the original record
  * text verbatim. Falls back to the whole line as the name with a "–" record
  * when it isn't in that shape yet. Only used as a fallback for a recap with
  * no structured records data.

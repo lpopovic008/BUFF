@@ -17,7 +17,7 @@ import type { SleeperMatchup } from "./sleeper";
 
 const EPSTEIN_2025 = { ...EPSTEIN_ISLAND, payouts: payoutsForSeason(EPSTEIN_ISLAND, "2025") };
 const ROSTERS = Array.from({ length: 10 }, (_, i) => i + 1);
-const NAMES = new Map(Object.entries(EPSTEIN_ISLAND.managerNamesByRosterId).map(([id, n]) => [Number(id), n]));
+const NAMES = new Map(Array.from({ length: 10 }, (_, i) => [i + 1, `Team ${i + 1}`] as [number, string]));
 
 function season2025(finalOrder: number[] | null = null): SeasonResults {
   return { rosterIds: ROSTERS, names: NAMES, matchupsByWeek: buildMatchups(), regularSeasonWeeks: 14, lastWeek: 17, finalOrder };
@@ -129,7 +129,7 @@ test("survivor: the week's lowest scorer still standing is knocked out until one
   // Not decided while more than one team stands.
   const early = computePlanLedger(plan, { ...season2025(), matchupsByWeek: new Map([...buildMatchups()].filter(([w]) => w <= 3)) });
   assert.equal(early.managers.reduce((s, m) => s + m.seasonEnd, 0), 0);
-  // Week 1's lowest scorer (Owen, 108.52) can't be the winner.
+  // Week 1's lowest scorer (Team 4, 108.52) can't be the winner.
   assert.notEqual(winners[0].rosterId, 4);
 });
 

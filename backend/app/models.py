@@ -81,7 +81,7 @@ class RecapGenerateRequest(BaseModel):
     league_name: str
     week: int
     matchups: list[str] = Field(
-        min_length=1, description="One line per matchup, e.g. \"Gary's Boys def. Danger Zone 128.4-101.2\""
+        min_length=1, description="One line per matchup, e.g. \"Gridiron Gang def. Danger Zone 128.4-101.2\""
     )
     high_scorer: str | None = None
     standings_leader: str | None = None

@@ -1,0 +1,29 @@
+name: Rewrite saved recaps
+
+# Temporary: regenerates the three saved weekly recap drafts so they name
+# managers by their Sleeper usernames instead of the hand-kept real names
+# they were written with. Deleted right after it runs.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  rewrite:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsx scripts/weekly-recap.ts --week 1,2,3 --overwrite
+      - name: Commit the rewritten recaps
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add recaps
+          git commit -m "Rewrite saved recaps with Sleeper usernames" || exit 0
+          git push

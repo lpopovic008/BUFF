@@ -7,7 +7,7 @@
 export interface RecapAiFacts {
   leagueName: string;
   week: number;
-  /** One line per matchup, e.g. "Gary's Boys def. Danger Zone 128.4-101.2". */
+  /** One line per matchup, e.g. "Gridiron Gang def. Danger Zone 128.4-101.2". */
   matchups: string[];
   highScorer?: string;
   standingsLeader?: string;

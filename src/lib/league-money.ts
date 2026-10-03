@@ -7,11 +7,11 @@ import {
   getWinnersBracket,
   SleeperMatchup,
 } from "./sleeper";
-import { findLeagueProfile, managerName, payoutsForSeason, LeagueProfile } from "./league-config";
+import { findLeagueProfile, payoutsForSeason, LeagueProfile } from "./league-config";
 import { computePayoutLedger, PayoutLedger } from "./payouts";
 import { SeasonResults } from "./payout-plan";
 import { buildLiveStandings, finalPlacements } from "./league-data";
-import { displayManagerName } from "./format";
+import { displaySleeperUsername } from "./format";
 
 export interface LeagueMoney {
   profile: LeagueProfile;
@@ -44,7 +44,7 @@ export async function loadLeagueMoney(
   const rosterNames = new Map<number, string>(
     rosters.map((r) => [
       r.roster_id,
-      displayManagerName(r.owner_id ? usersById.get(r.owner_id) : undefined),
+      displaySleeperUsername(r.owner_id ? usersById.get(r.owner_id) : undefined),
     ])
   );
 
@@ -59,7 +59,7 @@ export async function loadLeagueMoney(
     matchupsByWeek,
     rosterNames,
     profile,
-    teamCount: rosters.length || Object.keys(profile.managerNamesByRosterId).length,
+    teamCount: rosters.length,
   });
 
   return { profile, leagueName: league.name, season: league.season, ledger };
@@ -94,7 +94,7 @@ export async function loadLeagueSeason(leagueId: string): Promise<LeagueSeason |
   const names = new Map<number, string>(
     rosters.map((r) => [
       r.roster_id,
-      managerName(profile, r.roster_id, displayManagerName(r.owner_id ? usersById.get(r.owner_id) : undefined)),
+      displaySleeperUsername(r.owner_id ? usersById.get(r.owner_id) : undefined),
     ])
   );
 

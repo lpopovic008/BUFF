@@ -20,7 +20,7 @@ REQUEST = {
     "regular_season_weeks": 14,
     "last_week": 17,
     "playoff_teams": 6,
-    "managers": [{"roster_id": 1, "name": "Luka"}, {"roster_id": 2, "name": "Karan"}],
+    "managers": [{"roster_id": 1, "name": "manager_one"}, {"roster_id": 2, "name": "manager_two"}],
 }
 
 ANSWER = {
@@ -86,7 +86,7 @@ def test_parse_returns_rules_and_clamps_them_to_the_league():
     assert body["buy_in_overrides"] == []
     # The prompt carries the league's facts and the description; the schema is enforced.
     prompt = fake.models.last_kwargs["contents"]
-    assert "Teams: 10" in prompt and "1: Luka" in prompt and "high scorer gets $20 instead" in prompt
+    assert "Teams: 10" in prompt and "1: manager_one" in prompt and "high scorer gets $20 instead" in prompt
     assert fake.models.last_kwargs["config"].response_mime_type == "application/json"
 
 

@@ -116,17 +116,17 @@ Run it yourself with `npx tsx scripts/weekly-recap.ts --dry-run` to preview.
 
 `npm test` runs the payout engine against the real 2025 Epstein Island season
 (every score transcribed from the spreadsheet) and asserts the output matches
-the recorded totals — $130 Colin, $100 Andres/Karan/Matt Bj, and so on, $840
+the recorded totals — $130 for one roster, $100 each for three more, and so on, $840
 across 14 weeks at exactly $60 a week.
 
 Two discrepancies in the hand-kept 2025 records surfaced while writing those
 tests, both documented inline in `src/lib/payouts.test.ts`:
 
-- The week 6 write-up credited Karan $20 when the high scorer was Owen at
+- The week 6 write-up credited roster 2 with $20 when the high scorer was roster 4 at
   173.10. That $10 overstatement rode along in the doc's standings from week 6
   through week 12 before self-correcting by week 13. The spreadsheet is correct.
-- The week 14 seeding list reads "FootballSage07 (7-7)", but its ten records
-  total 71 wins across 70 games. By the scores Sage finished 6-8.
+- The week 14 seeding list has one team at 7-7, but its ten records total 71
+  wins across 70 games. By the scores that team (roster 3) finished 6-8.
 
 ## How it's hosted
 
