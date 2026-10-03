@@ -3,7 +3,7 @@
 
 # Epstein Island - Year 3 — Week 3
 
-_2026 season · generated 2026-09-29_
+_2026 season · generated 2026-10-03_
 
 ```
 🚨📋 Week 3 Recap
@@ -14,49 +14,49 @@ _2026 season · generated 2026-09-29_
 🏆 [team] won the [bowl game name]! Congrats to [team]!
 
 
-📈 Kye outperformed the league this week! He scored a whopping 200.92! The team was led by Brock Bowers, Christian Watson and Kenneth Walker! Congrats to Kye!
+📈 kyejohnson outperformed the league this week! He scored a whopping 200.92! The team was led by Brock Bowers, Christian Watson and Kenneth Walker! Congrats to kyejohnson!
 
 
 🤑 Winners this week who will receive commission:
-🔹Kye
-▫️Luka
-▫️Matt Ly
-▫️Colin
-▫️Karan
+🔹kyejohnson
+▫️lpop8
+▫️melyons
+▫️colinkelly17
+▫️unclaimed
 
 🗓️Last week Results:
-Kye
+kyejohnson
 200.92 ✅
-Luka
+lpop8
 177.80 ✅
-Matt Ly
+melyons
 170.12 ✅
-Colin
+colinkelly17
 158.70 ✅
-Sage
+footballsage07
 157.12 ❌
-Owen
+BigStroker67
 156.64 ❌
-Andres
+a7srsen
 154.18 ❌
-Alek
+alekpop2
 138.04 ❌
-Karan
+unclaimed
 127.72 ✅
-Matt Bj
+mattbj
 113.66 ❌
 
 💰 Updated Standings:
-$45 Colin
-$45 Kye
-$45 Luka
-$45 Matt Ly
-$30 Karan
-$30 Owen
-$15 Matt Bj
-$15 Sage
-$0 Alek
-$0 Andres
+$45 colinkelly17
+$45 kyejohnson
+$45 lpop8
+$45 melyons
+$30 BigStroker67
+$30 unclaimed
+$15 footballsage07
+$15 mattbj
+$0 a7srsen
+$0 alekpop2
 
 📋 Season Standings:
 Took Jahmyr to the O 3-0
@@ -96,15 +96,15 @@ Good Luck to All!
 
 | Manager | Earned |
 | --- | ---: |
-| Colin | $45 |
-| Kye | $45 |
-| Luka | $45 |
-| Matt Ly | $45 |
-| Karan | $30 |
-| Owen | $30 |
-| Matt Bj | $15 |
-| Sage | $15 |
-| Alek | $0 |
-| Andres | $0 |
+| colinkelly17 | $45 |
+| kyejohnson | $45 |
+| lpop8 | $45 |
+| melyons | $45 |
+| BigStroker67 | $30 |
+| unclaimed | $30 |
+| footballsage07 | $15 |
+| mattbj | $15 |
+| a7srsen | $0 |
+| alekpop2 | $0 |
 
-Paid out to date: **$270** of the $1500 pot ($240 held for the top 3).
+Paid out to date: **$360** of the $1500 pot ($240 held for the top 3).

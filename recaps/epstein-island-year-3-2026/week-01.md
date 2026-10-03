@@ -3,7 +3,7 @@
 
 # Epstein Island - Year 3 — Week 1
 
-_2026 season · generated 2026-09-15_
+_2026 season · generated 2026-10-03_
 
 ```
 🚨📋 Week 1 Recap
@@ -14,49 +14,49 @@ _2026 season · generated 2026-09-15_
 🏆 [team] won the [bowl game name]! Congrats to [team]!
 
 
-📈 Colin outperformed the league this week! He scored a whopping 212.36! The team was led by Josh Allen, D'Andre Swift and Jaxon Smith-Njigba! Congrats to Colin!
+📈 colinkelly17 outperformed the league this week! He scored a whopping 212.36! The team was led by Josh Allen, D'Andre Swift and Jaxon Smith-Njigba! Congrats to colinkelly17!
 
 
 🤑 Winners this week who will receive commission:
-🔹Colin
-▫️Sage
-▫️Luka
-▫️Kye
-▫️Owen
+🔹colinkelly17
+▫️footballsage07
+▫️lpop8
+▫️kyejohnson
+▫️BigStroker67
 
 🗓️Last week Results:
-Colin
+colinkelly17
 212.36 ✅
-Sage
+footballsage07
 189.00 ✅
-Luka
+lpop8
 186.36 ✅
-Kye
+kyejohnson
 180.64 ✅
-Owen
+BigStroker67
 141.60 ✅
-Karan
+unclaimed
 139.04 ❌
-Andres
+a7srsen
 124.56 ❌
-Matt Ly
+melyons
 120.92 ❌
-Alek
+alekpop2
 119.58 ❌
-Matt Bj
+mattbj
 89.76 ❌
 
 💰 Updated Standings:
-$30 Colin
-$15 Kye
-$15 Luka
-$15 Owen
-$15 Sage
-$0 Alek
-$0 Andres
-$0 Karan
-$0 Matt Bj
-$0 Matt Ly
+$30 colinkelly17
+$15 BigStroker67
+$15 footballsage07
+$15 kyejohnson
+$15 lpop8
+$0 a7srsen
+$0 alekpop2
+$0 mattbj
+$0 melyons
+$0 unclaimed
 
 📋 Season Standings:
 Gary Indiana Bears🐻⬆️ 1-0
@@ -64,11 +64,11 @@ footballsage07 1-0
 Took Jahmyr to the O 1-0
 BigJohnson 1-0
 Big Stroker 6 7 1-0
-Watson’s Massage Parlor 0-1
+Unclaimed team 0-1
 a7srsen 0-1
 Mattiyahu 0-1
 Nabers in Paris 0-1
-CDs darn old brown tets 0-1
+Indian chud hater 0-1
 
 UPCOMING WEEK 2:
 
@@ -96,15 +96,15 @@ Good Luck to All!
 
 | Manager | Earned |
 | --- | ---: |
-| Colin | $30 |
-| Kye | $15 |
-| Luka | $15 |
-| Owen | $15 |
-| Sage | $15 |
-| Alek | $0 |
-| Andres | $0 |
-| Karan | $0 |
-| Matt Bj | $0 |
-| Matt Ly | $0 |
+| colinkelly17 | $30 |
+| BigStroker67 | $15 |
+| footballsage07 | $15 |
+| kyejohnson | $15 |
+| lpop8 | $15 |
+| a7srsen | $0 |
+| alekpop2 | $0 |
+| mattbj | $0 |
+| melyons | $0 |
+| unclaimed | $0 |
 
-Paid out to date: **$90** of the $1500 pot ($240 held for the top 3).
+Paid out to date: **$360** of the $1500 pot ($240 held for the top 3).

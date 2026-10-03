@@ -3,7 +3,7 @@
 
 # Epstein Island - Year 3 — Week 2
 
-_2026 season · generated 2026-09-22_
+_2026 season · generated 2026-10-03_
 
 ```
 🚨📋 Week 2 Recap
@@ -14,49 +14,49 @@ _2026 season · generated 2026-09-22_
 🏆 [team] won the [bowl game name]! Congrats to [team]!
 
 
-📈 Matt Ly outperformed the league this week! He scored a whopping 215.54! The team was led by Davante Adams, CeeDee Lamb and Matthew Stafford! Congrats to Matt Ly!
+📈 melyons outperformed the league this week! He scored a whopping 215.54! The team was led by Davante Adams, CeeDee Lamb and Matthew Stafford! Congrats to melyons!
 
 
 🤑 Winners this week who will receive commission:
-🔹Matt Ly
-▫️Luka
-▫️Matt Bj
-▫️Owen
-▫️Karan
+🔹melyons
+▫️lpop8
+▫️mattbj
+▫️BigStroker67
+▫️unclaimed
 
 🗓️Last week Results:
-Matt Ly
+melyons
 215.54 ✅
-Colin
+colinkelly17
 189.40 ❌
-Luka
+lpop8
 157.66 ✅
-Matt Bj
+mattbj
 157.62 ✅
-Owen
+BigStroker67
 154.40 ✅
-Karan
+unclaimed
 149.36 ✅
-Kye
+kyejohnson
 138.70 ❌
-Sage
+footballsage07
 115.04 ❌
-Alek
+alekpop2
 102.40 ❌
-Andres
+a7srsen
 98.98 ❌
 
 💰 Updated Standings:
-$30 Colin
-$30 Luka
-$30 Matt Ly
-$30 Owen
-$15 Karan
-$15 Kye
-$15 Matt Bj
-$15 Sage
-$0 Alek
-$0 Andres
+$30 BigStroker67
+$30 colinkelly17
+$30 lpop8
+$30 melyons
+$15 footballsage07
+$15 kyejohnson
+$15 mattbj
+$15 unclaimed
+$0 a7srsen
+$0 alekpop2
 
 📋 Season Standings:
 Took Jahmyr to the O 2-0
@@ -65,7 +65,7 @@ Gary Indiana Bears🐻⬆️ 1-1
 Mattiyahu 1-1
 BigJohnson 1-1
 footballsage07 1-1
-Watson’s Massage Parlor 1-1
+Unclaimed team 1-1
 Indian chud hater 1-1
 a7srsen 0-2
 Nabers in Paris 0-2
@@ -96,15 +96,15 @@ Good Luck to All!
 
 | Manager | Earned |
 | --- | ---: |
-| Colin | $30 |
-| Luka | $30 |
-| Matt Ly | $30 |
-| Owen | $30 |
-| Karan | $15 |
-| Kye | $15 |
-| Matt Bj | $15 |
-| Sage | $15 |
-| Alek | $0 |
-| Andres | $0 |
+| BigStroker67 | $30 |
+| colinkelly17 | $30 |
+| lpop8 | $30 |
+| melyons | $30 |
+| footballsage07 | $15 |
+| kyejohnson | $15 |
+| mattbj | $15 |
+| unclaimed | $15 |
+| a7srsen | $0 |
+| alekpop2 | $0 |
 
-Paid out to date: **$180** of the $1500 pot ($240 held for the top 3).
+Paid out to date: **$360** of the $1500 pot ($240 held for the top 3).
