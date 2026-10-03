@@ -94,10 +94,9 @@ function headerPieces(game: NFLGame): string[] {
 }
 
 /**
- * A team's official logo, redrawn in black and white (scripts/team-logos/)
- * and outlined to stand off the page (--logo-filter), fading in once its
- * header starts typing. Falls back to the team's abbreviation if there's no
- * logo for it.
+ * A team's official logo, in its own colors, fading in once its header
+ * starts typing. Falls back to the team's abbreviation if there's no logo
+ * for it.
  */
 function TeamLogo({ team, visible }: { team: string; visible: boolean }) {
   const [failed, setFailed] = useState(false);
@@ -118,7 +117,6 @@ function TeamLogo({ team, visible }: { team: string; visible: boolean }) {
       loading="lazy"
       draggable={false}
       className={`h-6 w-6 shrink-0 object-contain transition-opacity duration-150 ${visible ? "" : "opacity-0"}`}
-      style={{ filter: "var(--logo-filter)" }}
     />
   );
 }
