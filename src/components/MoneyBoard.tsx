@@ -2,7 +2,8 @@
 
 import { Card } from "@/components/ui/Card";
 import { StatTile } from "@/components/ui/StatTile";
-import { PayoutSetup } from "@/components/PayoutSetup";
+import { useState } from "react";
+import { PayoutSetup, ruleColor, RuleSentence } from "@/components/PayoutSetup";
 import { LeagueSeason } from "@/lib/league-money";
 import {
   awardInfo,
@@ -41,7 +42,22 @@ function WeekGrid({
   currentWeek: number | null;
 }) {
   const ruleText = new Map(plan.rules.map((r) => [r.id, describeRecipients(r)]));
-  const highScoreRules = new Set(plan.rules.filter((r) => r.award === "weekHighScore").map((r) => r.id));
+  const colorOf = new Map(plan.rules.map((r, i) => [r.id, ruleColor(i)]));
+  /** A paid amount, in the color of the rule that paid the most of it. */
+  const paid = (amount: number, payments: RulePayment[] | undefined, bold = false) => {
+    const top = [...(payments ?? [])].sort((a, b) => b.amount - a.amount)[0];
+    const c = top ? colorOf.get(top.ruleId) : undefined;
+    return c ? (
+      <span
+        className={`px-1.5 py-0.5 ${bold ? "font-bold" : "font-semibold"}`}
+        style={{ color: c, backgroundColor: `color-mix(in srgb, ${c} 14%, transparent)` }}
+      >
+        {money(amount)}
+      </span>
+    ) : (
+      <span className="text-ink-primary">{money(amount)}</span>
+    );
+  };
   const breakdown = (payments: RulePayment[] | undefined) =>
     (payments ?? []).map((p) => `${money(p.amount)} for ${ruleText.get(p.ruleId) ?? "a rule"}`).join("; ");
   const hasSeasonRules = plan.rules.some((r) => awardInfo(r.award).timing === "season");
@@ -123,7 +139,6 @@ function WeekGrid({
                   const amount = mgr.weekly[w] ?? 0;
                   const played = ledger.weeksPlayed.includes(w);
                   const detail = mgr.weeklyDetail[w];
-                  const isHigh = (detail ?? []).some((p) => highScoreRules.has(p.ruleId));
                   const pending = w === live;
                   return (
                     <td
@@ -149,10 +164,8 @@ function WeekGrid({
                       <span className={`relative z-[1] ${pending ? "italic" : ""}`}>
                         {!played ? (
                           <span className="text-ink-muted">·</span>
-                        ) : isHigh ? (
-                          <span className="bg-series-1/12 px-1.5 py-0.5 font-semibold text-series-1">{money(amount)}</span>
                         ) : amount > 0 ? (
-                          <span className="text-ink-primary">{money(amount)}</span>
+                          paid(amount, detail)
                         ) : (
                           <span className="text-ink-muted">—</span>
                         )}
@@ -166,7 +179,7 @@ function WeekGrid({
                     title={mgr.seasonEnd > 0 ? breakdown(mgr.seasonDetail) : seasonDecided ? "No season-end award" : "Decided at season’s end"}
                   >
                     {mgr.seasonEnd > 0 ? (
-                      <span className="font-semibold text-ink-primary">{money(mgr.seasonEnd)}</span>
+                      paid(mgr.seasonEnd, mgr.seasonDetail, true)
                     ) : seasonDecided ? (
                       <span className="text-ink-muted">—</span>
                     ) : (
@@ -188,28 +201,23 @@ function WeekGrid({
           </tbody>
         </table>
       </div>
-      <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-ink-secondary">
-        {highScoreRules.size > 0 ? (
-          <span className="inline-flex items-center gap-1.5">
-            <span className="bg-series-1/12 px-1.5 py-0.5 font-semibold text-series-1">$</span>
-            includes a weekly high-score payout
-          </span>
-        ) : null}
-        <span className="inline-flex items-center gap-1.5">
-          <span className="inline-block h-3 w-6 bg-[color-mix(in_srgb,var(--map-tag)_10%,transparent)]" />
-          season earnings so far
-        </span>
-        {live ? (
-          <span className="inline-flex items-center gap-1.5">
-            <span className={`inline-block h-3 w-3 ${LIVE_BG}`} />
-            week {live}: in progress, payouts update live and aren’t final
-          </span>
-        ) : null}
-        <span>
-          <span className="text-ink-muted">—</span> no money · <span className="text-ink-muted">·</span> not played yet · hover a
-          cell for what it paid
-        </span>
-      </div>
+      {plan.rules.length ? (
+        <ol className="mt-4 grid grid-cols-1 gap-x-6 gap-y-1.5 lg:grid-cols-2">
+          {plan.rules.map((r, i) => (
+            <li key={r.id} className="flex items-start gap-2 [&_p]:text-xs [&_p]:leading-snug">
+              <span className="mt-0.5 h-3 w-3 shrink-0" style={{ backgroundColor: ruleColor(i) }} aria-hidden />
+              <RuleSentence
+                rule={r}
+                perPayout={ledger.budgets.find((b) => b.ruleId === r.id)?.perPayout ?? 0}
+                pot={ledger.pot}
+                regularSeasonWeeks={regularSeasonWeeks}
+              />
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p className="mt-4 text-xs text-ink-secondary">No payout rules yet. Use Edit rules below to set them up.</p>
+      )}
     </div>
   );
 }
@@ -230,6 +238,8 @@ export function MoneyBoard({
   onPlanChange: (plan: PayoutPlan) => void;
 }) {
   const lastPlayed = ledger.weeksPlayed.at(-1) ?? 0;
+  const [editing, setEditing] = useState(false);
+  const balanced = Math.abs(ledger.unallocated) < 0.005;
   const stillToPay = Math.max(0, ledger.committed - ledger.paidToDate);
   const seasonPrizes = ledger.budgets
     .filter((b) => awardInfo(plan.rules.find((r) => r.id === b.ruleId)!.award).timing === "season")
@@ -240,11 +250,9 @@ export function MoneyBoard({
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatTile label="Total pot" value={money(ledger.pot)} sublabel={`${season.results.rosterIds.length} buy-ins`} />
         <StatTile label="Paid out" value={money(ledger.paidToDate)} sublabel={lastPlayed ? `through week ${lastPlayed}` : "nothing played yet"} />
-        <StatTile label="Still to pay" value={money(stillToPay)} sublabel="by the rules below" />
+        <StatTile label="Still to pay" value={money(stillToPay)} sublabel="by the payout rules" />
         <StatTile label="Season-end prizes" value={money(seasonPrizes)} sublabel={ledger.seasonOver ? "paid out" : "decided at season’s end"} />
       </div>
-
-      <PayoutSetup plan={plan} season={season.results} ledger={ledger} onChange={onPlanChange} />
 
       <Card className="p-5">
         <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-muted">Week by week</h3>
@@ -255,6 +263,30 @@ export function MoneyBoard({
           lastWeek={season.results.lastWeek}
           currentWeek={currentWeek}
         />
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-grid pt-4">
+          <p className={`text-xs tabular-nums ${balanced ? "text-ink-secondary" : "text-status-critical"}`}>
+            {plan.rules.length === 0
+              ? `Pot ${money(ledger.pot)}`
+              : balanced
+                ? `Pot ${money(ledger.pot)} · the rules pay it all out`
+                : ledger.unallocated > 0
+                  ? `Pot ${money(ledger.pot)} · ${money(ledger.unallocated)} isn’t paid out by any rule`
+                  : `Pot ${money(ledger.pot)} · the rules pay out ${money(-ledger.unallocated)} more than it`}
+          </p>
+          <button
+            type="button"
+            onClick={() => setEditing((e) => !e)}
+            aria-expanded={editing}
+            className="bg-[var(--map-tag)] px-3 py-1.5 text-sm font-semibold text-[var(--map-tag-ink)] hover:opacity-90"
+          >
+            {editing ? "Done editing" : "Edit rules"}
+          </button>
+        </div>
+        {editing ? (
+          <div className="mt-4 border-t border-grid pt-4">
+            <PayoutSetup plan={plan} season={season.results} ledger={ledger} onChange={onPlanChange} embedded />
+          </div>
+        ) : null}
       </Card>
 
     </div>

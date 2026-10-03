@@ -154,6 +154,15 @@ function BuyIns({
   );
 }
 
+/**
+ * Each rule's color, in rule order: the theme's eight categorical series
+ * colors (tuned for both themes), cycling if there are more rules. The week
+ * grid paints what a rule paid in its color.
+ */
+export function ruleColor(index: number): string {
+  return `var(--series-${(index % 8) + 1})`;
+}
+
 /** Whether teams can tie for a rule's award (nobody ties in a finishing order: the final standings or survivor). */
 const canTie = (rule: PayoutRule) =>
   awardInfo(rule.award).ranked &&
@@ -161,7 +170,7 @@ const canTie = (rule: PayoutRule) =>
   rule.award !== "survivor";
 
 /** A rule in plain English: "Pay $15 to every matchup winner, every regular-season week (1–14)." */
-function RuleSentence({
+export function RuleSentence({
   rule,
   perPayout,
   pot,
@@ -241,7 +250,10 @@ function RuleEditor({
   return (
     <li className="flex flex-col gap-3 border border-border bg-page/40 p-3 sm:p-4">
       <div className="flex items-start gap-3">
-        <span className="mt-0.5 bg-[var(--map-tag)] px-1.5 text-xs font-bold tabular-nums text-[var(--map-tag-ink)]">
+        <span
+          className="mt-0.5 px-1.5 text-xs font-bold tabular-nums text-white"
+          style={{ backgroundColor: ruleColor(index) }}
+        >
           {index + 1}
         </span>
         <div className="min-w-0 flex-1">
@@ -634,25 +646,33 @@ export function PayoutSetup({
   season,
   ledger,
   onChange,
+  embedded = false,
 }: {
   plan: PayoutPlan;
   season: SeasonResults;
   ledger: PlanLedger;
   onChange: (plan: PayoutPlan) => void;
+  /** Shown inside another box (the week grid's), without a card or heading of its own. */
+  embedded?: boolean;
 }) {
   const budgets = new Map(ledger.budgets.map((b) => [b.ruleId, b]));
   const [added, setAdded] = useState<Set<string>>(() => new Set());
   const setRules = (rules: PayoutRule[]) => onChange({ ...plan, rules });
   const balanced = Math.abs(ledger.unallocated) < 0.005;
 
+  const Wrap = embedded ? "div" : Card;
   return (
-    <Card className="p-4 sm:p-5">
-      <h3 className="mb-1 text-sm font-semibold uppercase tracking-wide text-ink-muted">
-        Payout setup
-      </h3>
-      <p className="mb-4 text-xs text-ink-secondary">
-        What everyone buys in for, and how the pot gets paid out.
-      </p>
+    <Wrap className={embedded ? "" : "p-4 sm:p-5"}>
+      {embedded ? null : (
+        <>
+          <h3 className="mb-1 text-sm font-semibold uppercase tracking-wide text-ink-muted">
+            Payout setup
+          </h3>
+          <p className="mb-4 text-xs text-ink-secondary">
+            What everyone buys in for, and how the pot gets paid out.
+          </p>
+        </>
+      )}
 
       <DescribePayouts plan={plan} season={season} onApply={onChange} />
 
@@ -727,6 +747,6 @@ export function PayoutSetup({
           </p>
         </div>
       </div>
-    </Card>
+    </Wrap>
   );
 }
