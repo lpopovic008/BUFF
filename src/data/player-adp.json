@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-02T18:21:28.332Z",
+  "updatedAt": "2026-10-03T17:12:13.986Z",
   "source": "yafsb",
   "dynastyOneQB": [
     {
@@ -2081,12 +2081,6 @@
       "adp": 67.5
     },
     {
-      "name": "Travis Etienne",
-      "position": "RB",
-      "team": "NO",
-      "adp": 68.3
-    },
-    {
       "name": "Marvin Harrison",
       "position": "WR",
       "team": "ARI",
@@ -3473,6 +3467,12 @@
       "adp": 291.9
     },
     {
+      "name": "Charlie Kolar",
+      "position": "TE",
+      "team": "LAC",
+      "adp": 292
+    },
+    {
       "name": "Marcus Mariota",
       "position": "QB",
       "team": "WAS",
@@ -3899,12 +3899,6 @@
       "position": "QB",
       "team": "BAL",
       "adp": 39
-    },
-    {
-      "name": "Travis Etienne",
-      "position": "RB",
-      "team": "NO",
-      "adp": 39.5
     },
     {
       "name": "Cam Skattebo",
@@ -5263,12 +5257,6 @@
       "position": "QB",
       "team": "LAR",
       "adp": 51.7
-    },
-    {
-      "name": "Travis Etienne",
-      "position": "RB",
-      "team": "NO",
-      "adp": 53.2
     },
     {
       "name": "Cam Skattebo",
