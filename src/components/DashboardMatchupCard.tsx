@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { DashboardMatchupView } from "@/hooks/useDashboardMatchups";
-import { Ordinal } from "@/components/ui/Ordinal";
 import { formatPoints, formatRecord } from "@/lib/format";
 import { PointsRanks, Streak, TeamStanding } from "@/lib/league-data";
 
@@ -80,12 +79,7 @@ export function TeamNameLabel({
     ) : (
       <span className={`${className} ${nameStyle}`}>{name}</span>
     );
-  const rankEl =
-    rank != null ? (
-      <span className={`shrink-0 text-xs font-bold ${toneClass(onTag).mid}`}>
-        <Ordinal n={rank} />
-      </span>
-    ) : null;
+  const rankEl = rank != null ? <span className={`shrink-0 text-xs font-bold tabular-nums ${toneClass(onTag).mid}`}>{rank}</span> : null;
   const recordEl = record ? (
     <span className={`shrink-0 text-xs tabular-nums ${mutedClass(onTag)}`}>({formatRecord(record.wins, record.losses, record.ties)})</span>
   ) : null;
@@ -147,14 +141,12 @@ export function PointsRankBadges({
     <span className="flex items-baseline gap-1.5 whitespace-nowrap text-[0.625rem] font-normal sm:gap-2 sm:text-[0.6875rem]">
       <span title="Points for — rank in the league (1st = most)">
         <span className={mutedClass(onTag)}>PF</span>{" "}
-        <span className={`font-bold ${tones[rankTone(pointsRanks.pointsFor, leagueSize)]}`}>
-          <Ordinal n={pointsRanks.pointsFor} />
-        </span>
+        <span className={`font-bold tabular-nums ${tones[rankTone(pointsRanks.pointsFor, leagueSize)]}`}>{pointsRanks.pointsFor}</span>
       </span>
       <span title="Points against — rank in the league (1st = most scored against)">
         <span className={mutedClass(onTag)}>PA</span>{" "}
-        <span className={`font-bold ${tones[rankTone(pointsRanks.pointsAgainst, leagueSize, true)]}`}>
-          <Ordinal n={pointsRanks.pointsAgainst} />
+        <span className={`font-bold tabular-nums ${tones[rankTone(pointsRanks.pointsAgainst, leagueSize, true)]}`}>
+          {pointsRanks.pointsAgainst}
         </span>
       </span>
     </span>
