@@ -8,6 +8,7 @@ import {
   packLine,
   readMatchup,
   shouldRecord,
+  spreadShare,
   teamOutlook,
   timeline,
   unpackLine,
@@ -39,6 +40,23 @@ test("pregame chances match Sleeper's own app (2026 week 4, Epstein Island)", ()
   // Level projections are a coin flip.
   const nine = (proj: number) => Array.from({ length: 9 }, () => ({ points: 0, projection: proj, remaining: 1 }));
   assert.ok(Math.abs(winProbability(teamOutlook(0, nine(14)), teamOutlook(0, nine(14))) - 0.5) < 1e-6);
+});
+
+test("mid-game chances match Sleeper's own app to within a point (2026 week 4, Epstein Island, Sunday afternoon)", () => {
+  // [pregame totals, points so far, points still to come (Sleeper's live projection less the points), Sleeper's chance for A].
+  const live: [number, number, number, number, number, number, number][] = [
+    [168.84, 139.03, 58.56, 54.5, 48.03, 87.41, 18],
+    [124.56, 140.58, 53.9, 99.52, 63.59, 23.46, 42],
+    [170.05, 152.75, 68.54, 91.64, 92.55, 40.41, 76],
+    [133.59, 148.69, 59.0, 71.74, 50.03, 90.89, 10],
+    [174.58, 175.32, 90.42, 89.56, 71.91, 66.66, 56],
+  ];
+  for (const [fullA, fullB, ptsA, ptsB, leftA, leftB, sleeper] of live) {
+    const share = spreadShare(1 - (leftA + leftB) / (fullA + fullB));
+    const team = (pts: number, left: number) => teamOutlook(pts, [{ points: 0, projection: left, remaining: 1 }], share);
+    const p = winProbability(team(ptsA, leftA), team(ptsB, leftB)) * 100;
+    assert.ok(Math.abs(p - sleeper) < 1, `${ptsA}+${leftA} vs ${ptsB}+${leftB}: ${p.toFixed(1)}% (Sleeper ${sleeper}%)`);
+  }
 });
 
 test("as games run out the leader's chance climbs to certainty", () => {

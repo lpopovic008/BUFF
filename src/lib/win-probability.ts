@@ -8,9 +8,11 @@
 // ahead is then the normal CDF of the gap over the combined spread.
 //
 // Calibrated to Sleeper's own app (which publishes its win chances nowhere
-// we can read them): with Sleeper's projections, a spread of 29.6% of each
-// team's projected total reproduces every win chance Sleeper showed for a
-// full week of matchups (2026 week 4, Epstein Island — see the tests).
+// we can read them), from every win chance it showed for a week of
+// matchups, before kickoff and mid-game (2026 week 4, Epstein Island — see
+// the tests): with Sleeper's projections, the spread is 29.6% of each team's
+// points still to come before kickoff, growing to 40% once the matchup is
+// well underway (see spreadShare).
 //
 // Shared by the league page (live, in the browser) and the game-day
 // recorder (scripts/record-win-prob.ts, every 5 minutes in GitHub Actions),
@@ -32,19 +34,33 @@ export interface TeamOutlook {
   variance: number;
 }
 
-// A team's spread, as a share of the points it's projected to add from here.
-// Fitted to Sleeper's own numbers (see the header): any share from 29.2% to
-// 30.0% rounds to every one of them.
-const SPREAD_SHARE = 0.296;
+// A team's spread, as a share of the points it's projected to add from here:
+// 29.6% before kickoff (any share from 29.2% to 30.0% rounds to every one of
+// Sleeper's pregame numbers), rising to 40% as the matchup is played — the
+// fewer players a team has left, the bigger each one's swing is next to
+// what's left. Fitted to Sleeper's numbers before kickoff and mid-game.
+const PREGAME_SHARE = 0.296;
+const LIVE_SHARE = 0.4;
+const SHARE_RAMP_FROM = 0.05;
+const SHARE_RAMP_TO = 0.4;
 
-/** A team's expected final score and its variance, from its points so far and its starters' outlooks. */
-export function teamOutlook(points: number, starters: StarterOutlook[]): TeamOutlook {
+/** The spread share once `played` (0–1) of the matchup's projected points have been played. */
+export function spreadShare(played: number): number {
+  const t = Math.min(1, Math.max(0, (played - SHARE_RAMP_FROM) / (SHARE_RAMP_TO - SHARE_RAMP_FROM)));
+  return PREGAME_SHARE + (LIVE_SHARE - PREGAME_SHARE) * t;
+}
+
+/** The points a team's starters are projected to add from here. */
+export function pointsToCome(starters: StarterOutlook[]): number {
   let toCome = 0;
-  for (const s of starters) {
-    const remaining = Math.min(1, Math.max(0, s.remaining));
-    toCome += Math.max(0, s.projection) * remaining;
-  }
-  const sd = SPREAD_SHARE * toCome;
+  for (const s of starters) toCome += Math.max(0, s.projection) * Math.min(1, Math.max(0, s.remaining));
+  return toCome;
+}
+
+/** A team's expected final score and its variance, from its points so far, its starters' outlooks, and the spread share (see spreadShare; pregame by default). */
+export function teamOutlook(points: number, starters: StarterOutlook[], share = PREGAME_SHARE): TeamOutlook {
+  const toCome = pointsToCome(starters);
+  const sd = share * toCome;
   return { mean: points + toCome, variance: sd * sd };
 }
 
@@ -159,18 +175,19 @@ export interface MatchupReading {
 /** A matchup's win chances, now and pregame, from both lineups, the week's projections (by player id, in the league's scoring) and each NFL team's game. Starters without a game this week (byes) have nothing left to add. */
 export function readMatchup(a: MatchupSide, b: MatchupSide, projections: Record<string, number>, gameByTeam: Map<string, GameClock>): MatchupReading {
   const games = [a, b].flatMap((side) => side.starters.map((s) => (s.team ? gameByTeam.get(s.team) : undefined)).filter((g): g is GameClock => !!g));
-  const outlook = (side: MatchupSide, pregame: boolean) =>
-    teamOutlook(
-      pregame ? 0 : side.points,
-      side.starters.map((s) => {
-        const game = s.team ? gameByTeam.get(s.team) : undefined;
-        return { points: s.points, projection: projections[s.playerId] ?? 0, remaining: !game ? 0 : pregame ? 1 : gameFractionRemaining(game) };
-      })
-    );
+  const starters = (side: MatchupSide, pregame: boolean): StarterOutlook[] =>
+    side.starters.map((s) => {
+      const game = s.team ? gameByTeam.get(s.team) : undefined;
+      return { points: s.points, projection: projections[s.playerId] ?? 0, remaining: !game ? 0 : pregame ? 1 : gameFractionRemaining(game) };
+    });
+  // How much of the matchup's projected points have been played, for the spread.
+  const full = pointsToCome(starters(a, true)) + pointsToCome(starters(b, true));
+  const left = pointsToCome(starters(a, false)) + pointsToCome(starters(b, false));
+  const share = spreadShare(full > 0 ? 1 - left / full : 0);
   const kickoffs = games.map((g) => new Date(g.kickoff).getTime()).filter((t) => Number.isFinite(t));
   return {
-    p: winProbability(outlook(a, false), outlook(b, false)),
-    pregameP: winProbability(outlook(a, true), outlook(b, true)),
+    p: winProbability(teamOutlook(a.points, starters(a, false), share), teamOutlook(b.points, starters(b, false), share)),
+    pregameP: winProbability(teamOutlook(0, starters(a, true)), teamOutlook(0, starters(b, true))),
     started: games.some((g) => g.state !== "pre"),
     live: games.some((g) => g.state === "in"),
     allDone: games.length > 0 && games.every((g) => g.state === "post"),
