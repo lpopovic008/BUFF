@@ -12,7 +12,7 @@ jobs:
       - run: npm ci --ignore-scripts
       - name: Our win chances for every Epstein matchup
         run: |
-          cat > /tmp/check.ts <<'TS'
+          cat > /tmp/check.mts <<'TS'
           import { teamOutlook, winProbability } from "./src/lib/win-probability";
           import { weighProjection } from "./src/lib/sleeper";
           import { gameFractionRemaining, parseScoreboard } from "./src/lib/nfl-schedule";
@@ -55,4 +55,4 @@ jobs:
             }
           }
           TS
-          cp /tmp/check.ts ./check.ts && npx tsx ./check.ts
+          cp /tmp/check.mts ./check.mts && npx tsx ./check.mts
