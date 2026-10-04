@@ -7,6 +7,12 @@
 // team finishes ahead is then the normal CDF of the gap over the combined
 // spread. The same idea as the win-probability lines in the big fantasy apps,
 // kept deliberately simple.
+//
+// Shared by the league page (live, in the browser) and the game-day
+// recorder (scripts/record-win-prob.ts, every 5 minutes in GitHub Actions),
+// so both draw the same line.
+
+import { gameFractionRemaining, NFLGame } from "./nfl-schedule";
 
 /** One starter's outlook: what they've scored, what Sleeper projects for their whole game, and how much of that game is left (1 = not started, 0 = over). */
 export interface StarterOutlook {
@@ -126,4 +132,86 @@ export function timeline(points: WinProbPoint[]): Timeline {
   }
   const total = units[units.length - 1] || 1;
   return { xs: units.map((u) => u / total), breaks: breakUnits.map((u) => u / total) };
+}
+
+/** What a matchup reading needs of an NFL game. */
+export type GameClock = Pick<NFLGame, "state" | "period" | "clockSeconds" | "kickoff">;
+
+/** One fantasy team in a matchup: its live total and its starters (player id, NFL team, points so far). */
+export interface MatchupSide {
+  points: number;
+  starters: { playerId: string; team: string | null; points: number }[];
+}
+
+export interface MatchupReading {
+  /** Side A's chance now. */
+  p: number;
+  /** Side A's chance from projections alone, before any game. */
+  pregameP: number;
+  /** Some starter's game has kicked off. */
+  started: boolean;
+  /** Some starter's game is being played right now. */
+  live: boolean;
+  /** Every starter's game is over. */
+  allDone: boolean;
+  /** The first kickoff among both teams' starters (epoch ms), or null if none is scheduled. */
+  firstKickoff: number | null;
+}
+
+/** A matchup's win chances, now and pregame, from both lineups, the week's projections (by player id, in the league's scoring) and each NFL team's game. Starters without a game this week (byes) have nothing left to add. */
+export function readMatchup(a: MatchupSide, b: MatchupSide, projections: Record<string, number>, gameByTeam: Map<string, GameClock>): MatchupReading {
+  const games = [a, b].flatMap((side) => side.starters.map((s) => (s.team ? gameByTeam.get(s.team) : undefined)).filter((g): g is GameClock => !!g));
+  const outlook = (side: MatchupSide, pregame: boolean) =>
+    teamOutlook(
+      pregame ? 0 : side.points,
+      side.starters.map((s) => {
+        const game = s.team ? gameByTeam.get(s.team) : undefined;
+        return { points: s.points, projection: projections[s.playerId] ?? 0, remaining: !game ? 0 : pregame ? 1 : gameFractionRemaining(game) };
+      })
+    );
+  const kickoffs = games.map((g) => new Date(g.kickoff).getTime()).filter((t) => Number.isFinite(t));
+  return {
+    p: winProbability(outlook(a, false), outlook(b, false)),
+    pregameP: winProbability(outlook(a, true), outlook(b, true)),
+    started: games.some((g) => g.state !== "pre"),
+    live: games.some((g) => g.state === "in"),
+    allDone: games.length > 0 && games.every((g) => g.state === "post"),
+    firstKickoff: kickoffs.length ? Math.min(...kickoffs) : null,
+  };
+}
+
+/** The line with a new reading added if it's worth keeping: while games are on (see shouldRecord), and the final one once they're over. Null when nothing changes. */
+export function withReading(history: WinProbPoint[], point: WinProbPoint, live: boolean, allDone: boolean): WinProbPoint[] | null {
+  const last = history.at(-1);
+  const finalChanged = allDone && (!last || Math.abs(last.p - point.p) > 0.0005 || last.a !== point.a || last.b !== point.b);
+  return (live && shouldRecord(last, point)) || finalChanged ? appendPoint(history, point) : null;
+}
+
+/** Two recordings of the same line (this browser's and the game-day recorder's) as one, in time order, dropping readings within 20s of the one before. */
+export function mergeLines(a: WinProbPoint[], b: WinProbPoint[]): WinProbPoint[] {
+  const all = [...a, ...b].filter((pt) => !pt.synthetic).sort((x, y) => x.t - y.t);
+  const out: WinProbPoint[] = [];
+  for (const pt of all) if (!out.length || pt.t - out[out.length - 1].t >= 20_000) out.push(pt);
+  return out;
+}
+
+/** Compact storage form: [seconds since epoch, p × 10000, a × 100, b × 100]. */
+export type PackedPoint = [number, number, number, number];
+
+export function packLine(points: WinProbPoint[]): PackedPoint[] {
+  return points
+    .filter((pt) => !pt.synthetic)
+    .map((pt) => [Math.round(pt.t / 1000), Math.round(pt.p * 10000), Math.round(pt.a * 100), Math.round(pt.b * 100)]);
+}
+
+export function unpackLine(packed: unknown): WinProbPoint[] {
+  if (!Array.isArray(packed)) return [];
+  return packed
+    .filter((x): x is PackedPoint => Array.isArray(x) && x.length === 4 && x.every((n) => typeof n === "number"))
+    .map(([t, p, a, b]) => ({ t: t * 1000, p: p / 10000, a: a / 100, b: b / 100 }));
+}
+
+/** The two roster ids, low first, as one key — the same either way round. */
+export function matchupKey(a: number, b: number): string {
+  return a < b ? `${a}-${b}` : `${b}-${a}`;
 }

@@ -6,9 +6,9 @@ import { buildLeagueMatchups } from "@/lib/league-data";
 import { resolvePlayers, ResolvedPlayer } from "@/lib/players";
 import { positionSeasonRankIndexFor } from "@/lib/matchup-players";
 import { PlayerStatsSnapshot } from "@/lib/player-stats";
-import { gameFractionRemaining, getWeekGames, NFLGame } from "@/lib/nfl-schedule";
-import { appendPoint, shouldRecord, StarterOutlook, teamOutlook, winProbability, WinProbPoint } from "@/lib/win-probability";
-import { loadWinProbLines, matchupKey, saveWinProbLines } from "@/lib/win-prob-store";
+import { getWeekGames, NFLGame } from "@/lib/nfl-schedule";
+import { MatchupSide, readMatchup, withReading, WinProbPoint } from "@/lib/win-probability";
+import { fetchRecordedLines, loadWinProbLines, matchupKey, mergeRecorded, saveWinProbLines } from "@/lib/win-prob-store";
 import rawStatsSnapshot from "@/data/player-stats.json";
 
 const statsSnapshot = rawStatsSnapshot as unknown as PlayerStatsSnapshot;
@@ -87,12 +87,14 @@ export function useLeagueMatchupCarousel(leagueId: string | null, week: number |
     async function load(): Promise<boolean> {
       const league = await getLeague(id);
       if (!league || cancelled) return false;
-      const [rosters, users, matchups, games, projections] = await Promise.all([
+      const weekKey = `${league.season}-${currentWeek}`;
+      const [rosters, users, matchups, games, projections, recordedLines] = await Promise.all([
         getLeagueRosters(id),
         getLeagueUsers(id),
         getMatchups(id, currentWeek, live ? LIVE_MATCHUPS_MAX_AGE_S : 60),
         getWeekGames(league.season, currentWeek),
         getWeeklyProjections(league.season, currentWeek, league.scoring_settings),
+        fetchRecordedLines(id, weekKey),
       ]);
       if (cancelled) return false;
 
@@ -111,9 +113,15 @@ export function useLeagueMatchupCarousel(leagueId: string | null, week: number |
         gameByTeam.set(g.awayTeam, g);
       }
       const now = Date.now();
-      const weekKey = `${league.season}-${currentWeek}`;
+      // This browser's readings, with the game-day recorder's filled in.
       const lines = linesFor(id, weekKey);
       let changed = false;
+      for (const [key, line] of Object.entries(mergeRecorded(lines, recordedLines))) {
+        if (line.length !== (lines[key]?.length ?? 0)) {
+          lines[key] = line;
+          changed = true;
+        }
+      }
 
       const withNames: ResolvedMatchupGame[] = raw.map((g) => {
         const teams = g.teams.map((t) => ({
@@ -136,57 +144,36 @@ export function useLeagueMatchupCarousel(leagueId: string | null, week: number |
         // starter's game is left) and two teams.
         if (games.length === 0 || teams.length !== 2) return { matchupId: g.matchupId, teams, winProb: null };
         const [low, high] = teams[0].rosterId < teams[1].rosterId ? [teams[0], teams[1]] : [teams[1], teams[0]];
-        const nflGames = [low, high].flatMap((t) =>
-          t.slots.map((s) => (s.player?.team ? gameByTeam.get(s.player.team) : undefined)).filter((x): x is NFLGame => !!x)
-        );
-        const outlook = (t: ResolvedMatchupTeam, pregame: boolean) =>
-          teamOutlook(
-            pregame ? 0 : t.points,
-            t.slots
-              .filter((s) => s.player)
-              .map((s): StarterOutlook => {
-                const game = s.player!.team ? gameByTeam.get(s.player!.team) : undefined;
-                return {
-                  points: s.livePoints,
-                  projection: projections[s.player!.playerId] ?? 0,
-                  remaining: !game ? 0 : pregame ? 1 : gameFractionRemaining(game),
-                };
-              })
-          );
-        const kickoffs = nflGames.map((x) => new Date(x.kickoff).getTime()).filter((x) => Number.isFinite(x));
-        const firstKickoff = kickoffs.length ? Math.min(...kickoffs) : now;
-        const pregameP = winProbability(outlook(low, true), outlook(high, true));
-        const started = nflGames.some((x) => x.state !== "pre");
-        const gameLive = nflGames.some((x) => x.state === "in");
-        const allDone = nflGames.length > 0 && nflGames.every((x) => x.state === "post");
-
-        if (!started) {
+        const side = (t: ResolvedMatchupTeam): MatchupSide => ({
+          points: t.points,
+          starters: t.slots.filter((x) => x.player).map((x) => ({ playerId: x.player!.playerId, team: x.player!.team, points: x.livePoints })),
+        });
+        const reading = readMatchup(side(low), side(high), projections, gameByTeam);
+        if (!reading.started) {
           return {
             matchupId: g.matchupId,
             teams,
-            winProb: { lowRosterId: low.rosterId, points: [{ t: now, p: pregameP, a: 0, b: 0, synthetic: true }], live: false, pregame: true, final: false },
+            winProb: { lowRosterId: low.rosterId, points: [{ t: now, p: reading.pregameP, a: 0, b: 0, synthetic: true }], live: false, pregame: true, final: false },
           };
         }
 
         const key = matchupKey(low.rosterId, high.rosterId);
-        const reading: WinProbPoint = { t: now, p: winProbability(outlook(low, false), outlook(high, false)), a: low.points, b: high.points };
-        const history = lines[key] ?? [];
-        const last = history.at(-1);
-        // Keep readings while games are on, and the final one once they're all over.
-        const finalChanged = allDone && (!last || Math.abs(last.p - reading.p) > 0.0005 || last.a !== reading.a || last.b !== reading.b);
-        if ((gameLive && shouldRecord(last, reading)) || finalChanged) {
-          lines[key] = appendPoint(history, reading);
+        const point: WinProbPoint = { t: now, p: reading.p, a: low.points, b: high.points };
+        const next = withReading(lines[key] ?? [], point, reading.live, reading.allDone);
+        if (next) {
+          lines[key] = next;
           changed = true;
         }
         const kept = lines[key] ?? [];
         // The pregame line, from the first kickoff up to the first reading;
         // and the reading just taken, as the line's live end.
+        const firstKickoff = reading.firstKickoff ?? now;
         const points: WinProbPoint[] = [];
-        if (!kept.length || kept[0].t > firstKickoff) points.push({ t: Math.min(firstKickoff, kept[0]?.t ?? now), p: pregameP, a: 0, b: 0, synthetic: true });
+        if (!kept.length || kept[0].t > firstKickoff) points.push({ t: Math.min(firstKickoff, kept[0]?.t ?? now), p: reading.pregameP, a: 0, b: 0, synthetic: true });
         points.push(...kept);
-        if (gameLive && kept.at(-1) !== reading) points.push(reading);
-        else if (!kept.length) points.push({ ...reading, synthetic: true });
-        return { matchupId: g.matchupId, teams, winProb: { lowRosterId: low.rosterId, points, live: gameLive, pregame: false, final: allDone } };
+        if (reading.live && kept.at(-1) !== point) points.push(point);
+        else if (!kept.length) points.push({ ...point, synthetic: true });
+        return { matchupId: g.matchupId, teams, winProb: { lowRosterId: low.rosterId, points, live: reading.live, pregame: false, final: reading.allDone } };
       });
 
       if (changed) saveWinProbLines(id, weekKey, lines);

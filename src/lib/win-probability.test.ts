@@ -1,6 +1,20 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { appendPoint, normalCdf, shouldRecord, teamOutlook, timeline, winProbability, WinProbPoint } from "./win-probability";
+import {
+  appendPoint,
+  GameClock,
+  mergeLines,
+  normalCdf,
+  packLine,
+  readMatchup,
+  shouldRecord,
+  teamOutlook,
+  timeline,
+  unpackLine,
+  winProbability,
+  withReading,
+  WinProbPoint,
+} from "./win-probability";
 
 test("normalCdf matches known values", () => {
   assert.ok(Math.abs(normalCdf(0) - 0.5) < 1e-7);
@@ -59,4 +73,40 @@ test("the timeline shrinks the dead time between game windows", () => {
   assert.equal(breaks.length, 1);
   // The 3-day gap takes a sliver; the two game windows take nearly everything.
   assert.ok(xs[3] - xs[2] < 0.1, `${xs[3] - xs[2]}`);
+});
+
+test("readMatchup: pregame from projections, live from points and the clock, byes add nothing", () => {
+  const games = new Map<string, GameClock>([
+    ["BUF", { state: "in", period: 3, clockSeconds: 450, kickoff: "2026-10-04T17:00Z" }],
+    ["KC", { state: "pre", period: 0, clockSeconds: 0, kickoff: "2026-10-04T20:25Z" }],
+  ]);
+  const a = { points: 20, starters: [{ playerId: "allen", team: "BUF", points: 20 }] };
+  const b = { points: 0, starters: [{ playerId: "mahomes", team: "KC", points: 0 }, { playerId: "bye", team: "SEA", points: 0 }] };
+  const r = readMatchup(a, b, { allen: 24, mahomes: 22, bye: 15 }, games);
+  assert.equal(r.started, true);
+  assert.equal(r.live, true);
+  assert.equal(r.allDone, false);
+  assert.equal(r.firstKickoff, Date.parse("2026-10-04T17:00Z"));
+  // Pregame: 24 vs 22 (the bye counts for nothing) — a slight favorite.
+  assert.ok(r.pregameP > 0.5 && r.pregameP < 0.6, `${r.pregameP}`);
+  // Now: 20 + 24 × 0.375 = 29 expected against 22 — a clearer one.
+  assert.ok(r.p > r.pregameP, `${r.p}`);
+});
+
+test("withReading keeps live readings and one final one", () => {
+  const pt = (t: number, p: number): WinProbPoint => ({ t, p, a: 0, b: 0 });
+  assert.equal(withReading([], pt(0, 0.6), false, false), null);
+  assert.equal(withReading([], pt(0, 0.6), true, false)?.length, 1);
+  const done = withReading([pt(0, 0.6)], pt(1000, 1), false, true);
+  assert.equal(done?.length, 2);
+  assert.equal(withReading(done!, pt(400_000, 1), false, true), null);
+});
+
+test("lines merge in time order and pack round-trip", () => {
+  const a = [{ t: 0, p: 0.5, a: 0, b: 0 }, { t: 60_000, p: 0.6, a: 1, b: 0 }];
+  const b = [{ t: 5_000, p: 0.55, a: 0, b: 0 }, { t: 120_000, p: 0.7, a: 2, b: 0 }];
+  const m = mergeLines(a, b);
+  assert.deepEqual(m.map((x) => x.t), [0, 60_000, 120_000]);
+  assert.deepEqual(unpackLine(packLine(m)), m);
+  assert.deepEqual(unpackLine("junk"), []);
 });
