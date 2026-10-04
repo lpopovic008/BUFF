@@ -160,30 +160,38 @@ function useTickerMotion(
  * One team's row in a ticker entry: its standing on one line — place, name,
  * record, streak — and its score at the right edge. Your own team's name and
  * score are marked out like the map's tags. Two cells of the entry's grid,
- * so both teams' scores line up in one column. Names are never cut short —
- * the entry grows to fit them.
+ * so both teams' scores line up in one column. On the ticker names are never
+ * cut short — the entry grows to fit them; in a fixed-width stack a name too
+ * long for its card ends in an ellipsis.
  */
 function TickerTeamRow({
   name,
   points,
   standing,
   mine,
+  fitWidth,
 }: {
   name: string;
   points: number | null;
   standing?: TeamStanding;
   /** Your own team, marked out like a map tag. */
   mine: boolean;
+  /** Fit the card's width, truncating the name, instead of growing to fit it. */
+  fitWidth: boolean;
 }) {
   const { rank, record, streak } = standing ?? {};
   return (
     <>
-      <div className="flex items-center gap-1.5 whitespace-nowrap">
+      <div className={`flex items-center gap-1.5 whitespace-nowrap ${fitWidth ? "min-w-0" : ""}`}>
         {/* The place as a bare number in a fixed two digits, right-aligned, so every team name starts at the same x. */}
         <span className="w-[2ch] shrink-0 text-right text-xs font-medium tabular-nums text-series-4">{rank ?? ""}</span>
-        <span className={`text-sm ${mine && HIGHLIGHT_MINE ? MY_TEAM_NAME_CLASS : "font-medium text-ink-primary"}`}>{name}</span>
+        <span
+          className={`text-sm ${fitWidth ? "min-w-0 truncate" : ""} ${mine && HIGHLIGHT_MINE ? MY_TEAM_NAME_CLASS : "font-medium text-ink-primary"}`}
+        >
+          {name}
+        </span>
         {record ? (
-          <span className="text-xs tabular-nums text-ink-muted">({formatRecord(record.wins, record.losses, record.ties)})</span>
+          <span className="shrink-0 text-xs tabular-nums text-ink-muted">({formatRecord(record.wins, record.losses, record.ties)})</span>
         ) : null}
         <StreakBadge streak={streak} />
       </div>
@@ -197,24 +205,27 @@ function TickerTeamRow({
 }
 
 /**
- * One league on the ticker: its name over your matchup, the two teams
- * stacked — yours on top — each on one line with its score at the right,
- * the scores in a column of their own. The entry is as wide as its longest
- * team line needs.
+ * One league: its name over your matchup, the two teams stacked — yours on
+ * top — each on one line with its score at the right, the scores in a
+ * column of their own. On the ticker the entry is as wide as its longest
+ * team line needs; stacked (the league column on wider screens) it's a
+ * full-width card.
  */
 function TickerItem({
   league,
   position,
   total,
   minWidth,
-  copy,
+  copy = false,
+  stacked = false,
 }: {
   league: TickerLeague;
   /** Where this league falls in your own ordering of them (1-based), and out of how many. */
   position: number;
   total: number;
-  minWidth: string;
-  copy: boolean;
+  minWidth?: string;
+  copy?: boolean;
+  stacked?: boolean;
 }) {
   const { matchup, my, opponent } = league;
   return (
@@ -223,8 +234,12 @@ function TickerItem({
       aria-hidden={copy || undefined}
       tabIndex={copy ? -1 : undefined}
       draggable={false}
-      className="relative flex w-max shrink-0 flex-col justify-center gap-0.5 border-r border-border px-4 py-1.5"
-      style={{ minWidth }}
+      className={
+        stacked
+          ? "relative flex min-w-0 flex-col justify-center gap-0.5 border border-border px-4 py-2 transition-colors hover:border-ink-primary/40"
+          : "relative flex w-max shrink-0 flex-col justify-center gap-0.5 border-r border-border px-4 py-1.5"
+      }
+      style={minWidth ? { minWidth } : undefined}
     >
       <span className="absolute right-4 top-1.5 text-[0.625rem] font-medium tabular-nums leading-[1.5] text-ink-muted">
         {position}/{total}
@@ -235,16 +250,17 @@ function TickerItem({
           // eslint-disable-next-line @next/next/no-img-element -- a remote Sleeper avatar on a static export; nothing for next/image to optimize
           <img src={league.logo} alt="" draggable={false} className="h-3 w-3 shrink-0 rounded-full object-cover" />
         ) : null}
-        <span className="whitespace-nowrap">{league.name}</span>
+        <span className={stacked ? "min-w-0 truncate" : "whitespace-nowrap"}>{league.name}</span>
       </div>
       {matchup && my ? (
-        <div className="grid grid-cols-[1fr_auto] items-center gap-x-6 gap-y-1">
-          <TickerTeamRow name={matchup.my.teamName} points={matchup.my.points} standing={my} mine />
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-6 gap-y-1">
+          <TickerTeamRow name={matchup.my.teamName} points={matchup.my.points} standing={my} mine fitWidth={stacked} />
           <TickerTeamRow
             name={matchup.opponent?.teamName ?? "Bye"}
             points={matchup.opponent ? matchup.opponent.points : null}
             standing={opponent}
             mine={false}
+            fitWidth={stacked}
           />
         </div>
       ) : (
@@ -289,6 +305,20 @@ export function LeagueTicker({ leagues }: { leagues: TickerLeague[] }) {
           ))}
         </div>
       </div>
+    </nav>
+  );
+}
+
+/** Your leagues as a column of cards in the ticker's format, stacked top to bottom — the home page's league column on wider screens, where the ticker is hidden. */
+export function LeagueStack({ leagues }: { leagues: TickerLeague[] }) {
+  if (leagues.length === 0) return null;
+  return (
+    <nav aria-label="Your leagues" className="flex flex-col gap-3">
+      {leagues.map((league, i) => (
+        <div key={league.leagueId} className="animate-[rise_0.5s_ease-out_backwards]" style={{ animationDelay: `${140 + i * 70}ms` }}>
+          <TickerItem league={league} position={i + 1} total={leagues.length} stacked />
+        </div>
+      ))}
     </nav>
   );
 }

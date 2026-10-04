@@ -3,9 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
-import { DashboardMatchupCard } from "@/components/DashboardMatchupCard";
 import { GameMap, MappedGame } from "@/components/GameMap";
-import { LeagueTicker, TickerLeague } from "@/components/LeagueTicker";
+import { LeagueStack, LeagueTicker, TickerLeague } from "@/components/LeagueTicker";
 import { LeagueLegendEntry, StartersByGame } from "@/components/StartersByGame";
 import { useConfig } from "@/hooks/useConfig";
 import { MatchupTarget, useDashboardMatchups } from "@/hooks/useDashboardMatchups";
@@ -212,10 +211,10 @@ export default function DashboardPage() {
       <LeagueTicker leagues={leagueCards} />
 
       <div className="flex flex-col gap-6 md:flex-row md:items-start md:gap-3">
-        {/* Map, then your leagues underneath it — always a single column, never side by side. Its own scroll container at md+, independent of the starters column beside it. Flipped to rtl so its scrollbar sits on the column's own left edge instead of in the gutter between the two columns — the inner wrapper flips back to ltr so the content itself still reads normally. */}
+        {/* The map, then starters by game underneath it. Its own scroll container at md+, independent of the league column beside it. Flipped to rtl so its scrollbar sits on the column's own left edge instead of in the gutter between the two columns — the inner wrapper flips back to ltr so the content itself still reads normally. */}
         <div className="min-w-0 flex-1 md:sticky md:top-[calc(var(--header-h,0px)+1.5rem)] md:max-h-[calc(100vh-var(--header-h,0px)-3rem)] md:overflow-y-auto md:[direction:rtl]">
-          {/* Bottom padding (tablet and up, where this column ends with the league boxes): room after the last one, matching the starters column. */}
-          <div className="flex flex-col gap-6 md:pb-16 md:[direction:ltr]">
+          {/* Bottom padding: room after the last game, matching the league column. */}
+          <div className="flex flex-col gap-6 pb-16 md:[direction:ltr]">
             {weekGames.length > 0 ? (
               <div className="animate-[rise_0.5s_ease-out_backwards]">
                 <GameMap
@@ -225,61 +224,34 @@ export default function DashboardPage() {
               </div>
             ) : null}
 
-            {/* On phones the leagues ride the ticker under the header instead (see LeagueTicker). */}
-            <div className="hidden flex-col gap-4 animate-[rise_0.5s_ease-out_backwards] [animation-delay:70ms] md:flex">
-              {leagueCards.map(({ leagueId, name, logo, matchup, my, opponent, leagueSize }, i) => {
-                return (
-                  <Link
-                    key={leagueId}
-                    href={`/league?id=${leagueId}`}
-                    className="relative isolate flex min-w-0 flex-col gap-2 overflow-hidden border border-border bg-page px-4 py-3 transition-colors animate-[rise_0.5s_ease-out_backwards] hover:border-ink-primary/40"
-                    style={{ animationDelay: `${140 + i * 70}ms` }}
-                  >
-                    {/* The league's logo, small in the top-left corner. */}
-                    {logo ? (
-                      // eslint-disable-next-line @next/next/no-img-element -- a remote Sleeper avatar on a static export; nothing for next/image to optimize
-                      <img src={logo} alt="" className="absolute left-3 top-2.5 h-5 w-5 rounded-full object-cover" />
-                    ) : null}
-                    {/* Where this league falls in your own ordering of them, e.g. 2/4 — top right, as on the phone ticker. */}
-                    <span className="absolute right-3 top-2 text-xs font-medium tabular-nums text-ink-muted">
-                      {i + 1}/{leagueCards.length}
-                    </span>
-                    <div className="truncate px-8 text-center text-base font-semibold text-ink-primary sm:text-lg">
-                      {name}
-                    </div>
-
-                    {my ? (
-                      <DashboardMatchupCard matchup={matchup} my={my} opponent={opponent} leagueSize={leagueSize} />
-                    ) : null}
-                  </Link>
-                );
-              })}
+            <div className="animate-[rise_0.5s_ease-out_backwards] [animation-delay:200ms]">
+              {myStarters === null ? (
+                <p className="text-sm text-ink-secondary">Loading your lineups…</p>
+              ) : weekGames.length === 0 ? (
+                // Without the schedule every starter would fall into "not playing",
+                // which would read as a league-wide bye rather than a failed fetch.
+                <p className="text-sm text-ink-secondary">
+                  Couldn&rsquo;t load this week&rsquo;s NFL schedule, so there&rsquo;s nothing to group
+                  your starters under yet.
+                </p>
+              ) : (
+                <StartersByGame
+                  games={grouped.games}
+                  notPlaying={grouped.notPlaying}
+                  legend={legend}
+                  selectedLeagueIds={effectiveSelected}
+                  onToggleLeague={toggleLeague}
+                  hiddenBlocks={hiddenBlocks}
+                  onToggleBlock={toggleBlock}
+                />
+              )}
             </div>
           </div>
         </div>
 
-        {/* Starters by game — one continuous column running alongside the map and leagues, with its own independent scroll at md+ so a long list here doesn't push the left column around or vice versa. Always a quarter of the window wide once side-by-side. */}
-        <div className="w-full animate-[rise_0.5s_ease-out_backwards] [animation-delay:200ms] md:sticky md:top-[calc(var(--header-h,0px)+1.5rem)] md:max-h-[calc(100vh-var(--header-h,0px)-3rem)] md:w-[30vw] md:shrink-0 md:overflow-y-auto pb-16">
-          {myStarters === null ? (
-            <p className="text-sm text-ink-secondary">Loading your lineups…</p>
-          ) : weekGames.length === 0 ? (
-            // Without the schedule every starter would fall into "not playing",
-            // which would read as a league-wide bye rather than a failed fetch.
-            <p className="text-sm text-ink-secondary">
-              Couldn&rsquo;t load this week&rsquo;s NFL schedule, so there&rsquo;s nothing to group
-              your starters under yet.
-            </p>
-          ) : (
-            <StartersByGame
-              games={grouped.games}
-              notPlaying={grouped.notPlaying}
-              legend={legend}
-              selectedLeagueIds={effectiveSelected}
-              onToggleLeague={toggleLeague}
-              hiddenBlocks={hiddenBlocks}
-              onToggleBlock={toggleBlock}
-            />
-          )}
+        {/* Your leagues, stacked in the phone ticker's format — a column of its own at md+, 30% of the window wide (never narrower than 18rem, so names stay readable on a tablet), with its own scroll. On phones the leagues ride the ticker under the header instead. */}
+        <div className="hidden md:sticky md:top-[calc(var(--header-h,0px)+1.5rem)] md:block md:max-h-[calc(100vh-var(--header-h,0px)-3rem)] md:w-[max(30vw,18rem)] md:shrink-0 md:overflow-y-auto md:pb-16">
+          <LeagueStack leagues={leagueCards} />
         </div>
       </div>
 

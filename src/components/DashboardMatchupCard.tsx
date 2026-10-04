@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { DashboardMatchupView } from "@/hooks/useDashboardMatchups";
-import { formatPoints, formatRecord } from "@/lib/format";
+import { formatRecord } from "@/lib/format";
 import { PointsRanks, Streak, TeamStanding } from "@/lib/league-data";
 
 export type { TeamStanding };
@@ -150,43 +149,5 @@ export function PointsRankBadges({
         </span>
       </span>
     </span>
-  );
-}
-
-/** The dashboard's per-league matchup section: each team's line (rank, name, record, streak) over its score, PF/PA ranks on the outside, left and right. Sits inside a whole-box link, so team names are plain text rather than their own nested links. Who's actually playing is covered once, for every league at once, by the starters-by-game box below the league grid. */
-export function DashboardMatchupCard({
-  matchup,
-  my,
-  opponent,
-  leagueSize,
-}: {
-  matchup: DashboardMatchupView | null | undefined;
-  my: TeamStanding;
-  opponent?: TeamStanding;
-  /** Teams in the league, for coloring ranks by where they fall in it. */
-  leagueSize: number;
-}) {
-  if (!matchup) return null;
-
-  return (
-    <div className="flex flex-col gap-1">
-      <div className="grid grid-cols-2 items-baseline gap-3">
-        <TeamNameLabel name={matchup.my.teamName} standing={my} align="left" />
-        {matchup.opponent ? <TeamNameLabel name={matchup.opponent.teamName} standing={opponent ?? {}} align="right" /> : null}
-      </div>
-      {/* Scores toward the middle, facing each other; PF and PA ranks tight to the outside edges. */}
-      <div className="grid grid-cols-2 items-baseline gap-x-14 text-lg font-semibold tabular-nums text-ink-primary">
-        <span className="flex items-baseline justify-between gap-2">
-          <PointsRankBadges pointsRanks={my.pointsRanks} leagueSize={leagueSize} />
-          {formatPoints(matchup.my.points)}
-        </span>
-        {matchup.opponent ? (
-          <span className="flex items-baseline justify-between gap-2">
-            {formatPoints(matchup.opponent.points)}
-            <PointsRankBadges pointsRanks={opponent?.pointsRanks} leagueSize={leagueSize} />
-          </span>
-        ) : null}
-      </div>
-    </div>
   );
 }
