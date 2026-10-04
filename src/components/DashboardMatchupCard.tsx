@@ -45,8 +45,9 @@ const OTHER_TEAM_NAME_CLASS = "font-medium text-ink-primary";
 /**
  * A team's line: its place in the standings, its name, its record in
  * parentheses, then its streak just right of the record — one line, where
- * only the name ever truncates. With `stackOnPhone`, phones get the whole
- * name on its own line(s) and the rank, record and streak underneath.
+ * only the name ever truncates. With `stackOnPhone`, phones give the name a
+ * line to itself (still truncating if it's longer than its half) and put the
+ * rank, record and streak underneath.
  */
 export function TeamNameLabel({
   name,
@@ -96,7 +97,7 @@ export function TeamNameLabel({
   return (
     <>
       <div className={`flex min-w-0 flex-col gap-0.5 sm:hidden ${align === "right" ? "items-end text-right" : ""}`}>
-        {nameEl("break-words text-sm leading-tight")}
+        {nameEl("max-w-full truncate text-sm leading-tight")}
         <div className={`flex items-baseline gap-1.5 ${justify}`}>
           {rankEl}
           {recordEl}
@@ -121,29 +122,23 @@ export function rankTone(rank: number, leagueSize: number, higherIsWorse = false
 }
 
 /**
- * Where a team's points for and points against rank in the league, stacked
- * PF over PA on the outside of its score (the scores face each other), each
- * rank colored by how good it is (see rankTone). Aligned toward the score.
+ * Where a team's points for and points against rank in the league, PF then
+ * PA side by side, each rank colored by how good it is (see rankTone). Sits
+ * on the outside of the team's score, which is always innermost.
  */
 export function PointsRankBadges({
   pointsRanks,
   leagueSize,
-  align,
   onTag = false,
 }: {
   pointsRanks?: PointsRanks;
   leagueSize: number;
-  align: "left" | "right";
   onTag?: boolean;
 }) {
   if (!pointsRanks) return null;
   const tones = toneClass(onTag);
   return (
-    <span
-      className={`flex flex-col whitespace-nowrap text-[0.625rem] font-normal leading-tight sm:text-[0.6875rem] ${
-        align === "left" ? "items-end" : ""
-      }`}
-    >
+    <span className="flex items-baseline gap-1.5 whitespace-nowrap text-[0.625rem] font-normal sm:gap-2 sm:text-[0.6875rem]">
       <span title="Points for — rank in the league (1st = most)">
         <span className={mutedClass(onTag)}>PF</span>{" "}
         <span className={`font-semibold ${tones[rankTone(pointsRanks.pointsFor, leagueSize)]}`}>{ordinal(pointsRanks.pointsFor)}</span>
@@ -179,15 +174,16 @@ export function DashboardMatchupCard({
         <TeamNameLabel name={matchup.my.teamName} standing={my} align="left" mine />
         {matchup.opponent ? <TeamNameLabel name={matchup.opponent.teamName} standing={opponent ?? {}} align="right" /> : null}
       </div>
-      <div className="flex items-center justify-between gap-3 text-lg font-semibold tabular-nums text-ink-primary">
-        <span className="flex items-center gap-3">
-          <PointsRankBadges pointsRanks={my.pointsRanks} leagueSize={leagueSize} align="left" />
+      {/* Scores toward the middle, facing each other; PF and PA ranks on the outside of each. */}
+      <div className="grid grid-cols-2 items-baseline gap-6 text-lg font-semibold tabular-nums text-ink-primary">
+        <span className="flex items-baseline justify-end gap-2">
+          <PointsRankBadges pointsRanks={my.pointsRanks} leagueSize={leagueSize} />
           {formatPoints(matchup.my.points)}
         </span>
         {matchup.opponent ? (
-          <span className="flex items-center gap-3">
+          <span className="flex items-baseline gap-2">
             {formatPoints(matchup.opponent.points)}
-            <PointsRankBadges pointsRanks={opponent?.pointsRanks} leagueSize={leagueSize} align="right" />
+            <PointsRankBadges pointsRanks={opponent?.pointsRanks} leagueSize={leagueSize} />
           </span>
         ) : null}
       </div>
