@@ -12,7 +12,7 @@ import { MatchupTarget, useDashboardMatchups } from "@/hooks/useDashboardMatchup
 import { StarterSource, useMyStarters } from "@/hooks/useMyStarters";
 import { useNFLState } from "@/hooks/useNFLState";
 import { useWeekGames } from "@/hooks/useWeekGames";
-import { getLeagueSummary, LeagueSummary, pointsRanks, rosterStreak } from "@/lib/league-data";
+import { getLeagueSummary, LeagueSummary, teamStandings } from "@/lib/league-data";
 import { groupStartersByGame, GroupedStarter } from "@/lib/my-starters";
 import { avatarUrl, getCurrentWeek } from "@/lib/sleeper";
 import { kickoffBlockLabel } from "@/lib/game-map";
@@ -193,17 +193,8 @@ export default function DashboardPage() {
   const leagueCards: TickerLeague[] = leagues.map(({ tracked, summary }) => {
     const myRow = summary.standings.find((r) => r.ownerId === config.sleeperUserId);
     const matchup = matchups[tracked.leagueId];
-    const ranks = pointsRanks(summary.standings);
-    const standingOf = (rosterId: number) => {
-      const roster = summary.rosters.find((r) => r.roster_id === rosterId);
-      const row = summary.standings.find((r) => r.rosterId === rosterId);
-      return {
-        rank: row?.rank,
-        record: row ? { wins: row.wins, losses: row.losses, ties: row.ties } : undefined,
-        streak: roster ? rosterStreak(roster) : null,
-        pointsRanks: ranks.get(rosterId),
-      };
-    };
+    const standings = teamStandings(summary);
+    const standingOf = (rosterId: number) => standings.get(rosterId) ?? {};
     return {
       leagueId: tracked.leagueId,
       name: summary.league.name,

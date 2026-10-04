@@ -1,14 +1,9 @@
+import Link from "next/link";
 import { DashboardMatchupView } from "@/hooks/useDashboardMatchups";
 import { formatPoints, formatRecord, ordinal } from "@/lib/format";
-import { PointsRanks, Streak } from "@/lib/league-data";
+import { PointsRanks, Streak, TeamStanding } from "@/lib/league-data";
 
-/** One side's standing in its league, shown around its name and score. */
-export interface TeamStanding {
-  rank?: number;
-  record?: { wins: number; losses: number; ties: number };
-  streak?: Streak | null;
-  pointsRanks?: PointsRanks;
-}
+export type { TeamStanding };
 
 /** A green up-triangle for a winning streak, red down-triangle for a losing one, then its length. */
 export function StreakBadge({ streak }: { streak?: Streak | null }) {
@@ -43,18 +38,28 @@ function TeamNameLabel({
   standing,
   align,
   mine,
+  href,
 }: {
   name: string;
   standing: TeamStanding;
   align: "left" | "right";
   /** Your own team, marked out like a map tag. */
   mine: boolean;
+  /** Where the name links to, when it isn't already inside a link. */
+  href?: string;
 }) {
   const { rank, record, streak } = standing;
+  const nameClass = `min-w-0 truncate text-sm ${mine ? MY_TEAM_NAME_CLASS : OTHER_TEAM_NAME_CLASS}`;
   return (
     <div className={`flex min-w-0 items-baseline gap-1.5 ${align === "right" ? "justify-end" : ""}`}>
       {rank != null ? <span className="shrink-0 text-xs font-medium text-series-4">{ordinal(rank)}</span> : null}
-      <span className={`min-w-0 truncate text-sm ${mine ? MY_TEAM_NAME_CLASS : OTHER_TEAM_NAME_CLASS}`}>{name}</span>
+      {href ? (
+        <Link href={href} className={`${nameClass} hover:underline`}>
+          {name}
+        </Link>
+      ) : (
+        <span className={nameClass}>{name}</span>
+      )}
       {record ? (
         <span className="shrink-0 text-xs tabular-nums text-ink-muted">
           ({formatRecord(record.wins, record.losses, record.ties)})
@@ -113,7 +118,44 @@ function PointsRankBadges({
   );
 }
 
-/** The dashboard's per-league matchup section: each team's line (rank, name, record, streak) over its score, left and right. Sits inside a whole-box link, so team names are plain text rather than their own nested links. Who's actually playing is covered once, for every league at once, by the starters-by-game box below the league grid. */
+/** One side of a matchup: the team's name and points, and its standing in the league. */
+export interface ScoreboardSide {
+  teamName: string;
+  points: number;
+  standing: TeamStanding;
+  /** Your own team, marked out like a map tag. */
+  mine: boolean;
+  /** Links the team name (leave unset inside an already-linked box). */
+  href?: string;
+}
+
+/** A matchup's header: each team's line (rank, name, record, streak) over its score, PF/PA ranks on the outside — left and right. Used by the dashboard's league boxes and the league page's lineups. */
+export function MatchupScoreboard({ left, right, leagueSize }: { left: ScoreboardSide; right?: ScoreboardSide | null; leagueSize: number }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="grid grid-cols-2 items-baseline gap-3">
+        <TeamNameLabel name={left.teamName} standing={left.standing} align="left" mine={left.mine} href={left.href} />
+        {right ? (
+          <TeamNameLabel name={right.teamName} standing={right.standing} align="right" mine={right.mine} href={right.href} />
+        ) : null}
+      </div>
+      <div className="flex items-center justify-between gap-3 text-lg font-semibold tabular-nums text-ink-primary">
+        <span className="flex items-center gap-3">
+          <PointsRankBadges pointsRanks={left.standing.pointsRanks} leagueSize={leagueSize} align="left" />
+          {formatPoints(left.points)}
+        </span>
+        {right ? (
+          <span className="flex items-center gap-3">
+            {formatPoints(right.points)}
+            <PointsRankBadges pointsRanks={right.standing.pointsRanks} leagueSize={leagueSize} align="right" />
+          </span>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+/** The dashboard's per-league matchup section. Sits inside a whole-box link, so team names are plain text rather than their own nested links. Who's actually playing is covered once, for every league at once, by the starters-by-game box below the league grid. */
 export function DashboardMatchupCard({
   matchup,
   my,
@@ -127,32 +169,11 @@ export function DashboardMatchupCard({
   leagueSize: number;
 }) {
   if (!matchup) return null;
-
   return (
-    <div className="flex flex-col gap-1">
-      <div className="grid grid-cols-2 items-baseline gap-3">
-        <TeamNameLabel name={matchup.my.teamName} standing={my} align="left" mine />
-        {matchup.opponent ? (
-          <TeamNameLabel
-            name={matchup.opponent.teamName}
-            standing={opponent ?? {}}
-            align="right"
-            mine={false}
-          />
-        ) : null}
-      </div>
-      <div className="flex items-center justify-between gap-3 text-lg font-semibold tabular-nums text-ink-primary">
-        <span className="flex items-center gap-3">
-          <PointsRankBadges pointsRanks={my.pointsRanks} leagueSize={leagueSize} align="left" />
-          {formatPoints(matchup.my.points)}
-        </span>
-        {matchup.opponent ? (
-          <span className="flex items-center gap-3">
-            {formatPoints(matchup.opponent.points)}
-            <PointsRankBadges pointsRanks={opponent?.pointsRanks} leagueSize={leagueSize} align="right" />
-          </span>
-        ) : null}
-      </div>
-    </div>
+    <MatchupScoreboard
+      left={{ teamName: matchup.my.teamName, points: matchup.my.points, standing: my, mine: true }}
+      right={matchup.opponent ? { teamName: matchup.opponent.teamName, points: matchup.opponent.points, standing: opponent ?? {}, mine: false } : null}
+      leagueSize={leagueSize}
+    />
   );
 }

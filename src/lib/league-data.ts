@@ -181,6 +181,33 @@ export function pointsRanks(standings: StandingsRow[]): Map<number, PointsRanks>
   );
 }
 
+/** One team's standing in its league, shown around its name and score in a matchup. */
+export interface TeamStanding {
+  rank?: number;
+  record?: { wins: number; losses: number; ties: number };
+  streak?: Streak | null;
+  pointsRanks?: PointsRanks;
+}
+
+/** Every team's standing (rank, record, streak, points-for/against ranks), by roster. */
+export function teamStandings(summary: Pick<LeagueSummary, "rosters" | "standings">): Map<number, TeamStanding> {
+  const ranks = pointsRanks(summary.standings);
+  return new Map(
+    summary.standings.map((row) => {
+      const roster = summary.rosters.find((r) => r.roster_id === row.rosterId);
+      return [
+        row.rosterId,
+        {
+          rank: row.rank,
+          record: { wins: row.wins, losses: row.losses, ties: row.ties },
+          streak: roster ? rosterStreak(roster) : null,
+          pointsRanks: ranks.get(row.rosterId),
+        },
+      ];
+    })
+  );
+}
+
 export interface LeagueSummary {
   league: SleeperLeague;
   rosters: SleeperRoster[];

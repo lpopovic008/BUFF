@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { ResolvedMatchupGame, ResolvedSlot } from "@/hooks/useLeagueMatchupCarousel";
+import { MatchupScoreboard, ScoreboardSide } from "@/components/DashboardMatchupCard";
+import { TeamStanding } from "@/lib/league-data";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { IconButton } from "@/components/ui/IconButton";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/ui/Icon";
@@ -113,37 +114,27 @@ function MatchupSlide({
   leagueId,
   game,
   myRosterId,
+  standings,
 }: {
   leagueId: string;
   game: ResolvedMatchupGame;
   myRosterId: number | null;
+  standings: Map<number, TeamStanding>;
 }) {
   const mine = game.teams.find((t) => t.rosterId === myRosterId) ?? game.teams[0];
   const other = game.teams.find((t) => t.rosterId !== mine.rosterId);
+  const side = (t: ResolvedMatchupGame["teams"][number]): ScoreboardSide => ({
+    teamName: t.teamName,
+    points: t.points,
+    standing: standings.get(t.rosterId) ?? {},
+    mine: t.rosterId === myRosterId,
+    href: `/team?league=${leagueId}&roster=${t.rosterId}`,
+  });
 
   return (
     <div className="w-full shrink-0 snap-center px-0.5">
       <div className="flex flex-col gap-3">
-        <div className="flex items-baseline justify-between gap-3">
-          <Link
-            href={`/team?league=${leagueId}&roster=${mine.rosterId}`}
-            className="min-w-0 truncate text-sm font-medium text-series-1 hover:underline"
-          >
-            {mine.teamName}
-          </Link>
-          {other ? (
-            <Link
-              href={`/team?league=${leagueId}&roster=${other.rosterId}`}
-              className="min-w-0 truncate text-right text-sm font-medium text-ink-primary hover:underline"
-            >
-              {other.teamName}
-            </Link>
-          ) : null}
-        </div>
-        <div className="flex items-baseline justify-between gap-3 text-lg font-semibold tabular-nums text-ink-primary">
-          <span>{formatPoints(mine.points)}</span>
-          {other ? <span>{formatPoints(other.points)}</span> : null}
-        </div>
+        <MatchupScoreboard left={side(mine)} right={other ? side(other) : null} leagueSize={standings.size} />
         <div className="flex flex-col gap-2.5">
           {mine.slots.map((slot, i) => (
             <SlotRow key={i} slot={slot.slot} my={slot} their={other?.slots[i]} />
@@ -159,10 +150,13 @@ export function LeagueMatchupCarousel({
   leagueId,
   games,
   myRosterId,
+  standings,
 }: {
   leagueId: string;
   games: ResolvedMatchupGame[];
   myRosterId: number | null;
+  /** Every team's standing in the league (see teamStandings), shown around its name and score. */
+  standings: Map<number, TeamStanding>;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const hasScrolledToMine = useRef(false);
@@ -205,6 +199,7 @@ export function LeagueMatchupCarousel({
             leagueId={leagueId}
             game={g}
             myRosterId={myRosterId}
+            standings={standings}
           />
         ))}
       </div>

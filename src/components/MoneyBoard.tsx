@@ -292,7 +292,7 @@ export function MoneyBoard({
   plan: PayoutPlan;
   /** The NFL week in progress, shaded in the grid as not final yet. */
   currentWeek: number | null;
-  /** computePlanLedger(plan, season.results), computed by the page (the standings table reads it too). */
+  /** computePlanLedger(plan, season.results), computed by the page. */
   ledger: PlanLedger;
   onPlanChange: (plan: PayoutPlan) => void;
 }) {
@@ -312,7 +312,7 @@ export function MoneyBoard({
 
   return (
     <Card className="p-5">
-      <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-muted">Money</h2>
+      <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-muted">Payouts</h2>
       <WeekGrid
         ledger={ledger}
         plan={plan}
