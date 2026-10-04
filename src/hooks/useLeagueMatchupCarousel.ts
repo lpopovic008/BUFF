@@ -1,17 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getLeague, getLeagueRosters, getLeagueUsers, getMatchups, isDynastyLeague, leagueQBFormat } from "@/lib/sleeper";
+import { getLeague, getLeagueRosters, getLeagueUsers, getMatchups } from "@/lib/sleeper";
 import { buildLeagueMatchups } from "@/lib/league-data";
 import { resolvePlayers, ResolvedPlayer } from "@/lib/players";
-import { positionPpgRankIndexFor, positionValueRankIndexFor, ValueMetric } from "@/lib/matchup-players";
-import { normalizeName } from "@/lib/name-match";
-import { PlayerValuesSnapshot } from "@/lib/player-values";
+import { positionSeasonRankIndexFor } from "@/lib/matchup-players";
 import { PlayerStatsSnapshot } from "@/lib/player-stats";
-import rawValuesSnapshot from "@/data/player-values.json";
 import rawStatsSnapshot from "@/data/player-stats.json";
 
-const valuesSnapshot = rawValuesSnapshot as unknown as PlayerValuesSnapshot;
 const statsSnapshot = rawStatsSnapshot as unknown as PlayerStatsSnapshot;
 
 // Same live-scoring poll cadence as the dashboard's matchup card.
@@ -21,10 +17,8 @@ export interface ResolvedSlot {
   slot: string;
   player: ResolvedPlayer | null;
   livePoints: number;
-  /** This player's rank among others at their position by points-per-game this season, or null if they haven't played / couldn't be found. */
-  posRank: number | null;
-  /** This player's dynasty/fantasy trade-value rank among others at their position, or null if KTC has no value for them. */
-  valueRank: number | null;
+  /** This player's season rank at their position by fantasy points, e.g. "WR12", or null if they haven't played / couldn't be found. */
+  seasonRank: string | null;
 }
 
 export interface ResolvedMatchupTeam {
@@ -41,8 +35,6 @@ export interface ResolvedMatchupGame {
 
 export interface LeagueMatchupCarouselData {
   games: ResolvedMatchupGame[];
-  /** Whichever of "Dynasty"/"Fantasy" this league actually is, for the value-rank column header. */
-  valueRankLabel: "Dynasty" | "Fantasy";
 }
 
 /** Every matchup for a league's week, full starting lineups resolved to names, re-polled while mounted so points update live during games. */
@@ -75,13 +67,7 @@ export function useLeagueMatchupCarousel(leagueId: string | null, week: number |
       if (cancelled) return;
       const byId = new Map(resolved.map((p) => [p.playerId, p]));
 
-      const metric: ValueMetric = {
-        listType: isDynastyLeague(league) ? "dynasty" : "fantasy",
-        format: leagueQBFormat(league),
-        tep: "standard",
-      };
-      const valueRankIdx = positionValueRankIndexFor(valuesSnapshot, metric);
-      const ppgRankIdx = positionPpgRankIndexFor(statsSnapshot, league.scoring_settings);
+      const seasonRankIdx = positionSeasonRankIndexFor(statsSnapshot, league.scoring_settings);
 
       const withNames: ResolvedMatchupGame[] = raw.map((g) => ({
         matchupId: g.matchupId,
@@ -91,18 +77,18 @@ export function useLeagueMatchupCarousel(leagueId: string | null, week: number |
           points: t.points,
           slots: t.slots.map((s) => {
             const player = s.playerId ? (byId.get(s.playerId) ?? null) : null;
+            const rank = player ? seasonRankIdx.get(player.playerId) : undefined;
             return {
               slot: s.slot,
               player,
               livePoints: s.playerId ? (t.playersPoints[s.playerId] ?? 0) : 0,
-              posRank: player ? (ppgRankIdx.get(player.playerId) ?? null) : null,
-              valueRank: player ? (valueRankIdx.get(normalizeName(player.name)) ?? null) : null,
+              seasonRank: player && rank ? `${player.position}${rank}` : null,
             };
           }),
         })),
       }));
       if (!cancelled) {
-        setData({ games: withNames, valueRankLabel: metric.listType === "dynasty" ? "Dynasty" : "Fantasy" });
+        setData({ games: withNames });
       }
     }
 

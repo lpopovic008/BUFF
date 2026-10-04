@@ -1,7 +1,6 @@
 "use client";
 
 import { Card } from "@/components/ui/Card";
-import { StatTile } from "@/components/ui/StatTile";
 import { useState } from "react";
 import { PayoutSetup } from "@/components/PayoutSetup";
 import { paymentSwatch, placeSwatch, ruleSwatches } from "@/lib/payout-colors";
@@ -297,7 +296,6 @@ export function MoneyBoard({
   ledger: PlanLedger;
   onPlanChange: (plan: PayoutPlan) => void;
 }) {
-  const lastPlayed = ledger.weeksPlayed.at(-1) ?? 0;
   const [editing, setEditing] = useState(false);
   const balanced = Math.abs(ledger.unallocated) < 0.005;
   const stillToPay = Math.max(0, ledger.committed - ledger.paidToDate);
@@ -305,50 +303,53 @@ export function MoneyBoard({
     .filter((b) => awardInfo(plan.rules.find((r) => r.id === b.ruleId)!.award).timing === "season")
     .reduce((s, b) => s + b.projected, 0);
 
+  const totals: [string, number][] = [
+    ["Total pot", ledger.pot],
+    ["Paid out", ledger.paidToDate],
+    ["Still to pay", stillToPay],
+    ["Season-end prizes", seasonPrizes],
+  ];
+
   return (
-    <div className="flex flex-col gap-6">
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatTile label="Total pot" value={money(ledger.pot)} sublabel={`${season.results.rosterIds.length} buy-ins`} />
-        <StatTile label="Paid out" value={money(ledger.paidToDate)} sublabel={lastPlayed ? `through week ${lastPlayed}` : "nothing played yet"} />
-        <StatTile label="Still to pay" value={money(stillToPay)} sublabel="by the payout rules" />
-        <StatTile label="Season-end prizes" value={money(seasonPrizes)} sublabel={ledger.seasonOver ? "paid out" : "decided at season’s end"} />
+    <Card className="p-5">
+      <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-muted">Money</h2>
+      <WeekGrid
+        ledger={ledger}
+        plan={plan}
+        regularSeasonWeeks={season.results.regularSeasonWeeks}
+        lastWeek={season.results.lastWeek}
+        currentWeek={currentWeek}
+      />
+      <div className="mt-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-t border-grid pt-4">
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-2 sm:flex sm:flex-wrap sm:gap-x-8">
+          {totals.map(([label, amount]) => (
+            <div key={label}>
+              <dt className="text-[0.625rem] font-semibold uppercase tracking-wider text-ink-muted">{label}</dt>
+              <dd className="text-lg font-semibold tabular-nums text-ink-primary">{money(amount)}</dd>
+            </div>
+          ))}
+        </dl>
+        <button
+          type="button"
+          onClick={() => setEditing((e) => !e)}
+          aria-expanded={editing}
+          className="bg-[var(--map-tag)] px-3 py-1.5 text-sm font-semibold text-[var(--map-tag-ink)] hover:opacity-90"
+        >
+          {editing ? "Done editing" : "Edit rules"}
+        </button>
       </div>
-
-      <Card className="p-5">
-        <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-muted">Week by week</h3>
-        <WeekGrid
-          ledger={ledger}
-          plan={plan}
-          regularSeasonWeeks={season.results.regularSeasonWeeks}
-          lastWeek={season.results.lastWeek}
-          currentWeek={currentWeek}
-        />
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-grid pt-4">
-          <p className={`text-xs tabular-nums ${balanced ? "text-ink-secondary" : "text-status-critical"}`}>
-            {plan.rules.length === 0
-              ? `Pot ${money(ledger.pot)}`
-              : balanced
-                ? `Pot ${money(ledger.pot)} · the rules pay it all out`
-                : ledger.unallocated > 0
-                  ? `Pot ${money(ledger.pot)} · ${money(ledger.unallocated)} isn’t paid out by any rule`
-                  : `Pot ${money(ledger.pot)} · the rules pay out ${money(-ledger.unallocated)} more than it`}
-          </p>
-          <button
-            type="button"
-            onClick={() => setEditing((e) => !e)}
-            aria-expanded={editing}
-            className="bg-[var(--map-tag)] px-3 py-1.5 text-sm font-semibold text-[var(--map-tag-ink)] hover:opacity-90"
-          >
-            {editing ? "Done editing" : "Edit rules"}
-          </button>
+      {plan.rules.length > 0 && !balanced ? (
+        <p className="mt-2 text-xs tabular-nums text-status-critical">
+          {ledger.unallocated > 0
+            ? `${money(ledger.unallocated)} of the pot isn’t paid out by any rule`
+            : `The rules pay out ${money(-ledger.unallocated)} more than the pot`}
+        </p>
+      ) : null}
+      {editing ? (
+        <div className="mt-4 border-t border-grid pt-4">
+          <PayoutSetup plan={plan} season={season.results} ledger={ledger} onChange={onPlanChange} embedded />
         </div>
-        {editing ? (
-          <div className="mt-4 border-t border-grid pt-4">
-            <PayoutSetup plan={plan} season={season.results} ledger={ledger} onChange={onPlanChange} embedded />
-          </div>
-        ) : null}
-      </Card>
-
-    </div>
+      ) : null}
+    </Card>
   );
 }

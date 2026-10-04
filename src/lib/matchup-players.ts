@@ -5,7 +5,7 @@
 // a matchup for the dashboard.
 
 import { LeagueFormat, PlayerValuesSnapshot, TEPremium, valueFor } from "./player-values";
-import { PlayerStatsSnapshot, ppgFor } from "./player-stats";
+import { PlayerStatsSnapshot, seasonPointsFor } from "./player-stats";
 import { ResolvedPlayer } from "./players";
 import { normalizeName } from "./name-match";
 
@@ -80,7 +80,7 @@ export function topPlayersByValue(
   return rankPlayersByValue(players, livePointsById, snapshot, metric).slice(0, count);
 }
 
-// --- Position-scoped ranks (lineup view's "Pos Rk" / "Dynasty"/"Fantasy" columns) ---
+// --- Position-scoped ranks (value rank at position; season rank shown in the lineup view) ---
 //
 // The Values page's own `rank` is computed across every position at once
 // (see app/(chrome)/values/page.tsx) — not what a lineup row wants, since
@@ -118,25 +118,25 @@ export function positionValueRankIndexFor(snapshot: PlayerValuesSnapshot, metric
   return idx;
 }
 
-const positionPpgRankCache = new Map<string, Map<string, number>>();
+const positionSeasonRankCache = new Map<string, Map<string, number>>();
 let positionRankedStatsSnapshot: PlayerStatsSnapshot | null = null;
 
-/** A player's points-per-game rank among every player at their own position this season (1 = highest PPG), keyed by Sleeper player id. */
-export function positionPpgRankIndexFor(
+/** A player's season rank among every player at their own position (1 = most fantasy points this season), keyed by Sleeper player id. Players who haven't played yet aren't ranked. */
+export function positionSeasonRankIndexFor(
   snapshot: PlayerStatsSnapshot,
   scoringSettings?: Record<string, number>
 ): Map<string, number> {
   if (positionRankedStatsSnapshot !== snapshot) {
-    positionPpgRankCache.clear();
+    positionSeasonRankCache.clear();
     positionRankedStatsSnapshot = snapshot;
   }
   const key = JSON.stringify(scoringSettings ?? {});
-  const cached = positionPpgRankCache.get(key);
+  const cached = positionSeasonRankCache.get(key);
   if (cached) return cached;
 
   const byPosition = new Map<string, typeof snapshot.players>();
   for (const line of snapshot.players) {
-    if (line.gamesPlayed <= 0) continue; // no games played yet -> no meaningful PPG to rank
+    if (line.gamesPlayed <= 0) continue;
     const group = byPosition.get(line.position);
     if (group) group.push(line);
     else byPosition.set(line.position, [line]);
@@ -144,9 +144,9 @@ export function positionPpgRankIndexFor(
 
   const idx = new Map<string, number>();
   for (const group of byPosition.values()) {
-    const ranked = [...group].sort((a, b) => ppgFor(b, scoringSettings) - ppgFor(a, scoringSettings));
+    const ranked = [...group].sort((a, b) => seasonPointsFor(b, scoringSettings) - seasonPointsFor(a, scoringSettings));
     ranked.forEach((line, i) => idx.set(line.playerId, i + 1));
   }
-  positionPpgRankCache.set(key, idx);
+  positionSeasonRankCache.set(key, idx);
   return idx;
 }

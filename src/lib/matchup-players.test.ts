@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { positionPpgRankIndexFor, positionValueRankIndexFor } from "./matchup-players";
+import { positionSeasonRankIndexFor, positionValueRankIndexFor } from "./matchup-players";
 import { PlayerValue, PlayerValuesSnapshot } from "./player-values";
 import { PlayerStatLine, PlayerStatsSnapshot } from "./player-stats";
 
@@ -41,18 +41,18 @@ function statsSnapshot(players: PlayerStatLine[]): PlayerStatsSnapshot {
   return { updatedAt: null, season: "2025", throughWeek: 2, players };
 }
 
-test("positionPpgRankIndexFor ranks by points-per-game within position, ignoring players with no games played", () => {
+test("positionSeasonRankIndexFor ranks by season points within position, ignoring players with no games played", () => {
   const snapshot = statsSnapshot([
-    statLine("101", "WR", 2, 40), // 20 ppg
-    statLine("102", "WR", 2, 30), // 15 ppg
-    statLine("103", "WR", 1, 25), // 25 ppg, fewer games but still ranked
+    statLine("101", "WR", 2, 40),
+    statLine("102", "WR", 2, 30),
+    statLine("103", "WR", 1, 25), // best per game, but fewest points: ranked by the season's total
     statLine("104", "WR", 0, 0), // hasn't played — excluded
     statLine("105", "RB", 2, 20), // own group, ranks #1 among RBs
   ]);
-  const idx = positionPpgRankIndexFor(snapshot);
-  assert.equal(idx.get("103"), 1);
-  assert.equal(idx.get("101"), 2);
-  assert.equal(idx.get("102"), 3);
+  const idx = positionSeasonRankIndexFor(snapshot);
+  assert.equal(idx.get("101"), 1);
+  assert.equal(idx.get("102"), 2);
+  assert.equal(idx.get("103"), 3);
   assert.equal(idx.has("104"), false);
   assert.equal(idx.get("105"), 1);
 });

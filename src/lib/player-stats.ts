@@ -2,9 +2,9 @@
 // fetched server-side by scripts/fetch-player-stats.ts from Sleeper's
 // undocumented stats endpoint (same shape/convention as sleeper.ts's own
 // projections fetch, just "stats" instead of "projections") and committed
-// as JSON — the source for each league's lineup view's "Pos Rk" column (a
-// player's rank among others at their position by points-per-game this
-// season). Player ids here are Sleeper's own, the same space as this app's
+// as JSON — the source for each league's lineup view's season position rank
+// (a player's rank among others at their position by fantasy points scored
+// this season). Player ids here are Sleeper's own, the same space as this app's
 // ResolvedPlayer.playerId, so lookups are direct — no name-matching needed
 // (unlike the KTC value snapshot).
 
@@ -34,14 +34,11 @@ export const EMPTY_PLAYER_STATS: PlayerStatsSnapshot = {
 };
 
 /**
- * A player's points-per-game so far this season, scored under a league's own
+ * A player's fantasy points so far this season, scored under a league's own
  * `rec` scoring setting — mirrors sleeper.ts's weighProjection, which picks
- * Sleeper's pts_ppr/pts_half_ppr/pts_std rollup the same way. Returns 0 for a
- * player who hasn't played yet rather than dividing by zero.
+ * Sleeper's pts_ppr/pts_half_ppr/pts_std rollup the same way.
  */
-export function ppgFor(line: PlayerStatLine, scoringSettings?: Record<string, number>): number {
-  if (line.gamesPlayed <= 0) return 0;
+export function seasonPointsFor(line: PlayerStatLine, scoringSettings?: Record<string, number>): number {
   const rec = scoringSettings?.rec ?? 1;
-  const total = rec >= 1 ? line.ptsPpr : rec > 0 ? line.ptsHalfPpr : line.ptsStd;
-  return total / line.gamesPlayed;
+  return rec >= 1 ? line.ptsPpr : rec > 0 ? line.ptsHalfPpr : line.ptsStd;
 }

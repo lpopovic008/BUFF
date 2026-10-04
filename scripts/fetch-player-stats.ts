@@ -1,8 +1,8 @@
 /**
  * Fetches real NFL season-long per-player scoring (games played + fantasy
  * point rollups) and writes a normalized snapshot to src/data/player-stats.json
- * — the source for each league's lineup view's "Pos Rk" column (a player's
- * rank among others at their position by points-per-game this season).
+ * — the source for each league's lineup view's season position rank (a
+ * player's rank among others at their position by fantasy points this season).
  *
  * Runs server-side in CI (see .github/workflows/player-stats.yml), same
  * reasoning as the KTC/ADP/props pipelines: the app itself only ever reads

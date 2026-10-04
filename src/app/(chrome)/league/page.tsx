@@ -10,7 +10,7 @@ import { LeagueMatchupCarousel } from "@/components/LeagueMatchupCarousel";
 import { MoneyBoard } from "@/components/MoneyBoard";
 import { useConfig } from "@/hooks/useConfig";
 import { useLeagueMatchupCarousel } from "@/hooks/useLeagueMatchupCarousel";
-import { getLeagueSummary, computeWeekRecap, LeagueSummary, WeekRecapData } from "@/lib/league-data";
+import { getLeagueSummary, LeagueSummary } from "@/lib/league-data";
 import { loadLeagueSeason, LeagueSeason } from "@/lib/league-money";
 import { computePlanLedger, emptyPlan, formatMoney, PayoutPlan, planFromProfile } from "@/lib/payout-plan";
 import { getPayoutPlan, savePayoutPlan } from "@/lib/localStore";
@@ -22,7 +22,6 @@ function LeagueDetailContent() {
   const { config, loaded } = useConfig();
   const [summary, setSummary] = useState<LeagueSummary | null>(null);
   const [week, setWeek] = useState<number | null>(null);
-  const [weekRecap, setWeekRecap] = useState<WeekRecapData | null>(null);
   const [money, setMoney] = useState<LeagueSeason | null>(null);
   const [plan, setPlan] = useState<PayoutPlan | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +31,6 @@ function LeagueDetailContent() {
     let cancelled = false;
     (async () => {
       setSummary(null);
-      setWeekRecap(null);
       setMoney(null);
       setPlan(null);
       setError(null);
@@ -46,8 +44,6 @@ function LeagueDetailContent() {
         }
         setSummary(s);
         setWeek(currentWeek);
-        const recap = await computeWeekRecap(leagueId, currentWeek);
-        if (!cancelled) setWeekRecap(recap);
         // The season's results, for the payout setup to be played against. A
         // league starts from its saved setup, else from its hand-configured
         // commissioner rules, else from nothing.
@@ -130,9 +126,6 @@ function LeagueDetailContent() {
               </svg>
             ) : null}
           </h1>
-          <p className="mt-1 text-sm text-ink-secondary">
-            {summary.league.season} season · {summary.rosters.length} teams · Week {summary.currentWeek}
-          </p>
         </div>
         <div className="flex items-center gap-2">
           {tracked?.isCommish ? (
@@ -148,23 +141,14 @@ function LeagueDetailContent() {
           <LeagueMatchupCarousel
             leagueId={leagueId}
             games={carousel.games}
-            valueRankLabel={carousel.valueRankLabel}
             myRosterId={myRow?.rosterId ?? null}
           />
         </div>
       ) : null}
 
-      {money && plan ? (
-        <section className="flex flex-col gap-4 animate-[rise_0.5s_ease-out_backwards] [animation-delay:150ms]">
-          <div className="flex items-baseline justify-between gap-3">
-            <h2 className="text-lg font-semibold text-ink-primary">
-              Money{money.profile ? ` · ${money.profile.label}` : ""}
-            </h2>
-            <Link href={`/recap?id=${leagueId}`} className="text-sm font-medium text-series-1 hover:underline">
-              Write this week&rsquo;s recap →
-            </Link>
-          </div>
-          {ledger ? <MoneyBoard season={money} plan={plan} ledger={ledger} currentWeek={week} onPlanChange={changePlan} /> : null}
+      {money && plan && ledger ? (
+        <section className="animate-[rise_0.5s_ease-out_backwards] [animation-delay:150ms]">
+          <MoneyBoard season={money} plan={plan} ledger={ledger} currentWeek={week} onPlanChange={changePlan} />
         </section>
       ) : null}
 
@@ -245,18 +229,6 @@ function LeagueDetailContent() {
         </div>
       </Card>
 
-      {weekRecap && weekRecap.transactionSummaries.length > 0 ? (
-        <Card className="animate-[rise_0.5s_ease-out_backwards] p-5 [animation-delay:270ms]">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-muted">
-            Recent waiver &amp; trade activity
-          </h2>
-          <ul className="flex flex-col gap-1.5 text-sm text-ink-secondary">
-            {weekRecap.transactionSummaries.map((summary, i) => (
-              <li key={i}>{summary}</li>
-            ))}
-          </ul>
-        </Card>
-      ) : null}
     </div>
   );
 }

@@ -14,18 +14,14 @@ function slotLabel(slot: string): string {
   return slot === "SUPER_FLEX" ? "SF" : slot;
 }
 
-// Fixed column widths so every row's headshot/name/Pos Rk/value-rank/points
-// line up under the header labels above them. On a phone this is only
-// ~150px wide per side, and a headshot plus two rank columns plus points
-// claim most of that — so names go through abbreviateFirstName ("Josh Allen"
-// -> "J. Allen") there, and from sm up the columns widen and show the full
-// name. All rem, so it scales with the fluid root. Mirrored left-to-right for
-// the "their" side, which reads right-to-left (points nearest the middle,
-// headshot on the outside).
-const MY_ROW_COLS =
-  "grid-cols-[1.375rem_minmax(0,1fr)_1.1rem_1.1rem_1.75rem] sm:grid-cols-[1.375rem_minmax(0,1fr)_1.5rem_1.5rem_2.5rem]";
-const THEIR_ROW_COLS =
-  "grid-cols-[1.75rem_1.1rem_1.1rem_minmax(0,1fr)_1.375rem] sm:grid-cols-[2.5rem_1.5rem_1.5rem_minmax(0,1fr)_1.375rem]";
+// Fixed column widths so every row's headshot/name/points line up. On a
+// phone this is only ~150px wide per side, so names go through
+// abbreviateFirstName ("Josh Allen" -> "J. Allen") there, and from sm up the
+// columns widen and show the full name. All rem, so it scales with the fluid
+// root. Mirrored left-to-right for the "their" side, which reads
+// right-to-left (points nearest the middle, headshot on the outside).
+const MY_ROW_COLS = "grid-cols-[1.375rem_minmax(0,1fr)_1.75rem] sm:grid-cols-[1.375rem_minmax(0,1fr)_2.5rem]";
+const THEIR_ROW_COLS = "grid-cols-[1.75rem_minmax(0,1fr)_1.375rem] sm:grid-cols-[2.5rem_minmax(0,1fr)_1.375rem]";
 const SLOT_COLS = "grid-cols-[1fr_1.875rem_1fr] sm:grid-cols-[1fr_2.75rem_1fr]";
 const ROW_TEXT = "text-[0.6875rem] sm:text-[0.8125rem]";
 
@@ -39,8 +35,23 @@ function PlayerName({ name }: { name: string }) {
   );
 }
 
-function RankCell({ value }: { value: number | null }) {
-  return <span className="text-center tabular-nums text-[0.625rem] text-ink-muted sm:text-[0.6875rem]">{value ?? "–"}</span>;
+/** The player's season rank at their position ("WR12"), then their name — styled like the standings rank beside team names in the league boxes. */
+function RankedName({ resolved, align }: { resolved: ResolvedSlot; align: "left" | "right" }) {
+  return (
+    <span className={`flex min-w-0 items-baseline gap-1 ${align === "right" ? "justify-end" : ""}`}>
+      {resolved.seasonRank ? (
+        <span
+          className="shrink-0 text-[0.625rem] font-medium tabular-nums text-series-4 sm:text-xs"
+          title="Season rank at position, by fantasy points"
+        >
+          {resolved.seasonRank}
+        </span>
+      ) : null}
+      <span className={`truncate ${ROW_TEXT} font-medium text-ink-primary`}>
+        <PlayerName name={resolved.player!.name} />
+      </span>
+    </span>
+  );
 }
 
 function MySlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
@@ -50,17 +61,13 @@ function MySlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
         <span />
         <span>Empty</span>
         <span />
-        <span />
-        <span />
       </div>
     );
   }
   return (
     <div className={`grid ${MY_ROW_COLS} items-center gap-0.5 sm:gap-1`}>
       <PlayerHeadshot playerId={resolved.player.playerId} size={22} />
-      <span className={`truncate ${ROW_TEXT} font-medium text-ink-primary`}><PlayerName name={resolved.player.name} /></span>
-      <RankCell value={resolved.posRank} />
-      <RankCell value={resolved.valueRank} />
+      <RankedName resolved={resolved} align="left" />
       <span className={`text-right tabular-nums ${ROW_TEXT} text-ink-secondary`}>{formatPoints(resolved.livePoints)}</span>
     </div>
   );
@@ -71,8 +78,6 @@ function TheirSlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
     return (
       <div className={`grid ${THEIR_ROW_COLS} items-center gap-0.5 sm:gap-1 ${ROW_TEXT} text-ink-muted`}>
         <span />
-        <span />
-        <span />
         <span className="text-right">Empty</span>
         <span />
       </div>
@@ -81,41 +86,8 @@ function TheirSlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
   return (
     <div className={`grid ${THEIR_ROW_COLS} items-center gap-0.5 sm:gap-1`}>
       <span className={`tabular-nums ${ROW_TEXT} text-ink-secondary`}>{formatPoints(resolved.livePoints)}</span>
-      <RankCell value={resolved.valueRank} />
-      <RankCell value={resolved.posRank} />
-      <span className={`truncate text-right ${ROW_TEXT} font-medium text-ink-primary`}><PlayerName name={resolved.player.name} /></span>
+      <RankedName resolved={resolved} align="right" />
       <PlayerHeadshot playerId={resolved.player.playerId} size={22} />
-    </div>
-  );
-}
-
-function ColumnHeader({ valueRankLabel }: { valueRankLabel: "Dynasty" | "Fantasy" }) {
-  const valueLabel = valueRankLabel === "Dynasty" ? "Dyn" : "Fan";
-  return (
-    <div className={`grid ${SLOT_COLS} items-center gap-1 sm:gap-2 text-[0.5625rem] font-medium uppercase tracking-wide text-ink-muted sm:text-[0.625rem]`}>
-      <div className={`grid ${MY_ROW_COLS} items-center gap-0.5 sm:gap-1`}>
-        <span />
-        <span />
-        <span className="text-center" title="Points-per-game rank at position">
-          Pos
-        </span>
-        <span className="text-center" title={`${valueRankLabel} rank at position`}>
-          {valueLabel}
-        </span>
-        <span />
-      </div>
-      <span />
-      <div className={`grid ${THEIR_ROW_COLS} items-center gap-0.5 sm:gap-1`}>
-        <span />
-        <span className="text-center" title={`${valueRankLabel} rank at position`}>
-          {valueLabel}
-        </span>
-        <span className="text-center" title="Points-per-game rank at position">
-          Pos
-        </span>
-        <span />
-        <span />
-      </div>
     </div>
   );
 }
@@ -141,12 +113,10 @@ function MatchupSlide({
   leagueId,
   game,
   myRosterId,
-  valueRankLabel,
 }: {
   leagueId: string;
   game: ResolvedMatchupGame;
   myRosterId: number | null;
-  valueRankLabel: "Dynasty" | "Fantasy";
 }) {
   const mine = game.teams.find((t) => t.rosterId === myRosterId) ?? game.teams[0];
   const other = game.teams.find((t) => t.rosterId !== mine.rosterId);
@@ -174,7 +144,6 @@ function MatchupSlide({
           <span>{formatPoints(mine.points)}</span>
           {other ? <span>{formatPoints(other.points)}</span> : null}
         </div>
-        <ColumnHeader valueRankLabel={valueRankLabel} />
         <div className="flex flex-col gap-2.5">
           {mine.slots.map((slot, i) => (
             <SlotRow key={i} slot={slot.slot} my={slot} their={other?.slots[i]} />
@@ -190,12 +159,10 @@ export function LeagueMatchupCarousel({
   leagueId,
   games,
   myRosterId,
-  valueRankLabel,
 }: {
   leagueId: string;
   games: ResolvedMatchupGame[];
   myRosterId: number | null;
-  valueRankLabel: "Dynasty" | "Fantasy";
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const hasScrolledToMine = useRef(false);
@@ -238,7 +205,6 @@ export function LeagueMatchupCarousel({
             leagueId={leagueId}
             game={g}
             myRosterId={myRosterId}
-            valueRankLabel={valueRankLabel}
           />
         ))}
       </div>
