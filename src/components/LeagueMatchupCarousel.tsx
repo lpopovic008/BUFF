@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ResolvedMatchupGame, ResolvedSlot } from "@/hooks/useLeagueMatchupCarousel";
+import { MatchupWinProb, ResolvedMatchupGame, ResolvedSlot } from "@/hooks/useLeagueMatchupCarousel";
+import { WinProbChart } from "@/components/WinProbChart";
 import { PointsRankBadges, TeamNameLabel } from "@/components/DashboardMatchupCard";
 import { TeamStanding } from "@/lib/league-data";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
@@ -112,6 +113,13 @@ function SlotRow({ slot, my, their }: { slot: string; my: ResolvedSlot; their: R
 
 type MatchupTeam = ResolvedMatchupGame["teams"][number];
 
+/** The win-probability line from the left team's side (it's kept for the lower roster id). */
+function fromLeft(winProb: MatchupWinProb, leftRosterId: number): MatchupWinProb {
+  if (winProb.lowRosterId === leftRosterId) return winProb;
+  return { ...winProb, points: winProb.points.map((pt) => ({ ...pt, p: 1 - pt.p, a: pt.b, b: pt.a })) };
+}
+
+
 /**
  * The matchup's header, laid on the lineup's own grid: each team's line
  * (rank, name, record, streak — the league boxes' format) over its score, and
@@ -123,12 +131,15 @@ function MatchupHeader({
   left,
   right,
   standings,
+  winProb,
 }: {
   leagueId: string;
   left: MatchupTeam;
   right: MatchupTeam | undefined;
   standings: Map<number, TeamStanding>;
+  winProb: MatchupWinProb | null;
 }) {
+  const chart = winProb && right ? fromLeft(winProb, left.rosterId) : null;
   const label = (t: MatchupTeam, align: "left" | "right") => (
     <TeamNameLabel
       name={t.teamName}
@@ -164,6 +175,7 @@ function MatchupHeader({
           <span />
         )}
       </div>
+      {chart ? <WinProbChart points={chart.points} live={chart.live} pregame={chart.pregame} final={chart.final} /> : null}
     </div>
   );
 }
@@ -190,6 +202,7 @@ function MatchupSlide({
           left={mine}
           right={other}
           standings={standings}
+          winProb={game.winProb}
         />
         <div className="flex flex-col gap-2.5 px-2">
           {mine.slots.map((slot, i) => (

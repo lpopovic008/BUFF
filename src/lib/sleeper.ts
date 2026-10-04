@@ -7,11 +7,12 @@
 
 const BASE = "https://api.sleeper.app/v1";
 
-const inflight = new Map<string, { expiresAt: number; promise: Promise<unknown> }>();
+const inflight = new Map<string, { fetchedAt: number; promise: Promise<unknown> }>();
 
+/** Fetches a Sleeper path, reusing a copy fetched (or in flight) within the last `ttlSeconds` — each caller says how fresh it needs it. */
 async function sleeperFetch<T>(path: string, ttlSeconds: number): Promise<T | null> {
   const cached = inflight.get(path);
-  if (cached && cached.expiresAt > Date.now()) {
+  if (cached && Date.now() - cached.fetchedAt < ttlSeconds * 1000) {
     return cached.promise as Promise<T | null>;
   }
 
@@ -26,7 +27,7 @@ async function sleeperFetch<T>(path: string, ttlSeconds: number): Promise<T | nu
     return JSON.parse(text) as T;
   })();
 
-  inflight.set(path, { expiresAt: Date.now() + ttlSeconds * 1000, promise });
+  inflight.set(path, { fetchedAt: Date.now(), promise });
   promise.catch(() => inflight.delete(path)); // don't cache failures
   return promise as Promise<T | null>;
 }
@@ -176,13 +177,15 @@ export async function getLeagueUsers(leagueId: string): Promise<SleeperLeagueUse
   return users ?? [];
 }
 
+/** A league's matchups for a week, with live points. `maxAgeSeconds` is how stale a cached copy may be — short while games are on. */
 export async function getMatchups(
   leagueId: string,
-  week: number
+  week: number,
+  maxAgeSeconds = 60
 ): Promise<SleeperMatchup[]> {
   const matchups = await sleeperFetch<SleeperMatchup[]>(
     `/league/${leagueId}/matchups/${week}`,
-    60
+    maxAgeSeconds
   );
   return matchups ?? [];
 }

@@ -36,6 +36,10 @@ export interface NFLGame {
   state: "pre" | "in" | "post";
   homeScore: number;
   awayScore: number;
+  /** The quarter being played (5+ is overtime); 0 before kickoff. */
+  period: number;
+  /** Seconds left on the game clock in that quarter. */
+  clockSeconds: number;
   venue: GameVenue | null;
   /** True when neither team is really at home — the international series, mostly. */
   neutralSite: boolean;
@@ -56,6 +60,19 @@ export function isOutsideUS(game: NFLGame): boolean {
   const country = game.venue?.country;
   if (!country) return false;
   return !US_COUNTRIES.has(country.trim().toUpperCase());
+}
+
+/**
+ * How much of a game is still to be played, 1 before kickoff down to 0 at
+ * the final whistle — from the quarter and game clock while it's on. Overtime
+ * counts as all but over.
+ */
+export function gameFractionRemaining(game: Pick<NFLGame, "state" | "period" | "clockSeconds">): number {
+  if (game.state === "pre") return 1;
+  if (game.state === "post") return 0;
+  if (game.period < 1) return 1;
+  if (game.period > 4) return 0.01;
+  return Math.min(1, Math.max(0, ((4 - game.period) * 900 + Math.min(900, game.clockSeconds)) / 3600));
 }
 
 /** Parses ESPN's scoreboard JSON shape into our own type, tolerating any missing/unexpected field. Exported separately so it's unit-testable without a network call. */
@@ -85,6 +102,8 @@ export function parseScoreboard(data: unknown): NFLGame[] {
       state: state === "in" || state === "post" ? state : "pre",
       homeScore: scoreOf(home),
       awayScore: scoreOf(away),
+      period: status && typeof status.period === "number" ? status.period : 0,
+      clockSeconds: status && typeof status.clock === "number" ? Math.max(0, status.clock) : 0,
       venue: parseVenue(comp.venue),
       neutralSite: comp.neutralSite === true,
     });

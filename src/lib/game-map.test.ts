@@ -23,6 +23,8 @@ function game(over: Partial<NFLGame> = {}): NFLGame {
     state: "pre",
     homeScore: 0,
     awayScore: 0,
+    period: 0,
+    clockSeconds: 0,
     venue: { name: "SoFi Stadium", city: "Inglewood", state: "CA", country: "USA" },
     neutralSite: false,
     ...over,

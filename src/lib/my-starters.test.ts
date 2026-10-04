@@ -19,6 +19,8 @@ function game(id: string, away: string, home: string, kickoff: string): NFLGame 
     state: "pre",
     homeScore: 0,
     awayScore: 0,
+    period: 0,
+    clockSeconds: 0,
     venue: null,
     neutralSite: false,
   };
