@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { gameFractionRemaining, isOutsideUS, parseScoreboard } from "./nfl-schedule";
+import { isOutsideUS, parseScoreboard } from "./nfl-schedule";
 
 function competitor(homeAway: "home" | "away", abbreviation: string, score: string) {
   return { homeAway, team: { abbreviation }, score };
@@ -31,20 +31,9 @@ test("parseScoreboard reads a normal pre-game event", () => {
     state: "pre",
     homeScore: 0,
     awayScore: 0,
-    period: 0,
-    clockSeconds: 0,
     venue: null,
     neutralSite: false,
   });
-});
-
-test("gameFractionRemaining reads the quarter and clock", () => {
-  assert.equal(gameFractionRemaining({ state: "pre", period: 0, clockSeconds: 0 }), 1);
-  assert.equal(gameFractionRemaining({ state: "in", period: 1, clockSeconds: 900 }), 1);
-  assert.equal(gameFractionRemaining({ state: "in", period: 2, clockSeconds: 0 }), 0.5); // halftime
-  assert.equal(gameFractionRemaining({ state: "in", period: 4, clockSeconds: 450 }), 0.125);
-  assert.equal(gameFractionRemaining({ state: "in", period: 5, clockSeconds: 300 }), 0.01);
-  assert.equal(gameFractionRemaining({ state: "post", period: 4, clockSeconds: 0 }), 0);
 });
 
 test("parseScoreboard reads the venue and neutral-site flag", () => {

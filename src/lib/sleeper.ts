@@ -177,15 +177,13 @@ export async function getLeagueUsers(leagueId: string): Promise<SleeperLeagueUse
   return users ?? [];
 }
 
-/** A league's matchups for a week, with live points. `maxAgeSeconds` is how stale a cached copy may be — short while games are on. */
 export async function getMatchups(
   leagueId: string,
-  week: number,
-  maxAgeSeconds = 60
+  week: number
 ): Promise<SleeperMatchup[]> {
   const matchups = await sleeperFetch<SleeperMatchup[]>(
     `/league/${leagueId}/matchups/${week}`,
-    maxAgeSeconds
+    60
   );
   return matchups ?? [];
 }
