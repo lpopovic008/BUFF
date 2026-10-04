@@ -1,0 +1,29 @@
+name: Probe Sleeper win probability (temporary)
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe
+        run: |
+          S=https://api.sleeper.app/v1
+          UID=$(curl -s $S/user/lpop8 | jq -r .user_id); echo "user_id $UID"
+          STATE=$(curl -s $S/state/nfl); echo "state $STATE"
+          SEASON=$(echo "$STATE" | jq -r .season); WEEK=$(echo "$STATE" | jq -r .week)
+          LID=$(curl -s "$S/user/$UID/leagues/nfl/$SEASON" | jq -r '.[] | select(.name|test("Epstein";"i")) | .league_id' | head -1)
+          echo "league $LID season $SEASON week $WEEK"
+          echo "=== matchup entry keys"; curl -s "$S/league/$LID/matchups/$WEEK" | jq -c '.[0] | keys'
+          RID=$(curl -s "$S/league/$LID/rosters" | jq -r ".[] | select(.owner_id==\"$UID\") | .roster_id")
+          echo "=== my matchup (without player lists)"; curl -s "$S/league/$LID/matchups/$WEEK" | jq -c ".[] | select(.roster_id==$RID) | del(.players, .starters_points, .players_points)"
+          echo "=== league settings keys mentioning prob"; curl -s "$S/league/$LID" | jq -c '[paths | map(tostring) | join(".") | select(test("prob|win_p";"i"))]'
+          echo "=== graphql anonymous introspection"
+          curl -s -o g.json -w "status %{http_code}\n" -X POST https://sleeper.com/graphql -H 'content-type: application/json' -d '{"query":"{ __schema { queryType { fields { name } } } }"}'
+          head -c 400 g.json; echo
+          jq -r '.data.__schema.queryType.fields[].name' g.json 2>/dev/null | grep -iE "prob|win|matchup|projection" | head -40
+          echo "=== graphql matchup query without auth"
+          curl -s -X POST https://sleeper.com/graphql -H 'content-type: application/json' -d "{\"query\":\"{ matchup_legs(league_id: \\\"$LID\\\", round: $WEEK) { roster_id points proj_points } }\"}" | head -c 600; echo
+          echo "=== projections entry (live?)"
+          curl -s "https://api.sleeper.app/projections/nfl/$SEASON/$WEEK?season_type=regular&position[]=QB" | jq -c '.[0] | {player_id, updated_at, last_modified, game_id, keys: (.stats|keys|length), stats: (.stats|with_entries(select(.key|test("pts_|gp|gms"))))}'
+          echo "=== live stats entry"
+          curl -s "https://api.sleeper.app/stats/nfl/$SEASON/$WEEK?season_type=regular&position[]=QB" | jq -c '.[0] | {player_id, updated_at, last_modified, game_id, stats: (.stats|with_entries(select(.key|test("pts_|gp|gms"))))}'
+          echo "=== schedule"; curl -s "https://api.sleeper.app/schedule/nfl/regular/$SEASON" | jq -c "[.[] | select(.week==$WEEK)][0:2]"
