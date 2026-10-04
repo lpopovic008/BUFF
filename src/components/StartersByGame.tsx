@@ -7,7 +7,7 @@ import { setHeaderKickoff } from "@/lib/header-clock";
 import { formatKickoffTime, GameStarters, groupGamesByTimeBlock, GroupedStarter } from "@/lib/my-starters";
 import { NFLGame } from "@/lib/nfl-schedule";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
-import { nflLogoFilter, nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
+import { nflLogoFilter, nflLogoMaxWidth, nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import { LeagueLegendEntry, LeagueMark } from "./LeagueMark";
 
 export type { LeagueLegendEntry };
@@ -95,6 +95,8 @@ function headerPieces(game: NFLGame): string[] {
 
 // Every logo covers about the area of a square this many px on a side.
 const LOGO_SIDE = 20;
+// Each logo sits centered in a slot this wide, so every game's "vs" lands in the same column.
+const LOGO_SLOT = Math.ceil(nflLogoMaxWidth(LOGO_SIDE));
 
 /**
  * A team's official logo, in black and white (see --logo-filter), fading in once its header
@@ -127,10 +129,10 @@ function TeamLogo({ team, visible }: { team: string; visible: boolean }) {
 }
 
 /**
- * A game's header: the two teams' logos — away, "vs", home — centered, so
- * every game's "vs" lines up in one column down the list; kickoff time
- * pinned to the right edge (no weekday; the block's bar above already states
- * the day). Types itself in the first time it scrolls into
+ * A game's header: the two teams' logos — away, "vs", home — on the left,
+ * each logo centered in a slot as wide as the widest logo, so every game's
+ * "vs" lines up in one column down the list; kickoff time pinned to the
+ * right edge (no weekday; the block's bar above already states the day). Types itself in the first time it scrolls into
  * view, and deletes itself when its block is switched off.
  */
 function GameHeader({ game, shown = true }: { game: NFLGame; shown?: boolean }) {
@@ -140,22 +142,22 @@ function GameHeader({ game, shown = true }: { game: NFLGame; shown?: boolean }) 
   const count = useTypedCount(shown && seen ? totalChars(pieces) : 0);
   const [vs, time] = typedSlices(pieces, count);
   return (
-    <div ref={ref} className="grid min-h-[1.25rem] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5">
-      <h3 className="sr-only">
-        {game.awayTeam} at {game.homeTeam}
-      </h3>
-      <span aria-hidden className="flex justify-end">
-        <TeamLogo team={game.awayTeam} visible={count > 0} />
-      </span>
-      <span aria-hidden className="w-[2ch] text-center text-xs font-semibold tracking-wide text-ink-muted">
-        {vs}
-      </span>
-      <span className="flex items-center justify-between gap-2">
-        <span aria-hidden className="flex">
+    <div ref={ref} className="flex min-h-[1.25rem] items-center justify-between gap-2">
+      <h3
+        className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-ink-muted"
+        aria-label={`${game.awayTeam} at ${game.homeTeam}`}
+      >
+        <span className="flex shrink-0 justify-center" style={{ width: LOGO_SLOT }}>
+          <TeamLogo team={game.awayTeam} visible={count > 0} />
+        </span>
+        <span aria-hidden className="w-[2ch] text-center">
+          {vs}
+        </span>
+        <span className="flex shrink-0 justify-center" style={{ width: LOGO_SLOT }}>
           <TeamLogo team={game.homeTeam} visible={count >= 2} />
         </span>
-        <span className="shrink-0 text-xs uppercase tracking-wide text-ink-muted">{time}</span>
-      </span>
+      </h3>
+      <span className="shrink-0 text-xs uppercase tracking-wide text-ink-muted">{time}</span>
     </div>
   );
 }

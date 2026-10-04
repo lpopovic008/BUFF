@@ -61,6 +61,11 @@ export function nflLogoSize(team: string, side: number): { width: number; height
   return { width: Math.round(side * r * 10) / 10, height: Math.round((side / r) * 10) / 10 };
 }
 
+/** The widest any team's logo is drawn at `side` (see nflLogoSize) — a slot this wide fits every logo. */
+export function nflLogoMaxWidth(side: number): number {
+  return Math.max(...Object.keys(LOGO_ASPECT).map((team) => nflLogoSize(team, side).width), side);
+}
+
 // Logos whose dark marks (the Giants' navy, the Rams' solid blue) sink into
 // the dark page even with --logo-filter's lift: dark mode shows them
 // inverted instead (--logo-filter-invert).
