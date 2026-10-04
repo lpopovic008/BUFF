@@ -124,7 +124,7 @@ export function rankTone(rank: number, leagueSize: number, higherIsWorse = false
 /**
  * Where a team's points for and points against rank in the league, PF then
  * PA side by side, each rank colored by how good it is (see rankTone). Sits
- * on the outside of the team's score, which is always innermost.
+ * tight to the outside edge of the team's half; the score sits innermost.
  */
 export function PointsRankBadges({
   pointsRanks,
@@ -174,14 +174,14 @@ export function DashboardMatchupCard({
         <TeamNameLabel name={matchup.my.teamName} standing={my} align="left" mine />
         {matchup.opponent ? <TeamNameLabel name={matchup.opponent.teamName} standing={opponent ?? {}} align="right" /> : null}
       </div>
-      {/* Scores toward the middle, facing each other; PF and PA ranks on the outside of each. */}
+      {/* Scores toward the middle, facing each other; PF and PA ranks tight to the outside edges. */}
       <div className="grid grid-cols-2 items-baseline gap-6 text-lg font-semibold tabular-nums text-ink-primary">
-        <span className="flex items-baseline justify-end gap-2">
+        <span className="flex items-baseline justify-between gap-2">
           <PointsRankBadges pointsRanks={my.pointsRanks} leagueSize={leagueSize} />
           {formatPoints(matchup.my.points)}
         </span>
         {matchup.opponent ? (
-          <span className="flex items-baseline gap-2">
+          <span className="flex items-baseline justify-between gap-2">
             {formatPoints(matchup.opponent.points)}
             <PointsRankBadges pointsRanks={opponent?.pointsRanks} leagueSize={leagueSize} />
           </span>

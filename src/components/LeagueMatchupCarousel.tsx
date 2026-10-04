@@ -115,8 +115,8 @@ type MatchupTeam = ResolvedMatchupGame["teams"][number];
 /**
  * The matchup's header, laid on the lineup's own grid: each team's line
  * (rank, name, record, streak — the league boxes' format) over its score, and
- * each score sitting right over its column of player points, PF/PA ranks on
- * the outside — all on one highlighted block, like a map tag.
+ * each score sitting right over its column of player points, PF/PA ranks
+ * tight to the outside edges — all on one highlighted block, like a map tag.
  */
 function MatchupHeader({
   leagueId,
@@ -150,13 +150,13 @@ function MatchupHeader({
         {right ? label(right, "right") : <div />}
       </div>
       <div className={`grid ${SLOT_COLS} items-baseline gap-1 text-base font-semibold tabular-nums sm:gap-2 sm:text-lg`}>
-        <span className="flex items-baseline justify-end gap-1.5 sm:gap-2">
+        <span className="flex items-baseline justify-between gap-1.5 sm:gap-2">
           {badges(left)}
           {formatPoints(left.points)}
         </span>
         <span />
         {right ? (
-          <span className="flex items-baseline gap-1.5 sm:gap-2">
+          <span className="flex items-baseline justify-between gap-1.5 sm:gap-2">
             {formatPoints(right.points)}
             {badges(right)}
           </span>
