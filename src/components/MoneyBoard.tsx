@@ -243,31 +243,34 @@ function WeekGrid({
         </table>
       </div>
       {plan.rules.length ? (
-        <div className="mt-4 flex flex-col gap-3">
+        <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-3 md:grid-cols-3">
           {RULE_GROUPS.map((group) => {
             const rules = plan.rules.filter((r) => ruleGroup(r, regularSeasonWeeks) === group);
-            if (!rules.length) return null;
             return (
-              <div key={group}>
+              <div key={group} className={`min-w-0 ${rules.length ? "" : "max-md:hidden"}`}>
                 <h4 className="mb-1 text-[0.625rem] font-semibold uppercase tracking-wider text-ink-muted">{group}</h4>
-                <ol className="flex flex-col gap-1">
-                  {rules.map((r) => (
-                    <li key={r.id} className="flex items-center gap-2 text-xs text-ink-primary">
-                      {r.award === "podium" ? (
-                        <span className="flex shrink-0 gap-0.5" aria-hidden>
-                          {podiumSplit(r)
-                            .slice(0, 3)
-                            .map((_, k) => (
-                              <span key={k} className="h-3 w-3" style={{ backgroundColor: placeSwatch(k + 1)!.bg }} />
-                            ))}
-                        </span>
-                      ) : (
-                        <span className="h-3 w-3 shrink-0" style={{ backgroundColor: swatches.get(r.id)!.bg }} aria-hidden />
-                      )}
-                      <span>{legendLine(r, ledger, regularSeasonWeeks)}</span>
-                    </li>
-                  ))}
-                </ol>
+                {rules.length ? (
+                  <ol className="flex flex-col gap-1">
+                    {rules.map((r) => (
+                      <li key={r.id} className="flex items-start gap-2 text-xs text-ink-primary">
+                        {r.award === "podium" ? (
+                          <span className="mt-0.5 flex shrink-0 gap-0.5" aria-hidden>
+                            {podiumSplit(r)
+                              .slice(0, 3)
+                              .map((_, k) => (
+                                <span key={k} className="h-3 w-3" style={{ backgroundColor: placeSwatch(k + 1)!.bg }} />
+                              ))}
+                          </span>
+                        ) : (
+                          <span className="mt-0.5 h-3 w-3 shrink-0" style={{ backgroundColor: swatches.get(r.id)!.bg }} aria-hidden />
+                        )}
+                        <span>{legendLine(r, ledger, regularSeasonWeeks)}</span>
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <p className="text-xs text-ink-muted">None</p>
+                )}
               </div>
             );
           })}
