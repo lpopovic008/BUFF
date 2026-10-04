@@ -3,10 +3,14 @@
 //
 // Each team's final score is modeled as normal: its points so far plus, for
 // every starter, their projection scaled by the share of their game still to
-// come — with a spread that shrinks as those games run out. The chance one
-// team finishes ahead is then the normal CDF of the gap over the combined
-// spread. The same idea as the win-probability lines in the big fantasy apps,
-// kept deliberately simple.
+// come, with a spread proportional to those points still to come (so it
+// shrinks to nothing as the games run out). The chance one team finishes
+// ahead is then the normal CDF of the gap over the combined spread.
+//
+// Calibrated to Sleeper's own app (which publishes its win chances nowhere
+// we can read them): with Sleeper's projections, a spread of 29.6% of each
+// team's projected total reproduces every win chance Sleeper showed for a
+// full week of matchups (2026 week 4, Epstein Island — see the tests).
 //
 // Shared by the league page (live, in the browser) and the game-day
 // recorder (scripts/record-win-prob.ts, every 5 minutes in GitHub Actions),
@@ -28,26 +32,20 @@ export interface TeamOutlook {
   variance: number;
 }
 
-// A player's spread over a full game, in points: a floor for anyone (even a
-// low projection can boom) plus a share of their projection. Calibrated to
-// typical weekly fantasy spreads (~8–9 points for a 15-point projection).
-const SD_FLOOR = 2.5;
-const SD_SHARE = 0.4;
+// A team's spread, as a share of the points it's projected to add from here.
+// Fitted to Sleeper's own numbers (see the header): any share from 29.2% to
+// 30.0% rounds to every one of them.
+const SPREAD_SHARE = 0.296;
 
 /** A team's expected final score and its variance, from its points so far and its starters' outlooks. */
 export function teamOutlook(points: number, starters: StarterOutlook[]): TeamOutlook {
-  let mean = points;
-  let variance = 0;
+  let toCome = 0;
   for (const s of starters) {
     const remaining = Math.min(1, Math.max(0, s.remaining));
-    if (remaining <= 0) continue;
-    const projection = Math.max(0, s.projection);
-    mean += projection * remaining;
-    const sd = SD_FLOOR + SD_SHARE * projection;
-    // Variance grows linearly with the time left, so the spread with its square root.
-    variance += sd * sd * remaining;
+    toCome += Math.max(0, s.projection) * remaining;
   }
-  return { mean, variance };
+  const sd = SPREAD_SHARE * toCome;
+  return { mean: points + toCome, variance: sd * sd };
 }
 
 /** The chance team A finishes ahead of team B (0–1); a dead heat counts as half. */
