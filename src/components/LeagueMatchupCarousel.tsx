@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ResolvedMatchupGame, ResolvedSlot } from "@/hooks/useLeagueMatchupCarousel";
-import { MatchupScoreboard, ScoreboardSide } from "@/components/DashboardMatchupCard";
+import { PointsRankBadges, TeamNameLabel } from "@/components/DashboardMatchupCard";
 import { TeamStanding } from "@/lib/league-data";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { IconButton } from "@/components/ui/IconButton";
@@ -110,6 +110,70 @@ function SlotRow({ slot, my, their }: { slot: string; my: ResolvedSlot; their: R
   );
 }
 
+type MatchupTeam = ResolvedMatchupGame["teams"][number];
+
+/**
+ * The matchup's header, laid on the lineup's own grid: each team's line
+ * (rank, name, record, streak — the league boxes' format) over its score, and
+ * each score sitting right over its column of player points, PF/PA ranks on
+ * the outside. Your own matchup is one highlighted block, like a map tag.
+ */
+function MatchupHeader({
+  leagueId,
+  left,
+  right,
+  standings,
+  highlight,
+}: {
+  leagueId: string;
+  left: MatchupTeam;
+  right: MatchupTeam | undefined;
+  standings: Map<number, TeamStanding>;
+  highlight: boolean;
+}) {
+  const label = (t: MatchupTeam, align: "left" | "right") => (
+    <TeamNameLabel
+      name={t.teamName}
+      standing={standings.get(t.rosterId) ?? {}}
+      align={align}
+      href={`/team?league=${leagueId}&roster=${t.rosterId}`}
+      onTag={highlight}
+      stackOnPhone
+    />
+  );
+  const badges = (t: MatchupTeam, align: "left" | "right") => (
+    <PointsRankBadges pointsRanks={standings.get(t.rosterId)?.pointsRanks} leagueSize={standings.size} align={align} onTag={highlight} />
+  );
+  return (
+    <div
+      className={`flex flex-col gap-1.5 px-2 py-2 ${
+        highlight ? "bg-[var(--map-tag)] text-[var(--map-tag-ink)]" : "text-ink-primary"
+      }`}
+    >
+      <div className={`grid ${SLOT_COLS} items-start gap-1 sm:gap-2`}>
+        {label(left, "left")}
+        <span />
+        {right ? label(right, "right") : <div />}
+      </div>
+      <div className={`grid ${SLOT_COLS} items-center gap-1 text-lg font-semibold tabular-nums sm:gap-2`}>
+        <span className="flex items-center justify-end gap-2">
+          {badges(left, "left")}
+          {formatPoints(left.points)}
+        </span>
+        <span />
+        {right ? (
+          <span className="flex items-center gap-2">
+            {formatPoints(right.points)}
+            {badges(right, "right")}
+          </span>
+        ) : (
+          <span />
+        )}
+      </div>
+    </div>
+  );
+}
+
 function MatchupSlide({
   leagueId,
   game,
@@ -123,19 +187,18 @@ function MatchupSlide({
 }) {
   const mine = game.teams.find((t) => t.rosterId === myRosterId) ?? game.teams[0];
   const other = game.teams.find((t) => t.rosterId !== mine.rosterId);
-  const side = (t: ResolvedMatchupGame["teams"][number]): ScoreboardSide => ({
-    teamName: t.teamName,
-    points: t.points,
-    standing: standings.get(t.rosterId) ?? {},
-    mine: t.rosterId === myRosterId,
-    href: `/team?league=${leagueId}&roster=${t.rosterId}`,
-  });
 
   return (
     <div className="w-full shrink-0 snap-center px-0.5">
       <div className="flex flex-col gap-3">
-        <MatchupScoreboard left={side(mine)} right={other ? side(other) : null} leagueSize={standings.size} />
-        <div className="flex flex-col gap-2.5">
+        <MatchupHeader
+          leagueId={leagueId}
+          left={mine}
+          right={other}
+          standings={standings}
+          highlight={myRosterId != null && game.teams.some((t) => t.rosterId === myRosterId)}
+        />
+        <div className="flex flex-col gap-2.5 px-2">
           {mine.slots.map((slot, i) => (
             <SlotRow key={i} slot={slot.slot} my={slot} their={other?.slots[i]} />
           ))}
