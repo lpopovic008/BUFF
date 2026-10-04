@@ -1,31 +1,58 @@
-name: Probe Sleeper win probability (temporary)
+name: Probe win probability on the real league (temporary)
 on: workflow_dispatch
 jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: Probe
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Our win chances for every Epstein matchup
         run: |
-          set +e
-          S=https://api.sleeper.app/v1
-          USERID=$(curl -s $S/user/lpop8 | jq -r .user_id); echo "user_id $USERID"
-          STATE=$(curl -s $S/state/nfl); echo "state $STATE"
-          SEASON=$(echo "$STATE" | jq -r .season); WEEK=$(echo "$STATE" | jq -r .week)
-          LID=$(curl -s "$S/user/$USERID/leagues/nfl/$SEASON" | jq -r '.[] | select(.name|test("Epstein";"i")) | .league_id' | head -1)
-          echo "league $LID season $SEASON week $WEEK"
-          echo "=== matchup entry keys"; curl -s "$S/league/$LID/matchups/$WEEK" | jq -c '.[0] | keys'
-          RID=$(curl -s "$S/league/$LID/rosters" | jq -r ".[] | select(.owner_id==\"$USERID\") | .roster_id")
-          echo "=== my matchup (without player lists)"; curl -s "$S/league/$LID/matchups/$WEEK" | jq -c ".[] | select(.roster_id==$RID) | del(.players, .starters_points, .players_points)"
-          echo "=== league settings keys mentioning prob"; curl -s "$S/league/$LID" | jq -c '[paths | map(tostring) | join(".") | select(test("prob|win_p";"i"))]'
-          echo "=== graphql introspection: query fields"
-          curl -s -X POST https://sleeper.com/graphql -H 'content-type: application/json' -d '{"query":"{ __schema { query_type { fields { name args { name } } } } }"}' > q.json
-          head -c 300 q.json; echo
-          jq -r '.data.__schema.query_type.fields[] | "\(.name)(\([.args[].name] | join(",")))"' q.json | grep -iE "prob|win|matchup|leg|score|proj" | head -60
-          echo "=== types with prob/win fields"
-          curl -s -X POST https://sleeper.com/graphql -H 'content-type: application/json' -d '{"query":"{ __schema { types { name fields { name } } } }"}' > t.json
-          jq -r '.data.__schema.types[] | select(.fields != null) | .name as $t | .fields[] | select(.name|test("prob|win_p|odds";"i")) | "\($t).\(.name)"' t.json | head -60
-          echo "=== projections entry (live?)"
-          curl -s "https://api.sleeper.app/projections/nfl/$SEASON/$WEEK?season_type=regular&position[]=QB" | jq -c '.[0] | {player_id, updated_at, last_modified, game_id, keys: (.stats|keys|length), stats: (.stats|with_entries(select(.key|test("pts_|gp|gms"))))}'
-          echo "=== live stats entry"
-          curl -s "https://api.sleeper.app/stats/nfl/$SEASON/$WEEK?season_type=regular&position[]=QB" | jq -c '.[0] | {player_id, updated_at, last_modified, game_id, stats: (.stats|with_entries(select(.key|test("pts_|gp|gms"))))}'
-          echo "=== schedule"; curl -s "https://api.sleeper.app/schedule/nfl/regular/$SEASON" | jq -c "[.[] | select(.week==$WEEK)][0:2]"
+          cat > /tmp/check.ts <<'TS'
+          import { teamOutlook, winProbability } from "./src/lib/win-probability";
+          import { weighProjection } from "./src/lib/sleeper";
+          import { gameFractionRemaining, parseScoreboard } from "./src/lib/nfl-schedule";
+          const S = "https://api.sleeper.app/v1";
+          const j = async (u: string) => (await fetch(u)).json();
+          const user = await j(`${S}/user/lpop8`);
+          const state = await j(`${S}/state/nfl`);
+          const season = state.season, week = state.week;
+          const leagues = await j(`${S}/user/${user.user_id}/leagues/nfl/${season}`);
+          const league = leagues.find((l: any) => /epstein/i.test(l.name));
+          const [rosters, users, matchups, players, proj, board] = await Promise.all([
+            j(`${S}/league/${league.league_id}/rosters`), j(`${S}/league/${league.league_id}/users`),
+            j(`${S}/league/${league.league_id}/matchups/${week}`), j(`${S}/players/nfl`),
+            j(`https://api.sleeper.app/projections/nfl/${season}/${week}?season_type=regular&position[]=QB&position[]=RB&position[]=WR&position[]=TE&position[]=K&position[]=DEF`),
+            j(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&week=${week}&dates=${season}`),
+          ]);
+          const projBy = new Map(proj.map((e: any) => [e.player_id, weighProjection(e.stats ?? {}, league.scoring_settings) ?? 0]));
+          const games = parseScoreboard(board);
+          const gameBy = new Map<string, any>(); for (const g of games) { gameBy.set(g.homeTeam, g); gameBy.set(g.awayTeam, g); }
+          const nameOf = (rid: number) => { const r = rosters.find((x: any) => x.roster_id === rid); const u = users.find((x: any) => x.user_id === r?.owner_id); return u?.metadata?.team_name || u?.display_name || `#${rid}`; };
+          console.log(`league ${league.name} week ${week}, ${games.length} NFL games (${games.filter(g => g.state === "post").length} final, ${games.filter(g => g.state === "in").length} live)`);
+          const byM = new Map<number, any[]>(); for (const m of matchups) { if (m.matchup_id == null) continue; byM.set(m.matchup_id, [...(byM.get(m.matchup_id) ?? []), m]); }
+          for (const [mid, pair] of byM) {
+            if (pair.length !== 2) continue;
+            const side = (m: any) => {
+              const starters = m.starters.filter((p: string) => p && p !== "0").map((p: string) => {
+                const team = players[p]?.team; const g = team ? gameBy.get(team) : undefined;
+                return { points: m.players_points?.[p] ?? 0, projection: Number(projBy.get(p) ?? 0), remaining: g ? gameFractionRemaining(g) : 0, p, team, state: g?.state };
+              });
+              const projTotal = starters.reduce((s: number, x: any) => s + (x.remaining > 0 ? x.projection * x.remaining : 0), m.points);
+              return { o: teamOutlook(m.points, starters), starters, projTotal, name: nameOf(m.roster_id), rid: m.roster_id, pts: m.points };
+            };
+            const a = side(pair[0]), b = side(pair[1]);
+            const p = winProbability(a.o, b.o);
+            const sd = Math.sqrt(a.o.variance + b.o.variance);
+            // What spread multiplier would make this a given chance — for calibrating against Sleeper's own number.
+            console.log(`m${mid}: ${a.name} ${a.pts.toFixed(2)} (proj ${a.o.mean.toFixed(1)}) vs ${b.name} ${b.pts.toFixed(2)} (proj ${b.o.mean.toFixed(1)}) -> ${(p*100).toFixed(1)}% / ${((1-p)*100).toFixed(1)}%   gap ${(a.o.mean-b.o.mean).toFixed(1)} sd ${sd.toFixed(1)}`);
+            if (a.rid === 1 || b.rid === 1) {
+              for (const s of [a, b]) console.log(`   ${s.name}: ` + s.starters.map((x: any) => `${players[x.p]?.position ?? "?"} ${players[x.p]?.last_name ?? x.p}(${x.team ?? "-"} ${x.state ?? "nogame"}) ${x.points}/${x.projection.toFixed(1)}`).join(", "));
+            }
+          }
+          TS
+          cp /tmp/check.ts ./check.ts && npx tsx ./check.ts
