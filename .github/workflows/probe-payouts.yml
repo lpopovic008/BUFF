@@ -1,0 +1,21 @@
+name: Probe payouts parser (temporary)
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe live /payouts/parse
+        run: |
+          API=https://buff-api-2bzm.onrender.com
+          for i in 1 2 3 4 5 6; do curl -sf -m 60 "$API/health" && break; sleep 20; done; echo
+          probe() {
+            echo "=== $1"
+            curl -sS -m 120 -X POST "$API/payouts/parse" -H 'Content-Type: application/json' \
+              -d "{\"description\": \"$1\", \"team_count\": 10, \"regular_season_weeks\": 14, \"last_week\": 17, \"playoff_teams\": 6}" \
+              | jq -c '{buy_in, rules: [.rules[] | {award, rank_mode, rank_n, amount_kind, amount, from_week, to_week, skip_if_paid, split}], unsupported, questions}' \
+              || echo "FAILED"
+            echo
+          }
+          probe "100 dollar buy-in. Champ gets 50% of the pot, 2nd gets 30%, 3rd gets 20%."
+          probe "100 buy in. 10 bucks per win, the weekly high scorer gets 20 instead. 30% of the pot goes to the top 3, split 50/30/20. Last place buys everyone a beer."
+          probe "\$1000 pot. Champ \$500, runner-up \$300, third \$200. Survivor pool pays \$100 to the last one standing."
