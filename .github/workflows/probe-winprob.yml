@@ -6,14 +6,15 @@ jobs:
     steps:
       - name: Probe
         run: |
+          set +e
           S=https://api.sleeper.app/v1
-          UID=$(curl -s $S/user/lpop8 | jq -r .user_id); echo "user_id $UID"
+          USERID=$(curl -s $S/user/lpop8 | jq -r .user_id); echo "user_id $USERID"
           STATE=$(curl -s $S/state/nfl); echo "state $STATE"
           SEASON=$(echo "$STATE" | jq -r .season); WEEK=$(echo "$STATE" | jq -r .week)
-          LID=$(curl -s "$S/user/$UID/leagues/nfl/$SEASON" | jq -r '.[] | select(.name|test("Epstein";"i")) | .league_id' | head -1)
+          LID=$(curl -s "$S/user/$USERID/leagues/nfl/$SEASON" | jq -r '.[] | select(.name|test("Epstein";"i")) | .league_id' | head -1)
           echo "league $LID season $SEASON week $WEEK"
           echo "=== matchup entry keys"; curl -s "$S/league/$LID/matchups/$WEEK" | jq -c '.[0] | keys'
-          RID=$(curl -s "$S/league/$LID/rosters" | jq -r ".[] | select(.owner_id==\"$UID\") | .roster_id")
+          RID=$(curl -s "$S/league/$LID/rosters" | jq -r ".[] | select(.owner_id==\"$USERID\") | .roster_id")
           echo "=== my matchup (without player lists)"; curl -s "$S/league/$LID/matchups/$WEEK" | jq -c ".[] | select(.roster_id==$RID) | del(.players, .starters_points, .players_points)"
           echo "=== league settings keys mentioning prob"; curl -s "$S/league/$LID" | jq -c '[paths | map(tostring) | join(".") | select(test("prob|win_p";"i"))]'
           echo "=== graphql anonymous introspection"
