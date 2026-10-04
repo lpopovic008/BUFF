@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { DashboardMatchupView } from "@/hooks/useDashboardMatchups";
-import { formatPoints, formatRecord, ordinal } from "@/lib/format";
+import { Ordinal } from "@/components/ui/Ordinal";
+import { formatPoints, formatRecord } from "@/lib/format";
 import { PointsRanks, Streak, TeamStanding } from "@/lib/league-data";
 
 export type { TeamStanding };
@@ -18,8 +19,8 @@ const ON_TAG_TONE_CLASS = {
   bad: "text-[var(--on-tag-bad)]",
 } as const;
 const toneClass = (onTag: boolean) => (onTag ? ON_TAG_TONE_CLASS : TONE_CLASS);
-/** Secondary text (records, PF/PA labels): muted on the page, the plate's ink dimmed on a plate. */
-const mutedClass = (onTag: boolean) => (onTag ? "text-[var(--map-tag-ink)] opacity-70" : "text-ink-muted");
+/** Secondary text (records, PF/PA labels): bold, a step down from the name — secondary ink on the page, the plate's ink dimmed on a plate. */
+const mutedClass = (onTag: boolean) => (onTag ? "font-semibold text-[var(--map-tag-ink)] opacity-80" : "font-semibold text-ink-secondary");
 
 /** A green up-triangle for a winning streak, red down-triangle for a losing one, then its length. */
 export function StreakBadge({ streak, onTag = false }: { streak?: Streak | null; onTag?: boolean }) {
@@ -27,7 +28,7 @@ export function StreakBadge({ streak, onTag = false }: { streak?: Streak | null;
   const winning = streak.result === "W";
   return (
     <span
-      className={`flex shrink-0 items-center gap-0.5 text-xs font-semibold tabular-nums ${toneClass(onTag)[winning ? "good" : "bad"]}`}
+      className={`flex shrink-0 items-center gap-0.5 text-xs font-bold tabular-nums ${toneClass(onTag)[winning ? "good" : "bad"]}`}
       title={`${streak.length}-game ${winning ? "winning" : "losing"} streak`}
     >
       <svg viewBox="0 0 10 10" className="h-2 w-2" aria-hidden>
@@ -79,7 +80,12 @@ export function TeamNameLabel({
     ) : (
       <span className={`${className} ${nameStyle}`}>{name}</span>
     );
-  const rankEl = rank != null ? <span className={`shrink-0 text-xs font-medium ${toneClass(onTag).mid}`}>{ordinal(rank)}</span> : null;
+  const rankEl =
+    rank != null ? (
+      <span className={`shrink-0 text-xs font-bold ${toneClass(onTag).mid}`}>
+        <Ordinal n={rank} />
+      </span>
+    ) : null;
   const recordEl = record ? (
     <span className={`shrink-0 text-xs tabular-nums ${mutedClass(onTag)}`}>({formatRecord(record.wins, record.losses, record.ties)})</span>
   ) : null;
@@ -141,12 +147,14 @@ export function PointsRankBadges({
     <span className="flex items-baseline gap-1.5 whitespace-nowrap text-[0.625rem] font-normal sm:gap-2 sm:text-[0.6875rem]">
       <span title="Points for — rank in the league (1st = most)">
         <span className={mutedClass(onTag)}>PF</span>{" "}
-        <span className={`font-semibold ${tones[rankTone(pointsRanks.pointsFor, leagueSize)]}`}>{ordinal(pointsRanks.pointsFor)}</span>
+        <span className={`font-bold ${tones[rankTone(pointsRanks.pointsFor, leagueSize)]}`}>
+          <Ordinal n={pointsRanks.pointsFor} />
+        </span>
       </span>
       <span title="Points against — rank in the league (1st = most scored against)">
         <span className={mutedClass(onTag)}>PA</span>{" "}
-        <span className={`font-semibold ${tones[rankTone(pointsRanks.pointsAgainst, leagueSize, true)]}`}>
-          {ordinal(pointsRanks.pointsAgainst)}
+        <span className={`font-bold ${tones[rankTone(pointsRanks.pointsAgainst, leagueSize, true)]}`}>
+          <Ordinal n={pointsRanks.pointsAgainst} />
         </span>
       </span>
     </span>
@@ -171,11 +179,11 @@ export function DashboardMatchupCard({
   return (
     <div className="flex flex-col gap-1">
       <div className="grid grid-cols-2 items-baseline gap-3">
-        <TeamNameLabel name={matchup.my.teamName} standing={my} align="left" mine />
+        <TeamNameLabel name={matchup.my.teamName} standing={my} align="left" />
         {matchup.opponent ? <TeamNameLabel name={matchup.opponent.teamName} standing={opponent ?? {}} align="right" /> : null}
       </div>
       {/* Scores toward the middle, facing each other; PF and PA ranks tight to the outside edges. */}
-      <div className="grid grid-cols-2 items-baseline gap-6 text-lg font-semibold tabular-nums text-ink-primary">
+      <div className="grid grid-cols-2 items-baseline gap-x-14 text-lg font-semibold tabular-nums text-ink-primary">
         <span className="flex items-baseline justify-between gap-2">
           <PointsRankBadges pointsRanks={my.pointsRanks} leagueSize={leagueSize} />
           {formatPoints(matchup.my.points)}

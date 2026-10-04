@@ -235,17 +235,13 @@ export default function DashboardPage() {
                     className="relative isolate flex min-w-0 flex-col gap-2 overflow-hidden border border-border bg-page px-4 py-3 transition-colors animate-[rise_0.5s_ease-out_backwards] hover:border-ink-primary/40"
                     style={{ animationDelay: `${140 + i * 70}ms` }}
                   >
-                    {/* The league's logo, centered behind everything as a soft watermark. */}
+                    {/* The league's logo, small in the top-left corner. */}
                     {logo ? (
                       // eslint-disable-next-line @next/next/no-img-element -- a remote Sleeper avatar on a static export; nothing for next/image to optimize
-                      <img
-                        src={logo}
-                        alt=""
-                        className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[4.5rem] w-[4.5rem] -translate-x-1/2 -translate-y-1/2 rounded-full object-cover opacity-30"
-                      />
+                      <img src={logo} alt="" className="absolute left-3 top-2.5 h-5 w-5 rounded-full object-cover" />
                     ) : null}
-                    {/* Where this league falls in your own ordering of them, e.g. 2/4. */}
-                    <span className="absolute left-3 top-2 text-xs font-medium tabular-nums text-ink-muted">
+                    {/* Where this league falls in your own ordering of them, e.g. 2/4 — top right, as on the phone ticker. */}
+                    <span className="absolute right-3 top-2 text-xs font-medium tabular-nums text-ink-muted">
                       {i + 1}/{leagueCards.length}
                     </span>
                     <div className="truncate px-8 text-center text-base font-semibold text-ink-primary sm:text-lg">
