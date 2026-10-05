@@ -665,7 +665,7 @@ export function WarRoomConsole({
             <p className="card-note">
               {feedMode === "transactions"
                 ? "This week’s waiver, free-agent, and trade moves."
-                : "Live scoring for your matchup, polled every 25s — Sleeper has no play-by-play feed, so this is built from repeated live-score checks. Amber = you, cyan = your opponent."}
+                : "Live scoring for your matchup, re-checked about every 15s while games are on — Sleeper has no play-by-play feed, so this is built from repeated live-score checks. Amber = you, cyan = your opponent."}
             </p>
           </article>
 

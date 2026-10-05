@@ -7,11 +7,10 @@ import { resolvePlayers, ResolvedPlayer } from "@/lib/players";
 import { positionSeasonRankIndexFor } from "@/lib/matchup-players";
 import { PlayerStatsSnapshot } from "@/lib/player-stats";
 import rawStatsSnapshot from "@/data/player-stats.json";
+import { LIVE_TTL_SECONDS } from "@/lib/live-clock";
+import { useLiveTick } from "@/hooks/useLiveTick";
 
 const statsSnapshot = rawStatsSnapshot as unknown as PlayerStatsSnapshot;
-
-// Same live-scoring poll cadence as the dashboard's matchup card.
-const REFRESH_MS = 45_000;
 
 export interface ResolvedSlot {
   slot: string;
@@ -37,9 +36,10 @@ export interface LeagueMatchupCarouselData {
   games: ResolvedMatchupGame[];
 }
 
-/** Every matchup for a league's week, full starting lineups resolved to names, re-polled while mounted so points update live during games. */
+/** Every matchup for a league's week, full starting lineups resolved to names, reloaded on every live-clock tick so points update live during games. */
 export function useLeagueMatchupCarousel(leagueId: string | null, week: number | null): LeagueMatchupCarouselData | null {
   const [data, setData] = useState<LeagueMatchupCarouselData | null>(null);
+  const tick = useLiveTick();
 
   useEffect(() => {
     if (!leagueId || week == null) {
@@ -55,7 +55,7 @@ export function useLeagueMatchupCarousel(leagueId: string | null, week: number |
         getLeague(id),
         getLeagueRosters(id),
         getLeagueUsers(id),
-        getMatchups(id, currentWeek),
+        getMatchups(id, currentWeek, LIVE_TTL_SECONDS),
       ]);
       if (!league || cancelled) return;
 
@@ -92,13 +92,11 @@ export function useLeagueMatchupCarousel(leagueId: string | null, week: number |
       }
     }
 
-    load();
-    const interval = setInterval(load, REFRESH_MS);
+    load().catch(() => {});
     return () => {
       cancelled = true;
-      clearInterval(interval);
     };
-  }, [leagueId, week]);
+  }, [leagueId, week, tick]);
 
   return data;
 }

@@ -262,6 +262,43 @@ flow `google-auth.ts` uses for the separate Save-to-Doc feature; the two
 share no code and don't conflict, just the same OAuth provider on Google's
 side).
 
+## Live data: one clock, two free sources
+
+Live scoring comes straight from the browser, with no server in between:
+Sleeper's public API for fantasy points (`/league/{id}/matchups/{week}`) and
+ESPN's public scoreboard and game-summary endpoints for game state and
+play-by-play. Both are CORS-open and need no key. Paid official feeds
+(Genius Sports, Sportradar) are faster but are enterprise contracts, so
+they're out of reach here.
+
+Everything live reloads on one shared clock (`src/lib/live-clock.ts`,
+`useLiveTick`), so the ticker, lineups and Red Zone move together and each
+source is asked once per tick:
+
+| ESPN's scoreboard says | Tick every |
+|---|---|
+| A game is being played | 15s |
+| A kickoff is within 30 min (or running late) | 60s |
+| Nothing on | 5 min, waking for the next kickoff window |
+
+A hidden tab doesn't tick, and catches up as soon as it's shown. When ESPN's
+score changes, the next tick comes 5s later, since Sleeper's points for that
+play are usually right behind. Live callers read matchups with a 5s cache
+(`LIVE_TTL_SECONDS`), so every component on one tick shares a request and the
+next tick always asks again.
+
+**Red Zone** (`useRedZoneFeed`, `RedZone.tsx`, `lib/play-by-play.ts`): the
+plays your starters are in. A game's play-by-play comes from ESPN's summary
+endpoint (about 600 KB raw, so it isn't fetched on every tick). A finished
+game is fetched once. A game in progress is re-fetched when the scoreboard's
+latest play involves one of your starters or puts points up, and otherwise
+at most once a minute. In between, the scoreboard's latest play is shown on
+its own. ESPN's plays carry no player ids, only shorthand like
+"A.Rodgers pass short left to D.Washington", so starters are matched by that
+shorthand, only on the team with the ball, ignoring tacklers. A team defense
+is matched on the other side's sacks and takeaways. The red-zone alerts come
+from the scoreboard's live situation (possession, `isRedZone`).
+
 ## Where things run
 
 | Piece | Where | Trigger |

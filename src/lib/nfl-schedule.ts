@@ -14,7 +14,7 @@ const ESPN_TO_SLEEPER_TEAM: Record<string, string> = {
   WSH: "WAS",
 };
 
-function normalizeTeam(abbr: string): string {
+export function normalizeTeam(abbr: string): string {
   return ESPN_TO_SLEEPER_TEAM[abbr] ?? abbr;
 }
 
@@ -25,6 +25,37 @@ export interface GameVenue {
   state: string | null;
   /** ESPN spells the United States "USA". */
   country: string | null;
+}
+
+/** One player ESPN credits on a play (passer, receiver, rusher, kicker...). */
+export interface PlayAthlete {
+  /** ESPN's athlete id. */
+  id: string;
+  name: string;
+  /** Sleeper-style team abbreviation, when ESPN says. */
+  team: string | null;
+}
+
+/** The latest play of a game in progress, as the scoreboard reports it. */
+export interface LastPlay {
+  id: string;
+  text: string;
+  type: string;
+  /** Points the play put on the board (6 for a touchdown, 3 for a field goal...). */
+  scoreValue: number;
+  /** The team that had the ball, when ESPN says. */
+  team: string | null;
+  athletes: PlayAthlete[];
+}
+
+/** Where a game in progress stands right now. */
+export interface LiveSituation {
+  /** The team with the ball (Sleeper-style abbreviation), or null between possessions. */
+  possession: string | null;
+  isRedZone: boolean;
+  /** e.g. "1st & Goal at DET 4". */
+  downDistance: string | null;
+  lastPlay: LastPlay | null;
 }
 
 export interface NFLGame {
@@ -39,6 +70,10 @@ export interface NFLGame {
   venue: GameVenue | null;
   /** True when neither team is really at home — the international series, mostly. */
   neutralSite: boolean;
+  /** ESPN's short status line, e.g. "4:31 - 2nd", "Halftime", "Final". */
+  statusDetail?: string | null;
+  /** Possession, red zone and the latest play, while the game is being played. */
+  live?: LiveSituation | null;
 }
 
 // ESPN writes "USA"; the others are here so a spelling change doesn't silently
@@ -77,6 +112,14 @@ export function parseScoreboard(data: unknown): NFLGame[] {
     const status = isRecord(comp.status) ? comp.status : null;
     const statusType = status && isRecord(status.type) ? status.type : null;
     const state = statusType?.state;
+    // ESPN identifies teams in a game's situation by id; map those to abbreviations.
+    const teamById = new Map<string, string>();
+    for (const c of [home, away]) {
+      const team = isRecord(c) && isRecord(c.team) ? c.team : null;
+      if (team && (typeof team.id === "string" || typeof team.id === "number") && typeof team.abbreviation === "string") {
+        teamById.set(String(team.id), normalizeTeam(team.abbreviation));
+      }
+    }
     games.push({
       id: typeof event.id === "string" || typeof event.id === "number" ? String(event.id) : `${homeAbbr}-${awayAbbr}`,
       homeTeam: normalizeTeam(homeAbbr),
@@ -87,9 +130,49 @@ export function parseScoreboard(data: unknown): NFLGame[] {
       awayScore: scoreOf(away),
       venue: parseVenue(comp.venue),
       neutralSite: comp.neutralSite === true,
+      statusDetail: statusType && typeof statusType.shortDetail === "string" ? statusType.shortDetail : null,
+      live: state === "in" ? parseSituation(comp.situation, teamById) : null,
     });
   }
   return games;
+}
+
+function idOf(v: unknown): string | null {
+  return typeof v === "string" || typeof v === "number" ? String(v) : null;
+}
+
+/** A game in progress's situation block. Null when ESPN hasn't sent one. */
+export function parseSituation(raw: unknown, teamById: Map<string, string>): LiveSituation | null {
+  if (!isRecord(raw)) return null;
+  const teamOf = (v: unknown): string | null => {
+    const id = isRecord(v) ? idOf(v.id) : idOf(v);
+    return id ? (teamById.get(id) ?? null) : null;
+  };
+  let lastPlay: LastPlay | null = null;
+  const lp = raw.lastPlay;
+  if (isRecord(lp) && idOf(lp.id) && typeof lp.text === "string") {
+    const athletes: PlayAthlete[] = [];
+    for (const a of Array.isArray(lp.athletesInvolved) ? lp.athletesInvolved : []) {
+      if (!isRecord(a)) continue;
+      const id = idOf(a.id);
+      const name = typeof a.displayName === "string" ? a.displayName : typeof a.fullName === "string" ? a.fullName : null;
+      if (id && name) athletes.push({ id, name, team: teamOf(a.team) });
+    }
+    lastPlay = {
+      id: idOf(lp.id)!,
+      text: lp.text,
+      type: isRecord(lp.type) && typeof lp.type.text === "string" ? lp.type.text : "",
+      scoreValue: Number(lp.scoreValue) || 0,
+      team: teamOf(lp.team),
+      athletes,
+    };
+  }
+  return {
+    possession: teamOf(raw.possession),
+    isRedZone: raw.isRedZone === true,
+    downDistance: typeof raw.downDistanceText === "string" && raw.downDistanceText ? raw.downDistanceText : null,
+    lastPlay,
+  };
 }
 
 function parseVenue(raw: unknown): GameVenue | null {

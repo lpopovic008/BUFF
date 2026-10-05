@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { getMatchups } from "@/lib/sleeper";
+import { LIVE_TTL_SECONDS } from "@/lib/live-clock";
+import { useLiveTick } from "@/hooks/useLiveTick";
 
-const POLL_MS = 25000;
 const MAX_EVENTS = 40;
 
 export interface TrackedPlayer {
@@ -23,8 +24,8 @@ export interface LiveScoreEvent {
 }
 
 /**
- * Derives a live "someone just scored" feed by polling this week's matchups
- * every 25s and diffing each tracked player's points against their last-seen
+ * Derives a live "someone just scored" feed by re-reading this week's
+ * matchups on every live-clock tick and diffing each tracked player's points against their last-seen
  * total — Sleeper's public API has no play-by-play/scoring feed of its own.
  * Baseline is seeded from each player's points at the first poll, so it
  * only reports genuinely new scoring, not a replay of everything already on
@@ -44,24 +45,31 @@ export function useLiveScoringFeed(
   });
 
   const trackedKey = tracked.map((t) => t.playerId).join(",");
+  const tick = useLiveTick();
+
+  // Who's tracked (or where) changed: start over, re-seeding the baseline on the next read.
+  const baselineRef = useRef<Map<string, number> | null>(null);
+  useEffect(() => {
+    baselineRef.current = null;
+  }, [leagueId, week, trackedKey, enabled]);
 
   useEffect(() => {
     if (!enabled || !trackedKey) return;
     let cancelled = false;
-    let baseline: Map<string, number> | null = null;
 
     const poll = async () => {
       let matchups;
       try {
-        matchups = await getMatchups(leagueId, week);
+        matchups = await getMatchups(leagueId, week, LIVE_TTL_SECONDS);
       } catch {
         return;
       }
       if (cancelled) return;
-      if (!baseline) {
-        baseline = new Map(trackedRef.current.map((t) => [t.playerId, t.actual]));
+      if (!baselineRef.current) {
+        baselineRef.current = new Map(trackedRef.current.map((t) => [t.playerId, t.actual]));
         setEvents([]);
       }
+      const baseline = baselineRef.current;
       const byId = new Map(trackedRef.current.map((t) => [t.playerId, t]));
       const newEvents: LiveScoreEvent[] = [];
       for (const m of matchups) {
@@ -81,12 +89,10 @@ export function useLiveScoringFeed(
     };
 
     poll();
-    const id = setInterval(poll, POLL_MS);
     return () => {
       cancelled = true;
-      clearInterval(id);
     };
-  }, [leagueId, week, trackedKey, enabled]);
+  }, [leagueId, week, trackedKey, enabled, tick]);
 
   return enabled && trackedKey ? events : [];
 }

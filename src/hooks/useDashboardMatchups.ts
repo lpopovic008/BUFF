@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react";
 import { getLeagueRosters, getLeagueUsers, getMatchups } from "@/lib/sleeper";
 import { DashboardMatchupTeam, findMyMatchup } from "@/lib/league-data";
+import { LIVE_TTL_SECONDS } from "@/lib/live-clock";
+import { useLiveTick } from "@/hooks/useLiveTick";
 
 // Sleeper's own matchups endpoint is the live-scoring source of truth during
-// games; re-polling it periodically is how this dashboard "updates live"
-// without needing a websocket — the same 60s server-side cache the rest of
-// the app uses already keeps this from hammering the API.
-const REFRESH_MS = 45_000;
+// games; reloading it on every tick of the shared live clock is how this
+// dashboard "updates live" without needing a websocket.
 
 export interface DashboardMatchupSide {
   rosterId: number;
@@ -28,7 +28,7 @@ export interface MatchupTarget {
 
 async function loadOne(target: MatchupTarget, week: number): Promise<[string, DashboardMatchupView | null]> {
   const [matchups, rosters, users] = await Promise.all([
-    getMatchups(target.leagueId, week),
+    getMatchups(target.leagueId, week, LIVE_TTL_SECONDS),
     getLeagueRosters(target.leagueId),
     getLeagueUsers(target.leagueId),
   ]);
@@ -49,13 +49,14 @@ async function loadOne(target: MatchupTarget, week: number): Promise<[string, Da
 
 /**
  * Loads each league's current matchup — team names and live score per side —
- * and re-polls Sleeper while mounted so scores update during games.
+ * and reloads it on every live-clock tick so scores update during games.
  */
 export function useDashboardMatchups(
   targets: MatchupTarget[],
   week: number | null
 ): Record<string, DashboardMatchupView | null> {
   const [byLeague, setByLeague] = useState<Record<string, DashboardMatchupView | null>>({});
+  const tick = useLiveTick();
 
   useEffect(() => {
     if (week == null || targets.length === 0) {
@@ -70,12 +71,10 @@ export function useDashboardMatchups(
     }
 
     loadAll();
-    const interval = setInterval(loadAll, REFRESH_MS);
     return () => {
       cancelled = true;
-      clearInterval(interval);
     };
-  }, [targets, week]);
+  }, [targets, week, tick]);
 
   return byLeague;
 }

@@ -33,6 +33,8 @@ test("parseScoreboard reads a normal pre-game event", () => {
     awayScore: 0,
     venue: null,
     neutralSite: false,
+    statusDetail: null,
+    live: null,
   });
 });
 

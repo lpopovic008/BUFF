@@ -4,16 +4,14 @@ import { useEffect, useState } from "react";
 import { getLeagueRosters, getMatchups } from "@/lib/sleeper";
 import { resolvePlayers } from "@/lib/players";
 import { StarterEntry } from "@/lib/my-starters";
+import { LIVE_TTL_SECONDS } from "@/lib/live-clock";
+import { useLiveTick } from "@/hooks/useLiveTick";
 
 export interface StarterSource {
   leagueId: string;
   leagueName: string;
   myRosterId: number;
 }
-
-// Same cadence as the dashboard's matchup poll, so a lineup change made in the
-// Sleeper app shows up here without a refresh.
-const REFRESH_MS = 45_000;
 
 /** Both sides' lineups for one league this week. */
 interface LoadedSides {
@@ -23,7 +21,7 @@ interface LoadedSides {
 
 async function loadOne(source: StarterSource, week: number): Promise<LoadedSides> {
   const [matchups, rosters] = await Promise.all([
-    getMatchups(source.leagueId, week),
+    getMatchups(source.leagueId, week, LIVE_TTL_SECONDS),
     getLeagueRosters(source.leagueId),
   ]);
   const mine = matchups.find((m) => m.roster_id === source.myRosterId);
@@ -80,6 +78,8 @@ export interface MyStartersResult {
 /** Both sides of every tracked league's current matchup, tagged with the league each came from. */
 export function useMyStarters(sources: StarterSource[], week: number | null): MyStartersResult {
   const [result, setResult] = useState<MyStartersResult>({ mine: null, opponent: null });
+  // Reloaded on every live-clock tick, so points and lineup changes made in the Sleeper app show up without a refresh.
+  const tick = useLiveTick();
 
   useEffect(() => {
     // A week we don't know yet is still loading, not an empty lineup — staying
@@ -101,13 +101,11 @@ export function useMyStarters(sources: StarterSource[], week: number | null): My
       }
     }
 
-    loadAll();
-    const interval = setInterval(loadAll, REFRESH_MS);
+    loadAll().catch(() => {});
     return () => {
       cancelled = true;
-      clearInterval(interval);
     };
-  }, [sources, week]);
+  }, [sources, week, tick]);
 
   return result;
 }

@@ -246,6 +246,27 @@ body {
   }
 }
 
+/* A Red Zone play that just came in: a quick wash of its color that fades out. */
+@keyframes rz-flash {
+  from {
+    background-color: color-mix(in srgb, var(--rz-flash, var(--status-critical)) 32%, transparent);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+
+/* The Red Zone alert's pulse. */
+@keyframes rz-pulse {
+  0%,
+  100% {
+    box-shadow: inset 3px 0 0 var(--status-critical);
+  }
+  50% {
+    box-shadow: inset 6px 0 0 var(--status-critical);
+  }
+}
+
 /* Base-layer reset so explicit utilities like rounded-full (avatars, legend
    dots) still win — unlayered rules would otherwise beat them regardless of
    specificity, since Tailwind's own utilities are layered. */

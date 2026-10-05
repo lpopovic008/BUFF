@@ -177,13 +177,15 @@ export async function getLeagueUsers(leagueId: string): Promise<SleeperLeagueUse
   return users ?? [];
 }
 
+/** A week's matchups. Live views pass a short `ttlSeconds` (see LIVE_TTL_SECONDS) so each tick of the live clock gets new points. */
 export async function getMatchups(
   leagueId: string,
-  week: number
+  week: number,
+  ttlSeconds = 60
 ): Promise<SleeperMatchup[]> {
   const matchups = await sleeperFetch<SleeperMatchup[]>(
     `/league/${leagueId}/matchups/${week}`,
-    60
+    ttlSeconds
   );
   return matchups ?? [];
 }

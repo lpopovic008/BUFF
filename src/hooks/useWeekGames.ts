@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLiveTick } from "@/hooks/useLiveTick";
 import { getWeekGames, NFLGame } from "@/lib/nfl-schedule";
 
-const REFRESH_MS = 60000;
-
-/** Every NFL game in one week, refreshed every 60s so kickoff states and scores stay current. Never throws. */
+/** Every NFL game in one week, reloaded on every live-clock tick so kickoff states and scores stay current. Never throws. */
 export function useWeekGames(season: string | null, week: number | null): NFLGame[] {
   const [games, setGames] = useState<NFLGame[]>([]);
+  const tick = useLiveTick();
 
   useEffect(() => {
     if (!season || week == null) return;
@@ -19,12 +19,10 @@ export function useWeekGames(season: string | null, week: number | null): NFLGam
     };
 
     load();
-    const id = setInterval(load, REFRESH_MS);
     return () => {
       cancelled = true;
-      clearInterval(id);
     };
-  }, [season, week]);
+  }, [season, week, tick]);
 
   return games;
 }
