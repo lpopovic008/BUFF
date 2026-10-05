@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import { Card } from "@/components/ui/Card";
 import { IconButton } from "@/components/ui/IconButton";
-import { ChevronUpIcon, ChevronDownIcon, StarIcon, TrashIcon, DownloadIcon, UploadIcon, VestIcon } from "@/components/ui/Icon";
+import { ChevronUpIcon, ChevronDownIcon, StarIcon, TrashIcon, DownloadIcon, UploadIcon, WalkieTalkieIcon } from "@/components/ui/Icon";
 import { useConfig } from "@/hooks/useConfig";
 import { saveConfig, removeLeague, moveLeague, exportAllData, importAllData } from "@/lib/localStore";
 import { defaultSeason } from "@/lib/app-defaults";
@@ -103,7 +103,7 @@ export default function SettingsPage() {
                       <div className="flex min-w-0 items-center gap-1.5 font-medium text-ink-primary">
                         <span className="truncate">{league.nickname ?? league.leagueId}</span>
                         {league.isCommish ? (
-                          <VestIcon className="h-4 w-4 shrink-0 text-status-good" role="img" aria-label="Commissioner" />
+                          <WalkieTalkieIcon className="h-4 w-4 shrink-0 text-status-good" role="img" aria-label="Commissioner" />
                         ) : null}
                       </div>
                     </div>

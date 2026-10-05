@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { IconLink } from "@/components/ui/IconButton";
-import { DocumentIcon, ClockIcon, RadarIcon, VestIcon } from "@/components/ui/Icon";
+import { DocumentIcon, ClockIcon, RadarIcon, WalkieTalkieIcon } from "@/components/ui/Icon";
 import { LeagueMatchupCarousel } from "@/components/LeagueMatchupCarousel";
 import { MoneyBoard } from "@/components/MoneyBoard";
 import { useConfig } from "@/hooks/useConfig";
@@ -115,11 +115,11 @@ function LeagueDetailContent() {
           </>
         }
       >
-        {/* The vest sits inline after the name, so it follows the name's last word when it wraps. */}
+        {/* The walkie-talkie sits inline after the name, so it follows the name's last word when it wraps. */}
         <h1 className="min-w-0 text-2xl font-semibold text-ink-primary">
           <span>{summary.league.name}</span>
           {tracked?.isCommish ? (
-            <VestIcon
+            <WalkieTalkieIcon
               className="ml-2 inline-block h-5 w-5 align-[-0.15em] text-status-good"
               role="img"
               aria-label="You're the commissioner"
