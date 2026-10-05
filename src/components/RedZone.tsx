@@ -8,6 +8,7 @@ import { FeedEntry, RedZoneFeed, RedZoneNow } from "@/hooks/useRedZoneFeed";
 import { useLiveMode } from "@/hooks/useLiveTick";
 import { GroupedStarter } from "@/lib/my-starters";
 import { isBigPlay } from "@/lib/play-by-play";
+import { formatPlayPoints } from "@/lib/play-points";
 import { nflLogoFilter, nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 
@@ -45,6 +46,48 @@ function whenLabel(entry: FeedEntry): string {
   const { play, game } = entry;
   if (play.period > 0) return `${periodLabel(play.period)} ${play.clock}`.trim();
   return game.statusDetail ?? "Live";
+}
+
+const POINTS_TITLE =
+  "Standard PPR points, worked out from ESPN's play-by-play — your league's scoring, and Sleeper's official numbers, can differ.";
+
+function deltaClass(delta: number): string {
+  return delta > 0 ? "text-status-good" : delta < 0 ? "text-status-critical" : "text-ink-muted";
+}
+
+/**
+ * What the play was worth: the points it earned, green up or red down, and
+ * the player's PPR total for the game through this play. A play with two of
+ * your starters on it lists each, by surname.
+ */
+function PlayPoints({ entry }: { entry: FeedEntry }) {
+  const { players, points } = entry;
+  if (players.length === 1) {
+    const pts = points[players[0].playerId];
+    if (!pts) return null;
+    return (
+      <span className="flex flex-col items-end leading-none" title={POINTS_TITLE}>
+        <span className={`text-sm font-bold tabular-nums ${deltaClass(pts.delta)}`}>{formatPlayPoints(pts.delta)}</span>
+        <span className="mt-0.5 whitespace-nowrap text-[0.625rem] tabular-nums text-ink-muted">{pts.total.toFixed(2)} pts</span>
+      </span>
+    );
+  }
+  return (
+    <span className="flex flex-col items-end gap-0.5 leading-none" title={POINTS_TITLE}>
+      {players.map((p) => {
+        const pts = points[p.playerId];
+        if (!pts) return null;
+        const surname = p.position === "DEF" ? displayName(p) : p.name.split(" ").slice(1).join(" ") || p.name;
+        return (
+          <span key={p.playerId} className="flex items-baseline gap-1 whitespace-nowrap tabular-nums">
+            <span className="max-w-[6rem] truncate text-[0.625rem] text-ink-muted">{surname}</span>
+            <span className={`text-[0.8125rem] font-bold ${deltaClass(pts.delta)}`}>{formatPlayPoints(pts.delta)}</span>
+            <span className="text-[0.625rem] text-ink-muted">{pts.total.toFixed(2)}</span>
+          </span>
+        );
+      })}
+    </span>
+  );
 }
 
 function Badge({ children, className }: { children: string; className: string }) {
@@ -136,6 +179,7 @@ function FeedRow({
           {play.offense ? <TeamLogo team={play.offense} side={12} /> : null}
           {whenLabel(entry)}
         </span>
+        <PlayPoints entry={entry} />
         <PlayBadges entry={entry} />
       </span>
     </li>
@@ -199,7 +243,7 @@ export function RedZone({ feed, legend, anyStarted }: { feed: RedZoneFeed; legen
             <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${live ? "bg-status-critical" : "bg-ink-muted"}`} />
           </span>
           <span className="text-sm font-bold uppercase tracking-[0.2em] text-ink-primary">Red Zone</span>
-          <span className="text-[0.6875rem] text-ink-muted">{live ? "Live · every 15s" : "Your starters, play by play"}</span>
+          <span className="text-[0.6875rem] text-ink-muted">{live ? "Live · every 15s · PPR" : "Your starters, play by play · PPR"}</span>
         </h2>
         <div className="flex shrink-0 border border-border text-[0.6875rem] font-semibold" role="group" aria-label="Which plays">
           {[

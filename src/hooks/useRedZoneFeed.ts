@@ -5,12 +5,15 @@ import { GameStarters, GroupedStarter } from "@/lib/my-starters";
 import { NFLGame } from "@/lib/nfl-schedule";
 import { LIVE_TTL_SECONDS } from "@/lib/live-clock";
 import { FeedCandidate, GamePlay, getGamePlays, playFirstSeenAt, playFromLastPlay, playersInPlay } from "@/lib/play-by-play";
+import { pprPointsForPlay } from "@/lib/play-points";
 
 /** A play one or more of your starters was part of. */
 export interface FeedEntry {
   play: GamePlay;
   game: NFLGame;
   players: GroupedStarter[];
+  /** Per player: standard PPR points from this play, and their game total through it. */
+  points: Record<string, { delta: number; total: number }>;
 }
 
 /** A game where a team you have starters on has the ball inside the 20 right now. */
@@ -112,11 +115,21 @@ export function useRedZoneFeed(games: GameStarters[]): RedZoneFeed {
         const synthetic = playFromLastPlay(game.id, last, playFirstSeenAt(last.id));
         if (!plays.some((p) => p.id === synthetic.id || p.text === synthetic.text)) plays.push(synthetic);
       }
+      // In game order, so each player's running total builds up play by play.
+      plays.sort((a, b) => a.sequence - b.sequence);
+      const totals = new Map<string, number>();
       for (const play of plays) {
-        const involved = playersInPlay(play, candidates)
-          .map((c) => byId.get(c.playerId))
-          .filter((p): p is GroupedStarter => !!p);
-        if (involved.length > 0) out.push({ play, game, players: involved });
+        const matched = playersInPlay(play, candidates);
+        if (matched.length === 0) continue;
+        const points: FeedEntry["points"] = {};
+        for (const c of matched) {
+          const delta = pprPointsForPlay(play, c);
+          const total = Math.round(((totals.get(c.playerId) ?? 0) + delta) * 100) / 100;
+          totals.set(c.playerId, total);
+          points[c.playerId] = { delta, total };
+        }
+        const involved = matched.map((c) => byId.get(c.playerId)).filter((p): p is GroupedStarter => !!p);
+        out.push({ play, game, players: involved, points });
       }
     }
     return out.sort((a, b) => {

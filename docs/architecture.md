@@ -299,6 +299,14 @@ shorthand, only on the team with the ball, ignoring tacklers. A team defense
 is matched on the other side's sacks and takeaways. The red-zone alerts come
 from the scoreboard's live situation (possession, `isRedZone`).
 
+Each row also shows standard PPR points for the play, plus the player's
+total for the game through that play (`lib/play-points.ts`). These use
+Sleeper's default PPR scoring, applied by reading the play's text for each
+role: passer, receiver, runner, kicker, two-point try, lost fumble, and D/ST
+sacks and takeaways. They're an estimate from ESPN's text, so a league's own
+scoring and Sleeper's official totals can differ. Points allowed by a defense
+and return touchdowns aren't counted per play.
+
 ## Where things run
 
 | Piece | Where | Trigger |
