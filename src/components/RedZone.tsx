@@ -77,7 +77,7 @@ function PlayPoints({ entry }: { entry: FeedEntry }) {
         const surname = p.position === "DEF" ? displayName(p) : p.name.split(" ").slice(1).join(" ") || p.name;
         return (
           <span key={p.playerId} className="flex items-center gap-1.5 whitespace-nowrap leading-none tabular-nums">
-            {players.length > 1 ? <span className="max-w-[6rem] truncate text-[0.625rem] text-ink-muted">{surname}</span> : null}
+            {players.length > 1 ? <span className="text-[0.625rem] text-ink-muted">{surname}</span> : null}
             <span className={`text-sm font-bold ${deltaClass(pts.delta)}`}>{formatPlayPoints(pts.delta)}</span>
             <TotalChip total={pts.total} />
           </span>
@@ -148,7 +148,7 @@ function FeedRow({
   const { game } = entry;
   return (
     <li
-      className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2 border-b border-border px-1 py-2 last:border-b-0 ${
+      className={`grid grid-cols-[auto_minmax(0,1fr)] items-start gap-2 border-b border-border px-1 py-2 last:border-b-0 ${
         play.scoring ? "shadow-[inset_3px_0_0_var(--status-good)]" : ""
       }`}
       style={{
@@ -172,39 +172,46 @@ function FeedRow({
           </span>
         ) : null}
       </span>
-      <span className="min-w-0">
-        {lead ? (
-          <span className="flex min-w-0 items-center gap-1.5">
-            <span className="min-w-0 truncate text-[0.8125rem] font-bold text-ink-primary">
-              {players.map(displayName).join(" & ")}
-            </span>
-            <span className={`shrink-0 text-[0.625rem] font-semibold uppercase ${POSITION_TEXT_COLOR[lead.position] ?? "text-ink-muted"}`}>
-              {lead.position === "DEF" ? "" : lead.position}
-            </span>
-            <span className="flex shrink-0 items-center gap-0.5">
-              {leagueIds.map((id) => (
-                <LeagueMark key={id} league={legendByLeagueId.get(id)} className="h-3 w-3" />
-              ))}
-            </span>
+      {/* Who and when on the top line; the play's full description underneath, with what it was worth beside it. */}
+      <span className="flex min-w-0 flex-col gap-0.5">
+        <span className="flex items-start justify-between gap-2">
+          <span className="min-w-0">
+            {lead ? (
+              <span className="flex min-w-0 flex-wrap items-center gap-x-1.5">
+                <span className="min-w-0 break-words text-[0.8125rem] font-bold text-ink-primary">
+                  {players.map(displayName).join(" & ")}
+                </span>
+                <span className={`shrink-0 text-[0.625rem] font-semibold uppercase ${POSITION_TEXT_COLOR[lead.position] ?? "text-ink-muted"}`}>
+                  {lead.position === "DEF" ? "" : lead.position}
+                </span>
+                <span className="flex shrink-0 items-center gap-0.5">
+                  {leagueIds.map((id) => (
+                    <LeagueMark key={id} league={legendByLeagueId.get(id)} className="h-3 w-3" />
+                  ))}
+                </span>
+              </span>
+            ) : (
+              <span className="flex min-w-0 flex-wrap items-baseline gap-x-1.5">
+                <span className="text-[0.8125rem] font-bold text-ink-primary">{play.offense ?? game.awayTeam}</span>
+                <span className="text-[0.625rem] uppercase text-ink-muted">
+                  {game.awayTeam} @ {game.homeTeam}
+                </span>
+              </span>
+            )}
           </span>
-        ) : (
-          <span className="flex min-w-0 items-baseline gap-1.5">
-            <span className="text-[0.8125rem] font-bold text-ink-primary">{play.offense ?? game.awayTeam}</span>
-            <span className="truncate text-[0.625rem] uppercase text-ink-muted">
-              {game.awayTeam} @ {game.homeTeam}
-            </span>
+          <span className="flex shrink-0 items-center gap-1 whitespace-nowrap pt-px text-[0.6875rem] tabular-nums text-ink-muted">
+            <PlayBadges entry={entry} />
+            {play.downDistance ? <span className="font-semibold text-ink-secondary">{play.downDistance}</span> : null}
+            {play.offense ? <TeamLogo team={play.offense} side={12} /> : null}
+            {whenLabel(entry)}
           </span>
-        )}
-        <span className="mt-0.5 line-clamp-2 text-[0.75rem] leading-snug text-ink-secondary">{play.text}</span>
-      </span>
-      <span className="flex flex-col items-end gap-1">
-        <span className="flex items-center gap-1 whitespace-nowrap text-[0.6875rem] tabular-nums text-ink-muted">
-          <PlayBadges entry={entry} />
-          {play.downDistance ? <span className="font-semibold text-ink-secondary">{play.downDistance}</span> : null}
-          {play.offense ? <TeamLogo team={play.offense} side={12} /> : null}
-          {whenLabel(entry)}
         </span>
-        <PlayPoints entry={entry} />
+        <span className="flex items-start justify-between gap-2">
+          <span className="min-w-0 break-words text-[0.75rem] leading-snug text-ink-secondary">{play.text}</span>
+          <span className="shrink-0">
+            <PlayPoints entry={entry} />
+          </span>
+        </span>
       </span>
     </li>
   );
@@ -222,7 +229,7 @@ function RedZoneAlert({ alert }: { alert: RedZoneNow }) {
         <span className="block text-[0.6875rem] font-bold uppercase tracking-wide text-status-critical">
           {alert.downDistance ?? `${alert.team} in the red zone`}
         </span>
-        <span className="block truncate text-[0.75rem] text-ink-primary">
+        <span className="block break-words text-[0.75rem] text-ink-primary">
           {alert.players.length > 0 ? alert.players.map(displayName).join(", ") : `${alert.game.awayTeam} @ ${alert.game.homeTeam}`}
         </span>
       </span>
