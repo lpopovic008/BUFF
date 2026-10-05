@@ -20,6 +20,7 @@ import { loadLeagueMoney, LeagueMoney } from "@/lib/league-money";
 import { findLeagueProfile, LeagueProfile } from "@/lib/league-config";
 import { cumulativeSeriesByManager } from "@/lib/payouts";
 import { formatRecord, formatPoints, ordinal } from "@/lib/format";
+import { TitleWithHistory } from "@/components/HistoryButtons";
 
 function SeasonMoney({ leagueId, profile }: { leagueId: string; profile: LeagueProfile }) {
   const [money, setMoney] = useState<LeagueMoney | null | undefined>(undefined);
@@ -270,7 +271,9 @@ function LeagueHistoryContent() {
         >
           <ChevronLeftIcon className="h-4 w-4" /> Back to league
         </Link>
-        <h1 className="mt-1 text-2xl font-semibold text-ink-primary">League history</h1>
+        <TitleWithHistory className="mt-1">
+          <h1 className="text-2xl font-semibold text-ink-primary">League history</h1>
+        </TitleWithHistory>
         <p className="mt-1 text-sm text-ink-secondary">
           {seasons.length} linked season{seasons.length === 1 ? "" : "s"} of data pulled directly from Sleeper.
         </p>

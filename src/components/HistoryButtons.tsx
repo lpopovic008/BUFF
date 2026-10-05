@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/ui/Icon";
 import { HEADER_BUTTON } from "@/components/NavBar";
 
@@ -49,12 +49,12 @@ export function HistoryButtons() {
   );
 }
 
-/** The back/forward buttons at the top of every page but the dashboard, which places its own under its league ticker. */
-export function PageHistoryButtons() {
-  if (usePathname() === "/") return null;
+/** A page's title with the back/forward buttons just to its left. */
+export function TitleWithHistory({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className="mb-0.5">
+    <div className={`flex min-w-0 items-center gap-3 ${className}`}>
       <HistoryButtons />
+      {children}
     </div>
   );
 }

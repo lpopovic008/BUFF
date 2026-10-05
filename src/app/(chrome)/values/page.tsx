@@ -9,6 +9,7 @@ import { useConfig } from "@/hooks/useConfig";
 import { useMyLeagues } from "@/hooks/useMyLeagues";
 import rawSnapshot from "@/data/player-values.json";
 import { LeagueFormat, PlayerValue, PlayerValuesSnapshot, TEPremium, valueFor } from "@/lib/player-values";
+import { HistoryButtons } from "@/components/HistoryButtons";
 
 const snapshot = rawSnapshot as unknown as PlayerValuesSnapshot;
 
@@ -127,6 +128,9 @@ export default function ValuesPage() {
   return (
     <div className="flex flex-col gap-6 animate-[rise_0.5s_ease-out_backwards]">
       <h1 className="sr-only">Values</h1>
+      <div className="-mb-3">
+        <HistoryButtons />
+      </div>
 
       {myLeagues && myLeagues.length > 0 ? (
         <Card className="px-5">

@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { getLeague, SleeperLeague } from "@/lib/sleeper";
 import { listRecaps, SavedRecap } from "@/lib/localStore";
+import { TitleWithHistory } from "@/components/HistoryButtons";
 
 function RecapArchiveContent() {
   const leagueId = useSearchParams().get("id");
@@ -32,9 +33,11 @@ function RecapArchiveContent() {
   return (
     <div className="flex flex-col gap-6 animate-[rise_0.5s_ease-out_backwards]">
       <div>
-        <h1 className="text-2xl font-semibold text-ink-primary">
-          {league?.name ?? "League"} — Recap archive
-        </h1>
+        <TitleWithHistory>
+          <h1 className="min-w-0 text-2xl font-semibold text-ink-primary">
+            {league?.name ?? "League"} — Recap archive
+          </h1>
+        </TitleWithHistory>
         <p className="mt-1 text-sm text-ink-secondary">
           Every weekly recap you&rsquo;ve saved for this league, in this browser.
         </p>

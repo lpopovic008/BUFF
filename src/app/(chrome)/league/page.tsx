@@ -14,6 +14,7 @@ import { loadLeagueSeason, LeagueSeason } from "@/lib/league-money";
 import { computePlanLedger, emptyPlan, PayoutPlan, planFromProfile } from "@/lib/payout-plan";
 import { getPayoutPlan, savePayoutPlan } from "@/lib/localStore";
 import { getCurrentWeek } from "@/lib/sleeper";
+import { TitleWithHistory } from "@/components/HistoryButtons";
 
 function LeagueDetailContent() {
   const leagueId = useSearchParams().get("id");
@@ -104,25 +105,28 @@ function LeagueDetailContent() {
     <div className="flex flex-col gap-8">
       <div className="flex flex-wrap items-start justify-between gap-4 animate-[rise_0.5s_ease-out_backwards]">
         <div>
-          <h1 className="flex items-center gap-2 text-2xl font-semibold text-ink-primary">
-            <span>{summary.league.name}</span>
-            {tracked?.isCommish ? (
-              <svg
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                className="h-4 w-4 shrink-0 text-status-good"
-                role="img"
-                aria-label="You're the commissioner"
-              >
-                <title>You&rsquo;re the commissioner</title>
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16Zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5Z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            ) : null}
-          </h1>
+          <TitleWithHistory>
+            {/* The check sits inline after the name, so it follows the name's last word when it wraps. */}
+            <h1 className="min-w-0 text-2xl font-semibold text-ink-primary">
+              <span>{summary.league.name}</span>
+              {tracked?.isCommish ? (
+                <svg
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  className="ml-2 inline-block h-4 w-4 align-[-0.05em] text-status-good"
+                  role="img"
+                  aria-label="You're the commissioner"
+                >
+                  <title>You&rsquo;re the commissioner</title>
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16Zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5Z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              ) : null}
+            </h1>
+          </TitleWithHistory>
         </div>
         <div className="flex items-center gap-2">
           {tracked?.isCommish ? (

@@ -20,6 +20,7 @@ import { RankedPlayer, ValueMetric, rankPlayersByValue } from "@/lib/matchup-pla
 import { displayManagerName, formatRecord } from "@/lib/format";
 import rawSnapshot from "@/data/player-values.json";
 import { PlayerValuesSnapshot } from "@/lib/player-values";
+import { TitleWithHistory } from "@/components/HistoryButtons";
 
 const snapshot = rawSnapshot as unknown as PlayerValuesSnapshot;
 
@@ -93,7 +94,9 @@ function TeamContent() {
         >
           <ChevronLeftIcon className="h-4 w-4" /> {league.name}
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold text-ink-primary">{managerName}</h1>
+        <TitleWithHistory className="mt-2">
+          <h1 className="min-w-0 text-2xl font-semibold text-ink-primary">{managerName}</h1>
+        </TitleWithHistory>
         <p className="mt-1 text-sm text-ink-secondary">
           {formatRecord(roster.settings.wins ?? 0, roster.settings.losses ?? 0, roster.settings.ties ?? 0)}
         </p>

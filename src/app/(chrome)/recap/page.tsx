@@ -44,6 +44,7 @@ import { useLeagueTeams } from "@/hooks/useLeagueTeams";
 import { recapDisplayFont } from "@/lib/fonts";
 import { RecapEditor } from "./RecapEditor";
 import { GraphicCopyMenu } from "./GraphicCopyMenu";
+import { TitleWithHistory } from "@/components/HistoryButtons";
 
 // week=0 is a sentinel for the preseason write-up — a free-write space that
 // exists before there's any real matchup data to auto-generate a recap from.
@@ -512,7 +513,9 @@ function RecapContent() {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-ink-primary">{header.title}</h1>
+          <TitleWithHistory>
+            <h1 className="min-w-0 text-2xl font-semibold text-ink-primary">{header.title}</h1>
+          </TitleWithHistory>
           <p className="mt-1 text-sm text-ink-secondary">{header.subtitle}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 text-xs text-ink-muted">
