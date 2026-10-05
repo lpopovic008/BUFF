@@ -1,0 +1,68 @@
+name: Probe play-by-play (temporary)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Shapes
+        run: |
+          cat > probe.mjs <<'EOF'
+          const j = async (u) => { const r = await fetch(u); const t = await r.text(); return { status: r.status, size: t.length, json: (() => { try { return JSON.parse(t); } catch { return null; } })() }; };
+          const sb = await j("https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&week=5&dates=2026");
+          const events = sb.json?.events ?? [];
+          console.log("NOW", new Date().toISOString(), "events", events.length);
+          for (const e of events) {
+            const c = e.competitions[0];
+            console.log("EV", e.id, e.shortName, c.status?.type?.state, c.status?.displayClock, c.status?.period, "situation:", JSON.stringify(c.situation ?? null).slice(0, 1500));
+          }
+          const done = events.find((e) => e.competitions[0].status?.type?.state === "post") ?? events[0];
+          const id = done.id;
+          console.log("USING", id, done.shortName);
+          for (const u of [
+            `https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=${id}`,
+            `https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/events/${id}/competitions/${id}/plays?limit=5`,
+            "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard",
+            "https://api.sleeper.app/v1/state/nfl",
+          ]) {
+            const r = await fetch(u, { headers: { Origin: "https://lpopovic008.github.io" } });
+            console.log("CORS", u, r.status, "acao=", r.headers.get("access-control-allow-origin"), "cache=", r.headers.get("cache-control"), "age=", r.headers.get("age"));
+          }
+          const sum = await j(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=${id}`);
+          console.log("SUMMARY status", sum.status, "size", sum.size, "keys", Object.keys(sum.json ?? {}));
+          const drives = sum.json?.drives;
+          console.log("drives keys", Object.keys(drives ?? {}), "previous", drives?.previous?.length, "current", JSON.stringify(drives?.current ?? null).slice(0, 300));
+          const d0 = drives?.previous?.[2];
+          if (d0) {
+            const { plays, ...rest } = d0;
+            console.log("DRIVE", JSON.stringify(rest).slice(0, 1500));
+            for (const p of (plays ?? []).slice(0, 3)) console.log("PLAY", JSON.stringify(p).slice(0, 2500));
+          }
+          console.log("SCORINGPLAY", JSON.stringify(sum.json?.scoringPlays?.[0] ?? null).slice(0, 2000));
+          const allPlays = (drives?.previous ?? []).flatMap((d) => d.plays ?? []);
+          console.log("summary plays total", allPlays.length, "with participants", allPlays.filter((p) => p.participants).length);
+          console.log("play types", JSON.stringify([...new Set(allPlays.map((p) => p.type?.text))]));
+          console.log("TEXT SAMPLES", JSON.stringify(allPlays.slice(10, 30).map((p) => p.text)));
+          const core = await j(`https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/events/${id}/competitions/${id}/plays?limit=400`);
+          console.log("CORE status", core.status, "size", core.size, "count", core.json?.count, "pageCount", core.json?.pageCount, "items", core.json?.items?.length);
+          const items = core.json?.items ?? [];
+          for (const p of items.slice(10, 13)) console.log("COREPLAY", JSON.stringify(p).slice(0, 3500));
+          console.log("core participant types", JSON.stringify([...new Set(items.flatMap((p) => (p.participants ?? []).map((x) => x.type)))]));
+          console.log("core stats sample", JSON.stringify(items.find((p) => p.participants?.length)?.participants?.[0] ?? null).slice(0, 1500));
+          const coreSorted = await j(`https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/events/${id}/competitions/${id}/plays?limit=5&sort=-sequenceNumber`);
+          console.log("CORE sorted desc first seq", JSON.stringify((coreSorted.json?.items ?? []).map((p) => [p.sequenceNumber, p.text?.slice(0, 40)])));
+          const sl = await j("https://api.sleeper.app/v1/players/nfl");
+          const ps = sl.json ?? {};
+          for (const pid of ["4984", "4881", "6794", "9509", "8146", "DET", "4046"]) {
+            const p = ps[pid];
+            console.log("SLEEPER", pid, p ? JSON.stringify({ n: p.full_name, espn: p.espn_id, gsis: p.gsis_id, sportradar: p.sportradar_id, team: p.team }) : null);
+          }
+          const active = Object.values(ps).filter((p) => p.active && ["QB", "RB", "WR", "TE", "K"].includes(p.position));
+          console.log("active skill", active.length, "with espn_id", active.filter((p) => p.espn_id).length);
+          EOF
+          node probe.mjs
