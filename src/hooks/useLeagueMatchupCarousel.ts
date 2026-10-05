@@ -16,8 +16,8 @@ export interface ResolvedSlot {
   slot: string;
   player: ResolvedPlayer | null;
   livePoints: number;
-  /** This player's season rank at their position by fantasy points, e.g. "WR12", or null if they haven't played / couldn't be found. */
-  seasonRank: string | null;
+  /** This player's season rank at their position by fantasy points (12 for the 12th-best WR), or null if they haven't played / couldn't be found. */
+  seasonRank: number | null;
 }
 
 export interface ResolvedMatchupTeam {
@@ -82,7 +82,7 @@ export function useLeagueMatchupCarousel(leagueId: string | null, week: number |
               slot: s.slot,
               player,
               livePoints: s.playerId ? (t.playersPoints[s.playerId] ?? 0) : 0,
-              seasonRank: player && rank ? `${player.position}${rank}` : null,
+              seasonRank: player && rank ? rank : null,
             };
           }),
         })),
