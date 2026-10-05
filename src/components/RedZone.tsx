@@ -91,19 +91,33 @@ function Badge({ children, className }: { children: string; className: string })
   return <span className={`px-1 py-px text-[0.625rem] font-bold uppercase leading-none tracking-wide ${className}`}>{children}</span>;
 }
 
-/** Each play's marks: a score, a takeaway, a red-zone snap, a long gain. */
+/** A scoring play's short name: TD, FG, SAF, or 2PT for a two-point try. */
+function scoreLabel(type: string, text: string): string {
+  const both = `${type} ${text}`;
+  if (/touchdown/i.test(both)) return "TD";
+  if (/field goal/i.test(both)) return "FG";
+  if (/safety/i.test(both)) return "SAF";
+  if (/two-point/i.test(both)) return "2PT";
+  return "PTS";
+}
+
+/**
+ * Each play's marks, abbreviated: a score (TD/FG/SAF), a turnover (TO — green
+ * when it's your defense taking the ball away, red when your player gave it
+ * up), a red-zone snap (RZ), a long gain (+21).
+ */
 function PlayBadges({ entry }: { entry: FeedEntry }) {
   const { play, players } = entry;
   const defense = players.length > 0 && players.every((p) => p.position === "DEF");
   return (
-    <span className="flex flex-wrap justify-end gap-1">
-      {play.scoring ? <Badge className="bg-status-good text-white">{/touchdown/i.test(play.type + play.text) ? "TD" : "Score"}</Badge> : null}
+    <>
+      {play.scoring ? <Badge className="bg-status-good text-white">{scoreLabel(play.type, play.text)}</Badge> : null}
       {play.turnover ? (
-        <Badge className={defense ? "bg-status-good text-white" : "bg-status-critical text-white"}>{defense ? "Takeaway" : "Turnover"}</Badge>
+        <Badge className={defense ? "bg-status-good text-white" : "bg-status-critical text-white"}>TO</Badge>
       ) : null}
       {play.redZone && !play.scoring ? <Badge className="border border-status-critical text-status-critical">RZ</Badge> : null}
       {play.yards >= 20 && !play.scoring ? <Badge className="border border-ink-muted text-ink-secondary">{`+${play.yards}`}</Badge> : null}
-    </span>
+    </>
   );
 }
 
@@ -185,12 +199,12 @@ function FeedRow({
       </span>
       <span className="flex flex-col items-end gap-1">
         <span className="flex items-center gap-1 whitespace-nowrap text-[0.6875rem] tabular-nums text-ink-muted">
+          <PlayBadges entry={entry} />
           {play.downDistance ? <span className="font-semibold text-ink-secondary">{play.downDistance}</span> : null}
           {play.offense ? <TeamLogo team={play.offense} side={12} /> : null}
           {whenLabel(entry)}
         </span>
         <PlayPoints entry={entry} />
-        <PlayBadges entry={entry} />
       </span>
     </li>
   );
