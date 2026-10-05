@@ -24,8 +24,8 @@ function slotLabel(slot: string): string {
 // right-to-left (points nearest the middle, headshot on the outside).
 const MY_ROW_COLS = "grid-cols-[1.375rem_minmax(0,1fr)_1.75rem] sm:grid-cols-[1.375rem_minmax(0,1fr)_2.5rem]";
 const THEIR_ROW_COLS = "grid-cols-[1.75rem_minmax(0,1fr)_1.375rem] sm:grid-cols-[2.5rem_minmax(0,1fr)_1.375rem]";
-// The middle column fits the widest slot label (FLEX) in bold, and no more.
-const SLOT_COLS = "grid-cols-[1fr_1.625rem_1fr] sm:grid-cols-[1fr_2rem_1fr]";
+// The middle column fits the widest slot label (FLEX) in bold, and no more; every slot box fills it.
+const SLOT_COLS = "grid-cols-[1fr_1.5rem_1fr] sm:grid-cols-[1fr_1.8rem_1fr]";
 const ROW_TEXT = "text-[0.6875rem] sm:text-[0.8125rem]";
 
 /** "J. Allen" on a phone, "Josh Allen" from sm up. */
@@ -106,10 +106,10 @@ function SlotRow({ slot, my, their }: { slot: string; my: ResolvedSlot; their: R
   return (
     <div className={`grid ${SLOT_COLS} items-center gap-1 sm:gap-2`}>
       <MySlotPlayer resolved={my} />
-      {/* The box hugs its label. */}
+      {/* Every box the same width — the column's, which fits FLEX and no more. */}
       <span
-        className={`justify-self-center px-[0.2em] py-px text-center text-[0.625rem] font-bold uppercase leading-tight sm:text-[0.6875rem] ${
-          colorClasses ?? "text-ink-muted"
+        className={`justify-self-stretch py-px text-center text-[0.625rem] font-bold uppercase leading-tight sm:text-[0.6875rem] ${
+          colorClasses ?? "bg-ink-muted/15 text-ink-secondary"
         }`}
       >
         {slotLabel(slot)}

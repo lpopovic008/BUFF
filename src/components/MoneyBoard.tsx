@@ -207,8 +207,8 @@ function WeekGrid({
             {ledger.managers.map((mgr) => (
               <tr key={mgr.rosterId}>
                 {/* Team name over the Sleeper username, smaller — as the standings table had it. */}
-                <td className="sticky left-0 z-10 border-t border-grid bg-surface-raised py-1.5 pr-3">
-                  <div data-team-name className="truncate font-medium text-ink-primary">
+                <td className="sticky left-0 z-10 border-t border-grid bg-surface-raised py-0.5 pr-3">
+                  <div data-team-name className="truncate font-medium leading-tight text-ink-primary">
                     {teamNames.get(mgr.rosterId) ?? mgr.name}
                   </div>
                   <div className="truncate text-[0.6875rem] leading-tight text-ink-muted">{mgr.name}</div>
@@ -221,7 +221,7 @@ function WeekGrid({
                   return (
                     <td
                       key={w}
-                      className={`relative border-t border-grid px-0.5 py-2 text-center tabular-nums ${
+                      className={`relative border-t border-grid px-0.5 py-0.5 text-center tabular-nums ${
                         w === firstPlayoff ? "border-l" : ""
                       } ${pending ? LIVE_BG : ""}`}
                       title={
@@ -234,7 +234,7 @@ function WeekGrid({
                         // This manager's season earnings, as a thin bar along the bottom of the row's weeks.
                         <span
                           aria-hidden
-                          className="pointer-events-none absolute bottom-0 left-0 z-0 h-[3px] bg-[color-mix(in_srgb,var(--map-tag)_55%,transparent)] transition-[width] duration-500"
+                          className="pointer-events-none absolute bottom-0 left-0 z-0 h-[3px] bg-[var(--map-tag)] transition-[width] duration-500"
                           // Every week column is the same width, so the full bar is that many of this first cell.
                           style={{ width: `${(mgr.total / maxTotal) * weeks.length * 100}%` }}
                         />
@@ -253,7 +253,7 @@ function WeekGrid({
                 })}
                 {hasSeasonRules ? (
                   <td
-                    className="border-t border-grid px-1.5 py-2 text-center tabular-nums"
+                    className="border-t border-grid px-1.5 py-0.5 text-center tabular-nums"
                     title={mgr.seasonEnd > 0 ? breakdown(mgr.seasonDetail) : seasonDecided ? "No season-end award" : "Decided at season’s end"}
                   >
                     {mgr.seasonEnd > 0 ? (
@@ -265,9 +265,9 @@ function WeekGrid({
                     )}
                   </td>
                 ) : null}
-                <td className="border-t border-grid py-2 pl-3 text-right font-semibold tabular-nums text-ink-primary">{money(mgr.total)}</td>
+                <td className="border-t border-grid py-0.5 pl-3 text-right font-semibold tabular-nums text-ink-primary">{money(mgr.total)}</td>
                 <td
-                  className={`border-t border-grid py-2 pl-3 text-right tabular-nums ${
+                  className={`border-t border-grid py-0.5 pl-3 text-right tabular-nums ${
                     mgr.net > 0 ? "text-status-good" : mgr.net < 0 ? "text-status-critical" : "text-ink-muted"
                   }`}
                 >
