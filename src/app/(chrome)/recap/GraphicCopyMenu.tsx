@@ -11,7 +11,7 @@ interface GraphicCopyMenuProps {
   graphicError: string | null;
   splitStatus: SplitStatus;
   splitError: string | null;
-  /** How many parts the last split render actually produced — usually 3, fewer when the write-up doesn't have enough sections to cut that many times. */
+  /** How many images the last split render produced — as many as the write-up's height needs. */
   splitPartCount: number;
   /** Which of those parts the commish has already clicked "Copy" on, in the needs-parts fallback (see useRecapActions). */
   partCopied: boolean[];
@@ -24,9 +24,9 @@ interface GraphicCopyMenuProps {
  * "Copy graphic" now opens a small menu instead of copying straight away —
  * a single tall PNG is exactly what makes iMessage (and most chat apps)
  * collapse it behind a "tap to view" instead of showing it inline, so
- * there's a second option here that cuts the same picture into 3 shorter
- * images instead (see recap-graphic.ts's drawRecapGraphicParts). That split
- * tries to copy all 3 images to the clipboard in one shot first; browsers
+ * there's a second option here that cuts the same picture into as many
+ * shorter images as it needs (see recap-graphic.ts's drawRecapGraphicParts).
+ * That split tries to copy every image to the clipboard in one shot first; browsers
  * that don't support a multi-item clipboard write fall back into
  * "needs-parts" here, which swaps the two top-level choices for one "Copy"
  * button per image so the commish can paste them into the chat one at a
@@ -62,9 +62,9 @@ export function GraphicCopyMenu({
     };
   }, [open]);
 
-  // A one-shot copy (the whole graphic, or all 3 split images at once)
+  // A one-shot copy (the whole graphic, or every split image at once)
   // closes the menu right away — there's nothing left to do here. The
-  // needs-parts fallback keeps it open, since walking through 3 separate
+  // needs-parts fallback keeps it open, since walking through separate
   // copy-and-paste steps is the whole point of that state. Done during
   // render (comparing against the previous statuses, tracked in state —
   // never a ref, which isn't safe to read/write during render), not an
@@ -106,11 +106,6 @@ export function GraphicCopyMenu({
       >
         {triggerCopied ? <CheckIcon className="h-4 w-4" /> : <ImageIcon className="h-4 w-4" />}
       </button>
-      {/* A sliver of the graphic's own neon theme along the bottom edge — ties this button to what it produces. */}
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-[3px] bg-gradient-to-r from-[#ff2e9a] via-[#22d3ee] to-[#39ff8e]"
-      />
 
       {open ? (
         <div role="menu" className="absolute right-0 top-full z-20 mt-2 w-64 border border-border bg-surface-raised shadow-lg">
@@ -133,20 +128,13 @@ export function GraphicCopyMenu({
                 onClick={onCopySplit}
                 className="flex items-center justify-between px-3 py-2 text-left text-sm text-ink-primary transition-colors hover:bg-page disabled:opacity-30"
               >
-                <span>Split into 3 images</span>
+                <span>Split for group chats</span>
                 {splitStatus === "generating" ? <span className="text-xs text-ink-muted">Rendering…</span> : null}
               </button>
-              <p className="px-3 pb-1.5 pt-0.5 text-xs text-ink-muted">
-                Splits a tall graphic into shorter images so apps like iMessage show them in full, instead of collapsing one long
-                image behind &ldquo;tap to view.&rdquo;
-              </p>
             </div>
           ) : (
             <div className="flex flex-col p-1">
-              <p className="px-3 pb-1 pt-2 text-xs text-ink-muted">
-                This browser can only copy one image at a time — copy each below, pasting it into the chat before copying the
-                next.
-              </p>
+              <p className="px-3 pb-1 pt-2 text-xs text-ink-muted">Copy and paste one at a time.</p>
               {Array.from({ length: splitPartCount }).map((_, i) => (
                 <button
                   key={i}

@@ -547,7 +547,7 @@ export function RecapSectionsEditor({
   const decidedHonorable = decidedMatchupFor(teams, honorableMatchup);
 
   return (
-    <div className="recap-neon">
+    <div className="recap-neon app-theme">
       <span className="rn-badge">Commi$h</span>
       <div className="rn-title-row">
         <TitleField value={model.title} onChange={(v) => set("title", v)} />

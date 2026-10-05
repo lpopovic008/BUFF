@@ -616,3 +616,148 @@
   background: var(--rn-hairline);
   margin: 4px 0;
 }
+
+/* ---------- the app's own theme (the editor on the page) ----------
+   The editor in the rest of the app's look: black and white in either
+   theme, section titles on the map-tag plate, square corners, the app font,
+   color only where it means something (wins, losses, medals). Only the
+   on-page editor carries .app-theme. The exported picture is drawn
+   separately on a canvas (recap-graphic.ts) and keeps its neon look; none
+   of this reaches it. */
+
+.recap-neon.app-theme {
+  --neon-pink: var(--ink-secondary);
+  --neon-blue: var(--ink-primary);
+  --neon-green: var(--ink-muted);
+  --rn-card: var(--surface-raised);
+  --rn-primary: var(--ink-primary);
+  --rn-secondary: var(--ink-secondary);
+  --rn-muted: var(--ink-muted);
+  --rn-hairline: var(--border);
+  --rn-win: var(--status-good);
+  --rn-loss: var(--status-critical);
+  --rn-radius: 0px;
+  background: none;
+  padding: 0;
+}
+.recap-neon.app-theme,
+.recap-neon.app-theme * {
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+.recap-neon.app-theme .rn-badge {
+  border-radius: 0;
+  background: var(--map-tag);
+  color: var(--map-tag-ink);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.recap-neon.app-theme .rn-underline {
+  border-radius: 0;
+  height: 3px;
+  background: var(--ink-primary);
+}
+
+.recap-neon.app-theme .rn-card,
+.recap-neon.app-theme .rn-poster-card {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+}
+
+/* Section titles on the plate, edge to edge across the card's top. */
+.recap-neon.app-theme .rn-section-header {
+  margin: calc(-1 * var(--rn-pad-y)) calc(-1 * var(--rn-pad-x)) 0;
+  padding: 7px 44px 7px 14px;
+  justify-content: flex-start;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: var(--map-tag);
+  color: var(--map-tag-ink);
+}
+.recap-neon.app-theme .rn-section-header .rn-label {
+  color: var(--map-tag-ink);
+}
+.recap-neon.app-theme .rn-section-header > :last-child:not(.rn-label) {
+  display: none;
+}
+.recap-neon.app-theme .rn-include-toggle {
+  top: 9px;
+  right: 12px;
+  accent-color: var(--map-tag-ink);
+}
+.recap-neon.app-theme .rn-poster-card .rn-include-toggle {
+  top: 12px;
+  accent-color: var(--ink-primary);
+}
+
+.recap-neon.app-theme .rn-detail-toggle {
+  border-radius: 0;
+  background: transparent;
+}
+.recap-neon.app-theme .rn-avatar {
+  background: var(--page);
+  color: var(--ink-secondary);
+}
+.recap-neon.app-theme .rn-player-score {
+  background: none;
+  color: var(--ink-primary);
+}
+.recap-neon.app-theme .rn-lastweek-row {
+  border-radius: 0;
+  background: var(--page);
+}
+.recap-neon.app-theme .rn-lastweek-bar {
+  background: var(--map-tag);
+  opacity: 0.14;
+}
+.recap-neon.app-theme .rn-bill {
+  border-radius: 0;
+  background: var(--map-tag);
+  color: var(--map-tag-ink);
+}
+.recap-neon.app-theme .rn-trailer {
+  color: var(--ink-secondary);
+}
+.recap-neon.app-theme .rn-vs {
+  color: var(--ink-muted);
+}
+.recap-neon.app-theme .rn-generate-button {
+  border-radius: 0;
+  border-color: var(--map-tag);
+  background: var(--map-tag);
+  color: var(--map-tag-ink);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.recap-neon.app-theme .rn-generate-button:hover:not(:disabled) {
+  background: var(--map-tag);
+  border-color: var(--map-tag);
+  opacity: 0.9;
+}
+.recap-neon.app-theme .rn-generate-error {
+  color: var(--status-critical);
+}
+.recap-neon.app-theme .rn-team-select {
+  border-radius: 0;
+  background: var(--page);
+}
+/* The include checkbox's label takes no room of its own, so the plate meets the card's top edge. */
+.recap-neon.app-theme .rn-include-toggle-wrap {
+  display: contents;
+}
+/* Team circles stand out from the card in both themes. */
+.recap-neon.app-theme .rn-avatar {
+  background: var(--grid-hairline);
+}
+/* Medals as solid colors that read on light and dark alike. */
+.recap-neon.app-theme .rn-rank-label.rn-gold {
+  background: none;
+  color: #c99a06;
+}
+.recap-neon.app-theme .rn-rank-label.rn-bronze {
+  background: none;
+  color: #b06a3b;
+}

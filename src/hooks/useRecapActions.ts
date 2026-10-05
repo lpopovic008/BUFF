@@ -109,6 +109,18 @@ export function useRecapActions(args: RecapActionsArgs) {
   // hand-diverged version.
   const body = args.model ? joinRecapModel(args.model) : args.plainBody;
 
+  // A split rendered for an earlier version of the write-up is stale once
+  // anything changes — a section toggled off can mean fewer images — so the
+  // per-image copy list goes away and the next split renders fresh.
+  const contentKey = `${body}\u0000${JSON.stringify(args.model?.include ?? {})}`;
+  const [splitKey, setSplitKey] = useState(contentKey);
+  if (splitKey !== contentKey) {
+    setSplitKey(contentKey);
+    if (splitStatus === "needs-parts") setSplitStatus("idle");
+    setSplitParts(null);
+    setPartCopied([]);
+  }
+
   async function handleCopy() {
     await navigator.clipboard.writeText(body);
     setCopied(true);
@@ -188,12 +200,12 @@ export function useRecapActions(args: RecapActionsArgs) {
   }
 
   /**
-   * Same picture as handleCopyGraphic, but cut into 3 shorter images (see
-   * drawRecapGraphicParts) instead of one tall one — iMessage (and other
+   * Same picture as handleCopyGraphic, but cut into as many shorter images
+   * as it takes (see drawRecapGraphicParts) instead of one tall one — iMessage (and other
    * chat apps) bubble-collapse a sufficiently tall image behind a "tap to
    * view" instead of showing it inline, which a single image can't avoid
    * once the write-up has more than a few sections included. Tries copying
-   * all 3 parts to the clipboard in one go first; not every browser accepts
+   * every part to the clipboard in one go first; not every browser accepts
    * multiple ClipboardItems in a single write() call, so a failure there
    * falls back to "needs-parts" — copying each part individually via
    * handleCopySplitPart — instead of just failing outright.
@@ -204,7 +216,7 @@ export function useRecapActions(args: RecapActionsArgs) {
     setSplitParts(null);
     setPartCopied([]);
     try {
-      const canvases = await drawRecapGraphicParts(body, args.model, buildGraphicExtras(), 3);
+      const canvases = await drawRecapGraphicParts(body, args.model, buildGraphicExtras());
       const blobPromises = canvases.map(canvasToBlobPromise);
       try {
         await navigator.clipboard.write(blobPromises.map((p) => new ClipboardItem({ "image/png": p })));
@@ -285,7 +297,7 @@ export function useRecapActions(args: RecapActionsArgs) {
     graphicError,
     splitStatus,
     splitError,
-    /** How many parts the last split render actually produced — see drawRecapGraphicParts, which can return fewer than 3 when there aren't enough sections to cut cleanly. */
+    /** How many images the last split render produced — as many as the write-up's height needs (see drawRecapGraphicParts). */
     splitPartCount: splitParts?.length ?? 0,
     partCopied,
     docStatus,

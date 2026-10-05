@@ -405,9 +405,10 @@ interface SectionTitle {
  * emoji glyph can make it render tinted instead of its native color.
  */
 const GRAPHIC_SECTION_TITLE: Record<
-  "highScorer" | "winners" | "lastWeek" | "standings" | "records" | "upcomingBowl" | "upcomingHonorable",
+  "aiRecap" | "highScorer" | "winners" | "lastWeek" | "standings" | "records" | "upcomingBowl" | "upcomingHonorable",
   SectionTitle
 > = {
+  aiRecap: { emoji: "✨", label: "AI Recap" },
   highScorer: { emoji: "🏆", label: "High Scorer" },
   winners: { emoji: "💵", label: "Winners" },
   lastWeek: { emoji: "📊", label: "Last Week" },
@@ -746,6 +747,30 @@ class Layout {
   }
 
   /** Usernames with how much they won this week (above the logo) and how much they won their matchup by (below the username), highest scorer first — no bars, just who and how much. */
+  /** The AI Recap: the ghostwritten paragraph in a card under its header, then any Detail commentary in bright white beneath it — the same treatment every other card gives its Detail. */
+  aiRecapCard(title: SectionTitle, text: string, detail?: string) {
+    if (!text.trim()) return;
+    this.card((paint, inner) => {
+      let h = this.sectionHeader(paint, inner, title);
+      h += 18;
+      h += drawText(this.ctx, paint, inner.x, inner.y + h, inner.width, text.trim(), {
+        size: 20,
+        color: COLOR.secondary,
+        lineHeight: 30,
+      });
+      if (detail?.trim()) {
+        h += 14;
+        h += drawText(this.ctx, paint, inner.x, inner.y + h, inner.width, detail.trim(), {
+          size: 18,
+          weight: "800",
+          color: COLOR.primary,
+          lineHeight: 26,
+        });
+      }
+      return h;
+    });
+  }
+
   winnersRow(title: SectionTitle, rows: WinnerGraphicRow[], detail?: string) {
     if (rows.length === 0) return;
     this.card((paint, inner) => {
@@ -1213,6 +1238,7 @@ function runLayout(
   const included = (key: RecapSectionKey) => isSectionIncluded({ include: matchups.include ?? {} }, key);
 
   if (model) {
+    if (included("aiRecap")) l.aiRecapCard(GRAPHIC_SECTION_TITLE.aiRecap, model.aiRecap, model.aiRecapDetail);
     if (included("bowl")) l.decidedMatchup(matchups.bowl ?? PLACEHOLDER_MATCHUP, model.bowlDetail);
     if (included("honorable")) l.decidedMatchup(matchups.honorable ?? PLACEHOLDER_MATCHUP, model.honorableDetail);
     if (included("highScorer")) {
@@ -1411,56 +1437,79 @@ export async function drawRecapGraphic(
 }
 
 /**
- * Picks up to `parts - 1` interior cut points from `boundaries` (each the Y
- * right after some whole section — see Layout.markBoundary), each as close
- * as possible to its even-Nths target, so a 3-way split lands close to
- * thirds without ever cutting through the middle of a section. Returns
- * fewer cuts than requested when there aren't enough section boundaries to
- * work with (e.g. only 1-2 sections included) rather than forcing an
- * uneven or mid-section split.
+ * The tallest a single image of the split can be: a phone screen's 9:16, so
+ * every piece shows in full inline in a group chat instead of being cropped
+ * or collapsed behind "tap to view" (iMessage collapses very tall images).
  */
-function choosePartCuts(boundaries: number[], totalHeight: number, parts: number): number[] {
-  const need = parts - 1;
-  if (need <= 0) return [];
-  const candidates = Array.from(new Set(boundaries.filter((b) => b > 0 && b < totalHeight))).sort((a, b) => a - b);
+export const MAX_PART_HEIGHT = Math.round((WIDTH * 16) / 9);
+
+/** Greedy cut points no more than `maxHeight` apart, cutting only at section boundaries; a single section taller than `maxHeight` gets an image to itself. */
+function greedyCuts(candidates: number[], totalHeight: number, maxHeight: number): number[] {
   const cuts: number[] = [];
-  for (let i = 1; i <= need; i++) {
-    const target = (totalHeight * i) / parts;
-    let best: number | null = null;
-    let bestDist = Infinity;
+  let top = 0;
+  while (totalHeight - top > maxHeight) {
+    let next: number | null = null;
     for (const b of candidates) {
-      if (cuts.length > 0 && b <= cuts[cuts.length - 1]) continue;
-      const dist = Math.abs(b - target);
-      if (dist < bestDist) {
-        bestDist = dist;
-        best = b;
-      }
+      if (b <= top) continue;
+      if (b - top <= maxHeight) next = b;
+      else break;
     }
-    if (best === null) break;
-    cuts.push(best);
+    // Nothing fits: the next section alone is taller than an image — cut right after it.
+    if (next === null) next = candidates.find((b) => b > top) ?? null;
+    if (next === null) break;
+    cuts.push(next);
+    top = next;
   }
   return cuts;
 }
 
 /**
- * The same graphic as drawRecapGraphic, but sliced into up to `parts`
- * separate canvases instead of one continuous one — each short enough to
+ * Where to cut the graphic so it splits into as few images as possible, each
+ * no taller than `maxHeight` (see MAX_PART_HEIGHT), and those images as even
+ * as possible. Cuts only land on `boundaries` (the Y right after a whole
+ * section — see Layout.markBoundary), never through a section. The fewest
+ * images comes from packing sections greedily; evening them out is a search
+ * for the smallest height cap that still needs no more images than that.
+ */
+export function choosePartCuts(boundaries: number[], totalHeight: number, maxHeight = MAX_PART_HEIGHT): number[] {
+  if (totalHeight <= maxHeight) return [];
+  const candidates = Array.from(new Set(boundaries.filter((b) => b > 0 && b < totalHeight))).sort((a, b) => a - b);
+  const fewest = greedyCuts(candidates, totalHeight, maxHeight);
+  const parts = fewest.length + 1;
+  let lo = Math.ceil(totalHeight / parts);
+  let hi = maxHeight;
+  let best = fewest;
+  while (lo <= hi) {
+    const mid = Math.floor((lo + hi) / 2);
+    const cuts = greedyCuts(candidates, totalHeight, mid);
+    if (cuts.length + 1 <= parts) {
+      best = cuts;
+      hi = mid - 1;
+    } else {
+      lo = mid + 1;
+    }
+  }
+  return best;
+}
+
+/**
+ * The same graphic as drawRecapGraphic, but sliced into as many separate
+ * canvases as it takes for each to be short enough (see MAX_PART_HEIGHT) to
  * display in full inline in a chat app that bubble-collapses very tall
  * images behind a "tap to view" instead of showing them outright (iMessage
- * in particular). Cuts only ever land between whole sections (see
- * choosePartCuts), so every piece still reads as a complete, self-contained
- * graphic rather than a section sliced in half. Each canvas is painted
+ * in particular) — fewer when fewer sections are included. Cuts only ever
+ * land between whole sections (see choosePartCuts), so every piece still
+ * reads as a complete, self-contained graphic rather than a section sliced
+ * in half. Each canvas is painted
  * against the exact same background gradient the single-image graphic
  * would use for that same vertical stretch, so the pieces still look like
- * one continuous picture if someone lines them back up. Returns fewer than
- * `parts` canvases when the write-up doesn't have enough distinct sections
- * to cut cleanly that many times.
+ * one continuous picture if someone lines them back up. A graphic that
+ * already fits comes back as a single canvas.
  */
 export async function drawRecapGraphicParts(
   body: string,
   model: RecapModel | null,
-  matchups: RecapGraphicExtras = {},
-  parts = 3
+  matchups: RecapGraphicExtras = {}
 ): Promise<HTMLCanvasElement[]> {
   const { header, restBody, gctx } = await prepareGraphic(body, model, matchups);
 
@@ -1469,7 +1518,7 @@ export async function drawRecapGraphicParts(
   const boundaries: number[] = [];
   const totalHeight = runLayout(measureCtx, header, model, restBody, matchups, gctx, false, boundaries);
 
-  const cuts = choosePartCuts(boundaries, totalHeight, parts);
+  const cuts = choosePartCuts(boundaries, totalHeight);
   const edges = [0, ...cuts, totalHeight];
 
   const scale = 2;

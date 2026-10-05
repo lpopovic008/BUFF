@@ -8,7 +8,6 @@ import { LeagueTeamOption } from "@/hooks/useLeagueTeams";
 import { WeekRecapData } from "@/lib/league-data";
 import { PayoutLedger } from "@/lib/payouts";
 import { GraphicTeam } from "@/lib/recap-graphic-data";
-import { recapBodyFont } from "@/lib/fonts";
 import { RecapSectionsEditor } from "./RecapSectionsEditor";
 
 // The graphic replica has a fixed authored width (see recap-neon.css's
@@ -145,7 +144,7 @@ export function RecapEditor({
               onModelChange(freshModel);
               onPlainBodyChange("");
             }}
-            className="self-start text-xs font-medium text-series-1 underline decoration-dotted hover:text-series-1/80"
+            className="self-start text-xs font-medium text-ink-secondary underline decoration-dotted hover:text-ink-primary"
           >
             This write-up was saved in an older format — switch to the new graphic-style layout
           </button>
@@ -154,7 +153,7 @@ export function RecapEditor({
           value={plainBody}
           onChange={(e) => onPlainBodyChange(e.target.value)}
           rows={20}
-          className={`${recapBodyFont.className} w-full border border-border bg-page p-4 text-sm text-ink-primary outline-none transition-colors focus:border-series-1`}
+          className="w-full border border-border bg-page p-4 text-sm text-ink-primary outline-none transition-colors focus:border-ink-primary"
         />
       </div>
     );
@@ -165,7 +164,7 @@ export function RecapEditor({
     // (see GRAPHIC_WIDTH above and recap-neon.css) instead of a responsive
     // one, so ScaleToFit zooms the whole thing uniformly to the available
     // width, rather than each component squeezing/wrapping on its own.
-    <div className={recapBodyFont.className}>
+    <div>
       <ScaleToFit width={GRAPHIC_WIDTH}>
         <RecapSectionsEditor
           model={model}
