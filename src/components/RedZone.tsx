@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { LeagueLegendEntry, LeagueMark } from "@/components/LeagueMark";
-import { FeedEntry, RedZoneFeed, RedZoneNow } from "@/hooks/useRedZoneFeed";
+import { FeedEntry, FeedScope, RedZoneNow, useRedZoneFeed } from "@/hooks/useRedZoneFeed";
 import { useLiveMode } from "@/hooks/useLiveTick";
-import { GroupedStarter } from "@/lib/my-starters";
-import { isBigPlay } from "@/lib/play-by-play";
+import { GameStarters, GroupedStarter } from "@/lib/my-starters";
+import { NFLGame } from "@/lib/nfl-schedule";
 import { formatPlayPoints } from "@/lib/play-points";
 import { nflLogoFilter, nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
@@ -94,7 +94,7 @@ function Badge({ children, className }: { children: string; className: string })
 /** Each play's marks: a score, a takeaway, a red-zone snap, a long gain. */
 function PlayBadges({ entry }: { entry: FeedEntry }) {
   const { play, players } = entry;
-  const defense = players.every((p) => p.position === "DEF");
+  const defense = players.length > 0 && players.every((p) => p.position === "DEF");
   return (
     <span className="flex flex-wrap justify-end gap-1">
       {play.scoring ? <Badge className="bg-status-good text-white">{/touchdown/i.test(play.type + play.text) ? "TD" : "Score"}</Badge> : null}
@@ -109,7 +109,9 @@ function PlayBadges({ entry }: { entry: FeedEntry }) {
 
 /**
  * One play: your starter's photo, who (with the leagues they're started in),
- * ESPN's line for the play, and when. A play that arrives while you watch
+ * ESPN's line for the play, and when — the down and distance it was snapped
+ * on, the team with the ball, the clock. A play none of your starters were in
+ * (the all-plays view) leads with the team with the ball instead. A play that arrives while you watch
  * slides in and washes its row in color — green for a score, red otherwise.
  */
 function FeedRow({
@@ -126,9 +128,10 @@ function FeedRow({
   // Decided once, when the row first appears.
   const [live] = useState(arrivedLive);
   const { play, players } = entry;
-  const lead = players[0];
+  const lead = players[0] as GroupedStarter | undefined;
   const leagueIds = [...new Set(players.flatMap((p) => p.leagueIds))];
-  const good = play.scoring || (play.turnover && players.every((p) => p.position === "DEF"));
+  const good = play.scoring || (play.turnover && players.length > 0 && players.every((p) => p.position === "DEF"));
+  const { game } = entry;
   return (
     <li
       className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2 border-b border-border px-1 py-2 last:border-b-0 ${
@@ -142,9 +145,9 @@ function FeedRow({
       }}
     >
       <span className="relative mt-0.5">
-        {lead.position === "DEF" && lead.team ? (
+        {!lead || (lead.position === "DEF" && lead.team) ? (
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-page">
-            <TeamLogo team={lead.team} side={20} />
+            {(lead?.team ?? play.offense) ? <TeamLogo team={(lead?.team ?? play.offense)!} side={20} /> : null}
           </span>
         ) : (
           <PlayerHeadshot playerId={lead.playerId} size={32} />
@@ -156,23 +159,33 @@ function FeedRow({
         ) : null}
       </span>
       <span className="min-w-0">
-        <span className="flex min-w-0 items-center gap-1.5">
-          <span className="min-w-0 truncate text-[0.8125rem] font-bold text-ink-primary">
-            {players.map(displayName).join(" & ")}
+        {lead ? (
+          <span className="flex min-w-0 items-center gap-1.5">
+            <span className="min-w-0 truncate text-[0.8125rem] font-bold text-ink-primary">
+              {players.map(displayName).join(" & ")}
+            </span>
+            <span className={`shrink-0 text-[0.625rem] font-semibold uppercase ${POSITION_TEXT_COLOR[lead.position] ?? "text-ink-muted"}`}>
+              {lead.position === "DEF" ? "" : lead.position}
+            </span>
+            <span className="flex shrink-0 items-center gap-0.5">
+              {leagueIds.map((id) => (
+                <LeagueMark key={id} league={legendByLeagueId.get(id)} className="h-3 w-3" />
+              ))}
+            </span>
           </span>
-          <span className={`shrink-0 text-[0.625rem] font-semibold uppercase ${POSITION_TEXT_COLOR[lead.position] ?? "text-ink-muted"}`}>
-            {lead.position === "DEF" ? "" : lead.position}
+        ) : (
+          <span className="flex min-w-0 items-baseline gap-1.5">
+            <span className="text-[0.8125rem] font-bold text-ink-primary">{play.offense ?? game.awayTeam}</span>
+            <span className="truncate text-[0.625rem] uppercase text-ink-muted">
+              {game.awayTeam} @ {game.homeTeam}
+            </span>
           </span>
-          <span className="flex shrink-0 items-center gap-0.5">
-            {leagueIds.map((id) => (
-              <LeagueMark key={id} league={legendByLeagueId.get(id)} className="h-3 w-3" />
-            ))}
-          </span>
-        </span>
+        )}
         <span className="mt-0.5 line-clamp-2 text-[0.75rem] leading-snug text-ink-secondary">{play.text}</span>
       </span>
       <span className="flex flex-col items-end gap-1">
         <span className="flex items-center gap-1 whitespace-nowrap text-[0.6875rem] tabular-nums text-ink-muted">
+          {play.downDistance ? <span className="font-semibold text-ink-secondary">{play.downDistance}</span> : null}
           {play.offense ? <TeamLogo team={play.offense} side={12} /> : null}
           {whenLabel(entry)}
         </span>
@@ -195,7 +208,9 @@ function RedZoneAlert({ alert }: { alert: RedZoneNow }) {
         <span className="block text-[0.6875rem] font-bold uppercase tracking-wide text-status-critical">
           {alert.downDistance ?? `${alert.team} in the red zone`}
         </span>
-        <span className="block truncate text-[0.75rem] text-ink-primary">{alert.players.map(displayName).join(", ")}</span>
+        <span className="block truncate text-[0.75rem] text-ink-primary">
+          {alert.players.length > 0 ? alert.players.map(displayName).join(", ") : `${alert.game.awayTeam} @ ${alert.game.homeTeam}`}
+        </span>
       </span>
       <span className="flex shrink-0 -space-x-2">
         {alert.players.slice(0, 4).map((p) => (
@@ -208,17 +223,33 @@ function RedZoneAlert({ alert }: { alert: RedZoneNow }) {
   );
 }
 
+const SCOPES: { label: string; value: FeedScope }[] = [
+  { label: "My players", value: "mine" },
+  { label: "All plays", value: "all" },
+];
+
 /**
- * The Red Zone: every play your starters are part of, as it happens, newest
- * on top — and, pinned above the plays, any game where one of their teams has
- * the ball inside the 20. Follows the shared live clock, so it moves with the
- * scores everywhere else on the page.
+ * The Red Zone: plays as they happen, newest on top — by default only the
+ * ones your starters are part of, or every play of every game — and, pinned
+ * above them, the games where a team has the ball inside the 20. Follows the
+ * shared live clock, so it moves with the scores everywhere else on the page.
  */
-export function RedZone({ feed, legend, anyStarted }: { feed: RedZoneFeed; legend: LeagueLegendEntry[]; anyStarted: boolean }) {
+export function RedZone({
+  starters,
+  weekGames,
+  legend,
+}: {
+  /** Your starters, grouped by the game they're playing in. */
+  starters: GameStarters[];
+  /** Every game of the week. */
+  weekGames: NFLGame[];
+  legend: LeagueLegendEntry[];
+}) {
   const mode = useLiveMode();
-  const [bigOnly, setBigOnly] = useState(false);
+  const [scope, setScope] = useState<FeedScope>("mine");
+  const feed = useRedZoneFeed(starters, weekGames, scope);
   const [shown, setShown] = useState(PAGE);
-  // Plays already on hand when the feed first fills in just slide in; ones that arrive after that flash.
+  // Plays already on hand when the feed fills in just slide in; ones that arrive after that flash.
   const [settled, setSettled] = useState(false);
   const hasEntries = feed.entries.length > 0;
   useEffect(() => {
@@ -226,34 +257,41 @@ export function RedZone({ feed, legend, anyStarted }: { feed: RedZoneFeed; legen
     const id = setTimeout(() => setSettled(true), 1500);
     return () => clearTimeout(id);
   }, [hasEntries, settled]);
+  const pickScope = (next: FeedScope) => {
+    if (next === scope) return;
+    setScope(next);
+    setShown(PAGE);
+    setSettled(false);
+  };
 
   const legendByLeagueId = new Map(legend.map((l) => [l.leagueId, l]));
-  const entries = bigOnly ? feed.entries.filter((e) => isBigPlay(e.play)) : feed.entries;
+  const entries = feed.entries;
   const live = mode === "live";
+  const anyStarted =
+    scope === "mine"
+      ? starters.some((g) => g.game.state !== "pre" && g.players.length > 0)
+      : weekGames.some((g) => g.state !== "pre");
 
   return (
     <Card className="flex flex-col gap-2 p-3">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="flex items-center gap-2">
-          <span className="relative flex h-2.5 w-2.5" aria-hidden>
+        <h2 className="flex min-w-0 items-center gap-2">
+          <span className="relative flex h-2.5 w-2.5 shrink-0" aria-hidden>
             {live ? <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-status-critical opacity-60" /> : null}
             <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${live ? "bg-status-critical" : "bg-ink-muted"}`} />
           </span>
           <span className="text-sm font-bold uppercase tracking-[0.2em] text-ink-primary">Red Zone</span>
-          <span className="text-[0.6875rem] text-ink-muted">{live ? "Live · every 15s · PPR" : "Your starters, play by play · PPR"}</span>
+          <span className="truncate text-[0.6875rem] text-ink-muted">{live ? "Live · every 15s · PPR" : "Play by play · PPR"}</span>
         </h2>
         <div className="flex shrink-0 border border-border text-[0.6875rem] font-semibold" role="group" aria-label="Which plays">
-          {[
-            { label: "All", value: false },
-            { label: "Big plays", value: true },
-          ].map((opt) => (
+          {SCOPES.map((opt) => (
             <button
-              key={opt.label}
+              key={opt.value}
               type="button"
-              aria-pressed={bigOnly === opt.value}
-              onClick={() => setBigOnly(opt.value)}
-              className={`px-2 py-0.5 transition-colors ${
-                bigOnly === opt.value ? "bg-ink-primary text-surface-raised" : "text-ink-secondary hover:text-ink-primary"
+              aria-pressed={scope === opt.value}
+              onClick={() => pickScope(opt.value)}
+              className={`whitespace-nowrap px-2 py-0.5 transition-colors ${
+                scope === opt.value ? "bg-ink-primary text-surface-raised" : "text-ink-secondary hover:text-ink-primary"
               }`}
             >
               {opt.label}
@@ -272,7 +310,7 @@ export function RedZone({ feed, legend, anyStarted }: { feed: RedZoneFeed; legen
 
       {entries.length > 0 ? (
         <>
-          <ol className="flex flex-col" aria-label="Plays your starters were part of" aria-live="polite">
+          <ol className="flex flex-col" aria-label={scope === "mine" ? "Plays your starters were part of" : "Every play"} aria-live="polite">
             {entries.slice(0, shown).map((entry, i) => (
               <FeedRow
                 key={`${entry.game.id}-${entry.play.id}`}
@@ -298,10 +336,12 @@ export function RedZone({ feed, legend, anyStarted }: { feed: RedZoneFeed; legen
           {feed.loading
             ? "Loading play-by-play…"
             : !anyStarted
-              ? "Plays your starters are part of land here as they happen, once their games kick off."
-              : bigOnly
-                ? "No big plays from your starters yet."
-                : "No plays from your starters yet."}
+              ? scope === "mine"
+                ? "Plays your starters are part of land here as they happen, once their games kick off."
+                : "Every play lands here as it happens, once the week's games kick off."
+              : scope === "mine"
+                ? "No plays from your starters yet."
+                : "No plays yet."}
         </p>
       )}
     </Card>

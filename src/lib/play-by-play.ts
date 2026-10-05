@@ -29,12 +29,23 @@ export interface GamePlay {
   yards: number;
   /** Snapped from inside the defense's 20. */
   redZone: boolean;
+  /** The down and distance it was snapped on, e.g. "3rd & 4", "1st & Goal" — null for kickoffs, extra points and the like. */
+  downDistance: string | null;
   /** When the play happened, in ms. Null if ESPN didn't say. */
   at: number | null;
 }
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
+}
+
+const ORDINALS = ["", "1st", "2nd", "3rd", "4th"];
+
+/** "3rd & 4", or "1st & Goal" when the line to gain is the goal line; null off a down (kickoffs, tries). */
+export function downAndDistance(down: number, distance: number, yardsToEndzone: number): string | null {
+  if (!(down >= 1 && down <= 4) || !Number.isFinite(distance)) return null;
+  const goal = Number.isFinite(yardsToEndzone) && yardsToEndzone <= distance;
+  return `${ORDINALS[down]} & ${goal ? "Goal" : distance}`;
 }
 
 /** Drops the formation note ESPN opens a play with: "(Shotgun) ", "(No Huddle, Shotgun) ". */
@@ -69,6 +80,7 @@ export function parseSummaryPlays(gameId: string, data: unknown): GamePlay[] {
       const toEndzone = Number(start.yardsToEndzone);
       const down = Number(start.down);
       const at = typeof p.wallclock === "string" ? Date.parse(p.wallclock) : NaN;
+      const distance = Number(start.distance);
       plays.push({
         id,
         gameId,
@@ -82,6 +94,10 @@ export function parseSummaryPlays(gameId: string, data: unknown): GamePlay[] {
         turnover: p.isTurnover === true,
         yards: Number(p.statYardage) || 0,
         redZone: down > 0 && Number.isFinite(toEndzone) && toEndzone <= 20,
+        downDistance:
+          typeof start.shortDownDistanceText === "string" && start.shortDownDistanceText
+            ? start.shortDownDistanceText
+            : downAndDistance(down, distance, toEndzone),
         at: Number.isFinite(at) ? at : null,
       });
     }
@@ -116,6 +132,7 @@ export function playFromLastPlay(gameId: string, last: LastPlay, seenAt: number)
     turnover: /interception|fumble recovery \(opponent\)/i.test(last.type),
     yards: 0,
     redZone: false,
+    downDistance: null,
     at: seenAt,
   };
 }

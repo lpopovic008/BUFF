@@ -13,7 +13,6 @@ import { MatchupTarget, useDashboardMatchups } from "@/hooks/useDashboardMatchup
 import { StarterSource, useMyStarters } from "@/hooks/useMyStarters";
 import { useNFLState } from "@/hooks/useNFLState";
 import { useWeekGames } from "@/hooks/useWeekGames";
-import { useRedZoneFeed } from "@/hooks/useRedZoneFeed";
 import { getLeagueSummary, LeagueSummary, teamStandings } from "@/lib/league-data";
 import { groupStartersByGame, GroupedStarter } from "@/lib/my-starters";
 import { avatarUrl, getCurrentWeek } from "@/lib/sleeper";
@@ -141,10 +140,6 @@ export default function DashboardPage() {
     [filteredOpponentStarters, weekGames]
   );
 
-  // Every play your (selected leagues') starters are part of, for the Red Zone under the map.
-  const redZoneFeed = useRedZoneFeed(grouped.games);
-  const anyStarted = grouped.games.some((g) => g.game.state !== "pre" && g.players.length > 0);
-
   // Colour per league, keyed off the order leagues are tracked in so a
   // league keeps the same colour on the map, in the list, and in the legend —
   // the fallback for any league whose commish hasn't set a custom logo.
@@ -237,7 +232,7 @@ export default function DashboardPage() {
             {/* Below the map: the Red Zone, your starters' plays as they happen. Your leagues ride the ticker under the header (see LeagueTicker). */}
             {weekGames.length > 0 && myStarters !== null ? (
               <div className="animate-[rise_0.5s_ease-out_backwards] [animation-delay:120ms]">
-                <RedZone feed={redZoneFeed} legend={legend} anyStarted={anyStarted} />
+                <RedZone starters={grouped.games} weekGames={weekGames} legend={legend} />
               </div>
             ) : null}
           </div>

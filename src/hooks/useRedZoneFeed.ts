@@ -7,7 +7,7 @@ import { LIVE_TTL_SECONDS } from "@/lib/live-clock";
 import { FeedCandidate, GamePlay, getGamePlays, playFirstSeenAt, playFromLastPlay, playersInPlay } from "@/lib/play-by-play";
 import { pprPointsForPlay } from "@/lib/play-points";
 
-/** A play one or more of your starters was part of. */
+/** A play — with whichever of your starters were part of it (none, in the all-plays view, for most). */
 export interface FeedEntry {
   play: GamePlay;
   game: NFLGame;
@@ -16,7 +16,7 @@ export interface FeedEntry {
   points: Record<string, { delta: number; total: number }>;
 }
 
-/** A game where a team you have starters on has the ball inside the 20 right now. */
+/** A game where a team has the ball inside the 20 right now — in your-players view, only a team you have starters on. */
 export interface RedZoneNow {
   game: NFLGame;
   team: string;
@@ -41,13 +41,26 @@ function candidatesOf(players: GroupedStarter[]): FeedCandidate[] {
   return players.map((p) => ({ playerId: p.playerId, name: p.name, position: p.position, team: p.team }));
 }
 
+/** Your players' plays only, or every play of every game. */
+export type FeedScope = "mine" | "all";
+
 /**
- * The plays your starters are part of, across every game they're playing in
- * this week, newest first, plus which of their teams are in the red zone right
- * now. Follows the games it's handed: pass in games re-read on each tick of
- * the live clock and it keeps itself current.
+ * This week's plays, newest first, plus who's in the red zone right now. With
+ * scope "mine", only the plays your starters are part of, across the games
+ * they're playing in; with "all", every play of every game that's started
+ * (games without your starters are only fetched once you ask for them).
+ * Follows the games it's handed: pass in games re-read on each tick of the
+ * live clock and it keeps itself current.
+ *
+ * `starters` is your starters grouped by game; `weekGames` is every game of the week.
  */
-export function useRedZoneFeed(games: GameStarters[]): RedZoneFeed {
+export function useRedZoneFeed(starters: GameStarters[], weekGames: NFLGame[], scope: FeedScope): RedZoneFeed {
+  const games = useMemo<GameStarters[]>(() => {
+    if (scope === "mine") return starters.filter((g) => g.players.length > 0);
+    const playersByGame = new Map(starters.map((g) => [g.game.id, g.players]));
+    return weekGames.map((game) => ({ game, players: playersByGame.get(game.id) ?? [] }));
+  }, [starters, weekGames, scope]);
+
   const [playsByGame, setPlaysByGame] = useState<Record<string, GamePlay[]>>({});
   const lastFetchAt = useRef(new Map<string, number>());
   /** The scoreboard's latest play id as of each game's last fetch. */
@@ -72,7 +85,7 @@ export function useRedZoneFeed(games: GameStarters[]): RedZoneFeed {
     };
 
     for (const { game, players } of games) {
-      if (game.state === "pre" || players.length === 0) continue;
+      if (game.state === "pre") continue;
       if (game.state === "post") {
         // Fresh once more at the final whistle, then never again.
         if (!finalFetched.current.has(game.id)) load(game.id, lastFetchAt.current.has(game.id) ? 0 : Infinity, true);
@@ -105,7 +118,7 @@ export function useRedZoneFeed(games: GameStarters[]): RedZoneFeed {
   const entries = useMemo(() => {
     const out: FeedEntry[] = [];
     for (const { game, players } of games) {
-      if (game.state === "pre" || players.length === 0) continue;
+      if (game.state === "pre") continue;
       const candidates = candidatesOf(players);
       const byId = new Map(players.map((p) => [p.playerId, p]));
       const plays = [...(playsByGame[game.id] ?? [])];
@@ -120,7 +133,7 @@ export function useRedZoneFeed(games: GameStarters[]): RedZoneFeed {
       const totals = new Map<string, number>();
       for (const play of plays) {
         const matched = playersInPlay(play, candidates);
-        if (matched.length === 0) continue;
+        if (matched.length === 0 && scope === "mine") continue;
         const points: FeedEntry["points"] = {};
         for (const c of matched) {
           const delta = pprPointsForPlay(play, c);
@@ -136,7 +149,7 @@ export function useRedZoneFeed(games: GameStarters[]): RedZoneFeed {
       const byTime = (b.play.at ?? 0) - (a.play.at ?? 0);
       return byTime !== 0 ? byTime : b.play.sequence - a.play.sequence;
     });
-  }, [games, playsByGame]);
+  }, [games, playsByGame, scope]);
 
   const redZone = useMemo(() => {
     const out: RedZoneNow[] = [];
@@ -144,12 +157,12 @@ export function useRedZoneFeed(games: GameStarters[]): RedZoneFeed {
       const live = game.live;
       if (game.state !== "in" || !live?.isRedZone || !live.possession) continue;
       const onOffense = players.filter((p) => p.team === live.possession && p.position !== "DEF");
-      if (onOffense.length > 0) out.push({ game, team: live.possession, downDistance: live.downDistance, players: onOffense });
+      if (onOffense.length > 0 || scope === "all") out.push({ game, team: live.possession, downDistance: live.downDistance, players: onOffense });
     }
     return out;
-  }, [games]);
+  }, [games, scope]);
 
-  const started = games.filter((g) => g.game.state !== "pre" && g.players.length > 0);
+  const started = games.filter((g) => g.game.state !== "pre");
   const loading = started.length > 0 && !started.some((g) => g.game.id in playsByGame);
 
   return { entries, redZone, loading };

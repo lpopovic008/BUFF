@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { cleanPlayText, FeedCandidate, GamePlay, isBigPlay, parseSummaryPlays, playersInPlay, playTextNamePattern } from "./play-by-play";
+import { cleanPlayText, downAndDistance, FeedCandidate, GamePlay, isBigPlay, parseSummaryPlays, playersInPlay, playTextNamePattern } from "./play-by-play";
 
 function play(over: Partial<GamePlay>): GamePlay {
   return {
@@ -16,6 +16,7 @@ function play(over: Partial<GamePlay>): GamePlay {
     turnover: false,
     yards: 0,
     redZone: false,
+    downDistance: null,
     at: null,
     ...over,
   };
@@ -95,7 +96,7 @@ test("parseSummaryPlays reads drives in game order, with the offense from each d
               clock: { displayValue: "2:59" },
               scoringPlay: false,
               statYardage: 21,
-              start: { down: 1, yardsToEndzone: 65 },
+              start: { down: 1, distance: 10, yardsToEndzone: 65, shortDownDistanceText: "1st & 10" },
               wallclock: "2026-10-02T00:44:14Z",
             },
             { id: "3", sequenceNumber: "7500", type: { text: "Official Timeout" }, text: "Official Timeout at 02:59." },
@@ -114,7 +115,7 @@ test("parseSummaryPlays reads drives in game order, with the offense from each d
             clock: { displayValue: "0:40" },
             scoringPlay: true,
             statYardage: 3,
-            start: { down: 2, yardsToEndzone: 3 },
+            start: { down: 2, distance: 3, yardsToEndzone: 3 },
           },
         ],
       },
@@ -128,6 +129,7 @@ test("parseSummaryPlays reads drives in game order, with the offense from each d
       ["4", "NYG", "C.Skattebo", true, true, 3, 2, "0:40"],
     ]
   );
+  assert.deepEqual(plays.map((p) => p.downDistance), ["1st & 10", "2nd & Goal"]);
   assert.equal(plays[0].at, Date.parse("2026-10-02T00:44:14Z"));
   assert.equal(plays[1].at, null);
 });
@@ -135,4 +137,10 @@ test("parseSummaryPlays reads drives in game order, with the offense from each d
 test("parseSummaryPlays tolerates a summary with no drives", () => {
   assert.deepEqual(parseSummaryPlays("g", { boxscore: {} }), []);
   assert.deepEqual(parseSummaryPlays("g", null), []);
+});
+
+test("downAndDistance spells the down, or Goal when the line to gain is the goal line", () => {
+  assert.equal(downAndDistance(3, 4, 40), "3rd & 4");
+  assert.equal(downAndDistance(1, 4, 4), "1st & Goal");
+  assert.equal(downAndDistance(0, 0, 65), null);
 });

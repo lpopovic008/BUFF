@@ -4,7 +4,7 @@ import { FeedCandidate, GamePlay } from "./play-by-play";
 import { formatPlayPoints, pprPointsForPlay } from "./play-points";
 
 function play(text: string, over: Partial<GamePlay> = {}): GamePlay {
-  return { id: "1", gameId: "g", sequence: 1, text, type: "", period: 1, clock: "", offense: "BUF", scoring: false, turnover: false, yards: 0, redZone: false, at: null, ...over };
+  return { id: "1", gameId: "g", sequence: 1, text, type: "", period: 1, clock: "", offense: "BUF", scoring: false, turnover: false, yards: 0, redZone: false, downDistance: null, at: null, ...over };
 }
 const who = (name: string, position = "WR", team = "BUF"): FeedCandidate => ({ playerId: name, name, position, team });
 const allen = who("Josh Allen", "QB");
