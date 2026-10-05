@@ -53,7 +53,7 @@ export function HistoryButtons() {
 export function PageHistoryButtons() {
   if (usePathname() === "/") return null;
   return (
-    <div className="mb-4">
+    <div className="mb-0.5">
       <HistoryButtons />
     </div>
   );
