@@ -156,34 +156,37 @@ function useTickerMotion(
   }, [viewport, track, count]);
 }
 
-/**
- * One team's row in a ticker entry: its standing on one line — place, name,
- * record, streak — and its score at the right edge. Your own team's name and
- * score are marked out like the map's tags. Two cells of the entry's grid,
- * so both teams' scores line up in one column. Names are never cut short —
- * the entry grows to fit them.
- */
-function TickerTeamRow({
-  name,
-  points,
-  standing,
-  mine,
-}: {
+/** One team in a matchup box: name, score and standing. */
+export interface MatchupRowTeam {
   name: string;
   points: number | null;
   standing?: TeamStanding;
-  /** Your own team, marked out like a map tag. */
-  mine: boolean;
-}) {
+  /** Your own team, marked out like a map tag (when HIGHLIGHT_MINE is on). */
+  mine?: boolean;
+}
+
+/**
+ * One team's row in a matchup box: its standing on one line — place, name,
+ * record, streak — and its score at the right edge. Two cells of the box's
+ * grid, so both teams' scores line up in one column. On the ticker names are
+ * never cut short — the entry grows to fit them; in a fixed-width box
+ * (`fitWidth`) a name too long for it ends in an ellipsis.
+ */
+function TickerTeamRow({ team, fitWidth }: { team: MatchupRowTeam; fitWidth: boolean }) {
+  const { name, points, standing, mine = false } = team;
   const { rank, record, streak } = standing ?? {};
   return (
     <>
-      <div className="flex items-center gap-1.5 whitespace-nowrap">
+      <div className={`flex items-center gap-1.5 whitespace-nowrap ${fitWidth ? "min-w-0" : ""}`}>
         {/* The place as a bare number in a fixed two digits, right-aligned, so every team name starts at the same x. */}
         <span className="w-[2ch] shrink-0 text-right text-xs font-medium tabular-nums text-series-4">{rank ?? ""}</span>
-        <span className={`text-sm ${mine && HIGHLIGHT_MINE ? MY_TEAM_NAME_CLASS : "font-medium text-ink-primary"}`}>{name}</span>
+        <span
+          className={`text-sm ${fitWidth ? "min-w-0 truncate" : ""} ${mine && HIGHLIGHT_MINE ? MY_TEAM_NAME_CLASS : "font-medium text-ink-primary"}`}
+        >
+          {name}
+        </span>
         {record ? (
-          <span className="text-xs tabular-nums text-ink-muted">({formatRecord(record.wins, record.losses, record.ties)})</span>
+          <span className="shrink-0 text-xs tabular-nums text-ink-muted">({formatRecord(record.wins, record.losses, record.ties)})</span>
         ) : null}
         <StreakBadge streak={streak} />
       </div>
@@ -193,6 +196,17 @@ function TickerTeamRow({
         {points != null ? formatPoints(points) : ""}
       </span>
     </>
+  );
+}
+
+/** A matchup's two teams, one row each, scores in a column of their own — the body of a ticker entry, and of the league page's matchup list. */
+export function MatchupRows({ teams, fitWidth = false }: { teams: MatchupRowTeam[]; fitWidth?: boolean }) {
+  return (
+    <div className={`grid items-center gap-x-6 gap-y-1 ${fitWidth ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-[1fr_auto]"}`}>
+      {teams.map((team, i) => (
+        <TickerTeamRow key={i} team={team} fitWidth={fitWidth} />
+      ))}
+    </div>
   );
 }
 
@@ -238,15 +252,12 @@ function TickerItem({
         <span className="whitespace-nowrap">{league.name}</span>
       </div>
       {matchup && my ? (
-        <div className="grid grid-cols-[1fr_auto] items-center gap-x-6 gap-y-1">
-          <TickerTeamRow name={matchup.my.teamName} points={matchup.my.points} standing={my} mine />
-          <TickerTeamRow
-            name={matchup.opponent?.teamName ?? "Bye"}
-            points={matchup.opponent ? matchup.opponent.points : null}
-            standing={opponent}
-            mine={false}
-          />
-        </div>
+        <MatchupRows
+          teams={[
+            { name: matchup.my.teamName, points: matchup.my.points, standing: my, mine: true },
+            { name: matchup.opponent?.teamName ?? "Bye", points: matchup.opponent ? matchup.opponent.points : null, standing: opponent },
+          ]}
+        />
       ) : (
         <div className="text-center text-xs text-ink-secondary">No matchup this week</div>
       )}

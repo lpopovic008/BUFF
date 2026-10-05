@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ResolvedMatchupGame, ResolvedSlot } from "@/hooks/useLeagueMatchupCarousel";
 import { PointsRankBadges, TeamNameLabel } from "@/components/DashboardMatchupCard";
 import { TeamStanding } from "@/lib/league-data";
+import { MatchupRows } from "@/components/LeagueTicker";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { IconButton } from "@/components/ui/IconButton";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/ui/Icon";
@@ -202,7 +203,20 @@ function MatchupSlide({
   );
 }
 
-/** Sleeper-style matchup view: full lineup, slot by slot, for the league's current week — swipeable between every matchup that week. */
+/** A matchup's two teams, yours first when it's yours — the order the full view shows them in. */
+function sides(game: ResolvedMatchupGame, myRosterId: number | null) {
+  const mine = game.teams.find((t) => t.rosterId === myRosterId) ?? game.teams[0];
+  const other = game.teams.find((t) => t.rosterId !== mine.rosterId);
+  return other ? [mine, other] : [mine];
+}
+
+/**
+ * Sleeper-style matchup view: full lineup, slot by slot, for the league's
+ * current week. On a phone it's a carousel, swiped between every matchup
+ * that week; from tablet width up the chosen matchup takes the left 70%
+ * and every matchup is listed down the right 30% — boxes in the league
+ * ticker's format — to pick from. Opens on your own matchup.
+ */
 export function LeagueMatchupCarousel({
   leagueId,
   games,
@@ -218,6 +232,8 @@ export function LeagueMatchupCarousel({
   const containerRef = useRef<HTMLDivElement>(null);
   const hasScrolledToMine = useRef(false);
   const [index, setIndex] = useState(0);
+  // The matchup shown large beside the list (tablet and up): yours until another is picked.
+  const [pickedId, setPickedId] = useState<number | null>(null);
 
   useEffect(() => {
     if (hasScrolledToMine.current || !containerRef.current || myRosterId == null || games.length === 0) return;
@@ -242,43 +258,82 @@ export function LeagueMatchupCarousel({
   }
 
   if (games.length === 0) return null;
+  const myGame = games.find((g) => g.teams.some((t) => t.rosterId === myRosterId));
+  const picked = games.find((g) => g.matchupId === pickedId) ?? myGame ?? games[0];
 
   return (
-    <div className="flex flex-col gap-3">
-      <div
-        ref={containerRef}
-        onScroll={handleScroll}
-        className="flex snap-x snap-mandatory overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
-        {games.map((g) => (
-          <MatchupSlide
-            key={g.matchupId}
-            leagueId={leagueId}
-            game={g}
-            myRosterId={myRosterId}
-            standings={standings}
-          />
-        ))}
-      </div>
-      {games.length > 1 ? (
-        <div className="flex items-center justify-center gap-3 text-xs text-ink-muted">
-          <IconButton
-            icon={<ChevronLeftIcon />}
-            label="Previous matchup"
-            onClick={() => scrollToIndex(index - 1)}
-            disabled={index === 0}
-          />
-          <span className="tabular-nums">
-            {index + 1} / {games.length}
-          </span>
-          <IconButton
-            icon={<ChevronRightIcon />}
-            label="Next matchup"
-            onClick={() => scrollToIndex(index + 1)}
-            disabled={index === games.length - 1}
-          />
+    <>
+      {/* Phones: swipe between matchups. */}
+      <div className="flex flex-col gap-3 md:hidden">
+        <div
+          ref={containerRef}
+          onScroll={handleScroll}
+          className="flex snap-x snap-mandatory overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {games.map((g) => (
+            <MatchupSlide
+              key={g.matchupId}
+              leagueId={leagueId}
+              game={g}
+              myRosterId={myRosterId}
+              standings={standings}
+            />
+          ))}
         </div>
-      ) : null}
-    </div>
+        {games.length > 1 ? (
+          <div className="flex items-center justify-center gap-3 text-xs text-ink-muted">
+            <IconButton
+              icon={<ChevronLeftIcon />}
+              label="Previous matchup"
+              onClick={() => scrollToIndex(index - 1)}
+              disabled={index === 0}
+            />
+            <span className="tabular-nums">
+              {index + 1} / {games.length}
+            </span>
+            <IconButton
+              icon={<ChevronRightIcon />}
+              label="Next matchup"
+              onClick={() => scrollToIndex(index + 1)}
+              disabled={index === games.length - 1}
+            />
+          </div>
+        ) : null}
+      </div>
+
+      {/* Tablet and up: the chosen matchup large on the left (70%), every matchup listed on the right (30%, never narrower than 16rem so names stay readable). */}
+      <div className="hidden md:grid md:grid-cols-[minmax(0,7fr)_minmax(16rem,3fr)] md:items-start md:gap-3">
+        <MatchupSlide leagueId={leagueId} game={picked} myRosterId={myRosterId} standings={standings} />
+        <ul className="flex flex-col gap-2" aria-label="This week's matchups">
+          {games.map((g) => {
+            const active = g.matchupId === picked.matchupId;
+            return (
+              <li key={g.matchupId}>
+                <button
+                  type="button"
+                  aria-current={active || undefined}
+                  onClick={() => setPickedId(g.matchupId)}
+                  className={`w-full border px-3 py-2 text-left transition-colors ${
+                    active
+                      ? "border-ink-primary bg-[color-mix(in_srgb,var(--map-tag)_7%,transparent)]"
+                      : "border-border hover:border-ink-primary/40"
+                  }`}
+                >
+                  <MatchupRows
+                    fitWidth
+                    teams={sides(g, myRosterId).map((t) => ({
+                      name: t.teamName,
+                      points: t.points,
+                      standing: standings.get(t.rosterId),
+                      mine: t.rosterId === myRosterId,
+                    }))}
+                  />
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </>
   );
 }
