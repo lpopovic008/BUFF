@@ -189,3 +189,18 @@ export function groupGamesByTimeBlock(games: GameStarters[]): TimeBlockColumn[] 
 
   return columns.filter((col) => col.games.length > 0);
 }
+
+/** Whether every game in a time block has ended. */
+export function isBlockFinal(column: TimeBlockColumn): boolean {
+  return column.games.length > 0 && column.games.every(({ game }) => game.state === "post");
+}
+
+/**
+ * The time blocks with every finished one moved to the bottom, so the next
+ * block to play (or the one being played) is always on top. Each group keeps
+ * its kickoff order — the blocks still to come in time order, then the
+ * finished ones in the order they were played.
+ */
+export function finishedBlocksLast(columns: TimeBlockColumn[]): TimeBlockColumn[] {
+  return [...columns.filter((c) => !isBlockFinal(c)), ...columns.filter(isBlockFinal)];
+}

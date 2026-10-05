@@ -4,6 +4,7 @@ import {
   formatGameHeader,
   formatKickoff,
   formatTeamMatchup,
+  finishedBlocksLast,
   groupGamesByTimeBlock,
   groupStartersByGame,
   StarterEntry,
@@ -151,4 +152,18 @@ test("a game with an unparseable kickoff still shows up, in a trailing TBD colum
   const columns = groupGamesByTimeBlock(games);
   assert.equal(columns.at(-1)!.label, "TBD");
   assert.deepEqual(columns.at(-1)!.games.map((g) => g.game.id), ["bad"]);
+});
+
+test("finished time blocks move to the bottom, the rest keep kickoff order", () => {
+  const wed = { ...game("wed", "DAL", "NYG", "2026-09-10T00:20:00Z"), state: "post" as const };
+  const sunA = { ...game("sun-a", "SF", "LAR", "2026-09-13T17:00:00Z"), state: "post" as const };
+  const sunB = { ...game("sun-b", "TB", "CIN", "2026-09-13T17:00:00Z"), state: "in" as const };
+  const mon = game("mon", "KC", "BUF", "2026-09-15T00:15:00Z");
+  const { games } = groupStartersByGame(
+    [starter("A", "QB", "NYG"), starter("B", "WR", "LAR"), starter("C", "RB", "CIN"), starter("D", "TE", "BUF")],
+    [wed, sunA, sunB, mon]
+  );
+  // Sunday is still on (one game live), so only Wednesday night has finished.
+  const order = finishedBlocksLast(groupGamesByTimeBlock(games)).map((c) => c.games.map((g) => g.game.id).join("+"));
+  assert.deepEqual(order, ["sun-a+sun-b", "mon", "wed"]);
 });

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { formatCountdown } from "@/lib/format";
 import { TYPE_MS_PER_CHAR, totalChars, typedSlices, useSeenOnce, useTypedCount } from "@/hooks/useTyped";
 import { setHeaderKickoff } from "@/lib/header-clock";
-import { formatKickoffTime, GameStarters, groupGamesByTimeBlock, GroupedStarter } from "@/lib/my-starters";
+import { formatKickoffTime, GameStarters, finishedBlocksLast, groupGamesByTimeBlock, GroupedStarter } from "@/lib/my-starters";
 import { NFLGame } from "@/lib/nfl-schedule";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import { nflLogoFilter, nflLogoMaxWidth, nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
@@ -356,7 +356,8 @@ export function StartersByGame({
   onToggleBlock: (label: string) => void;
 }) {
   const legendByLeagueId = new Map(legend.map((l) => [l.leagueId, l]));
-  const columns = groupGamesByTimeBlock(games);
+  // Finished blocks drop to the bottom as their last game ends, so the next one up is always on top.
+  const columns = finishedBlocksLast(groupGamesByTimeBlock(games));
   const nothingToShow = games.length === 0 && notPlaying.length === 0;
   const now = useNow();
 
