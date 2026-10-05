@@ -75,7 +75,7 @@ export function LeagueAccordion({
             <>
               <Link
                 href={`/team?league=${leagueId}&roster=${team.rosterId}`}
-                className="mb-2 block text-sm font-medium text-series-1 hover:underline"
+                className="mb-2 block text-sm font-bold text-ink-primary hover:underline"
               >
                 {team.teamName}
               </Link>

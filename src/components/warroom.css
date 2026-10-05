@@ -529,3 +529,82 @@
   .warroom-console .props-chip-label { font-family: var(--mono); font-size: 0.5rem; color: var(--ink-dim); letter-spacing: 0.06em; }
   .warroom-console .props-chip-value { font-family: var(--mono); font-size: 0.7188rem; color: var(--cyan); font-variant-numeric: tabular-nums; }
   .warroom-console .props-chip-odds { font-family: var(--mono); font-size: 0.5312rem; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+
+  /* ---------- the app's own theme (the Draft room) ----------
+     The same widgets, painted with the rest of the app's tokens instead of
+     the console's: black and white in either theme, headers on the map-tag
+     plate, color only where it means something. Inside the app's shell, so
+     no scanlines, vignette, corner brackets or page frame of its own. */
+
+  .warroom-console.app-theme {
+    --bg: transparent;
+    --panel: var(--surface-raised);
+    --panel-inset: var(--page);
+    --line: var(--border);
+    --line-bright: var(--grid-hairline);
+    --ink: var(--ink-primary);
+    --ink-dim: var(--ink-muted);
+    --amber: var(--ink-primary);
+    --amber-dim: var(--border);
+    --cyan: var(--ink-secondary);
+    --cyan-dim: var(--border);
+    --good: var(--status-good);
+    --warn: var(--status-warning);
+    --critical: var(--status-critical);
+    --display: var(--font-sans), system-ui, sans-serif;
+    --body-font: var(--font-sans), system-ui, sans-serif;
+    --mono: var(--font-sans), ui-monospace, monospace;
+    min-height: 0;
+  }
+  .warroom-console.app-theme::before,
+  .warroom-console.app-theme::after,
+  .warroom-console.app-theme .corner { display: none; }
+  .warroom-console.app-theme .wrap { max-width: none; padding: 0; }
+
+  /* Card titles sit on the plate, edge to edge across the card's top. */
+  .warroom-console.app-theme .card { padding: 0 0.875rem 0.875rem; }
+  .warroom-console.app-theme .card-head {
+    margin: 0 -0.875rem; padding: 0.3125rem 0.625rem; align-items: center;
+    background: var(--map-tag); color: var(--map-tag-ink);
+  }
+  .warroom-console.app-theme .card-head-left { gap: 0; }
+  .warroom-console.app-theme .card-title {
+    font-family: var(--mono); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--map-tag-ink);
+  }
+  .warroom-console.app-theme .card-flags { flex-direction: row; align-items: center; gap: 0.5rem; }
+  .warroom-console.app-theme .card-head .flag { font-size: 0.6875rem; font-weight: 700; color: var(--map-tag-ink); }
+  .warroom-console.app-theme .card-head .ctrl-btn { border-color: var(--map-tag-ink); color: var(--map-tag-ink); padding: 0.125rem 0.5rem; }
+  .warroom-console.app-theme .card-head .ctrl-btn.active { background: var(--map-tag-ink); color: var(--map-tag); }
+
+  /* Buttons: outlined, and the chosen one on the plate. */
+  .warroom-console.app-theme .ctrl-btn { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
+  .warroom-console.app-theme .ctrl-btn:hover { border-color: var(--ink-primary); color: var(--ink-primary); }
+  .warroom-console.app-theme .ctrl-btn.active { background: var(--map-tag); border-color: var(--map-tag); color: var(--map-tag-ink); }
+  .warroom-console.app-theme .draft-field-label { font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+  .warroom-console.app-theme .draft-input { color: var(--ink-primary); border-color: var(--border); font-size: 0.875rem; }
+  .warroom-console.app-theme .draft-input:focus-visible,
+  .warroom-console.app-theme .draft-pool-cell:focus-visible,
+  .warroom-console.app-theme .ctrl-btn:focus-visible { outline-color: var(--ink-primary); }
+
+  /* On the clock: the plate, like the home page's slate headers. */
+  .warroom-console.app-theme .draft-clock { background: var(--map-tag); border-color: var(--map-tag); color: var(--map-tag-ink); padding: 0.625rem 0.875rem; }
+  .warroom-console.app-theme .draft-clock .clock-eyebrow { color: var(--map-tag-ink); opacity: 0.7; font-weight: 700; }
+  .warroom-console.app-theme .draft-clock .clock-caption { color: var(--map-tag-ink); font-size: 0.9375rem; font-weight: 700; }
+  .warroom-console.app-theme .draft-clock-value { color: var(--map-tag-ink); font-weight: 700; }
+  .warroom-console.app-theme .draft-clock-value.draft-clock-done { color: var(--map-tag-ink); }
+
+  /* The pool and the board: larger, readable type; the picked team's row and the pick on the clock in ink. */
+  .warroom-console.app-theme .draft-pool-cell { color: var(--ink-muted); }
+  .warroom-console.app-theme .draft-pool-cell:hover:not(:disabled) { border-color: var(--ink-primary); }
+  .warroom-console.app-theme .draft-pool-cell-rank { font-size: 0.625rem; }
+  .warroom-console.app-theme .draft-pool-cell-pos { font-size: 0.625rem; }
+  .warroom-console.app-theme .draft-pool-cell-name { font-size: 0.75rem; }
+  .warroom-console.app-theme .draft-grid-row.team-selected { background-color: var(--ink-primary); box-shadow: 0 0 0 0.09375rem var(--ink-primary); }
+  .warroom-console.app-theme .draft-grid-team-header { color: var(--ink-secondary); font-size: 0.6875rem; font-weight: 700; }
+  .warroom-console.app-theme .draft-grid-team-header.selected { border-color: var(--ink-primary); background: var(--map-tag); color: var(--map-tag-ink); }
+  .warroom-console.app-theme .draft-grid-team-header.selected .draft-grid-team-name { color: var(--map-tag-ink); }
+  .warroom-console.app-theme .draft-grid-team-name { color: inherit; font-size: 0.6875rem; font-weight: 700; }
+  .warroom-console.app-theme .draft-grid-cell { font-size: 0.75rem; }
+  .warroom-console.app-theme .draft-grid-cell.onclock { border-color: var(--ink-primary); box-shadow: 0 0 0 1px var(--ink-primary) inset; }
+  .warroom-console.app-theme .draft-grid-pick-no { font-size: 0.625rem; }
+  .warroom-console.app-theme .draft-grid-round-label { font-size: 0.6875rem; }

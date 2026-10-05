@@ -9,7 +9,9 @@ import { useConfig } from "@/hooks/useConfig";
 import { useMyLeagues } from "@/hooks/useMyLeagues";
 import rawSnapshot from "@/data/player-values.json";
 import { LeagueFormat, PlayerValue, PlayerValuesSnapshot, TEPremium, valueFor } from "@/lib/player-values";
-import { HistoryButtons } from "@/components/HistoryButtons";
+import { TitleWithHistory } from "@/components/HistoryButtons";
+import { PlateCard } from "@/components/ui/PlateCard";
+import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 
 const snapshot = rawSnapshot as unknown as PlayerValuesSnapshot;
 
@@ -54,24 +56,24 @@ function ValueTable({ rows, maxValue }: { rows: Row[]; maxValue: number }) {
               <td className="max-w-[7rem] py-2 pr-3 font-medium text-ink-primary sm:max-w-none">
                 <span className="block truncate">{p.name}</span>
                 <span className="block text-xs font-normal text-ink-muted sm:hidden">
-                  {p.position}
+                  <span className={`font-semibold ${POSITION_TEXT_COLOR[p.position] ?? ""}`}>{p.position}</span>
                   {p.team ? ` · ${p.team}` : ""}
                 </span>
                 {p.team ? <span className="ml-1.5 hidden text-xs font-normal text-ink-muted sm:inline">{p.team}</span> : null}
               </td>
-              <td className="hidden py-2 pr-3 text-ink-secondary sm:table-cell">{p.position}</td>
+              <td className={`hidden py-2 pr-3 font-semibold sm:table-cell ${POSITION_TEXT_COLOR[p.position] ?? "text-ink-secondary"}`}>{p.position}</td>
               <td className="hidden py-2 pr-3 text-right tabular-nums text-ink-secondary sm:table-cell">
                 {p.age ?? "—"}
               </td>
               <td className="py-2 pr-3">
                 <div className="flex items-center gap-2">
-                  <div className="h-2 w-10 shrink-0 overflow-hidden bg-page sm:w-24">
+                  <div className="h-1.5 w-10 shrink-0 overflow-hidden bg-grid sm:w-24">
                     <div
-                      className="h-full bg-series-1"
+                      className="h-full bg-ink-primary"
                       style={{ width: `${Math.max(2, (value / maxValue) * 100)}%` }}
                     />
                   </div>
-                  <span className="shrink-0 tabular-nums text-ink-secondary">{value}</span>
+                  <span className="shrink-0 font-semibold tabular-nums text-ink-primary">{value}</span>
                 </div>
               </td>
             </tr>
@@ -127,13 +129,12 @@ export default function ValuesPage() {
 
   return (
     <div className="flex flex-col gap-6 animate-[rise_0.5s_ease-out_backwards]">
-      <h1 className="sr-only">Values</h1>
-      <div className="-mb-3">
-        <HistoryButtons />
-      </div>
+      <TitleWithHistory>
+        <h1 className="text-2xl font-semibold text-ink-primary">Values</h1>
+      </TitleWithHistory>
 
       {myLeagues && myLeagues.length > 0 ? (
-        <Card className="px-5">
+        <PlateCard title="Rosters" bodyClassName="px-4 sm:px-5">
           {myLeagues.map((l) => (
             <LeagueAccordion
               key={l.leagueId}
@@ -144,7 +145,7 @@ export default function ValuesPage() {
               onToggle={() => setExpandedLeagueId((cur) => (cur === l.leagueId ? null : l.leagueId))}
             />
           ))}
-        </Card>
+        </PlateCard>
       ) : null}
 
       {!hasData ? (
@@ -152,7 +153,11 @@ export default function ValuesPage() {
           Values haven&rsquo;t been fetched yet.
         </Card>
       ) : (
-        <Card className="p-3 sm:p-5">
+        <PlateCard
+          title={`${listType === "dynasty" ? "Dynasty" : "Redraft"} · ${leagueFormat === "superflex" ? "Superflex" : "1QB"}${tep === "tep" ? " · TE+" : ""}`}
+          aside={<span className="tabular-nums">{rows.length}</span>}
+          bodyClassName="p-3 sm:p-5"
+        >
           <div className="relative mb-4">
             <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
             <input
@@ -160,7 +165,7 @@ export default function ValuesPage() {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search a player…"
               aria-label="Search a player"
-              className="w-full border border-border bg-page py-1.5 pl-8 pr-3 text-sm text-ink-primary outline-none transition-colors focus:border-series-1"
+              className="w-full border border-border bg-page py-1.5 pl-8 pr-3 text-sm text-ink-primary outline-none transition-colors focus:border-ink-primary"
             />
           </div>
 
@@ -222,7 +227,7 @@ export default function ValuesPage() {
                   aria-pressed={active}
                   className={`border px-3 py-1 text-xs font-medium transition-colors ${
                     active
-                      ? "border-series-1 bg-series-1/10 text-series-1"
+                      ? "border-[var(--map-tag)] bg-[var(--map-tag)] font-bold text-[var(--map-tag-ink)]"
                       : "border-border text-ink-muted line-through hover:bg-page"
                   }`}
                 >
@@ -243,11 +248,9 @@ export default function ValuesPage() {
 
           <ValueTable rows={rows.slice(0, 300)} maxValue={maxValue} />
           {rows.length > 300 ? (
-            <p className="mt-3 text-xs text-ink-muted">
-              Showing the top 300 of {rows.length} matches — narrow your search to see more.
-            </p>
+            <p className="mt-3 text-xs text-ink-muted">Top 300 of {rows.length}</p>
           ) : null}
-        </Card>
+        </PlateCard>
       )}
     </div>
   );

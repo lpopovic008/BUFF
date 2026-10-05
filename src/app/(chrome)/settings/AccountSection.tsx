@@ -141,7 +141,7 @@ function SignedOutView() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="w-full min-w-0 border border-border bg-page px-3 py-2 text-sm text-ink-primary outline-none focus:border-series-1"
+            className="w-full min-w-0 border border-border bg-page px-3 py-2 text-sm text-ink-primary outline-none focus:border-ink-primary"
           />
         </label>
         <label className="flex min-w-0 flex-1 flex-col gap-1">
@@ -152,7 +152,7 @@ function SignedOutView() {
             onChange={(e) => setPassword(e.target.value)}
             required
             minLength={6}
-            className="w-full min-w-0 border border-border bg-page px-3 py-2 text-sm text-ink-primary outline-none focus:border-series-1"
+            className="w-full min-w-0 border border-border bg-page px-3 py-2 text-sm text-ink-primary outline-none focus:border-ink-primary"
           />
         </label>
         <IconButton
@@ -171,7 +171,7 @@ function SignedOutView() {
           setError(null);
           setSignedUp(false);
         }}
-        className="self-start text-xs font-medium text-series-1 underline decoration-dotted hover:text-series-1/80"
+        className="self-start text-xs font-medium text-ink-secondary underline decoration-dotted hover:text-ink-primary"
       >
         {mode === "signUp" ? "Sign in" : "Create account"}
       </button>

@@ -28,7 +28,7 @@ export function AppearanceSection() {
               onClick={() => setThemePreference(value)}
               className={`-ml-px border px-4 py-1.5 text-sm font-medium transition-colors first:ml-0 ${
                 active
-                  ? "relative border-series-1 bg-series-1/10 text-series-1"
+                  ? "relative border-[var(--map-tag)] bg-[var(--map-tag)] text-[var(--map-tag-ink)]"
                   : "border-border text-ink-secondary hover:bg-page hover:text-ink-primary"
               }`}
             >

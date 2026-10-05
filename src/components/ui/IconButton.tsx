@@ -6,7 +6,7 @@ type Size = "md" | "sm";
 
 const variantClasses: Record<Variant, string> = {
   default: "border border-border text-ink-secondary hover:bg-page hover:text-ink-primary",
-  primary: "bg-series-1 text-white hover:opacity-90",
+  primary: "bg-[var(--map-tag)] text-[var(--map-tag-ink)] hover:opacity-90",
   danger: "border border-border text-status-critical hover:bg-status-critical/10",
 };
 

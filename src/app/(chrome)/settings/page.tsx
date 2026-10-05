@@ -13,6 +13,7 @@ import { GoogleDocsSection } from "./GoogleDocsSection";
 import { AccountSection } from "./AccountSection";
 import { AppearanceSection } from "./AppearanceSection";
 import { TitleWithHistory } from "@/components/HistoryButtons";
+import { PlateCard } from "@/components/ui/PlateCard";
 
 export default function SettingsPage() {
   const { config, loaded, refresh } = useConfig();
@@ -155,10 +156,5 @@ export default function SettingsPage() {
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <Card className="p-5">
-      <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-muted">{title}</h2>
-      {children}
-    </Card>
-  );
+  return <PlateCard title={title}>{children}</PlateCard>;
 }

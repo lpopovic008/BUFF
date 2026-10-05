@@ -52,7 +52,7 @@ export function ExternalLeaguesSection({
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://fantasy.espn.com/football/league?leagueId=..."
             required
-            className="w-full min-w-0 border border-border bg-page px-3 py-2 text-sm text-ink-primary outline-none focus:border-series-1"
+            className="w-full min-w-0 border border-border bg-page px-3 py-2 text-sm text-ink-primary outline-none focus:border-ink-primary"
           />
         </label>
         <label className="flex min-w-0 flex-1 flex-col gap-1 sm:w-40 sm:flex-none">
@@ -61,7 +61,7 @@ export function ExternalLeaguesSection({
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
             placeholder="optional"
-            className="w-full min-w-0 border border-border bg-page px-3 py-2 text-sm text-ink-primary outline-none focus:border-series-1"
+            className="w-full min-w-0 border border-border bg-page px-3 py-2 text-sm text-ink-primary outline-none focus:border-ink-primary"
           />
         </label>
         <IconButton icon={<ExternalLinkIcon />} label="Add league" type="submit" variant="primary" />

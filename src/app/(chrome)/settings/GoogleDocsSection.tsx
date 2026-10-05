@@ -61,7 +61,7 @@ export function GoogleDocsSection({ config, onChange }: { config: AppConfig; onC
               setStatus("idle");
             }}
             placeholder="1234567890-abc123.apps.googleusercontent.com"
-            className="w-full min-w-0 border border-border bg-page px-3 py-2 font-mono text-sm text-ink-primary outline-none focus:border-series-1"
+            className="w-full min-w-0 border border-border bg-page px-3 py-2 font-mono text-sm text-ink-primary outline-none focus:border-ink-primary"
           />
         </label>
         <div className="flex gap-2">

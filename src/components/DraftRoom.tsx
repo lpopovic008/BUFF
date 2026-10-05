@@ -1,8 +1,7 @@
 "use client";
 
 import { CSSProperties, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { MenuIcon } from "@/components/ui/Icon";
+import { TitleWithHistory } from "@/components/HistoryButtons";
 import rawSnapshot from "@/data/player-adp.json";
 import rawValues from "@/data/player-values.json";
 import { getDraftTargets, saveDraftTargets } from "@/lib/localStore";
@@ -13,7 +12,7 @@ import { loadPlayerIdIndex } from "@/lib/players";
 import { getSeasonProjections } from "@/lib/season-projections";
 import { normalizeName } from "@/lib/name-match";
 import { defaultSeason } from "@/lib/app-defaults";
-import { REQUIRED_STARTER_MINIMUMS, RosterPlayer, pickStartingLineup } from "@/lib/starting-lineup";
+import { RosterPlayer, pickStartingLineup } from "@/lib/starting-lineup";
 import {
   DEFAULT_DRAFT_SETTINGS,
   DraftSettings,
@@ -47,29 +46,14 @@ const POSITION_ACCENT: Record<string, string> = {
 };
 const DEFAULT_ACCENT = "#93ac9e";
 
-// Matches --panel-inset in warroom.css — the actual dark background a pool
-// cell normally sits on. blendOverPanel bakes a tag's color into a fully
-// opaque background pre-mixed against that, instead of leaving it at
-// partial alpha: an alpha background lets whatever's actually behind the
-// cell show through and change it, which is exactly what happened when a
-// selected team's white row-highlight sat behind a tagged cell — it washed
-// the tint out toward white, and the player name (already a light color)
-// lost all contrast against it. A solid, pre-blended color can't be
-// changed by anything behind it, so a tagged cell now looks identical
-// whether or not its row is selected.
-const PANEL_INSET = { r: 0x0d, g: 0x13, b: 0x10 };
-
-function blendOverPanel(hex: string, alpha: number): string {
-  const n = parseInt(hex.slice(1), 16);
-  const r = (n >> 16) & 255;
-  const g = (n >> 8) & 255;
-  const b = n & 255;
-  const mix = (channel: number, base: number) => Math.round(alpha * channel + (1 - alpha) * base);
-  return `rgb(${mix(r, PANEL_INSET.r)}, ${mix(g, PANEL_INSET.g)}, ${mix(b, PANEL_INSET.b)})`;
-}
-
+// A tag's color mixed into the cell's own (opaque) background, rather than
+// laid over it at partial alpha: an alpha background lets whatever's behind
+// the cell show through — a selected team's highlighted row washed tagged
+// cells out until the names lost all contrast. Mixed against an opaque
+// background, a tagged cell looks the same whether or not its row is
+// selected, in either theme.
 function targetStyle(isTarget: boolean, color: string): CSSProperties {
-  return isTarget ? { backgroundColor: blendOverPanel(color, 0.28), borderColor: color } : {};
+  return isTarget ? { backgroundColor: `color-mix(in srgb, ${color} 28%, var(--panel-inset))`, borderColor: color } : {};
 }
 
 function defaultTeamNames(teams: number): string[] {
@@ -83,7 +67,6 @@ function clampInt(raw: string, min: number, max: number, fallback: number): numb
 }
 
 export function DraftRoom() {
-  const [menuOpen, setMenuOpen] = useState(false);
   const [settings, setSettings] = useState<DraftSettings>(DEFAULT_DRAFT_SETTINGS);
   const [editMode, setEditMode] = useState(false);
   // Which players are tagged as targets — keyed by player identity, not
@@ -325,47 +308,22 @@ export function DraftRoom() {
   const poolGridColumns = `repeat(${settings.rounds}, minmax(3.25rem, 1fr))`;
 
   return (
-    <div className="warroom-console">
+    <div className="warroom-console app-theme">
       <div className="wrap">
-        <header className="console-head-top">
-          <div className="console-head-left">
-            <span className="badge">COMMI$H DRAFT ROOM</span>
-          </div>
-          <div className="console-head-center">
-            <span className="week-badge">
-              {draftComplete ? "DRAFT COMPLETE" : `RD ${onClockRound} · PICK ${currentPickIndex + 1}/${totalPicks}`}
+        <TitleWithHistory
+          className="mb-4"
+          actions={
+            <span className="whitespace-nowrap text-sm font-bold uppercase tracking-wide text-ink-secondary">
+              {draftComplete ? "Complete" : `Rd ${onClockRound} · Pick ${currentPickIndex + 1}/${totalPicks}`}
             </span>
-          </div>
-          <div className="console-menu">
-            <button
-              className="console-menu-btn"
-              aria-label="Menu"
-              aria-expanded={menuOpen}
-              onClick={() => setMenuOpen((v) => !v)}
-            >
-              <MenuIcon />
-            </button>
-            {menuOpen ? (
-              <nav className="console-menu-dropdown">
-                <Link href="/" onClick={() => setMenuOpen(false)}>
-                  War Room
-                </Link>
-                <Link href="/values" onClick={() => setMenuOpen(false)}>
-                  Values
-                </Link>
-                <Link href="/settings" onClick={() => setMenuOpen(false)}>
-                  Settings
-                </Link>
-              </nav>
-            ) : null}
-          </div>
-        </header>
+          }
+        >
+          <h1 className="text-2xl font-semibold text-ink-primary">Draft</h1>
+        </TitleWithHistory>
 
         <article className="card" style={{ marginBottom: "0.75rem" }}>
-          <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
-          <div className="card-head">
+                    <div className="card-head">
             <div className="card-head-left">
-              <span className="card-index">DFT-00</span>
               <span className="card-title">Draft Settings</span>
             </div>
           </div>
@@ -448,21 +406,11 @@ export function DraftRoom() {
               </div>
             </div>
           </div>
-          <p className="card-note">
-            Teams, rounds, and order reset the board. Dynasty/Fantasy and 1QB/Superflex just re-rank the pool — real
-            crowd Average Draft Position from actual Sleeper drafts (yafsb.com) — your picks stay put, and each
-            list/format combination lays the grid below out in its own order. Start sets how many players make each
-            team&apos;s starting lineup once the draft is complete — at least {REQUIRED_STARTER_MINIMUMS.QB} QB,{" "}
-            {REQUIRED_STARTER_MINIMUMS.RB} RB, {REQUIRED_STARTER_MINIMUMS.WR} WR, {REQUIRED_STARTER_MINIMUMS.TE} TE,
-            the rest flex.
-          </p>
         </article>
 
         <article className="card" style={{ marginBottom: "0.75rem" }}>
-          <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
-          <div className="card-head">
+                    <div className="card-head">
             <div className="card-head-left">
-              <span className="card-index">DFT-01</span>
               <span className="card-title">Available Players</span>
             </div>
             <div className="card-flags">
@@ -515,16 +463,11 @@ export function DraftRoom() {
               ))}
             </div>
           </div>
-          <p className="card-note">
-            {editMode
-              ? "Click a player to tag them, click again to untag. Colors match position. Targets are saved in this browser."
-              : "Ranked by real average draft position from actual Sleeper drafts, laid out the way a draft would fill: down a round, then over to the next. Click a player to fill the current pick."}
-          </p>
+          {editMode ? <p className="card-note">Tap players to tag them.</p> : null}
         </article>
 
         <div className="draft-clock">
-          <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
-          <div className="clock-left">
+                    <div className="clock-left">
             <span className="clock-eyebrow">ON THE CLOCK</span>
             <span className="clock-caption">
               {draftComplete
@@ -538,10 +481,8 @@ export function DraftRoom() {
         </div>
 
         <article className="card">
-          <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
-          <div className="card-head">
+                    <div className="card-head">
             <div className="card-head-left">
-              <span className="card-index">DFT-02</span>
               <span className="card-title">Draft Board</span>
             </div>
             <div className="card-flags">
@@ -616,15 +557,12 @@ export function DraftRoom() {
               ))}
             </div>
           </div>
-          <p className="card-note">Columns are draft slots — click a player above to fill the current pick.</p>
         </article>
 
         {draftComplete ? (
           <article className="card" style={{ marginTop: "0.75rem" }}>
-            <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
-            <div className="card-head">
+                        <div className="card-head">
               <div className="card-head-left">
-                <span className="card-index">DFT-03</span>
                 <span className="card-title">Final Rosters</span>
               </div>
               <div className="card-flags">
@@ -670,12 +608,6 @@ export function DraftRoom() {
                 ))}
               </div>
             </div>
-            <p className="card-note">
-              Highlighted players are the starting lineup — at least {REQUIRED_STARTER_MINIMUMS.QB} QB,{" "}
-              {REQUIRED_STARTER_MINIMUMS.RB} RB, {REQUIRED_STARTER_MINIMUMS.WR} WR, {REQUIRED_STARTER_MINIMUMS.TE} TE,
-              the rest flex, up to {settings.start} total (Start, in Draft Settings), picked by projected season
-              points. Team value is {settings.listType} {settings.format === "superflex" ? "superflex" : "1QB"} KTC.
-            </p>
           </article>
         ) : null}
       </div>
