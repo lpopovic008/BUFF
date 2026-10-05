@@ -1,7 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui/Card";
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { PayoutSetup } from "@/components/PayoutSetup";
 import { paymentSwatch, placeSwatch, ruleSwatches } from "@/lib/payout-colors";
 import { LeagueSeason } from "@/lib/league-money";
@@ -17,12 +17,14 @@ import {
   RulePayment,
 } from "@/lib/payout-plan";
 
-// The grid's fixed columns (in rem); the weeks share whatever's left equally,
-// regular season and playoffs alike, so the grid reads like a calendar. On
-// narrow screens each week keeps at least MIN_WEEK_REM and the grid scrolls.
-const MANAGER_REM = 8;
-const MONEY_COL_REM = 3.75;
-const MIN_WEEK_REM = 2;
+// The grid's columns (in rem). The manager column widens to fit the longest
+// team name (never narrower than MANAGER_REM), as far as the room left after
+// every week's MIN_WEEK_REM and the money columns allows; the weeks share
+// whatever's left equally, regular season and playoffs alike, so the grid
+// reads like a calendar. On narrow screens the grid scrolls instead.
+const MANAGER_REM = 7;
+const MONEY_COL_REM = 3.5;
+const MIN_WEEK_REM = 1.75;
 
 const RULE_GROUPS = ["Regular season", "Playoffs", "Season"] as const;
 
@@ -111,20 +113,49 @@ function WeekGrid({
   const playoffCount = weeks.filter(isPlayoff).length;
   const live = !ledger.seasonOver && currentWeek != null && weeks.includes(currentWeek) ? currentWeek : null;
   const maxTotal = Math.max(0, ...ledger.managers.map((m) => m.total));
-  // The shading for the week in progress, and the earnings bars: the theme's
-  // ink at low opacity, so the numbers stay readable on top in either theme.
+  // The shading for the week in progress: the theme's ink at low opacity, so
+  // the numbers stay readable on top in either theme.
   const LIVE_BG = "bg-[color-mix(in_srgb,var(--map-tag)_9%,transparent)]";
   const firstPlayoff = regularSeasonWeeks + 1;
+  const moneyCols = hasSeasonRules ? 3 : 2;
+
+  // Size the manager column to the longest team name, in the cells' own font.
+  const wrap = useRef<HTMLDivElement>(null);
+  const [managerPx, setManagerPx] = useState<number | null>(null);
+  const namesKey = ledger.managers.map((m) => teamNames.get(m.rosterId) ?? m.name).join("\n");
+  useLayoutEffect(() => {
+    const el = wrap.current;
+    if (!el) return;
+    const ctx = document.createElement("canvas").getContext("2d");
+    const measure = () => {
+      const cell = el.querySelector<HTMLElement>("[data-team-name]");
+      if (!cell || !ctx) return;
+      ctx.font = getComputedStyle(cell).font;
+      const widest = Math.max(0, ...namesKey.split("\n").map((n) => ctx.measureText(n).width));
+      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+      const room = el.clientWidth - (weeks.length * MIN_WEEK_REM + moneyCols * MONEY_COL_REM) * rem;
+      // The name plus the cell's right padding and a hair of slack.
+      const want = Math.ceil(widest) + 0.75 * rem + 4;
+      // When even narrow weeks don't leave room (the grid scrolls then anyway),
+      // the pinned name column may take up to 40% of the view.
+      setManagerPx(Math.max(MANAGER_REM * rem, Math.min(want, Math.max(room, 0.4 * el.clientWidth))));
+    };
+    // Fires once on observing, then on every resize.
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [namesKey, weeks.length, moneyCols]);
+  const managerWidth = managerPx != null ? `${managerPx}px` : `${MANAGER_REM}rem`;
 
   return (
     <div>
-      <div className="overflow-x-auto">
+      <div ref={wrap} className="overflow-x-auto">
         <table
           className="w-full table-fixed border-separate border-spacing-0 text-xs xl:text-sm"
-          style={{ minWidth: `${MANAGER_REM + weeks.length * MIN_WEEK_REM + (hasSeasonRules ? 3 : 2) * MONEY_COL_REM}rem` }}
+          style={{ minWidth: `calc(${managerWidth} + ${weeks.length * MIN_WEEK_REM + moneyCols * MONEY_COL_REM}rem)` }}
         >
           <colgroup>
-            <col style={{ width: `${MANAGER_REM}rem` }} />
+            <col style={{ width: managerWidth }} />
             {weeks.map((w) => (
               <col key={w} />
             ))}
@@ -176,8 +207,10 @@ function WeekGrid({
             {ledger.managers.map((mgr) => (
               <tr key={mgr.rosterId}>
                 {/* Team name over the Sleeper username, smaller — as the standings table had it. */}
-                <td className="sticky left-0 z-10 border-t border-grid bg-surface-raised py-1.5 pr-3">
-                  <div className="truncate font-medium text-ink-primary">{teamNames.get(mgr.rosterId) ?? mgr.name}</div>
+                <td className="sticky left-0 z-10 border-t border-grid bg-surface-raised pb-2 pr-3 pt-1">
+                  <div data-team-name className="truncate font-medium text-ink-primary">
+                    {teamNames.get(mgr.rosterId) ?? mgr.name}
+                  </div>
                   <div className="truncate text-[0.6875rem] leading-tight text-ink-muted">{mgr.name}</div>
                 </td>
                 {weeks.map((w, i) => {
@@ -188,7 +221,7 @@ function WeekGrid({
                   return (
                     <td
                       key={w}
-                      className={`relative border-t border-grid px-0.5 py-2 text-center tabular-nums ${
+                      className={`relative border-t border-grid px-0.5 pb-2.5 pt-1.5 text-center tabular-nums ${
                         w === firstPlayoff ? "border-l" : ""
                       } ${pending ? LIVE_BG : ""}`}
                       title={
@@ -198,10 +231,10 @@ function WeekGrid({
                       }
                     >
                       {i === 0 && maxTotal > 0 ? (
-                        // This manager's season earnings, as a bar behind the row's weeks.
+                        // This manager's season earnings, as a thin bar along the bottom of the row's weeks.
                         <span
                           aria-hidden
-                          className="pointer-events-none absolute inset-y-1.5 left-0 z-0 bg-[color-mix(in_srgb,var(--map-tag)_10%,transparent)] transition-[width] duration-500"
+                          className="pointer-events-none absolute bottom-1 left-0 z-0 h-[3px] bg-[color-mix(in_srgb,var(--map-tag)_55%,transparent)] transition-[width] duration-500"
                           // Every week column is the same width, so the full bar is that many of this first cell.
                           style={{ width: `${(mgr.total / maxTotal) * weeks.length * 100}%` }}
                         />
@@ -220,7 +253,7 @@ function WeekGrid({
                 })}
                 {hasSeasonRules ? (
                   <td
-                    className="border-t border-grid px-1.5 py-2 text-center tabular-nums"
+                    className="border-t border-grid px-1.5 pb-2.5 pt-1.5 text-center tabular-nums"
                     title={mgr.seasonEnd > 0 ? breakdown(mgr.seasonDetail) : seasonDecided ? "No season-end award" : "Decided at season’s end"}
                   >
                     {mgr.seasonEnd > 0 ? (
@@ -232,9 +265,9 @@ function WeekGrid({
                     )}
                   </td>
                 ) : null}
-                <td className="border-t border-grid py-2 pl-3 text-right font-semibold tabular-nums text-ink-primary">{money(mgr.total)}</td>
+                <td className="border-t border-grid pb-2.5 pl-3 pt-1.5 text-right font-semibold tabular-nums text-ink-primary">{money(mgr.total)}</td>
                 <td
-                  className={`border-t border-grid py-2 pl-3 text-right tabular-nums ${
+                  className={`border-t border-grid pb-2.5 pl-3 pt-1.5 text-right tabular-nums ${
                     mgr.net > 0 ? "text-status-good" : mgr.net < 0 ? "text-status-critical" : "text-ink-muted"
                   }`}
                 >
