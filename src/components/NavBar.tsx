@@ -94,7 +94,7 @@ export function NavBar() {
             href="/"
             className="bg-[var(--map-tag)] px-1.5 text-sm font-bold leading-relaxed text-[var(--map-tag-ink)] sm:px-2 sm:text-lg"
           >
-            Commi$h
+            COMMI$H
           </Link>
         </div>
 
