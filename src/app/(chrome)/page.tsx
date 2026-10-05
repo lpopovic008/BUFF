@@ -105,16 +105,27 @@ export default function DashboardPage() {
     });
   };
 
-  // Kickoff windows ("Sunday Noon") whose games are hidden from the map —
-  // toggled from the starters list's block headers. Everything shows by default.
-  const [hiddenBlocks, setHiddenBlocks] = useState<Set<string>>(() => new Set());
+  // Kickoff windows ("Sunday Noon") whose games are hidden from the map and
+  // folded shut in the starters list — toggled from the list's block headers.
+  // A window closes itself once all its games are final; otherwise everything
+  // shows. A header tap overrides that either way, and sticks.
+  const [blockChoices, setBlockChoices] = useState<Map<string, boolean>>(() => new Map());
+  const finalBlocks = useMemo(() => {
+    const byLabel = new Map<string, boolean>();
+    for (const game of weekGames) {
+      const label = kickoffBlockLabel(game);
+      byLabel.set(label, (byLabel.get(label) ?? true) && game.state === "post");
+    }
+    return new Set([...byLabel].filter(([, final]) => final).map(([label]) => label));
+  }, [weekGames]);
+  const hiddenBlocks = useMemo(() => {
+    const hidden = new Set<string>();
+    for (const label of finalBlocks) if (blockChoices.get(label) !== true) hidden.add(label);
+    for (const [label, shown] of blockChoices) if (!shown) hidden.add(label);
+    return hidden;
+  }, [finalBlocks, blockChoices]);
   const toggleBlock = (label: string) => {
-    setHiddenBlocks((prev) => {
-      const next = new Set(prev);
-      if (next.has(label)) next.delete(label);
-      else next.add(label);
-      return next;
-    });
+    setBlockChoices((prev) => new Map(prev).set(label, hiddenBlocks.has(label)));
   };
 
   const filteredStarters = useMemo(
