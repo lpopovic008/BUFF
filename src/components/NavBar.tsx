@@ -39,7 +39,7 @@ function HeaderKickoffClock({ target }: { target: number }) {
 }
 
 // The header's square buttons, styled like the map's own controls.
-export const HEADER_BUTTON =
+const HEADER_BUTTON =
   "flex h-7 w-7 shrink-0 items-center justify-center border border-grid bg-page text-ink-secondary transition-colors hover:text-ink-primary active:scale-90 disabled:opacity-30 disabled:hover:text-ink-secondary sm:h-9 sm:w-9";
 
 /**
