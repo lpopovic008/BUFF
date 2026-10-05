@@ -164,6 +164,8 @@ export default function DashboardPage() {
     }));
   }, [starterSources, leagues]);
 
+  const anyGameLive = weekGames.some((g) => g.state === "in");
+
   const mappedGames = useMemo<MappedGame[]>(() => {
     const startersByGameId = new Map(grouped.games.map((g) => [g.game.id, g.players]));
     const opponentStartersByGameId = new Map(groupedOpponent.games.map((g) => [g.game.id, g.players]));
@@ -223,10 +225,11 @@ export default function DashboardPage() {
       <h1 className="sr-only">Dashboard</h1>
       <LeagueTicker leagues={leagueCards} />
 
-      <div className="flex flex-col gap-6 md:flex-row md:items-start md:gap-3">
+      {/* On phones the map column's wrappers step aside (display: contents), so the Red Zone can sit either under the map or after the starters list. */}
+      <div className="flex flex-col gap-6 max-md:pb-16 md:flex-row md:items-start md:gap-3">
         {/* The map, with room underneath it for what comes next. Its own scroll container at md+, independent of the starters column beside it. Flipped to rtl so its scrollbar sits on the column's own left edge instead of in the gutter between the two columns — the inner wrapper flips back to ltr so the content itself still reads normally. */}
-        <div className="min-w-0 flex-1 md:sticky md:top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+2px)] md:max-h-[calc(100vh-var(--header-h,0px)-var(--ticker-h,0px)-2px-1.5rem)] md:overflow-y-auto md:[direction:rtl]">
-          <div className="flex flex-col gap-6 md:pb-16 md:[direction:ltr]">
+        <div className="min-w-0 flex-1 max-md:contents md:sticky md:top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+2px)] md:max-h-[calc(100vh-var(--header-h,0px)-var(--ticker-h,0px)-2px-1.5rem)] md:overflow-y-auto md:[direction:rtl]">
+          <div className="flex flex-col gap-6 max-md:contents md:pb-16 md:[direction:ltr]">
             {/* Back and forward, at the top left just under the ticker — in this column only, so starters by game runs right up to the ticker. */}
             <div className="-mb-[calc(1.5rem-2px)]">
               <HistoryButtons />
@@ -240,17 +243,17 @@ export default function DashboardPage() {
               </div>
             ) : null}
 
-            {/* Below the map: the Red Zone, your starters' plays as they happen. Your leagues ride the ticker under the header (see LeagueTicker). */}
+            {/* Below the map: the Red Zone, your starters' plays as they happen. On phones it waits at the very bottom of the page until a game is live, then moves up under the map as a short box you scroll within. Your leagues ride the ticker under the header (see LeagueTicker). */}
             {weekGames.length > 0 && myStarters !== null ? (
-              <div className="animate-[rise_0.5s_ease-out_backwards] [animation-delay:120ms]">
-                <RedZone starters={grouped.games} weekGames={weekGames} legend={legend} />
+              <div className={`animate-[rise_0.5s_ease-out_backwards] [animation-delay:120ms] ${anyGameLive ? "" : "max-md:order-last"}`}>
+                <RedZone starters={grouped.games} weekGames={weekGames} legend={legend} compactOnPhone={anyGameLive} />
               </div>
             ) : null}
           </div>
         </div>
 
         {/* Starters by game — one continuous column running alongside the map and leagues, with its own independent scroll at md+ so a long list here doesn't push the left column around or vice versa. Always a quarter of the window wide once side-by-side. */}
-        <div className="w-full animate-[rise_0.5s_ease-out_backwards] [animation-delay:200ms] md:sticky md:top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+2px)] md:max-h-[calc(100vh-var(--header-h,0px)-var(--ticker-h,0px)-2px-1.5rem)] md:w-[30vw] md:shrink-0 md:overflow-y-auto pb-16">
+        <div className="w-full animate-[rise_0.5s_ease-out_backwards] [animation-delay:200ms] md:sticky md:top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+2px)] md:max-h-[calc(100vh-var(--header-h,0px)-var(--ticker-h,0px)-2px-1.5rem)] md:w-[30vw] md:shrink-0 md:overflow-y-auto md:pb-16">
           {myStarters === null ? (
             <p className="text-sm text-ink-secondary">Loading your lineups…</p>
           ) : weekGames.length === 0 ? (

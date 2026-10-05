@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { LeagueLegendEntry, LeagueMark } from "@/components/LeagueMark";
@@ -223,6 +223,9 @@ function RedZoneAlert({ alert }: { alert: RedZoneNow }) {
   );
 }
 
+/** How many plays the phone's live box shows at once. */
+const PHONE_ROWS = 3;
+
 const SCOPES: { label: string; value: FeedScope }[] = [
   { label: "My players", value: "mine" },
   { label: "All plays", value: "all" },
@@ -238,12 +241,15 @@ export function RedZone({
   starters,
   weekGames,
   legend,
+  compactOnPhone = false,
 }: {
   /** Your starters, grouped by the game they're playing in. */
   starters: GameStarters[];
   /** Every game of the week. */
   weekGames: NFLGame[];
   legend: LeagueLegendEntry[];
+  /** On phones, show the plays in a box three rows tall that scrolls on its own, instead of a long list with a "Show more" button. */
+  compactOnPhone?: boolean;
 }) {
   const mode = useLiveMode();
   const [scope, setScope] = useState<FeedScope>("mine");
@@ -257,6 +263,36 @@ export function RedZone({
     const id = setTimeout(() => setSettled(true), 1500);
     return () => clearTimeout(id);
   }, [hasEntries, settled]);
+  // The phone box is exactly as tall as its first three rows — measured, since rows wrap to different heights.
+  const boxRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLOListElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const box = boxRef.current;
+    const list = listRef.current;
+    if (!compactOnPhone || !box || !list) return;
+    const measure = () => {
+      const rows = Array.from(list.children).slice(0, PHONE_ROWS) as HTMLElement[];
+      const height = rows.reduce((sum, row) => sum + row.offsetHeight, 0);
+      if (height > 0) box.style.setProperty("--rz-box-h", `${height}px`);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(list);
+    return () => observer.disconnect();
+  }, [compactOnPhone, hasEntries]);
+  const moreToShow = feed.entries.length > shown;
+  // In the phone box, scrolling to the end loads the next page of plays.
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!compactOnPhone || !sentinel) return;
+    const observer = new IntersectionObserver((seen) => {
+      if (seen.some((e) => e.isIntersecting)) setShown((n) => n + PAGE);
+    });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [compactOnPhone, moreToShow, shown]);
+
   const pickScope = (next: FeedScope) => {
     if (next === scope) return;
     setScope(next);
@@ -280,8 +316,8 @@ export function RedZone({
             {live ? <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-status-critical opacity-60" /> : null}
             <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${live ? "bg-status-critical" : "bg-ink-muted"}`} />
           </span>
-          <span className="text-sm font-bold uppercase tracking-[0.2em] text-ink-primary">Red Zone</span>
-          <span className="truncate text-[0.6875rem] text-ink-muted">{live ? "Live · every 15s · PPR" : "Play by play · PPR"}</span>
+          <span className="whitespace-nowrap text-sm font-bold uppercase tracking-[0.2em] text-ink-primary">Red Zone</span>
+          <span className="hidden truncate text-[0.6875rem] text-ink-muted sm:inline">{live ? "Live · every 15s · PPR" : "Play by play · PPR"}</span>
         </h2>
         <div className="flex shrink-0 border border-border text-[0.6875rem] font-semibold" role="group" aria-label="Which plays">
           {SCOPES.map((opt) => (
@@ -310,22 +346,32 @@ export function RedZone({
 
       {entries.length > 0 ? (
         <>
-          <ol className="flex flex-col" aria-label={scope === "mine" ? "Plays your starters were part of" : "Every play"} aria-live="polite">
-            {entries.slice(0, shown).map((entry, i) => (
-              <FeedRow
-                key={`${entry.game.id}-${entry.play.id}`}
-                entry={entry}
-                legendByLeagueId={legendByLeagueId}
-                arrivedLive={settled}
-                index={i}
-              />
-            ))}
-          </ol>
+          <div
+            ref={boxRef}
+            className={
+              compactOnPhone
+                ? "max-md:max-h-[var(--rz-box-h,15rem)] max-md:overflow-y-auto max-md:overscroll-contain max-md:border-y max-md:border-border"
+                : ""
+            }
+          >
+            <ol ref={listRef} className="flex flex-col" aria-label={scope === "mine" ? "Plays your starters were part of" : "Every play"} aria-live="polite">
+              {entries.slice(0, shown).map((entry, i) => (
+                <FeedRow
+                  key={`${entry.game.id}-${entry.play.id}`}
+                  entry={entry}
+                  legendByLeagueId={legendByLeagueId}
+                  arrivedLive={settled}
+                  index={i}
+                />
+              ))}
+            </ol>
+            {compactOnPhone && entries.length > shown ? <div ref={sentinelRef} className="h-px md:hidden" aria-hidden /> : null}
+          </div>
           {entries.length > shown ? (
             <button
               type="button"
               onClick={() => setShown((n) => n + PAGE)}
-              className="self-center px-3 py-1 text-xs font-semibold text-ink-secondary hover:text-ink-primary"
+              className={`self-center px-3 py-1 text-xs font-semibold text-ink-secondary hover:text-ink-primary ${compactOnPhone ? "max-md:hidden" : ""}`}
             >
               Show more ({entries.length - shown})
             </button>
