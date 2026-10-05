@@ -20,7 +20,7 @@ import {
 // The grid's fixed columns (in rem); the weeks share whatever's left equally,
 // regular season and playoffs alike, so the grid reads like a calendar. On
 // narrow screens each week keeps at least MIN_WEEK_REM and the grid scrolls.
-const MANAGER_REM = 6.5;
+const MANAGER_REM = 8;
 const MONEY_COL_REM = 3.75;
 const MIN_WEEK_REM = 2;
 
@@ -74,12 +74,15 @@ function WeekGrid({
   regularSeasonWeeks,
   lastWeek,
   currentWeek,
+  teamNames,
 }: {
   ledger: PlanLedger;
   plan: PayoutPlan;
   regularSeasonWeeks: number;
   lastWeek: number;
   currentWeek: number | null;
+  /** Team names by roster; each manager's row shows the team name over the username. */
+  teamNames: Map<number, string>;
 }) {
   const ruleText = new Map(plan.rules.map((r) => [r.id, describeRecipients(r)]));
   const swatches = ruleSwatches(plan.rules, regularSeasonWeeks);
@@ -172,8 +175,10 @@ function WeekGrid({
           <tbody>
             {ledger.managers.map((mgr) => (
               <tr key={mgr.rosterId}>
-                <td className="sticky left-0 z-10 truncate border-t border-grid bg-surface-raised py-2 pr-3 font-medium text-ink-primary">
-                  {mgr.name}
+                {/* Team name over the Sleeper username, smaller — as the standings table had it. */}
+                <td className="sticky left-0 z-10 border-t border-grid bg-surface-raised py-1.5 pr-3">
+                  <div className="truncate font-medium text-ink-primary">{teamNames.get(mgr.rosterId) ?? mgr.name}</div>
+                  <div className="truncate text-[0.6875rem] leading-tight text-ink-muted">{mgr.name}</div>
                 </td>
                 {weeks.map((w, i) => {
                   const amount = mgr.weekly[w] ?? 0;
@@ -319,6 +324,7 @@ export function MoneyBoard({
         regularSeasonWeeks={season.results.regularSeasonWeeks}
         lastWeek={season.results.lastWeek}
         currentWeek={currentWeek}
+        teamNames={season.teamNames}
       />
       <div className="mt-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-t border-grid pt-4">
         <dl className="grid grid-cols-2 gap-x-6 gap-y-2 sm:flex sm:flex-wrap sm:gap-x-8">

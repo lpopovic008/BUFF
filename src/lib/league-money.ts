@@ -11,7 +11,7 @@ import { findLeagueProfile, payoutsForSeason, LeagueProfile } from "./league-con
 import { computePayoutLedger, PayoutLedger } from "./payouts";
 import { SeasonResults } from "./payout-plan";
 import { buildLiveStandings, finalPlacements } from "./league-data";
-import { displaySleeperUsername } from "./format";
+import { displayManagerName, displaySleeperUsername } from "./format";
 
 export interface LeagueMoney {
   profile: LeagueProfile;
@@ -71,6 +71,8 @@ export interface LeagueSeason {
   /** The league's hand-configured commissioner rules, if it has any (see league-config.ts). */
   profile: LeagueProfile | null;
   results: SeasonResults;
+  /** Each roster's team name (results.names holds the Sleeper usernames), for the payout grid. */
+  teamNames: Map<number, string>;
 }
 
 /**
@@ -98,6 +100,10 @@ export async function loadLeagueSeason(leagueId: string): Promise<LeagueSeason |
     ])
   );
 
+  const teamNames = new Map<number, string>(
+    rosters.map((r) => [r.roster_id, displayManagerName(r.owner_id ? usersById.get(r.owner_id) : undefined)])
+  );
+
   const playoffStart = Number(league.settings.playoff_week_start) || 15;
   const regularSeasonWeeks = Math.max(1, playoffStart - 1);
   // The championship is the last round of the winners bracket.
@@ -119,6 +125,7 @@ export async function loadLeagueSeason(leagueId: string): Promise<LeagueSeason |
     leagueName: league.name,
     season: league.season,
     profile,
+    teamNames,
     results: {
       rosterIds: rosters.map((r) => r.roster_id),
       names,
