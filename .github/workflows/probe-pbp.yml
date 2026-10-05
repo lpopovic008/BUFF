@@ -14,7 +14,7 @@ jobs:
         run: |
           cat > probe.mjs <<'EOF'
           const j = async (u) => { const r = await fetch(u); const t = await r.text(); return { status: r.status, size: t.length, json: (() => { try { return JSON.parse(t); } catch { return null; } })() }; };
-          const sb = await j("https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&week=5&dates=2026");
+          const sb = await j("https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&week=4&dates=2026");
           const events = sb.json?.events ?? [];
           console.log("NOW", new Date().toISOString(), "events", events.length);
           for (const e of events) {
@@ -48,6 +48,12 @@ jobs:
           console.log("summary plays total", allPlays.length, "with participants", allPlays.filter((p) => p.participants).length);
           console.log("play types", JSON.stringify([...new Set(allPlays.map((p) => p.type?.text))]));
           console.log("TEXT SAMPLES", JSON.stringify(allPlays.slice(10, 30).map((p) => p.text)));
+          const bp = sum.json?.boxscore?.players ?? [];
+          console.log("BOX teams", bp.length, JSON.stringify(bp[0]?.team ?? null).slice(0, 300));
+          const st = bp[0]?.statistics?.[0];
+          console.log("BOX stat group", st?.name, JSON.stringify(st?.labels), JSON.stringify(st?.athletes?.[0] ?? null).slice(0, 1200));
+          console.log("BOX all groups", JSON.stringify((bp[0]?.statistics ?? []).map((g) => [g.name, g.athletes?.length])));
+          console.log("HEADER comp", JSON.stringify(sum.json?.header?.competitions?.[0]?.status ?? null).slice(0, 500));
           const core = await j(`https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/events/${id}/competitions/${id}/plays?limit=400`);
           console.log("CORE status", core.status, "size", core.size, "count", core.json?.count, "pageCount", core.json?.pageCount, "items", core.json?.items?.length);
           const items = core.json?.items ?? [];
@@ -56,7 +62,7 @@ jobs:
           console.log("core stats sample", JSON.stringify(items.find((p) => p.participants?.length)?.participants?.[0] ?? null).slice(0, 1500));
           const coreSorted = await j(`https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/events/${id}/competitions/${id}/plays?limit=5&sort=-sequenceNumber`);
           console.log("CORE sorted desc first seq", JSON.stringify((coreSorted.json?.items ?? []).map((p) => [p.sequenceNumber, p.text?.slice(0, 40)])));
-          const sl = await j("https://api.sleeper.app/v1/players/nfl");
+          const sl = { json: {} };
           const ps = sl.json ?? {};
           for (const pid of ["4984", "4881", "6794", "9509", "8146", "DET", "4046"]) {
             const p = ps[pid];
