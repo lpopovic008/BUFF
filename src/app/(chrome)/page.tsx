@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { GameMap, MappedGame } from "@/components/GameMap";
 import { LeagueTicker, TickerLeague } from "@/components/LeagueTicker";
+import { HistoryButtons } from "@/components/HistoryButtons";
 import { LeagueLegendEntry, StartersByGame } from "@/components/StartersByGame";
 import { useConfig } from "@/hooks/useConfig";
 import { MatchupTarget, useDashboardMatchups } from "@/hooks/useDashboardMatchups";
@@ -209,6 +210,10 @@ export default function DashboardPage() {
     <div className="flex flex-col gap-6">
       <h1 className="sr-only">Dashboard</h1>
       <LeagueTicker leagues={leagueCards} />
+      {/* Back and forward, at the top left just under the ticker. */}
+      <div className="-mb-3">
+        <HistoryButtons />
+      </div>
 
       <div className="flex flex-col gap-6 md:flex-row md:items-start md:gap-3">
         {/* The map, with room underneath it for what comes next. Its own scroll container at md+, independent of the starters column beside it. Flipped to rtl so its scrollbar sits on the column's own left edge instead of in the gutter between the two columns — the inner wrapper flips back to ltr so the content itself still reads normally. */}
