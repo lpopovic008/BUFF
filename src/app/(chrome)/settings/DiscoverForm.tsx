@@ -42,35 +42,35 @@ export function DiscoverForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4 sm:flex-row sm:items-end">
-      <label className="flex flex-1 flex-col gap-1">
-        <span className="text-sm font-medium text-ink-secondary">Sleeper username</span>
+    <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3">
+      <label className="flex min-w-0 flex-1 flex-col gap-1">
+        <span className="text-sm font-medium text-ink-secondary">Username</span>
         <input
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          placeholder="your Sleeper username"
+          
           required
-          className="border border-border bg-page px-3 py-2 text-sm text-ink-primary outline-none focus:border-series-1"
+          className="w-full min-w-0 border border-border bg-page px-3 py-2 text-sm text-ink-primary outline-none focus:border-series-1"
         />
       </label>
-      <label className="flex w-32 flex-col gap-1">
+      <label className="flex w-20 flex-col gap-1 sm:w-32">
         <span className="text-sm font-medium text-ink-secondary">Season</span>
         <input
           value={season}
           onChange={(e) => setSeason(e.target.value)}
           placeholder="2026"
           required
-          className="border border-border bg-page px-3 py-2 text-sm text-ink-primary outline-none focus:border-series-1"
+          className="w-full min-w-0 border border-border bg-page px-3 py-2 text-sm text-ink-primary outline-none focus:border-series-1"
         />
       </label>
       <IconButton
         icon={<SearchIcon />}
-        label={isPending ? "Discovering…" : "Discover leagues"}
+        label={isPending ? "Finding leagues…" : "Find leagues"}
         type="submit"
         disabled={isPending}
         variant="primary"
       />
-      {error ? <p className="text-sm text-status-critical sm:basis-full">{error}</p> : null}
+      {error ? <p className="basis-full text-sm text-status-critical">{error}</p> : null}
     </form>
   );
 }

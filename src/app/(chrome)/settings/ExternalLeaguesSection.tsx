@@ -27,7 +27,7 @@ export function ExternalLeaguesSection({
     e.preventDefault();
     const parsed = parseExternalLeagueUrl(url);
     if (!parsed) {
-      setError("Paste a link to your ESPN or Yahoo league page.");
+      setError("Not an ESPN or Yahoo league link.");
       return;
     }
     setError(null);
@@ -44,33 +44,31 @@ export function ExternalLeaguesSection({
 
   return (
     <div className="flex flex-col gap-4">
-      <form onSubmit={handleAdd} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-        <label className="flex flex-1 flex-col gap-1">
-          <span className="text-sm font-medium text-ink-secondary">League URL (ESPN or Yahoo)</span>
+      <form onSubmit={handleAdd} className="flex flex-wrap items-end gap-3">
+        <label className="flex min-w-0 basis-full flex-col gap-1 sm:basis-auto sm:flex-1">
+          <span className="text-sm font-medium text-ink-secondary">League URL</span>
           <input
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://fantasy.espn.com/football/league?leagueId=..."
             required
-            className="border border-border bg-page px-3 py-2 text-sm text-ink-primary outline-none focus:border-series-1"
+            className="w-full min-w-0 border border-border bg-page px-3 py-2 text-sm text-ink-primary outline-none focus:border-series-1"
           />
         </label>
-        <label className="flex w-40 flex-col gap-1">
+        <label className="flex min-w-0 flex-1 flex-col gap-1 sm:w-40 sm:flex-none">
           <span className="text-sm font-medium text-ink-secondary">Nickname</span>
           <input
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
             placeholder="optional"
-            className="border border-border bg-page px-3 py-2 text-sm text-ink-primary outline-none focus:border-series-1"
+            className="w-full min-w-0 border border-border bg-page px-3 py-2 text-sm text-ink-primary outline-none focus:border-series-1"
           />
         </label>
         <IconButton icon={<ExternalLinkIcon />} label="Add league" type="submit" variant="primary" />
-        {error ? <p className="text-sm text-status-critical sm:basis-full">{error}</p> : null}
+        {error ? <p className="basis-full text-sm text-status-critical">{error}</p> : null}
       </form>
 
-      {leagues.length === 0 ? (
-        <p className="text-sm text-ink-secondary">No external leagues yet.</p>
-      ) : (
+      {leagues.length === 0 ? null : (
         <ul className="divide-y divide-grid">
           {leagues.map((league) => (
             <li key={league.id} className="flex flex-nowrap items-center justify-between gap-2 py-3">

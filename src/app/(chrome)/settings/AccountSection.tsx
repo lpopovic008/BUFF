@@ -9,9 +9,9 @@ import { getSyncState } from "@/lib/localStore";
 import { supabaseConfigured } from "@/lib/supabase";
 
 const ACTION_MESSAGE: Record<SyncAction, string> = {
-  pull: "Pulled the newer copy from your account into this browser.",
-  push: "Pushed this browser's data to your account.",
-  noop: "Already up to date.",
+  pull: "Pulled from your account.",
+  push: "Saved to your account.",
+  noop: "Up to date.",
 };
 
 /**
@@ -60,9 +60,7 @@ function SignedInView({ email, userId }: { email: string; userId: string }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-sm text-ink-secondary">
-        Signed in as <span className="font-medium text-ink-primary">{email}</span>.
-      </p>
+      <p className="text-sm font-medium text-ink-primary">{email}</p>
       <div className="flex flex-wrap items-center gap-2">
         <IconButton
           icon={status === "synced" ? <CheckIcon /> : <UploadIcon />}
@@ -79,10 +77,8 @@ function SignedInView({ email, userId }: { email: string; userId: string }) {
           Sign out
         </button>
         {lastSyncedAt ? (
-          <span className="text-xs text-ink-muted">Last synced {new Date(lastSyncedAt).toLocaleString()}</span>
-        ) : (
-          <span className="text-xs text-ink-muted">Never synced</span>
-        )}
+          <span className="text-xs text-ink-muted">Synced {new Date(lastSyncedAt).toLocaleString([], { dateStyle: "short", timeStyle: "short" })}</span>
+        ) : null}
       </div>
       {error ? <p className="text-xs text-status-critical">{error}</p> : null}
       {status === "synced" && result ? <p className="text-xs text-status-good">{ACTION_MESSAGE[result]}</p> : null}
@@ -123,12 +119,6 @@ function SignedOutView() {
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm text-ink-secondary">
-        Sign in to sync tracked leagues, settings, the recap archive, and bowl picks across every device
-        signed into the same account. Without an account, everything still works exactly as it does now —
-        saved only in this browser.
-      </p>
-
       <button
         type="button"
         onClick={() => signInWithGoogle()}
@@ -139,22 +129,22 @@ function SignedOutView() {
 
       <div className="flex items-center gap-3 text-xs text-ink-muted">
         <div className="h-px flex-1 bg-border" />
-        or with email
+        or
         <div className="h-px flex-1 bg-border" />
       </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-        <label className="flex flex-1 flex-col gap-1">
+      <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3">
+        <label className="flex min-w-0 basis-full flex-col gap-1 sm:basis-auto sm:flex-1">
           <span className="text-sm font-medium text-ink-secondary">Email</span>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="border border-border bg-page px-3 py-2 text-sm text-ink-primary outline-none focus:border-series-1"
+            className="w-full min-w-0 border border-border bg-page px-3 py-2 text-sm text-ink-primary outline-none focus:border-series-1"
           />
         </label>
-        <label className="flex flex-1 flex-col gap-1">
+        <label className="flex min-w-0 flex-1 flex-col gap-1">
           <span className="text-sm font-medium text-ink-secondary">Password</span>
           <input
             type="password"
@@ -162,7 +152,7 @@ function SignedOutView() {
             onChange={(e) => setPassword(e.target.value)}
             required
             minLength={6}
-            className="border border-border bg-page px-3 py-2 text-sm text-ink-primary outline-none focus:border-series-1"
+            className="w-full min-w-0 border border-border bg-page px-3 py-2 text-sm text-ink-primary outline-none focus:border-series-1"
           />
         </label>
         <IconButton
@@ -183,13 +173,13 @@ function SignedOutView() {
         }}
         className="self-start text-xs font-medium text-series-1 underline decoration-dotted hover:text-series-1/80"
       >
-        {mode === "signUp" ? "Already have an account? Sign in instead" : "New here? Create an account instead"}
+        {mode === "signUp" ? "Sign in" : "Create account"}
       </button>
 
       {error ? <p className="text-xs text-status-critical">{error}</p> : null}
       {signedUp ? (
         <p className="text-xs text-status-good">
-          Check your email to confirm the account, then sign in.
+          Check your email to confirm, then sign in.
         </p>
       ) : null}
     </div>

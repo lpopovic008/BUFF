@@ -15,7 +15,7 @@ export function AppearanceSection() {
   const preference = useSyncExternalStore(subscribeThemePreference, getThemePreference, () => null);
 
   return (
-    <div className="flex flex-col gap-2">
+    <div>
       <div role="radiogroup" aria-label="Theme" className="flex w-fit">
         {OPTIONS.map(({ value, label }) => {
           const active = preference === value;
@@ -37,9 +37,6 @@ export function AppearanceSection() {
           );
         })}
       </div>
-      <p className="text-xs text-ink-muted">
-        System follows your device&rsquo;s light or dark setting. Saved on this device only.
-      </p>
     </div>
   );
 }
