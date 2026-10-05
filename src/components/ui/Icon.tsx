@@ -208,6 +208,17 @@ export function RadarIcon(props: IconProps) {
   );
 }
 
+/** A commissioner's vest — the high-vis kind, in outline: open V front, a zip down the middle, two reflective bands. */
+export function VestIcon(props: IconProps) {
+  return (
+    <svg {...base(props)} strokeWidth={props.strokeWidth ?? 1.5}>
+      <path d="M7.75 2.5 10 9l2.25-6.5h2c0 3 .9 5 2.25 5.5v10h-13V8c1.35-.5 2.25-2.5 2.25-5.5z" />
+      <path d="M10 9v8.5" />
+      <path d="M3.5 11.75h13M3.5 14.75h13" />
+    </svg>
+  );
+}
+
 export function CrownIcon(props: IconProps) {
   return (
     <svg {...base(props)}>

@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { IconLink } from "@/components/ui/IconButton";
-import { DocumentIcon, ClockIcon, RadarIcon } from "@/components/ui/Icon";
+import { DocumentIcon, ClockIcon, RadarIcon, VestIcon } from "@/components/ui/Icon";
 import { LeagueMatchupCarousel } from "@/components/LeagueMatchupCarousel";
 import { MoneyBoard } from "@/components/MoneyBoard";
 import { useConfig } from "@/hooks/useConfig";
@@ -115,24 +115,15 @@ function LeagueDetailContent() {
           </>
         }
       >
-        {/* The check sits inline after the name, so it follows the name's last word when it wraps. */}
+        {/* The vest sits inline after the name, so it follows the name's last word when it wraps. */}
         <h1 className="min-w-0 text-2xl font-semibold text-ink-primary">
           <span>{summary.league.name}</span>
           {tracked?.isCommish ? (
-            <svg
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              className="ml-2 inline-block h-4 w-4 align-[-0.05em] text-status-good"
+            <VestIcon
+              className="ml-2 inline-block h-5 w-5 align-[-0.15em] text-status-good"
               role="img"
               aria-label="You're the commissioner"
-            >
-              <title>You&rsquo;re the commissioner</title>
-              <path
-                fillRule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16Zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5Z"
-                clipRule="evenodd"
-              />
-            </svg>
+            />
           ) : null}
         </h1>
       </TitleWithHistory>
