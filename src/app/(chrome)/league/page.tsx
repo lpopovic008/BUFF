@@ -120,7 +120,7 @@ function LeagueDetailContent() {
           <span>{summary.league.name}</span>
           {tracked?.isCommish ? (
             <WalkieTalkieIcon
-              className="ml-2 inline-block h-5 w-5 align-[-0.15em] text-status-good"
+              className="ml-2 inline-block h-[1.15em] w-[1.15em] align-[-0.13em] text-status-good"
               role="img"
               aria-label="You're the commissioner"
             />

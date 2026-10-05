@@ -103,7 +103,7 @@ export default function SettingsPage() {
                       <div className="flex min-w-0 items-center gap-1.5 font-medium text-ink-primary">
                         <span className="truncate">{league.nickname ?? league.leagueId}</span>
                         {league.isCommish ? (
-                          <WalkieTalkieIcon className="h-4 w-4 shrink-0 text-status-good" role="img" aria-label="Commissioner" />
+                          <WalkieTalkieIcon className="h-[1.3em] w-[1.3em] shrink-0 text-status-good" role="img" aria-label="Commissioner" />
                         ) : null}
                       </div>
                     </div>
