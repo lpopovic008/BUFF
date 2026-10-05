@@ -288,7 +288,7 @@ play are usually right behind. Live callers read matchups with a 5s cache
 next tick always asks again.
 
 **Red Zone** (`useRedZoneFeed`, `RedZone.tsx`, `lib/play-by-play.ts`): by
-default ("My players") the plays your starters are in. "All plays" shows every
+default ("Team") the plays your starters are in. "All" shows every
 play of every game that's started, and only then fetches the games none of
 your starters are in. Each play shows the down and distance it was snapped on. A game's play-by-play comes from ESPN's summary
 endpoint (about 600 KB raw, so it isn't fetched on every tick). A finished

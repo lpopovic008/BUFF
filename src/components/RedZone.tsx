@@ -248,8 +248,8 @@ function RedZoneAlert({ alert }: { alert: RedZoneNow }) {
 const PHONE_ROWS = 3;
 
 const SCOPES: { label: string; value: FeedScope }[] = [
-  { label: "My players", value: "mine" },
-  { label: "All plays", value: "all" },
+  { label: "Team", value: "mine" },
+  { label: "All", value: "all" },
 ];
 
 /**
