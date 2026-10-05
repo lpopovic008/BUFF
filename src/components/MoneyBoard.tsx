@@ -345,7 +345,7 @@ export function MoneyBoard({
     ["Total pot", ledger.pot],
     ["Paid out", ledger.paidToDate],
     ["Still to pay", stillToPay],
-    ["Season-end prizes", seasonPrizes],
+    ["Season prizes", seasonPrizes],
   ];
 
   return (
