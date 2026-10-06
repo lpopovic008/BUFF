@@ -3,7 +3,7 @@
 // window. Pure logic — the fetching lives in hooks/useMyStarters.ts.
 
 import { NFLGame } from "./nfl-schedule";
-import { computeKickoffSlots, kickoffSlotColor, kickoffSlotLongLabel } from "./game-map";
+import { computeKickoffSlots, kickoffBlockLabel, kickoffSlotColor, kickoffSlotLongLabel } from "./game-map";
 
 export interface StarterEntry {
   playerId: string;
@@ -17,6 +17,9 @@ export interface StarterEntry {
   points: number | null;
 }
 
+/** Whose a player in a game's list is: one of your starters, one you're facing this week, or anyone else in the game. */
+export type PlayerSide = "mine" | "opponent" | "other";
+
 /** A starter deduped across leagues — one row per unique player, with every league they're started in. */
 export interface GroupedStarter {
   playerId: string;
@@ -27,6 +30,8 @@ export interface GroupedStarter {
   /** Points under the first league's scoring (leagues can score differently); see pointsByLeague for the rest. */
   points: number | null;
   pointsByLeague: Record<string, number | null>;
+  /** Whose player this is — your own when unset. */
+  side?: PlayerSide;
 }
 
 export interface GameStarters {
@@ -113,6 +118,78 @@ export function groupStartersByGame(
       ),
     }));
   return { games: grouped, notPlaying: dedupeStarters(notPlaying) };
+}
+
+/** Anyone in a live game: their PPR points so far this week and Sleeper's projection for it. */
+export interface LivePlayerLine {
+  playerId: string;
+  name: string;
+  position: string;
+  team: string | null;
+  points: number;
+  projected: number | null;
+}
+
+/** Someone who isn't in your matchups shows up in a live game's list once they've scored, or if they're projected for at least this many points. */
+export const LIVE_PROJECTION_FLOOR = 6;
+
+/**
+ * Everyone worth watching in one game of a live time block: your starters,
+ * the starters you're facing, and anyone else in the game who has scored
+ * (or lost) fantasy points or is projected for LIVE_PROJECTION_FLOOR or more.
+ * A player in more than one of those shows once — yours first, then
+ * opponents'. Ordered by points scored, then by projection.
+ */
+export function liveGameRows(
+  game: NFLGame,
+  mine: GroupedStarter[],
+  opponent: GroupedStarter[],
+  lines: LivePlayerLine[],
+  projected: Record<string, number>
+): GroupedStarter[] {
+  const seen = new Set<string>();
+  const rows: { row: GroupedStarter; points: number; projected: number }[] = [];
+  const add = (row: GroupedStarter) => {
+    if (seen.has(row.playerId)) return;
+    seen.add(row.playerId);
+    rows.push({ row, points: row.points ?? 0, projected: projected[row.playerId] ?? -Infinity });
+  };
+  for (const p of mine) add({ ...p, side: "mine" });
+  for (const p of opponent) add({ ...p, side: "opponent" });
+  for (const line of lines) {
+    if (line.team !== game.homeTeam && line.team !== game.awayTeam) continue;
+    if (line.points === 0 && (line.projected ?? 0) < LIVE_PROJECTION_FLOOR) continue;
+    add({
+      playerId: line.playerId,
+      name: line.name,
+      position: line.position,
+      team: line.team,
+      leagueIds: [],
+      points: line.points,
+      pointsByLeague: {},
+      side: "other",
+    });
+  }
+  return rows
+    .sort((a, b) => b.points - a.points || b.projected - a.projected || a.row.name.localeCompare(b.row.name))
+    .map((r) => r.row);
+}
+
+/**
+ * The kickoff windows (see kickoffBlockLabel) being played right now: at
+ * least one game has kicked off and not every game is final.
+ */
+export function liveBlockLabels(games: NFLGame[]): Set<string> {
+  const byLabel = new Map<string, NFLGame[]>();
+  for (const game of games) {
+    const label = kickoffBlockLabel(game);
+    byLabel.set(label, [...(byLabel.get(label) ?? []), game]);
+  }
+  const live = new Set<string>();
+  for (const [label, block] of byLabel) {
+    if (block.some((g) => g.state !== "pre") && !block.every((g) => g.state === "post")) live.add(label);
+  }
+  return live;
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;

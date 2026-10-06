@@ -7,6 +7,10 @@ import {
   finishedBlocksLast,
   groupGamesByTimeBlock,
   groupStartersByGame,
+  GroupedStarter,
+  liveBlockLabels,
+  liveGameRows,
+  LivePlayerLine,
   StarterEntry,
 } from "./my-starters";
 import { NFLGame } from "./nfl-schedule";
@@ -166,4 +170,58 @@ test("finished time blocks move to the bottom, the rest keep kickoff order", () 
   // Sunday is still on (one game live), so only Wednesday night has finished.
   const order = finishedBlocksLast(groupGamesByTimeBlock(games)).map((c) => c.games.map((g) => g.game.id).join("+"));
   assert.deepEqual(order, ["sun-a+sun-b", "mon", "wed"]);
+});
+
+function grouped(playerId: string, points: number | null): GroupedStarter {
+  return { playerId, name: playerId, position: "WR", team: "BUF", leagueIds: ["L1"], points, pointsByLeague: { L1: points } };
+}
+
+function line(playerId: string, team: string, points: number, projected: number | null): LivePlayerLine {
+  return { playerId, name: playerId, position: "RB", team, points, projected };
+}
+
+test("liveGameRows lists your starters, the ones you face, and anyone in the game who scored or is projected 6+", () => {
+  const g = game("g1", "BUF", "MIA", "2026-10-11T17:00:00Z");
+  const rows = liveGameRows(
+    g,
+    [grouped("Mine", 4)],
+    [grouped("Theirs", 9), grouped("Mine", 4)],
+    [
+      line("Scorer", "MIA", 12, 3),
+      line("Negative", "BUF", -1, null), // lost points still count
+      line("Projected", "MIA", 0, 8), // hasn't scored yet, but projected 8
+      line("Quiet", "MIA", 0, 4), // neither — left out
+      line("Elsewhere", "KC", 20, 15), // a different game
+      line("Theirs", "BUF", 9, 10), // already listed as an opponent's
+    ],
+    { Mine: 11, Theirs: 10, Scorer: 3, Projected: 8 }
+  );
+  assert.deepEqual(
+    rows.map((r) => [r.playerId, r.side]),
+    [
+      ["Scorer", "other"],
+      ["Theirs", "opponent"],
+      ["Mine", "mine"],
+      ["Projected", "other"],
+      ["Negative", "other"],
+    ]
+  );
+});
+
+test("liveGameRows breaks ties in points by projection", () => {
+  const g = game("g1", "BUF", "MIA", "2026-10-11T17:00:00Z");
+  const rows = liveGameRows(g, [], [], [line("Low", "MIA", 0, 6.5), line("High", "BUF", 0, 14)], { Low: 6.5, High: 14 });
+  assert.deepEqual(rows.map((r) => r.playerId), ["High", "Low"]);
+});
+
+test("liveBlockLabels is the windows with a game started and not every game final", () => {
+  const at = (id: string, kickoff: string, state: NFLGame["state"]) => ({ ...game(id, "A", "B", kickoff), state });
+  const live = liveBlockLabels([
+    at("a", "2026-10-11T17:00:00Z", "post"),
+    at("b", "2026-10-11T17:00:00Z", "in"),
+    at("c", "2026-10-11T20:25:00Z", "pre"),
+    at("d", "2026-10-09T00:15:00Z", "post"),
+  ]);
+  assert.equal(live.size, 1);
+  assert.ok([...live][0].length > 0);
 });

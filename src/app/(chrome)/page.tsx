@@ -13,8 +13,9 @@ import { MatchupTarget, useDashboardMatchups } from "@/hooks/useDashboardMatchup
 import { StarterSource, useMyStarters } from "@/hooks/useMyStarters";
 import { useNFLState } from "@/hooks/useNFLState";
 import { useWeekGames } from "@/hooks/useWeekGames";
+import { useLivePlayerLines } from "@/hooks/useLivePlayerLines";
 import { getLeagueSummary, LeagueSummary, teamStandings } from "@/lib/league-data";
-import { groupStartersByGame, GroupedStarter } from "@/lib/my-starters";
+import { GameStarters, groupStartersByGame, GroupedStarter, liveBlockLabels, liveGameRows } from "@/lib/my-starters";
 import { avatarUrl, getCurrentWeek } from "@/lib/sleeper";
 import { kickoffBlockLabel } from "@/lib/game-map";
 import { TrackedLeague } from "@/lib/localStore";
@@ -151,6 +152,27 @@ export default function DashboardPage() {
     [filteredOpponentStarters, weekGames]
   );
 
+  // While a time block is being played, each of its games lists everyone
+  // worth watching in it — the starters you're facing and anyone else who's
+  // scored or is projected well — not just your own starters.
+  const liveBlocks = useMemo(() => liveBlockLabels(weekGames), [weekGames]);
+  const livePlayers = useLivePlayerLines(nflPhase.season ?? config.season, week, liveBlocks.size > 0);
+  const listedGames = useMemo<GameStarters[]>(() => {
+    if (liveBlocks.size === 0) return grouped.games;
+    const mineByGameId = new Map(grouped.games.map((g) => [g.game.id, g.players]));
+    const opponentByGameId = new Map(groupedOpponent.games.map((g) => [g.game.id, g.players]));
+    const byKickoff = [...weekGames].sort((a, b) => new Date(a.kickoff).getTime() - new Date(b.kickoff).getTime());
+    const out: GameStarters[] = [];
+    for (const game of byKickoff) {
+      const mine = mineByGameId.get(game.id) ?? [];
+      const players = liveBlocks.has(kickoffBlockLabel(game))
+        ? liveGameRows(game, mine, opponentByGameId.get(game.id) ?? [], livePlayers.lines, livePlayers.projected)
+        : mine;
+      if (players.length > 0) out.push({ game, players });
+    }
+    return out;
+  }, [liveBlocks, grouped.games, groupedOpponent.games, weekGames, livePlayers]);
+
   // Colour per league, keyed off the order leagues are tracked in so a
   // league keeps the same colour on the map, in the list, and in the legend —
   // the fallback for any league whose commish hasn't set a custom logo.
@@ -265,7 +287,7 @@ export default function DashboardPage() {
             </p>
           ) : (
             <StartersByGame
-              games={grouped.games}
+              games={listedGames}
               notPlaying={grouped.notPlaying}
               legend={legend}
               selectedLeagueIds={effectiveSelected}

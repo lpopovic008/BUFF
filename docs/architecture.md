@@ -287,6 +287,17 @@ play are usually right behind. Live callers read matchups with a 5s cache
 (`LIVE_TTL_SECONDS`), so every component on one tick shares a request and the
 next tick always asks again.
 
+**Live time blocks** (`useLivePlayerLines`, `liveGameRows` in
+`lib/my-starters.ts`): while a kickoff window is being played, each of its
+games in the starters list shows everyone worth watching, not just your
+starters: the starters you're facing, plus anyone in the game who has scored
+or lost points or is projected for 6+. Rows are ordered by points, then
+projection. Points are green for your starters, red for the ones you face.
+Everyone else's PPR points and projections come from Sleeper's NFL-wide
+`/stats` and `/projections` endpoints (undocumented, the same ones the
+Sleeper app uses). Stats are re-read each tick; projections are cached
+for 5 minutes. Neither is fetched unless a block is live.
+
 **Red Zone** (`useRedZoneFeed`, `RedZone.tsx`, `lib/play-by-play.ts`): by
 default ("Team") the plays your starters are in. "All" shows every
 play of every game that's started, and only then fetches the games none of

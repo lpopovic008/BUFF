@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { formatCountdown } from "@/lib/format";
 import { TYPE_MS_PER_CHAR, totalChars, typedSlices, useSeenOnce, useTypedCount } from "@/hooks/useTyped";
 import { setHeaderKickoff } from "@/lib/header-clock";
-import { formatKickoffTime, GameStarters, finishedBlocksLast, groupGamesByTimeBlock, GroupedStarter } from "@/lib/my-starters";
+import { formatKickoffTime, GameStarters, finishedBlocksLast, groupGamesByTimeBlock, GroupedStarter, PlayerSide } from "@/lib/my-starters";
 import { NFLGame } from "@/lib/nfl-schedule";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import { nflLogoMaxWidth, nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
@@ -16,13 +16,21 @@ function formatPoints(points: number): string {
   return points.toFixed(2);
 }
 
+// Whose player it is, by the color of their points: yours green, the ones you're facing red.
+const SIDE_POINTS_COLOR: Record<PlayerSide, string> = {
+  mine: "font-semibold text-status-good",
+  opponent: "font-semibold text-status-critical",
+  other: "text-ink-primary",
+};
+
 /**
- * A starter's row: position, name, the logo of every league they're started
- * in, then their live fantasy points pinned to the right edge. Points use the
- * first league's scoring; when the player's leagues score them differently,
- * the tooltip lists each league's number. Before kickoff (or for a player
- * with no game this week) the points slot holds a dash, keeping every row's
- * logos lined up.
+ * A player's row: position, name, the logo of every league they're started
+ * in, then their live fantasy points pinned to the right edge — green for
+ * your starters, red for the ones you're facing. Points use the first
+ * league's scoring; when the player's leagues score them differently, the
+ * tooltip lists each league's number. Before kickoff (or for a player with
+ * no game this week) the points slot holds a dash, keeping every row's logos
+ * lined up.
  */
 /** A player row's text, in typing order: position, name, points. */
 function playerPieces(player: GroupedStarter, started: boolean): string[] {
@@ -56,9 +64,12 @@ function PlayerRow({
   }));
   const scoredDifferently = new Set(perLeague.map((l) => l.points)).size > 1;
   const showPoints = started && player.points !== null;
-  const title = `${player.name} — ${perLeague
-    .map((l) => (started && scoredDifferently && l.points !== null ? `${l.name}: ${formatPoints(l.points)}` : l.name))
-    .join(", ")}`;
+  const title =
+    perLeague.length === 0
+      ? player.name
+      : `${player.name} — ${perLeague
+          .map((l) => (started && scoredDifferently && l.points !== null ? `${l.name}: ${formatPoints(l.points)}` : l.name))
+          .join(", ")}`;
   return (
     <div ref={ref} className="flex items-center gap-1.5 leading-tight" title={title}>
       <span
@@ -78,7 +89,7 @@ function PlayerRow({
       </span>
       <span
         className={`w-[3.4em] shrink-0 text-right text-[0.8125rem] tabular-nums ${
-          showPoints ? "font-semibold text-ink-primary" : "text-ink-muted"
+          showPoints ? SIDE_POINTS_COLOR[player.side ?? "mine"] : "text-ink-muted"
         }`}
       >
         {points}

@@ -233,42 +233,56 @@ export async function getNFLState(): Promise<SleeperNFLState | null> {
   }
 }
 
-interface SleeperProjectionEntry {
+interface SleeperWeeklyEntry {
   player_id: string;
-  /** Raw per-category projected stat line (pass_td, rec, rec_yd, bonus_rec_te, ...) plus Sleeper's own pts_ppr/pts_half_ppr/pts_std rollups — same stat-key vocabulary as a league's scoring_settings and a completed matchup's players_points. */
+  /** The team the player was on that week. */
+  team?: string | null;
+  /** Raw per-category stat line (pass_td, rec, rec_yd, bonus_rec_te, ...) plus Sleeper's own pts_ppr/pts_half_ppr/pts_std rollups — same stat-key vocabulary as a league's scoring_settings and a completed matchup's players_points. */
   stats?: Record<string, number> | null;
 }
 
-const PROJECTIONS_BASE = "https://api.sleeper.app/projections/nfl";
-const projectionStatsCache = new Map<string, { expiresAt: number; promise: Promise<Record<string, Record<string, number>>> }>();
+/** One player's line for a week: their stats (projected or actual) and the team they played for. */
+export interface WeeklyPlayerLine {
+  stats: Record<string, number>;
+  team: string | null;
+}
+
+const SLEEPER_WEEKLY_BASE = "https://api.sleeper.app";
+const weeklyLinesCache = new Map<string, { expiresAt: number; promise: Promise<Record<string, WeeklyPlayerLine>> }>();
 
 /**
- * This week's raw projected stat line per player, keyed by player id.
- * Unlike everything else in this file, this isn't part of Sleeper's
- * documented public API (docs.sleeper.com has no projections endpoint) —
- * it's the same undocumented endpoint the Sleeper app itself and various
+ * Every player's stat line for a week, keyed by player id — "projections" for
+ * what Sleeper expects, "stats" for what's happened so far (updated as games
+ * are played). Unlike everything else in this file, neither is part of
+ * Sleeper's documented public API (docs.sleeper.com has no such endpoints) —
+ * they're the same undocumented endpoints the Sleeper app itself and various
  * community tools rely on. Never throws and returns an empty map on any
- * failure (network error, unexpected response shape, endpoint change).
- * These are the same NFL-wide numbers regardless of league, so this is
- * cached and shared across every league rather than refetched per league.
+ * failure (network error, unexpected response shape, endpoint change). These
+ * are the same NFL-wide numbers regardless of league, so they're cached for
+ * `ttlSeconds` and shared across every league rather than refetched per league.
  */
-async function getWeeklyProjectionStats(season: string, week: number): Promise<Record<string, Record<string, number>>> {
-  const key = `${season}-${week}`;
-  const cached = projectionStatsCache.get(key);
+export async function getWeeklyPlayerLines(
+  kind: "projections" | "stats",
+  season: string,
+  week: number,
+  ttlSeconds = 300
+): Promise<Record<string, WeeklyPlayerLine>> {
+  const key = `${kind}-${season}-${week}`;
+  const cached = weeklyLinesCache.get(key);
   if (cached && cached.expiresAt > Date.now()) return cached.promise;
 
   const promise = (async () => {
     try {
       const positions = ["QB", "RB", "WR", "TE", "K", "DEF"];
       const url =
-        `${PROJECTIONS_BASE}/${season}/${week}?season_type=regular&` +
+        `${SLEEPER_WEEKLY_BASE}/${kind}/nfl/${season}/${week}?season_type=regular&` +
         positions.map((p) => `position[]=${p}`).join("&");
       const res = await fetch(url);
       if (!res.ok) return {};
-      const data = (await res.json()) as SleeperProjectionEntry[] | null;
-      const out: Record<string, Record<string, number>> = {};
-      for (const entry of data ?? []) {
-        if (entry.player_id && entry.stats) out[entry.player_id] = entry.stats;
+      const data = (await res.json()) as SleeperWeeklyEntry[] | null;
+      const out: Record<string, WeeklyPlayerLine> = {};
+      for (const entry of Array.isArray(data) ? data : []) {
+        if (entry.player_id && entry.stats) out[entry.player_id] = { stats: entry.stats, team: entry.team ?? null };
       }
       return out;
     } catch {
@@ -276,7 +290,7 @@ async function getWeeklyProjectionStats(season: string, week: number): Promise<R
     }
   })();
 
-  projectionStatsCache.set(key, { expiresAt: Date.now() + 300 * 1000, promise });
+  weeklyLinesCache.set(key, { expiresAt: Date.now() + ttlSeconds * 1000, promise });
   return promise;
 }
 
@@ -316,9 +330,9 @@ export async function getWeeklyProjections(
   week: number,
   scoringSettings?: Record<string, number>
 ): Promise<Record<string, number>> {
-  const statsById = await getWeeklyProjectionStats(season, week);
+  const linesById = await getWeeklyPlayerLines("projections", season, week);
   const out: Record<string, number> = {};
-  for (const [playerId, stats] of Object.entries(statsById)) {
+  for (const [playerId, { stats }] of Object.entries(linesById)) {
     const pts = weighProjection(stats, scoringSettings);
     if (typeof pts === "number") out[playerId] = pts;
   }

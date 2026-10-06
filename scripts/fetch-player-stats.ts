@@ -11,7 +11,7 @@
  * Sleeper has no *documented* stats endpoint, but a --probe run against a
  * real week (see git history) confirmed it mirrors the projections endpoint
  * this app already fetches live and successfully (src/lib/sleeper.ts's
- * getWeeklyProjectionStats) — same base domain, same
+ * getWeeklyPlayerLines) — same base domain, same
  * /{kind}/nfl/{season}/{week}?season_type=regular&position[]=... query
  * shape, same flat array of {player_id, stats} where `stats` carries a `gp`
  * (games played) flag plus Sleeper's own pts_ppr/pts_half_ppr/pts_std
