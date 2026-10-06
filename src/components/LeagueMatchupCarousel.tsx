@@ -39,8 +39,8 @@ function PlayerName({ name }: { name: string }) {
 }
 
 /**
- * The player's name with their season rank at their position (12 for the
- * 12th-best WR) on its outer side — left of the name for your team, right of
+ * The player's name with their rank at their position (12 for the 12th-best
+ * WR; see positionBlendRankIndexFor) on its outer side — left of the name for your team, right of
  * it for theirs — styled like the standings rank beside team names.
  */
 function RankedName({ resolved, align }: { resolved: ResolvedSlot; align: "left" | "right" }) {
@@ -54,7 +54,7 @@ function RankedName({ resolved, align }: { resolved: ResolvedSlot; align: "left"
       }`}
       title={
         resolved.seasonRank
-          ? `${resolved.player?.position ?? ""}${resolved.seasonRank} — season rank at position, by fantasy points`
+          ? `${resolved.player?.position ?? ""}${resolved.seasonRank} — season points, points per game and dynasty value (in dynasty leagues), blended`
           : undefined
       }
     >

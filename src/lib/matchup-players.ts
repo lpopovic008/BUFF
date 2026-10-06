@@ -80,7 +80,7 @@ export function topPlayersByValue(
   return rankPlayersByValue(players, livePointsById, snapshot, metric).slice(0, count);
 }
 
-// --- Position-scoped ranks (value rank at position; season rank shown in the lineup view) ---
+// --- Position-scoped ranks (value rank at position; the blended rank shown in the lineup view) ---
 //
 // The Values page's own `rank` is computed across every position at once
 // (see app/(chrome)/values/page.tsx) — not what a lineup row wants, since
@@ -118,22 +118,39 @@ export function positionValueRankIndexFor(snapshot: PlayerValuesSnapshot, metric
   return idx;
 }
 
-const positionSeasonRankCache = new Map<string, Map<string, number>>();
-let positionRankedStatsSnapshot: PlayerStatsSnapshot | null = null;
-
-/** A player's season rank among every player at their own position (1 = most fantasy points this season), keyed by Sleeper player id. Players who haven't played yet aren't ranked. */
-export function positionSeasonRankIndexFor(
-  snapshot: PlayerStatsSnapshot,
-  scoringSettings?: Record<string, number>
+/**
+ * A player's id-keyed dynasty value under a league's metric, for blending
+ * into the lineup rank — KTC lists players by name only, so each is matched
+ * to Sleeper's id by position and normalized name (`loadPlayerIdIndex`).
+ */
+export function valuesByPlayerId(
+  snapshot: PlayerValuesSnapshot,
+  metric: ValueMetric,
+  idIndex: Map<string, string>
 ): Map<string, number> {
-  if (positionRankedStatsSnapshot !== snapshot) {
-    positionSeasonRankCache.clear();
-    positionRankedStatsSnapshot = snapshot;
+  const list = metric.listType === "dynasty" ? snapshot.dynasty : snapshot.fantasy;
+  const out = new Map<string, number>();
+  for (const p of list) {
+    const id = idIndex.get(`${p.position}-${normalizeName(p.name)}`);
+    if (id) out.set(id, valueFor(p, metric.format, metric.tep));
   }
-  const key = JSON.stringify(scoringSettings ?? {});
-  const cached = positionSeasonRankCache.get(key);
-  if (cached) return cached;
+  return out;
+}
 
+/**
+ * The lineup view's position rank (1 = best RB, say): this season's points,
+ * points per game — so a missed game costs less — and, in a dynasty league,
+ * dynasty value, each scaled against the position's leader (1 for the top
+ * scorer, 0.5 for half as many) and averaged with equal weight. A position
+ * KTC doesn't value (K, DEF) blends the first two alone; a player KTC doesn't
+ * list counts as no value. Keyed by Sleeper player id; players who haven't
+ * played yet aren't ranked.
+ */
+export function positionBlendRankIndexFor(
+  snapshot: PlayerStatsSnapshot,
+  scoringSettings?: Record<string, number>,
+  dynastyValues?: Map<string, number>
+): Map<string, number> {
   const byPosition = new Map<string, typeof snapshot.players>();
   for (const line of snapshot.players) {
     if (line.gamesPlayed <= 0) continue;
@@ -144,9 +161,22 @@ export function positionSeasonRankIndexFor(
 
   const idx = new Map<string, number>();
   for (const group of byPosition.values()) {
-    const ranked = [...group].sort((a, b) => seasonPointsFor(b, scoringSettings) - seasonPointsFor(a, scoringSettings));
-    ranked.forEach((line, i) => idx.set(line.playerId, i + 1));
+    const rows = group.map((line) => {
+      const points = seasonPointsFor(line, scoringSettings);
+      return { id: line.playerId, points, ppg: points / line.gamesPlayed, value: dynastyValues?.get(line.playerId) ?? 0 };
+    });
+    const top = (pick: (r: (typeof rows)[number]) => number) => Math.max(0, ...rows.map(pick));
+    const topPoints = top((r) => r.points);
+    const topPpg = top((r) => r.ppg);
+    const topValue = top((r) => r.value);
+    const share = (n: number, max: number) => (max > 0 ? Math.max(0, n) / max : 0);
+    const scored = rows.map((r) => {
+      const parts = [share(r.points, topPoints), share(r.ppg, topPpg)];
+      if (topValue > 0) parts.push(share(r.value, topValue));
+      return { ...r, score: parts.reduce((a, b) => a + b, 0) / parts.length };
+    });
+    scored.sort((a, b) => b.score - a.score || b.points - a.points);
+    scored.forEach((r, i) => idx.set(r.id, i + 1));
   }
-  positionSeasonRankCache.set(key, idx);
   return idx;
 }

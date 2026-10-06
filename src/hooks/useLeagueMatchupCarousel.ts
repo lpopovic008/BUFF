@@ -1,22 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getLeague, getLeagueRosters, getLeagueUsers, getMatchups } from "@/lib/sleeper";
+import { getLeague, getLeagueRosters, getLeagueUsers, getMatchups, isDynastyLeague, leagueQBFormat } from "@/lib/sleeper";
 import { buildLeagueMatchups } from "@/lib/league-data";
-import { resolvePlayers, ResolvedPlayer } from "@/lib/players";
-import { positionSeasonRankIndexFor } from "@/lib/matchup-players";
+import { loadPlayerIdIndex, resolvePlayers, ResolvedPlayer } from "@/lib/players";
+import { positionBlendRankIndexFor, valuesByPlayerId } from "@/lib/matchup-players";
 import { PlayerStatsSnapshot } from "@/lib/player-stats";
+import { PlayerValuesSnapshot } from "@/lib/player-values";
 import rawStatsSnapshot from "@/data/player-stats.json";
+import rawValuesSnapshot from "@/data/player-values.json";
 import { LIVE_TTL_SECONDS } from "@/lib/live-clock";
 import { useLiveTick } from "@/hooks/useLiveTick";
 
 const statsSnapshot = rawStatsSnapshot as unknown as PlayerStatsSnapshot;
+const valuesSnapshot = rawValuesSnapshot as unknown as PlayerValuesSnapshot;
 
 export interface ResolvedSlot {
   slot: string;
   player: ResolvedPlayer | null;
   livePoints: number;
-  /** This player's season rank at their position by fantasy points (12 for the 12th-best WR), or null if they haven't played / couldn't be found. */
+  /** This player's rank at their position (12 for the 12th-best WR) — season points, points per game and, in a dynasty league, dynasty value, blended — or null if they haven't played / couldn't be found. */
   seasonRank: number | null;
 }
 
@@ -63,11 +66,15 @@ export function useLeagueMatchupCarousel(leagueId: string | null, week: number |
       const allIds = raw.flatMap((g) =>
         g.teams.flatMap((t) => t.slots.map((s) => s.playerId).filter((pid): pid is string => pid !== null))
       );
-      const resolved = await resolvePlayers(allIds);
+      const dynasty = isDynastyLeague(league);
+      const [resolved, idIndex] = await Promise.all([resolvePlayers(allIds), dynasty ? loadPlayerIdIndex() : null]);
       if (cancelled) return;
       const byId = new Map(resolved.map((p) => [p.playerId, p]));
 
-      const seasonRankIdx = positionSeasonRankIndexFor(statsSnapshot, league.scoring_settings);
+      const dynastyValues = idIndex
+        ? valuesByPlayerId(valuesSnapshot, { listType: "dynasty", format: leagueQBFormat(league), tep: "standard" }, idIndex)
+        : undefined;
+      const seasonRankIdx = positionBlendRankIndexFor(statsSnapshot, league.scoring_settings, dynastyValues);
 
       const withNames: ResolvedMatchupGame[] = raw.map((g) => ({
         matchupId: g.matchupId,
