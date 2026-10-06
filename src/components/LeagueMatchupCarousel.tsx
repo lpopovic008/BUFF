@@ -135,8 +135,9 @@ type MatchupTeam = ResolvedMatchupGame["teams"][number];
 /**
  * The matchup's header, laid on the lineup's own grid: each team's line
  * (rank, name, record, streak — the league boxes' format) over its score, and
- * each score sitting right over its column of player points, PF/PA ranks
- * tight to the outside edges — all on one highlighted block, like a map tag.
+ * each score sitting right over its column of player points, the all-time
+ * head-to-head record at the outside edges with PF/PA ranks just inside —
+ * all on one highlighted block, like a map tag.
  */
 function MatchupHeader({
   leagueId,
@@ -162,15 +163,15 @@ function MatchupHeader({
       stackOnPhone
     />
   );
-  // PF/PA at the outside edge, then the all-time head-to-head record just inside it.
+  // The all-time head-to-head record at the outside edge, then PF/PA just inside it.
   const badges = (t: MatchupTeam, side: "left" | "right") => {
     const pf = <PointsRankBadges pointsRanks={standings.get(t.rosterId)?.pointsRanks} leagueSize={standings.size} onTag />;
     const rec = right ? headToHead?.get(t.rosterId) : undefined;
     const h2h = rec ? <HeadToHeadBadge wins={rec.wins} losses={rec.losses} onTag /> : null;
     return (
       <span className="flex items-baseline gap-1 sm:gap-2">
-        {side === "left" ? pf : h2h}
         {side === "left" ? h2h : pf}
+        {side === "left" ? pf : h2h}
       </span>
     );
   };
