@@ -19,9 +19,9 @@ const MAX_WEEKS = 18;
  * keyed by Sleeper owner (user) id rather than roster id, since roster ids
  * get reassigned each season but a manager's owner id doesn't. Sleeper has
  * no head-to-head endpoint of its own, so this is built from every
- * completed week's matchups in every linked season. Fetched once per
- * league and cached — flipping through the Dossier's compared manager
- * doesn't refetch.
+ * finished week's matchups in every linked season (never the week being
+ * played, whose scores aren't final). Fetched once per league and cached —
+ * flipping through the Dossier's compared manager doesn't refetch.
  */
 export function useAllTimeHeadToHead(leagueId: string): Map<string, Map<string, AllTimeRecord>> {
   const [result, setResult] = useState<Map<string, Map<string, AllTimeRecord>>>(new Map());
@@ -56,7 +56,20 @@ export function useAllTimeHeadToHead(leagueId: string): Map<string, Map<string, 
           const ownerByRoster = new Map(
             rosters.filter((r) => r.owner_id).map((r) => [r.roster_id, r.owner_id as string])
           );
-          for (const weekMatchups of weeks) {
+          // Only finished weeks: in a season still being played, the week underway
+          // (and anything after it) would count a half-played matchup as a result.
+          const lastScored = Number(season.settings.last_scored_leg);
+          const current = Number(season.settings.leg);
+          const lastWeek =
+            season.status === "complete"
+              ? MAX_WEEKS
+              : Number.isFinite(lastScored) && lastScored > 0
+                ? lastScored
+                : Number.isFinite(current) && current > 0
+                  ? current - 1
+                  : 0;
+          for (const [i, weekMatchups] of weeks.entries()) {
+            if (i + 1 > lastWeek) continue;
             const byMatchupId = new Map<number, SleeperMatchup[]>();
             for (const m of weekMatchups) {
               if (m.matchup_id == null) continue;

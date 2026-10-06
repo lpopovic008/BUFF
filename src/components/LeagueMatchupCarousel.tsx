@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ResolvedMatchupGame, ResolvedSlot } from "@/hooks/useLeagueMatchupCarousel";
-import { PointsRankBadges, TeamNameLabel } from "@/components/DashboardMatchupCard";
+import { HeadToHeadBadge, PointsRankBadges, TeamNameLabel } from "@/components/DashboardMatchupCard";
+import { AllTimeRecord, useAllTimeHeadToHead } from "@/hooks/useAllTimeHeadToHead";
 import { TeamStanding } from "@/lib/league-data";
 import { MatchupRows } from "@/components/LeagueTicker";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
@@ -142,11 +143,14 @@ function MatchupHeader({
   left,
   right,
   standings,
+  headToHead,
 }: {
   leagueId: string;
   left: MatchupTeam;
   right: MatchupTeam | undefined;
   standings: Map<number, TeamStanding>;
+  /** Each side's all-time record against the other, by roster — absent until it's loaded. */
+  headToHead: Map<number, AllTimeRecord> | null;
 }) {
   const label = (t: MatchupTeam, align: "left" | "right") => (
     <TeamNameLabel
@@ -158,9 +162,22 @@ function MatchupHeader({
       stackOnPhone
     />
   );
-  const badges = (t: MatchupTeam) => (
-    <PointsRankBadges pointsRanks={standings.get(t.rosterId)?.pointsRanks} leagueSize={standings.size} onTag />
-  );
+  // PF/PA at the outside edge, then the all-time head-to-head record just inside it.
+  // Stacked on a phone, PF/PA stays on top on both sides.
+  const badges = (t: MatchupTeam, side: "left" | "right") => {
+    const pf = <PointsRankBadges pointsRanks={standings.get(t.rosterId)?.pointsRanks} leagueSize={standings.size} onTag />;
+    const rec = right ? headToHead?.get(t.rosterId) : undefined;
+    const h2h = rec ? <HeadToHeadBadge wins={rec.wins} losses={rec.losses} onTag /> : null;
+    // On a phone there's no room for all three in a line, so the H2H tucks just under PF/PA.
+    return (
+      <span
+        className={`flex gap-0.5 sm:flex-row sm:items-baseline sm:gap-2 ${side === "left" ? "flex-col items-start" : "flex-col-reverse items-end"}`}
+      >
+        {side === "left" ? pf : h2h}
+        {side === "left" ? h2h : pf}
+      </span>
+    );
+  };
   return (
     <div className="flex flex-col gap-1.5 bg-[var(--map-tag)] px-2 py-2 text-[var(--map-tag-ink)]">
       <div className={`grid ${SLOT_COLS} items-start gap-1 sm:gap-2`}>
@@ -170,14 +187,14 @@ function MatchupHeader({
       </div>
       <div className={`grid ${SLOT_COLS} items-baseline gap-1 text-base font-semibold tabular-nums sm:gap-2 sm:text-lg`}>
         <span className="flex items-baseline justify-between gap-1.5 sm:gap-2">
-          {badges(left)}
+          {badges(left, "left")}
           {formatPoints(left.points)}
         </span>
         <span />
         {right ? (
           <span className="flex items-baseline justify-between gap-1.5 sm:gap-2">
             {formatPoints(right.points)}
-            {badges(right)}
+            {badges(right, "right")}
           </span>
         ) : (
           <span />
@@ -192,11 +209,15 @@ function MatchupSlide({
   game,
   myRosterId,
   standings,
+  owners,
+  allTime,
 }: {
   leagueId: string;
   game: ResolvedMatchupGame;
   myRosterId: number | null;
   standings: Map<number, TeamStanding>;
+  owners: Map<number, string>;
+  allTime: Map<string, Map<string, AllTimeRecord>> | null;
 }) {
   const mine = game.teams.find((t) => t.rosterId === myRosterId) ?? game.teams[0];
   const other = game.teams.find((t) => t.rosterId !== mine.rosterId);
@@ -209,6 +230,7 @@ function MatchupSlide({
           left={mine}
           right={other}
           standings={standings}
+          headToHead={headToHeadFor(mine, other, owners, allTime)}
         />
         <div className="flex flex-col gap-2.5 px-2">
           {mine.slots.map((slot, i) => (
@@ -218,6 +240,28 @@ function MatchupSlide({
       </div>
     </div>
   );
+}
+
+/**
+ * Both teams' all-time records against each other, by roster, from the
+ * league-wide head-to-head (keyed by owner, since rosters change hands
+ * between seasons). Two teams who've never met are 0-0; null until loaded.
+ */
+function headToHeadFor(
+  a: MatchupTeam,
+  b: MatchupTeam | undefined,
+  owners: Map<number, string>,
+  allTime: Map<string, Map<string, AllTimeRecord>> | null
+): Map<number, AllTimeRecord> | null {
+  if (!b || !allTime) return null;
+  const ownerA = owners.get(a.rosterId);
+  const ownerB = owners.get(b.rosterId);
+  if (!ownerA || !ownerB) return null;
+  const rec = allTime.get(ownerA)?.get(ownerB) ?? { wins: 0, losses: 0 };
+  return new Map([
+    [a.rosterId, rec],
+    [b.rosterId, { wins: rec.losses, losses: rec.wins }],
+  ]);
 }
 
 /** A matchup's two teams, yours first when it's yours — the order the full view shows them in. */
@@ -239,6 +283,7 @@ export function LeagueMatchupCarousel({
   games,
   myRosterId,
   standings,
+  owners,
   weekPicker,
 }: {
   leagueId: string;
@@ -246,6 +291,8 @@ export function LeagueMatchupCarousel({
   myRosterId: number | null;
   /** Every team's standing in the league (see teamStandings), shown around its name and score. */
   standings: Map<number, TeamStanding>;
+  /** Each roster's owner (Sleeper user id), to look up all-time head-to-head records. */
+  owners: Map<number, string>;
   /** Sits above the matchups list (and above the swipeable matchups on phones). */
   weekPicker?: React.ReactNode;
 }) {
@@ -254,6 +301,9 @@ export function LeagueMatchupCarousel({
   const [index, setIndex] = useState(0);
   // The matchup shown large beside the list (tablet and up): yours until another is picked.
   const [pickedId, setPickedId] = useState<number | null>(null);
+  const allTimeByOwner = useAllTimeHeadToHead(leagueId);
+  // Empty until every season's matchups have loaded.
+  const allTime = allTimeByOwner.size > 0 ? allTimeByOwner : null;
 
   useEffect(() => {
     if (hasScrolledToMine.current || !containerRef.current || myRosterId == null || games.length === 0) return;
@@ -298,6 +348,8 @@ export function LeagueMatchupCarousel({
               game={g}
               myRosterId={myRosterId}
               standings={standings}
+              owners={owners}
+              allTime={allTime}
             />
           ))}
         </div>
@@ -324,7 +376,7 @@ export function LeagueMatchupCarousel({
 
       {/* Tablet and up: the chosen matchup large on the left (70%), every matchup listed on the right (30%, never narrower than 16rem so names stay readable). */}
       <div className="hidden md:grid md:grid-cols-[minmax(0,7fr)_minmax(16rem,3fr)] md:items-start md:gap-3">
-        <MatchupSlide leagueId={leagueId} game={picked} myRosterId={myRosterId} standings={standings} />
+        <MatchupSlide leagueId={leagueId} game={picked} myRosterId={myRosterId} standings={standings} owners={owners} allTime={allTime} />
         <div className="flex flex-col gap-2">
         {weekPicker ? <div className="flex">{weekPicker}</div> : null}
         <ul className="flex flex-col gap-2" aria-label="This week's matchups">

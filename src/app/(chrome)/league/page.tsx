@@ -90,6 +90,11 @@ function LeagueDetailContent() {
   const ledger = useMemo(() => (money && plan ? computePlanLedger(plan, money.results) : null), [money, plan]);
   // Each team's rank, record, streak and PF/PA ranks, around its name in the lineups.
   const standings = useMemo(() => (summary ? teamStandings(summary) : new Map()), [summary]);
+  // Who owns each roster, for the all-time head-to-head beside each matchup's PF/PA.
+  const owners = useMemo(
+    () => new Map((summary?.rosters ?? []).filter((r) => r.owner_id).map((r) => [r.roster_id, r.owner_id as string])),
+    [summary]
+  );
 
   const myRow = summary?.standings.find((r) => r.ownerId === config.sleeperUserId) ?? null;
   const carousel = useLeagueMatchupCarousel(leagueId, shownWeek);
@@ -152,6 +157,7 @@ function LeagueDetailContent() {
             games={carousel.games}
             myRosterId={myRow?.rosterId ?? null}
             standings={standings}
+            owners={owners}
             weekPicker={weekPicker}
           />
         </div>

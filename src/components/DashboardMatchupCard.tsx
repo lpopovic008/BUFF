@@ -151,3 +151,24 @@ export function PointsRankBadges({
     </span>
   );
 }
+
+/**
+ * A team's all-time head-to-head record against this week's opponent,
+ * across every linked season — green when it's ahead, red when behind.
+ * "0-0" when they've never met.
+ */
+export function HeadToHeadBadge({ wins, losses, onTag = false }: { wins: number; losses: number; onTag?: boolean }) {
+  const tone = wins > losses ? "good" : wins < losses ? "bad" : null;
+  return (
+    <span
+      className="whitespace-nowrap text-[0.625rem] font-normal sm:text-[0.6875rem]"
+      title="All-time head-to-head record against this opponent, every season of the league"
+    >
+      <span className={mutedClass(onTag)}>H2H</span>{" "}
+      <span className={`font-bold tabular-nums ${tone ? toneClass(onTag)[tone] : mutedClass(onTag)}`}>
+        {wins}-{losses}
+      </span>
+    </span>
+  );
+}
+
