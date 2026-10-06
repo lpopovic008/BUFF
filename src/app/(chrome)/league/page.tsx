@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { IconLink } from "@/components/ui/IconButton";
-import { DocumentIcon, ClockIcon, RadarIcon, WalkieTalkieIcon } from "@/components/ui/Icon";
+import { DocumentIcon, ClockIcon, WalkieTalkieIcon } from "@/components/ui/Icon";
 import { LeagueMatchupCarousel } from "@/components/LeagueMatchupCarousel";
 import { WeekPicker } from "@/components/WeekPicker";
 import { MoneyBoard } from "@/components/MoneyBoard";
@@ -130,7 +130,6 @@ function LeagueDetailContent() {
             {tracked?.isCommish ? (
               <IconLink href={`/recap?id=${leagueId}`} icon={<DocumentIcon />} label="Write recap" variant="primary" />
             ) : null}
-            <IconLink href={`/warroom?id=${leagueId}`} icon={<RadarIcon />} label="War Room" />
             <IconLink href={`/league/history?id=${leagueId}`} icon={<ClockIcon />} label="League history" />
           </>
         }

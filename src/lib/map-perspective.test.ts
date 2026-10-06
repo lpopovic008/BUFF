@@ -23,7 +23,7 @@ import {
 } from "./map-perspective";
 import { US_DETAIL_LEVELS } from "./us-detail";
 import { US_STATE_SHAPES } from "./us-states";
-import { TEAM_CITIES } from "./warroom-team-cities";
+import { TEAM_CITIES } from "./team-cities";
 
 const aspect = (s: { view: { width: number; height: number } }) => s.view.width / s.view.height;
 const center = (s: { view: { x: number; y: number; width: number; height: number } }) => [

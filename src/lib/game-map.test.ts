@@ -12,7 +12,7 @@ import {
   leagueTint,
 } from "./game-map";
 import { NFLGame } from "./nfl-schedule";
-import { TEAM_CITIES } from "./warroom-team-cities";
+import { TEAM_CITIES } from "./team-cities";
 
 function game(over: Partial<NFLGame> = {}): NFLGame {
   return {

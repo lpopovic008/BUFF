@@ -2,7 +2,7 @@
 // league in the starters list.
 
 import { isOutsideUS, NFLGame } from "./nfl-schedule";
-import { TEAM_CITIES, TeamCity } from "./warroom-team-cities";
+import { TEAM_CITIES, TeamCity } from "./team-cities";
 
 /**
  * A game's [x, y] in the US map's viewBox, or null when it can't be plotted —

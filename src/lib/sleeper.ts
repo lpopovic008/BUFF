@@ -416,7 +416,7 @@ export function playerHeadshotUrlForCanvas(playerId: string): string {
  * CORS headers for every avatar. A canvas-bound `<img crossOrigin="anonymous">`
  * silently fails to load without them and falls back to initials — exactly
  * what was happening to team logos in the exported graphic. DOM usage
- * elsewhere (the on-screen write-up editor, War Room) keeps using the raw
+ * elsewhere (the on-screen write-up editor) keeps using the raw
  * URL from teamAvatarUrl() directly — no canvas involved, no CORS need, and
  * no reason to add a network hop there.
  */

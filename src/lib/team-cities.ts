@@ -1,7 +1,7 @@
 // Real U.S. Census Bureau boundary geometry (via the `us-atlas`/TopoJSON pipeline,
 // ISC-licensed, simplified with topojson-simplify) and each NFL stadium's coordinates
-// run through the same Albers-USA projection, precomputed offline so the Territory
-// Map widget stays a pure static asset (no runtime map library, no network fetch).
+// run through the same Albers-USA projection, precomputed offline so the dashboard
+// map stays a pure static asset (no runtime map library, no network fetch).
 // viewBox: 0 0 320 200. The projection itself — geoAlbersUsa().fitSize([320, 200], ...)
 // fit against us-atlas's full 50-state feature collection — is unchanged from when
 // every TEAM_CITIES position below was computed, so those stay valid; only the

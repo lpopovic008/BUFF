@@ -249,7 +249,7 @@ Critically, **`localStore.ts`'s synchronous read/write API never
 changed** — every page that calls `getConfig`/`saveRecap`/`getDraftTargets`/
 etc. does so exactly as it did before accounts existed. `localStorage` is
 synchronous; Postgres isn't. Rather than thread async loading states
-through every consumer (`league`, `values`, `warroom`, `recap`,
+through every consumer (`league`, `values`, `recap`,
 `DraftRoom`, Settings, the dashboard all read `AppConfig` via one shared
 hook, `useConfig`), `localStorage` stays the always-on, synchronous source
 of truth, and Supabase sync runs as a parallel layer underneath it — the

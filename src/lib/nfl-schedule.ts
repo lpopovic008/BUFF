@@ -1,5 +1,5 @@
-// Real-time NFL schedule/scores for the Territory Map's "today's games" dots
-// and click-through rosters. Sleeper's public API has no schedule endpoint
+// Real-time NFL schedule/scores for the dashboard map's game dots, the
+// starters list and the Red Zone. Sleeper's public API has no schedule endpoint
 // at all — this hits ESPN's public scoreboard endpoint directly instead.
 // It's undocumented but long-stable and widely used by other hobby projects
 // straight from the browser (CORS-open, no auth). Defensive throughout: any

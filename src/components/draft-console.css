@@ -1,0 +1,494 @@
+  /*
+    The Draft Room's console: its base look (panels, cards, flags, the clock)
+    plus the draft board, player pool and roster summary. The Draft page
+    wears it with .app-theme (further down), which maps every color, font
+    and corner onto the app's own tokens.
+  */
+
+  .draft-console {
+    --bg: #0a0f0c;
+    --panel: #121a15;
+    --panel-inset: #0d1310;
+    --line: #24352b;
+    --line-bright: #3a5245;
+    --ink: #e2ece4;
+    --ink-dim: #93ac9e;
+    --amber: #e8a33d;
+    --amber-dim: #7d5c28;
+    --cyan: #4dd2c9;
+    --cyan-dim: #2f6f6a;
+    --good: #6bbf7a;
+    --warn: #e8a33d;
+    --critical: #d9625a;
+    --node-neutral: #4c6455;
+
+    --display: var(--font-oxanium, "Oxanium"), "Segoe UI", sans-serif;
+    --body-font: var(--font-titillium-web, "Titillium Web"), "Segoe UI", sans-serif;
+    --mono: var(--font-ibm-plex-mono, "IBM Plex Mono"), ui-monospace, "SFMono-Regular", monospace;
+  }
+
+  .draft-console, .draft-console * { box-sizing: border-box; }
+  .draft-console { margin: 0; padding: 0; }
+
+  .draft-console {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--body-font);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+    position: relative;
+    min-height: 100vh;
+  }
+
+  .draft-console::before {
+    content: "";
+    position: absolute; inset: 0; pointer-events: none; z-index: 1;
+    background-image: repeating-linear-gradient(to bottom, rgba(226,236,228,0.022) 0px, rgba(226,236,228,0.022) 1px, transparent 1px, transparent 3px);
+  }
+  .draft-console::after {
+    content: "";
+    position: absolute; inset: 0; pointer-events: none; z-index: 2;
+    background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.45) 100%);
+  }
+
+  .draft-console .wrap { max-width: 118.75rem; margin: 0 auto; padding: 1.75rem 1.375rem 3.75rem; position: relative; z-index: 3; }
+
+  .draft-console h1,
+  .draft-console h2,
+  .draft-console h3 { font-family: var(--display); font-weight: 700; margin: 0; text-wrap: balance; }
+
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  .draft-console .clock-left { display: flex; flex-direction: column; gap: 2px; }
+  .draft-console .clock-eyebrow { font-family: var(--mono); font-size: 0.6562rem; letter-spacing: 0.12em; color: var(--ink-dim); }
+  .draft-console .clock-caption { font-family: var(--mono); font-size: 0.7812rem; letter-spacing: 0.06em; color: var(--cyan); }
+  
+  
+  
+  
+  
+
+  
+      
+  .draft-console .card { min-width: 0; }
+  @media (max-width: 900px) {
+    
+    
+    .draft-console .wrap { padding-left: 0; padding-right: 0; }
+    .draft-console .card { border-left: none; border-right: none; }
+  }
+
+  /* ---------- card shell ---------- */
+
+  .draft-console .card {
+    position: relative; background: var(--panel); border: 1px solid var(--line);
+    padding: 0.875rem 0.875rem 0.75rem; display: flex; flex-direction: column; gap: 0.5625rem;
+  }
+  
+  
+  
+  
+  
+
+  .draft-console .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.625rem; }
+  .draft-console .card-head-left { display: flex; flex-direction: column; gap: 0.1875rem; }
+  
+  .draft-console .card-title { font-size: 1rem; letter-spacing: 0.01em; color: var(--ink); }
+  .draft-console .card-flags { display: flex; flex-direction: column; align-items: flex-end; gap: 0.1875rem; }
+  .draft-console .flag { font-family: var(--mono); font-size: 0.5625rem; letter-spacing: 0.08em; white-space: nowrap; }
+  .draft-console .flag.live { color: var(--amber); }
+  .draft-console .flag.live::before { content: "● "; }
+  @media (prefers-reduced-motion: no-preference) { .draft-console .flag.live::before { animation: draft-blink 1.6s step-end infinite; } }
+  .draft-console .flag.cmp { color: var(--cyan); }
+  .draft-console .flag.you { color: var(--amber); }
+
+  .draft-console .card-note { margin: 0; font-size: 0.75rem; color: var(--ink-dim); }
+
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  .draft-console .ctrl-btn {
+    font-family: var(--mono); font-size: 0.6875rem; letter-spacing: 0.04em; background: transparent; color: var(--ink);
+    border: 1px solid var(--line-bright); padding: 0.3125rem 0.5625rem; cursor: pointer; transition: border-color 150ms, color 150ms;
+  }
+  .draft-console .ctrl-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+  .draft-console .ctrl-btn:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+  .draft-console .ctrl-btn.active { border-color: var(--amber); color: var(--amber); }
+  .draft-console .ctrl-btn:disabled { opacity: 0.4; cursor: default; pointer-events: none; }
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  @keyframes draft-blink { 50% { opacity: 0; } }
+
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+  .draft-console .h1 { background: var(--critical); }
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+
+  /* ---------- Draft Room ---------- */
+
+  .draft-console .draft-settings-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 1rem; }
+  .draft-console .draft-field { display: flex; flex-direction: column; gap: 0.3125rem; }
+  .draft-console .draft-field-label { font-family: var(--mono); font-size: 0.5938rem; color: var(--ink-dim); letter-spacing: 0.06em; }
+  .draft-console .draft-input {
+    width: 4.5rem; font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.02em;
+    background: var(--panel-inset); color: var(--amber); border: 1px solid var(--amber-dim);
+    padding: 0.375rem 0.5rem;
+  }
+  .draft-console .draft-input:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
+  .draft-console .draft-toggle-group { display: flex; gap: 0.375rem; }
+
+  .draft-console .draft-clock {
+    position: relative;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;
+    background: var(--panel); border: 1px solid var(--line-bright); padding: 0.875rem 1.25rem; margin-bottom: 0.75rem;
+  }
+  
+  .draft-console .draft-clock-value { font-family: var(--mono); font-size: clamp(1rem, 2.4vw, 1.375rem); color: var(--amber); letter-spacing: 0.04em; font-variant-numeric: tabular-nums; }
+  .draft-console .draft-clock-value.draft-clock-done { color: var(--good); }
+
+  .draft-console .draft-pool-cell {
+    min-width: 3.125rem; min-height: 1.375rem; background: var(--panel-inset); border: 1px solid var(--line);
+    padding: 0.1875rem 0.25rem; font-family: var(--mono); color: var(--ink-dim); cursor: pointer; text-align: left;
+    display: flex; flex-direction: row; align-items: baseline; gap: 0.25rem;
+    transition: border-color 150ms, background-color 150ms;
+  }
+  .draft-console .draft-pool-cell:hover:not(:disabled) { border-color: var(--cyan); }
+  .draft-console .draft-pool-cell:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
+  .draft-console .draft-pool-cell:disabled { cursor: default; opacity: 0.45; }
+  .draft-console .draft-pool-cell.empty { background: transparent; border: 1px dashed var(--line); cursor: default; }
+  .draft-console .draft-pool-cell.drafted { filter: grayscale(1); }
+  .draft-console .draft-pool-cell-rank { font-size: 0.4688rem; color: var(--ink-dim); flex: 0 0 auto; }
+  .draft-console .draft-pool-cell-pos { font-size: 0.5rem; font-weight: 600; letter-spacing: 0.03em; flex: 0 0 auto; }
+  .draft-console .draft-pool-cell-name {
+    font-size: 0.5312rem; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    flex: 1 1 auto; min-width: 0;
+  }
+
+  .draft-console .draft-grid-wrap { overflow-x: auto; }
+  .draft-console .draft-grid { display: flex; flex-direction: column; gap: 0.1875rem; width: max-content; min-width: 100%; }
+  .draft-console .draft-grid-row { display: grid; gap: 0.1875rem; }
+  /* A fully white fill behind the whole row, not just a stroke around it.
+     The cells themselves are opaque, so this background only actually
+     shows through the gaps between them (row/column gap above are the
+     same) — reading as "white between the boxes." The box-shadow
+     (0 blur, solid spread) extends that same fill half the gap —
+     past the row's own edges on every side, so it peeks into the gap
+     toward the rows above/below and past the first/last cell, without
+     reaching all the way to the neighboring row. */
+  .draft-console .draft-grid-row.team-selected {
+    background-color: #fff;
+    box-shadow: 0 0 0 0.09375rem #fff;
+  }
+  .draft-console .draft-grid-round-label { display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 0.5938rem; color: var(--ink-dim); }
+  .draft-console .draft-grid-team-header {
+    background: var(--panel-inset); border: 1px solid var(--line-bright); padding: 0.1875rem 0.25rem; cursor: pointer;
+    font-family: var(--mono); font-size: 0.5625rem; color: var(--cyan); text-align: center;
+    transition: border-color 150ms, background-color 150ms;
+  }
+  .draft-console .draft-grid-team-header.selected { border-color: #fff; background: rgba(255, 255, 255, 0.14); }
+  .draft-console .draft-grid-team-name {
+    display: block; width: 100%; background: transparent; border: none; color: var(--cyan); font-family: var(--mono);
+    font-size: 0.5938rem; text-align: center; letter-spacing: 0.03em;
+  }
+  .draft-console .draft-grid-team-name:focus-visible { outline: 1px solid var(--cyan); }
+  .draft-console .draft-grid-team-name-display { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .draft-console .draft-grid-cell {
+    min-width: 6rem; min-height: 2.5rem; background: var(--panel-inset); border: 1px solid var(--line);
+    padding: 0.25rem 0.375rem; font-family: var(--mono); font-size: 0.5938rem; color: var(--ink-dim);
+    display: flex; flex-direction: column; justify-content: center; gap: 1px;
+  }
+  .draft-console .draft-grid-cell.filled { color: var(--ink); border-color: var(--line-bright); }
+  .draft-console .draft-grid-cell.onclock { border-color: var(--amber); box-shadow: 0 0 0 1px var(--amber) inset; }
+  .draft-console .draft-grid-pick-no { color: var(--ink-dim); font-size: 0.5rem; }
+  .draft-console .draft-grid-player { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* ---------- DFT-03 Final Rosters ---------- */
+
+  .draft-console .roster-summary-grid { display: flex; gap: 0.5rem; width: max-content; min-width: 100%; }
+  .draft-console .roster-col { display: flex; flex-direction: column; gap: 0.5rem; width: 8.25rem; flex: 0 0 auto; }
+  .draft-console .roster-col-head {
+    display: flex; flex-direction: column; align-items: center; gap: 1px;
+    background: var(--panel-inset); border: 1px solid var(--line-bright); padding: 0.375rem 0.25rem;
+  }
+  .draft-console .roster-points { font-family: var(--mono); font-size: 0.75rem; color: var(--amber); letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
+  .draft-console .roster-team-name {
+    font-family: var(--mono); font-size: 0.625rem; color: var(--cyan); text-align: center;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;
+  }
+  .draft-console .roster-ktc { font-family: var(--mono); font-size: 0.5625rem; color: var(--ink-dim); letter-spacing: 0.02em; }
+  .draft-console .roster-pos-group { display: flex; flex-direction: column; gap: 0.1875rem; }
+  .draft-console .roster-pos-label { font-family: var(--mono); font-size: 0.5312rem; font-weight: 600; letter-spacing: 0.08em; }
+  .draft-console .roster-player {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 0.25rem;
+    background: var(--panel-inset); border: 1px solid var(--line); padding: 0.1875rem 0.3125rem;
+    font-family: var(--mono); color: var(--ink-dim);
+  }
+  .draft-console .roster-player.starter { color: var(--ink); }
+  .draft-console .roster-player-name { font-size: 0.5312rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .draft-console .roster-player-pts { font-size: 0.5312rem; flex: 0 0 auto; font-variant-numeric: tabular-nums; }
+
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  /* ---------- the app's own theme (the Draft room) ----------
+     The same widgets, painted with the rest of the app's tokens instead of
+     the console's: black and white in either theme, headers on the map-tag
+     plate, color only where it means something. Inside the app's shell, so
+     no scanlines, vignette, corner brackets or page frame of its own. */
+
+  .draft-console.app-theme {
+    --bg: transparent;
+    --panel: var(--surface-raised);
+    --panel-inset: var(--page);
+    --line: var(--border);
+    --line-bright: var(--grid-hairline);
+    --ink: var(--ink-primary);
+    --ink-dim: var(--ink-muted);
+    --amber: var(--ink-primary);
+    --amber-dim: var(--border);
+    --cyan: var(--ink-secondary);
+    --cyan-dim: var(--border);
+    --good: var(--status-good);
+    --warn: var(--status-warning);
+    --critical: var(--status-critical);
+    --display: var(--font-sans), system-ui, sans-serif;
+    --body-font: var(--font-sans), system-ui, sans-serif;
+    --mono: var(--font-sans), ui-monospace, monospace;
+    min-height: 0;
+  }
+  .draft-console.app-theme::before, .draft-console.app-theme::after { display: none; }
+  .draft-console.app-theme .wrap { max-width: none; padding: 0; }
+
+  /* Card titles sit on the plate, edge to edge across the card's top. */
+  .draft-console.app-theme .card { padding: 0 0.875rem 0.875rem; }
+  .draft-console.app-theme .card-head {
+    margin: 0 -0.875rem; padding: 0.3125rem 0.625rem; align-items: center;
+    background: var(--map-tag); color: var(--map-tag-ink);
+  }
+  .draft-console.app-theme .card-head-left { gap: 0; }
+  .draft-console.app-theme .card-title {
+    font-family: var(--mono); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--map-tag-ink);
+  }
+  .draft-console.app-theme .card-flags { flex-direction: row; align-items: center; gap: 0.5rem; }
+  .draft-console.app-theme .card-head .flag { font-size: 0.6875rem; font-weight: 700; color: var(--map-tag-ink); }
+  .draft-console.app-theme .card-head .ctrl-btn { border-color: var(--map-tag-ink); color: var(--map-tag-ink); padding: 0.125rem 0.5rem; }
+  .draft-console.app-theme .card-head .ctrl-btn.active { background: var(--map-tag-ink); color: var(--map-tag); }
+
+  /* Buttons: outlined, and the chosen one on the plate. */
+  .draft-console.app-theme .ctrl-btn { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
+  .draft-console.app-theme .ctrl-btn:hover { border-color: var(--ink-primary); color: var(--ink-primary); }
+  .draft-console.app-theme .ctrl-btn.active { background: var(--map-tag); border-color: var(--map-tag); color: var(--map-tag-ink); }
+  .draft-console.app-theme .draft-field-label { font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+  .draft-console.app-theme .draft-input { color: var(--ink-primary); border-color: var(--border); font-size: 0.875rem; }
+  .draft-console.app-theme .draft-input:focus-visible,
+  .draft-console.app-theme .draft-pool-cell:focus-visible,
+  .draft-console.app-theme .ctrl-btn:focus-visible { outline-color: var(--ink-primary); }
+
+  /* On the clock: the plate, like the home page's slate headers. */
+  .draft-console.app-theme .draft-clock { background: var(--map-tag); border-color: var(--map-tag); color: var(--map-tag-ink); padding: 0.625rem 0.875rem; }
+  .draft-console.app-theme .draft-clock .clock-eyebrow { color: var(--map-tag-ink); opacity: 0.7; font-weight: 700; }
+  .draft-console.app-theme .draft-clock .clock-caption { color: var(--map-tag-ink); font-size: 0.9375rem; font-weight: 700; }
+  .draft-console.app-theme .draft-clock-value { color: var(--map-tag-ink); font-weight: 700; }
+  .draft-console.app-theme .draft-clock-value.draft-clock-done { color: var(--map-tag-ink); }
+
+  /* The pool and the board: larger, readable type; the picked team's row and the pick on the clock in ink. */
+  .draft-console.app-theme .draft-pool-cell { color: var(--ink-muted); }
+  .draft-console.app-theme .draft-pool-cell:hover:not(:disabled) { border-color: var(--ink-primary); }
+  .draft-console.app-theme .draft-pool-cell-rank { font-size: 0.625rem; }
+  .draft-console.app-theme .draft-pool-cell-pos { font-size: 0.625rem; }
+  .draft-console.app-theme .draft-pool-cell-name { font-size: 0.75rem; }
+  .draft-console.app-theme .draft-grid-row.team-selected { background-color: var(--ink-primary); box-shadow: 0 0 0 0.09375rem var(--ink-primary); }
+  .draft-console.app-theme .draft-grid-team-header { color: var(--ink-secondary); font-size: 0.6875rem; font-weight: 700; }
+  .draft-console.app-theme .draft-grid-team-header.selected { border-color: var(--ink-primary); background: var(--map-tag); color: var(--map-tag-ink); }
+  .draft-console.app-theme .draft-grid-team-header.selected .draft-grid-team-name { color: var(--map-tag-ink); }
+  .draft-console.app-theme .draft-grid-team-name { color: inherit; font-size: 0.6875rem; font-weight: 700; }
+  .draft-console.app-theme .draft-grid-cell { font-size: 0.75rem; }
+  .draft-console.app-theme .draft-grid-cell.onclock { border-color: var(--ink-primary); box-shadow: 0 0 0 1px var(--ink-primary) inset; }
+  .draft-console.app-theme .draft-grid-pick-no { font-size: 0.625rem; }
+  .draft-console.app-theme .draft-grid-round-label { font-size: 0.6875rem; }

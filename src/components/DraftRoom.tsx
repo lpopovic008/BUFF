@@ -27,14 +27,14 @@ import {
   roundForPick,
   teamForPick,
 } from "@/lib/draft-sim";
-import "./warroom.css";
+import "./draft-console.css";
 
 const snapshot = rawSnapshot as unknown as AdpSnapshot;
 const valuesSnapshot = rawValues as unknown as PlayerValuesSnapshot;
 const POSITION_ORDER = ["QB", "RB", "WR", "TE"];
 
 // The same position colors already designated in src/lib/position-colors.ts
-// (its dark-mode values) — hardcoded here as hex since the War Room theme
+// (its dark-mode values) — hardcoded here as hex since the console theme
 // is always-dark and needs a literal color for inline styles rather than
 // Tailwind's --series-N custom properties, which only exist in the site's
 // light-themed CSS scope.
@@ -308,7 +308,7 @@ export function DraftRoom() {
   const poolGridColumns = `repeat(${settings.rounds}, minmax(3.25rem, 1fr))`;
 
   return (
-    <div className="warroom-console app-theme">
+    <div className="draft-console app-theme">
       <div className="wrap">
         <TitleWithHistory
           className="mb-4"

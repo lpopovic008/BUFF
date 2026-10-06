@@ -1,6 +1,6 @@
 import { NavBar } from "@/components/NavBar";
 
-/** The bar-and-column shell every page except the War Room uses — the War Room stays full-bleed, reached via its own button on the league page rather than the NavBar. */
+/** The bar-and-column shell every page sits in: the header, then the page itself. */
 export default function ChromeLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-full flex-col">

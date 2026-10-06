@@ -1,7 +1,7 @@
 // Finer levels of detail for the dashboard map, swapped in as it zooms (see
 // detailLevelFor in map-perspective.ts) and loaded only then, as its own chunk.
 // Same us-atlas topology, Albers-USA projection and 320x200 space as the base
-// geometry (warroom-team-cities.ts, us-states.ts), less simplified: level 1 at
+// geometry (team-cities.ts, us-states.ts), less simplified: level 1 at
 // topojson-simplify weight 0.01, level 2 unsimplified (full 1:10m detail).
 // Unlike the base level these keep islands big enough to read up close.
 

@@ -12,7 +12,7 @@ export interface MyLeagueOption {
   ties: number;
 }
 
-/** Just enough per tracked league to populate the Values tab's league picker and the War Room's total-record readout — name, your own roster id, and your record in that league. */
+/** Just enough per tracked league to populate the Values tab's league picker — name, your own roster id, and your record in that league. */
 export function useMyLeagues(leagueIds: string[], sleeperUserId: string | null): MyLeagueOption[] | null {
   const [leagues, setLeagues] = useState<MyLeagueOption[] | null>(null);
 

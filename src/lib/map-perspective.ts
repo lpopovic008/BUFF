@@ -12,7 +12,7 @@
 // side wall, which is what sells the perspective.
 
 import { US_STATE_SHAPES } from "./us-states";
-import { US_MAP_VIEWBOX, US_SIMPLE_OUTLINE_PATH, US_SIMPLE_STATE_LINES_PATH } from "./warroom-team-cities";
+import { US_MAP_VIEWBOX, US_SIMPLE_OUTLINE_PATH, US_SIMPLE_STATE_LINES_PATH } from "./team-cities";
 
 export const [, , MAP_W, MAP_H] = US_MAP_VIEWBOX.split(" ").map(Number);
 /** Height of the flat (untilted) map space that a projector takes its input in. */

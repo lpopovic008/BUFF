@@ -1,5 +1,5 @@
 // Each mainland state's shape on the dashboard map, keyed by postal code, in
-// the same 320x200 Albers-USA space as warroom-team-cities.ts. Generated from
+// the same 320x200 Albers-USA space as team-cities.ts. Generated from
 // the exact same us-atlas topology simplification (weight 0.1) as
 // US_SIMPLE_OUTLINE_PATH / US_SIMPLE_STATE_LINES_PATH, so every edge lands on
 // the drawn coast and state lines; like the outline, islands are dropped (and
