@@ -38,10 +38,11 @@ function ScaleToFit({ width, children }: { width: number; children: React.ReactN
 
     function recompute() {
       const available = outer!.clientWidth;
-      // The zoom the rest of the app's text grows by with the fluid root size
-      // — the editor keeps pace with it instead of looking small on a big screen.
+      // Sized like the rest of the app: the editor's own px sizes come from
+      // the export's 1080px canvas, so 0.8 brings them down to the app's text
+      // scale, and it grows with the fluid root size like everything else.
       const rootPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-      const zoom = (rootPx / 16) * 1.15;
+      const zoom = (rootPx / 16) * 0.8;
       // Fill the row at that zoom; if that leaves less than the authored
       // width, keep the authored width and shrink to fit instead.
       const fitsAtZoom = available / zoom >= width;
