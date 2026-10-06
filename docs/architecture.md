@@ -314,7 +314,10 @@ Sleeper id, or their ESPN shorthand and team, so the list can find it.
 The total then counts up. In a live game the rows stay ordered by the total
 as shown, so the player climbs one place each time the count passes
 someone, and each player passed slides down one. With no recent Red Zone
-row on screen, the change pops in beside the total instead. Phones, and
+row on screen, the change pops in beside the total instead. It's purely for
+the look, so it takes its time: every step runs at 2.5x a brisk pace
+(`PACE` in `GameRows.tsx`), about 2s for the flight and 0.85s per player
+passed. Phones, and
 viewers who ask for reduced motion, get the new numbers and order with no
 animation.
 This covers your starters and the ones you face (their games' play-by-play

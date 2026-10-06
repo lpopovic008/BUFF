@@ -9,7 +9,7 @@ import { NFLGame } from "@/lib/nfl-schedule";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import { nflLogoMaxWidth, nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import { LeagueLegendEntry, LeagueMark } from "./LeagueMark";
-import { GameRows, RowMotion } from "./GameRows";
+import { CHIP_MS, GameRows, RowMotion } from "./GameRows";
 
 export type { LeagueLegendEntry };
 
@@ -106,7 +106,8 @@ function PlayerRow({
               <span
                 key={motion.chip.key}
                 aria-hidden
-                className={`pointer-events-none absolute right-full top-0 whitespace-nowrap font-bold opacity-0 animate-[pts-chip_650ms_ease-in_forwards] ${
+                style={{ animation: `pts-chip ${CHIP_MS}ms ease-in forwards` }}
+                className={`pointer-events-none absolute right-full top-0 whitespace-nowrap font-bold opacity-0 ${
                   SIDE_POINTS_COLOR[player.side ?? "mine"]
                 }`}
               >

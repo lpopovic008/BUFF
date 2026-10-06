@@ -14,16 +14,26 @@ import { GroupedStarter, PlayerSide } from "@/lib/my-starters";
 import { playTextNamePattern } from "@/lib/play-by-play";
 import { PENDING_PLAY_MS } from "@/lib/live-play-points";
 
+/**
+ * How unhurried the whole thing is. It's there for the look, so it takes its
+ * time: every step below runs this many times its brisk length.
+ */
+const PACE = 2.5;
 /** How long the duplicate takes to fly from the Red Zone to the total. */
-const FLIGHT_MS = 800;
+const FLIGHT_MS = 800 * PACE;
 /** How long the change shows beside the total when there's nothing to fly from (the pts-chip keyframes). */
-const CHIP_MS = 650;
+export const CHIP_MS = 650 * PACE;
 /** Counting time per player passed — long enough for each swap to play out. */
-const STEP_MS = 340;
+const STEP_MS = 340 * PACE;
 /** Counting time with nobody to pass. */
-const MIN_COUNT_MS = 450;
+const MIN_COUNT_MS = 450 * PACE;
 /** How long a row takes to slide one place. */
-const SWAP_MS = 280;
+const SWAP_MS = 280 * PACE;
+/** How long the row's flash fades, and the total's bump as the points land. */
+const FLASH_MS = 1400 * PACE;
+const BUMP_MS = 350 * PACE;
+/** The Red Zone number's pulse as it's copied. */
+const PULSE_MS = 300 * PACE;
 
 const SIDE_FLASH: Record<PlayerSide, string> = {
   mine: "var(--status-good)",
@@ -97,7 +107,7 @@ function fly(source: HTMLElement, target: HTMLElement) {
     )
     .finished.finally(() => ghost.remove());
   // The original stays put with a quick pulse, so it reads as copied rather than moved.
-  source.animate([{ transform: "scale(1)" }, { transform: "scale(1.25)" }, { transform: "scale(1)" }], { duration: 300 });
+  source.animate([{ transform: "scale(1)" }, { transform: "scale(1.25)" }, { transform: "scale(1)" }], { duration: PULSE_MS });
 }
 
 interface Count {
@@ -180,11 +190,12 @@ export function GameRows({
       // The row lights up in its side's color as the points land.
       const color = SIDE_FLASH[player.side ?? "mine"];
       setTimeout(() => {
-        row?.animate([{ backgroundColor: `color-mix(in srgb, ${color} 28%, transparent)` }, { backgroundColor: "transparent" }], {
-          duration: 1400,
+        // Over the page's own color, not see-through, so a climbing row covers the rows it passes.
+        row?.animate([{ backgroundColor: `color-mix(in srgb, ${color} 28%, var(--page))` }, { backgroundColor: "var(--page)" }], {
+          duration: FLASH_MS,
           easing: "ease-out",
         });
-        target?.animate([{ transform: "scale(1)" }, { transform: "scale(1.2)" }, { transform: "scale(1)" }], { duration: 350 });
+        target?.animate([{ transform: "scale(1)" }, { transform: "scale(1.2)" }, { transform: "scale(1)" }], { duration: BUMP_MS });
       }, lead);
       started = true;
     }
