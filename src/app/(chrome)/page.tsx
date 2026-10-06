@@ -14,8 +14,9 @@ import { StarterSource, useMyStarters } from "@/hooks/useMyStarters";
 import { useNFLState } from "@/hooks/useNFLState";
 import { useWeekGames } from "@/hooks/useWeekGames";
 import { useLivePlayerLines } from "@/hooks/useLivePlayerLines";
+import { useLivePlayPoints } from "@/hooks/useLivePlayPoints";
 import { getLeagueSummary, LeagueSummary, teamStandings } from "@/lib/league-data";
-import { GameStarters, groupStartersByGame, GroupedStarter, liveBlockLabels, liveGameRows } from "@/lib/my-starters";
+import { GameStarters, groupStartersByGame, GroupedStarter, liveBlockLabels, startersListGames } from "@/lib/my-starters";
 import { avatarUrl, getCurrentWeek } from "@/lib/sleeper";
 import { kickoffBlockLabel } from "@/lib/game-map";
 import { TrackedLeague } from "@/lib/localStore";
@@ -157,21 +158,26 @@ export default function DashboardPage() {
   // scored or is projected well — not just your own starters.
   const liveBlocks = useMemo(() => liveBlockLabels(weekGames), [weekGames]);
   const livePlayers = useLivePlayerLines(nflPhase.season ?? config.season, week, liveBlocks.size > 0);
-  const listedGames = useMemo<GameStarters[]>(() => {
-    if (liveBlocks.size === 0) return grouped.games;
-    const mineByGameId = new Map(grouped.games.map((g) => [g.game.id, g.players]));
-    const opponentByGameId = new Map(groupedOpponent.games.map((g) => [g.game.id, g.players]));
-    const byKickoff = [...weekGames].sort((a, b) => new Date(a.kickoff).getTime() - new Date(b.kickoff).getTime());
-    const out: GameStarters[] = [];
-    for (const game of byKickoff) {
-      const mine = mineByGameId.get(game.id) ?? [];
-      const players = liveBlocks.has(kickoffBlockLabel(game))
-        ? liveGameRows(game, mine, opponentByGameId.get(game.id) ?? [], livePlayers.lines, livePlayers.projected)
-        : mine;
-      if (players.length > 0) out.push({ game, players });
+  const watchedGames = useMemo<GameStarters[]>(() => {
+    const byGameId = new Map<string, GameStarters>();
+    for (const { game, players } of [...grouped.games, ...groupedOpponent.games]) {
+      const entry = byGameId.get(game.id);
+      if (entry) entry.players = [...entry.players, ...players];
+      else byGameId.set(game.id, { game, players });
     }
-    return out;
-  }, [liveBlocks, grouped.games, groupedOpponent.games, weekGames, livePlayers]);
+    return [...byGameId.values()];
+  }, [grouped.games, groupedOpponent.games]);
+  const listedRaw = useMemo(
+    () => startersListGames(weekGames, grouped.games, groupedOpponent.games, liveBlocks, livePlayers.lines, livePlayers.projected),
+    [weekGames, grouped.games, groupedOpponent.games, liveBlocks, livePlayers]
+  );
+  // Points the Red Zone has seen that Sleeper hasn't counted yet go on top, until Sleeper catches up.
+  const pendingPoints = useLivePlayPoints(watchedGames, listedRaw);
+  const listedGames = useMemo(
+    () =>
+      startersListGames(weekGames, grouped.games, groupedOpponent.games, liveBlocks, livePlayers.lines, livePlayers.projected, pendingPoints),
+    [weekGames, grouped.games, groupedOpponent.games, liveBlocks, livePlayers, pendingPoints]
+  );
 
   // Colour per league, keyed off the order leagues are tracked in so a
   // league keeps the same colour on the map, in the list, and in the legend —

@@ -43,26 +43,26 @@ function candidatesOf(players: GroupedStarter[]): FeedCandidate[] {
   return players.map((p) => ({ playerId: p.playerId, name: p.name, position: p.position, team: p.team }));
 }
 
-/** Your players' plays only, or every play of every game. */
-export type FeedScope = "mine" | "all";
+/**
+ * A game's plays, with the scoreboard's latest play added on the end until
+ * the play-by-play catches up to it.
+ */
+export function withScoreboardPlay(game: NFLGame, plays: GamePlay[]): GamePlay[] {
+  const last = game.live?.lastPlay;
+  if (!last) return plays;
+  const synthetic = playFromLastPlay(game.id, last, playFirstSeenAt(last.id));
+  return plays.some((p) => p.id === synthetic.id || p.text === synthetic.text) ? plays : [...plays, synthetic];
+}
 
 /**
- * This week's plays, newest first, plus who's in the red zone right now. With
- * scope "mine", only the plays your starters are part of, across the games
- * they're playing in; with "all", every play of every game that's started
- * (games without your starters are only fetched once you ask for them).
- * Follows the games it's handed: pass in games re-read on each tick of the
- * live clock and it keeps itself current.
- *
- * `starters` is your starters grouped by game; `weekGames` is every game of the week.
+ * Each started game's play-by-play, by game id. Final games are fetched
+ * once; a game in progress re-reads when the scoreboard shows a new play
+ * that one of the game's listed players was in, or a score — and otherwise
+ * every BACKFILL_MS. Pass in games re-read on each live-clock tick and it
+ * keeps itself current. Fetches are shared (see getGamePlays), so two
+ * callers on the same tick make one request.
  */
-export function useRedZoneFeed(starters: GameStarters[], weekGames: NFLGame[], scope: FeedScope): RedZoneFeed {
-  const games = useMemo<GameStarters[]>(() => {
-    if (scope === "mine") return starters.filter((g) => g.players.length > 0);
-    const playersByGame = new Map(starters.map((g) => [g.game.id, g.players]));
-    return weekGames.map((game) => ({ game, players: playersByGame.get(game.id) ?? [] }));
-  }, [starters, weekGames, scope]);
-
+export function useGamePlays(games: GameStarters[]): Record<string, GamePlay[]> {
   const [playsByGame, setPlaysByGame] = useState<Record<string, GamePlay[]>>({});
   const lastFetchAt = useRef(new Map<string, number>());
   /** The scoreboard's latest play id as of each game's last fetch. */
@@ -117,19 +117,38 @@ export function useRedZoneFeed(starters: GameStarters[], weekGames: NFLGame[], s
     };
   }, [games]);
 
+  return playsByGame;
+}
+
+/** Your players' plays only, or every play of every game. */
+export type FeedScope = "mine" | "all";
+
+/**
+ * This week's plays, newest first, plus who's in the red zone right now. With
+ * scope "mine", only the plays your starters are part of, across the games
+ * they're playing in; with "all", every play of every game that's started
+ * (games without your starters are only fetched once you ask for them).
+ * Follows the games it's handed: pass in games re-read on each tick of the
+ * live clock and it keeps itself current.
+ *
+ * `starters` is your starters grouped by game; `weekGames` is every game of the week.
+ */
+export function useRedZoneFeed(starters: GameStarters[], weekGames: NFLGame[], scope: FeedScope): RedZoneFeed {
+  const games = useMemo<GameStarters[]>(() => {
+    if (scope === "mine") return starters.filter((g) => g.players.length > 0);
+    const playersByGame = new Map(starters.map((g) => [g.game.id, g.players]));
+    return weekGames.map((game) => ({ game, players: playersByGame.get(game.id) ?? [] }));
+  }, [starters, weekGames, scope]);
+
+  const playsByGame = useGamePlays(games);
+
   const entries = useMemo(() => {
     const out: FeedEntry[] = [];
     for (const { game, players } of games) {
       if (game.state === "pre") continue;
       const candidates = candidatesOf(players);
       const byId = new Map(players.map((p) => [p.playerId, p]));
-      const plays = [...(playsByGame[game.id] ?? [])];
-      // The scoreboard's latest play leads until the play-by-play catches up to it.
-      const last = game.live?.lastPlay;
-      if (last) {
-        const synthetic = playFromLastPlay(game.id, last, playFirstSeenAt(last.id));
-        if (!plays.some((p) => p.id === synthetic.id || p.text === synthetic.text)) plays.push(synthetic);
-      }
+      const plays = withScoreboardPlay(game, playsByGame[game.id] ?? []);
       // In game order, so each player's running total builds up play by play.
       plays.sort((a, b) => a.sequence - b.sequence);
       const totals = new Map<string, number>();

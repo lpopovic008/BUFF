@@ -10,6 +10,7 @@ import {
   GroupedStarter,
   liveBlockLabels,
   liveGameRows,
+  startersListGames,
   LivePlayerLine,
   StarterEntry,
 } from "./my-starters";
@@ -224,4 +225,17 @@ test("liveBlockLabels is the windows with a game started and not every game fina
   ]);
   assert.equal(live.size, 1);
   assert.ok([...live][0].length > 0);
+});
+
+test("startersListGames adds points Sleeper hasn't counted yet before sorting a live game", () => {
+  const g = { ...game("g1", "BUF", "MIA", "2026-10-11T17:00:00Z"), state: "in" as const };
+  const live = liveBlockLabels([g]);
+  const listed = startersListGames([g], [{ game: g, players: [grouped("Mine", 4)] }], [], live, [line("Other", "MIA", 6, null)], {}, { Mine: 6 });
+  assert.deepEqual(
+    listed[0].players.map((p) => [p.playerId, p.points, p.pointsByLeague.L1 ?? null]),
+    [
+      ["Mine", 10, 10],
+      ["Other", 6, null],
+    ]
+  );
 });

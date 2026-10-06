@@ -175,6 +175,51 @@ export function liveGameRows(
     .map((r) => r.row);
 }
 
+/** A player with points still to come added to their Sleeper number — under every league's scoring alike. */
+function withPending(player: GroupedStarter, pending: number | undefined): GroupedStarter {
+  if (!pending) return player;
+  const add = (points: number | null) => (points === null ? null : Math.round((points + pending) * 100) / 100);
+  return {
+    ...player,
+    points: add(player.points),
+    pointsByLeague: Object.fromEntries(Object.entries(player.pointsByLeague).map(([id, points]) => [id, add(points)])),
+  };
+}
+
+/**
+ * The starters list's games: just your starters in each game, except in a
+ * time block that's being played, where each game lists everyone worth
+ * watching (see liveGameRows). `pending` is points from plays Sleeper hasn't
+ * counted yet, by player id, added on before anyone's sorted. Games come
+ * back in kickoff order; one with nobody to list is left out.
+ */
+export function startersListGames(
+  weekGames: NFLGame[],
+  mine: GameStarters[],
+  opponent: GameStarters[],
+  liveBlocks: Set<string>,
+  lines: LivePlayerLine[],
+  projected: Record<string, number>,
+  pending: Record<string, number> = {}
+): GameStarters[] {
+  const adjust = (players: GroupedStarter[]) => players.map((p) => withPending(p, pending[p.playerId]));
+  const mineByGameId = new Map(mine.map((g) => [g.game.id, adjust(g.players)]));
+  if (liveBlocks.size === 0) return mine.map((g) => ({ game: g.game, players: mineByGameId.get(g.game.id)! }));
+  const opponentByGameId = new Map(opponent.map((g) => [g.game.id, adjust(g.players)]));
+  const adjustedLines = lines.map((l) =>
+    pending[l.playerId] ? { ...l, points: Math.round((l.points + pending[l.playerId]) * 100) / 100 } : l
+  );
+  const out: GameStarters[] = [];
+  for (const game of [...weekGames].sort((a, b) => kickoffTime(a) - kickoffTime(b))) {
+    const myPlayers = mineByGameId.get(game.id) ?? [];
+    const players = liveBlocks.has(kickoffBlockLabel(game))
+      ? liveGameRows(game, myPlayers, opponentByGameId.get(game.id) ?? [], adjustedLines, projected)
+      : myPlayers;
+    if (players.length > 0) out.push({ game, players });
+  }
+  return out;
+}
+
 /**
  * The kickoff windows (see kickoffBlockLabel) being played right now: at
  * least one game has kicked off and not every game is final.

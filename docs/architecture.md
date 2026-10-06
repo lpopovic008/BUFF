@@ -298,6 +298,17 @@ Everyone else's PPR points and projections come from Sleeper's NFL-wide
 Sleeper app uses). Stats are re-read each tick; projections are cached
 for 5 minutes. Neither is fetched unless a block is live.
 
+**Red Zone points ahead of Sleeper** (`useLivePlayPoints`,
+`lib/live-play-points.ts`): ESPN's plays usually land before Sleeper's
+matchup points move. So each number in the starters list is Sleeper's, plus
+the PPR points from every play the Red Zone has seen since that number last
+changed. Once Sleeper's number moves, it's taken to include those plays and
+stands alone again. A play stops counting after 5 minutes without Sleeper
+moving: by then Sleeper either already had it or scores it differently.
+Plays already there when a game's play-by-play first loads never count.
+This covers your starters and the ones you face (their games' play-by-play
+is followed), plus anyone else listed in those games.
+
 **Red Zone** (`useRedZoneFeed`, `RedZone.tsx`, `lib/play-by-play.ts`): by
 default ("Team") the plays your starters are in. "All" shows every
 play of every game that's started, and only then fetches the games none of
