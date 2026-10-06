@@ -9,7 +9,7 @@ import { useLiveMode } from "@/hooks/useLiveTick";
 import { GameStarters, GroupedStarter } from "@/lib/my-starters";
 import { NFLGame } from "@/lib/nfl-schedule";
 import { formatPlayPoints } from "@/lib/play-points";
-import { nflLogoFilter, nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
+import { nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 
 const PAGE = 30;
@@ -25,7 +25,6 @@ function TeamLogo({ team, side = 16 }: { team: string; side?: number }) {
       draggable={false}
       {...nflLogoSize(team, side)}
       className="shrink-0 object-contain"
-      style={{ filter: nflLogoFilter(team) }}
     />
   );
 }

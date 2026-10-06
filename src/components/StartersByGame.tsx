@@ -7,7 +7,7 @@ import { setHeaderKickoff } from "@/lib/header-clock";
 import { formatKickoffTime, GameStarters, finishedBlocksLast, groupGamesByTimeBlock, GroupedStarter } from "@/lib/my-starters";
 import { NFLGame } from "@/lib/nfl-schedule";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
-import { nflLogoFilter, nflLogoMaxWidth, nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
+import { nflLogoMaxWidth, nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import { LeagueLegendEntry, LeagueMark } from "./LeagueMark";
 
 export type { LeagueLegendEntry };
@@ -99,7 +99,7 @@ const LOGO_SIDE = 20;
 const LOGO_SLOT = Math.ceil(nflLogoMaxWidth(LOGO_SIDE));
 
 /**
- * A team's official logo, in black and white (see --logo-filter), fading in once its header
+ * A team's official logo, in its own colors, fading in once its header
  * starts typing. Falls back to the team's abbreviation if there's no logo
  * for it.
  */
@@ -123,7 +123,6 @@ function TeamLogo({ team, visible }: { team: string; visible: boolean }) {
       draggable={false}
       {...nflLogoSize(team, LOGO_SIDE)}
       className={`shrink-0 object-contain transition-opacity duration-150 ${visible ? "" : "opacity-0"}`}
-      style={{ filter: nflLogoFilter(team) }}
     />
   );
 }

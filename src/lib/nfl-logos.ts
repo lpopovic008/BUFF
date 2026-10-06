@@ -1,5 +1,5 @@
-// Each NFL team's current primary logo (full-color SVG, shown in black and
-// white through --logo-filter), served from the site itself. Most come from the ISC-licensed nfl-team-logos package; the Bears'
+// Each NFL team's current primary logo (full-color SVG, shown in its own
+// colors), served from the site itself. Most come from the ISC-licensed nfl-team-logos package; the Bears'
 // bear head, the Jets' and the Titans' 2026 logos are from their Wikipedia
 // articles, and the Rams' 2026 logo is traced from ESPN's.
 
@@ -64,14 +64,4 @@ export function nflLogoSize(team: string, side: number): { width: number; height
 /** The widest any team's logo is drawn at `side` (see nflLogoSize) — a slot this wide fits every logo. */
 export function nflLogoMaxWidth(side: number): number {
   return Math.max(...Object.keys(LOGO_ASPECT).map((team) => nflLogoSize(team, side).width), side);
-}
-
-// Logos whose dark marks (the Giants' navy, the Rams' solid blue) sink into
-// the dark page even with --logo-filter's lift: dark mode shows them
-// inverted instead (--logo-filter-invert).
-const INVERT_IN_DARK = new Set(["NYG", "LAR"]);
-
-/** The CSS filter that shows a team's logo in black and white for the current theme. */
-export function nflLogoFilter(team: string): string {
-  return INVERT_IN_DARK.has(team) ? "var(--logo-filter-invert)" : "var(--logo-filter)";
 }
