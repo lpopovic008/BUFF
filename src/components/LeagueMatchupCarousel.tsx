@@ -163,16 +163,12 @@ function MatchupHeader({
     />
   );
   // PF/PA at the outside edge, then the all-time head-to-head record just inside it.
-  // Stacked on a phone, PF/PA stays on top on both sides.
   const badges = (t: MatchupTeam, side: "left" | "right") => {
     const pf = <PointsRankBadges pointsRanks={standings.get(t.rosterId)?.pointsRanks} leagueSize={standings.size} onTag />;
     const rec = right ? headToHead?.get(t.rosterId) : undefined;
     const h2h = rec ? <HeadToHeadBadge wins={rec.wins} losses={rec.losses} onTag /> : null;
-    // On a phone there's no room for all three in a line, so the H2H tucks just under PF/PA.
     return (
-      <span
-        className={`flex gap-0.5 sm:flex-row sm:items-baseline sm:gap-2 ${side === "left" ? "flex-col items-start" : "flex-col-reverse items-end"}`}
-      >
+      <span className="flex items-baseline gap-1 sm:gap-2">
         {side === "left" ? pf : h2h}
         {side === "left" ? h2h : pf}
       </span>
@@ -185,14 +181,14 @@ function MatchupHeader({
         <span />
         {right ? label(right, "right") : <div />}
       </div>
-      <div className={`grid ${SLOT_COLS} items-baseline gap-1 text-base font-semibold tabular-nums sm:gap-2 sm:text-lg`}>
-        <span className="flex items-baseline justify-between gap-1.5 sm:gap-2">
+      <div className={`grid ${SLOT_COLS} items-baseline gap-1 text-[0.9375rem] font-semibold tabular-nums sm:gap-2 sm:text-lg`}>
+        <span className="flex items-baseline justify-between gap-1 sm:gap-2">
           {badges(left, "left")}
           {formatPoints(left.points)}
         </span>
         <span />
         {right ? (
-          <span className="flex items-baseline justify-between gap-1.5 sm:gap-2">
+          <span className="flex items-baseline justify-between gap-1 sm:gap-2">
             {formatPoints(right.points)}
             {badges(right, "right")}
           </span>
