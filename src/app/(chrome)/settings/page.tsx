@@ -87,8 +87,9 @@ export default function SettingsPage() {
       </TitleWithHistory>
 
       {/* Leagues on the left; this device and account on the right. One column on phones. */}
-      <div className="grid items-start gap-6 lg:grid-cols-2">
-        <div className="flex flex-col gap-6">
+      {/* minmax(0, 1fr) columns, so a long URL or ID can't stretch the page past the screen. */}
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+        <div className="flex min-w-0 flex-col gap-6">
           <Section title="Sleeper">
             <DiscoverForm
               defaultUsername={config.sleeperUsername ?? ""}
@@ -151,7 +152,7 @@ export default function SettingsPage() {
           </Section>
         </div>
 
-        <div className="flex flex-col gap-6">
+        <div className="flex min-w-0 flex-col gap-6">
           <Section title="Account">
             <AccountSection />
             <div className="mt-4 flex items-center justify-between gap-2 border-t border-grid pt-4">
