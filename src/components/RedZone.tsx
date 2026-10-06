@@ -79,7 +79,15 @@ function PlayPoints({ entry }: { entry: FeedEntry }) {
         return (
           <span key={p.playerId} className="flex items-center gap-1.5 whitespace-nowrap leading-none tabular-nums">
             {labeled ? <span className="text-[0.625rem] text-ink-muted">{surname}</span> : null}
-            <span className={`text-sm font-bold ${deltaClass(pts.delta)}`}>{formatPlayPoints(pts.delta)}</span>
+            {/* Tagged so the starters list can fly a copy of it over to this player's total. */}
+            <span
+              data-rz-player={p.playerId}
+              data-rz-delta={pts.delta}
+              data-rz-at={entry.play.at ?? 0}
+              className={`text-sm font-bold ${deltaClass(pts.delta)}`}
+            >
+              {formatPlayPoints(pts.delta)}
+            </span>
             <TotalChip total={pts.total} />
           </span>
         );
@@ -88,7 +96,15 @@ function PlayPoints({ entry }: { entry: FeedEntry }) {
       {others.map((o) => (
         <span key={o.key} className="flex items-center gap-1.5 whitespace-nowrap leading-none tabular-nums">
           {labeled ? <span className="text-[0.625rem] text-ink-muted">{o.label}</span> : null}
-          <span className="text-sm font-bold text-ink-primary">{formatPlayPoints(o.delta)}</span>
+          <span
+            data-rz-actor={o.label}
+            data-rz-team={entry.play.offense ?? ""}
+            data-rz-delta={o.delta}
+            data-rz-at={entry.play.at ?? 0}
+            className="text-sm font-bold text-ink-primary"
+          >
+            {formatPlayPoints(o.delta)}
+          </span>
           <TotalChip total={o.total} />
         </span>
       ))}

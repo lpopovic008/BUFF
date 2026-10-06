@@ -307,11 +307,16 @@ stands alone again. A play stops counting after 5 minutes without Sleeper
 moving: by then Sleeper either already had it or scores it differently.
 Plays already there when a game's play-by-play first loads never count.
 Each pending amount is tagged with the Sleeper number it was worked out
-against, so it's never added on top of a newer one. When a number changes,
-`StartersByGame` animates it: the difference flies into the number, the
-number counts up, and the row flashes in its side's color. About a second
-later the player slides to their new place in the game; the rows wait until
-then before reordering.
+against, so it's never added on top of a newer one. On desktop, a changed number animates (`GameRows.tsx`).
+The play's +/- in the Red Zone is duplicated, and the copy arcs across the
+screen into the player's total. The Red Zone tags each +/- with the player's
+Sleeper id, or their ESPN shorthand and team, so the list can find it.
+The total then counts up. In a live game the rows stay ordered by the total
+as shown, so the player climbs one place each time the count passes
+someone, and each player passed slides down one. With no recent Red Zone
+row on screen, the change pops in beside the total instead. Phones, and
+viewers who ask for reduced motion, get the new numbers and order with no
+animation.
 This covers your starters and the ones you face (their games' play-by-play
 is followed), plus anyone else listed in those games.
 

@@ -265,8 +265,8 @@ body {
 }
 
 /* The Red Zone alert's pulse. */
-/* A starter's points going up (or down): the play's points pop in beside the
-   number and fly into it, then the number bumps as it counts to the new total. */
+/* A starter's points going up (or down) with no Red Zone row to fly from: the
+   change pops in beside the total and slides into it (see GameRows). */
 @keyframes pts-chip {
   0% {
     opacity: 0;
@@ -283,16 +283,6 @@ body {
   100% {
     opacity: 0;
     transform: translateX(2.6em) scale(0.6);
-  }
-}
-
-@keyframes pts-bump {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  40% {
-    transform: scale(1.18);
   }
 }
 

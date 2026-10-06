@@ -36,6 +36,8 @@ export interface GroupedStarter {
 
 export interface GameStarters {
   game: NFLGame;
+  /** In a time block being played: everyone worth watching is listed, ordered by points (see startersListGames). */
+  live?: boolean;
   /** Your starters in this game, deduped by player, then by position. */
   players: GroupedStarter[];
 }
@@ -220,10 +222,9 @@ export function startersListGames(
   const out: GameStarters[] = [];
   for (const game of [...weekGames].sort((a, b) => kickoffTime(a) - kickoffTime(b))) {
     const myPlayers = mineByGameId.get(game.id) ?? [];
-    const players = liveBlocks.has(kickoffBlockLabel(game))
-      ? liveGameRows(game, myPlayers, opponentByGameId.get(game.id) ?? [], adjustedLines, projected)
-      : myPlayers;
-    if (players.length > 0) out.push({ game, players });
+    const live = liveBlocks.has(kickoffBlockLabel(game));
+    const players = live ? liveGameRows(game, myPlayers, opponentByGameId.get(game.id) ?? [], adjustedLines, projected) : myPlayers;
+    if (players.length > 0) out.push({ game, players, live });
   }
   return out;
 }
