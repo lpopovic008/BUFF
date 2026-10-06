@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { GameStarters, GroupedStarter } from "@/lib/my-starters";
 import { NFLGame } from "@/lib/nfl-schedule";
 import { LIVE_TTL_SECONDS } from "@/lib/live-clock";
-import { FeedCandidate, GamePlay, getGamePlays, playFirstSeenAt, playFromLastPlay, playersInPlay } from "@/lib/play-by-play";
+import { FeedCandidate, GamePlay, getGamePlays, playFirstSeenAt, playFromLastPlay, playersInPlay, playTextActors, playTextNamePattern } from "@/lib/play-by-play";
 import { pprPointsForPlay } from "@/lib/play-points";
 
 /** A play — with whichever of your starters were part of it (none, in the all-plays view, for most). */
@@ -14,6 +14,8 @@ export interface FeedEntry {
   players: GroupedStarter[];
   /** Per player: standard PPR points from this play, and their game total through it. */
   points: Record<string, { delta: number; total: number }>;
+  /** In the all-plays view, everyone else the play scored points for — by ESPN's shorthand name ("B.Mayfield"), or a team defense ("TB D/ST"). */
+  others: { key: string; label: string; delta: number; total: number }[];
 }
 
 /** A game where a team has the ball inside the 20 right now — in your-players view, only a team you have starters on. */
@@ -131,18 +133,40 @@ export function useRedZoneFeed(starters: GameStarters[], weekGames: NFLGame[], s
       // In game order, so each player's running total builds up play by play.
       plays.sort((a, b) => a.sequence - b.sequence);
       const totals = new Map<string, number>();
+      const addTo = (key: string, delta: number) => {
+        const total = Math.round(((totals.get(key) ?? 0) + delta) * 100) / 100;
+        totals.set(key, total);
+        return total;
+      };
       for (const play of plays) {
         const matched = playersInPlay(play, candidates);
         if (matched.length === 0 && scope === "mine") continue;
         const points: FeedEntry["points"] = {};
         for (const c of matched) {
           const delta = pprPointsForPlay(play, c);
-          const total = Math.round(((totals.get(c.playerId) ?? 0) + delta) * 100) / 100;
-          totals.set(c.playerId, total);
-          points[c.playerId] = { delta, total };
+          points[c.playerId] = { delta, total: addTo(c.playerId, delta) };
+        }
+        // Everyone else's points too, in the all-plays view — named the way
+        // ESPN's line names them, kept apart from your own starters already above.
+        const others: FeedEntry["others"] = [];
+        if (scope === "all") {
+          const mine = matched.map((c) => playTextNamePattern(c.name)).filter((r): r is RegExp => r !== null);
+          for (const { label, candidate } of playTextActors(play)) {
+            if (mine.some((r) => r.test(label))) continue;
+            const delta = pprPointsForPlay(play, candidate);
+            const total = addTo(candidate.playerId, delta);
+            if (delta !== 0) others.push({ key: candidate.playerId, label, delta, total });
+          }
+          const defense = play.offense ? [game.homeTeam, game.awayTeam].find((t) => t !== play.offense) : undefined;
+          if (defense && !matched.some((c) => c.position === "DEF" && c.team === defense)) {
+            const key = `DEF:${defense}`;
+            const delta = pprPointsForPlay(play, { playerId: key, name: `${defense} D/ST`, position: "DEF", team: defense });
+            const total = addTo(key, delta);
+            if (delta !== 0) others.push({ key, label: `${defense} D/ST`, delta, total });
+          }
         }
         const involved = matched.map((c) => byId.get(c.playerId)).filter((p): p is GroupedStarter => !!p);
-        out.push({ play, game, players: involved, points });
+        out.push({ play, game, players: involved, points, others });
       }
     }
     return out.sort((a, b) => {

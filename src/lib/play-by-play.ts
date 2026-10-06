@@ -192,6 +192,30 @@ export function playersInPlay(play: GamePlay, candidates: FeedCandidate[]): Feed
   return out;
 }
 
+/**
+ * Everyone a play's line names as doing something — "B.Mayfield", "M.Evans",
+ * "A.St. Brown" — leaving out tacklers and other defenders in parentheses and
+ * brackets, and names tied to a team ("PENALTY on PIT-D.Metcalf", "RECOVERED
+ * by MIA-J.Phillips"). Each comes back as a stand-in starter on the team with
+ * the ball, ready for pprPointsForPlay, so anyone's play can be scored the same
+ * way your own players' are.
+ */
+export function playTextActors(play: GamePlay): { label: string; candidate: FeedCandidate }[] {
+  const text = play.text.replace(/\([^)]*\)|\[[^\]]*\]/g, " ");
+  const out: { label: string; candidate: FeedCandidate }[] = [];
+  const seen = new Set<string>();
+  for (const m of text.matchAll(/(?<![A-Za-z.'-])([A-Z][A-Za-z']{0,3})\.\s?((?:St\.\s)?[A-Z][A-Za-z'-]+)/g)) {
+    const label = `${m[1]}.${m[2]}`;
+    if (seen.has(label)) continue;
+    seen.add(label);
+    out.push({
+      label,
+      candidate: { playerId: `${play.offense ?? ""}:${label}`, name: `${m[1]} ${m[2]}`, position: "", team: play.offense },
+    });
+  }
+  return out;
+}
+
 /** A play's "big play" marks, for the feed's filter and badges. */
 export function isBigPlay(play: GamePlay): boolean {
   return play.scoring || play.turnover || play.yards >= 20 || play.redZone;

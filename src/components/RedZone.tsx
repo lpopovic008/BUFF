@@ -68,7 +68,9 @@ function TotalChip({ total }: { total: number }) {
  * highlighted. A play with two of your starters lists each, by surname.
  */
 function PlayPoints({ entry }: { entry: FeedEntry }) {
-  const { players, points } = entry;
+  const { players, points, others } = entry;
+  // Name each line once there's more than one — your starters by surname, everyone else as ESPN writes them.
+  const labeled = players.length + others.length > 1;
   return (
     <span className="flex flex-col items-end gap-0.5" title={POINTS_TITLE}>
       {players.map((p) => {
@@ -77,12 +79,20 @@ function PlayPoints({ entry }: { entry: FeedEntry }) {
         const surname = p.position === "DEF" ? displayName(p) : p.name.split(" ").slice(1).join(" ") || p.name;
         return (
           <span key={p.playerId} className="flex items-center gap-1.5 whitespace-nowrap leading-none tabular-nums">
-            {players.length > 1 ? <span className="text-[0.625rem] text-ink-muted">{surname}</span> : null}
+            {labeled ? <span className="text-[0.625rem] text-ink-muted">{surname}</span> : null}
             <span className={`text-sm font-bold ${deltaClass(pts.delta)}`}>{formatPlayPoints(pts.delta)}</span>
             <TotalChip total={pts.total} />
           </span>
         );
       })}
+      {/* Everyone else's (the all-plays view): the same numbers, the +/- left uncolored. */}
+      {others.map((o) => (
+        <span key={o.key} className="flex items-center gap-1.5 whitespace-nowrap leading-none tabular-nums">
+          {labeled ? <span className="text-[0.625rem] text-ink-muted">{o.label}</span> : null}
+          <span className="text-sm font-bold text-ink-primary">{formatPlayPoints(o.delta)}</span>
+          <TotalChip total={o.total} />
+        </span>
+      ))}
     </span>
   );
 }

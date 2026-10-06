@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { cleanPlayText, downAndDistance, FeedCandidate, GamePlay, isBigPlay, parseSummaryPlays, playersInPlay, playTextNamePattern } from "./play-by-play";
+import { cleanPlayText, downAndDistance, playTextActors, FeedCandidate, GamePlay, isBigPlay, parseSummaryPlays, playersInPlay, playTextNamePattern } from "./play-by-play";
 
 function play(over: Partial<GamePlay>): GamePlay {
   return {
@@ -143,4 +143,11 @@ test("downAndDistance spells the down, or Goal when the line to gain is the goal
   assert.equal(downAndDistance(3, 4, 40), "3rd & 4");
   assert.equal(downAndDistance(1, 4, 4), "1st & Goal");
   assert.equal(downAndDistance(0, 0, 65), null);
+});
+
+test("playTextActors names who did something, not tacklers or team-tagged names", () => {
+  const p = play({ text: "B.Mayfield pass short right to M.Evans to ATL 30 for 14 yards (A.Terrell). PENALTY on TB-L.Goedeke, Holding, declined." });
+  assert.deepEqual(playTextActors(p).map((a) => a.label), ["B.Mayfield", "M.Evans"]);
+  const stBrown = play({ text: "J.Goff pass short right to A.St. Brown for 9 yards, TOUCHDOWN. J.Bates extra point is GOOD." });
+  assert.deepEqual(playTextActors(stBrown).map((a) => a.label), ["J.Goff", "A.St. Brown", "J.Bates"]);
 });
