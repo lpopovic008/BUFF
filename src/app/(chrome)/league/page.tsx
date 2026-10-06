@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { IconLink } from "@/components/ui/IconButton";
 import { DocumentIcon, ClockIcon, RadarIcon, WalkieTalkieIcon } from "@/components/ui/Icon";
 import { LeagueMatchupCarousel } from "@/components/LeagueMatchupCarousel";
+import { WeekPicker } from "@/components/WeekPicker";
 import { MoneyBoard } from "@/components/MoneyBoard";
 import { useConfig } from "@/hooks/useConfig";
 import { useLeagueMatchupCarousel } from "@/hooks/useLeagueMatchupCarousel";
@@ -21,6 +22,9 @@ function LeagueDetailContent() {
   const { config, loaded } = useConfig();
   const [summary, setSummary] = useState<LeagueSummary | null>(null);
   const [week, setWeek] = useState<number | null>(null);
+  // The week the matchups show — the current one until another is picked.
+  const [viewWeek, setViewWeek] = useState<number | null>(null);
+  const shownWeek = viewWeek ?? week;
   const [money, setMoney] = useState<LeagueSeason | null>(null);
   const [plan, setPlan] = useState<PayoutPlan | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +34,7 @@ function LeagueDetailContent() {
     let cancelled = false;
     (async () => {
       setSummary(null);
+      setViewWeek(null);
       setMoney(null);
       setPlan(null);
       setError(null);
@@ -87,7 +92,17 @@ function LeagueDetailContent() {
   const standings = useMemo(() => (summary ? teamStandings(summary) : new Map()), [summary]);
 
   const myRow = summary?.standings.find((r) => r.ownerId === config.sleeperUserId) ?? null;
-  const carousel = useLeagueMatchupCarousel(leagueId, week);
+  const carousel = useLeagueMatchupCarousel(leagueId, shownWeek);
+  const weekPicker =
+    week != null && shownWeek != null ? (
+      <WeekPicker
+        week={shownWeek}
+        currentWeek={week}
+        lastWeek={money?.results.lastWeek ?? week}
+        regularSeasonWeeks={money?.results.regularSeasonWeeks ?? null}
+        onChange={setViewWeek}
+      />
+    ) : null;
 
   if (!leagueId) {
     return <Card className="p-12 text-center text-sm text-ink-secondary">No league selected.</Card>;
@@ -131,11 +146,20 @@ function LeagueDetailContent() {
       {carousel && carousel.games.length > 0 ? (
         <div className="animate-[rise_0.5s_ease-out_backwards] [animation-delay:80ms]">
           <LeagueMatchupCarousel
+            // A fresh carousel per week, so it opens on your matchup again.
+            key={shownWeek ?? 0}
             leagueId={leagueId}
             games={carousel.games}
             myRosterId={myRow?.rosterId ?? null}
             standings={standings}
+            weekPicker={weekPicker}
           />
+        </div>
+      ) : weekPicker && carousel ? (
+        // A week with no matchups still offers the picker, to get back.
+        <div className="flex items-center gap-3">
+          {weekPicker}
+          <span className="text-sm text-ink-muted">No matchups this week.</span>
         </div>
       ) : null}
 

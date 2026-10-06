@@ -239,12 +239,15 @@ export function LeagueMatchupCarousel({
   games,
   myRosterId,
   standings,
+  weekPicker,
 }: {
   leagueId: string;
   games: ResolvedMatchupGame[];
   myRosterId: number | null;
   /** Every team's standing in the league (see teamStandings), shown around its name and score. */
   standings: Map<number, TeamStanding>;
+  /** Sits above the matchups list (and above the swipeable matchups on phones). */
+  weekPicker?: React.ReactNode;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const hasScrolledToMine = useRef(false);
@@ -282,6 +285,7 @@ export function LeagueMatchupCarousel({
     <>
       {/* Phones: swipe between matchups. */}
       <div className="flex flex-col gap-3 md:hidden">
+        {weekPicker ? <div className="flex">{weekPicker}</div> : null}
         <div
           ref={containerRef}
           onScroll={handleScroll}
@@ -321,6 +325,8 @@ export function LeagueMatchupCarousel({
       {/* Tablet and up: the chosen matchup large on the left (70%), every matchup listed on the right (30%, never narrower than 16rem so names stay readable). */}
       <div className="hidden md:grid md:grid-cols-[minmax(0,7fr)_minmax(16rem,3fr)] md:items-start md:gap-3">
         <MatchupSlide leagueId={leagueId} game={picked} myRosterId={myRosterId} standings={standings} />
+        <div className="flex flex-col gap-2">
+        {weekPicker ? <div className="flex">{weekPicker}</div> : null}
         <ul className="flex flex-col gap-2" aria-label="This week's matchups">
           {games.map((g) => {
             const active = g.matchupId === picked.matchupId;
@@ -350,6 +356,7 @@ export function LeagueMatchupCarousel({
             );
           })}
         </ul>
+        </div>
       </div>
     </>
   );
