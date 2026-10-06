@@ -14,10 +14,28 @@ export interface AllTimeRecord {
 const MAX_WEEKS = 18;
 
 /**
+ * Who a matchup team is in the all-time records: its manager (Sleeper user
+ * id) when the team has one, else its team slot ("roster:4") — an unclaimed
+ * team has no manager, but its slot keeps its history.
+ */
+export function headToHeadKey(rosterId: number, ownerId: string | null | undefined): string {
+  return ownerId ?? `roster:${rosterId}`;
+}
+
+/** Every key a team's games are filed under: its manager's, if it has one, and always its slot's. */
+function teamKeys(rosterId: number, ownerByRoster: Map<number, string>): string[] {
+  const owner = ownerByRoster.get(rosterId);
+  const slot = headToHeadKey(rosterId, null);
+  return owner ? [owner, slot] : [slot];
+}
+
+/**
  * All-time head-to-head win-loss record between every pair of managers in
  * this league, replayed across every season linked by previous_league_id —
- * keyed by Sleeper owner (user) id rather than roster id, since roster ids
- * get reassigned each season but a manager's owner id doesn't. Sleeper has
+ * keyed by Sleeper owner (user) id, so a manager's record follows them even
+ * if they take over a different team — and also by team slot ("roster:4",
+ * see headToHeadKey), which is how an unclaimed team is looked up: its
+ * slot's whole history, whoever ran it then. Sleeper has
  * no head-to-head endpoint of its own, so this is built from every
  * finished week's matchups in every linked season (never the week being
  * played, whose scores aren't final). Fetched once per league and cached —
@@ -80,12 +98,16 @@ export function useAllTimeHeadToHead(leagueId: string): Map<string, Map<string, 
             for (const pair of byMatchupId.values()) {
               if (pair.length !== 2) continue;
               const [a, b] = pair;
-              const ownerA = ownerByRoster.get(a.roster_id);
-              const ownerB = ownerByRoster.get(b.roster_id);
-              if (!ownerA || !ownerB || a.points === b.points) continue;
+              if (a.points === b.points) continue;
               const aWon = a.points > b.points;
-              record(ownerA, ownerB, aWon);
-              record(ownerB, ownerA, !aWon);
+              // Every game counts under each side's manager and under its team
+              // slot, so an unclaimed team still has its whole history.
+              for (const keyA of teamKeys(a.roster_id, ownerByRoster)) {
+                for (const keyB of teamKeys(b.roster_id, ownerByRoster)) {
+                  record(keyA, keyB, aWon);
+                  record(keyB, keyA, !aWon);
+                }
+              }
             }
           }
         })

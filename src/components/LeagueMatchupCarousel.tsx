@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ResolvedMatchupGame, ResolvedSlot } from "@/hooks/useLeagueMatchupCarousel";
 import { HeadToHeadBadge, PointsRankBadges, TeamNameLabel } from "@/components/DashboardMatchupCard";
-import { AllTimeRecord, useAllTimeHeadToHead } from "@/hooks/useAllTimeHeadToHead";
+import { AllTimeRecord, headToHeadKey, useAllTimeHeadToHead } from "@/hooks/useAllTimeHeadToHead";
 import { TeamStanding } from "@/lib/league-data";
 import { MatchupRows } from "@/components/LeagueTicker";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
@@ -244,8 +244,8 @@ function MatchupSlide({
 
 /**
  * Both teams' all-time records against each other, by roster, from the
- * league-wide head-to-head (keyed by owner, since rosters change hands
- * between seasons). Two teams who've never met are 0-0; null until loaded.
+ * league-wide head-to-head — by manager, or for an unclaimed team by its
+ * team slot. Two teams who've never met are 0-0; null until loaded.
  */
 function headToHeadFor(
   a: MatchupTeam,
@@ -254,10 +254,10 @@ function headToHeadFor(
   allTime: Map<string, Map<string, AllTimeRecord>> | null
 ): Map<number, AllTimeRecord> | null {
   if (!b || !allTime) return null;
-  const ownerA = owners.get(a.rosterId);
-  const ownerB = owners.get(b.rosterId);
-  if (!ownerA || !ownerB) return null;
-  const rec = allTime.get(ownerA)?.get(ownerB) ?? { wins: 0, losses: 0 };
+  // An unclaimed team (no owner) is looked up by its team slot instead.
+  const keyA = headToHeadKey(a.rosterId, owners.get(a.rosterId));
+  const keyB = headToHeadKey(b.rosterId, owners.get(b.rosterId));
+  const rec = allTime.get(keyA)?.get(keyB) ?? { wins: 0, losses: 0 };
   return new Map([
     [a.rosterId, rec],
     [b.rosterId, { wins: rec.losses, losses: rec.wins }],
