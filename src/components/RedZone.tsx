@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { LeagueLegendEntry, LeagueMark } from "@/components/LeagueMark";
+import { replayRedZonePlay } from "@/components/GameRows";
 import { FeedEntry, FeedScope, RedZoneNow, useRedZoneFeed } from "@/hooks/useRedZoneFeed";
 import { useLiveMode } from "@/hooks/useLiveTick";
 import { GameStarters, GroupedStarter } from "@/lib/my-starters";
@@ -166,16 +167,20 @@ function FeedRow({
 }) {
   // Decided once, when the row first appears.
   const [live] = useState(arrivedLive);
+  const hasPoints = Object.values(entry.points).some((p) => p.delta !== 0) || entry.others.some((o) => o.delta !== 0);
   const { play, players } = entry;
   const lead = players[0] as GroupedStarter | undefined;
   const leagueIds = [...new Set(players.flatMap((p) => p.leagueIds))];
   const good = play.scoring || (play.turnover && players.length > 0 && players.every((p) => p.position === "DEF"));
   const { game } = entry;
   return (
+    // Tapping a play (on desktop) replays its points flying over to the starters list.
     <li
+      onClick={(e) => replayRedZonePlay(e.currentTarget)}
+      title={hasPoints ? "Replay" : undefined}
       className={`grid grid-cols-[auto_minmax(0,1fr)] items-start gap-2 border-b border-border px-1 py-2 last:border-b-0 ${
         play.scoring ? "shadow-[inset_3px_0_0_var(--status-good)]" : ""
-      }`}
+      } ${hasPoints ? "md:cursor-pointer md:hover:bg-[color-mix(in_srgb,var(--ink-primary)_4%,transparent)]" : ""}`}
       style={{
         animation: live
           ? "rise 0.35s ease-out backwards, rz-flash 2.4s ease-out"

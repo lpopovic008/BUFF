@@ -317,7 +317,9 @@ someone, and each player passed slides down one. With no recent Red Zone
 row on screen, the change pops in beside the total instead. It's purely for
 the look, so it takes its time: every step runs at 2.5x a brisk pace
 (`PACE` in `GameRows.tsx`), about 2s for the flight and 0.85s per player
-passed. Phones, and
+passed. Tapping a play in the Red Zone replays it
+(`replayRedZonePlay`): each player it scored for has their total rewound by
+the play's points, and the same flight, count and climb carry it back. Phones, and
 viewers who ask for reduced motion, get the new numbers and order with no
 animation.
 This covers your starters and the ones you face (their games' play-by-play

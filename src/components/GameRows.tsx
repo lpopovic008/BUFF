@@ -55,15 +55,12 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
  * shorthand for them ("J.Allen") on their team.
  */
 function redZoneSource(player: GroupedStarter, delta: number): HTMLElement | null {
-  const byId = document.querySelector<HTMLElement>(`[data-rz-player="${CSS.escape(player.playerId)}"]`);
-  let source = byId;
-  if (!source) {
-    const pattern = playTextNamePattern(player.name);
-    source =
-      [...document.querySelectorAll<HTMLElement>("[data-rz-actor]")].find(
-        (el) => el.dataset.rzTeam === player.team && !!pattern?.test(el.dataset.rzActor ?? "")
-      ) ?? null;
-  }
+  const source =
+    document.querySelector<HTMLElement>(`[data-rz-player="${CSS.escape(player.playerId)}"]`) ??
+    [...document.querySelectorAll<HTMLElement>("[data-rz-actor]")].find((el) =>
+      namedBy(player, undefined, el.dataset.rzActor, el.dataset.rzTeam)
+    ) ??
+    null;
   if (!source || source.dataset.flown) return null;
   const value = Number(source.dataset.rzDelta);
   const at = Number(source.dataset.rzAt);
@@ -108,6 +105,41 @@ function fly(source: HTMLElement, target: HTMLElement) {
     .finished.finally(() => ghost.remove());
   // The original stays put with a quick pulse, so it reads as copied rather than moved.
   source.animate([{ transform: "scale(1)" }, { transform: "scale(1.25)" }, { transform: "scale(1)" }], { duration: PULSE_MS });
+}
+
+/** Asks the starters list to play a Red Zone play's animation again (see replayRedZonePlay). */
+const REPLAY_EVENT = "starters:replay-play";
+
+interface ReplayDetail {
+  /** The +/- in the Red Zone to fly a copy of. */
+  source: HTMLElement;
+  delta: number;
+  /** Your starter's Sleeper id — or, for anyone else, ESPN's shorthand for them and their team. */
+  playerId?: string;
+  actor?: string;
+  team?: string;
+}
+
+/**
+ * Replays the animation for a Red Zone play: for each player the play scored
+ * points for, their total in the starters list rewinds by that much, a copy
+ * of the play's +/- flies over again, and the total counts back up as the
+ * row climbs. Desktop only, like the animation itself.
+ */
+export function replayRedZonePlay(play: HTMLElement) {
+  if (!animationsOn()) return;
+  for (const source of play.querySelectorAll<HTMLElement>("[data-rz-delta]")) {
+    const delta = Number(source.dataset.rzDelta);
+    if (!delta) continue;
+    const { rzPlayer: playerId, rzActor: actor, rzTeam: team } = source.dataset;
+    window.dispatchEvent(new CustomEvent<ReplayDetail>(REPLAY_EVENT, { detail: { source, delta, playerId, actor, team } }));
+  }
+}
+
+/** Whether `player` is who a Red Zone +/- names: your starter by id, anyone else by ESPN's shorthand on their team. */
+function namedBy(player: GroupedStarter, playerId?: string, actor?: string, team?: string): boolean {
+  if (playerId) return player.playerId === playerId;
+  return !!actor && player.team === team && !!playTextNamePattern(player.name)?.test(actor);
 }
 
 interface Count {
@@ -160,6 +192,26 @@ export function GameRows({
 
   const listRef = useRef<HTMLDivElement>(null);
   const counts = useRef(new Map<string, Count>());
+  /** Red Zone +/- elements to fly from for replays, by player id. */
+  const replaySources = useRef(new Map<string, HTMLElement>());
+
+  // A replayed play: rewind the player's total by the play's points, and the
+  // usual animation (below) carries it back up, flying from the tapped play.
+  useEffect(() => {
+    const onReplay = (e: Event) => {
+      const { source, delta, playerId, actor, team } = (e as CustomEvent<ReplayDetail>).detail;
+      const player = players.find((p) => namedBy(p, playerId, actor, team));
+      const list = listRef.current;
+      if (!player || player.points === null || !list || counts.current.has(player.playerId)) return;
+      // Not while its time block is folded shut.
+      if (list.closest("[aria-hidden='true']")) return;
+      list.querySelector(`[data-player-id="${CSS.escape(player.playerId)}"]`)?.scrollIntoView({ block: "nearest" });
+      replaySources.current.set(player.playerId, source);
+      setHeld((h) => ({ ...h, [player.playerId]: round2(player.points! - delta) }));
+    };
+    window.addEventListener(REPLAY_EVENT, onReplay);
+    return () => window.removeEventListener(REPLAY_EVENT, onReplay);
+  }, [players]);
   const [counting, setCounting] = useState(0);
 
   // Start each held row's animation: the flight (or chip), then the count.
@@ -178,7 +230,9 @@ export function GameRows({
       const delta = round2(to - shownFrom);
       const row = list.querySelector<HTMLElement>(`[data-player-id="${CSS.escape(playerId)}"]`);
       const target = row?.querySelector<HTMLElement>("[data-points]") ?? null;
-      const source = target ? redZoneSource(player, delta) : null;
+      const replaying = replaySources.current.get(playerId);
+      replaySources.current.delete(playerId);
+      const source = target ? (replaying ?? redZoneSource(player, delta)) : null;
       if (source && target) fly(source, target);
       else if (!running) setChips((c) => ({ ...c, [playerId]: { delta, key: now } }));
       const lead = running ? 0 : source ? FLIGHT_MS : CHIP_MS;
