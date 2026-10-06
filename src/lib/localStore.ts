@@ -15,7 +15,10 @@ const PAYOUT_PLANS_KEY = "commish:payout-plans";
 export interface TrackedLeague {
   leagueId: string;
   nickname?: string;
+  /** Whether you're a commissioner of this league — Sleeper's own is_owner flag, kept current by discovery and Settings. */
   isCommish: boolean;
+  /** Left out of the dashboard's starters, map and Red Zone. */
+  hidden?: boolean;
 }
 
 /**
@@ -126,6 +129,30 @@ export function removeExternalLeague(id: string): AppConfig {
   config.externalLeagues = config.externalLeagues.filter((l) => l.id !== id);
   saveConfig(config);
   return config;
+}
+
+/** Shows or hides a league on the dashboard (see TrackedLeague.hidden). */
+export function toggleLeagueHidden(leagueId: string): AppConfig {
+  const config = getConfig();
+  config.leagues = config.leagues.map((l) => (l.leagueId === leagueId ? { ...l, hidden: !l.hidden } : l));
+  saveConfig(config);
+  return config;
+}
+
+/**
+ * Brings each league's commissioner flag in line with Sleeper's, by league
+ * id. Saves (and reports) only when something actually changed.
+ */
+export function updateCommishFlags(flags: Record<string, boolean>): boolean {
+  const config = getConfig();
+  let changed = false;
+  config.leagues = config.leagues.map((l) => {
+    if (!(l.leagueId in flags) || flags[l.leagueId] === l.isCommish) return l;
+    changed = true;
+    return { ...l, isCommish: flags[l.leagueId] };
+  });
+  if (changed) saveConfig(config);
+  return changed;
 }
 
 /**

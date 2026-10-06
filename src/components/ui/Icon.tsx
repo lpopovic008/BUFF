@@ -114,10 +114,21 @@ export function TrashIcon(props: IconProps) {
   );
 }
 
-export function StarIcon({ filled, ...props }: IconProps & { filled?: boolean }) {
+export function EyeIcon(props: IconProps) {
   return (
-    <svg {...base(props)} fill={filled ? "currentColor" : "none"}>
-      <path d="M10 3l1.9 3.9 4.2.6-3 3 .7 4.2L10 12.8 6.2 14.7l.7-4.2-3-3 4.2-.6z" />
+    <svg {...base(props)}>
+      <path d="M2 10s3-5.5 8-5.5S18 10 18 10s-3 5.5-8 5.5S2 10 2 10z" />
+      <circle cx="10" cy="10" r="2.5" />
+    </svg>
+  );
+}
+
+export function EyeOffIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M2 10s3-5.5 8-5.5c1.4 0 2.6.4 3.7 1M18 10s-3 5.5-8 5.5c-1.4 0-2.6-.4-3.7-1" />
+      <path d="M8.2 11.8a2.5 2.5 0 0 1 3.6-3.6" />
+      <line x1="3.5" y1="16.5" x2="16.5" y2="3.5" />
     </svg>
   );
 }

@@ -92,20 +92,11 @@ export default function DashboardPage() {
   const weekGames = useWeekGames(nflPhase.season ?? config.season, week);
   const { mine: myStarters, opponent: opponentStarters } = useMyStarters(starterSources, week);
 
-  // Which leagues' starters to show — null means "no explicit choice yet",
-  // which defaults to every tracked league until the user toggles one off.
-  const [selectedLeagueIds, setSelectedLeagueIds] = useState<Set<string> | null>(null);
-  const allLeagueIds = useMemo(() => new Set(starterSources.map((s) => s.leagueId)), [starterSources]);
-  const effectiveSelected = selectedLeagueIds ?? allLeagueIds;
-  const toggleLeague = (leagueId: string) => {
-    setSelectedLeagueIds((prev) => {
-      const base = prev ?? allLeagueIds;
-      const next = new Set(base);
-      if (next.has(leagueId)) next.delete(leagueId);
-      else next.add(leagueId);
-      return next;
-    });
-  };
+  // Leagues hidden in Settings stay out of the starters, the map and the Red Zone.
+  const effectiveSelected = useMemo(
+    () => new Set(config.leagues.filter((l) => !l.hidden).map((l) => l.leagueId)),
+    [config.leagues]
+  );
 
   // Kickoff windows ("Sunday Noon") whose games are hidden from the map and
   // folded shut in the starters list — toggled from the list's block headers.
@@ -296,8 +287,7 @@ export default function DashboardPage() {
               games={listedGames}
               notPlaying={grouped.notPlaying}
               legend={legend}
-              selectedLeagueIds={effectiveSelected}
-              onToggleLeague={toggleLeague}
+              allLeaguesHidden={config.leagues.length > 0 && config.leagues.every((l) => l.hidden)}
               hiddenBlocks={hiddenBlocks}
               onToggleBlock={toggleBlock}
             />

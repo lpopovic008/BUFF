@@ -370,25 +370,23 @@ function BlockClock({ games, now }: { games: GameStarters[]; now: number | null 
  * leagues, filed under the NFL game they're playing in, grouped into
  * sections by kickoff window (Wed night, Thu night, Sun noon, ...) stacked
  * one under another — a single continuous column, meant to run alongside
- * the rest of the dashboard rather than take over the page width. The
- * legend doubles as a filter — click a league to show only its starters —
- * and stays visible even with every league deselected, since it's the only
- * way back to reselecting one.
+ * the rest of the dashboard rather than take over the page width. Which
+ * leagues show is set in Settings (each league's visibility).
  */
 export function StartersByGame({
   games,
   notPlaying,
   legend,
-  selectedLeagueIds,
-  onToggleLeague,
+  allLeaguesHidden,
   hiddenBlocks,
   onToggleBlock,
 }: {
   games: GameStarters[];
   notPlaying: GroupedStarter[];
+  /** Each league's name and logo, for the marks on each starter's row. */
   legend: LeagueLegendEntry[];
-  selectedLeagueIds: Set<string>;
-  onToggleLeague: (leagueId: string) => void;
+  /** Every league is hidden in Settings, so there's nobody to list. */
+  allLeaguesHidden: boolean;
   /** Kickoff windows whose games are hidden from the map. */
   hiddenBlocks: Set<string>;
   /** Shows or hides one kickoff window's games on the map. */
@@ -404,32 +402,9 @@ export function StartersByGame({
     <div className="flex flex-col gap-4">
       <NextKickoffClock games={games} now={now} />
 
-      {/* One league per line; tapping one shows or hides its starters. */}
-      <div className="flex flex-col gap-1.5">
-        {legend.map((league) => {
-          const selected = selectedLeagueIds.has(league.leagueId);
-          return (
-            <button
-              key={league.leagueId}
-              type="button"
-              onClick={() => onToggleLeague(league.leagueId)}
-              aria-pressed={selected}
-              className={`flex items-start gap-2 text-[0.9375rem] leading-snug transition-opacity ${
-                selected ? "text-ink-secondary" : "text-ink-muted opacity-40"
-              }`}
-            >
-              <LeagueMark league={league} className="mt-[0.2em] h-4 w-4 shrink-0" />
-              <span className="text-left">{league.leagueName}</span>
-            </button>
-          );
-        })}
-      </div>
-
       {nothingToShow ? (
         <p className="text-sm text-ink-secondary">
-          {legend.some((l) => selectedLeagueIds.has(l.leagueId)) || legend.length === 0
-            ? "No starters set for this week yet."
-            : "Every league is hidden — select one above to see its starters."}
+          {allLeaguesHidden ? "Every league is hidden. Show one in Settings." : "No starters set for this week yet."}
         </p>
       ) : (
         <>

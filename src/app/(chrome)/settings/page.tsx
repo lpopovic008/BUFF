@@ -1,11 +1,12 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Card } from "@/components/ui/Card";
 import { IconButton } from "@/components/ui/IconButton";
-import { ChevronUpIcon, ChevronDownIcon, StarIcon, TrashIcon, DownloadIcon, UploadIcon, WalkieTalkieIcon } from "@/components/ui/Icon";
+import { ChevronUpIcon, ChevronDownIcon, EyeIcon, EyeOffIcon, TrashIcon, DownloadIcon, UploadIcon, WalkieTalkieIcon } from "@/components/ui/Icon";
 import { useConfig } from "@/hooks/useConfig";
-import { saveConfig, removeLeague, moveLeague, exportAllData, importAllData } from "@/lib/localStore";
+import { removeLeague, moveLeague, toggleLeagueHidden, updateCommishFlags, exportAllData, importAllData } from "@/lib/localStore";
+import { getLeagueUsers } from "@/lib/sleeper";
 import { defaultSeason } from "@/lib/app-defaults";
 import { DiscoverForm } from "./DiscoverForm";
 import { ExternalLeaguesSection } from "./ExternalLeaguesSection";
@@ -19,15 +20,30 @@ export default function SettingsPage() {
   const { config, loaded, refresh } = useConfig();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  function handleToggleCommish(leagueId: string) {
-    const league = config.leagues.find((l) => l.leagueId === leagueId);
-    if (!league) return;
-    saveConfig({
-      ...config,
-      leagues: config.leagues.map((l) =>
-        l.leagueId === leagueId ? { ...l, isCommish: !l.isCommish } : l
-      ),
-    });
+  // Commissioner marks come straight from Sleeper (is_owner), re-checked each
+  // time Settings opens so a league handed over to or from you stays right.
+  const userId = config.sleeperUserId;
+  const leagueIds = config.leagues.map((l) => l.leagueId).join(",");
+  useEffect(() => {
+    if (!loaded || !userId || !leagueIds) return;
+    let cancelled = false;
+    (async () => {
+      const flags: Record<string, boolean> = {};
+      await Promise.all(
+        leagueIds.split(",").map(async (leagueId) => {
+          const users = await getLeagueUsers(leagueId);
+          if (users.length > 0) flags[leagueId] = Boolean(users.find((u) => u.user_id === userId)?.is_owner);
+        })
+      );
+      if (!cancelled && updateCommishFlags(flags)) refresh();
+    })().catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [loaded, userId, leagueIds, refresh]);
+
+  function handleToggleHidden(leagueId: string) {
+    toggleLeagueHidden(leagueId);
     refresh();
   }
 
@@ -100,7 +116,11 @@ export default function SettingsPage() {
                           size="sm"
                         />
                       </div>
-                      <div className="flex min-w-0 items-center gap-1.5 font-medium text-ink-primary">
+                      <div
+                        className={`flex min-w-0 items-center gap-1.5 font-medium transition-opacity ${
+                          league.hidden ? "text-ink-muted opacity-50" : "text-ink-primary"
+                        }`}
+                      >
                         <span className="truncate">{league.nickname ?? league.leagueId}</span>
                         {league.isCommish ? (
                           <WalkieTalkieIcon className="h-[1.3em] w-[1.3em] shrink-0 text-status-good" role="img" aria-label="Commissioner" />
@@ -109,9 +129,9 @@ export default function SettingsPage() {
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
                       <IconButton
-                        icon={<StarIcon filled={league.isCommish} />}
-                        label={league.isCommish ? "Unmark commish" : "Mark as commish"}
-                        onClick={() => handleToggleCommish(league.leagueId)}
+                        icon={league.hidden ? <EyeOffIcon /> : <EyeIcon />}
+                        label={league.hidden ? "Show on dashboard" : "Hide from dashboard"}
+                        onClick={() => handleToggleHidden(league.leagueId)}
                       />
                       <IconButton
                         icon={<TrashIcon />}
