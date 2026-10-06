@@ -10,24 +10,25 @@ import { PayoutLedger } from "@/lib/payouts";
 import { GraphicTeam } from "@/lib/recap-graphic-data";
 import { RecapSectionsEditor } from "./RecapSectionsEditor";
 
-// The graphic replica has a fixed authored width (see recap-neon.css's
-// .recap-neon) — every size inside it (avatars, fonts, paddings) is
-// hand-tuned at that width, so letting the CSS box itself shrink squeezes
-// rows meant to sit side by side into overlapping mush. Keep it in sync with
-// recap-neon.css's `.recap-neon { width: ... }`.
-const GRAPHIC_WIDTH = 640;
+// The editor's authored width (see recap-neon.css's .recap-neon) — the
+// narrowest it lays out at. Every size inside it (avatars, fonts, paddings)
+// is tuned for at least this much room: wider, it stretches; narrower, it's
+// scaled down whole (see ScaleToFit). Keep it in sync with recap-neon.css.
+const GRAPHIC_WIDTH = 480;
 
 /**
- * Uniformly scales its fixed-width child to the available width — like
- * zooming on the exported image — instead of letting the child's own CSS
- * reflow it. A phone gets a smaller but undistorted copy edge to edge; a
- * wide screen gets a larger centered one, capped to grow in step with the
- * app's fluid root size so it doesn't balloon past the rest of the UI.
+ * Fits the editor to the available width, edge to edge. It's zoomed in step
+ * with the app's fluid root size (so its text keeps pace with the rest of the
+ * page) and reflows to fill the row at that zoom. Where that would leave it
+ * narrower than its authored width (a phone), it keeps the authored width and
+ * scales the whole thing down uniformly instead, so rows meant to sit side by
+ * side never squeeze into each other.
  */
 function ScaleToFit({ width, children }: { width: number; children: React.ReactNode }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
+  const [innerWidth, setInnerWidth] = useState(width);
   const [height, setHeight] = useState<number>();
 
   useEffect(() => {
@@ -36,9 +37,17 @@ function ScaleToFit({ width, children }: { width: number; children: React.ReactN
     if (!outer || !inner) return;
 
     function recompute() {
+      const available = outer!.clientWidth;
+      // The zoom the rest of the app's text grows by with the fluid root size
+      // — the editor keeps pace with it instead of looking small on a big screen.
       const rootPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-      const nextScale = Math.min((rootPx / 16) * 1.15, outer!.clientWidth / width);
+      const zoom = (rootPx / 16) * 1.15;
+      // Fill the row at that zoom; if that leaves less than the authored
+      // width, keep the authored width and shrink to fit instead.
+      const fitsAtZoom = available / zoom >= width;
+      const nextScale = fitsAtZoom ? zoom : available / width;
       setScale(nextScale);
+      setInnerWidth(fitsAtZoom ? available / zoom : width);
       setHeight(inner!.scrollHeight * nextScale);
     }
 
@@ -54,8 +63,8 @@ function ScaleToFit({ width, children }: { width: number; children: React.ReactN
 
   return (
     <div ref={outerRef} style={{ width: "100%" }}>
-      <div style={{ width: width * scale, height, overflow: "hidden", margin: "0 auto" }}>
-        <div ref={innerRef} style={{ width, transform: `scale(${scale})`, transformOrigin: "top left" }}>
+      <div style={{ width: innerWidth * scale, height, overflow: "hidden" }}>
+        <div ref={innerRef} style={{ width: innerWidth, transform: `scale(${scale})`, transformOrigin: "top left" }}>
           {children}
         </div>
       </div>

@@ -626,6 +626,8 @@
    of this reaches it. */
 
 .recap-neon.app-theme {
+  /* Fills whatever width ScaleToFit gives it (never less than RecapEditor's authored 480px). */
+  width: 100%;
   --neon-pink: var(--ink-secondary);
   --neon-blue: var(--ink-primary);
   --neon-green: var(--ink-muted);

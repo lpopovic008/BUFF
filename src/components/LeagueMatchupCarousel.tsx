@@ -44,14 +44,23 @@ function PlayerName({ name }: { name: string }) {
  * it for theirs — styled like the standings rank beside team names.
  */
 function RankedName({ resolved, align }: { resolved: ResolvedSlot; align: "left" | "right" }) {
-  const rank = resolved.seasonRank ? (
+  // Always the same width — room for three digits, kept even when there's no
+  // rank — so every name in the column starts (or, on their side, ends) on
+  // the same line. The number sits against the name.
+  const rank = (
     <span
-      className="shrink-0 text-[0.625rem] font-medium tabular-nums text-series-4 sm:text-xs"
-      title={`${resolved.player?.position ?? ""}${resolved.seasonRank} — season rank at position, by fantasy points`}
+      className={`w-[3ch] shrink-0 text-[0.625rem] font-medium tabular-nums text-series-4 sm:text-xs ${
+        align === "left" ? "text-right" : "text-left"
+      }`}
+      title={
+        resolved.seasonRank
+          ? `${resolved.player?.position ?? ""}${resolved.seasonRank} — season rank at position, by fantasy points`
+          : undefined
+      }
     >
-      {resolved.seasonRank}
+      {resolved.seasonRank ?? ""}
     </span>
-  ) : null;
+  );
   return (
     <span className={`flex min-w-0 items-baseline gap-1 ${align === "right" ? "justify-end" : ""}`}>
       {align === "left" ? rank : null}
