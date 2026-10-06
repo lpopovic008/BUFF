@@ -265,6 +265,37 @@ body {
 }
 
 /* The Red Zone alert's pulse. */
+/* A starter's points going up (or down): the play's points pop in beside the
+   number and fly into it, then the number bumps as it counts to the new total. */
+@keyframes pts-chip {
+  0% {
+    opacity: 0;
+    transform: translateX(-0.9em) scale(0.85);
+  }
+  25% {
+    opacity: 1;
+    transform: translateX(-0.9em) scale(1.1);
+  }
+  60% {
+    opacity: 1;
+    transform: translateX(-0.9em) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(2.6em) scale(0.6);
+  }
+}
+
+@keyframes pts-bump {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.18);
+  }
+}
+
 @keyframes rz-pulse {
   0%,
   100% {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { GameStarters } from "@/lib/my-starters";
+import { GameStarters, PendingPoints } from "@/lib/my-starters";
 import { pendingPlayPoints, SeenPlay } from "@/lib/live-play-points";
 import { useGamePlays, withScoreboardPlay } from "@/hooks/useRedZoneFeed";
 import { useLiveTick } from "@/hooks/useLiveTick";
@@ -13,7 +13,7 @@ import { useLiveTick } from "@/hooks/useLiveTick";
  * prompt a re-read (your starters and the ones you face); `listed` is every
  * player shown under each game, whose Sleeper numbers are tracked.
  */
-export function useLivePlayPoints(watched: GameStarters[], listed: GameStarters[]): Record<string, number> {
+export function useLivePlayPoints(watched: GameStarters[], listed: GameStarters[]): PendingPoints {
   const playsByGame = useGamePlays(watched);
   const tick = useLiveTick();
   /** When each play was first seen — 0 for those already there when its game first loaded. */
@@ -21,11 +21,11 @@ export function useLivePlayPoints(watched: GameStarters[], listed: GameStarters[
   const baselined = useRef(new Set<string>());
   /** Each player's last Sleeper number, and when this page saw it change. */
   const sleeper = useRef(new Map<string, { points: number | null; changedAt: number }>());
-  const [pending, setPending] = useState<Record<string, number>>({});
+  const [pending, setPending] = useState<PendingPoints>({});
 
   useEffect(() => {
     const now = Date.now();
-    const out: Record<string, number> = {};
+    const out: PendingPoints = {};
     for (const { game, players } of listed) {
       const changedAt = new Map<string, number>();
       for (const p of players) {
@@ -43,7 +43,10 @@ export function useLivePlayPoints(watched: GameStarters[], listed: GameStarters[
         return { play, seenAt: seenAt.current.get(play.id)! };
       });
       const candidates = players.map((p) => ({ playerId: p.playerId, name: p.name, position: p.position, team: p.team }));
-      Object.assign(out, pendingPlayPoints(plays, candidates, changedAt, now));
+      // Each tagged with the Sleeper number it goes on top of, so it's never added to a newer one.
+      for (const [playerId, points] of Object.entries(pendingPlayPoints(plays, candidates, changedAt, now))) {
+        out[playerId] = { points, basis: sleeper.current.get(playerId)?.points ?? null };
+      }
     }
     queueMicrotask(() => setPending(out));
   }, [listed, playsByGame, tick]);
