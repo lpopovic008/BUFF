@@ -287,16 +287,21 @@ play are usually right behind. Live callers read matchups with a 5s cache
 (`LIVE_TTL_SECONDS`), so every component on one tick shares a request and the
 next tick always asks again.
 
-**Live time blocks** (`useLivePlayerLines`, `liveGameRows` in
-`lib/my-starters.ts`): while a kickoff window is being played, each of its
-games in the starters list shows everyone worth watching, not just your
-starters: the starters you're facing, plus anyone in the game who has scored
-or lost points or is projected for 6+. Rows are ordered by points, then
-projection. Points are green for your starters, red for the ones you face.
-Everyone else's PPR points and projections come from Sleeper's NFL-wide
-`/stats` and `/projections` endpoints (undocumented, the same ones the
-Sleeper app uses). Stats are re-read each tick; projections are cached
-for 5 minutes. Neither is fetched unless a block is live.
+**Starters by game** (`startersListGames`, `liveGameRows` in
+`lib/my-starters.ts`, `useLivePlayerLines`): every game of the week is
+listed, showing your own starters by default. Tapping a game's logos opens
+it up to everyone worth watching in it: the starters you're facing, plus
+anyone in the game who has scored or lost points or is projected for 6+.
+Tap again to close. Once a game kicks off, rows are ordered by points, then
+projection; before kickoff, by projection alone. Before kickoff each row
+shows its projection in faint italics with one decimal, so it reads as a
+guess rather than a score. Your starters' and opponents' projections are
+scored under the league they're started in; everyone else's are PPR. Points
+are green for your starters, red for the ones you face. Projections come
+from Sleeper's NFL-wide `/projections` (cached 5 minutes) and everyone
+else's points from `/stats` (undocumented, the same endpoints the Sleeper
+app uses). Stats are fetched only once a game this week has started, and
+then re-read each tick.
 
 **Red Zone points ahead of Sleeper** (`useLivePlayPoints`,
 `lib/live-play-points.ts`): ESPN's plays usually land before Sleeper's

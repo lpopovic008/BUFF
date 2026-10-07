@@ -8,7 +8,6 @@ import {
   groupGamesByTimeBlock,
   groupStartersByGame,
   GroupedStarter,
-  liveBlockLabels,
   liveGameRows,
   startersListGames,
   LivePlayerLine,
@@ -182,7 +181,7 @@ function line(playerId: string, team: string, points: number, projected: number 
 }
 
 test("liveGameRows lists your starters, the ones you face, and anyone in the game who scored or is projected 6+", () => {
-  const g = game("g1", "BUF", "MIA", "2026-10-11T17:00:00Z");
+  const g = { ...game("g1", "BUF", "MIA", "2026-10-11T17:00:00Z"), state: "in" as const };
   const rows = liveGameRows(
     g,
     [grouped("Mine", 4)],
@@ -209,30 +208,25 @@ test("liveGameRows lists your starters, the ones you face, and anyone in the gam
   );
 });
 
+test("liveGameRows orders by projection alone before kickoff", () => {
+  const g = game("g1", "BUF", "MIA", "2026-10-11T17:00:00Z");
+  // Points carried in before kickoff (stale or provisional) don't count yet.
+  const rows = liveGameRows(g, [grouped("Mine", 9)], [], [line("Big", "MIA", 0, 20)], { Mine: 11, Big: 20 });
+  assert.deepEqual(rows.map((r) => r.playerId), ["Big", "Mine"]);
+});
+
 test("liveGameRows breaks ties in points by projection", () => {
   const g = game("g1", "BUF", "MIA", "2026-10-11T17:00:00Z");
   const rows = liveGameRows(g, [], [], [line("Low", "MIA", 0, 6.5), line("High", "BUF", 0, 14)], { Low: 6.5, High: 14 });
   assert.deepEqual(rows.map((r) => r.playerId), ["High", "Low"]);
 });
 
-test("liveBlockLabels is the windows with a game started and not every game final", () => {
-  const at = (id: string, kickoff: string, state: NFLGame["state"]) => ({ ...game(id, "A", "B", kickoff), state });
-  const live = liveBlockLabels([
-    at("a", "2026-10-11T17:00:00Z", "post"),
-    at("b", "2026-10-11T17:00:00Z", "in"),
-    at("c", "2026-10-11T20:25:00Z", "pre"),
-    at("d", "2026-10-09T00:15:00Z", "post"),
-  ]);
-  assert.equal(live.size, 1);
-  assert.ok([...live][0].length > 0);
-});
-
 test("startersListGames adds points Sleeper hasn't counted yet before sorting, unless Sleeper's number has since moved", () => {
   const g = { ...game("g1", "BUF", "MIA", "2026-10-11T17:00:00Z"), state: "in" as const };
-  const live = liveBlockLabels([g]);
-  const listed = startersListGames([g], [{ game: g, players: [grouped("Mine", 4)] }], [], live, [line("Other", "MIA", 6, null)], {}, { Mine: { points: 6, basis: 4 }, Other: { points: 3, basis: 5 } });
+  const listed = startersListGames([g], [{ game: g, players: [grouped("Mine", 4)] }], [], [line("Other", "MIA", 6, null)], {}, { Mine: { points: 6, basis: 4 }, Other: { points: 3, basis: 5 } });
+  assert.equal(listed[0].live, true);
   assert.deepEqual(
-    listed[0].players.map((p) => [p.playerId, p.points, p.pointsByLeague.L1 ?? null]),
+    listed[0].everyone!.map((p) => [p.playerId, p.points, p.pointsByLeague.L1 ?? null]),
     [
       ["Mine", 10, 10],
       ["Other", 6, null],
@@ -243,7 +237,7 @@ test("startersListGames adds points Sleeper hasn't counted yet before sorting, u
 test("startersListGames lists every game of the week in kickoff order, even ones none of your players are in", () => {
   const late = game("late", "KC", "LV", "2026-10-11T20:25:00Z");
   const early = game("early", "BUF", "MIA", "2026-10-11T17:00:00Z");
-  const listed = startersListGames([late, early], [{ game: early, players: [grouped("Mine", 4)] }], [], new Set(), [], {});
+  const listed = startersListGames([late, early], [{ game: early, players: [grouped("Mine", 4)] }], [], [], {});
   assert.deepEqual(
     listed.map((g) => [g.game.id, g.players.map((p) => p.playerId)]),
     [
@@ -251,4 +245,26 @@ test("startersListGames lists every game of the week in kickoff order, even ones
       ["late", []],
     ]
   );
+});
+
+test("startersListGames shows only your starters by default, and everyone worth watching once a game is opened", () => {
+  const g = game("g1", "BUF", "MIA", "2026-10-11T17:00:00Z");
+  const listed = startersListGames(
+    [g],
+    [{ game: g, players: [grouped("Mine", null)] }],
+    [{ game: g, players: [grouped("Theirs", null)] }],
+    [line("Projected", "MIA", 0, 9), line("Quiet", "MIA", 0, 2)],
+    { Mine: 12.4, Theirs: 15, Projected: 9, Quiet: 2 }
+  );
+  assert.deepEqual(listed[0].players.map((p) => [p.playerId, p.projected]), [["Mine", 12.4]]);
+  // Before kickoff, ordered by projection.
+  assert.deepEqual(
+    listed[0].everyone!.map((p) => [p.playerId, p.side, p.projected]),
+    [
+      ["Theirs", "opponent", 15],
+      ["Mine", "mine", 12.4],
+      ["Projected", "other", 9],
+    ]
+  );
+  assert.equal(listed[0].live, false);
 });

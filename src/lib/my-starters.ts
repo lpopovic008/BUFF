@@ -3,7 +3,7 @@
 // window. Pure logic — the fetching lives in hooks/useMyStarters.ts.
 
 import { NFLGame } from "./nfl-schedule";
-import { computeKickoffSlots, kickoffBlockLabel, kickoffSlotColor, kickoffSlotLongLabel } from "./game-map";
+import { computeKickoffSlots, kickoffSlotColor, kickoffSlotLongLabel } from "./game-map";
 
 export interface StarterEntry {
   playerId: string;
@@ -32,12 +32,16 @@ export interface GroupedStarter {
   pointsByLeague: Record<string, number | null>;
   /** Whose player this is — your own when unset. */
   side?: PlayerSide;
+  /** This week's projected points, shown until their game kicks off; null when Sleeper has none. */
+  projected?: number | null;
 }
 
 export interface GameStarters {
   game: NFLGame;
-  /** In a time block being played: everyone worth watching is listed, ordered by points (see startersListGames). */
+  /** The game has kicked off, so its players are kept in order of points scored. */
   live?: boolean;
+  /** Everyone worth watching in the game (see liveGameRows) — what the list shows once you open the game up. */
+  everyone?: GroupedStarter[];
   /** Your starters in this game, deduped by player, then by position. */
   players: GroupedStarter[];
 }
@@ -140,7 +144,8 @@ export const LIVE_PROJECTION_FLOOR = 6;
  * the starters you're facing, and anyone else in the game who has scored
  * (or lost) fantasy points or is projected for LIVE_PROJECTION_FLOOR or more.
  * A player in more than one of those shows once — yours first, then
- * opponents'. Ordered by points scored, then by projection.
+ * opponents'. Ordered by points scored, then by projection — before
+ * kickoff, by projection alone.
  */
 export function liveGameRows(
   game: NFLGame,
@@ -156,8 +161,8 @@ export function liveGameRows(
     seen.add(row.playerId);
     rows.push({ row, points: row.points ?? 0, projected: projected[row.playerId] ?? -Infinity });
   };
-  for (const p of mine) add({ ...p, side: "mine" });
-  for (const p of opponent) add({ ...p, side: "opponent" });
+  for (const p of mine) add({ ...p, side: "mine", projected: projected[p.playerId] ?? null });
+  for (const p of opponent) add({ ...p, side: "opponent", projected: projected[p.playerId] ?? null });
   for (const line of lines) {
     if (line.team !== game.homeTeam && line.team !== game.awayTeam) continue;
     if (line.points === 0 && (line.projected ?? 0) < LIVE_PROJECTION_FLOOR) continue;
@@ -170,10 +175,13 @@ export function liveGameRows(
       points: line.points,
       pointsByLeague: {},
       side: "other",
+      projected: projected[line.playerId] ?? line.projected,
     });
   }
+  // Before kickoff nobody has really scored, so it's projections alone.
+  const started = game.state !== "pre";
   return rows
-    .sort((a, b) => b.points - a.points || b.projected - a.projected || a.row.name.localeCompare(b.row.name))
+    .sort((a, b) => (started ? b.points - a.points : 0) || b.projected - a.projected || a.row.name.localeCompare(b.row.name))
     .map((r) => r.row);
 }
 
@@ -196,54 +204,41 @@ function withPending(player: GroupedStarter, pending: PendingPoints[string] | un
 }
 
 /**
- * The starters list's games: just your starters in each game, except in a
- * time block that's being played, where each game lists everyone worth
- * watching (see liveGameRows). `pending` is points from plays Sleeper hasn't
- * counted yet (see PendingPoints), added on before anyone's sorted. Every
- * game of the week comes back, in kickoff order — one with nobody to list
- * has no players, and shows as just its header.
+ * The starters list's games, every one of the week in kickoff order: your
+ * own starters in each (a game none of them are in has none), plus
+ * `everyone` worth watching in it — the starters you face and anyone who has
+ * scored or is projected well (see liveGameRows) — for when the game is
+ * opened up. `projected` is each player's projection, by id; `pending` is
+ * points from plays Sleeper hasn't counted yet (see PendingPoints), added on
+ * before anyone's sorted.
  */
 export function startersListGames(
   weekGames: NFLGame[],
   mine: GameStarters[],
   opponent: GameStarters[],
-  liveBlocks: Set<string>,
   lines: LivePlayerLine[],
   projected: Record<string, number>,
   pending: PendingPoints = {}
 ): GameStarters[] {
-  const adjust = (players: GroupedStarter[]) => players.map((p) => withPending(p, pending[p.playerId]));
+  const adjust = (players: GroupedStarter[]) =>
+    players.map((p) => ({ ...withPending(p, pending[p.playerId]), projected: projected[p.playerId] ?? null }));
   const mineByGameId = new Map(mine.map((g) => [g.game.id, adjust(g.players)]));
   const opponentByGameId = new Map(opponent.map((g) => [g.game.id, adjust(g.players)]));
   const adjustedLines = lines.map((l) => {
     const p = pending[l.playerId];
     return p && p.basis === l.points ? { ...l, points: Math.round((l.points + p.points) * 100) / 100 } : l;
   });
-  const out: GameStarters[] = [];
-  for (const game of [...weekGames].sort((a, b) => kickoffTime(a) - kickoffTime(b))) {
-    const myPlayers = mineByGameId.get(game.id) ?? [];
-    const live = liveBlocks.has(kickoffBlockLabel(game));
-    const players = live ? liveGameRows(game, myPlayers, opponentByGameId.get(game.id) ?? [], adjustedLines, projected) : myPlayers;
-    out.push({ game, players, live });
-  }
-  return out;
-}
-
-/**
- * The kickoff windows (see kickoffBlockLabel) being played right now: at
- * least one game has kicked off and not every game is final.
- */
-export function liveBlockLabels(games: NFLGame[]): Set<string> {
-  const byLabel = new Map<string, NFLGame[]>();
-  for (const game of games) {
-    const label = kickoffBlockLabel(game);
-    byLabel.set(label, [...(byLabel.get(label) ?? []), game]);
-  }
-  const live = new Set<string>();
-  for (const [label, block] of byLabel) {
-    if (block.some((g) => g.state !== "pre") && !block.every((g) => g.state === "post")) live.add(label);
-  }
-  return live;
+  return [...weekGames]
+    .sort((a, b) => kickoffTime(a) - kickoffTime(b))
+    .map((game) => {
+      const players = mineByGameId.get(game.id) ?? [];
+      return {
+        game,
+        players,
+        everyone: liveGameRows(game, players, opponentByGameId.get(game.id) ?? [], adjustedLines, projected),
+        live: game.state !== "pre",
+      };
+    });
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;

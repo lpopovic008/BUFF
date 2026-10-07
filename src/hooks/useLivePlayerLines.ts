@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getWeeklyPlayerLines } from "@/lib/sleeper";
+import { getWeeklyPlayerLines, WeeklyPlayerLine } from "@/lib/sleeper";
 import { resolvePlayers } from "@/lib/players";
 import { LIVE_PROJECTION_FLOOR, LivePlayerLine } from "@/lib/my-starters";
 import { LIVE_TTL_SECONDS } from "@/lib/live-clock";
@@ -12,31 +12,37 @@ export interface LivePlayerLines {
   lines: LivePlayerLine[];
   /** Every player's PPR projection for the week, by id. */
   projected: Record<string, number>;
+  /** Every player's projected stat line, by id — to score a projection under a league's own rules. */
+  projectionStats: Record<string, Record<string, number>>;
 }
 
-const EMPTY: LivePlayerLines = { lines: [], projected: {} };
+const EMPTY: LivePlayerLines = { lines: [], projected: {}, projectionStats: {} };
 
 /**
  * Every NFL player's standard PPR points so far this week and their
- * projection, from Sleeper's NFL-wide stats and projections — reloaded on
- * each live-clock tick while `enabled` (a time block is being played), and
- * not fetched at all otherwise.
+ * projection, from Sleeper's NFL-wide stats and projections. Projections are
+ * always read (they're what a game shows before kickoff); points only once
+ * `gamesStarted`, and then again on each live-clock tick.
  */
-export function useLivePlayerLines(season: string | null, week: number | null, enabled: boolean): LivePlayerLines {
+export function useLivePlayerLines(season: string | null, week: number | null, gamesStarted: boolean): LivePlayerLines {
   const [result, setResult] = useState<LivePlayerLines>(EMPTY);
   const tick = useLiveTick();
 
   useEffect(() => {
-    if (!enabled || !season || week == null) return;
+    if (!season || week == null) return;
     let cancelled = false;
 
     (async () => {
       const [stats, projections] = await Promise.all([
-        getWeeklyPlayerLines("stats", season, week, LIVE_TTL_SECONDS),
+        gamesStarted
+          ? getWeeklyPlayerLines("stats", season, week, LIVE_TTL_SECONDS)
+          : Promise.resolve<Record<string, WeeklyPlayerLine>>({}),
         getWeeklyPlayerLines("projections", season, week),
       ]);
       const projected: Record<string, number> = {};
+      const projectionStats: Record<string, Record<string, number>> = {};
       for (const [id, { stats: line }] of Object.entries(projections)) {
+        projectionStats[id] = line;
         if (typeof line.pts_ppr === "number") projected[id] = line.pts_ppr;
       }
       const pointsOf = (id: string) => stats[id]?.stats.pts_ppr ?? 0;
@@ -47,6 +53,7 @@ export function useLivePlayerLines(season: string | null, week: number | null, e
       if (cancelled) return;
       setResult({
         projected,
+        projectionStats,
         lines: resolved.map((p) => ({
           playerId: p.playerId,
           name: p.name,
@@ -62,7 +69,7 @@ export function useLivePlayerLines(season: string | null, week: number | null, e
     return () => {
       cancelled = true;
     };
-  }, [season, week, enabled, tick]);
+  }, [season, week, gamesStarted, tick]);
 
-  return enabled ? result : EMPTY;
+  return result;
 }

@@ -16,8 +16,8 @@ import { useWeekGames } from "@/hooks/useWeekGames";
 import { useLivePlayerLines } from "@/hooks/useLivePlayerLines";
 import { useLivePlayPoints } from "@/hooks/useLivePlayPoints";
 import { getLeagueSummary, LeagueSummary, teamStandings } from "@/lib/league-data";
-import { GameStarters, groupStartersByGame, GroupedStarter, liveBlockLabels, startersListGames } from "@/lib/my-starters";
-import { avatarUrl, getCurrentWeek } from "@/lib/sleeper";
+import { GameStarters, groupStartersByGame, GroupedStarter, startersListGames } from "@/lib/my-starters";
+import { avatarUrl, getCurrentWeek, weighProjection } from "@/lib/sleeper";
 import { kickoffBlockLabel } from "@/lib/game-map";
 import { TrackedLeague } from "@/lib/localStore";
 
@@ -144,11 +144,26 @@ export default function DashboardPage() {
     [filteredOpponentStarters, weekGames]
   );
 
-  // While a time block is being played, each of its games lists everyone
-  // worth watching in it — the starters you're facing and anyone else who's
-  // scored or is projected well — not just your own starters.
-  const liveBlocks = useMemo(() => liveBlockLabels(weekGames), [weekGames]);
-  const livePlayers = useLivePlayerLines(nflPhase.season ?? config.season, week, liveBlocks.size > 0);
+  // Each game lists your own starters; opened up, everyone worth watching in
+  // it — the starters you're facing and anyone else who's scored or is
+  // projected well. Before kickoff, projections stand in for points.
+  const gamesStarted = weekGames.some((g) => g.state !== "pre");
+  const livePlayers = useLivePlayerLines(nflPhase.season ?? config.season, week, gamesStarted);
+  // Projections in PPR, except your starters' and opponents', scored under
+  // the (first) league they're started in, like their points are.
+  const projected = useMemo(() => {
+    const out = { ...livePlayers.projected };
+    const scoringByLeague = new Map((leagues ?? []).map((l) => [l.tracked.leagueId, l.summary.league.scoring_settings]));
+    const scored = new Set<string>();
+    for (const s of [...(myStarters ?? []), ...(opponentStarters ?? [])]) {
+      const stats = livePlayers.projectionStats[s.playerId];
+      if (!stats || scored.has(s.playerId)) continue;
+      scored.add(s.playerId);
+      const pts = weighProjection(stats, scoringByLeague.get(s.leagueId));
+      if (typeof pts === "number") out[s.playerId] = Math.round(pts * 100) / 100;
+    }
+    return out;
+  }, [livePlayers, leagues, myStarters, opponentStarters]);
   const watchedGames = useMemo<GameStarters[]>(() => {
     const byGameId = new Map<string, GameStarters>();
     for (const { game, players } of [...grouped.games, ...groupedOpponent.games]) {
@@ -159,15 +174,16 @@ export default function DashboardPage() {
     return [...byGameId.values()];
   }, [grouped.games, groupedOpponent.games]);
   const listedRaw = useMemo(
-    () => startersListGames(weekGames, grouped.games, groupedOpponent.games, liveBlocks, livePlayers.lines, livePlayers.projected),
-    [weekGames, grouped.games, groupedOpponent.games, liveBlocks, livePlayers]
+    () => startersListGames(weekGames, grouped.games, groupedOpponent.games, livePlayers.lines, projected),
+    [weekGames, grouped.games, groupedOpponent.games, livePlayers, projected]
   );
+  // Everyone a game can list, whose Sleeper numbers the Red Zone points are reconciled against.
+  const trackedRaw = useMemo(() => listedRaw.map((g) => ({ game: g.game, players: g.everyone ?? g.players })), [listedRaw]);
   // Points the Red Zone has seen that Sleeper hasn't counted yet go on top, until Sleeper catches up.
-  const pendingPoints = useLivePlayPoints(watchedGames, listedRaw);
+  const pendingPoints = useLivePlayPoints(watchedGames, trackedRaw);
   const listedGames = useMemo(
-    () =>
-      startersListGames(weekGames, grouped.games, groupedOpponent.games, liveBlocks, livePlayers.lines, livePlayers.projected, pendingPoints),
-    [weekGames, grouped.games, groupedOpponent.games, liveBlocks, livePlayers, pendingPoints]
+    () => startersListGames(weekGames, grouped.games, groupedOpponent.games, livePlayers.lines, projected, pendingPoints),
+    [weekGames, grouped.games, groupedOpponent.games, livePlayers, projected, pendingPoints]
   );
 
   // Colour per league, keyed off the order leagues are tracked in so a

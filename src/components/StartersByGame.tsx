@@ -9,6 +9,7 @@ import { NFLGame } from "@/lib/nfl-schedule";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import { nflLogoMaxWidth, nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import { LeagueLegendEntry, LeagueMark } from "./LeagueMark";
+import { ChevronDownIcon } from "@/components/ui/Icon";
 import { CHIP_MS, GameRows, RowMotion } from "./GameRows";
 
 export type { LeagueLegendEntry };
@@ -29,14 +30,21 @@ const SIDE_POINTS_COLOR: Record<PlayerSide, string> = {
  * in, then their live fantasy points pinned to the right edge — green for
  * your starters, red for the ones you're facing. Points use the first
  * league's scoring; when the player's leagues score them differently, the
- * tooltip lists each league's number. Before kickoff (or for a player with
- * no game this week) the points slot holds a dash, keeping every row's logos
- * lined up.
+ * tooltip lists each league's number. Before kickoff the points slot holds
+ * the player's projection instead, in faint italics that read as provisional
+ * (a dash when there's none, or for a player with no game this week), keeping
+ * every row's logos lined up.
  */
-/** A player row's text, in typing order: position, name, points. */
+/** A projection, to one decimal — set apart from real points, which have two. */
+function formatProjection(points: number): string {
+  return points.toFixed(1);
+}
+
+/** A player row's text, in typing order: position, name, points (or, before kickoff, the projection). */
 function playerPieces(player: GroupedStarter, started: boolean): string[] {
   const showPoints = started && player.points !== null;
-  return [player.position, player.name, showPoints ? formatPoints(player.points!) : "–"];
+  const projection = !started && player.projected != null ? formatProjection(player.projected) : null;
+  return [player.position, player.name, showPoints ? formatPoints(player.points!) : (projection ?? "–")];
 }
 
 function PlayerRow({
@@ -72,12 +80,13 @@ function PlayerRow({
   }));
   const scoredDifferently = new Set(perLeague.map((l) => l.points)).size > 1;
   const showPoints = started && player.points !== null;
+  const projecting = !started && player.projected != null;
   const title =
-    perLeague.length === 0
+    (perLeague.length === 0
       ? player.name
       : `${player.name} — ${perLeague
           .map((l) => (started && scoredDifferently && l.points !== null ? `${l.name}: ${formatPoints(l.points)}` : l.name))
-          .join(", ")}`;
+          .join(", ")}`) + (projecting ? ` — projected ${formatProjection(player.projected!)}` : "");
   return (
     <div ref={ref} className="flex items-center gap-1.5 leading-tight" title={title}>
       <span
@@ -97,7 +106,11 @@ function PlayerRow({
       </span>
       <span
         className={`w-[3.4em] shrink-0 text-right text-[0.8125rem] tabular-nums ${
-          showPoints ? SIDE_POINTS_COLOR[player.side ?? "mine"] : "text-ink-muted"
+          showPoints
+            ? SIDE_POINTS_COLOR[player.side ?? "mine"]
+            : projecting
+              ? "font-light italic text-ink-muted opacity-75"
+              : "text-ink-muted"
         }`}
       >
         {typedIn && showPoints ? (
@@ -172,27 +185,61 @@ function TeamLogo({ team, visible }: { team: string; visible: boolean }) {
  * right edge (no weekday; the block's bar above already states the day). Types itself in the first time it scrolls into
  * view, and deletes itself when its block is switched off.
  */
-function GameHeader({ game, shown = true }: { game: NFLGame; shown?: boolean }) {
+function GameHeader({
+  game,
+  shown = true,
+  open = false,
+  onToggle,
+}: {
+  game: NFLGame;
+  shown?: boolean;
+  /** Showing everyone in the game, not just your players. */
+  open?: boolean;
+  /** Opens or closes the game; leave out when there's no one more to show. */
+  onToggle?: () => void;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const seen = useSeenOnce(ref);
   const pieces = headerPieces(game);
   const count = useTypedCount(shown && seen ? totalChars(pieces) : 0);
   const [vs, time] = typedSlices(pieces, count);
+  const logos = (
+    <>
+      <span className="flex shrink-0 justify-center" style={{ width: LOGO_SLOT }}>
+        <TeamLogo team={game.awayTeam} visible={count > 0} />
+      </span>
+      <span aria-hidden className="w-[2ch] text-center">
+        {vs}
+      </span>
+      <span className="flex shrink-0 justify-center" style={{ width: LOGO_SLOT }}>
+        <TeamLogo team={game.homeTeam} visible={count >= 2} />
+      </span>
+    </>
+  );
   return (
     <div ref={ref} className="flex min-h-[1.25rem] items-center justify-between gap-2">
       <h3
         className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-ink-muted"
         aria-label={`${game.awayTeam} at ${game.homeTeam}`}
       >
-        <span className="flex shrink-0 justify-center" style={{ width: LOGO_SLOT }}>
-          <TeamLogo team={game.awayTeam} visible={count > 0} />
-        </span>
-        <span aria-hidden className="w-[2ch] text-center">
-          {vs}
-        </span>
-        <span className="flex shrink-0 justify-center" style={{ width: LOGO_SLOT }}>
-          <TeamLogo team={game.homeTeam} visible={count >= 2} />
-        </span>
+        {/* Tapping the matchup opens it up to everyone in the game, and back. */}
+        {onToggle ? (
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-expanded={open}
+            title={open ? "Show just your players" : "Show everyone in this game"}
+            className="flex cursor-pointer items-center gap-1.5 transition-opacity hover:opacity-80"
+          >
+            {logos}
+            <ChevronDownIcon
+              aria-hidden
+              className={`h-3 w-3 transition-[transform,opacity] duration-150 ${open ? "rotate-180" : ""} ${count >= 2 ? "" : "opacity-0"}`}
+            />
+          </button>
+        ) : (
+          logos
+        )}
       </h3>
       <span className="shrink-0 text-xs uppercase tracking-wide text-ink-muted">{time}</span>
     </div>
@@ -208,11 +255,19 @@ function BlockGames({
   games,
   hidden,
   legendByLeagueId,
+  openGames,
+  onToggleGame,
 }: {
   games: GameStarters[];
   hidden: boolean;
   legendByLeagueId: Map<string, LeagueLegendEntry>;
+  /** Games opened up to everyone in them, by game id. */
+  openGames: Set<string>;
+  onToggleGame: (gameId: string) => void;
 }) {
+  // An opened game lists everyone worth watching in it; otherwise just your players.
+  const shownPlayers = ({ game, players, everyone }: GameStarters) =>
+    openGames.has(game.id) && everyone ? everyone : players;
   // Folded only once the deleting has finished — the longest line sets how long.
   const [prevHidden, setPrevHidden] = useState(hidden);
   const [folded, setFolded] = useState(hidden);
@@ -222,9 +277,9 @@ function BlockGames({
   }
   const longest = Math.max(
     0,
-    ...games.flatMap(({ game, players }) => [
-      totalChars(headerPieces(game)),
-      ...players.map((p) => totalChars(playerPieces(p, game.state !== "pre"))),
+    ...games.flatMap((g) => [
+      totalChars(headerPieces(g.game)),
+      ...shownPlayers(g).map((p) => totalChars(playerPieces(p, g.game.state !== "pre"))),
     ])
   );
   useEffect(() => {
@@ -243,29 +298,40 @@ function BlockGames({
     >
       <div className="min-h-0 overflow-hidden">
         <div className="flex flex-col gap-3 pt-2">
-          {games.map(({ game, players, live }) => (
+          {games.map((g) => {
+            const { game, players, everyone, live } = g;
+            const shown = shownPlayers(g);
+            // Only a game with more people in it than your own players opens up.
+            const expandable = (everyone?.length ?? 0) > players.length;
             // A line down the indent beside each game, from its header
             // through its last player; the gap between games breaks it.
-            <div key={game.id} className="ml-1 flex flex-col gap-1 border-l border-ink-muted/50 pl-2">
-              <GameHeader game={game} shown={!hidden} />
-              {/* A game none of your players are in is just its header — no room held for rows. */}
-              {players.length > 0 ? (
-                <GameRows
-                  players={players}
-                  sortByPoints={!!live}
-                  render={(player, motion) => (
-                    <PlayerRow
-                      player={player}
-                      legendByLeagueId={legendByLeagueId}
-                      started={game.state !== "pre"}
-                      shown={!hidden}
-                      motion={motion}
-                    />
-                  )}
+            return (
+              <div key={game.id} className="ml-1 flex flex-col gap-1 border-l border-ink-muted/50 pl-2">
+                <GameHeader
+                  game={game}
+                  shown={!hidden}
+                  open={openGames.has(game.id)}
+                  onToggle={expandable ? () => onToggleGame(game.id) : undefined}
                 />
-              ) : null}
-            </div>
-          ))}
+                {/* A game no one is listed in is just its header — no room held for rows. */}
+                {shown.length > 0 ? (
+                  <GameRows
+                    players={shown}
+                    sortByPoints={!!live}
+                    render={(player, motion) => (
+                      <PlayerRow
+                        player={player}
+                        legendByLeagueId={legendByLeagueId}
+                        started={game.state !== "pre"}
+                        shown={!hidden}
+                        motion={motion}
+                      />
+                    )}
+                  />
+                ) : null}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -396,6 +462,15 @@ export function StartersByGame({
   onToggleBlock: (label: string) => void;
 }) {
   const legendByLeagueId = new Map(legend.map((l) => [l.leagueId, l]));
+  // Games opened up (by tapping the matchup) to everyone in them.
+  const [openGames, setOpenGames] = useState<Set<string>>(() => new Set());
+  const toggleGame = (gameId: string) =>
+    setOpenGames((prev) => {
+      const next = new Set(prev);
+      if (next.has(gameId)) next.delete(gameId);
+      else next.add(gameId);
+      return next;
+    });
   // Finished blocks drop to the bottom as their last game ends, so the next one up is always on top.
   const columns = finishedBlocksLast(groupGamesByTimeBlock(games));
   const nothingToShow = games.length === 0 && notPlaying.length === 0;
@@ -439,6 +514,8 @@ export function StartersByGame({
                   games={column.games}
                   hidden={hiddenBlocks.has(column.label)}
                   legendByLeagueId={legendByLeagueId}
+                  openGames={openGames}
+                  onToggleGame={toggleGame}
                 />
               </div>
             ))}
