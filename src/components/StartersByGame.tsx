@@ -119,7 +119,9 @@ function PlayerRow({
           showPoints
             ? SIDE_POINTS_COLOR[player.side ?? "mine"]
             : projecting
-              ? `font-light italic opacity-75 ${sideColors ? SIDE_PROJECTION_COLOR[player.side ?? "mine"] : "text-ink-muted"}`
+              ? // Pulled in by the italic's lean, so the slanted last digit isn't clipped at the
+                // column's edge and its tip lines up with the upright points around it.
+                `pr-[0.2em] font-light italic opacity-75 ${sideColors ? SIDE_PROJECTION_COLOR[player.side ?? "mine"] : "text-ink-muted"}`
               : "text-ink-muted"
         }`}
       >
