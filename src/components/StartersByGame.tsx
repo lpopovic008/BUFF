@@ -9,7 +9,6 @@ import { NFLGame } from "@/lib/nfl-schedule";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import { nflLogoMaxWidth, nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import { LeagueLegendEntry, LeagueMark } from "./LeagueMark";
-import { ChevronDownIcon } from "@/components/ui/Icon";
 import { CHIP_MS, GameRows, RowMotion } from "./GameRows";
 
 export type { LeagueLegendEntry };
@@ -234,6 +233,8 @@ function GameHeader({
         aria-label={`${game.awayTeam} at ${game.homeTeam}`}
       >
         {/* Tapping the matchup opens it up to everyone in the game, and back. */}
+        {/* The same dot as the time blocks' bars: filled while the game is opened up, an outline when it's
+            just your players. A game with no one more to show holds the dot's space, keeping every "vs" in line. */}
         {onToggle ? (
           <button
             type="button"
@@ -242,14 +243,19 @@ function GameHeader({
             title={open ? "Show just your players" : "Show everyone in this game"}
             className="flex cursor-pointer items-center gap-1.5 transition-opacity hover:opacity-80"
           >
-            {logos}
-            <ChevronDownIcon
+            <span
               aria-hidden
-              className={`h-3 w-3 transition-[transform,opacity] duration-150 ${open ? "rotate-180" : ""} ${count >= 2 ? "" : "opacity-0"}`}
+              className={`h-2 w-2 shrink-0 rounded-full border border-current transition-opacity duration-150 ${open ? "bg-current" : ""} ${
+                count > 0 ? "" : "opacity-0"
+              }`}
             />
+            {logos}
           </button>
         ) : (
-          logos
+          <>
+            <span aria-hidden className="h-2 w-2 shrink-0" />
+            {logos}
+          </>
         )}
       </h3>
       <span className="shrink-0 text-xs uppercase tracking-wide text-ink-muted">{time}</span>

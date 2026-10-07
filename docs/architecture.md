@@ -289,7 +289,7 @@ next tick always asks again.
 
 **Starters by game** (`startersListGames`, `liveGameRows` in
 `lib/my-starters.ts`, `useLivePlayerLines`): every game of the week is
-listed, showing your own starters by default. Tapping a game's logos opens
+listed, showing your own starters by default. Tapping a game's logos (marked by a dot, filled while open) opens
 it up to everyone worth watching in it: the starters you're facing, plus
 anyone in the game who has scored or lost points or is projected for 6+.
 Tap again to close. Once a game kicks off, rows are ordered by points, then
