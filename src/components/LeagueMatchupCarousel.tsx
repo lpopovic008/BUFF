@@ -169,7 +169,7 @@ function MatchupHeader({
     const rec = right ? headToHead?.get(t.rosterId) : undefined;
     const h2h = rec ? <HeadToHeadBadge wins={rec.wins} losses={rec.losses} onTag /> : null;
     return (
-      <span className="flex items-baseline gap-1 sm:gap-2">
+      <span className="flex items-baseline gap-1 lg:gap-2">
         {side === "left" ? h2h : pf}
         {side === "left" ? pf : h2h}
       </span>
@@ -183,13 +183,13 @@ function MatchupHeader({
         {right ? label(right, "right") : <div />}
       </div>
       <div className={`grid ${SLOT_COLS} items-baseline gap-1 text-[0.9375rem] font-semibold tabular-nums sm:gap-2 sm:text-lg`}>
-        <span className="flex items-baseline justify-between gap-1 sm:gap-2">
+        <span className="flex items-baseline justify-between gap-1 lg:gap-2">
           {badges(left, "left")}
           {formatPoints(left.points)}
         </span>
         <span />
         {right ? (
-          <span className="flex items-baseline justify-between gap-1 sm:gap-2">
+          <span className="flex items-baseline justify-between gap-1 lg:gap-2">
             {formatPoints(right.points)}
             {badges(right, "right")}
           </span>

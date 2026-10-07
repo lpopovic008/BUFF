@@ -120,9 +120,10 @@ export function rankTone(rank: number, leagueSize: number, higherIsWorse = false
   return tone === "good" ? "bad" : "good";
 }
 
-// Between a label and its number (PF 6, H2H 7-4): a hair tighter than a space
-// on phones, where a matchup header's score line has no room to spare.
-const LABEL_GAP = "ml-0.5 sm:ml-1";
+// Between a label and its number (PF 6, H2H (7-4)): a hair tighter than a space
+// below desktop width, where a matchup header's score line has no room to spare
+// (on a tablet it shares the row with the matchups list).
+const LABEL_GAP = "ml-0.5 lg:ml-1";
 
 /**
  * Where a team's points for and points against rank in the league, PF then
@@ -141,7 +142,7 @@ export function PointsRankBadges({
   if (!pointsRanks) return null;
   const tones = toneClass(onTag);
   return (
-    <span className="flex items-baseline gap-1 whitespace-nowrap text-[0.625rem] font-normal sm:gap-2 sm:text-[0.6875rem]">
+    <span className="flex items-baseline gap-1 whitespace-nowrap text-[0.625rem] font-normal lg:gap-2 lg:text-[0.6875rem]">
       <span title="Points for — rank in the league (1st = most)">
         <span className={mutedClass(onTag)}>PF</span>
         <span className={`${LABEL_GAP} font-bold tabular-nums ${tones[rankTone(pointsRanks.pointsFor, leagueSize)]}`}>{pointsRanks.pointsFor}</span>
@@ -159,18 +160,18 @@ export function PointsRankBadges({
 /**
  * A team's all-time head-to-head record against this week's opponent,
  * across every linked season — green when it's ahead, red when behind.
- * "0-0" when they've never met.
+ * Shown in parentheses, "(7-4)"; "(0-0)" when they've never met.
  */
 export function HeadToHeadBadge({ wins, losses, onTag = false }: { wins: number; losses: number; onTag?: boolean }) {
   const tone = wins > losses ? "good" : wins < losses ? "bad" : null;
   return (
     <span
-      className="whitespace-nowrap text-[0.625rem] font-normal sm:text-[0.6875rem]"
+      className="whitespace-nowrap text-[0.625rem] font-normal lg:text-[0.6875rem]"
       title="All-time head-to-head record against this opponent, every season of the league"
     >
       <span className={mutedClass(onTag)}>H2H</span>
       <span className={`${LABEL_GAP} font-bold tabular-nums ${tone ? toneClass(onTag)[tone] : mutedClass(onTag)}`}>
-        {wins}-{losses}
+        ({wins}-{losses})
       </span>
     </span>
   );
