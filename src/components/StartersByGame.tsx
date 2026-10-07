@@ -89,8 +89,9 @@ function PlayerRow({
           .join(", ")}`) + (projecting ? ` — projected ${formatProjection(player.projected!)}` : "");
   return (
     <div ref={ref} className="flex items-center gap-1.5 leading-tight" title={title}>
+      {/* Right-aligned, so the position sits right against the name. */}
       <span
-        className={`w-[2.4em] shrink-0 text-[0.6875rem] font-semibold uppercase tracking-wide ${
+        className={`w-[2.4em] shrink-0 text-right text-[0.6875rem] font-semibold uppercase tracking-wide ${
           POSITION_TEXT_COLOR[player.position] ?? "text-ink-muted"
         }`}
       >
@@ -314,20 +315,23 @@ function BlockGames({
                   onToggle={expandable ? () => onToggleGame(game.id) : undefined}
                 />
                 {/* A game no one is listed in is just its header — no room held for rows. */}
+                {/* The game's players hang off it on a line of their own, a step in under the matchup. */}
                 {shown.length > 0 ? (
-                  <GameRows
-                    players={shown}
-                    sortByPoints={!!live}
-                    render={(player, motion) => (
-                      <PlayerRow
-                        player={player}
-                        legendByLeagueId={legendByLeagueId}
-                        started={game.state !== "pre"}
-                        shown={!hidden}
-                        motion={motion}
-                      />
-                    )}
-                  />
+                  <div className="ml-1.5 border-l border-ink-muted/50 pl-1.5">
+                    <GameRows
+                      players={shown}
+                      sortByPoints={!!live}
+                      render={(player, motion) => (
+                        <PlayerRow
+                          player={player}
+                          legendByLeagueId={legendByLeagueId}
+                          started={game.state !== "pre"}
+                          shown={!hidden}
+                          motion={motion}
+                        />
+                      )}
+                    />
+                  </div>
                 ) : null}
               </div>
             );
