@@ -295,7 +295,8 @@ anyone in the game who has scored or lost points or is projected for 6+.
 Tap again to close. Once a game kicks off, rows are ordered by points, then
 projection; before kickoff, by projection alone. Before kickoff each row
 shows its projection in faint italics with one decimal, so it reads as a
-guess rather than a score. Your starters' and opponents' projections are
+guess rather than a score. In an opened game the projections take their
+side's color too (green, red). Your starters' and opponents' projections are
 scored under the league they're started in; everyone else's are PPR. Points
 are green for your starters, red for the ones you face. Projections come
 from Sleeper's NFL-wide `/projections` (cached 5 minutes) and everyone

@@ -25,6 +25,13 @@ const SIDE_POINTS_COLOR: Record<PlayerSide, string> = {
   other: "text-ink-primary",
 };
 
+// A projection in an opened game: the same side colors, kept light and italic so it still reads as a guess.
+const SIDE_PROJECTION_COLOR: Record<PlayerSide, string> = {
+  mine: "text-status-good",
+  opponent: "text-status-critical",
+  other: "text-ink-muted",
+};
+
 /**
  * A player's row: position, name, the logo of every league they're started
  * in, then their live fantasy points pinned to the right edge — green for
@@ -53,11 +60,14 @@ function PlayerRow({
   started,
   shown = true,
   motion,
+  sideColors = false,
 }: {
   player: GroupedStarter;
   legendByLeagueId: Map<string, LeagueLegendEntry>;
   /** While the points animate: the total to show, and the change beside it (see GameRows). */
   motion?: RowMotion;
+  /** In an opened game: projections take their side's color too (yours green, the ones you face red). */
+  sideColors?: boolean;
   /** Whether this player's game has kicked off — before that, 0 points is just "not yet". */
   started: boolean;
   /** False while its time block is switched off: the row deletes itself back to nothing. */
@@ -110,7 +120,7 @@ function PlayerRow({
           showPoints
             ? SIDE_POINTS_COLOR[player.side ?? "mine"]
             : projecting
-              ? "font-light italic text-ink-muted opacity-75"
+              ? `font-light italic opacity-75 ${sideColors ? SIDE_PROJECTION_COLOR[player.side ?? "mine"] : "text-ink-muted"}`
               : "text-ink-muted"
         }`}
       >
@@ -328,6 +338,7 @@ function BlockGames({
                           started={game.state !== "pre"}
                           shown={!hidden}
                           motion={motion}
+                          sideColors={openGames.has(game.id)}
                         />
                       )}
                     />
