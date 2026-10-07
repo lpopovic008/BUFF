@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-06T18:53:19.535Z",
+  "updatedAt": "2026-10-07T19:18:26.181Z",
   "source": "yafsb",
   "dynastyOneQB": [
     {
@@ -861,12 +861,6 @@
       "adp": 157.3
     },
     {
-      "name": "Tank Bigsby",
-      "position": "RB",
-      "team": "PHI",
-      "adp": 160.9
-    },
-    {
       "name": "Kayshon Boutte",
       "position": "WR",
       "team": "HOU",
@@ -1227,6 +1221,12 @@
       "adp": 227.7
     },
     {
+      "name": "Odell Beckham",
+      "position": "WR",
+      "team": "MIN",
+      "adp": 228.6
+    },
+    {
       "name": "Keenan Allen",
       "position": "WR",
       "team": "IND",
@@ -1539,6 +1539,12 @@
       "adp": 252.5
     },
     {
+      "name": "Jam Miller",
+      "position": "RB",
+      "team": "ATL",
+      "adp": 254.9
+    },
+    {
       "name": "Roman Hemby",
       "position": "RB",
       "team": "LV",
@@ -1627,12 +1633,6 @@
       "position": "TE",
       "team": "DEN",
       "adp": 267.6
-    },
-    {
-      "name": "Devin Neal",
-      "position": "RB",
-      "team": "MIN",
-      "adp": 269.3
     },
     {
       "name": "Tyquan Thornton",
@@ -2639,12 +2639,6 @@
       "adp": 180
     },
     {
-      "name": "Tank Bigsby",
-      "position": "RB",
-      "team": "PHI",
-      "adp": 180.4
-    },
-    {
       "name": "Ted Hurst",
       "position": "WR",
       "team": "TB",
@@ -3493,7 +3487,7 @@
     {
       "name": "Robert Henry",
       "position": "RB",
-      "team": "WAS",
+      "team": "SEA",
       "adp": 301.7
     },
     {
@@ -4649,12 +4643,6 @@
       "position": "K",
       "team": "PIT",
       "adp": 162.9
-    },
-    {
-      "name": "Tank Bigsby",
-      "position": "RB",
-      "team": "PHI",
-      "adp": 163.2
     },
     {
       "name": "Tyrone Tracy",
@@ -5965,12 +5953,6 @@
       "position": "TE",
       "team": "SEA",
       "adp": 174.1
-    },
-    {
-      "name": "Tank Bigsby",
-      "position": "RB",
-      "team": "PHI",
-      "adp": 174.6
     },
     {
       "name": "Tyrone Tracy",
