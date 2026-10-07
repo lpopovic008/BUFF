@@ -314,16 +314,15 @@ function BlockGames({
       aria-hidden={collapsed || undefined}
     >
       <div className="min-h-0 overflow-hidden">
-        <div className="flex flex-col gap-3 pt-2">
+        {/* One unbroken line down the block's indent, from its bar through its last game. */}
+        <div className="ml-1 flex flex-col gap-3 border-l border-ink-muted/50 pl-2 pt-2">
           {games.map((g) => {
             const { game, players, everyone, live } = g;
             const shown = shownPlayers(g);
             // Only a game with more people in it than your own players opens up.
             const expandable = (everyone?.length ?? 0) > players.length;
-            // A line down the indent beside each game, from its header
-            // through its last player; the gap between games breaks it.
             return (
-              <div key={game.id} className="ml-1 flex flex-col gap-1 border-l border-ink-muted/50 pl-2">
+              <div key={game.id} className="flex flex-col gap-1">
                 <GameHeader
                   game={game}
                   shown={!hidden}
