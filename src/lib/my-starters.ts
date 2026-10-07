@@ -199,8 +199,9 @@ function withPending(player: GroupedStarter, pending: PendingPoints[string] | un
  * The starters list's games: just your starters in each game, except in a
  * time block that's being played, where each game lists everyone worth
  * watching (see liveGameRows). `pending` is points from plays Sleeper hasn't
- * counted yet (see PendingPoints), added on before anyone's sorted. Games come
- * back in kickoff order; one with nobody to list is left out.
+ * counted yet (see PendingPoints), added on before anyone's sorted. Every
+ * game of the week comes back, in kickoff order — one with nobody to list
+ * has no players, and shows as just its header.
  */
 export function startersListGames(
   weekGames: NFLGame[],
@@ -213,7 +214,6 @@ export function startersListGames(
 ): GameStarters[] {
   const adjust = (players: GroupedStarter[]) => players.map((p) => withPending(p, pending[p.playerId]));
   const mineByGameId = new Map(mine.map((g) => [g.game.id, adjust(g.players)]));
-  if (liveBlocks.size === 0) return mine.map((g) => ({ game: g.game, players: mineByGameId.get(g.game.id)! }));
   const opponentByGameId = new Map(opponent.map((g) => [g.game.id, adjust(g.players)]));
   const adjustedLines = lines.map((l) => {
     const p = pending[l.playerId];
@@ -224,7 +224,7 @@ export function startersListGames(
     const myPlayers = mineByGameId.get(game.id) ?? [];
     const live = liveBlocks.has(kickoffBlockLabel(game));
     const players = live ? liveGameRows(game, myPlayers, opponentByGameId.get(game.id) ?? [], adjustedLines, projected) : myPlayers;
-    if (players.length > 0) out.push({ game, players, live });
+    out.push({ game, players, live });
   }
   return out;
 }

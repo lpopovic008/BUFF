@@ -248,19 +248,22 @@ function BlockGames({
             // through its last player; the gap between games breaks it.
             <div key={game.id} className="ml-1 flex flex-col gap-1 border-l border-ink-muted/50 pl-2">
               <GameHeader game={game} shown={!hidden} />
-              <GameRows
-                players={players}
-                sortByPoints={!!live}
-                render={(player, motion) => (
-                  <PlayerRow
-                    player={player}
-                    legendByLeagueId={legendByLeagueId}
-                    started={game.state !== "pre"}
-                    shown={!hidden}
-                    motion={motion}
-                  />
-                )}
-              />
+              {/* A game none of your players are in is just its header — no room held for rows. */}
+              {players.length > 0 ? (
+                <GameRows
+                  players={players}
+                  sortByPoints={!!live}
+                  render={(player, motion) => (
+                    <PlayerRow
+                      player={player}
+                      legendByLeagueId={legendByLeagueId}
+                      started={game.state !== "pre"}
+                      shown={!hidden}
+                      motion={motion}
+                    />
+                  )}
+                />
+              ) : null}
             </div>
           ))}
         </div>

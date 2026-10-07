@@ -239,3 +239,16 @@ test("startersListGames adds points Sleeper hasn't counted yet before sorting, u
     ]
   );
 });
+
+test("startersListGames lists every game of the week in kickoff order, even ones none of your players are in", () => {
+  const late = game("late", "KC", "LV", "2026-10-11T20:25:00Z");
+  const early = game("early", "BUF", "MIA", "2026-10-11T17:00:00Z");
+  const listed = startersListGames([late, early], [{ game: early, players: [grouped("Mine", 4)] }], [], new Set(), [], {});
+  assert.deepEqual(
+    listed.map((g) => [g.game.id, g.players.map((p) => p.playerId)]),
+    [
+      ["early", ["Mine"]],
+      ["late", []],
+    ]
+  );
+});
