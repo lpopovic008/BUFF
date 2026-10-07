@@ -314,8 +314,9 @@ function BlockGames({
       aria-hidden={collapsed || undefined}
     >
       <div className="min-h-0 overflow-hidden">
-        {/* One unbroken line down the block's indent, from its bar through its last game. */}
-        <div className="ml-1 flex flex-col gap-3 border-l border-ink-muted/50 pl-2 pt-2">
+        {/* One unbroken line down the block's indent, from its bar through its last game,
+            dropping straight down from the bar's dot (0.5rem of padding + half its 0.5rem width). */}
+        <div className="ml-[calc(0.75rem-0.5px)] flex flex-col gap-3 border-l border-ink-muted/50 pl-2 pt-2">
           {games.map((g) => {
             const { game, players, everyone, live } = g;
             const shown = shownPlayers(g);
@@ -330,9 +331,10 @@ function BlockGames({
                   onToggle={expandable ? () => onToggleGame(game.id) : undefined}
                 />
                 {/* A game no one is listed in is just its header — no room held for rows. */}
-                {/* The game's players hang off it on a line of their own, a step in under the matchup. */}
+                {/* The game's players hang off it on a line of their own, dropping straight down from
+                    the game's dot (half its 0.5rem width in). */}
                 {shown.length > 0 ? (
-                  <div className="ml-1.5 border-l border-ink-muted/50 pl-1.5">
+                  <div className="ml-[calc(0.25rem-0.5px)] border-l border-ink-muted/50 pl-2">
                     <GameRows
                       players={shown}
                       sortByPoints={!!live}
