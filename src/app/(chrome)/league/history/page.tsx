@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
-import { ChevronLeftIcon, ChevronDownIcon } from "@/components/ui/Icon";
+import { ChevronLeftIcon } from "@/components/ui/Icon";
 import { CareerLeaderboard } from "@/components/CareerLeaderboard";
 import { MoneyLineChart } from "@/components/MoneyLineChart";
 import { SortHeader } from "@/components/ui/SortHeader";
@@ -21,6 +21,7 @@ import { findLeagueProfile, LeagueProfile } from "@/lib/league-config";
 import { cumulativeSeriesByManager } from "@/lib/payouts";
 import { formatRecord, formatPoints, ordinal } from "@/lib/format";
 import { TitleWithHistory } from "@/components/HistoryButtons";
+import { PlateCard } from "@/components/ui/PlateCard";
 
 function SeasonMoney({ leagueId, profile }: { leagueId: string; profile: LeagueProfile }) {
   const [money, setMoney] = useState<LeagueMoney | null | undefined>(undefined);
@@ -177,52 +178,61 @@ function StandingsTable({ season }: { season: SeasonRecord }) {
   );
 }
 
-function SeasonAccordion({
-  season,
-  profile,
-  defaultOpen,
-}: {
-  season: SeasonRecord;
-  profile: LeagueProfile | null;
-  defaultOpen: boolean;
-}) {
+/** A season's results: its final (or live) standings, then the money it paid out. */
+function SeasonDetail({ season, profile }: { season: SeasonRecord; profile: LeagueProfile | null }) {
   return (
-    <details
-      open={defaultOpen}
-      className="group border border-border bg-surface-raised open:pb-5"
+    <PlateCard
+      title={`${season.season} · ${season.leagueName}`}
+      aside={season.champion ? <span className="block max-w-[12rem] truncate normal-case">🏆 {season.champion.teamName}</span> : null}
     >
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
-        <div className="flex items-baseline gap-3">
-          <span className="text-base font-semibold text-ink-primary">{season.season}</span>
-          <span className="text-sm text-ink-secondary">{season.leagueName}</span>
-        </div>
-        <div className="flex items-center gap-3 text-sm text-ink-secondary">
-          {season.champion ? (
-            <span>
-              🏆 <span className="font-medium text-ink-primary">{season.champion.teamName}</span>
-            </span>
-          ) : (
-            <span className="text-xs uppercase tracking-wide text-ink-muted">
-              {season.hasResults ? "In progress" : "Not started"}
-            </span>
-          )}
-          <ChevronDownIcon className="h-4 w-4 shrink-0 text-ink-muted transition-transform group-open:rotate-180" />
-        </div>
-      </summary>
-
-      <div className="flex flex-col gap-4 px-5">
+      <div className="flex flex-col gap-4">
         <StandingsTable season={season} />
-
         {profile ? <SeasonMoney leagueId={season.leagueId} profile={profile} /> : null}
       </div>
-    </details>
+    </PlateCard>
   );
 }
+
+/** One pick in the history list: All-time, or a season. */
+function HistoryPick({
+  active,
+  onClick,
+  title,
+  subtitle,
+  note,
+}: {
+  active: boolean;
+  onClick: () => void;
+  title: string;
+  subtitle?: string;
+  note: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-current={active || undefined}
+      onClick={onClick}
+      className={`flex w-full flex-col gap-0.5 border px-3 py-2 text-left transition-colors ${
+        active ? "border-ink-primary bg-[color-mix(in_srgb,var(--map-tag)_7%,transparent)]" : "border-border hover:border-ink-primary/40"
+      }`}
+    >
+      <span className="flex items-baseline gap-2">
+        <span className="font-semibold text-ink-primary">{title}</span>
+        {subtitle ? <span className="min-w-0 truncate text-sm text-ink-secondary">{subtitle}</span> : null}
+      </span>
+      <span className="min-w-0 truncate text-sm text-ink-secondary">{note}</span>
+    </button>
+  );
+}
+
+const ALL_TIME = "all-time";
 
 function LeagueHistoryContent() {
   const leagueId = useSearchParams().get("id");
   const [seasons, setSeasons] = useState<SeasonRecord[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // All-time, or a season by league id — All-time to start.
+  const [pickedId, setPickedId] = useState<string>(ALL_TIME);
 
   useEffect(() => {
     if (!leagueId) return;
@@ -262,8 +272,12 @@ function LeagueHistoryContent() {
   // pot and the same rules.
   const profile = seasons.map((s) => findLeagueProfile(s.leagueName)).find((p) => p !== null) ?? null;
 
+  const picked = seasons.find((s) => s.leagueId === pickedId) ?? null;
+  const years = seasons.map((s) => s.season);
+  const span = years.length > 1 ? `${years.at(-1)}–${years[0]}` : years[0];
+
   return (
-    <div className="flex flex-col gap-8 animate-[rise_0.5s_ease-out_backwards]">
+    <div className="flex flex-col gap-6 animate-[rise_0.5s_ease-out_backwards]">
       <div>
         <Link
           href={`/league?id=${leagueId}`}
@@ -274,29 +288,52 @@ function LeagueHistoryContent() {
         <TitleWithHistory className="mt-1">
           <h1 className="text-2xl font-semibold text-ink-primary">League history</h1>
         </TitleWithHistory>
-        <p className="mt-1 text-sm text-ink-secondary">
-          {seasons.length} linked season{seasons.length === 1 ? "" : "s"} of data pulled directly from Sleeper.
-        </p>
       </div>
 
-      <Card className="p-5">
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-muted">All-time leaderboard</h2>
-        <CareerLeaderboard managers={managers} />
-      </Card>
-
-      <div className="flex flex-col gap-3">
-        {seasons.map((season, i) => (
-          <SeasonAccordion key={season.leagueId} season={season} profile={profile} defaultOpen={i === 0} />
-        ))}
+      {/* The pick's stats on the left (70%), All-time and every season listed on the right (30%,
+          never narrower than 16rem). On a phone the list comes first, the stats under it. */}
+      <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-[minmax(0,7fr)_minmax(16rem,3fr)]">
+        <div className="order-2 min-w-0 md:order-1">
+          {picked ? (
+            <SeasonDetail key={picked.leagueId} season={picked} profile={profile} />
+          ) : (
+            <PlateCard title="All-time">
+              <CareerLeaderboard managers={managers} />
+            </PlateCard>
+          )}
+        </div>
+        <ul className="order-1 flex flex-col gap-2 md:order-2" aria-label="All-time and each season">
+          <li>
+            <HistoryPick
+              active={picked === null}
+              onClick={() => setPickedId(ALL_TIME)}
+              title="All-time"
+              note={`${seasons.length} season${seasons.length === 1 ? "" : "s"} · ${span}`}
+            />
+          </li>
+          {seasons.map((season) => (
+            <li key={season.leagueId}>
+              <HistoryPick
+                active={picked?.leagueId === season.leagueId}
+                onClick={() => setPickedId(season.leagueId)}
+                title={season.season}
+                subtitle={season.leagueName}
+                note={
+                  season.champion ? (
+                    <>
+                      🏆 <span className="font-medium text-ink-primary">{season.champion.teamName}</span>
+                    </>
+                  ) : season.hasResults ? (
+                    "In progress"
+                  ) : (
+                    "Not started"
+                  )
+                }
+              />
+            </li>
+          ))}
+        </ul>
       </div>
-
-      <p className="text-xs text-ink-muted">
-        Finishes come from the games that were actually played: the playoff bracket settles the top
-        of the table and the consolation bracket settles the rest, so a team&rsquo;s finish is where
-        it played its way to, not where its regular-season record seeded it. A season still being
-        played shows live standings instead, and doesn&rsquo;t count toward best finish or
-        championships until it&rsquo;s decided.
-      </p>
     </div>
   );
 }
