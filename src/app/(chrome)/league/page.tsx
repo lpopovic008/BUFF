@@ -6,7 +6,6 @@ import { Card } from "@/components/ui/Card";
 import { IconLink } from "@/components/ui/IconButton";
 import { DocumentIcon, ClockIcon, WalkieTalkieIcon } from "@/components/ui/Icon";
 import { LeagueMatchupCarousel } from "@/components/LeagueMatchupCarousel";
-import { WeekPicker } from "@/components/WeekPicker";
 import { MoneyBoard } from "@/components/MoneyBoard";
 import { useConfig } from "@/hooks/useConfig";
 import { useLeagueMatchupCarousel } from "@/hooks/useLeagueMatchupCarousel";
@@ -15,6 +14,7 @@ import { loadLeagueSeason, LeagueSeason } from "@/lib/league-money";
 import { computePlanLedger, emptyPlan, PayoutPlan, planFromProfile } from "@/lib/payout-plan";
 import { getPayoutPlan, savePayoutPlan } from "@/lib/localStore";
 import { getCurrentWeek } from "@/lib/sleeper";
+import { setHeaderWeek } from "@/lib/header-week";
 import { TitleWithHistory } from "@/components/HistoryButtons";
 
 function LeagueDetailContent() {
@@ -98,16 +98,17 @@ function LeagueDetailContent() {
 
   const myRow = summary?.standings.find((r) => r.ownerId === config.sleeperUserId) ?? null;
   const carousel = useLeagueMatchupCarousel(leagueId, shownWeek);
-  const weekPicker =
-    week != null && shownWeek != null ? (
-      <WeekPicker
-        week={shownWeek}
-        currentWeek={week}
-        lastWeek={money?.results.lastWeek ?? week}
-        regularSeasonWeeks={money?.results.regularSeasonWeeks ?? null}
-        onChange={setViewWeek}
-      />
-    ) : null;
+  // The header's "Week N" picks the week the matchups show.
+  const lastWeek = money?.results.lastWeek;
+  const regularSeasonWeeks = money?.results.regularSeasonWeeks ?? null;
+  useEffect(() => {
+    setHeaderWeek(
+      week != null && shownWeek != null
+        ? { week: shownWeek, currentWeek: week, lastWeek: lastWeek ?? week, regularSeasonWeeks, onChange: setViewWeek }
+        : null
+    );
+  }, [week, shownWeek, lastWeek, regularSeasonWeeks]);
+  useEffect(() => () => setHeaderWeek(null), []);
 
   if (!leagueId) {
     return <Card className="p-12 text-center text-sm text-ink-secondary">No league selected.</Card>;
@@ -157,15 +158,10 @@ function LeagueDetailContent() {
             myRosterId={myRow?.rosterId ?? null}
             standings={standings}
             owners={owners}
-            weekPicker={weekPicker}
           />
         </div>
-      ) : weekPicker && carousel ? (
-        // A week with no matchups still offers the picker, to get back.
-        <div className="flex items-center gap-3">
-          {weekPicker}
-          <span className="text-sm text-ink-muted">No matchups this week.</span>
-        </div>
+      ) : carousel ? (
+        <p className="text-sm text-ink-muted">No matchups this week.</p>
       ) : null}
 
       {money && plan && ledger ? (

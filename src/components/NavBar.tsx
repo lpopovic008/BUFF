@@ -7,6 +7,8 @@ import { useCombinedRecord } from "@/hooks/useCombinedRecord";
 import { MenuIcon } from "@/components/ui/Icon";
 import { formatCountdown } from "@/lib/format";
 import { useHeaderKickoff } from "@/lib/header-clock";
+import { useHeaderWeek } from "@/lib/header-week";
+import { WeekPicker } from "@/components/WeekPicker";
 
 const links = [
   { href: "/", label: "Dashboard" },
@@ -51,6 +53,8 @@ export function NavBar() {
   const phase = useNFLState();
   const record = useCombinedRecord();
   const kickoff = useHeaderKickoff();
+  // A page showing a week of its own (the league page) makes the header's week its picker.
+  const pickable = useHeaderWeek();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLElement>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
@@ -100,7 +104,14 @@ export function NavBar() {
 
         {phase.loaded && phase.label ? (
           <span className="flex items-baseline gap-2 justify-self-center sm:gap-4">
-            <span className="text-lg font-extrabold uppercase tracking-wide text-ink-primary sm:text-3xl">{phase.label}</span>
+            {pickable ? (
+              <WeekPicker
+                {...pickable}
+                label={pickable.week === pickable.currentWeek ? phase.label : `Week ${pickable.week}`}
+              />
+            ) : (
+              <span className="text-lg font-extrabold uppercase tracking-wide text-ink-primary sm:text-3xl">{phase.label}</span>
+            )}
             {/* The dashboard's next-kickoff clock, while it's scrolled out of view. */}
             {kickoff !== null ? <HeaderKickoffClock key={kickoff} target={kickoff} /> : null}
           </span>
