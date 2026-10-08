@@ -115,8 +115,8 @@ function SlotRow({ slot, my, their }: { slot: string; my: ResolvedSlot; their: R
   return (
     <div className={`grid ${SLOT_COLS} items-center gap-1 sm:gap-2`}>
       <MySlotPlayer resolved={my} />
-      {/* Every box the same width — the column's, which fits FLEX and no more. Outlined, every slot alike. */}
-      <span className="justify-self-stretch border border-ink-muted/60 py-px text-center text-[0.625rem] font-bold uppercase leading-tight text-ink-primary sm:text-[0.6875rem]">
+      {/* Every box the same width — the column's, which fits FLEX and no more. Outlined in its own text color, every slot alike. */}
+      <span className="justify-self-stretch border border-current py-px text-center text-[0.625rem] font-bold uppercase leading-tight text-ink-primary sm:text-[0.6875rem]">
         {slotLabel(slot)}
       </span>
       {their ? <TheirSlotPlayer resolved={their} /> : <div />}
