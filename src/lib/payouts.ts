@@ -256,7 +256,10 @@ export interface CumulativeSeries {
  * sheet's cumulative "Total" column. Sorted richest-final-total first, which
  * is also the order end-of-line labels should stack top to bottom.
  */
-export function cumulativeSeriesByManager(ledger: PayoutLedger): CumulativeSeries[] {
+export function cumulativeSeriesByManager(ledger: {
+  managers: { rosterId: number; name: string; weekly: Record<number, number> }[];
+  weeksPlayed: number[];
+}): CumulativeSeries[] {
   return ledger.managers
     .map((m) => {
       let running = 0;

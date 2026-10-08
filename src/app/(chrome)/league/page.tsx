@@ -10,10 +10,10 @@ import { MoneyBoard } from "@/components/MoneyBoard";
 import { useConfig } from "@/hooks/useConfig";
 import { useLeagueMatchupCarousel } from "@/hooks/useLeagueMatchupCarousel";
 import { getLeagueSummary, LeagueSummary, summaryAsItStands, teamStandings } from "@/lib/league-data";
-import { finishedWeeksOnly, loadLeagueSeason, LeagueSeason } from "@/lib/league-money";
+import { finishedWeeksOnly, loadLeagueSeason, LeagueSeason, startingPlan } from "@/lib/league-money";
 import { useAsItStands, usePendingMatchups } from "@/hooks/useAsItStands";
-import { computePlanLedger, emptyPlan, PayoutPlan, planFromProfile } from "@/lib/payout-plan";
-import { getPayoutPlan, savePayoutPlan } from "@/lib/localStore";
+import { computePlanLedger, PayoutPlan } from "@/lib/payout-plan";
+import { savePayoutPlan } from "@/lib/localStore";
 import { getCurrentWeek } from "@/lib/sleeper";
 import { setHeaderWeek } from "@/lib/header-week";
 import { TitleWithHistory } from "@/components/HistoryButtons";
@@ -55,7 +55,7 @@ function LeagueDetailContent() {
         const m = await loadLeagueSeason(leagueId);
         if (cancelled || !m) return;
         setMoney(m);
-        setPlan(getPayoutPlan(leagueId) ?? (m.profile ? planFromProfile(m.profile, m.results.rosterIds) : emptyPlan()));
+        setPlan(startingPlan(leagueId, m));
       } catch {
         if (!cancelled) setError("Couldn't reach Sleeper's API. Check your connection and try again.");
       }

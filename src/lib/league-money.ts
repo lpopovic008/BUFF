@@ -9,7 +9,8 @@ import {
 } from "./sleeper";
 import { findLeagueProfile, payoutsForSeason, LeagueProfile } from "./league-config";
 import { computePayoutLedger, PayoutLedger } from "./payouts";
-import { SeasonResults } from "./payout-plan";
+import { emptyPlan, PayoutPlan, planFromProfile, SeasonResults } from "./payout-plan";
+import { getPayoutPlan } from "./localStore";
 import { buildLiveStandings, finalPlacements, lastFinishedWeek } from "./league-data";
 import { displayManagerName, displaySleeperUsername } from "./format";
 
@@ -23,13 +24,11 @@ export interface LeagueMoney {
 /**
  * Loads everything needed for the money view of a league. Returns null when the
  * league has no commissioner profile configured — the rest of the app works
- * unchanged for those. `finishedOnly` leaves out a week still being played,
- * counting only the weeks Sleeper has made official.
+ * unchanged for those.
  */
 export async function loadLeagueMoney(
   leagueId: string,
-  profileOverride?: LeagueProfile,
-  { finishedOnly = false }: { finishedOnly?: boolean } = {}
+  profileOverride?: LeagueProfile
 ): Promise<LeagueMoney | null> {
   const league = await getLeague(leagueId);
   if (!league) return null;
@@ -52,8 +51,7 @@ export async function loadLeagueMoney(
 
   // One request per regular-season week. sleeperFetch de-dupes and caches these
   // per tab, so revisiting the page doesn't refetch the whole season.
-  const through = finishedOnly ? lastFinishedWeek(league) : Number.POSITIVE_INFINITY;
-  const weeks = Array.from({ length: profile.payouts.regularSeasonWeeks }, (_, i) => i + 1).filter((w) => w <= through);
+  const weeks = Array.from({ length: profile.payouts.regularSeasonWeeks }, (_, i) => i + 1);
   const weekData = await Promise.all(weeks.map((w) => getMatchups(leagueId, w)));
   const matchupsByWeek = new Map<number, SleeperMatchup[]>();
   weeks.forEach((w, i) => matchupsByWeek.set(w, weekData[i]));
@@ -155,4 +153,17 @@ export async function loadLeagueSeason(leagueId: string): Promise<LeagueSeason |
       playoffTeams: Number(league.settings.playoff_teams) || undefined,
     },
   };
+}
+
+/**
+ * The payout rules a season is played through: the ones saved for it, else
+ * its league's hand-configured commissioner rules (or `fallback`'s, for a
+ * league renamed since), else none yet.
+ */
+export function startingPlan(leagueId: string, season: LeagueSeason, fallback?: LeagueProfile | null): PayoutPlan {
+  const saved = getPayoutPlan(leagueId);
+  if (saved) return saved;
+  const profile =
+    season.profile ?? (fallback ? { ...fallback, payouts: payoutsForSeason(fallback, season.season) } : null);
+  return profile ? planFromProfile(profile, season.results.rosterIds) : emptyPlan();
 }

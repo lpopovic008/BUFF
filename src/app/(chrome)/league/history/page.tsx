@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
@@ -15,7 +15,10 @@ import {
   StandingsRow,
   ManagerCareerStats,
 } from "@/lib/league-data";
-import { loadLeagueMoney, LeagueMoney } from "@/lib/league-money";
+import { finishedWeeksOnly, loadLeagueSeason, LeagueSeason, startingPlan } from "@/lib/league-money";
+import { computePlanLedger, formatMoney, PayoutPlan, PlanLedger } from "@/lib/payout-plan";
+import { savePayoutPlan } from "@/lib/localStore";
+import { PayoutSetup } from "@/components/PayoutSetup";
 import { findLeagueProfile, LeagueProfile } from "@/lib/league-config";
 import { cumulativeSeriesByManager } from "@/lib/payouts";
 import { formatRecord, formatPoints, ordinal } from "@/lib/format";
@@ -25,40 +28,91 @@ import { useAsItStands } from "@/hooks/useAsItStands";
 import { getCurrentWeek } from "@/lib/sleeper";
 
 /**
- * A configured league's money for one season — the week being played only
- * "as it stands". Undefined while loading; null when there's none.
+ * A season's payouts: its results played through its payout rules — the ones
+ * saved for that season, else its league's commissioner rules, else none yet
+ * (see startingPlan) — with the week being played paid only "as it stands".
+ * Editing the rules saves them for that season alone.
  */
-function useSeasonMoney(leagueId: string, profile: LeagueProfile | null): LeagueMoney | null | undefined {
-  const [money, setMoney] = useState<{ key: string; value: LeagueMoney | null } | null>(null);
+function useSeasonPayouts(leagueId: string, fallback: LeagueProfile | null) {
+  const [season, setSeason] = useState<LeagueSeason | null | undefined>(undefined);
+  const [plan, setPlan] = useState<PayoutPlan | null>(null);
   const asItStands = useAsItStands();
-  const key = `${leagueId}:${asItStands}`;
 
   useEffect(() => {
-    if (!profile) return;
     let cancelled = false;
-    loadLeagueMoney(leagueId, profile, { finishedOnly: !asItStands }).then((m) => {
-      if (!cancelled) setMoney({ key: `${leagueId}:${asItStands}`, value: m });
-    });
+    loadLeagueSeason(leagueId)
+      .then((m) => {
+        if (cancelled) return;
+        setSeason(m);
+        setPlan(m ? startingPlan(leagueId, m, fallback) : null);
+      })
+      .catch(() => {
+        if (!cancelled) setSeason(null);
+      });
     return () => {
       cancelled = true;
     };
-  }, [leagueId, profile, asItStands]);
+  }, [leagueId, fallback]);
 
-  if (!profile) return null;
-  return money?.key === key ? money.value : undefined;
+  const shown = useMemo(
+    () => (season && !asItStands ? finishedWeeksOnly(season) : season),
+    [season, asItStands]
+  );
+  const ledger = useMemo(() => (shown && plan ? computePlanLedger(plan, shown.results) : null), [shown, plan]);
+  const changePlan = useCallback(
+    (next: PayoutPlan) => {
+      setPlan(next);
+      savePayoutPlan(leagueId, next);
+    },
+    [leagueId]
+  );
+  return { season: shown, plan, ledger, changePlan };
 }
 
-/** The season's money over time, under the standings (which carry each team's total). */
-function SeasonMoneyChart({ money }: { money: LeagueMoney }) {
+/** Money paid out over the season, and the button to edit the rules that pay it. */
+function SeasonMoney({
+  season,
+  plan,
+  ledger,
+  onPlanChange,
+}: {
+  season: LeagueSeason;
+  plan: PayoutPlan;
+  ledger: PlanLedger;
+  onPlanChange: (plan: PayoutPlan) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const paid = plan.rules.length > 0 && ledger.weeksPlayed.length > 0;
   return (
     <div className="flex flex-col gap-4 border-t border-grid pt-4">
       <div className="flex items-baseline justify-between gap-3">
         <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Money paid out</h4>
-        <span className="text-xs text-ink-secondary">
-          ${money.ledger.paidToDate} through week {money.ledger.weeksPlayed.at(-1)}
-        </span>
+        {paid ? (
+          <span className="text-xs text-ink-secondary">
+            {formatMoney(ledger.paidToDate)} through week {ledger.weeksPlayed.at(-1)}
+          </span>
+        ) : null}
       </div>
-      <MoneyLineChart series={cumulativeSeriesByManager(money.ledger)} />
+      {paid ? (
+        <MoneyLineChart series={cumulativeSeriesByManager(ledger)} />
+      ) : (
+        <p className="text-sm text-ink-muted">No payout rules for this season yet.</p>
+      )}
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => setEditing((e) => !e)}
+          aria-expanded={editing}
+          className="bg-[var(--map-tag)] px-3 py-1.5 text-sm font-semibold text-[var(--map-tag-ink)] hover:opacity-90"
+        >
+          {editing ? "Done editing" : "Edit rules"}
+        </button>
+      </div>
+      {editing ? (
+        <div className="border-t border-grid pt-4">
+          <PayoutSetup plan={plan} season={season.results} ledger={ledger} onChange={onPlanChange} embedded />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -112,10 +166,10 @@ const STANDINGS_COLUMNS = {
   earned: (row: SeasonRow) => row.earned ?? 0,
 };
 
-function StandingsTable({ season, money }: { season: SeasonRecord; money: LeagueMoney | null }) {
+function StandingsTable({ season, money }: { season: SeasonRecord; money: PlanLedger | null }) {
   const rows = useMemo<SeasonRow[]>(() => {
     if (!money) return season.standings;
-    const byRoster = new Map(money.ledger.managers.map((m) => [m.rosterId, m]));
+    const byRoster = new Map(money.managers.map((m) => [m.rosterId, m]));
     return season.standings.map((row) => {
       const m = byRoster.get(row.rosterId);
       return { ...row, highScoreWeeks: m?.highScoreWeeks.length ?? 0, earned: m?.total ?? 0 };
@@ -180,7 +234,7 @@ function StandingsTable({ season, money }: { season: SeasonRecord; money: League
                     {row.highScoreWeeks}
                   </td>
                   <td className="whitespace-nowrap py-2 pr-2 text-right sm:pr-3 font-semibold tabular-nums text-ink-primary">
-                    ${row.earned}
+                    {formatMoney(row.earned ?? 0)}
                   </td>
                 </>
               ) : null}
@@ -194,16 +248,25 @@ function StandingsTable({ season, money }: { season: SeasonRecord; money: League
 
 /** A season's results: its final (or live) standings, each team's money beside it, then the money over time. */
 function SeasonDetail({ season, profile }: { season: SeasonRecord; profile: LeagueProfile | null }) {
-  const money = useSeasonMoney(season.leagueId, profile);
+  const payouts = useSeasonPayouts(season.leagueId, profile);
+  // Each team's money goes in the standings once the season has rules paying any.
+  const money = payouts.plan && payouts.plan.rules.length > 0 ? payouts.ledger : null;
   return (
     <PlateCard
       title={`${season.season} · ${season.leagueName}`}
       aside={season.champion ? <span className="block max-w-[12rem] truncate normal-case">🏆 {season.champion.teamName}</span> : null}
     >
       <div className="flex flex-col gap-4">
-        <StandingsTable season={season} money={money ?? null} />
-        {money === undefined ? <p className="text-sm text-ink-muted">Loading money data…</p> : null}
-        {money && money.ledger.weeksPlayed.length > 0 ? <SeasonMoneyChart money={money} /> : null}
+        <StandingsTable season={season} money={money} />
+        {payouts.season === undefined ? <p className="text-sm text-ink-muted">Loading money data…</p> : null}
+        {payouts.season && payouts.plan && payouts.ledger ? (
+          <SeasonMoney
+            season={payouts.season}
+            plan={payouts.plan}
+            ledger={payouts.ledger}
+            onPlanChange={payouts.changePlan}
+          />
+        ) : null}
       </div>
     </PlateCard>
   );
