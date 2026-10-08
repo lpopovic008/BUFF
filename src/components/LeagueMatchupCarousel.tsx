@@ -6,7 +6,6 @@ import { HeadToHeadBadge, PointsRankBadges, TeamNameLabel } from "@/components/D
 import { AllTimeRecord, headToHeadKey, useAllTimeHeadToHead } from "@/hooks/useAllTimeHeadToHead";
 import { TeamStanding } from "@/lib/league-data";
 import { MatchupRows } from "@/components/LeagueTicker";
-import { MatchupWheel } from "@/components/MatchupWheel";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { IconButton } from "@/components/ui/IconButton";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/ui/Icon";
@@ -372,29 +371,40 @@ export function LeagueMatchupCarousel({
         ) : null}
       </div>
 
-      {/* Tablet and up: the chosen matchup large on the left (70%), every matchup on a wheel on the right (30%, never narrower than 16rem so names stay readable). */}
+      {/* Tablet and up: the chosen matchup large on the left (70%), every matchup listed on the right (30%, never narrower than 16rem so names stay readable). */}
       <div className="hidden md:grid md:grid-cols-[minmax(0,7fr)_minmax(16rem,3fr)] md:items-start md:gap-3">
         <MatchupSlide leagueId={leagueId} game={picked} myRosterId={myRosterId} standings={standings} owners={owners} allTime={allTime} />
         <div className="flex flex-col gap-2">
         {weekPicker ? <div className="flex">{weekPicker}</div> : null}
-        {/* Every matchup on a wheel, the picked one in the middle: scroll, click or arrow-key round it. */}
-        <MatchupWheel
-          label="This week's matchups"
-          items={games}
-          index={Math.max(0, games.indexOf(picked))}
-          onPick={(i) => setPickedId(games[i].matchupId)}
-          render={(g) => (
-            <MatchupRows
-              fitWidth
-              teams={sides(g, myRosterId).map((t) => ({
-                name: t.teamName,
-                points: t.points,
-                standing: standings.get(t.rosterId),
-                mine: t.rosterId === myRosterId,
-              }))}
-            />
-          )}
-        />
+        <ul className="flex flex-col gap-2" aria-label="This week's matchups">
+          {games.map((g) => {
+            const active = g.matchupId === picked.matchupId;
+            return (
+              <li key={g.matchupId}>
+                <button
+                  type="button"
+                  aria-current={active || undefined}
+                  onClick={() => setPickedId(g.matchupId)}
+                  className={`w-full border px-3 py-2 text-left transition-colors ${
+                    active
+                      ? "border-ink-primary bg-[color-mix(in_srgb,var(--map-tag)_7%,transparent)]"
+                      : "border-border hover:border-ink-primary/40"
+                  }`}
+                >
+                  <MatchupRows
+                    fitWidth
+                    teams={sides(g, myRosterId).map((t) => ({
+                      name: t.teamName,
+                      points: t.points,
+                      standing: standings.get(t.rosterId),
+                      mine: t.rosterId === myRosterId,
+                    }))}
+                  />
+                </button>
+              </li>
+            );
+          })}
+        </ul>
         </div>
       </div>
     </>
