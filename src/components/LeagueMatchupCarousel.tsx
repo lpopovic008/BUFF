@@ -10,7 +10,6 @@ import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { IconButton } from "@/components/ui/IconButton";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/ui/Icon";
 import { abbreviateFirstName, formatPoints } from "@/lib/format";
-import { POSITION_SOFT_BG } from "@/lib/position-colors";
 
 // Sleeper's own slot code — abbreviate the one that's spelled out.
 function slotLabel(slot: string): string {
@@ -112,16 +111,11 @@ function TheirSlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
 }
 
 function SlotRow({ slot, my, their }: { slot: string; my: ResolvedSlot; their: ResolvedSlot | undefined }) {
-  const colorClasses = POSITION_SOFT_BG[slot];
   return (
     <div className={`grid ${SLOT_COLS} items-center gap-1 sm:gap-2`}>
       <MySlotPlayer resolved={my} />
-      {/* Every box the same width — the column's, which fits FLEX and no more. */}
-      <span
-        className={`justify-self-stretch py-px text-center text-[0.625rem] font-bold uppercase leading-tight sm:text-[0.6875rem] ${
-          colorClasses ?? "bg-ink-muted/15 text-ink-secondary"
-        }`}
-      >
+      {/* Every box the same width — the column's, which fits FLEX and no more. Outlined, every slot alike. */}
+      <span className="justify-self-stretch border border-ink-muted/60 py-px text-center text-[0.625rem] font-bold uppercase leading-tight text-ink-primary sm:text-[0.6875rem]">
         {slotLabel(slot)}
       </span>
       {their ? <TheirSlotPlayer resolved={their} /> : <div />}
