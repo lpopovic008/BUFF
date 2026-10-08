@@ -1,5 +1,6 @@
 // The week a page is showing, handed up to the page header so its "Week N"
-// becomes the picker for it (the league page), rather than a picker of its own.
+// becomes the picker for it (the league page, the recaps), rather than a
+// picker of its own.
 
 import { useSyncExternalStore } from "react";
 
@@ -12,6 +13,8 @@ export interface HeaderWeek {
   lastWeek: number;
   /** Weeks after this are the playoffs; null when unknown. */
   regularSeasonWeeks: number | null;
+  /** The first week to offer: 1, or 0 for a page with a preseason (the recaps). */
+  firstWeek?: number;
   onChange: (week: number) => void;
 }
 

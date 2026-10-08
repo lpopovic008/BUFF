@@ -1,19 +1,17 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { IconLink, IconButton } from "@/components/ui/IconButton";
 import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
   DocumentIcon,
   CopyIcon,
   CheckIcon,
   UploadIcon,
 } from "@/components/ui/Icon";
-import { computeWeekRecap, WeekRecapData } from "@/lib/league-data";
+import { computeWeekRecap, lastWeekOf, regularSeasonWeeksOf, WeekRecapData } from "@/lib/league-data";
+import { setHeaderWeek } from "@/lib/header-week";
 import {
   formatRecapMarkdown,
   buildWeeklyRecapModel,
@@ -37,7 +35,7 @@ import { getRecap, getBowlPicks, saveBowlPicks, RecapBowlPicks, SavedRecap } fro
 import { resolveGoogleClientId } from "@/lib/google-config";
 import { useConfig } from "@/hooks/useConfig";
 import { useRecapActions } from "@/hooks/useRecapActions";
-import { getRecapWeek, getLeague, getLeagueRosters, getLeagueUsers } from "@/lib/sleeper";
+import { getCurrentWeek, getRecapWeek, getLeague, getLeagueRosters, getLeagueUsers } from "@/lib/sleeper";
 import { resolvePlayers } from "@/lib/players";
 import { displayManagerName } from "@/lib/format";
 import { useLeagueTeams } from "@/hooks/useLeagueTeams";
@@ -161,6 +159,27 @@ function RecapContent() {
   }, [teamOptions]);
   const { config } = useConfig();
   const googleClientId = resolveGoogleClientId(config.googleClientId);
+
+  // The header's "Week N" picks the week's write-up (the preseason one too).
+  useEffect(() => {
+    if (!leagueId || week === null || !Number.isFinite(week)) return;
+    let cancelled = false;
+    Promise.all([getLeague(leagueId), getCurrentWeek()]).then(([league, currentWeek]) => {
+      if (cancelled) return;
+      setHeaderWeek({
+        week,
+        currentWeek,
+        lastWeek: league ? lastWeekOf(league) : Math.max(week, currentWeek),
+        regularSeasonWeeks: league ? regularSeasonWeeksOf(league) : null,
+        firstWeek: PRESEASON_WEEK,
+        onChange: (w) => router.push(`/recap?id=${leagueId}&week=${w}`),
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [leagueId, week, router]);
+  useEffect(() => () => setHeaderWeek(null), []);
 
   // No week in the URL yet — resolve which week's write-up should be open and pin it into the URL so the recap is bookmarkable.
   useEffect(() => {
@@ -450,32 +469,7 @@ function RecapContent() {
         .
       </span>
 
-      <div className="sticky top-[var(--header-h,0px)] z-10 -mx-4 flex flex-wrap items-center justify-between gap-3 border-b border-border bg-page/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 md:-mx-1 md:px-1">
-        <div className="flex items-center gap-2 text-sm">
-          {week > PRESEASON_WEEK + 1 ? (
-            <Link
-              href={`/recap?id=${leagueId}&week=${week - 1}`}
-              className="flex items-center gap-1 border border-border px-3 py-1.5 font-medium text-ink-secondary transition-colors hover:bg-page"
-            >
-              <ChevronLeftIcon className="h-4 w-4" /> Week {week - 1}
-            </Link>
-          ) : null}
-          {week === PRESEASON_WEEK + 1 ? (
-            <Link
-              href={`/recap?id=${leagueId}&week=${PRESEASON_WEEK}`}
-              className="flex items-center gap-1 border border-border px-3 py-1.5 font-medium text-ink-secondary transition-colors hover:bg-page"
-            >
-              <ChevronLeftIcon className="h-4 w-4" /> Preseason
-            </Link>
-          ) : null}
-          <Link
-            href={`/recap?id=${leagueId}&week=${week + 1}`}
-            className="flex items-center gap-1 border border-border px-3 py-1.5 font-medium text-ink-secondary transition-colors hover:bg-page"
-          >
-            {isPreseason ? "Week 1" : `Week ${week + 1}`} <ChevronRightIcon className="h-4 w-4" />
-          </Link>
-        </div>
-
+      <div className="sticky top-[var(--header-h,0px)] z-10 -mx-4 flex flex-wrap items-center justify-end gap-3 border-b border-border bg-page/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 md:-mx-1 md:px-1">
         <div className="flex flex-wrap items-center gap-2">
           <IconLink href={`/recap/archive?id=${leagueId}`} icon={<DocumentIcon />} label="Recap archive" />
           <GraphicCopyMenu

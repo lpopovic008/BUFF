@@ -167,6 +167,12 @@ export function regularSeasonWeeksOf(league: SleeperLeague): number {
   return Math.max(1, (Number(league.settings.playoff_week_start) || 15) - 1);
 }
 
+/** The season's last week (the championship): the playoffs take a round for each doubling of the field. */
+export function lastWeekOf(league: SleeperLeague): number {
+  const teams = Number(league.settings.playoff_teams) || 6;
+  return Math.min(18, regularSeasonWeeksOf(league) + Math.max(1, Math.ceil(Math.log2(teams))));
+}
+
 export type GameResult = "W" | "L" | "T";
 
 /** One roster's results across some weeks, in week order. */

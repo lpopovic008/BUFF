@@ -3,6 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDownIcon } from "@/components/ui/Icon";
 
+/** "Week 4", or "Preseason" for week 0. */
+export function weekLabel(week: number): string {
+  return week === 0 ? "Preseason" : `Week ${week}`;
+}
+
 /**
  * The header's week, as a button that opens the season's weeks to pick from —
  * the current one marked, playoff weeks labeled. Closes on a pick, a click
@@ -14,6 +19,7 @@ export function WeekPicker({
   currentWeek,
   lastWeek,
   regularSeasonWeeks,
+  firstWeek = 1,
   onChange,
 }: {
   /** What the button reads, e.g. "Week 5". */
@@ -24,6 +30,8 @@ export function WeekPicker({
   lastWeek: number;
   /** Weeks after this are the playoffs; null when unknown. */
   regularSeasonWeeks: number | null;
+  /** The first week offered: 1, or 0 to offer the preseason too. */
+  firstWeek?: number;
   onChange: (week: number) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -45,7 +53,8 @@ export function WeekPicker({
     };
   }, [open]);
 
-  const weeks = Array.from({ length: Math.max(lastWeek, currentWeek, week) }, (_, i) => i + 1);
+  const last = Math.max(lastWeek, currentWeek, week);
+  const weeks = Array.from({ length: last - firstWeek + 1 }, (_, i) => firstWeek + i);
 
   return (
     <div className="relative" ref={rootRef}>
@@ -80,7 +89,7 @@ export function WeekPicker({
                     selected ? "bg-[var(--map-tag)] font-bold text-[var(--map-tag-ink)]" : "text-ink-primary hover:bg-page"
                   }`}
                 >
-                  <span>Week {w}</span>
+                  <span>{weekLabel(w)}</span>
                   <span className={`text-[0.625rem] uppercase tracking-wide ${selected ? "" : "text-ink-muted"}`}>
                     {w === currentWeek ? "Now" : playoffs ? "Playoffs" : ""}
                   </span>

@@ -8,7 +8,7 @@ import { MenuIcon } from "@/components/ui/Icon";
 import { formatCountdown } from "@/lib/format";
 import { useHeaderKickoff } from "@/lib/header-clock";
 import { useHeaderWeek } from "@/lib/header-week";
-import { WeekPicker } from "@/components/WeekPicker";
+import { WeekPicker, weekLabel } from "@/components/WeekPicker";
 
 const links = [
   { href: "/", label: "Dashboard" },
@@ -107,7 +107,8 @@ export function NavBar() {
             {pickable ? (
               <WeekPicker
                 {...pickable}
-                label={pickable.week === pickable.currentWeek ? phase.label : `Week ${pickable.week}`}
+                // The NFL's own label ("Playoffs · Week 15") for the week it's in; else just the week.
+                label={pickable.week === phase.week && pickable.week > 0 ? phase.label : weekLabel(pickable.week)}
               />
             ) : (
               <span className="text-lg font-extrabold uppercase tracking-wide text-ink-primary sm:text-3xl">{phase.label}</span>
