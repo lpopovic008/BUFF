@@ -117,26 +117,11 @@ function SeasonMoney({
   );
 }
 
-/** A finish, plated gold, silver or bronze for the top three. */
-function FinishBadge({ rank, medal }: { rank: number; medal: boolean }) {
-  const plate = medal ? MEDALS[rank - 1] : undefined;
-  if (!plate) return <>{ordinal(rank)}</>;
-  return (
-    <span
-      className="inline-block border px-1.5 font-bold text-[#1d1608] shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]"
-      style={{ backgroundImage: plate.shine, borderColor: plate.edge }}
-    >
-      {ordinal(rank)}
-    </span>
-  );
+/** A finish, the top three on the theme's tag plate. */
+function FinishBadge({ rank, podium }: { rank: number; podium: boolean }) {
+  if (!podium || rank > 3) return <>{ordinal(rank)}</>;
+  return <span className="bg-[var(--map-tag)] px-1.5 font-bold text-[var(--map-tag-ink)]">{ordinal(rank)}</span>;
 }
-
-// Metal plates: a diagonal sheen across each, light catching the middle.
-const MEDALS = [
-  { edge: "#a67c00", shine: "linear-gradient(135deg, #f6d365 0%, #e2b33c 35%, #fff1b8 50%, #d9a520 65%, #b8860b 100%)" },
-  { edge: "#8a8a8a", shine: "linear-gradient(135deg, #e6e6e6 0%, #b9b9b9 35%, #ffffff 50%, #b0b0b0 65%, #8c8c8c 100%)" },
-  { edge: "#8a5326", shine: "linear-gradient(135deg, #e7b58a 0%, #c07f4a 35%, #f6d2b2 50%, #b46f3a 65%, #8a5326 100%)" },
-];
 
 /** A column name, cut short on a phone (the full one as its tooltip there) so the table fits. */
 function ShortLabel({ short, full }: { short: string; full: string }) {
@@ -212,7 +197,7 @@ function StandingsTable({ season, money }: { season: SeasonRecord; money: PlanLe
           {sorted.map((row) => (
             <tr key={row.rosterId} className="border-b border-grid last:border-0">
               <td className="py-2 pr-2 sm:pr-3 tabular-nums text-ink-secondary">
-                {season.hasResults ? <FinishBadge rank={row.rank} medal={season.complete} /> : "—"}
+                {season.hasResults ? <FinishBadge rank={row.rank} podium={season.complete} /> : "—"}
               </td>
               <td className="py-2 pr-2 sm:pr-3 font-medium text-ink-primary">
                 <Link href={`/team?league=${season.leagueId}&roster=${row.rosterId}`} className="hover:underline">
