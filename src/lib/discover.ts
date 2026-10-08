@@ -55,12 +55,11 @@ export async function discoverAndSaveLeagues(
   }
 
   const config: AppConfig = {
+    ...existingConfig,
     sleeperUsername: username,
     sleeperUserId: user.user_id,
     season,
     leagues: tracked,
-    externalLeagues: existingConfig.externalLeagues,
-    googleClientId: existingConfig.googleClientId,
   };
   saveConfig(config);
   return config;

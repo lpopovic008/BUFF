@@ -10,7 +10,7 @@ import {
 import { findLeagueProfile, payoutsForSeason, LeagueProfile } from "./league-config";
 import { computePayoutLedger, PayoutLedger } from "./payouts";
 import { SeasonResults } from "./payout-plan";
-import { buildLiveStandings, finalPlacements } from "./league-data";
+import { buildLiveStandings, finalPlacements, lastFinishedWeek } from "./league-data";
 import { displayManagerName, displaySleeperUsername } from "./format";
 
 export interface LeagueMoney {
@@ -23,11 +23,13 @@ export interface LeagueMoney {
 /**
  * Loads everything needed for the money view of a league. Returns null when the
  * league has no commissioner profile configured — the rest of the app works
- * unchanged for those.
+ * unchanged for those. `finishedOnly` leaves out a week still being played,
+ * counting only the weeks Sleeper has made official.
  */
 export async function loadLeagueMoney(
   leagueId: string,
-  profileOverride?: LeagueProfile
+  profileOverride?: LeagueProfile,
+  { finishedOnly = false }: { finishedOnly?: boolean } = {}
 ): Promise<LeagueMoney | null> {
   const league = await getLeague(leagueId);
   if (!league) return null;
@@ -50,7 +52,8 @@ export async function loadLeagueMoney(
 
   // One request per regular-season week. sleeperFetch de-dupes and caches these
   // per tab, so revisiting the page doesn't refetch the whole season.
-  const weeks = Array.from({ length: profile.payouts.regularSeasonWeeks }, (_, i) => i + 1);
+  const through = finishedOnly ? lastFinishedWeek(league) : Number.POSITIVE_INFINITY;
+  const weeks = Array.from({ length: profile.payouts.regularSeasonWeeks }, (_, i) => i + 1).filter((w) => w <= through);
   const weekData = await Promise.all(weeks.map((w) => getMatchups(leagueId, w)));
   const matchupsByWeek = new Map<number, SleeperMatchup[]>();
   weeks.forEach((w, i) => matchupsByWeek.set(w, weekData[i]));
@@ -73,6 +76,21 @@ export interface LeagueSeason {
   results: SeasonResults;
   /** Each roster's team name (results.names holds the Sleeper usernames), for the payout grid. */
   teamNames: Map<number, string>;
+  /** The last week Sleeper has made official; the weeks after it are still being played (or not yet). */
+  finishedThrough: number;
+}
+
+/** The season with only its official weeks: a week still being played isn't paid out yet. */
+export function finishedWeeksOnly(season: LeagueSeason): LeagueSeason {
+  const { matchupsByWeek } = season.results;
+  if (![...matchupsByWeek.keys()].some((w) => w > season.finishedThrough)) return season;
+  return {
+    ...season,
+    results: {
+      ...season.results,
+      matchupsByWeek: new Map([...matchupsByWeek].filter(([w]) => w <= season.finishedThrough)),
+    },
+  };
 }
 
 /**
@@ -126,6 +144,7 @@ export async function loadLeagueSeason(leagueId: string): Promise<LeagueSeason |
     season: league.season,
     profile,
     teamNames,
+    finishedThrough: lastFinishedWeek(league),
     results: {
       rosterIds: rosters.map((r) => r.roster_id),
       names,

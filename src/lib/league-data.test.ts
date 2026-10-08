@@ -1,7 +1,21 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { aggregateCareerStats, finalPlacements, pointsRanks, rosterStreak, SeasonRecord, StandingsRow } from "./league-data";
-import { SleeperBracketMatch, SleeperRoster } from "./sleeper";
+import {
+  aggregateCareerStats,
+  extendStreak,
+  finalPlacements,
+  lastFinishedWeek,
+  LeagueSummary,
+  pointsRanks,
+  resultsAsTheyStand,
+  rosterStreak,
+  SeasonRecord,
+  StandingsRow,
+  summaryAsItStands,
+  teamStandings,
+  unfinishedWeeks,
+} from "./league-data";
+import { SleeperBracketMatch, SleeperLeague, SleeperMatchup, SleeperRoster } from "./sleeper";
 
 /**
  * The brackets below are the real ones Sleeper returned for these leagues —
@@ -202,4 +216,85 @@ test("pointsRanks ranks points for and against, most first, ties sharing a rank"
   assert.deepEqual(ranks.get(1), { pointsFor: 1, pointsAgainst: 2 });
   assert.deepEqual(ranks.get(2), { pointsFor: 3, pointsAgainst: 1 });
   assert.deepEqual(ranks.get(3), { pointsFor: 1, pointsAgainst: 3 });
+});
+
+// ---- "As it stands" ---------------------------------------------------------
+
+function league(settings: Record<string, unknown>, status = "in_season"): SleeperLeague {
+  return {
+    league_id: "L",
+    name: "L",
+    season: "2026",
+    season_type: "regular",
+    sport: "nfl",
+    status,
+    avatar: null,
+    previous_league_id: null,
+    draft_id: null,
+    settings: { playoff_week_start: 15, ...settings },
+  };
+}
+
+function matchup(rosterId: number, matchupId: number, points: number): SleeperMatchup {
+  return { roster_id: rosterId, matchup_id: matchupId, points, starters: [], players: [] } as unknown as SleeperMatchup;
+}
+
+test("the last finished week is Sleeper's last scored one, else the week before the current one", () => {
+  assert.equal(lastFinishedWeek(league({ last_scored_leg: 4, leg: 5 })), 4);
+  assert.equal(lastFinishedWeek(league({ leg: 5 })), 4);
+  assert.equal(lastFinishedWeek(league({})), 0);
+  assert.equal(lastFinishedWeek(league({ last_scored_leg: 4 }, "complete")), Number.POSITIVE_INFINITY);
+});
+
+test("unfinished weeks run from after the last finished one through the current week", () => {
+  assert.deepEqual(unfinishedWeeks(league({ last_scored_leg: 4 }), 5), [5]);
+  assert.deepEqual(unfinishedWeeks(league({ last_scored_leg: 5 }), 5), []);
+  assert.deepEqual(unfinishedWeeks(league({ last_scored_leg: 3 }), 5), [4, 5]);
+  assert.deepEqual(unfinishedWeeks(league({}, "complete"), 5), []);
+});
+
+test("results as they stand count started weeks only, ties included", () => {
+  const results = resultsAsTheyStand([
+    [6, [matchup(1, 1, 0), matchup(2, 1, 0)]], // not started
+    [5, [matchup(1, 1, 101.5), matchup(2, 1, 88), matchup(3, 2, 70), matchup(4, 2, 70)]],
+  ]);
+  assert.deepEqual(results.get(1), { results: ["W"], pointsFor: 101.5, pointsAgainst: 88 });
+  assert.deepEqual(results.get(2), { results: ["L"], pointsFor: 88, pointsAgainst: 101.5 });
+  assert.deepEqual(results.get(3)?.results, ["T"]);
+});
+
+test("a streak carries on through new results, flips on a change, and ends on a tie", () => {
+  assert.deepEqual(extendStreak({ result: "W", length: 2 }, ["W"]), { result: "W", length: 3 });
+  assert.deepEqual(extendStreak({ result: "W", length: 2 }, ["L"]), { result: "L", length: 1 });
+  assert.deepEqual(extendStreak(null, ["L", "L"]), { result: "L", length: 2 });
+  assert.equal(extendStreak({ result: "W", length: 2 }, ["T"]), null);
+});
+
+test("as it stands, the week being played goes on the records, ranks and streaks", () => {
+  const rows = seeds([1, 2]).map((r) => ({ ...r, wins: 3, losses: 1, pointsFor: 400, pointsAgainst: 380 }));
+  rows[1] = { ...rows[1], pointsFor: 390 };
+  const summary = {
+    league: league({ last_scored_leg: 4 }),
+    rosters: [
+      { roster_id: 1, metadata: { streak: "2W" } },
+      { roster_id: 2, metadata: { streak: "1L" } },
+    ] as unknown as SleeperRoster[],
+    users: [],
+    standings: rows,
+    currentWeek: 5,
+  } satisfies LeagueSummary;
+  const now = summaryAsItStands(summary, new Map([[5, [matchup(1, 1, 90), matchup(2, 1, 120)]]]));
+  const two = now.standings.find((r) => r.rosterId === 2)!;
+  assert.equal(two.rank, 1);
+  assert.deepEqual([two.wins, two.losses, two.pointsFor, two.pointsAgainst], [4, 1, 510, 470]);
+  const standings = teamStandings(now);
+  assert.deepEqual(standings.get(1)?.streak, { result: "L", length: 1 });
+  assert.deepEqual(standings.get(2)?.streak, { result: "W", length: 1 });
+  // Playoff weeks don't go on the record.
+  const playoffs = summaryAsItStands(
+    { ...summary, league: league({ last_scored_leg: 14 }), currentWeek: 15 },
+    new Map([[15, [matchup(1, 1, 90), matchup(2, 1, 120)]]])
+  );
+  assert.equal(playoffs.standings, summary.standings);
+  assert.equal(playoffs.provisional, undefined);
 });

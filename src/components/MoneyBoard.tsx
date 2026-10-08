@@ -67,8 +67,9 @@ function legendLine(rule: PayoutRule, ledger: PlanLedger, regularSeasonWeeks: nu
  * The week grid: rows are managers, columns are the season's weeks (regular
  * season, then playoffs, per Sleeper's schedule) and the season-end awards;
  * cells are dollars. Behind each row runs a bar for that manager's season
- * earnings so far. The week in progress is shaded: its amounts update live
- * as games are scored, but aren't settled until the week is over.
+ * earnings so far. The week in progress, when it's counted ("as it stands"),
+ * is shaded: its amounts update live as games are scored, but aren't settled
+ * until the week is over.
  */
 function WeekGrid({
   ledger,
@@ -76,6 +77,7 @@ function WeekGrid({
   regularSeasonWeeks,
   lastWeek,
   currentWeek,
+  finishedThrough,
   teamNames,
 }: {
   ledger: PlanLedger;
@@ -83,6 +85,8 @@ function WeekGrid({
   regularSeasonWeeks: number;
   lastWeek: number;
   currentWeek: number | null;
+  /** The last week Sleeper has made official. */
+  finishedThrough: number;
   /** Team names by roster; each manager's row shows the team name over the username. */
   teamNames: Map<number, string>;
 }) {
@@ -111,7 +115,11 @@ function WeekGrid({
   const weeks = Array.from({ length: Math.max(lastWeek, ...ledger.weeks) }, (_, i) => i + 1);
   const isPlayoff = (w: number) => w > regularSeasonWeeks;
   const playoffCount = weeks.filter(isPlayoff).length;
-  const live = !ledger.seasonOver && currentWeek != null && weeks.includes(currentWeek) ? currentWeek : null;
+  // Only while it's counted and not yet official: with "as it stands" off, it isn't paid out until it's over.
+  const live =
+    !ledger.seasonOver && currentWeek != null && currentWeek > finishedThrough && ledger.weeksPlayed.includes(currentWeek)
+      ? currentWeek
+      : null;
   const maxTotal = Math.max(0, ...ledger.managers.map((m) => m.total));
   // The shading for the week in progress: the theme's ink at low opacity, so
   // the numbers stay readable on top in either theme.
@@ -357,6 +365,7 @@ export function MoneyBoard({
         regularSeasonWeeks={season.results.regularSeasonWeeks}
         lastWeek={season.results.lastWeek}
         currentWeek={currentWeek}
+        finishedThrough={season.finishedThrough}
         teamNames={season.teamNames}
       />
       <div className="mt-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-t border-grid pt-4">

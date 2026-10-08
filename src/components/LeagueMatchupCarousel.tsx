@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ResolvedMatchupGame, ResolvedSlot } from "@/hooks/useLeagueMatchupCarousel";
 import { HeadToHeadBadge, PointsRankBadges, TeamNameLabel } from "@/components/DashboardMatchupCard";
-import { AllTimeRecord, headToHeadKey, useAllTimeHeadToHead } from "@/hooks/useAllTimeHeadToHead";
+import { AllTimeRecord, headToHeadAsItStands, headToHeadKey, useAllTimeHeadToHead } from "@/hooks/useAllTimeHeadToHead";
+import { PendingMatchups } from "@/hooks/useAsItStands";
 import { TeamStanding } from "@/lib/league-data";
 import { MatchupRows } from "@/components/LeagueTicker";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
@@ -275,6 +276,7 @@ export function LeagueMatchupCarousel({
   myRosterId,
   standings,
   owners,
+  pending,
 }: {
   leagueId: string;
   games: ResolvedMatchupGame[];
@@ -283,13 +285,19 @@ export function LeagueMatchupCarousel({
   standings: Map<number, TeamStanding>;
   /** Each roster's owner (Sleeper user id), to look up all-time head-to-head records. */
   owners: Map<number, string>;
+  /** With "as it stands" on, this season's unfinished weeks' matchups, counted in the head-to-heads. */
+  pending?: PendingMatchups | null;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const hasScrolledToMine = useRef(false);
   const [index, setIndex] = useState(0);
   // The matchup shown large beside the list (tablet and up): yours until another is picked.
   const [pickedId, setPickedId] = useState<number | null>(null);
-  const allTimeByOwner = useAllTimeHeadToHead(leagueId);
+  const allTimeOfficial = useAllTimeHeadToHead(leagueId);
+  const allTimeByOwner = useMemo(
+    () => (pending && allTimeOfficial.size > 0 ? headToHeadAsItStands(allTimeOfficial, pending, owners) : allTimeOfficial),
+    [allTimeOfficial, pending, owners]
+  );
   // Empty until every season's matchups have loaded.
   const allTime = allTimeByOwner.size > 0 ? allTimeByOwner : null;
 

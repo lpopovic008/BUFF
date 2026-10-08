@@ -353,6 +353,31 @@ sacks and takeaways. They're an estimate from ESPN's text, so a league's own
 scoring and Sleeper's official totals can differ. Points allowed by a defense
 and return touchdowns aren't counted per play.
 
+## "As it stands"
+
+Sleeper counts a week in its records (rosters' wins/losses/points, the
+`streak` metadata) only once the week is over and processed. Its league
+object says how far that's got: `settings.last_scored_leg` is the last
+official week (`lastFinishedWeek` in `lib/league-data.ts`).
+
+Settings → Scores switches between two readings (`AppConfig.asItStands`,
+read through `useAsItStands`, which follows the setting as it changes):
+
+- **Final** (the default) counts only official weeks. The payout table
+  leaves the week being played out (`finishedWeeksOnly` in
+  `lib/league-money.ts`), so it isn't paid until it's over.
+- **As it stands** counts the week being played as if it ended now.
+  `usePendingMatchups` loads each league's unfinished weeks' matchups on every
+  live-clock tick, and `summaryAsItStands` puts their results on top of
+  Sleeper's records. This feeds the records, ranks, streaks and PF/PA on the
+  dashboard and league page, and the header's combined record. Only
+  regular-season weeks go on the record. The same matchups go on the
+  all-time head-to-heads (`headToHeadAsItStands`), the payout table (the week
+  is shaded Live), and league history's current season and its money.
+
+A week nobody has scored in yet hasn't started, so it counts for nothing
+either way. Recaps always use their own week's final results.
+
 ## Where things run
 
 | Piece | Where | Trigger |

@@ -9,8 +9,9 @@ import { LeagueMatchupCarousel } from "@/components/LeagueMatchupCarousel";
 import { MoneyBoard } from "@/components/MoneyBoard";
 import { useConfig } from "@/hooks/useConfig";
 import { useLeagueMatchupCarousel } from "@/hooks/useLeagueMatchupCarousel";
-import { getLeagueSummary, LeagueSummary, teamStandings } from "@/lib/league-data";
-import { loadLeagueSeason, LeagueSeason } from "@/lib/league-money";
+import { getLeagueSummary, LeagueSummary, summaryAsItStands, teamStandings } from "@/lib/league-data";
+import { finishedWeeksOnly, loadLeagueSeason, LeagueSeason } from "@/lib/league-money";
+import { useAsItStands, usePendingMatchups } from "@/hooks/useAsItStands";
 import { computePlanLedger, emptyPlan, PayoutPlan, planFromProfile } from "@/lib/payout-plan";
 import { getPayoutPlan, savePayoutPlan } from "@/lib/localStore";
 import { getCurrentWeek } from "@/lib/sleeper";
@@ -86,10 +87,24 @@ function LeagueDetailContent() {
     [leagueId]
   );
 
+  // "As it stands": the week being played counts as if it ended now — in the
+  // payouts, the standings and the head-to-heads. Otherwise only official weeks do.
+  const asItStands = useAsItStands();
+  const summaries = useMemo(() => (summary ? [summary] : null), [summary]);
+  const pending = usePendingMatchups(summaries)?.get(leagueId ?? "") ?? null;
+  const shownSummary = useMemo(
+    () => (summary && pending ? summaryAsItStands(summary, pending) : summary),
+    [summary, pending]
+  );
+  const shownMoney = useMemo(() => (money && !asItStands ? finishedWeeksOnly(money) : money), [money, asItStands]);
+
   // The season played through the payout setup.
-  const ledger = useMemo(() => (money && plan ? computePlanLedger(plan, money.results) : null), [money, plan]);
+  const ledger = useMemo(
+    () => (shownMoney && plan ? computePlanLedger(plan, shownMoney.results) : null),
+    [shownMoney, plan]
+  );
   // Each team's rank, record, streak and PF/PA ranks, around its name in the lineups.
-  const standings = useMemo(() => (summary ? teamStandings(summary) : new Map()), [summary]);
+  const standings = useMemo(() => (shownSummary ? teamStandings(shownSummary) : new Map()), [shownSummary]);
   // Who owns each roster, for the all-time head-to-head beside each matchup's PF/PA.
   const owners = useMemo(
     () => new Map((summary?.rosters ?? []).filter((r) => r.owner_id).map((r) => [r.roster_id, r.owner_id as string])),
@@ -158,15 +173,16 @@ function LeagueDetailContent() {
             myRosterId={myRow?.rosterId ?? null}
             standings={standings}
             owners={owners}
+            pending={pending}
           />
         </div>
       ) : carousel ? (
         <p className="text-sm text-ink-muted">No matchups this week.</p>
       ) : null}
 
-      {money && plan && ledger ? (
+      {shownMoney && plan && ledger ? (
         <section className="animate-[rise_0.5s_ease-out_backwards] [animation-delay:150ms]">
-          <MoneyBoard season={money} plan={plan} ledger={ledger} currentWeek={week} onPlanChange={changePlan} />
+          <MoneyBoard season={shownMoney} plan={plan} ledger={ledger} currentWeek={week} onPlanChange={changePlan} />
         </section>
       ) : null}
 

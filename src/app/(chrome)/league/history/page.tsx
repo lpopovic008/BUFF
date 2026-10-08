@@ -22,19 +22,23 @@ import { cumulativeSeriesByManager } from "@/lib/payouts";
 import { formatRecord, formatPoints, ordinal } from "@/lib/format";
 import { TitleWithHistory } from "@/components/HistoryButtons";
 import { PlateCard } from "@/components/ui/PlateCard";
+import { useAsItStands } from "@/hooks/useAsItStands";
+import { getCurrentWeek } from "@/lib/sleeper";
 
 function SeasonMoney({ leagueId, profile }: { leagueId: string; profile: LeagueProfile }) {
   const [money, setMoney] = useState<LeagueMoney | null | undefined>(undefined);
+  // The week being played is paid out only "as it stands".
+  const asItStands = useAsItStands();
 
   useEffect(() => {
     let cancelled = false;
-    loadLeagueMoney(leagueId, profile).then((m) => {
+    loadLeagueMoney(leagueId, profile, { finishedOnly: !asItStands }).then((m) => {
       if (!cancelled) setMoney(m);
     });
     return () => {
       cancelled = true;
     };
-  }, [leagueId, profile]);
+  }, [leagueId, profile, asItStands]);
 
   if (money === undefined) {
     return <p className="text-sm text-ink-muted">Loading money data…</p>;
@@ -233,6 +237,7 @@ function LeagueHistoryContent() {
   const [error, setError] = useState<string | null>(null);
   // All-time, or a season by league id — All-time to start.
   const [pickedId, setPickedId] = useState<string>(ALL_TIME);
+  const asItStands = useAsItStands();
 
   useEffect(() => {
     if (!leagueId) return;
@@ -241,7 +246,11 @@ function LeagueHistoryContent() {
       setSeasons(null);
       setError(null);
     })();
-    getLeagueSeasonHistory(leagueId)
+    // "As it stands", the season being played counts its unfinished week too.
+    const history = asItStands
+      ? getCurrentWeek().then((currentWeek) => getLeagueSeasonHistory(leagueId, { currentWeek }))
+      : getLeagueSeasonHistory(leagueId);
+    history
       .then((result) => {
         if (!cancelled) setSeasons(result);
       })
@@ -251,7 +260,7 @@ function LeagueHistoryContent() {
     return () => {
       cancelled = true;
     };
-  }, [leagueId]);
+  }, [leagueId, asItStands]);
 
   if (!leagueId) {
     return <Card className="p-12 text-center text-sm text-ink-secondary">No league selected.</Card>;

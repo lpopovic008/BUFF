@@ -37,7 +37,7 @@ function userForRoster(
   return roster.owner_id ? usersById.get(roster.owner_id) : undefined;
 }
 
-function rankStandings(rows: Omit<StandingsRow, "rank">[]): StandingsRow[] {
+export function rankStandings(rows: Omit<StandingsRow, "rank">[]): StandingsRow[] {
   const sorted = [...rows].sort((a, b) => {
     const aGames = a.wins + a.losses + a.ties;
     const bGames = b.wins + b.losses + b.ties;
@@ -141,6 +141,119 @@ export function buildStandingsThroughWeek(
   return rankStandings(rows);
 }
 
+// ---- "As it stands" ---------------------------------------------------------
+// Sleeper only counts a week in its records once the week is over and
+// processed. The "as it stands" setting (see hooks/useAsItStands.ts) counts the
+// week still being played too, as if it ended with the scores as they are now.
+
+/** The last week whose results Sleeper has made official for this league. */
+export function lastFinishedWeek(league: SleeperLeague): number {
+  if (league.status === "complete") return Number.POSITIVE_INFINITY;
+  const lastScored = Number(league.settings.last_scored_leg);
+  if (Number.isFinite(lastScored) && lastScored > 0) return lastScored;
+  const current = Number(league.settings.leg);
+  return Number.isFinite(current) && current > 0 ? current - 1 : 0;
+}
+
+/** The weeks up to `currentWeek` that are under way or played but not yet official. */
+export function unfinishedWeeks(league: SleeperLeague, currentWeek: number): number[] {
+  const from = lastFinishedWeek(league) + 1;
+  if (!Number.isFinite(from)) return [];
+  return Array.from({ length: Math.max(0, currentWeek - from + 1) }, (_, i) => from + i);
+}
+
+/** The last regular-season week — records only count up to here. */
+export function regularSeasonWeeksOf(league: SleeperLeague): number {
+  return Math.max(1, (Number(league.settings.playoff_week_start) || 15) - 1);
+}
+
+export type GameResult = "W" | "L" | "T";
+
+/** One roster's results across some weeks, in week order. */
+export interface ResultsTally {
+  results: GameResult[];
+  pointsFor: number;
+  pointsAgainst: number;
+}
+
+/**
+ * Each roster's results in the given weeks, as the scores stand: every paired
+ * matchup in a week that has started (anyone has points). A week nobody has
+ * scored in yet hasn't started, so it counts for nothing.
+ */
+export function resultsAsTheyStand(weeks: [number, SleeperMatchup[]][]): Map<number, ResultsTally> {
+  const out = new Map<number, ResultsTally>();
+  const add = (rosterId: number, result: GameResult, pf: number, pa: number) => {
+    const t = out.get(rosterId) ?? { results: [], pointsFor: 0, pointsAgainst: 0 };
+    t.results.push(result);
+    t.pointsFor += pf;
+    t.pointsAgainst += pa;
+    out.set(rosterId, t);
+  };
+  for (const [, matchups] of [...weeks].sort((a, b) => a[0] - b[0])) {
+    if (!matchups.some((m) => m.points > 0)) continue;
+    const byId = new Map<number, SleeperMatchup[]>();
+    for (const m of matchups) {
+      if (m.matchup_id == null) continue;
+      byId.set(m.matchup_id, [...(byId.get(m.matchup_id) ?? []), m]);
+    }
+    for (const pair of byId.values()) {
+      if (pair.length !== 2) continue;
+      const [a, b] = pair;
+      const aResult: GameResult = a.points > b.points ? "W" : a.points < b.points ? "L" : "T";
+      const bResult: GameResult = aResult === "W" ? "L" : aResult === "L" ? "W" : "T";
+      add(a.roster_id, aResult, a.points, b.points);
+      add(b.roster_id, bResult, b.points, a.points);
+    }
+  }
+  return out;
+}
+
+/** Standings with extra results added on top, re-ranked. */
+export function standingsWithResults(rows: StandingsRow[], extra: Map<number, ResultsTally>): StandingsRow[] {
+  if (extra.size === 0) return rows;
+  return rankStandings(
+    rows.map((row) => {
+      const t = extra.get(row.rosterId);
+      if (!t) return row;
+      return {
+        ...row,
+        wins: row.wins + t.results.filter((r) => r === "W").length,
+        losses: row.losses + t.results.filter((r) => r === "L").length,
+        ties: row.ties + t.results.filter((r) => r === "T").length,
+        pointsFor: Math.round((row.pointsFor + t.pointsFor) * 100) / 100,
+        pointsAgainst: Math.round((row.pointsAgainst + t.pointsAgainst) * 100) / 100,
+      };
+    })
+  );
+}
+
+/**
+ * A league's standings as if the unfinished regular-season weeks ended now:
+ * `pending` is those weeks' matchups (see unfinishedWeeks). Their results go
+ * on top of Sleeper's official records, and onto each team's streak.
+ */
+export function summaryAsItStands(summary: LeagueSummary, pending: Map<number, SleeperMatchup[]>): LeagueSummary {
+  const regular = regularSeasonWeeksOf(summary.league);
+  const extra = resultsAsTheyStand([...pending].filter(([week]) => week <= regular));
+  if (extra.size === 0) return summary;
+  return {
+    ...summary,
+    standings: standingsWithResults(summary.standings, extra),
+    provisional: new Map([...extra].map(([rosterId, t]) => [rosterId, t.results])),
+  };
+}
+
+/** A streak carried on through more results. A tie ends it. */
+export function extendStreak(streak: Streak | null, results: GameResult[]): Streak | null {
+  let out = streak;
+  for (const r of results) {
+    if (r === "T") out = null;
+    else out = out?.result === r ? { result: r, length: out.length + 1 } : { result: r, length: 1 };
+  }
+  return out;
+}
+
 export interface Streak {
   result: "W" | "L";
   length: number;
@@ -190,7 +303,9 @@ export interface TeamStanding {
 }
 
 /** Every team's standing (rank, record, streak, points-for/against ranks), by roster. */
-export function teamStandings(summary: Pick<LeagueSummary, "rosters" | "standings">): Map<number, TeamStanding> {
+export function teamStandings(
+  summary: Pick<LeagueSummary, "rosters" | "standings" | "provisional">
+): Map<number, TeamStanding> {
   const ranks = pointsRanks(summary.standings);
   return new Map(
     summary.standings.map((row) => {
@@ -200,7 +315,7 @@ export function teamStandings(summary: Pick<LeagueSummary, "rosters" | "standing
         {
           rank: row.rank,
           record: { wins: row.wins, losses: row.losses, ties: row.ties },
-          streak: roster ? rosterStreak(roster) : null,
+          streak: extendStreak(roster ? rosterStreak(roster) : null, summary.provisional?.get(row.rosterId) ?? []),
           pointsRanks: ranks.get(row.rosterId),
         },
       ];
@@ -214,6 +329,8 @@ export interface LeagueSummary {
   users: SleeperLeagueUser[];
   standings: StandingsRow[];
   currentWeek: number;
+  /** Results counted "as it stands" on top of Sleeper's official ones, by roster (see summaryAsItStands). */
+  provisional?: Map<number, GameResult[]>;
 }
 
 export async function getLeagueSummary(leagueId: string, currentWeek: number): Promise<LeagueSummary | null> {
@@ -609,8 +726,15 @@ export interface ManagerCareerStats {
   }[];
 }
 
-/** Walks the previous_league_id chain and reconstructs each season's final placements + champion. */
-export async function getLeagueSeasonHistory(leagueId: string): Promise<SeasonRecord[]> {
+/**
+ * Walks the previous_league_id chain and reconstructs each season's final
+ * placements + champion. With `asItStands` (and the NFL's current week), a
+ * season still being played counts its unfinished weeks as if they ended now.
+ */
+export async function getLeagueSeasonHistory(
+  leagueId: string,
+  asItStands?: { currentWeek: number }
+): Promise<SeasonRecord[]> {
   const seasons: SeasonRecord[] = [];
   let currentId: string | null = leagueId;
   const seen = new Set<string>();
@@ -624,7 +748,13 @@ export async function getLeagueSeasonHistory(leagueId: string): Promise<SeasonRe
       getWinnersBracket(currentId),
       getLosersBracket(currentId),
     ]);
-    const seeded = buildLiveStandings(rosters, users);
+    let seeded = buildLiveStandings(rosters, users);
+    if (asItStands && league.status !== "complete") {
+      const weeks = unfinishedWeeks(league, asItStands.currentWeek).filter((w) => w <= regularSeasonWeeksOf(league));
+      const id = currentId;
+      const matchups = await Promise.all(weeks.map((w) => getMatchups(id, w)));
+      seeded = standingsWithResults(seeded, resultsAsTheyStand(weeks.map((w, i) => [w, matchups[i]])));
+    }
     const { champion, runnerUp } = deriveChampionship(winners, seeded);
     // Sleeper flips a league to "complete" once the season closes out, but it
     // can lag right after the final — a decided championship game is the

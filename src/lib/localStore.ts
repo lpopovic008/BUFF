@@ -53,6 +53,12 @@ export interface AppConfig {
    * NEXT_PUBLIC_GOOGLE_CLIENT_ID (see google-config.ts) when unset.
    */
   googleClientId: string | null;
+  /**
+   * Count the week still being played as if it ended now — its results in
+   * records, standings, streaks and head-to-heads, its payouts in the payout
+   * table — rather than waiting for Sleeper to make it official.
+   */
+  asItStands?: boolean;
 }
 
 const DEFAULT_CONFIG: AppConfig = {
@@ -127,6 +133,13 @@ export function addExternalLeague(league: Omit<ExternalLeague, "id">): AppConfig
 export function removeExternalLeague(id: string): AppConfig {
   const config = getConfig();
   config.externalLeagues = config.externalLeagues.filter((l) => l.id !== id);
+  saveConfig(config);
+  return config;
+}
+
+/** Turns "as it stands" on or off (see AppConfig.asItStands). */
+export function setAsItStands(on: boolean): AppConfig {
+  const config = { ...getConfig(), asItStands: on };
   saveConfig(config);
   return config;
 }

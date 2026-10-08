@@ -13,6 +13,7 @@ import { ExternalLeaguesSection } from "./ExternalLeaguesSection";
 import { GoogleDocsSection } from "./GoogleDocsSection";
 import { AccountSection } from "./AccountSection";
 import { AppearanceSection } from "./AppearanceSection";
+import { ScoresSection } from "./ScoresSection";
 import { TitleWithHistory } from "@/components/HistoryButtons";
 import { PlateCard } from "@/components/ui/PlateCard";
 
@@ -167,6 +168,10 @@ export default function SettingsPage() {
 
           <Section title="Appearance">
             <AppearanceSection />
+          </Section>
+
+          <Section title="Scores">
+            <ScoresSection />
           </Section>
 
           <Section title="Google Docs">

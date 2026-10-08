@@ -10,6 +10,7 @@ import { LeagueLegendEntry, StartersByGame } from "@/components/StartersByGame";
 import { RedZone } from "@/components/RedZone";
 import { useConfig } from "@/hooks/useConfig";
 import { MatchupTarget, useDashboardMatchups } from "@/hooks/useDashboardMatchups";
+import { useSummariesAsItStands } from "@/hooks/useAsItStands";
 import { StarterSource, useMyStarters } from "@/hooks/useMyStarters";
 import { useNFLState } from "@/hooks/useNFLState";
 import { useWeekGames } from "@/hooks/useWeekGames";
@@ -73,6 +74,9 @@ export default function DashboardPage() {
       .filter((t): t is MatchupTarget => t !== null);
   }, [leagues, config.sleeperUserId]);
   const matchups = useDashboardMatchups(matchupTargets, week);
+  // Each league's standings — counting the week being played, when "as it stands" is on.
+  const officialSummaries = useMemo(() => leagues?.map((l) => l.summary) ?? null, [leagues]);
+  const shownSummaries = useSummariesAsItStands(officialSummaries);
 
   // Your starters across every league, filed under the NFL game each is
   // playing in — one box for all leagues, rather than a few faces per league.
@@ -239,7 +243,8 @@ export default function DashboardPage() {
   }
 
   // Each league's matchup and standings, shared by the league boxes and the phone ticker.
-  const leagueCards: TickerLeague[] = leagues.map(({ tracked, summary }) => {
+  const leagueCards: TickerLeague[] = leagues.map(({ tracked }, i) => {
+    const summary = shownSummaries?.[i] ?? leagues[i].summary;
     const myRow = summary.standings.find((r) => r.ownerId === config.sleeperUserId);
     const matchup = matchups[tracked.leagueId];
     const standings = teamStandings(summary);

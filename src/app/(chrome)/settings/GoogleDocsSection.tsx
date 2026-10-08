@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { IconButton } from "@/components/ui/IconButton";
 import { CheckIcon, ExternalLinkIcon } from "@/components/ui/Icon";
-import { AppConfig, saveConfig } from "@/lib/localStore";
+import { AppConfig, getConfig, saveConfig } from "@/lib/localStore";
 import { getGoogleAccessToken } from "@/lib/google-auth";
 import { DOCS_SCOPE } from "@/lib/google-docs";
 import { resolveGoogleClientId } from "@/lib/google-config";
@@ -25,7 +25,7 @@ export function GoogleDocsSection({ config, onChange }: { config: AppConfig; onC
 
   function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    saveConfig({ ...config, googleClientId: draftClientId.trim() || null });
+    saveConfig({ ...getConfig(), googleClientId: draftClientId.trim() || null });
     setStatus("idle");
     setError(null);
     onChange();
