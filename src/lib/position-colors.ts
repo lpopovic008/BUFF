@@ -8,3 +8,11 @@ export const POSITION_TEXT_COLOR: Record<string, string> = {
   WR: "text-series-1",
   TE: "text-series-4",
 };
+
+/** The same colors as CSS values, for drawing (SVG fills and strokes). */
+export const POSITION_COLOR_VAR: Record<string, string> = {
+  QB: "var(--series-8)",
+  RB: "var(--series-6)",
+  WR: "var(--series-1)",
+  TE: "var(--series-4)",
+};
