@@ -106,6 +106,7 @@ test("statLine leads with the player's main job", () => {
   assert.equal(statLine("RB", { rush_att: 9, rush_yd: 41, rec: 2, rec_yd: 11 }), "9 CAR 41 YDS · 2 REC 11 YDS");
   assert.equal(statLine("K", { fgm: 2, fga: 2, xpm: 3, xpa: 3 }), "FG 2/2 · XP 3/3");
   assert.equal(statLine("DEF", { sack: 3, int: 1, pts_allow: 17 }), "3 SCK · 1 INT · 17 PA");
+  assert.equal(statLine("", { xpm: 1, xpa: 1 }), "XP 1/1");
   assert.equal(statLine("WR", {}), "");
   assert.equal(statLine("WR", undefined), "");
 });
@@ -119,4 +120,51 @@ test("linesForPlays doesn't score an unmatched defender", () => {
   });
   const lines = linesForPlays([pick], ["BUF", "MIA"], pool).get("1")!;
   assert.deepEqual(lines.find((l) => l.name === "Z.Nobody")?.delta, null);
+});
+
+test("each line's stat line is the game as it stood after that play", () => {
+  const plays = [
+    play({ id: "a", sequence: 1, type: "Pass Reception", text: "J.Allen pass short left to D.Kincaid to BUF 33 for 8 yards (J.Phillips)." }),
+    play({ id: "b", sequence: 2, type: "Pass Incompletion", text: "J.Allen pass incomplete deep right to K.Coleman." }),
+    play({ id: "c", sequence: 3, type: "Rush", text: "J.Allen scrambles right end to MIA 45 for 21 yards (Z.Sieler)." }),
+    play({
+      id: "d",
+      sequence: 4,
+      type: "Passing Touchdown",
+      scoring: true,
+      text: "J.Allen pass deep middle to D.Kincaid for 28 yards, TOUCHDOWN. T.Bass extra point is GOOD.",
+      score: { home: 7, away: 0 },
+    }),
+  ];
+  const lines = linesForPlays(plays, ["BUF", "MIA"], pool);
+  const line = (id: string, name: string) => lines.get(id)!.find((l) => l.name === name)!;
+  assert.equal(statLine("QB", line("a", "Josh Allen").stats!), "1/1 8 YDS");
+  assert.equal(statLine("QB", line("b", "Josh Allen").stats!), "1/2 8 YDS");
+  assert.equal(statLine("QB", line("c", "Josh Allen").stats!), "1/2 8 YDS · 1 CAR 21 YDS");
+  assert.equal(statLine("QB", line("d", "Josh Allen").stats!), "2/3 36 YDS 1 TD · 1 CAR 21 YDS");
+  assert.equal(statLine("TE", line("a", "Dalton Kincaid").stats!), "1 REC 8 YDS");
+  assert.equal(statLine("TE", line("d", "Dalton Kincaid").stats!), "2 REC 36 YDS 1 TD");
+  assert.equal(statLine("K", line("d", "Tyler Bass").stats!), "XP 1/1");
+  // Points still add up the same way.
+  assert.equal(line("d", "Josh Allen").total, 0.32 + 2.1 + 5.12);
+});
+
+test("a defense's stat line counts its takeaways and the points allowed so far", () => {
+  const plays = [
+    play({ id: "a", sequence: 1, offense: "MIA", type: "Sack", text: "T.Tagovailoa sacked at MIA 22 for -8 yards (G.Rousseau).", score: { home: 0, away: 3 } }),
+    play({
+      id: "b",
+      sequence: 2,
+      offense: "MIA",
+      turnover: true,
+      type: "Pass Interception Return",
+      text: "T.Tagovailoa pass deep right intended for T.Hill INTERCEPTED by T.Bernard at BUF 30.",
+    }),
+  ];
+  const lines = linesForPlays(plays, ["BUF", "MIA"], pool);
+  const def = (id: string) => lines.get(id)!.find((l) => l.position === "DEF")!;
+  assert.equal(statLine("DEF", def("a").stats!), "1 SCK · 3 PA");
+  // A play without a score keeps the last one known.
+  assert.equal(statLine("DEF", def("b").stats!), "1 SCK · 1 INT · 3 PA");
+  assert.equal(def("b").total, 3);
 });

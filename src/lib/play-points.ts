@@ -45,31 +45,40 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
-function defensePoints(play: GamePlay, text: string): number {
-  let pts = 0;
-  if (/sacked/i.test(text)) pts += PPR.defSack;
-  if (/INTERCEPTED/.test(text)) pts += PPR.defInt;
-  else if (play.turnover && /FUMBLES/i.test(text)) pts += PPR.defFumRec;
-  if (play.turnover && /TOUCHDOWN/.test(text)) pts += PPR.defTd;
-  if (/SAFETY/.test(text)) pts += PPR.defSafety;
-  if (/BLOCKED/i.test(text)) pts += PPR.defBlock;
-  return pts;
+/** One play's stats for one player, in Sleeper's stat names (only the ones it earned). */
+export type PlayStats = Record<string, number>;
+
+function add(stats: PlayStats, key: string, n = 1) {
+  stats[key] = (stats[key] ?? 0) + n;
+}
+
+function defenseStats(play: GamePlay, text: string): PlayStats {
+  const stats: PlayStats = {};
+  if (/sacked/i.test(text)) add(stats, "sack");
+  if (/INTERCEPTED/.test(text)) add(stats, "int");
+  else if (play.turnover && /FUMBLES/i.test(text)) add(stats, "fum_rec");
+  if (play.turnover && /TOUCHDOWN/.test(text)) add(stats, "def_td");
+  if (/SAFETY/.test(text)) add(stats, "safe");
+  if (/BLOCKED/i.test(text)) add(stats, "blk_kick");
+  return stats;
 }
 
 /**
- * The standard PPR points one starter earned on one play — 0 when the play
- * was wiped out by a penalty ("No Play") or the starter wasn't credited with
- * anything on it (an incompletion thrown their way, say).
+ * What one player did on one play, read from its line: passes thrown and
+ * completed, yards and touchdowns, carries, catches, kicks — or, for a team
+ * defense, its sacks and takeaways. Nothing for a play wiped out by a penalty
+ * ("No Play") or one the player wasn't credited with anything on.
  */
-export function pprPointsForPlay(play: GamePlay, player: FeedCandidate): number {
+export function statsForPlay(play: GamePlay, player: FeedCandidate): PlayStats {
   // Tacklers and other defenders, in parentheses and brackets, never earn anything.
   const text = play.text.replace(/\([^)]*\)|\[[^\]]*\]/g, " ").replace(/\s+/g, " ");
-  if (/No Play/i.test(text)) return 0;
-  if (player.position === "DEF") return round2(defensePoints(play, text));
+  if (/No Play/i.test(text)) return {};
+  if (player.position === "DEF") return defenseStats(play, text);
 
   const pattern = playTextNamePattern(player.name);
-  if (!pattern) return 0;
+  if (!pattern) return {};
   const name = pattern.source;
+  const stats: PlayStats = {};
 
   // A two-point try is its own sentence at the end of a touchdown's line.
   const split = text.search(/TWO-POINT CONVERSION ATTEMPT/i);
@@ -77,36 +86,49 @@ export function pprPointsForPlay(play: GamePlay, player: FeedCandidate): number 
   const twoPt = split >= 0 ? text.slice(split) : "";
 
   const offenseTd = /TOUCHDOWN/.test(main) && !play.turnover;
-  let pts = 0;
 
   // Kicking.
   const fg = new RegExp(`${name} (\\d+) yard field goal is (GOOD|No Good|BLOCKED)`, "i").exec(main);
-  if (fg) pts += /GOOD/.test(fg[2]) ? PPR.fg(Number(fg[1])) : PPR.fgMiss;
+  if (fg) {
+    add(stats, "fga");
+    if (/GOOD/.test(fg[2])) {
+      const yards = Number(fg[1]);
+      add(stats, "fgm");
+      add(stats, yards >= 50 ? "fgm_50p" : yards >= 40 ? "fgm_40_49" : "fgm_0_39");
+    }
+  }
   const xp = new RegExp(`${name} extra point is (GOOD|No Good|Blocked)`, "i").exec(text);
-  if (xp) pts += /GOOD/.test(xp[1]) ? PPR.xp : PPR.xpMiss;
+  if (xp) {
+    add(stats, "xpa");
+    if (/GOOD/.test(xp[1])) add(stats, "xpm");
+  }
 
   // Passing.
   const pass = new RegExp(`${name} pass`).exec(main);
   if (pass) {
-    if (/INTERCEPTED/.test(main)) pts += PPR.passInt;
+    add(stats, "pass_att");
+    if (/INTERCEPTED/.test(main)) add(stats, "pass_int");
     else if (!/pass incomplete/i.test(main.slice(pass.index))) {
-      pts += (yardsAfter(main, pass.index) ?? play.yards) * PPR.passYd;
-      if (offenseTd) pts += PPR.passTd;
+      add(stats, "pass_cmp");
+      add(stats, "pass_yd", yardsAfter(main, pass.index) ?? play.yards);
+      if (offenseTd) add(stats, "pass_td");
     }
   }
 
   // Catching.
   const catchMatch = new RegExp(`pass(?: (?:short|deep))?(?: (?:left|middle|right))? to ${name}`).exec(main);
   if (catchMatch) {
-    pts += PPR.rec + (yardsAfter(main, catchMatch.index) ?? play.yards) * PPR.recYd;
-    if (offenseTd) pts += PPR.recTd;
+    add(stats, "rec");
+    add(stats, "rec_yd", yardsAfter(main, catchMatch.index) ?? play.yards);
+    if (offenseTd) add(stats, "rec_td");
   }
 
   // Running: the line opens with the runner, doing anything but passing, being sacked or kicking.
   const run = new RegExp(`^${name} (?!pass|sacked|kicks|punts|\\d+ yard field goal|extra point|spiked)`).exec(main.trim());
   if (run && !pass) {
-    pts += (yardsAfter(main.trim(), 0) ?? play.yards) * PPR.rushYd;
-    if (offenseTd) pts += PPR.rushTd;
+    add(stats, "rush_att");
+    add(stats, "rush_yd", yardsAfter(main.trim(), 0) ?? play.yards);
+    if (offenseTd) add(stats, "rush_td");
   }
 
   // Losing the ball: whoever ESPN names fumbling, or else whoever had it — the
@@ -119,18 +141,55 @@ export function pprPointsForPlay(play: GamePlay, player: FeedCandidate): number 
         ? true
         : !!run || new RegExp(`^${name} sacked`).test(main.trim());
     const someoneElseCaught = !named && !catchMatch && /pass(?: (?:short|deep))?(?: (?:left|middle|right))? to /.test(main);
-    if (fumbler && !someoneElseCaught) pts += PPR.fumLost;
+    if (fumbler && !someoneElseCaught) add(stats, "fum_lost");
   }
 
   // The two-point try: whoever threw, caught or ran it in.
   if (twoPt && /ATTEMPT SUCCEEDS/i.test(twoPt)) {
-    const passed = new RegExp(`${name} pass`).test(twoPt);
-    const caught = new RegExp(`to ${name}`).test(twoPt);
-    const ran = new RegExp(`ATTEMPT\\.\\s*${name} (?!pass)`, "i").test(twoPt);
-    if (passed || caught || ran) pts += PPR.twoPt;
+    if (new RegExp(`${name} pass`).test(twoPt)) add(stats, "pass_2pt");
+    if (new RegExp(`to ${name}`).test(twoPt)) add(stats, "rec_2pt");
+    if (new RegExp(`ATTEMPT\\.\\s*${name} (?!pass)`, "i").test(twoPt)) add(stats, "rush_2pt");
   }
 
-  return round2(pts);
+  return stats;
+}
+
+/** Standard PPR points for a stat line. */
+export function pprPoints(stats: PlayStats): number {
+  const n = (key: string) => stats[key] ?? 0;
+  return round2(
+    n("pass_yd") * PPR.passYd +
+      n("pass_td") * PPR.passTd +
+      n("pass_int") * PPR.passInt +
+      n("rush_yd") * PPR.rushYd +
+      n("rush_td") * PPR.rushTd +
+      n("rec") * PPR.rec +
+      n("rec_yd") * PPR.recYd +
+      n("rec_td") * PPR.recTd +
+      (n("pass_2pt") + n("rec_2pt") + n("rush_2pt")) * PPR.twoPt +
+      n("fum_lost") * PPR.fumLost +
+      n("fgm_0_39") * PPR.fg(0) +
+      n("fgm_40_49") * PPR.fg(40) +
+      n("fgm_50p") * PPR.fg(50) +
+      (n("fga") - n("fgm")) * PPR.fgMiss +
+      n("xpm") * PPR.xp +
+      (n("xpa") - n("xpm")) * PPR.xpMiss +
+      n("sack") * PPR.defSack +
+      n("int") * PPR.defInt +
+      n("fum_rec") * PPR.defFumRec +
+      n("def_td") * PPR.defTd +
+      n("safe") * PPR.defSafety +
+      n("blk_kick") * PPR.defBlock
+  );
+}
+
+/**
+ * The standard PPR points one starter earned on one play — 0 when the play
+ * was wiped out by a penalty ("No Play") or the starter wasn't credited with
+ * anything on it (an incompletion thrown their way, say).
+ */
+export function pprPointsForPlay(play: GamePlay, player: FeedCandidate): number {
+  return pprPoints(statsForPlay(play, player));
 }
 
 /** A delta for display: "+5.12", "-2", "0". */

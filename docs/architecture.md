@@ -355,8 +355,12 @@ Each play reads: the time of day it happened, the team with the ball and the
 down and distance, with the matchup's logos and game clock across from them;
 then a line for each person in it (`lib/play-lines.ts`), and ESPN's
 description underneath. A line is a photo, position and name, the leagues you
-start them in, their game so far (Sleeper's live stat line for the week,
-`statLine`), and what the play earned them with their total through it. ESPN's
+start them in, their game as it stood after that play (`statLine`), and
+what the play earned them with their total through it. The stats are read
+from each play's text (`statsForPlay` in `lib/play-points.ts`, which the PPR
+points are scored from too) and added up play by play, so an older play shows
+the game as it was then, not as it is now; a defense's points allowed come
+from the score ESPN gives with each play. ESPN's
 shorthand ("J.Allen") is matched to your starters first, then to Sleeper's
 player list for the two teams (`loadTeamPlayers`, `useTeamPlayers`) — the
 offense first, then the defense for someone like an interceptor, who isn't

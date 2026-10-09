@@ -3,7 +3,7 @@
 // earned them, and how their game is going.
 
 import { FeedCandidate, GamePlay, playTextActors } from "./play-by-play";
-import { pprPointsForPlay } from "./play-points";
+import { PlayStats, pprPoints, statsForPlay } from "./play-points";
 
 /** A player a play's names can be matched to. */
 export interface LinePlayer {
@@ -29,6 +29,8 @@ export interface PlayLine {
   /** What the play earned them, and their game total through it — null for someone the play can't score (a defender). */
   delta: number | null;
   total: number | null;
+  /** Their game's stats through this play (null alongside a null delta) — a defense's with the points it had allowed by then. */
+  stats: PlayStats | null;
 }
 
 const SUFFIXES = new Set(["jr", "jr.", "sr", "sr.", "ii", "iii", "iv", "v"]);
@@ -55,8 +57,6 @@ export function findPlayer(label: string, team: string | null, pool: LinePlayer[
   return pool.find((p) => p.team === team && p.position !== "DEF" && labelNames(label, p.name)) ?? null;
 }
 
-const round2 = (n: number) => Math.round(n * 100) / 100;
-
 /** Whether the play's line has this person taking the ball away, or blocking a kick — a defender. */
 function takesAway(text: string, label: string): boolean {
   const name = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -66,26 +66,32 @@ function takesAway(text: string, label: string): boolean {
 /**
  * A game's plays, each with one line per person in it — in the order the
  * play's line names them, then the defense if the play scored it points.
- * Running totals build up play by play, so pass every play of the game in
- * game order. `pool` is who names can be matched to, likeliest first. A
+ * Running totals — points and stats — build up play by play, so pass every
+ * play of the game in game order. `pool` is who names can be matched to, likeliest first. A
  * defense is listed when the play scored it points, or when it's one of
  * `keepDefenses` and the play was one it's in on.
  */
 export function linesForPlays(
   plays: GamePlay[],
+  /** Home, then away. */
   teams: [string, string],
   pool: LinePlayer[],
   /** Defenses to list on every play they're in, scoring or not (your starting D/STs). */
   keepDefenses: Set<string> = new Set()
 ): Map<string, PlayLine[]> {
-  const totals = new Map<string, number>();
-  const addTo = (key: string, delta: number) => {
-    const total = round2((totals.get(key) ?? 0) + delta);
-    totals.set(key, total);
-    return total;
+  // Everyone's game so far, play by play.
+  const running = new Map<string, PlayStats>();
+  const addUp = (key: string, play: PlayStats): PlayStats => {
+    const sum = { ...running.get(key) };
+    for (const [stat, n] of Object.entries(play)) sum[stat] = (sum[stat] ?? 0) + n;
+    running.set(key, sum);
+    return sum;
   };
+  const [home, away] = teams;
+  let score: GamePlay["score"];
   const out = new Map<string, PlayLine[]>();
   for (const play of plays) {
+    score = play.score ?? score;
     const lines: PlayLine[] = [];
     const seen = new Set<string>();
     const defense = play.offense ? (teams.find((t) => t !== play.offense) ?? null) : null;
@@ -101,7 +107,8 @@ export function linesForPlays(
       const asCandidate: FeedCandidate = player
         ? { playerId: player.playerId, name: player.name, position: player.position, team: player.team }
         : candidate;
-      const delta = scored ? pprPointsForPlay(play, asCandidate) : null;
+      const playStats = scored ? statsForPlay(play, asCandidate) : null;
+      const stats = playStats ? addUp(key, playStats) : null;
       lines.push({
         key,
         playerId: player?.playerId ?? null,
@@ -109,15 +116,28 @@ export function linesForPlays(
         label,
         position: player?.position ?? "",
         team: player?.team ?? play.offense,
-        delta,
-        total: delta === null ? null : addTo(key, delta),
+        delta: playStats ? pprPoints(playStats) : null,
+        total: stats ? pprPoints(stats) : null,
+        stats,
       });
     }
     if (defense) {
-      const delta = pprPointsForPlay(play, { playerId: defense, name: `${defense} D/ST`, position: "DEF", team: defense });
-      const total = addTo(defense, delta);
+      const playStats = statsForPlay(play, { playerId: defense, name: `${defense} D/ST`, position: "DEF", team: defense });
+      const stats = addUp(defense, playStats);
+      const delta = pprPoints(playStats);
       if (delta !== 0 || keepDefenses.has(defense)) {
-        lines.push({ key: defense, playerId: defense, name: `${defense} D/ST`, label: null, position: "DEF", team: defense, delta, total });
+        const allowed = score ? (defense === home ? score.away : defense === away ? score.home : undefined) : undefined;
+        lines.push({
+          key: defense,
+          playerId: defense,
+          name: `${defense} D/ST`,
+          label: null,
+          position: "DEF",
+          team: defense,
+          delta,
+          total: pprPoints(stats),
+          stats: allowed === undefined ? stats : { ...stats, pts_allow: allowed },
+        });
       }
     }
     out.set(play.id, lines);
@@ -128,7 +148,7 @@ export function linesForPlays(
 const n = (stats: Record<string, number>, key: string) => Math.round(stats[key] ?? 0);
 
 /**
- * A player's game so far, in a few words: "18/26 214 YDS 2 TD" for a passer,
+ * A player's game in a few words: "18/26 214 YDS 2 TD" for a passer,
  * "9 CAR 41 YDS" for a runner, "5 REC 63 YDS 1 TD" for a catcher — whichever
  * they've done, their main job first — "FG 2/2 XP 3/3" for a kicker, sacks
  * and takeaways for a defense. Empty when they've done nothing yet.
@@ -147,14 +167,12 @@ export function statLine(position: string, stats: Record<string, number> | undef
       .filter(Boolean)
       .join(" · ");
   }
-  if (position === "K") {
-    return [
-      n(stats, "fga") > 0 ? `FG ${n(stats, "fgm")}/${n(stats, "fga")}` : "",
-      n(stats, "xpa") > 0 ? `XP ${n(stats, "xpm")}/${n(stats, "xpa")}` : "",
-    ]
-      .filter(Boolean)
-      .join(" · ");
-  }
+  // Kicks — a kicker's whole line, and shown for anyone else who has them (someone ESPN's name couldn't be matched to).
+  const kicks = [
+    n(stats, "fga") > 0 ? `FG ${n(stats, "fgm")}/${n(stats, "fga")}` : "",
+    n(stats, "xpa") > 0 ? `XP ${n(stats, "xpm")}/${n(stats, "xpa")}` : "",
+  ];
+  if (position === "K") return kicks.filter(Boolean).join(" · ");
   const pass =
     n(stats, "pass_att") > 0
       ? `${n(stats, "pass_cmp")}/${n(stats, "pass_att")} ${n(stats, "pass_yd")} YDS${td("pass_td")}${n(stats, "pass_int") > 0 ? ` ${n(stats, "pass_int")} INT` : ""}`
@@ -162,5 +180,5 @@ export function statLine(position: string, stats: Record<string, number> | undef
   const rush = n(stats, "rush_att") > 0 ? `${n(stats, "rush_att")} CAR ${n(stats, "rush_yd")} YDS${td("rush_td")}` : "";
   const rec = n(stats, "rec") > 0 ? `${n(stats, "rec")} REC ${n(stats, "rec_yd")} YDS${td("rec_td")}` : "";
   const order = position === "QB" ? [pass, rush, rec] : position === "RB" ? [rush, rec, pass] : [rec, rush, pass];
-  return order.filter(Boolean).join(" · ");
+  return [...order, ...kicks].filter(Boolean).join(" · ");
 }

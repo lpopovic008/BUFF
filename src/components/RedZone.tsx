@@ -95,19 +95,18 @@ function LinePoints({ line, mine, at }: { line: PlayLine; mine: boolean; at: num
 function PlayerLine({
   line,
   starter,
-  stats,
   legendByLeagueId,
   at,
 }: {
   line: PlayLine;
   /** Set when they're one of your starters. */
   starter: GroupedStarter | undefined;
-  stats: Record<string, number> | undefined;
   legendByLeagueId: Map<string, LeagueLegendEntry>;
   at: number;
 }) {
   const defense = line.position === "DEF";
-  const summary = statLine(line.position, stats);
+  // Their game as it stood once this play was over.
+  const summary = statLine(line.position, line.stats ?? undefined);
   return (
     <li className="flex items-center gap-2">
       {defense && line.team ? (
@@ -196,14 +195,12 @@ function clockTime(at: number | null): string {
 function FeedRow({
   entry,
   starterById,
-  weekStats,
   legendByLeagueId,
   arrivedLive,
   index,
 }: {
   entry: FeedEntry;
   starterById: Map<string, GroupedStarter>;
-  weekStats: Record<string, Record<string, number>>;
   legendByLeagueId: Map<string, LeagueLegendEntry>;
   arrivedLive: boolean;
   index: number;
@@ -254,7 +251,6 @@ function FeedRow({
               key={line.key}
               line={line}
               starter={line.playerId ? starterById.get(line.playerId) : undefined}
-              stats={line.playerId ? weekStats[line.playerId] : undefined}
               legendByLeagueId={legendByLeagueId}
               at={play.at ?? 0}
             />
@@ -319,7 +315,7 @@ export function RedZone({
   /** Every game of the week. */
   weekGames: NFLGame[];
   legend: LeagueLegendEntry[];
-  /** Everyone's stat line so far this week, by Sleeper id. */
+  /** Everyone's stat line so far this week, by Sleeper id — who's played tells which of ESPN's names is likeliest who. */
   weekStats: Record<string, Record<string, number>>;
   /** On phones, show the plays in a box three rows tall that scrolls on its own, instead of running down the page. */
   compactOnPhone?: boolean;
@@ -443,7 +439,6 @@ export function RedZone({
                   key={`${entry.game.id}-${entry.play.id}`}
                   entry={entry}
                   starterById={starterById}
-                  weekStats={weekStats}
                   legendByLeagueId={legendByLeagueId}
                   arrivedLive={settled}
                   index={i}

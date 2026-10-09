@@ -33,6 +33,8 @@ export interface GamePlay {
   downDistance: string | null;
   /** When the play happened, in ms. Null if ESPN didn't say. */
   at: number | null;
+  /** The game's score once the play was over, when ESPN gives it. */
+  score?: { home: number; away: number };
 }
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -99,6 +101,7 @@ export function parseSummaryPlays(gameId: string, data: unknown): GamePlay[] {
             ? start.shortDownDistanceText
             : downAndDistance(down, distance, toEndzone),
         at: Number.isFinite(at) ? at : null,
+        ...(typeof p.homeScore === "number" && typeof p.awayScore === "number" ? { score: { home: p.homeScore, away: p.awayScore } } : {}),
       });
     }
   }

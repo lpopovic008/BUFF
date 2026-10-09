@@ -98,6 +98,8 @@ test("parseSummaryPlays reads drives in game order, with the offense from each d
               statYardage: 21,
               start: { down: 1, distance: 10, yardsToEndzone: 65, shortDownDistanceText: "1st & 10" },
               wallclock: "2026-10-02T00:44:14Z",
+              homeScore: 0,
+              awayScore: 7,
             },
             { id: "3", sequenceNumber: "7500", type: { text: "Official Timeout" }, text: "Official Timeout at 02:59." },
           ],
@@ -132,6 +134,9 @@ test("parseSummaryPlays reads drives in game order, with the offense from each d
   assert.deepEqual(plays.map((p) => p.downDistance), ["1st & 10", "2nd & Goal"]);
   assert.equal(plays[0].at, Date.parse("2026-10-02T00:44:14Z"));
   assert.equal(plays[1].at, null);
+  // The score after the play, when ESPN gives it.
+  assert.deepEqual(plays[0].score, { home: 0, away: 7 });
+  assert.equal(plays[1].score, undefined);
 });
 
 test("parseSummaryPlays tolerates a summary with no drives", () => {
