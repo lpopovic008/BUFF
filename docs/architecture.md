@@ -352,7 +352,7 @@ you scroll into the last screen of them (no "Show more"). On a phone while a
 game is live it's a short box three plays tall under the map instead.
 
 Each play reads: the time of day it happened, the team with the ball and the
-matchup's logos, with the down and distance and game clock across from them;
+down and distance, with the matchup's logos and game clock across from them;
 then a line for each person in it (`lib/play-lines.ts`), and ESPN's
 description underneath. A line is a photo, position and name, the leagues you
 start them in, their game so far (Sleeper's live stat line for the week,

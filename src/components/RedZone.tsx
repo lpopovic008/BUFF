@@ -187,9 +187,9 @@ function clockTime(at: number | null): string {
 }
 
 /**
- * One play: when it happened, the team with the ball and the matchup on top
- * (the down and distance it was snapped on, and the game clock, across from
- * them); a line for each person in it; ESPN's description underneath. A play
+ * One play: when it happened, the team with the ball and the down and
+ * distance it was snapped on along the top (the matchup and the game clock
+ * across from them); a line for each person in it; ESPN's description underneath. A play
  * that arrives while you watch slides in and washes its row in the theme's
  * ink — green for a good one for you.
  */
@@ -235,15 +235,15 @@ function FeedRow({
         <span className="flex min-w-0 items-center gap-1.5 whitespace-nowrap">
           {time ? <span className="tabular-nums text-ink-muted">{time}</span> : null}
           <span className="font-bold text-ink-primary">{team}</span>
+          {play.downDistance ? <span className="font-semibold text-ink-secondary">{play.downDistance}</span> : null}
+        </span>
+        <span className="flex shrink-0 items-center gap-1 whitespace-nowrap tabular-nums text-ink-muted">
+          <PlayBadges entry={entry} />
           <span className="flex items-center gap-1" title={`${game.awayTeam} @ ${game.homeTeam}`}>
             <TeamLogo team={game.awayTeam} side={14} />
             <span className="text-ink-muted">@</span>
             <TeamLogo team={game.homeTeam} side={14} />
           </span>
-        </span>
-        <span className="flex shrink-0 items-center gap-1 whitespace-nowrap tabular-nums text-ink-muted">
-          <PlayBadges entry={entry} />
-          {play.downDistance ? <span className="font-semibold text-ink-secondary">{play.downDistance}</span> : null}
           {whenLabel(entry)}
         </span>
       </span>
