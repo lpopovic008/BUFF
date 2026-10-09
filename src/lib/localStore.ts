@@ -233,13 +233,6 @@ export function getRecap(leagueId: string, season: string, week: number): SavedR
   return recaps[recapKey(leagueId, season, week)] ?? null;
 }
 
-export function listRecaps(leagueId: string): SavedRecap[] {
-  const recaps = readRecaps();
-  return Object.values(recaps)
-    .filter((r) => r.leagueId === leagueId)
-    .sort((a, b) => (a.season === b.season ? b.week - a.week : b.season.localeCompare(a.season)));
-}
-
 export function deleteRecap(leagueId: string, season: string, week: number): void {
   const recaps = readRecaps();
   delete recaps[recapKey(leagueId, season, week)];

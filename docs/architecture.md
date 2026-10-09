@@ -209,7 +209,7 @@ never assumed fixed from reading the code alone.
 ## Accounts and sync (Supabase)
 
 The dashboard has always worked with zero account — a Sleeper username is
-enough, and everything else (settings, the recap archive, bowl picks,
+enough, and everything else (settings, saved recaps, bowl picks,
 draft targets) lives in that one browser's `localStorage`
 (`src/lib/localStore.ts`). That's still true today; an account is
 **optional**, and turns on one thing: the same data synced across every

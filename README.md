@@ -53,8 +53,8 @@ from every linked season. Ships as a static site, hosted for free on
   underlined high-scorer line, and italicized commentary, instead of one flat
   block of plain text; anything else just gets the plain fallback. Leagues
   without a commissioner profile get a plain generic markdown recap instead —
-  no bowl-game concept. Saved recaps are archived per league
-  (`/recap/archive?id=...`).
+  no bowl-game concept. Each week's recap is saved as you write it; the
+  header's week picker opens any week's.
 - **History** (`/league/history?id=...`, one click from inside a league) — walks Sleeper's
   linked-season chain (`previous_league_id`) to reconstruct career stats per
   manager: record, win%, points, championships, and best finish, across
@@ -137,8 +137,8 @@ server-side rendering and no build-time secrets. Almost everything runs
 - Every request to Sleeper's public API (`api.sleeper.app`) is made
   client-side. No API key or login needed — it's read-only and keyed off
   your Sleeper username.
-- Your settings (linked username, tracked leagues, commish flags) and the
-  recap archive are saved in this **browser's `localStorage`** by default —
+- Your settings (linked username, tracked leagues, commish flags) and your
+  saved recaps are saved in this **browser's `localStorage`** by default —
   per-browser, not synced across devices. Use **Settings → Export backup**
   to save a JSON file, **Import backup** to bring it into another
   browser/device, or sign in under **Settings → Account** to sync it

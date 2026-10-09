@@ -3,9 +3,8 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
-import { IconLink, IconButton } from "@/components/ui/IconButton";
+import { IconButton } from "@/components/ui/IconButton";
 import {
-  DocumentIcon,
   CopyIcon,
   CheckIcon,
   UploadIcon,
@@ -469,66 +468,65 @@ function RecapContent() {
         .
       </span>
 
-      <div className="sticky top-[var(--header-h,0px)] z-10 -mx-4 flex flex-wrap items-center justify-end gap-3 border-b border-border bg-page/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 md:-mx-1 md:px-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <IconLink href={`/recap/archive?id=${leagueId}`} icon={<DocumentIcon />} label="Recap archive" />
-          <GraphicCopyMenu
-            graphicStatus={actions.graphicStatus}
-            graphicError={actions.graphicError}
-            splitStatus={actions.splitStatus}
-            splitError={actions.splitError}
-            splitPartCount={actions.splitPartCount}
-            partCopied={actions.partCopied}
-            onCopyFull={actions.handleCopyGraphic}
-            onCopySplit={actions.handleCopySplitGraphic}
-            onCopySplitPart={actions.handleCopySplitPart}
-          />
-          {money?.profile.writeupDocId && googleClientId ? (
-            // Typing directly into the Doc already leaves a plain-text copy
-            // there, so Save to Doc stands in for Copy Text here.
-            <IconButton
-              icon={actions.docStatus === "saved" ? <CheckIcon /> : <UploadIcon />}
-              label={
-                actions.docStatus === "saving" ? "Saving to Doc…" : actions.docStatus === "saved" ? "Saved to Doc" : "Save to Doc"
-              }
-              variant="primary"
-              onClick={actions.handleSaveToDoc}
-              disabled={actions.docStatus === "saving"}
-            />
-          ) : (
-            <IconButton
-              icon={actions.copied ? <CheckIcon /> : <CopyIcon />}
-              label={actions.copied ? "Copied plain text" : "Copy plain text"}
-              onClick={actions.handleCopy}
-            />
-          )}
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <TitleWithHistory>
-            <h1 className="min-w-0 text-2xl font-semibold text-ink-primary">{header.title}</h1>
-          </TitleWithHistory>
-          <p className="mt-1 text-sm text-ink-secondary">{header.subtitle}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 text-xs text-ink-muted">
-          {actions.lastSavedAt ? (
-            <span>Auto-saved {new Date(actions.lastSavedAt).toLocaleString()}</span>
-          ) : (
-            <span>Not saved yet</span>
-          )}
-          {money?.profile.writeupDocId && !googleClientId ? (
-            <a href="/settings" className="underline decoration-dotted hover:text-ink-secondary">
-              Connect Google Docs in Settings to save write-ups there
-            </a>
-          ) : null}
-          {actions.graphicStatus === "error" && actions.graphicError ? (
-            <span className="text-status-critical">Copy graphic failed: {actions.graphicError}</span>
-          ) : null}
-          {actions.docStatus === "error" && actions.docError ? (
-            <span className="text-status-critical">Google Doc save failed: {actions.docError}</span>
-          ) : null}
+      <div className="flex flex-col gap-1">
+        <TitleWithHistory
+          actions={
+            <>
+              <GraphicCopyMenu
+                graphicStatus={actions.graphicStatus}
+                graphicError={actions.graphicError}
+                splitStatus={actions.splitStatus}
+                splitError={actions.splitError}
+                splitPartCount={actions.splitPartCount}
+                partCopied={actions.partCopied}
+                onCopyFull={actions.handleCopyGraphic}
+                onCopySplit={actions.handleCopySplitGraphic}
+                onCopySplitPart={actions.handleCopySplitPart}
+              />
+              {money?.profile.writeupDocId && googleClientId ? (
+                // Typing directly into the Doc already leaves a plain-text copy
+                // there, so Save to Doc stands in for Copy Text here.
+                <IconButton
+                  icon={actions.docStatus === "saved" ? <CheckIcon /> : <UploadIcon />}
+                  label={
+                    actions.docStatus === "saving" ? "Saving to Doc…" : actions.docStatus === "saved" ? "Saved to Doc" : "Save to Doc"
+                  }
+                  variant="primary"
+                  onClick={actions.handleSaveToDoc}
+                  disabled={actions.docStatus === "saving"}
+                />
+              ) : (
+                <IconButton
+                  icon={actions.copied ? <CheckIcon /> : <CopyIcon />}
+                  label={actions.copied ? "Copied plain text" : "Copy plain text"}
+                  onClick={actions.handleCopy}
+                />
+              )}
+            </>
+          }
+        >
+          <h1 className="min-w-0 text-2xl font-semibold text-ink-primary">{header.title}</h1>
+        </TitleWithHistory>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          <p className="text-sm text-ink-secondary">{header.subtitle}</p>
+          <div className="flex flex-wrap items-center gap-2 text-xs text-ink-muted">
+            {actions.lastSavedAt ? (
+              <span>Auto-saved {new Date(actions.lastSavedAt).toLocaleString()}</span>
+            ) : (
+              <span>Not saved yet</span>
+            )}
+            {money?.profile.writeupDocId && !googleClientId ? (
+              <a href="/settings" className="underline decoration-dotted hover:text-ink-secondary">
+                Connect Google Docs in Settings to save write-ups there
+              </a>
+            ) : null}
+            {actions.graphicStatus === "error" && actions.graphicError ? (
+              <span className="text-status-critical">Copy graphic failed: {actions.graphicError}</span>
+            ) : null}
+            {actions.docStatus === "error" && actions.docError ? (
+              <span className="text-status-critical">Google Doc save failed: {actions.docError}</span>
+            ) : null}
+          </div>
         </div>
       </div>
 
