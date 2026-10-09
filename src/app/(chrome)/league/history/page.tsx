@@ -70,6 +70,56 @@ function useSeasonPayouts(leagueId: string, fallback: LeagueProfile | null) {
   return { season: shown, plan, ledger, changePlan };
 }
 
+/**
+ * What each manager has won across every season, by Sleeper user id — each
+ * season's results played through its payout rules (see startingPlan), the
+ * week being played only "as it stands". Read afresh whenever All-time opens,
+ * so a season's rules just edited count. Undefined while loading; null when
+ * no season pays anything.
+ */
+function useAllTimeEarnings(seasons: SeasonRecord[], fallback: LeagueProfile | null): Map<string, number> | null | undefined {
+  const asItStands = useAsItStands();
+  const key = `${seasons.map((s) => s.leagueId).join(",")}:${asItStands}`;
+  const [earnings, setEarnings] = useState<{ key: string; value: Map<string, number> | null } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all(
+      seasons.map(async (record) => {
+        const season = await loadLeagueSeason(record.leagueId).catch(() => null);
+        if (!season) return null;
+        const plan = startingPlan(record.leagueId, season, fallback);
+        if (plan.rules.length === 0) return null;
+        const ledger = computePlanLedger(plan, (asItStands ? season : finishedWeeksOnly(season)).results);
+        const owners = new Map(record.standings.map((row) => [row.rosterId, row.ownerId]));
+        return ledger.managers.map((m) => [owners.get(m.rosterId) ?? null, m.total] as const);
+      })
+    ).then((perSeason) => {
+      if (cancelled) return;
+      const totals = new Map<string, number>();
+      for (const [owner, total] of perSeason.flatMap((s) => s ?? [])) {
+        if (owner) totals.set(owner, (totals.get(owner) ?? 0) + total);
+      }
+      setEarnings({ key: `${seasons.map((s) => s.leagueId).join(",")}:${asItStands}`, value: perSeason.some((s) => s) ? totals : null });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [seasons, fallback, asItStands]);
+
+  return earnings?.key === key ? earnings.value : undefined;
+}
+
+/** All-time: every manager's career across the league's seasons, with what they've won when the league pays out. */
+function AllTime({ seasons, managers, profile }: { seasons: SeasonRecord[]; managers: ManagerCareerStats[]; profile: LeagueProfile | null }) {
+  const earnings = useAllTimeEarnings(seasons, profile);
+  return (
+    <PlateCard title="All-time">
+      <CareerLeaderboard managers={managers} earnings={earnings ?? null} />
+    </PlateCard>
+  );
+}
+
 /** Money paid out over the season, and the button to edit the rules that pay it. */
 function SeasonMoney({
   season,
@@ -329,9 +379,7 @@ function LeagueHistoryContent() {
           {picked ? (
             <SeasonDetail key={picked.leagueId} season={picked} profile={profile} />
           ) : (
-            <PlateCard title="All-time">
-              <CareerLeaderboard managers={managers} />
-            </PlateCard>
+            <AllTime seasons={seasons} managers={managers} profile={profile} />
           )}
         </div>
         <ul className="order-1 flex flex-col gap-2 md:order-2" aria-label="All-time and each season">

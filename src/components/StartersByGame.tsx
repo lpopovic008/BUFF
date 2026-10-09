@@ -117,7 +117,12 @@ function PlayerRow({
         {position}
       </span>
       {/* A zero-width space holds the row's full height before any letter is typed. */}
-      <span className="min-w-0 flex-1 truncate text-[0.8125rem] text-ink-primary">{name || "\u200b"}</span>
+      <span className="min-w-0 flex-1 truncate text-[0.8125rem] text-ink-primary">
+        {/* Lit on a tag plate while this player's points travel and count up (see GameRows). */}
+        <span className={motion?.highlight ? "-mx-1 bg-[var(--map-tag)] px-1 text-[var(--map-tag-ink)]" : undefined}>
+          {name || "\u200b"}
+        </span>
+      </span>
       {/* The league logos show once the row is fully typed out. */}
       <span className={`flex shrink-0 items-center gap-0.5 transition-opacity duration-150 ${count >= total || typedIn ? "" : "opacity-0"}`}>
         {player.leagueIds.map((id) => (

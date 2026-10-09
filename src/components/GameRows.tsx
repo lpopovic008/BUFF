@@ -29,7 +29,7 @@ const STEP_MS = 340 * PACE;
 const MIN_COUNT_MS = 450 * PACE;
 /** How long a row takes to slide one place. */
 const SWAP_MS = 280 * PACE;
-/** How long the scan line takes to sweep the row as the points land, and the total's flicker. */
+/** How long the scan line takes to sweep the row once the count is done, and the total's flicker as the points land. */
 const SCAN_MS = 700 * PACE;
 const FLICKER_MS = 260 * PACE;
 /** How long the lock-on brackets stay round the total after the points land. */
@@ -271,6 +271,8 @@ interface Count {
   to: number;
   start: number;
   duration: number;
+  /** The side's color, for the scan once it's done. */
+  color: string;
 }
 
 /** What a row shows while its points animate. */
@@ -279,6 +281,8 @@ export interface RowMotion {
   points: number | null;
   /** The change, popped in beside the total when there was no Red Zone row to fly from. */
   chip: { delta: number; key: number } | null;
+  /** The name is lit while the points travel and count up. */
+  highlight: boolean;
 }
 
 /**
@@ -300,6 +304,8 @@ export function GameRows({
   const [known, setKnown] = useState<Record<string, number | null>>(actual);
   const [held, setHeld] = useState<Record<string, number>>({});
   const [chips, setChips] = useState<Record<string, { delta: number; key: number }>>({});
+  // Players whose names are lit: from when their points set off until the count is done.
+  const [lit, setLit] = useState<Set<string>>(() => new Set());
   // New totals are held at the old number from the very first render that has them, until the animation takes over.
   const changed = players.filter((p) => known[p.playerId] !== undefined && known[p.playerId] !== p.points);
   if (changed.length > 0 || players.some((p) => known[p.playerId] === undefined)) {
@@ -344,6 +350,7 @@ export function GameRows({
     if (!list) return;
     const now = performance.now();
     let started = false;
+    const lighting: string[] = [];
     for (const [playerId, from] of Object.entries(held)) {
       const player = players.find((p) => p.playerId === playerId);
       const running = counts.current.get(playerId);
@@ -366,10 +373,16 @@ export function GameRows({
       const passes = sortByPoints
         ? players.filter((o) => o.playerId !== playerId && (o.points ?? 0) > lo && (o.points ?? 0) < hi).length
         : 0;
-      counts.current.set(playerId, { from: shownFrom, to, start: now + lead, duration: Math.max(MIN_COUNT_MS, passes * STEP_MS) });
-      // On impact: the scan line sweeps the row, and the total flickers.
+      counts.current.set(playerId, {
+        from: shownFrom,
+        to,
+        start: now + lead,
+        duration: Math.max(MIN_COUNT_MS, passes * STEP_MS),
+        color,
+      });
+      lighting.push(playerId);
+      // On impact the total flickers.
       setTimeout(() => {
-        if (row) scan(row, color);
         target?.animate([{ opacity: 1 }, { opacity: 0.15 }, { opacity: 1 }, { opacity: 0.4 }, { opacity: 1 }], {
           duration: FLICKER_MS,
           easing: "steps(1, end)",
@@ -377,6 +390,7 @@ export function GameRows({
       }, lead);
       started = true;
     }
+    if (lighting.length > 0) queueMicrotask(() => setLit((prev) => new Set([...prev, ...lighting])));
     if (started) setCounting((n) => n + 1);
   }, [held, players, sortByPoints]);
 
@@ -386,14 +400,26 @@ export function GameRows({
     let raf = 0;
     const tick = (now: number) => {
       const shown: Record<string, number | undefined> = {};
+      const done: string[] = [];
       for (const [playerId, c] of counts.current) {
         const t = Math.min(1, Math.max(0, (now - c.start) / c.duration));
         if (t >= 1) {
           counts.current.delete(playerId);
           shown[playerId] = undefined;
+          done.push(playerId);
+          // Counted: the scan sweeps the row, taking over from the name's light.
+          const row = listRef.current?.querySelector<HTMLElement>(`[data-player-id="${CSS.escape(playerId)}"]`);
+          if (row) scan(row, c.color);
         } else {
           shown[playerId] = round2(c.from + (c.to - c.from) * t);
         }
+      }
+      if (done.length > 0) {
+        setLit((prev) => {
+          const next = new Set(prev);
+          for (const id of done) next.delete(id);
+          return next;
+        });
       }
       setHeld((prev) => {
         const next = { ...prev };
@@ -463,7 +489,7 @@ export function GameRows({
     <div ref={listRef} className="relative flex flex-col">
       {ordered.map((player) => (
         <div key={player.playerId} data-player-id={player.playerId} className="relative">
-          {render(player, { points: shownPoints(player), chip: chips[player.playerId] ?? null })}
+          {render(player, { points: shownPoints(player), chip: chips[player.playerId] ?? null, highlight: lit.has(player.playerId) })}
         </div>
       ))}
     </div>

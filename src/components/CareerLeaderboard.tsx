@@ -1,23 +1,40 @@
 "use client";
 
+import { useMemo } from "react";
 import { ManagerCareerStats } from "@/lib/league-data";
+import { formatMoney } from "@/lib/payout-plan";
 import { formatPoints, formatPct, ordinal, winPct } from "@/lib/format";
 import { useTableSort } from "@/hooks/useTableSort";
 import { SortHeader } from "@/components/ui/SortHeader";
 
+/** A manager's career, with what they've won across every season's payouts, when known. */
+type CareerRow = ManagerCareerStats & { earned: number };
+
 const COLUMNS = {
-  manager: (m: ManagerCareerStats) => m.displayName,
-  seasons: (m: ManagerCareerStats) => m.seasonsPlayed,
-  record: (m: ManagerCareerStats) => m.wins,
-  winPct: (m: ManagerCareerStats) => winPct(m.wins, m.losses, m.ties),
-  pointsFor: (m: ManagerCareerStats) => m.pointsFor,
-  bestFinish: (m: ManagerCareerStats) => m.bestFinishRank,
-  championships: (m: ManagerCareerStats) => m.championships,
+  manager: (m: CareerRow) => m.displayName,
+  seasons: (m: CareerRow) => m.seasonsPlayed,
+  record: (m: CareerRow) => m.wins,
+  winPct: (m: CareerRow) => winPct(m.wins, m.losses, m.ties),
+  pointsFor: (m: CareerRow) => m.pointsFor,
+  bestFinish: (m: CareerRow) => m.bestFinishRank,
+  championships: (m: CareerRow) => m.championships,
+  earned: (m: CareerRow) => m.earned,
 };
 
-export function CareerLeaderboard({ managers }: { managers: ManagerCareerStats[] }) {
+export function CareerLeaderboard({
+  managers,
+  earnings,
+}: {
+  managers: ManagerCareerStats[];
+  /** All-time earnings by manager (Sleeper user id), across every season's payouts — null when no season pays anything. */
+  earnings?: Map<string, number> | null;
+}) {
   const maxChampionships = Math.max(1, ...managers.map((m) => m.championships));
-  const { sorted, sortState, toggleSort } = useTableSort(managers, COLUMNS);
+  const rows = useMemo(
+    () => managers.map((m) => ({ ...m, earned: earnings?.get(m.userId) ?? 0 })),
+    [managers, earnings]
+  );
+  const { sorted, sortState, toggleSort } = useTableSort(rows, COLUMNS);
 
   return (
     <div className="overflow-x-auto">
@@ -47,6 +64,14 @@ export function CareerLeaderboard({ managers }: { managers: ManagerCareerStats[]
               <span className="sm:hidden">Titles</span>
               <span className="hidden sm:inline">Championships</span>
             </SortHeader>
+            {earnings ? (
+              <SortHeader sortKey="earned" state={sortState} onSort={toggleSort} align="right">
+                <span className="sm:hidden" title="Earned, all-time">
+                  $
+                </span>
+                <span className="hidden sm:inline">Earned</span>
+              </SortHeader>
+            ) : null}
           </tr>
         </thead>
         <tbody>
@@ -76,6 +101,11 @@ export function CareerLeaderboard({ managers }: { managers: ManagerCareerStats[]
                   <span className="tabular-nums text-ink-secondary">{m.championships}</span>
                 </div>
               </td>
+              {earnings ? (
+                <td className="whitespace-nowrap py-2 pr-2 text-right font-semibold tabular-nums text-ink-primary sm:pr-3">
+                  {formatMoney(m.earned)}
+                </td>
+              ) : null}
             </tr>
           ))}
         </tbody>

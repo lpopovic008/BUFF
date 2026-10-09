@@ -319,8 +319,10 @@ player's total, and the play's +/- in the Red Zone is copied onto a tag
 plate that runs to the total along a right-angled track (across, then down),
 drawing a dashed tracer behind it. The Red Zone tags each +/- with the
 player's Sleeper id, or their ESPN shorthand and team, so the list can find
-it. On impact a scan line sweeps the row in its side's color, the total
-flickers, and then it counts up. In a live game the rows stay ordered by the total
+it. On impact the total flickers, then counts up; when the count is done, a
+scan line sweeps the row in its side's color. The player's name is lit on a
+tag plate from the moment the points set off until the count is done, when
+the scan takes over from it. In a live game the rows stay ordered by the total
 as shown, so the player climbs one place each time the count passes
 someone, and each player passed slides down one. With no recent Red Zone
 row on screen, the plate blinks on beside the total instead. It's purely for
