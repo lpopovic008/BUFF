@@ -88,6 +88,16 @@ function ValueTable({ rows, maxValue }: { rows: Row[]; maxValue: number }) {
 
 const ALL_PLAYERS = "all";
 
+/** A pair of toggles, named. */
+function ToggleGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div role="group" aria-label={label} className="flex items-center gap-1">
+      <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-ink-muted">{label}</span>
+      {children}
+    </div>
+  );
+}
+
 export default function ValuesPage() {
   const { config } = useConfig();
   const [listType, setListType] = useState<ListType>("dynasty");
@@ -172,51 +182,56 @@ export default function ValuesPage() {
                 />
               </div>
 
-              <div className="mb-4 flex items-center gap-1">
-                <IconButton
-                  icon={<CrownIcon />}
-                  label="Dynasty"
-                  size="sm"
-                  variant={listType === "dynasty" ? "primary" : "default"}
-                  onClick={() => setListType("dynasty")}
-                />
-                <IconButton
-                  icon={<CalendarIcon />}
-                  label="Fantasy (redraft)"
-                  size="sm"
-                  variant={listType === "fantasy" ? "primary" : "default"}
-                  onClick={() => setListType("fantasy")}
-                />
-                <span className="h-5 w-px shrink-0 bg-border" aria-hidden />
-                <IconButton
-                  icon={<SuperflexIcon />}
-                  label="Superflex"
-                  size="sm"
-                  variant={leagueFormat === "superflex" ? "primary" : "default"}
-                  onClick={() => setLeagueFormat("superflex")}
-                />
-                <IconButton
-                  icon={<OneQBIcon />}
-                  label="1QB"
-                  size="sm"
-                  variant={leagueFormat === "oneQB" ? "primary" : "default"}
-                  onClick={() => setLeagueFormat("oneQB")}
-                />
-                <span className="h-5 w-px shrink-0 bg-border" aria-hidden />
-                <IconButton
-                  icon={<DotIcon />}
-                  label="Standard scoring"
-                  size="sm"
-                  variant={tep === "standard" ? "primary" : "default"}
-                  onClick={() => setTep("standard")}
-                />
-                <IconButton
-                  icon={<PlusCircleIcon />}
-                  label="TE Premium"
-                  size="sm"
-                  variant={tep === "tep" ? "primary" : "default"}
-                  onClick={() => setTep("tep")}
-                />
+              {/* Each pair of toggles under the name of what it sets. */}
+              <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+                <ToggleGroup label="League">
+                  <IconButton
+                    icon={<CrownIcon />}
+                    label="Dynasty"
+                    size="sm"
+                    variant={listType === "dynasty" ? "primary" : "default"}
+                    onClick={() => setListType("dynasty")}
+                  />
+                  <IconButton
+                    icon={<CalendarIcon />}
+                    label="Fantasy (redraft)"
+                    size="sm"
+                    variant={listType === "fantasy" ? "primary" : "default"}
+                    onClick={() => setListType("fantasy")}
+                  />
+                </ToggleGroup>
+                <ToggleGroup label="QB">
+                  <IconButton
+                    icon={<SuperflexIcon />}
+                    label="Superflex"
+                    size="sm"
+                    variant={leagueFormat === "superflex" ? "primary" : "default"}
+                    onClick={() => setLeagueFormat("superflex")}
+                  />
+                  <IconButton
+                    icon={<OneQBIcon />}
+                    label="1QB"
+                    size="sm"
+                    variant={leagueFormat === "oneQB" ? "primary" : "default"}
+                    onClick={() => setLeagueFormat("oneQB")}
+                  />
+                </ToggleGroup>
+                <ToggleGroup label="TE">
+                  <IconButton
+                    icon={<DotIcon />}
+                    label="Standard scoring"
+                    size="sm"
+                    variant={tep === "standard" ? "primary" : "default"}
+                    onClick={() => setTep("standard")}
+                  />
+                  <IconButton
+                    icon={<PlusCircleIcon />}
+                    label="TE Premium"
+                    size="sm"
+                    variant={tep === "tep" ? "primary" : "default"}
+                    onClick={() => setTep("tep")}
+                  />
+                </ToggleGroup>
               </div>
 
               <div className="mb-4 flex flex-wrap items-center gap-1.5">
