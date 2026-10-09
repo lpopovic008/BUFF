@@ -147,7 +147,7 @@ function PlayerRow({
               <span
                 key={motion.chip.key}
                 aria-hidden
-                className={`pointer-events-none absolute right-full top-0 mr-2 animate-[pts-chip_0.6s_steps(1,end)_forwards] whitespace-nowrap border-l-2 bg-[var(--map-tag)] px-1 font-bold text-[var(--map-tag-ink)] ${
+                className={`pointer-events-none absolute right-full top-0 z-10 mr-2 animate-[pts-chip_0.6s_steps(1,end)_forwards] whitespace-nowrap border-l-2 bg-[var(--map-tag)] px-1 font-bold text-[var(--map-tag-ink)] ${
                   SIDE_BORDER_COLOR[player.side ?? "mine"]
                 }`}
               >

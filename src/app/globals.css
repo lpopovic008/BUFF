@@ -264,25 +264,27 @@ body {
   }
 }
 
-/* The +/- applied beside a total in the starters list: blinks in, HUD-style, then holds. */
+/* The +/- applied beside a total in the starters list: its digits blink in,
+   HUD-style, then hold. Only the text blinks — the plate stays solid, so the
+   league logos it sits over never show through. */
 @keyframes pts-chip {
   0% {
-    opacity: 0;
+    color: transparent;
   }
   20% {
-    opacity: 1;
+    color: var(--map-tag-ink);
   }
   40% {
-    opacity: 0.2;
+    color: transparent;
   }
   60% {
-    opacity: 1;
+    color: var(--map-tag-ink);
   }
   80% {
-    opacity: 0.4;
+    color: color-mix(in srgb, var(--map-tag-ink) 40%, transparent);
   }
   100% {
-    opacity: 1;
+    color: var(--map-tag-ink);
   }
 }
 
