@@ -3,12 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useLeagueTeamRosters } from "@/hooks/useLeagueTeamRosters";
-import { RosterWeb } from "@/components/RosterWeb";
+import { RosterPillars } from "@/components/RosterPillars";
 import { IconButton } from "@/components/ui/IconButton";
 import { PlateCard } from "@/components/ui/PlateCard";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/ui/Icon";
 
-/** One league's rosters on the Values page, each drawn as a web of its players (see RosterWeb) — your team first, the arrows paging through the rest. */
+/** One league's rosters on the Values page, each drawn as pillars of its players (see RosterPillars) — your team first, the arrows paging through the rest. */
 export function LeagueRosterPanel({
   leagueId,
   leagueName,
@@ -55,7 +55,7 @@ export function LeagueRosterPanel({
               </div>
             ) : null}
           </div>
-          <RosterWeb players={team.players} label={`${team.teamName}: each player a dot, sized by value`} />
+          <RosterPillars players={team.players} label={`${team.teamName}: each player a pillar, as tall as their value`} />
         </>
       ) : null}
     </PlateCard>
