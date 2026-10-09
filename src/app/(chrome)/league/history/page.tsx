@@ -90,12 +90,13 @@ function SeasonMoney({
         <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Money paid out</h4>
         {paid ? (
           <span className="text-xs text-ink-secondary">
-            {formatMoney(ledger.paidToDate)} through week {ledger.weeksPlayed.at(-1)}
+            {formatMoney(ledger.paidToDate)}{" "}
+            {ledger.managers.some((m) => m.seasonEnd > 0) ? "for the season" : `through week ${ledger.weeksPlayed.at(-1)}`}
           </span>
         ) : null}
       </div>
       {paid ? (
-        <MoneyLineChart series={cumulativeSeriesByManager(ledger)} />
+        <MoneyLineChart series={cumulativeSeriesByManager(ledger)} lastWeek={season.results.lastWeek} />
       ) : (
         <p className="text-sm text-ink-muted">No payout rules for this season yet.</p>
       )}

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { computePayoutLedger, reconcilePot, summarizeWeek, standingsThroughWeek } from "./payouts";
+import { computePayoutLedger, cumulativeSeriesByManager, reconcilePot, summarizeWeek, standingsThroughWeek } from "./payouts";
 import { EPSTEIN_ISLAND, payoutsForSeason } from "./league-config";
 import { buildMatchups } from "./epstein-2025.fixture";
 
@@ -136,4 +136,24 @@ test("the pot balances exactly for the current ($150 buy-in) rules", () => {
   assert.equal(r.finalTotal, 240);
   assert.equal(r.unallocated, 0);
   assert.equal(r.balances, true);
+});
+
+test("the money chart's lines start at $0 in week 0, step through played weeks, and end with the season's prizes", () => {
+  const series = cumulativeSeriesByManager({
+    weeksPlayed: [2, 1, 3],
+    managers: [
+      { rosterId: 1, name: "a", weekly: { 1: 10, 3: 10 }, seasonEnd: 0 },
+      { rosterId: 2, name: "b", weekly: { 2: 10 }, seasonEnd: 100 },
+    ],
+  });
+  assert.deepEqual(
+    series.map((s) => [s.name, s.points, s.finalAmount]),
+    [
+      ["b", [{ week: 0, amount: 0 }, { week: 1, amount: 0 }, { week: 2, amount: 10 }, { week: 3, amount: 10 }, { week: "season", amount: 110 }], 110],
+      ["a", [{ week: 0, amount: 0 }, { week: 1, amount: 10 }, { week: 2, amount: 10 }, { week: 3, amount: 20 }, { week: "season", amount: 20 }], 20],
+    ]
+  );
+  // Before any season prize is paid there's no season point yet.
+  const midway = cumulativeSeriesByManager({ weeksPlayed: [1], managers: [{ rosterId: 1, name: "a", weekly: { 1: 5 } }] });
+  assert.deepEqual(midway[0].points, [{ week: 0, amount: 0 }, { week: 1, amount: 5 }]);
 });

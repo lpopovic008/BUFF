@@ -243,30 +243,43 @@ export function standingsThroughWeek(
     .sort((a, b) => b.amount - a.amount || a.name.localeCompare(b.name));
 }
 
+/** A point on the money chart's x-axis: a week (0 is the start, before anything's paid), or the season's end. */
+export type PayoutColumn = number | "season";
+
 export interface CumulativeSeries {
   rosterId: number;
   name: string;
-  /** One point per played week, running total through that week. */
-  points: { week: number; amount: number }[];
+  /** Week 0 at $0, then one point per played week, then the season's end once its prizes are paid: the running total. */
+  points: { week: PayoutColumn; amount: number }[];
   finalAmount: number;
 }
 
 /**
- * Each manager's running earnings by week — the line-chart equivalent of the
- * sheet's cumulative "Total" column. Sorted richest-final-total first, which
- * is also the order end-of-line labels should stack top to bottom.
+ * Each manager's running earnings through the year — the line-chart
+ * equivalent of the sheet's cumulative "Total" column. Every line starts at
+ * $0 in week 0 and steps through each played week; once season prizes are
+ * paid, a last point at the season's end adds them. Sorted richest final
+ * total first, which is also the order end-of-line labels should stack top
+ * to bottom.
  */
 export function cumulativeSeriesByManager(ledger: {
-  managers: { rosterId: number; name: string; weekly: Record<number, number> }[];
+  managers: { rosterId: number; name: string; weekly: Record<number, number>; seasonEnd?: number }[];
   weeksPlayed: number[];
 }): CumulativeSeries[] {
+  const weeks = [...ledger.weeksPlayed].sort((a, b) => a - b);
+  const seasonPaid = ledger.managers.some((m) => (m.seasonEnd ?? 0) > 0);
   return ledger.managers
     .map((m) => {
       let running = 0;
-      const points = ledger.weeksPlayed.map((week) => {
+      const points: CumulativeSeries["points"] = [{ week: 0, amount: 0 }];
+      for (const week of weeks) {
         running += m.weekly[week] ?? 0;
-        return { week, amount: running };
-      });
+        points.push({ week, amount: running });
+      }
+      if (seasonPaid) {
+        running += m.seasonEnd ?? 0;
+        points.push({ week: "season", amount: running });
+      }
       return { rosterId: m.rosterId, name: m.name, points, finalAmount: running };
     })
     .sort((a, b) => b.finalAmount - a.finalAmount);
