@@ -53,6 +53,13 @@ function playerPieces(player: GroupedStarter, started: boolean): string[] {
   return [player.position, player.name, showPoints ? formatPoints(player.points!) : (projection ?? "–")];
 }
 
+// The edge of a points plate, in its side's color.
+const SIDE_BORDER_COLOR: Record<PlayerSide, string> = {
+  mine: "border-status-good",
+  opponent: "border-status-critical",
+  other: "border-ink-muted",
+};
+
 function PlayerRow({
   player,
   legendByLeagueId,
@@ -60,6 +67,7 @@ function PlayerRow({
   shown = true,
   motion,
   sideColors = false,
+  typing,
 }: {
   player: GroupedStarter;
   legendByLeagueId: Map<string, LeagueLegendEntry>;
@@ -71,13 +79,15 @@ function PlayerRow({
   started: boolean;
   /** False while its time block is switched off: the row deletes itself back to nothing. */
   shown?: boolean;
+  /** How it types in and out, when not at the usual speed (a game's added rows, as it opens and closes). */
+  typing?: { msPerChar: number; delayMs: number };
 }) {
   // Types itself out the first time it scrolls into view; deletes itself when hidden.
   const ref = useRef<HTMLDivElement>(null);
   const seen = useSeenOnce(ref);
   const pieces = playerPieces(player, started);
   const total = totalChars(pieces);
-  const count = useTypedCount(shown && seen ? total : 0);
+  const count = useTypedCount(shown && seen ? total : 0, typing);
   const [position, name, points] = typedSlices(pieces, count);
   // Once typed in, the points stop being typed text and animate as they change instead.
   const [typedIn, setTypedIn] = useState(false);
@@ -132,8 +142,8 @@ function PlayerRow({
                 key={motion.chip.key}
                 aria-hidden
                 style={{ animation: `pts-chip ${CHIP_MS}ms ease-in forwards` }}
-                className={`pointer-events-none absolute right-full top-0 whitespace-nowrap font-bold opacity-0 ${
-                  SIDE_POINTS_COLOR[player.side ?? "mine"]
+                className={`pointer-events-none absolute right-full top-0 mr-1 whitespace-nowrap border-l-2 bg-[var(--map-tag)] px-1 font-bold text-[var(--map-tag-ink)] opacity-0 ${
+                  SIDE_BORDER_COLOR[player.side ?? "mine"]
                 }`}
               >
                 {motion.chip.delta > 0 ? "+" : ""}
@@ -275,6 +285,7 @@ function BlockGames({
   hidden,
   legendByLeagueId,
   openGames,
+  closingGames,
   onToggleGame,
 }: {
   games: GameStarters[];
@@ -282,7 +293,10 @@ function BlockGames({
   legendByLeagueId: Map<string, LeagueLegendEntry>;
   /** Games opened up to everyone in them, by game id. */
   openGames: Set<string>;
-  onToggleGame: (gameId: string) => void;
+  /** Opened games on their way shut: the added rows deleting themselves first. */
+  closingGames: Set<string>;
+  /** Opens a game, or closes it once `closeMs` of deleting has played out. */
+  onToggleGame: (gameId: string, closeMs: number) => void;
 }) {
   // An opened game lists everyone worth watching in it; otherwise just your players.
   const shownPlayers = ({ game, players, everyone }: GameStarters) =>
@@ -324,13 +338,25 @@ function BlockGames({
             const shown = shownPlayers(g);
             // Only a game with more people in it than your own players opens up.
             const expandable = (everyone?.length ?? 0) > players.length;
+            const open = openGames.has(game.id);
+            const closing = closingGames.has(game.id);
+            // The rows opening the game adds — they type in down the list, and delete back up it.
+            const yours = new Set(players.map((p) => p.playerId));
+            const added = shown.filter((p) => !yours.has(p.playerId));
+            const addedAt = new Map(added.map((p, i) => [p.playerId, i]));
+            const started = game.state !== "pre";
+            const closeMs = reducedMotion()
+              ? 0
+              : (added.length - 1) * OPEN_ROW_STAGGER_MS +
+                Math.max(0, ...added.map((p) => totalChars(playerPieces(p, started)))) * OPEN_MS_PER_CHAR +
+                80;
             return (
               <div key={game.id} className="flex flex-col gap-1">
                 <GameHeader
                   game={game}
                   shown={!hidden}
-                  open={openGames.has(game.id)}
-                  onToggle={expandable ? () => onToggleGame(game.id) : undefined}
+                  open={open && !closing}
+                  onToggle={expandable ? () => onToggleGame(game.id, closeMs) : undefined}
                 />
                 {/* A game no one is listed in is just its header — no room held for rows. */}
                 {/* The game's players hang off it on a line of their own, dropping straight down from
@@ -340,16 +366,27 @@ function BlockGames({
                     <GameRows
                       players={shown}
                       sortByPoints={!!live}
-                      render={(player, motion) => (
-                        <PlayerRow
-                          player={player}
-                          legendByLeagueId={legendByLeagueId}
-                          started={game.state !== "pre"}
-                          shown={!hidden}
-                          motion={motion}
-                          sideColors={openGames.has(game.id)}
-                        />
-                      )}
+                      render={(player, motion) => {
+                        const i = addedAt.get(player.playerId);
+                        return (
+                          <PlayerRow
+                            player={player}
+                            legendByLeagueId={legendByLeagueId}
+                            started={started}
+                            shown={!hidden && !(closing && i !== undefined)}
+                            motion={motion}
+                            sideColors={open && !closing}
+                            typing={
+                              i === undefined
+                                ? undefined
+                                : {
+                                    msPerChar: OPEN_MS_PER_CHAR,
+                                    delayMs: (closing ? added.length - 1 - i : i) * OPEN_ROW_STAGGER_MS,
+                                  }
+                            }
+                          />
+                        );
+                      }}
                     />
                   </div>
                 ) : null}
@@ -360,6 +397,15 @@ function BlockGames({
       </div>
     </div>
   );
+}
+
+/** How fast an opened game's added names type in, and delete again as it closes. */
+const OPEN_MS_PER_CHAR = 28;
+/** Each added row starts a beat after the one before it. */
+const OPEN_ROW_STAGGER_MS = 45;
+
+function reducedMotion(): boolean {
+  return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 /** The earliest kickoff among these games, in ms — null when none has a usable time. */
@@ -486,15 +532,40 @@ export function StartersByGame({
   onToggleBlock: (label: string) => void;
 }) {
   const legendByLeagueId = new Map(legend.map((l) => [l.leagueId, l]));
-  // Games opened up (by tapping the matchup) to everyone in them.
+  // Games opened up (by tapping the matchup) to everyone in them, and those
+  // on their way shut — still open while their added names delete themselves.
   const [openGames, setOpenGames] = useState<Set<string>>(() => new Set());
-  const toggleGame = (gameId: string) =>
-    setOpenGames((prev) => {
-      const next = new Set(prev);
-      if (next.has(gameId)) next.delete(gameId);
-      else next.add(gameId);
+  const [closingGames, setClosingGames] = useState<Set<string>>(() => new Set());
+  const closeTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  useEffect(() => {
+    const timers = closeTimers.current;
+    return () => timers.forEach((t) => clearTimeout(t));
+  }, []);
+  const toggleGame = (gameId: string, closeMs: number) => {
+    const without = (set: Set<string>) => {
+      const next = new Set(set);
+      next.delete(gameId);
       return next;
-    });
+    };
+    if (closingGames.has(gameId)) {
+      // Tapped again mid-close: it stays open, and the names type back in.
+      clearTimeout(closeTimers.current.get(gameId));
+      closeTimers.current.delete(gameId);
+      setClosingGames(without);
+    } else if (openGames.has(gameId)) {
+      setClosingGames((prev) => new Set(prev).add(gameId));
+      closeTimers.current.set(
+        gameId,
+        setTimeout(() => {
+          closeTimers.current.delete(gameId);
+          setOpenGames(without);
+          setClosingGames(without);
+        }, closeMs)
+      );
+    } else {
+      setOpenGames((prev) => new Set(prev).add(gameId));
+    }
+  };
   // Finished blocks drop to the bottom as their last game ends, so the next one up is always on top.
   const columns = finishedBlocksLast(groupGamesByTimeBlock(games));
   const nothingToShow = games.length === 0 && notPlaying.length === 0;
@@ -539,6 +610,7 @@ export function StartersByGame({
                   hidden={hiddenBlocks.has(column.label)}
                   legendByLeagueId={legendByLeagueId}
                   openGames={openGames}
+                  closingGames={closingGames}
                   onToggleGame={toggleGame}
                 />
               </div>

@@ -264,28 +264,41 @@ body {
   }
 }
 
-/* The Red Zone alert's pulse. */
 /* A starter's points going up (or down) with no Red Zone row to fly from: the
-   change pops in beside the total and slides into it (see GameRows). */
+   change blinks on beside the total on a tag plate, like a HUD readout, holds,
+   then runs into the total and is gone (see GameRows). */
 @keyframes pts-chip {
   0% {
     opacity: 0;
-    transform: translateX(-0.9em) scale(0.85);
+    transform: translateX(0);
   }
-  25% {
+  6% {
     opacity: 1;
-    transform: translateX(-0.9em) scale(1.1);
   }
-  60% {
+  10% {
+    opacity: 0.2;
+  }
+  14% {
     opacity: 1;
-    transform: translateX(-0.9em) scale(1);
+  }
+  18% {
+    opacity: 0.4;
+  }
+  22% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  72% {
+    opacity: 1;
+    transform: translateX(0);
   }
   100% {
     opacity: 0;
-    transform: translateX(2.6em) scale(0.6);
+    transform: translateX(2.6em);
   }
 }
 
+/* The Red Zone alert's pulse. */
 @keyframes rz-pulse {
   0%,
   100% {

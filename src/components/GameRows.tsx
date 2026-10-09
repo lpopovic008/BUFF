@@ -21,7 +21,7 @@ import { PENDING_PLAY_MS } from "@/lib/live-play-points";
 const PACE = 2.5;
 /** How long the duplicate takes to fly from the Red Zone to the total. */
 const FLIGHT_MS = 800 * PACE;
-/** How long the change shows beside the total when there's nothing to fly from (the pts-chip keyframes). */
+/** How long the change's plate shows beside the total when there's nothing to fly from (the pts-chip keyframes). */
 export const CHIP_MS = 650 * PACE;
 /** Counting time per player passed — long enough for each swap to play out. */
 const STEP_MS = 340 * PACE;
@@ -29,10 +29,12 @@ const STEP_MS = 340 * PACE;
 const MIN_COUNT_MS = 450 * PACE;
 /** How long a row takes to slide one place. */
 const SWAP_MS = 280 * PACE;
-/** How long the row's flash fades, and the total's bump as the points land. */
-const FLASH_MS = 1400 * PACE;
-const BUMP_MS = 350 * PACE;
-/** The Red Zone number's pulse as it's copied. */
+/** How long the scan line takes to sweep the row as the points land, and the total's flicker. */
+const SCAN_MS = 700 * PACE;
+const FLICKER_MS = 260 * PACE;
+/** How long the lock-on brackets stay round the total after the points land. */
+const LOCK_HOLD_MS = 500 * PACE;
+/** The Red Zone number's blink as it's copied. */
 const PULSE_MS = 300 * PACE;
 
 const SIDE_FLASH: Record<PlayerSide, string> = {
@@ -70,41 +72,163 @@ function redZoneSource(player: GroupedStarter, delta: number): HTMLElement | nul
   return source;
 }
 
-/** The duplicate: a copy of the Red Zone's number that lifts off it and arcs over into the total. */
-function fly(source: HTMLElement, target: HTMLElement) {
+/** Something drawn over the page for the length of an animation, then taken away. */
+function overlay(tag: "div" | "span", style: Partial<CSSStyleDeclaration>): HTMLElement {
+  const el = document.createElement(tag);
+  Object.assign(el.style, { position: "fixed", margin: "0", zIndex: "60", pointerEvents: "none" }, style);
+  el.setAttribute("aria-hidden", "true");
+  document.body.appendChild(el);
+  return el;
+}
+
+/**
+ * Lock-on: four corner brackets close in on the total from a little way out,
+ * blink, hold while the points land, and let go. Returns when they're gone.
+ */
+function lockOn(target: HTMLElement, color: string, holdMs: number) {
+  const t = target.getBoundingClientRect();
+  const pad = 3;
+  const arm = 5;
+  const corners: [number, number, string][] = [
+    [-1, -1, "borderTop borderLeft"],
+    [1, -1, "borderTop borderRight"],
+    [-1, 1, "borderBottom borderLeft"],
+    [1, 1, "borderBottom borderRight"],
+  ];
+  for (const [sx, sy, sides] of corners) {
+    const x = sx < 0 ? t.left - pad : t.right + pad - arm;
+    const y = sy < 0 ? t.top - pad : t.bottom + pad - arm;
+    const style: Partial<CSSStyleDeclaration> = { left: `${x}px`, top: `${y}px`, width: `${arm}px`, height: `${arm}px` };
+    for (const side of sides.split(" ")) (style as Record<string, string>)[side] = `1.5px solid ${color}`;
+    const el = overlay("span", style);
+    const out = `translate(${sx * 8}px, ${sy * 8}px)`;
+    el.animate(
+      [
+        { transform: out, opacity: 0 },
+        { transform: "translate(0, 0)", opacity: 1, offset: 0.12 },
+        { opacity: 0.2, offset: 0.17 },
+        { opacity: 1, offset: 0.22 },
+        { transform: "translate(0, 0)", opacity: 1, offset: 0.85 },
+        { transform: out, opacity: 0 },
+      ],
+      { duration: holdMs, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" }
+    ).finished.finally(() => el.remove());
+  }
+}
+
+/**
+ * The duplicate: the Red Zone's number copied onto a tag plate, which runs to
+ * the total along a right-angled track — across, then down — with a dashed
+ * tracer line drawing itself in behind it.
+ */
+function fly(source: HTMLElement, target: HTMLElement, color: string) {
   source.dataset.flown = "1";
   const s = source.getBoundingClientRect();
   const t = target.getBoundingClientRect();
-  const ghost = source.cloneNode(true) as HTMLElement;
-  Object.assign(ghost.style, {
-    position: "fixed",
-    left: `${s.left}px`,
+  const font = getComputedStyle(source);
+  const plate = overlay("span", {
+    left: `${s.left - 4}px`,
     top: `${s.top}px`,
-    margin: "0",
-    zIndex: "60",
-    pointerEvents: "none",
+    padding: "0 4px",
+    font: `700 ${font.fontSize} / ${font.lineHeight} ${font.fontFamily}`,
     whiteSpace: "nowrap",
-    transformOrigin: "right center",
+    background: "var(--map-tag)",
+    color: "var(--map-tag-ink)",
+    borderLeft: `2px solid ${color}`,
   });
-  ghost.setAttribute("aria-hidden", "true");
-  document.body.appendChild(ghost);
-  const dx = t.right - s.right;
-  const dy = t.top + t.height / 2 - (s.top + s.height / 2);
-  const lift = Math.min(80, 30 + Math.abs(dx) * 0.08);
-  ghost
+  plate.textContent = source.textContent;
+  // The track runs from the plate's right end to the total's right end, at mid-height.
+  const sx = s.right + 4;
+  const sy = s.top + s.height / 2;
+  const ex = t.right;
+  const ey = t.top + t.height / 2;
+  const dx = ex - sx;
+  const dy = ey - sy;
+  const legs = Math.abs(dx) + Math.abs(dy) || 1;
+  const turn = Math.abs(dx) / legs;
+
+  // The tracer: an L of dashes from the play to the total, drawn in as the plate runs.
+  const left = Math.min(sx, ex) - 2;
+  const top = Math.min(sy, ey) - 2;
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("width", `${Math.abs(dx) + 4}`);
+  svg.setAttribute("height", `${Math.abs(dy) + 4}`);
+  Object.assign(svg.style, { position: "fixed", left: `${left}px`, top: `${top}px`, zIndex: "59", pointerEvents: "none", overflow: "visible" });
+  svg.setAttribute("aria-hidden", "true");
+  const line = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  line.setAttribute("d", `M ${sx - left} ${sy - top} H ${ex - left} V ${ey - top}`);
+  Object.assign(line.style, { fill: "none", stroke: color, strokeWidth: "1", strokeDasharray: "3 3" });
+  // A mask the length of the track, pulled back to reveal it bit by bit.
+  const reveal = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  reveal.setAttribute("d", line.getAttribute("d")!);
+  const maskId = `trace-${Math.random().toString(36).slice(2)}`;
+  const mask = document.createElementNS("http://www.w3.org/2000/svg", "mask");
+  mask.id = maskId;
+  Object.assign(reveal.style, { fill: "none", stroke: "white", strokeWidth: "3", strokeDasharray: `${legs}`, strokeDashoffset: `${legs}` });
+  mask.appendChild(reveal);
+  svg.appendChild(mask);
+  line.setAttribute("mask", `url(#${maskId})`);
+  svg.appendChild(line);
+  document.body.appendChild(svg);
+
+  const run = 0.85;
+  reveal.animate([{ strokeDashoffset: `${legs}` }, { strokeDashoffset: "0", offset: run }, { strokeDashoffset: "0" }], {
+    duration: FLIGHT_MS,
+    easing: "linear",
+    fill: "forwards",
+  });
+  svg
+    .animate([{ opacity: 0.9 }, { opacity: 0.9, offset: run }, { opacity: 0 }], { duration: FLIGHT_MS + 400 * PACE })
+    .finished.finally(() => svg.remove());
+  plate
     .animate(
       [
-        { transform: "translate(0, 0) scale(1)" },
-        { transform: "translate(0, -4px) scale(1.3)", offset: 0.15 },
-        { transform: `translate(${dx * 0.5}px, ${dy * 0.5 - lift}px) scale(1.15)`, offset: 0.55 },
-        { transform: `translate(${dx}px, ${dy}px) scale(1)`, opacity: 1, offset: 0.92 },
-        { transform: `translate(${dx}px, ${dy}px) scale(0.7)`, opacity: 0 },
+        { transform: "translate(0, 0)", opacity: 0 },
+        { transform: "translate(0, 0)", opacity: 1, offset: 0.06 },
+        { transform: "translate(0, 0)", opacity: 0.3, offset: 0.09 },
+        { transform: "translate(0, 0)", opacity: 1, offset: 0.12 },
+        { transform: `translate(${dx}px, 0)`, offset: 0.12 + (run - 0.12) * turn },
+        { transform: `translate(${dx}px, ${dy}px)`, opacity: 1, offset: run },
+        { transform: `translate(${dx}px, ${dy}px)`, opacity: 0 },
       ],
-      { duration: FLIGHT_MS, easing: "cubic-bezier(0.45, 0, 0.35, 1)" }
+      { duration: FLIGHT_MS, easing: "linear" }
     )
-    .finished.finally(() => ghost.remove());
-  // The original stays put with a quick pulse, so it reads as copied rather than moved.
-  source.animate([{ transform: "scale(1)" }, { transform: "scale(1.25)" }, { transform: "scale(1)" }], { duration: PULSE_MS });
+    .finished.finally(() => plate.remove());
+  // The original stays put and blinks, so it reads as copied rather than moved.
+  source.animate([{ opacity: 1 }, { opacity: 0.2 }, { opacity: 1 }, { opacity: 0.2 }, { opacity: 1 }], {
+    duration: PULSE_MS,
+    easing: "steps(1, end)",
+  });
+}
+
+/** On impact: a scan line sweeps the row in the side's color. */
+function scan(row: HTMLElement, color: string) {
+  // Clipped to the row, so the line sweeps across it and no further.
+  const clip = document.createElement("span");
+  clip.setAttribute("aria-hidden", "true");
+  Object.assign(clip.style, { position: "absolute", inset: "0", overflow: "hidden", pointerEvents: "none" });
+  const bar = document.createElement("span");
+  clip.appendChild(bar);
+  Object.assign(bar.style, {
+    position: "absolute",
+    top: "0",
+    bottom: "0",
+    left: "0",
+    pointerEvents: "none",
+    background: `linear-gradient(90deg, transparent 0%, color-mix(in srgb, ${color} 35%, transparent) 85%, ${color} 100%)`,
+    width: "35%",
+  });
+  row.appendChild(clip);
+  bar
+    .animate(
+      [
+        { transform: "translateX(-100%)", opacity: 1 },
+        { transform: "translateX(285%)", opacity: 1, offset: 0.8 },
+        { transform: "translateX(285%)", opacity: 0 },
+      ],
+      { duration: SCAN_MS, easing: "cubic-bezier(0.4, 0, 0.2, 1)" }
+    )
+    .finished.finally(() => clip.remove());
 }
 
 /** Asks the starters list to play a Red Zone play's animation again (see replayRedZonePlay). */
@@ -233,23 +357,23 @@ export function GameRows({
       const replaying = replaySources.current.get(playerId);
       replaySources.current.delete(playerId);
       const source = target ? (replaying ?? redZoneSource(player, delta)) : null;
-      if (source && target) fly(source, target);
+      const color = SIDE_FLASH[player.side ?? "mine"];
+      if (source && target) fly(source, target, color);
       else if (!running) setChips((c) => ({ ...c, [playerId]: { delta, key: now } }));
       const lead = running ? 0 : source ? FLIGHT_MS : CHIP_MS;
+      if (target && !running) lockOn(target, color, lead + LOCK_HOLD_MS);
       const [lo, hi] = shownFrom < to ? [shownFrom, to] : [to, shownFrom];
       const passes = sortByPoints
         ? players.filter((o) => o.playerId !== playerId && (o.points ?? 0) > lo && (o.points ?? 0) < hi).length
         : 0;
       counts.current.set(playerId, { from: shownFrom, to, start: now + lead, duration: Math.max(MIN_COUNT_MS, passes * STEP_MS) });
-      // The row lights up in its side's color as the points land.
-      const color = SIDE_FLASH[player.side ?? "mine"];
+      // On impact: the scan line sweeps the row, and the total flickers.
       setTimeout(() => {
-        // Over the page's own color, not see-through, so a climbing row covers the rows it passes.
-        row?.animate([{ backgroundColor: `color-mix(in srgb, ${color} 28%, var(--page))` }, { backgroundColor: "var(--page)" }], {
-          duration: FLASH_MS,
-          easing: "ease-out",
+        if (row) scan(row, color);
+        target?.animate([{ opacity: 1 }, { opacity: 0.15 }, { opacity: 1 }, { opacity: 0.4 }, { opacity: 1 }], {
+          duration: FLICKER_MS,
+          easing: "steps(1, end)",
         });
-        target?.animate([{ transform: "scale(1)" }, { transform: "scale(1.2)" }, { transform: "scale(1)" }], { duration: BUMP_MS });
       }, lead);
       started = true;
     }

@@ -314,13 +314,16 @@ moving: by then Sleeper either already had it or scores it differently.
 Plays already there when a game's play-by-play first loads never count.
 Each pending amount is tagged with the Sleeper number it was worked out
 against, so it's never added on top of a newer one. On desktop, a changed number animates (`GameRows.tsx`).
-The play's +/- in the Red Zone is duplicated, and the copy arcs across the
-screen into the player's total. The Red Zone tags each +/- with the player's
-Sleeper id, or their ESPN shorthand and team, so the list can find it.
-The total then counts up. In a live game the rows stay ordered by the total
+It plays like a heads-up display: corner brackets lock on around the
+player's total, and the play's +/- in the Red Zone is copied onto a tag
+plate that runs to the total along a right-angled track (across, then down),
+drawing a dashed tracer behind it. The Red Zone tags each +/- with the
+player's Sleeper id, or their ESPN shorthand and team, so the list can find
+it. On impact a scan line sweeps the row in its side's color, the total
+flickers, and then it counts up. In a live game the rows stay ordered by the total
 as shown, so the player climbs one place each time the count passes
 someone, and each player passed slides down one. With no recent Red Zone
-row on screen, the change pops in beside the total instead. It's purely for
+row on screen, the plate blinks on beside the total instead. It's purely for
 the look, so it takes its time: every step runs at 2.5x a brisk pace
 (`PACE` in `GameRows.tsx`), about 2s for the flight and 0.85s per player
 passed. Tapping a play in the Red Zone replays it
@@ -330,6 +333,12 @@ viewers who ask for reduced motion, get the new numbers and order with no
 animation.
 This covers your starters and the ones you face (their games' play-by-play
 is followed), plus anyone else listed in those games.
+
+Opening a game (tapping its matchup) types the added players' lines in, one
+character at a time, each row a beat after the one above. Closing it deletes
+them again like a backspace, bottom row first, before the game folds back to
+your own players (`OPEN_MS_PER_CHAR` and `OPEN_ROW_STAGGER_MS` in
+`StartersByGame.tsx`).
 
 **Red Zone** (`useRedZoneFeed`, `RedZone.tsx`, `lib/play-by-play.ts`): by
 default ("Team") the plays your starters are in. "All" shows every

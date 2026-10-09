@@ -14,21 +14,26 @@ function prefersReducedMotion(): boolean {
 
 /**
  * A character count that moves toward `target` one character every
- * TYPE_MS_PER_CHAR — up to type text in, down to delete it — from wherever
- * it is, so a reversal mid-way just turns around. Starts at 0.
+ * `msPerChar` (TYPE_MS_PER_CHAR unless said otherwise) — up to type text in,
+ * down to delete it — from wherever it is, so a reversal mid-way just turns
+ * around. Starts at 0. `delayMs` holds each move back that long before it
+ * starts, to stagger lines typing one after another.
  */
-export function useTypedCount(target: number): number {
+export function useTypedCount(
+  target: number,
+  { msPerChar = TYPE_MS_PER_CHAR, delayMs = 0 }: { msPerChar?: number; delayMs?: number } = {}
+): number {
   const [count, setCount] = useState(0);
   const current = useRef(0);
   useEffect(() => {
     const from = current.current;
     if (from === target) return;
     const step = target > from ? 1 : -1;
-    const start = performance.now();
+    const start = performance.now() + delayMs;
     const instant = prefersReducedMotion();
     let raf = 0;
     const tick = (now: number) => {
-      const moved = instant ? Math.abs(target - from) : Math.floor((now - start) / TYPE_MS_PER_CHAR);
+      const moved = instant ? Math.abs(target - from) : Math.max(0, Math.floor((now - start) / msPerChar));
       const next = step > 0 ? Math.min(target, from + moved) : Math.max(target, from - moved);
       current.current = next;
       setCount(next);
@@ -36,7 +41,7 @@ export function useTypedCount(target: number): number {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [target]);
+  }, [target, msPerChar, delayMs]);
   return count;
 }
 
