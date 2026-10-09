@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { GameMap, MappedGame } from "@/components/GameMap";
 import { LeagueTicker, TickerLeague } from "@/components/LeagueTicker";
-import { HistoryButtons } from "@/components/HistoryButtons";
 import { LeagueLegendEntry, StartersByGame } from "@/components/StartersByGame";
 import { RedZone } from "@/components/RedZone";
 import { useConfig } from "@/hooks/useConfig";
@@ -270,10 +269,6 @@ export default function DashboardPage() {
         {/* The map, with room underneath it for what comes next. Its own scroll container at md+, independent of the starters column beside it. Flipped to rtl so its scrollbar sits on the column's own left edge instead of in the gutter between the two columns — the inner wrapper flips back to ltr so the content itself still reads normally. */}
         <div className="min-w-0 flex-1 max-md:contents md:sticky md:top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+2px)] md:max-h-[calc(100vh-var(--header-h,0px)-var(--ticker-h,0px)-2px-1.5rem)] md:overflow-y-auto md:[direction:rtl]">
           <div className="flex flex-col gap-6 max-md:contents md:pb-16 md:[direction:ltr]">
-            {/* Back and forward, at the top left just under the ticker — in this column only, so starters by game runs right up to the ticker. */}
-            <div className="-mb-[calc(1.5rem-2px)]">
-              <HistoryButtons />
-            </div>
             {weekGames.length > 0 ? (
               <div className="animate-[rise_0.5s_ease-out_backwards]">
                 <GameMap
