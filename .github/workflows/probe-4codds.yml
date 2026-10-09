@@ -1,0 +1,58 @@
+name: Probe 4codds (temporary)
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Plain fetch
+        run: |
+          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+          for u in https://4codds.com/ https://4codds.com/robots.txt https://www.4codds.com/ ; do
+            echo "===== $u"
+            curl -sS -L -m 30 -A "$UA" -D - -o body.txt -w "\nHTTP %{http_code} final=%{url_effective} bytes=%{size_download}\n" "$u" | head -40 || true
+            echo "----- body (first 3000 chars)"
+            head -c 3000 body.txt || true
+            echo
+          done
+      - name: Browser load, record requests
+        run: |
+          npm init -y >/dev/null
+          npm install --no-save playwright@1.48.2 >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null 2>&1
+          cat > probe.mjs <<'JS'
+          import { chromium } from "playwright";
+          const browser = await chromium.launch();
+          const page = await browser.newPage({ userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36" });
+          const reqs = [];
+          page.on("response", async (r) => {
+            const t = r.request().resourceType();
+            if (!["xhr", "fetch", "document", "websocket", "eventsource"].includes(t)) return;
+            let body = "";
+            try { body = (await r.text()).slice(0, 1500); } catch {}
+            reqs.push({ t, status: r.status(), url: r.url(), ct: r.headers()["content-type"], body });
+          });
+          page.on("websocket", (ws) => reqs.push({ t: "ws-open", url: ws.url() }));
+          for (const url of ["https://4codds.com/"]) {
+            try { await page.goto(url, { waitUntil: "networkidle", timeout: 60000 }); } catch (e) { console.log("goto error", e.message); }
+            await page.waitForTimeout(5000);
+            console.log("TITLE", await page.title(), "URL", page.url());
+            const links = await page.$$eval("a[href]", (as) => [...new Set(as.map((a) => a.href + "  |  " + a.textContent.trim().slice(0, 40)))]);
+            console.log("LINKS (" + links.length + ")\n" + links.slice(0, 120).join("\n"));
+            const text = await page.evaluate(() => document.body.innerText);
+            console.log("TEXT (first 4000)\n" + text.slice(0, 4000));
+          }
+          // Try an NFL page if one is linked.
+          const nfl = await page.$$eval("a[href]", (as) => as.map((a) => a.href).filter((h) => /nfl|football/i.test(h)));
+          console.log("NFL LINKS", JSON.stringify([...new Set(nfl)].slice(0, 20)));
+          if (nfl[0]) {
+            try { await page.goto(nfl[0], { waitUntil: "networkidle", timeout: 60000 }); } catch (e) { console.log("goto error", e.message); }
+            await page.waitForTimeout(5000);
+            console.log("NFL PAGE", page.url(), "\n" + (await page.evaluate(() => document.body.innerText)).slice(0, 5000));
+            const html = await page.content();
+            console.log("NFL HTML sample\n" + html.slice(0, 6000));
+          }
+          console.log("REQUESTS (" + reqs.length + ")");
+          for (const r of reqs) console.log(JSON.stringify(r).slice(0, 1800));
+          await browser.close();
+          JS
+          node probe.mjs || true
