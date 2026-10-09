@@ -218,25 +218,6 @@ scraping strategies in order (a known `playersArray` literal, a Next.js
 records" walk) and, on failure, leaves the existing file untouched rather than
 committing anything — see the script's comments for the fallback chain.
 
-## 4codds odds script
-
-`scripts/fourc_odds.py` (Python 3.9+, standard library only) saves the odds
-and lines from [4codds.com](https://4codds.com)'s boards as JSON, or CSV:
-
-```sh
-python3 scripts/fourc_odds.py meta                       # the site's list of boards — run first
-python3 scripts/fourc_odds.py board nfl --csv nfl.csv    # one board
-python3 scripts/fourc_odds.py board nfl --csv nfl.csv --every 300   # refreshed every 5 min
-```
-
-It reads only what the site's robots.txt opens to automated readers
-(`/api/v2/board/` and `/api/v2/meta`), names itself, waits between requests
-and backs off when told to. It doesn't get around the site's bot protection,
-which blocks data-centre and VPN addresses, so run it from your own
-connection; if it's still blocked, it stops. Check the site's
-[terms](https://4codds.com/terms.html) before using the data beyond your own
-use. Tests: `python3 -m unittest scripts/test_fourc_odds.py`.
-
 ## Getting started
 
 Nothing to set up: the Sleeper username is baked into the build
