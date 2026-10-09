@@ -265,10 +265,11 @@ export default function DashboardPage() {
       <LeagueTicker leagues={leagueCards} />
 
       {/* On phones the map column's wrappers step aside (display: contents), so the Red Zone can sit either under the map or after the starters list. */}
-      <div className="flex flex-col gap-6 max-md:pb-16 md:flex-row md:items-start md:gap-3">
+      {/* No room left under the Red Zone when it's last: the page ends as its title reaches the top. */}
+      <div className={`flex flex-col gap-6 md:flex-row md:items-start md:gap-3 ${anyGameLive ? "max-md:pb-16" : ""}`}>
         {/* The map, with room underneath it for what comes next. Its own scroll container at md+, independent of the starters column beside it. Flipped to rtl so its scrollbar sits on the column's own left edge instead of in the gutter between the two columns — the inner wrapper flips back to ltr so the content itself still reads normally. */}
         <div className="min-w-0 flex-1 max-md:contents md:sticky md:top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+2px)] md:max-h-[calc(100vh-var(--header-h,0px)-var(--ticker-h,0px)-2px-1.5rem)] md:overflow-y-auto md:[direction:rtl]">
-          <div className="flex flex-col gap-6 max-md:contents md:pb-16 md:[direction:ltr]">
+          <div className="flex flex-col gap-6 max-md:contents md:[direction:ltr]">
             {weekGames.length > 0 ? (
               <div className="animate-[rise_0.5s_ease-out_backwards]">
                 <GameMap
@@ -278,7 +279,7 @@ export default function DashboardPage() {
               </div>
             ) : null}
 
-            {/* Below the map: the Red Zone, your starters' plays as they happen. On phones it waits at the very bottom of the page until a game is live, then moves up under the map as a short box you scroll within. Your leagues ride the ticker under the header (see LeagueTicker). */}
+            {/* Below the map: the Red Zone, your starters' plays as they happen — at most a screen tall, so scrolling stops as its title reaches the top and carries on inside it. On phones it waits at the very bottom of the page until a game is live, then moves up under the map as a short box you scroll within. Your leagues ride the ticker under the header (see LeagueTicker). */}
             {weekGames.length > 0 && myStarters !== null ? (
               <div className={`animate-[rise_0.5s_ease-out_backwards] [animation-delay:120ms] ${anyGameLive ? "" : "max-md:order-last"}`}>
                 <RedZone starters={grouped.games} weekGames={weekGames} legend={legend} compactOnPhone={anyGameLive} />

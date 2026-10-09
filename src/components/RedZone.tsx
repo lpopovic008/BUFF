@@ -15,6 +15,15 @@ import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 
 const PAGE = 30;
 
+/** The nearest ancestor that scrolls (the map's column, side by side), or null for the page itself. */
+function scrollParent(el: HTMLElement): HTMLElement | null {
+  for (let node = el.parentElement; node; node = node.parentElement) {
+    const { overflowY } = getComputedStyle(node);
+    if ((overflowY === "auto" || overflowY === "scroll") && node.scrollHeight > node.clientHeight) return node;
+  }
+  return null;
+}
+
 function TeamLogo({ team, side = 16 }: { team: string; side?: number }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element -- a static SVG on a static export
@@ -299,7 +308,7 @@ export function RedZone({
   /** Every game of the week. */
   weekGames: NFLGame[];
   legend: LeagueLegendEntry[];
-  /** On phones, show the plays in a box three rows tall that scrolls on its own, instead of a long list with a "Show more" button. */
+  /** On phones, show the plays in a box three rows tall that scrolls on its own, instead of one as tall as the screen. */
   compactOnPhone?: boolean;
 }) {
   const mode = useLiveMode();
@@ -333,22 +342,53 @@ export function RedZone({
     return () => observer.disconnect();
   }, [compactOnPhone, hasEntries]);
   const moreToShow = feed.entries.length > shown;
-  // In the phone box, scrolling to the end loads the next page of plays.
+  // Scrolling to the end of the plays loads the next page of them — no button.
   useEffect(() => {
     const sentinel = sentinelRef.current;
-    if (!compactOnPhone || !sentinel) return;
+    if (!sentinel) return;
     const observer = new IntersectionObserver((seen) => {
       if (seen.some((e) => e.isIntersecting)) setShown((n) => n + PAGE);
     });
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [compactOnPhone, moreToShow, shown]);
+  }, [moreToShow, shown]);
+
+  // The box is never taller than the space under the header and ticker, so
+  // the page (or, side by side, the map's column) stops scrolling once the
+  // Red Zone's title reaches the top. Until then the plays stay put and a
+  // scroll over them moves the page; from there on it scrolls the plays.
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [atTop, setAtTop] = useState(false);
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card) return;
+    const check = () => {
+      const scroller = scrollParent(card);
+      const root = getComputedStyle(document.documentElement);
+      const top = scroller
+        ? scroller.getBoundingClientRect().top
+        : (parseFloat(root.getPropertyValue("--header-h")) || 0) + (parseFloat(root.getPropertyValue("--ticker-h")) || 0);
+      const atEnd = scroller
+        ? scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 2
+        : window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
+      setAtTop(card.getBoundingClientRect().top <= top + 4 || atEnd);
+    };
+    queueMicrotask(check);
+    // Any scroll on the page — the window's or the map column's.
+    document.addEventListener("scroll", check, { capture: true, passive: true });
+    window.addEventListener("resize", check);
+    return () => {
+      document.removeEventListener("scroll", check, { capture: true });
+      window.removeEventListener("resize", check);
+    };
+  }, [hasEntries]);
 
   const pickScope = (next: FeedScope) => {
     if (next === scope) return;
     setScope(next);
     setShown(PAGE);
     setSettled(false);
+    boxRef.current?.scrollTo({ top: 0 });
   };
 
   const legendByLeagueId = new Map(legend.map((l) => [l.leagueId, l]));
@@ -360,7 +400,15 @@ export function RedZone({
       : weekGames.some((g) => g.state !== "pre");
 
   return (
-    <Card className="flex flex-col gap-2 p-3">
+    <Card
+      ref={cardRef}
+      className={`flex flex-col gap-2 p-3 md:max-h-[calc(100vh-var(--header-h,0px)-var(--ticker-h,0px)-2px-1.5rem)] ${
+        // Less the page's own bottom padding, so the title lands right under the ticker.
+        compactOnPhone
+          ? ""
+          : "max-md:max-h-[calc(100dvh-var(--header-h,0px)-var(--ticker-h,0px)-1.5rem)] sm:max-md:max-h-[calc(100dvh-var(--header-h,0px)-var(--ticker-h,0px)-2rem)]"
+      }`}
+    >
       <div className="flex items-center justify-between gap-2">
         <h2 className="flex min-w-0 items-center gap-2">
           <span className="relative flex h-2.5 w-2.5 shrink-0" aria-hidden>
@@ -400,8 +448,10 @@ export function RedZone({
             ref={boxRef}
             className={
               compactOnPhone
-                ? "max-md:max-h-[var(--rz-box-h,15rem)] max-md:overflow-y-auto max-md:overscroll-contain max-md:border-y max-md:border-border"
-                : ""
+                ? `max-md:max-h-[var(--rz-box-h,15rem)] max-md:overflow-y-auto max-md:overscroll-contain max-md:border-y max-md:border-border md:min-h-0 md:flex-1 ${
+                    atTop ? "md:overflow-y-auto" : "md:overflow-hidden"
+                  }`
+                : `min-h-0 flex-1 ${atTop ? "overflow-y-auto" : "overflow-hidden"}`
             }
           >
             <ol ref={listRef} className="flex flex-col" aria-label={scope === "mine" ? "Plays your starters were part of" : "Every play"} aria-live="polite">
@@ -415,17 +465,8 @@ export function RedZone({
                 />
               ))}
             </ol>
-            {compactOnPhone && entries.length > shown ? <div ref={sentinelRef} className="h-px md:hidden" aria-hidden /> : null}
+            {entries.length > shown ? <div ref={sentinelRef} className="h-px" aria-hidden /> : null}
           </div>
-          {entries.length > shown ? (
-            <button
-              type="button"
-              onClick={() => setShown((n) => n + PAGE)}
-              className={`self-center px-3 py-1 text-xs font-semibold text-ink-secondary hover:text-ink-primary ${compactOnPhone ? "max-md:hidden" : ""}`}
-            >
-              Show more ({entries.length - shown})
-            </button>
-          ) : null}
         </>
       ) : (
         <p className="py-3 text-center text-xs text-ink-muted">

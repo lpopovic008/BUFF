@@ -345,7 +345,14 @@ your own players (`OPEN_MS_PER_CHAR` and `OPEN_ROW_STAGGER_MS` in
 **Red Zone** (`useRedZoneFeed`, `RedZone.tsx`, `lib/play-by-play.ts`): by
 default ("Team") the plays your starters are in. "All" shows every
 play of every game that's started, and only then fetches the games none of
-your starters are in. Each play shows the down and distance it was snapped on. A game's play-by-play comes from ESPN's summary
+your starters are in. Each play shows the down and distance it was snapped on.
+The box is never taller than the screen under the header and ticker, so the
+page (or, side by side, the map's column) stops scrolling once the Red
+Zone's title reaches the top; until then the plays stay put and a scroll
+over them moves the page, and from then on it scrolls the plays, loading
+30 more at a time as they near the end (no "Show more"). On a phone while a
+game is live it's a short box three plays tall under the map instead.
+A game's play-by-play comes from ESPN's summary
 endpoint (about 600 KB raw, so it isn't fetched on every tick). A finished
 game is fetched once. A game in progress is re-fetched when the scoreboard's
 latest play involves one of your starters or puts points up, and otherwise
