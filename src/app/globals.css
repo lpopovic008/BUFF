@@ -257,7 +257,7 @@ body {
 /* A Red Zone play that just came in: a quick wash of its color that fades out. */
 @keyframes rz-flash {
   from {
-    background-color: color-mix(in srgb, var(--rz-flash, var(--status-critical)) 32%, transparent);
+    background-color: color-mix(in srgb, var(--rz-flash, var(--ink-primary)) 32%, transparent);
   }
   to {
     background-color: transparent;

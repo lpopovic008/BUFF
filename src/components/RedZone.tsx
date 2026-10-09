@@ -194,7 +194,8 @@ function FeedRow({
         animation: live
           ? "rise 0.35s ease-out backwards, rz-flash 2.4s ease-out"
           : `rise 0.4s ease-out ${Math.min(index, 10) * 40}ms backwards`,
-        ["--rz-flash" as string]: good ? "var(--status-good)" : "var(--status-critical)",
+        // A new play flashes in the theme's ink (black, or white in dark mode); a good one for you, green.
+        ["--rz-flash" as string]: good ? "var(--status-good)" : "var(--ink-primary)",
       }}
     >
       <span className="relative mt-0.5">
