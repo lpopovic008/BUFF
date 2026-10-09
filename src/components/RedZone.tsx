@@ -133,7 +133,14 @@ function PlayerLine({
             ))}
           </span>
         ) : null}
-        {summary ? <span className="whitespace-nowrap text-[0.6875rem] tabular-nums text-ink-muted">{summary}</span> : null}
+        {/* On phones the stat line always gets a line of its own (kept, empty, for someone without one), so every player is the same height. */}
+        {summary ? (
+          <span className="whitespace-nowrap text-[0.6875rem] tabular-nums text-ink-muted max-md:basis-full">{summary}</span>
+        ) : (
+          <span className="hidden text-[0.6875rem] max-md:block max-md:basis-full" aria-hidden>
+            {"\u00a0"}
+          </span>
+        )}
       </span>
       <LinePoints line={line} mine={!!starter} at={at} />
     </li>
