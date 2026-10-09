@@ -368,7 +368,7 @@ export function RedZone({
             <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${live ? "bg-status-critical" : "bg-ink-muted"}`} />
           </span>
           <span className="whitespace-nowrap text-sm font-bold uppercase tracking-[0.2em] text-ink-primary">Red Zone</span>
-          <span className="hidden truncate text-[0.6875rem] text-ink-muted sm:inline">{live ? "Live · every 15s · PPR" : "Play by play · PPR"}</span>
+          {live ? <span className="hidden truncate text-[0.6875rem] text-ink-muted sm:inline">Live · every 15s</span> : null}
         </h2>
         <div className="flex shrink-0 border border-border text-[0.6875rem] font-semibold" role="group" aria-label="Which plays">
           {SCOPES.map((opt) => (
