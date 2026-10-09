@@ -1,13 +1,17 @@
 "use client";
 
 // A game's player rows in the starters list, and how they move when someone's
-// points change (desktop only — on a phone the numbers and order just update):
+// points change (desktop only — on a phone the numbers and order just update).
+// Everything that deserves attention is lit, in turn, on the HUD's tag plate:
 //
-//   1. The play's +/- in the Red Zone is duplicated, and the copy flies across
-//      the screen into the player's total. With no Red Zone row on screen to
-//      fly from, the change pops in beside the total instead.
-//   2. The total counts up to its new number, and the row climbs the list as
-//      it goes: each player it passes slides down one as it moves up one.
+//   1. The play: its row in the Red Zone, the player's name there and the
+//      +/- it earned, and the player's name in this list.
+//   2. The +/- is applied: it appears, lit, beside the player's total here.
+//   3. The total counts up to its new number, lit as it goes, and the row
+//      climbs the list: each player it passes slides down one as it moves up
+//      one. Once it lands, the lights go out and a scan sweeps the row.
+//
+//   With no Red Zone row on screen, it starts at step 2.
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { GroupedStarter, PlayerSide } from "@/lib/my-starters";
@@ -19,23 +23,18 @@ import { PENDING_PLAY_MS } from "@/lib/live-play-points";
  * time: every step below runs this many times its brisk length.
  */
 const PACE = 2.5;
-/** How long the duplicate takes to fly from the Red Zone to the total. */
-const FLIGHT_MS = 800 * PACE;
-/** How long the change's plate shows beside the total when there's nothing to fly from (the pts-chip keyframes). */
-export const CHIP_MS = 650 * PACE;
+/** How long the play is lit in the Red Zone before its +/- is applied here. */
+const ATTENTION_MS = 400 * PACE;
+/** How long the +/- sits beside the total before the count starts. */
+const APPLY_MS = 400 * PACE;
 /** Counting time per player passed — long enough for each swap to play out. */
 const STEP_MS = 340 * PACE;
 /** Counting time with nobody to pass. */
 const MIN_COUNT_MS = 450 * PACE;
 /** How long a row takes to slide one place. */
 const SWAP_MS = 280 * PACE;
-/** How long the scan line takes to sweep the row once the count is done, and the total's flicker as the points land. */
+/** How long the scan line takes to sweep the row once the count is done. */
 const SCAN_MS = 700 * PACE;
-const FLICKER_MS = 260 * PACE;
-/** How long the lock-on brackets stay round the total after the points land. */
-const LOCK_HOLD_MS = 500 * PACE;
-/** The Red Zone number's blink as it's copied. */
-const PULSE_MS = 300 * PACE;
 
 const SIDE_FLASH: Record<PlayerSide, string> = {
   mine: "var(--status-good)",
@@ -63,7 +62,7 @@ function redZoneSource(player: GroupedStarter, delta: number): HTMLElement | nul
       namedBy(player, undefined, el.dataset.rzActor, el.dataset.rzTeam)
     ) ??
     null;
-  if (!source || source.dataset.flown) return null;
+  if (!source || source.dataset.applied) return null;
   const value = Number(source.dataset.rzDelta);
   const at = Number(source.dataset.rzAt);
   if (Math.sign(value) !== Math.sign(delta) || !(Date.now() - at < PENDING_PLAY_MS)) return null;
@@ -72,136 +71,30 @@ function redZoneSource(player: GroupedStarter, delta: number): HTMLElement | nul
   return source;
 }
 
-/** Something drawn over the page for the length of an animation, then taken away. */
-function overlay(tag: "div" | "span", style: Partial<CSSStyleDeclaration>): HTMLElement {
-  const el = document.createElement(tag);
-  Object.assign(el.style, { position: "fixed", margin: "0", zIndex: "60", pointerEvents: "none" }, style);
-  el.setAttribute("aria-hidden", "true");
-  document.body.appendChild(el);
-  return el;
-}
-
 /**
- * Lock-on: four corner brackets close in on the total from a little way out,
- * blink, hold while the points land, and let go. Returns when they're gone.
+ * Lights an element of the Red Zone on the tag plate (see `[data-lit]` in
+ * globals.css). Counted, since one play's row can be lit for two players at
+ * once; it goes dark when the last lets go.
  */
-function lockOn(target: HTMLElement, color: string, holdMs: number) {
-  const t = target.getBoundingClientRect();
-  const pad = 3;
-  const arm = 5;
-  const corners: [number, number, string][] = [
-    [-1, -1, "borderTop borderLeft"],
-    [1, -1, "borderTop borderRight"],
-    [-1, 1, "borderBottom borderLeft"],
-    [1, 1, "borderBottom borderRight"],
-  ];
-  for (const [sx, sy, sides] of corners) {
-    const x = sx < 0 ? t.left - pad : t.right + pad - arm;
-    const y = sy < 0 ? t.top - pad : t.bottom + pad - arm;
-    const style: Partial<CSSStyleDeclaration> = { left: `${x}px`, top: `${y}px`, width: `${arm}px`, height: `${arm}px` };
-    for (const side of sides.split(" ")) (style as Record<string, string>)[side] = `1.5px solid ${color}`;
-    const el = overlay("span", style);
-    const out = `translate(${sx * 8}px, ${sy * 8}px)`;
-    el.animate(
-      [
-        { transform: out, opacity: 0 },
-        { transform: "translate(0, 0)", opacity: 1, offset: 0.12 },
-        { opacity: 0.2, offset: 0.17 },
-        { opacity: 1, offset: 0.22 },
-        { transform: "translate(0, 0)", opacity: 1, offset: 0.85 },
-        { transform: out, opacity: 0 },
-      ],
-      { duration: holdMs, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" }
-    ).finished.finally(() => el.remove());
-  }
+function light(el: HTMLElement) {
+  el.dataset.lit = String(Number(el.dataset.lit ?? 0) + 1);
 }
 
-/**
- * The duplicate: the Red Zone's number copied onto a tag plate, which runs to
- * the total along a right-angled track — across, then down — with a dashed
- * tracer line drawing itself in behind it.
- */
-function fly(source: HTMLElement, target: HTMLElement, color: string) {
-  source.dataset.flown = "1";
-  const s = source.getBoundingClientRect();
-  const t = target.getBoundingClientRect();
-  const font = getComputedStyle(source);
-  const plate = overlay("span", {
-    left: `${s.left - 4}px`,
-    top: `${s.top}px`,
-    padding: "0 4px",
-    font: `700 ${font.fontSize} / ${font.lineHeight} ${font.fontFamily}`,
-    whiteSpace: "nowrap",
-    background: "var(--map-tag)",
-    color: "var(--map-tag-ink)",
-    borderLeft: `2px solid ${color}`,
-  });
-  plate.textContent = source.textContent;
-  // The track runs from the plate's right end to the total's right end, at mid-height.
-  const sx = s.right + 4;
-  const sy = s.top + s.height / 2;
-  const ex = t.right;
-  const ey = t.top + t.height / 2;
-  const dx = ex - sx;
-  const dy = ey - sy;
-  const legs = Math.abs(dx) + Math.abs(dy) || 1;
-  const turn = Math.abs(dx) / legs;
-
-  // The tracer: an L of dashes from the play to the total, drawn in as the plate runs.
-  const left = Math.min(sx, ex) - 2;
-  const top = Math.min(sy, ey) - 2;
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("width", `${Math.abs(dx) + 4}`);
-  svg.setAttribute("height", `${Math.abs(dy) + 4}`);
-  Object.assign(svg.style, { position: "fixed", left: `${left}px`, top: `${top}px`, zIndex: "59", pointerEvents: "none", overflow: "visible" });
-  svg.setAttribute("aria-hidden", "true");
-  const line = document.createElementNS("http://www.w3.org/2000/svg", "path");
-  line.setAttribute("d", `M ${sx - left} ${sy - top} H ${ex - left} V ${ey - top}`);
-  Object.assign(line.style, { fill: "none", stroke: color, strokeWidth: "1", strokeDasharray: "3 3" });
-  // A mask the length of the track, pulled back to reveal it bit by bit.
-  const reveal = document.createElementNS("http://www.w3.org/2000/svg", "path");
-  reveal.setAttribute("d", line.getAttribute("d")!);
-  const maskId = `trace-${Math.random().toString(36).slice(2)}`;
-  const mask = document.createElementNS("http://www.w3.org/2000/svg", "mask");
-  mask.id = maskId;
-  Object.assign(reveal.style, { fill: "none", stroke: "white", strokeWidth: "3", strokeDasharray: `${legs}`, strokeDashoffset: `${legs}` });
-  mask.appendChild(reveal);
-  svg.appendChild(mask);
-  line.setAttribute("mask", `url(#${maskId})`);
-  svg.appendChild(line);
-  document.body.appendChild(svg);
-
-  const run = 0.85;
-  reveal.animate([{ strokeDashoffset: `${legs}` }, { strokeDashoffset: "0", offset: run }, { strokeDashoffset: "0" }], {
-    duration: FLIGHT_MS,
-    easing: "linear",
-    fill: "forwards",
-  });
-  svg
-    .animate([{ opacity: 0.9 }, { opacity: 0.9, offset: run }, { opacity: 0 }], { duration: FLIGHT_MS + 400 * PACE })
-    .finished.finally(() => svg.remove());
-  plate
-    .animate(
-      [
-        { transform: "translate(0, 0)", opacity: 0 },
-        { transform: "translate(0, 0)", opacity: 1, offset: 0.06 },
-        { transform: "translate(0, 0)", opacity: 0.3, offset: 0.09 },
-        { transform: "translate(0, 0)", opacity: 1, offset: 0.12 },
-        { transform: `translate(${dx}px, 0)`, offset: 0.12 + (run - 0.12) * turn },
-        { transform: `translate(${dx}px, ${dy}px)`, opacity: 1, offset: run },
-        { transform: `translate(${dx}px, ${dy}px)`, opacity: 0 },
-      ],
-      { duration: FLIGHT_MS, easing: "linear" }
-    )
-    .finished.finally(() => plate.remove());
-  // The original stays put and blinks, so it reads as copied rather than moved.
-  source.animate([{ opacity: 1 }, { opacity: 0.2 }, { opacity: 1 }, { opacity: 0.2 }, { opacity: 1 }], {
-    duration: PULSE_MS,
-    easing: "steps(1, end)",
-  });
+function unlight(el: HTMLElement) {
+  const n = Number(el.dataset.lit ?? 0) - 1;
+  if (n > 0) el.dataset.lit = String(n);
+  else delete el.dataset.lit;
 }
 
-/** On impact: a scan line sweeps the row in the side's color. */
+/** What to light in the Red Zone for one player's +/-: the play's row, their name in it, and the +/- itself. */
+function redZoneLights(source: HTMLElement): HTMLElement[] {
+  const line = source.closest("li");
+  const name = line?.querySelector<HTMLElement>("[data-rz-name]");
+  const row = line?.parentElement?.closest("li");
+  return [row, name, source].filter((el): el is HTMLElement => !!el);
+}
+
+/** Once counted: a scan line sweeps the row in the side's color. */
 function scan(row: HTMLElement, color: string) {
   // Clipped to the row, so the line sweeps across it and no further.
   const clip = document.createElement("span");
@@ -235,7 +128,7 @@ function scan(row: HTMLElement, color: string) {
 const REPLAY_EVENT = "starters:replay-play";
 
 interface ReplayDetail {
-  /** The +/- in the Red Zone to fly a copy of. */
+  /** The +/- in the Red Zone to light up again. */
   source: HTMLElement;
   delta: number;
   /** Your starter's Sleeper id — or, for anyone else, ESPN's shorthand for them and their team. */
@@ -246,9 +139,9 @@ interface ReplayDetail {
 
 /**
  * Replays the animation for a Red Zone play: for each player the play scored
- * points for, their total in the starters list rewinds by that much, a copy
- * of the play's +/- flies over again, and the total counts back up as the
- * row climbs. Desktop only, like the animation itself.
+ * points for, their total in the starters list rewinds by that much, and the
+ * play lights up, its +/- is applied, and the total counts back up as the row
+ * climbs, all over again. Desktop only, like the animation itself.
  */
 export function replayRedZonePlay(play: HTMLElement) {
   if (!animationsOn()) return;
@@ -273,16 +166,20 @@ interface Count {
   duration: number;
   /** The side's color, for the scan once it's done. */
   color: string;
+  /** What's lit in the Red Zone, to put out once it's done. */
+  lights: HTMLElement[];
 }
 
 /** What a row shows while its points animate. */
 export interface RowMotion {
   /** The total to show right now — counting toward the real one. */
   points: number | null;
-  /** The change, popped in beside the total when there was no Red Zone row to fly from. */
+  /** The change, lit beside the total from when it's applied until the count is done. */
   chip: { delta: number; key: number } | null;
-  /** The name is lit while the points travel and count up. */
+  /** The name is lit from when the play lights up until the count is done. */
   highlight: boolean;
+  /** The total is lit while it counts. */
+  counting: boolean;
 }
 
 /**
@@ -322,11 +219,11 @@ export function GameRows({
 
   const listRef = useRef<HTMLDivElement>(null);
   const counts = useRef(new Map<string, Count>());
-  /** Red Zone +/- elements to fly from for replays, by player id. */
+  /** Red Zone +/- elements to light for replays, by player id. */
   const replaySources = useRef(new Map<string, HTMLElement>());
 
   // A replayed play: rewind the player's total by the play's points, and the
-  // usual animation (below) carries it back up, flying from the tapped play.
+  // usual animation (below) carries it back up, lighting the tapped play.
   useEffect(() => {
     const onReplay = (e: Event) => {
       const { source, delta, playerId, actor, team } = (e as CustomEvent<ReplayDetail>).detail;
@@ -343,8 +240,13 @@ export function GameRows({
     return () => window.removeEventListener(REPLAY_EVENT, onReplay);
   }, [players]);
   const [counting, setCounting] = useState(0);
+  // Totals being counted right now, lit as they go.
+  const [countingIds, setCountingIds] = useState<Set<string>>(() => new Set());
+  // The +/- appears beside the total once the play has had its moment; the timers that bring them in.
+  const timers = useRef<number[]>([]);
+  useEffect(() => () => timers.current.forEach((t) => clearTimeout(t)), []);
 
-  // Start each held row's animation: the flight (or chip), then the count.
+  // Start each held row's animation: light the play, apply the +/-, then count.
   useEffect(() => {
     const list = listRef.current;
     if (!list) return;
@@ -357,37 +259,38 @@ export function GameRows({
       if (!player || player.points === null || (running && running.to === player.points)) continue;
       const to = player.points;
       // From whatever it shows now — mid-count, if it was still counting.
-      const shownFrom = from;
-      const delta = round2(to - shownFrom);
+      const delta = round2(to - from);
       const row = list.querySelector<HTMLElement>(`[data-player-id="${CSS.escape(playerId)}"]`);
       const target = row?.querySelector<HTMLElement>("[data-points]") ?? null;
       const replaying = replaySources.current.get(playerId);
       replaySources.current.delete(playerId);
-      const source = target ? (replaying ?? redZoneSource(player, delta)) : null;
-      const color = SIDE_FLASH[player.side ?? "mine"];
-      if (source && target) fly(source, target, color);
-      else if (!running) setChips((c) => ({ ...c, [playerId]: { delta, key: now } }));
-      const lead = running ? 0 : source ? FLIGHT_MS : CHIP_MS;
-      if (target && !running) lockOn(target, color, lead + LOCK_HOLD_MS);
-      const [lo, hi] = shownFrom < to ? [shownFrom, to] : [to, shownFrom];
+      const source = target && !running ? (replaying ?? redZoneSource(player, delta)) : null;
+      // 1. The play lights up in the Red Zone (when it's on screen).
+      const lights = source ? redZoneLights(source) : [];
+      if (source) source.dataset.applied = "1";
+      lights.forEach(light);
+      // 2. Its +/- is applied beside the total, once the play has had its moment.
+      const applyAt = source ? ATTENTION_MS : 0;
+      if (!running) {
+        const chip = { delta, key: now };
+        if (applyAt > 0) timers.current.push(window.setTimeout(() => setChips((c) => ({ ...c, [playerId]: chip })), applyAt));
+        else setChips((c) => ({ ...c, [playerId]: chip }));
+      }
+      // 3. Then the total counts up.
+      const lead = running ? 0 : applyAt + APPLY_MS;
+      const [lo, hi] = from < to ? [from, to] : [to, from];
       const passes = sortByPoints
         ? players.filter((o) => o.playerId !== playerId && (o.points ?? 0) > lo && (o.points ?? 0) < hi).length
         : 0;
       counts.current.set(playerId, {
-        from: shownFrom,
+        from,
         to,
         start: now + lead,
         duration: Math.max(MIN_COUNT_MS, passes * STEP_MS),
-        color,
+        color: SIDE_FLASH[player.side ?? "mine"],
+        lights: [...(running?.lights ?? []), ...lights],
       });
       lighting.push(playerId);
-      // On impact the total flickers.
-      setTimeout(() => {
-        target?.animate([{ opacity: 1 }, { opacity: 0.15 }, { opacity: 1 }, { opacity: 0.4 }, { opacity: 1 }], {
-          duration: FLICKER_MS,
-          easing: "steps(1, end)",
-        });
-      }, lead);
       started = true;
     }
     if (lighting.length > 0) queueMicrotask(() => setLit((prev) => new Set([...prev, ...lighting])));
@@ -401,17 +304,20 @@ export function GameRows({
     const tick = (now: number) => {
       const shown: Record<string, number | undefined> = {};
       const done: string[] = [];
+      const active = new Set<string>();
       for (const [playerId, c] of counts.current) {
         const t = Math.min(1, Math.max(0, (now - c.start) / c.duration));
         if (t >= 1) {
           counts.current.delete(playerId);
           shown[playerId] = undefined;
           done.push(playerId);
-          // Counted: the scan sweeps the row, taking over from the name's light.
+          // Counted: the lights go out, and the scan sweeps the row.
+          c.lights.forEach(unlight);
           const row = listRef.current?.querySelector<HTMLElement>(`[data-player-id="${CSS.escape(playerId)}"]`);
           if (row) scan(row, c.color);
         } else {
           shown[playerId] = round2(c.from + (c.to - c.from) * t);
+          if (now >= c.start) active.add(playerId);
         }
       }
       if (done.length > 0) {
@@ -420,7 +326,13 @@ export function GameRows({
           for (const id of done) next.delete(id);
           return next;
         });
+        setChips((prev) => {
+          const next = { ...prev };
+          for (const id of done) delete next[id];
+          return next;
+        });
       }
+      setCountingIds((prev) => (prev.size === active.size && [...active].every((id) => prev.has(id)) ? prev : active));
       setHeld((prev) => {
         const next = { ...prev };
         for (const [id, value] of Object.entries(shown)) {
@@ -489,7 +401,12 @@ export function GameRows({
     <div ref={listRef} className="relative flex flex-col">
       {ordered.map((player) => (
         <div key={player.playerId} data-player-id={player.playerId} className="relative">
-          {render(player, { points: shownPoints(player), chip: chips[player.playerId] ?? null, highlight: lit.has(player.playerId) })}
+          {render(player, {
+            points: shownPoints(player),
+            chip: chips[player.playerId] ?? null,
+            highlight: lit.has(player.playerId),
+            counting: countingIds.has(player.playerId),
+          })}
         </div>
       ))}
     </div>

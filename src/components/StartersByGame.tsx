@@ -9,7 +9,7 @@ import { NFLGame } from "@/lib/nfl-schedule";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import { nflLogoMaxWidth, nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import { LeagueLegendEntry, LeagueMark } from "./LeagueMark";
-import { CHIP_MS, GameRows, RowMotion } from "./GameRows";
+import { GameRows, RowMotion } from "./GameRows";
 
 export type { LeagueLegendEntry };
 
@@ -142,12 +142,12 @@ function PlayerRow({
       >
         {typedIn && showPoints ? (
           <span data-points className="relative inline-block origin-right">
+            {/* The play's +/-, lit beside the total from when it's applied until the count is done (see GameRows). */}
             {motion?.chip ? (
               <span
                 key={motion.chip.key}
                 aria-hidden
-                style={{ animation: `pts-chip ${CHIP_MS}ms ease-in forwards` }}
-                className={`pointer-events-none absolute right-full top-0 mr-1 whitespace-nowrap border-l-2 bg-[var(--map-tag)] px-1 font-bold text-[var(--map-tag-ink)] opacity-0 ${
+                className={`pointer-events-none absolute right-full top-0 mr-2 animate-[pts-chip_0.6s_steps(1,end)_forwards] whitespace-nowrap border-l-2 bg-[var(--map-tag)] px-1 font-bold text-[var(--map-tag-ink)] ${
                   SIDE_BORDER_COLOR[player.side ?? "mine"]
                 }`}
               >
@@ -155,7 +155,10 @@ function PlayerRow({
                 {formatPoints(motion.chip.delta)}
               </span>
             ) : null}
-            {formatPoints(motion?.points ?? player.points!)}
+            {/* Lit while it counts up. */}
+            <span className={motion?.counting ? "-mx-1 bg-[var(--map-tag)] px-1 font-bold text-[var(--map-tag-ink)]" : undefined}>
+              {formatPoints(motion?.points ?? player.points!)}
+            </span>
           </span>
         ) : (
           points

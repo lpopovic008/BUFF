@@ -264,38 +264,41 @@ body {
   }
 }
 
-/* A starter's points going up (or down) with no Red Zone row to fly from: the
-   change blinks on beside the total on a tag plate, like a HUD readout, holds,
-   then runs into the total and is gone (see GameRows). */
+/* The +/- applied beside a total in the starters list: blinks in, HUD-style, then holds. */
 @keyframes pts-chip {
   0% {
     opacity: 0;
-    transform: translateX(0);
   }
-  6% {
+  20% {
     opacity: 1;
   }
-  10% {
+  40% {
     opacity: 0.2;
   }
-  14% {
+  60% {
     opacity: 1;
   }
-  18% {
+  80% {
     opacity: 0.4;
   }
-  22% {
-    opacity: 1;
-    transform: translateX(0);
-  }
-  72% {
-    opacity: 1;
-    transform: translateX(0);
-  }
   100% {
-    opacity: 0;
-    transform: translateX(2.6em);
+    opacity: 1;
   }
+}
+
+/* What the home page's points animation is pointing at in the Red Zone — the
+   play's row, the player's name and the +/- it earned — lit while it plays
+   out (set from GameRows). */
+[data-lit]:not(li) {
+  margin-inline: -0.25em;
+  padding-inline: 0.25em;
+  background: var(--map-tag) !important;
+  color: var(--map-tag-ink) !important;
+}
+li[data-lit] {
+  background: color-mix(in srgb, var(--ink-primary) 8%, transparent) !important;
+  outline: 1.5px solid var(--ink-primary);
+  outline-offset: -1.5px;
 }
 
 /* The Red Zone alert's pulse. */

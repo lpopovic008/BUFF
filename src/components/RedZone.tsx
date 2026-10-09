@@ -73,7 +73,7 @@ function LinePoints({ line, mine, at }: { line: PlayLine; mine: boolean; at: num
   if (line.delta === null || line.total === null) return null;
   return (
     <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap leading-none tabular-nums" title={POINTS_TITLE}>
-      {/* Tagged so the starters list can fly a copy of it over to this player's total. */}
+      {/* Tagged so the starters list can find it and light it up as it applies it to this player's total. */}
       <span
         {...(line.playerId ? { "data-rz-player": line.playerId } : { "data-rz-actor": line.label ?? "", "data-rz-team": line.team ?? "" })}
         data-rz-delta={line.delta}
@@ -124,7 +124,9 @@ function PlayerLine({
             {line.position}
           </span>
         ) : null}
-        <span className="min-w-0 break-words text-[0.8125rem] font-bold text-ink-primary">{line.name}</span>
+        <span data-rz-name className="min-w-0 break-words text-[0.8125rem] font-bold text-ink-primary">
+          {line.name}
+        </span>
         {starter && starter.leagueIds.length > 0 ? (
           <span className="flex shrink-0 items-center gap-0.5 self-center">
             {starter.leagueIds.map((id) => (
@@ -213,7 +215,7 @@ function FeedRow({
   const time = clockTime(play.at);
   const team = play.offense ?? game.awayTeam;
   return (
-    // Tapping a play (on desktop) replays its points flying over to the starters list.
+    // Tapping a play (on desktop) replays its points being applied in the starters list.
     <li
       onClick={(e) => replayRedZonePlay(e.currentTarget)}
       title={hasPoints ? "Replay" : undefined}
