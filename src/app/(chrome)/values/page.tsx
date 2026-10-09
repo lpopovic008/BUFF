@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { SearchIcon, CrownIcon, CalendarIcon, SuperflexIcon, OneQBIcon, PlusCircleIcon, DotIcon } from "@/components/ui/Icon";
 import { IconButton } from "@/components/ui/IconButton";
-import { LeagueAccordion } from "@/components/LeagueAccordion";
+import { LeagueRosterPanel } from "@/components/LeagueRosterPanel";
+import { PickButton } from "@/components/ui/PickButton";
 import { useConfig } from "@/hooks/useConfig";
 import { useMyLeagues } from "@/hooks/useMyLeagues";
 import rawSnapshot from "@/data/player-values.json";
@@ -12,6 +13,7 @@ import { LeagueFormat, PlayerValue, PlayerValuesSnapshot, TEPremium, valueFor } 
 import { TitleWithHistory } from "@/components/HistoryButtons";
 import { PlateCard } from "@/components/ui/PlateCard";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
+import { formatRecord } from "@/lib/format";
 
 const snapshot = rawSnapshot as unknown as PlayerValuesSnapshot;
 
@@ -84,6 +86,8 @@ function ValueTable({ rows, maxValue }: { rows: Row[]; maxValue: number }) {
   );
 }
 
+const ALL_PLAYERS = "all";
+
 export default function ValuesPage() {
   const { config } = useConfig();
   const [listType, setListType] = useState<ListType>("dynasty");
@@ -91,7 +95,8 @@ export default function ValuesPage() {
   const [tep, setTep] = useState<TEPremium>("standard");
   const [deselectedPositions, setDeselectedPositions] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState("");
-  const [expandedLeagueId, setExpandedLeagueId] = useState<string | null>(null);
+  // All players, or your team in a league (by league id) — All players to start.
+  const [pickedId, setPickedId] = useState<string>(ALL_PLAYERS);
 
   const leagueIds = useMemo(() => config.leagues.map((l) => l.leagueId), [config.leagues]);
   const myLeagues = useMyLeagues(leagueIds, config.sleeperUserId);
@@ -119,6 +124,8 @@ export default function ValuesPage() {
   }, [fullList, deselectedPositions, query, leagueFormat, tep]);
 
   const hasData = snapshot.updatedAt !== null;
+  const valuesLabel = `${listType === "dynasty" ? "Dynasty" : "Redraft"} · ${leagueFormat === "superflex" ? "Superflex" : "1QB"}${tep === "tep" ? " · TE+" : ""}`;
+  const picked = myLeagues?.find((l) => l.leagueId === pickedId) ?? null;
   const togglePosition = (pos: string) =>
     setDeselectedPositions((prev) => {
       const next = new Set(prev);
@@ -133,125 +140,143 @@ export default function ValuesPage() {
         <h1 className="text-2xl font-semibold text-ink-primary">Values</h1>
       </TitleWithHistory>
 
-      {myLeagues && myLeagues.length > 0 ? (
-        <PlateCard title="Rosters" bodyClassName="px-4 sm:px-5">
-          {myLeagues.map((l) => (
-            <LeagueAccordion
-              key={l.leagueId}
-              leagueId={l.leagueId}
-              leagueName={l.leagueName}
+      {/* The pick on the left (70%), All players and each of your teams listed on the right (30%,
+          never narrower than 16rem). On a phone the list comes first, the pick under it. */}
+      <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-[minmax(0,7fr)_minmax(16rem,3fr)]">
+        <div className="order-2 min-w-0 md:order-1">
+          {picked ? (
+            <LeagueRosterPanel
+              key={picked.leagueId}
+              leagueId={picked.leagueId}
+              leagueName={picked.leagueName}
               sleeperUserId={config.sleeperUserId}
-              isOpen={expandedLeagueId === l.leagueId}
-              onToggle={() => setExpandedLeagueId((cur) => (cur === l.leagueId ? null : l.leagueId))}
             />
+          ) : !hasData ? (
+            <Card className="p-8 text-center text-sm text-ink-secondary">
+              Values haven&rsquo;t been fetched yet.
+            </Card>
+          ) : (
+            <PlateCard
+              title={valuesLabel}
+              aside={<span className="tabular-nums">{rows.length}</span>}
+              bodyClassName="p-3 sm:p-5"
+            >
+              <div className="relative mb-4">
+                <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search a player…"
+                  aria-label="Search a player"
+                  className="w-full border border-border bg-page py-1.5 pl-8 pr-3 text-sm text-ink-primary outline-none transition-colors focus:border-ink-primary"
+                />
+              </div>
+
+              <div className="mb-4 flex items-center gap-1">
+                <IconButton
+                  icon={<CrownIcon />}
+                  label="Dynasty"
+                  size="sm"
+                  variant={listType === "dynasty" ? "primary" : "default"}
+                  onClick={() => setListType("dynasty")}
+                />
+                <IconButton
+                  icon={<CalendarIcon />}
+                  label="Fantasy (redraft)"
+                  size="sm"
+                  variant={listType === "fantasy" ? "primary" : "default"}
+                  onClick={() => setListType("fantasy")}
+                />
+                <span className="h-5 w-px shrink-0 bg-border" aria-hidden />
+                <IconButton
+                  icon={<SuperflexIcon />}
+                  label="Superflex"
+                  size="sm"
+                  variant={leagueFormat === "superflex" ? "primary" : "default"}
+                  onClick={() => setLeagueFormat("superflex")}
+                />
+                <IconButton
+                  icon={<OneQBIcon />}
+                  label="1QB"
+                  size="sm"
+                  variant={leagueFormat === "oneQB" ? "primary" : "default"}
+                  onClick={() => setLeagueFormat("oneQB")}
+                />
+                <span className="h-5 w-px shrink-0 bg-border" aria-hidden />
+                <IconButton
+                  icon={<DotIcon />}
+                  label="Standard scoring"
+                  size="sm"
+                  variant={tep === "standard" ? "primary" : "default"}
+                  onClick={() => setTep("standard")}
+                />
+                <IconButton
+                  icon={<PlusCircleIcon />}
+                  label="TE Premium"
+                  size="sm"
+                  variant={tep === "tep" ? "primary" : "default"}
+                  onClick={() => setTep("tep")}
+                />
+              </div>
+
+              <div className="mb-4 flex flex-wrap items-center gap-1.5">
+                {availablePositions.map((pos) => {
+                  const active = !deselectedPositions.has(pos);
+                  return (
+                    <button
+                      key={pos}
+                      type="button"
+                      onClick={() => togglePosition(pos)}
+                      aria-pressed={active}
+                      className={`border px-3 py-1 text-xs font-medium transition-colors ${
+                        active
+                          ? "border-[var(--map-tag)] bg-[var(--map-tag)] font-bold text-[var(--map-tag-ink)]"
+                          : "border-border text-ink-muted line-through hover:bg-page"
+                      }`}
+                    >
+                      {pos}
+                    </button>
+                  );
+                })}
+                {deselectedPositions.size > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => setDeselectedPositions(new Set())}
+                    className="px-3 py-1 text-xs font-medium text-ink-muted underline-offset-2 hover:underline"
+                  >
+                    Reset
+                  </button>
+                ) : null}
+              </div>
+
+              <ValueTable rows={rows.slice(0, 300)} maxValue={maxValue} />
+              {rows.length > 300 ? (
+                <p className="mt-3 text-xs text-ink-muted">Top 300 of {rows.length}</p>
+              ) : null}
+            </PlateCard>
+          )}
+        </div>
+        <ul className="order-1 flex flex-col gap-2 md:order-2" aria-label="All players and each of your teams">
+          <li>
+            <PickButton
+              active={picked === null}
+              onClick={() => setPickedId(ALL_PLAYERS)}
+              title="All players"
+              note={valuesLabel}
+            />
+          </li>
+          {(myLeagues ?? []).map((l) => (
+            <li key={l.leagueId}>
+              <PickButton
+                active={picked?.leagueId === l.leagueId}
+                onClick={() => setPickedId(l.leagueId)}
+                title={l.leagueName}
+                note={formatRecord(l.wins, l.losses, l.ties)}
+              />
+            </li>
           ))}
-        </PlateCard>
-      ) : null}
-
-      {!hasData ? (
-        <Card className="p-8 text-center text-sm text-ink-secondary">
-          Values haven&rsquo;t been fetched yet.
-        </Card>
-      ) : (
-        <PlateCard
-          title={`${listType === "dynasty" ? "Dynasty" : "Redraft"} · ${leagueFormat === "superflex" ? "Superflex" : "1QB"}${tep === "tep" ? " · TE+" : ""}`}
-          aside={<span className="tabular-nums">{rows.length}</span>}
-          bodyClassName="p-3 sm:p-5"
-        >
-          <div className="relative mb-4">
-            <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search a player…"
-              aria-label="Search a player"
-              className="w-full border border-border bg-page py-1.5 pl-8 pr-3 text-sm text-ink-primary outline-none transition-colors focus:border-ink-primary"
-            />
-          </div>
-
-          <div className="mb-4 flex items-center gap-1">
-            <IconButton
-              icon={<CrownIcon />}
-              label="Dynasty"
-              size="sm"
-              variant={listType === "dynasty" ? "primary" : "default"}
-              onClick={() => setListType("dynasty")}
-            />
-            <IconButton
-              icon={<CalendarIcon />}
-              label="Fantasy (redraft)"
-              size="sm"
-              variant={listType === "fantasy" ? "primary" : "default"}
-              onClick={() => setListType("fantasy")}
-            />
-            <span className="h-5 w-px shrink-0 bg-border" aria-hidden />
-            <IconButton
-              icon={<SuperflexIcon />}
-              label="Superflex"
-              size="sm"
-              variant={leagueFormat === "superflex" ? "primary" : "default"}
-              onClick={() => setLeagueFormat("superflex")}
-            />
-            <IconButton
-              icon={<OneQBIcon />}
-              label="1QB"
-              size="sm"
-              variant={leagueFormat === "oneQB" ? "primary" : "default"}
-              onClick={() => setLeagueFormat("oneQB")}
-            />
-            <span className="h-5 w-px shrink-0 bg-border" aria-hidden />
-            <IconButton
-              icon={<DotIcon />}
-              label="Standard scoring"
-              size="sm"
-              variant={tep === "standard" ? "primary" : "default"}
-              onClick={() => setTep("standard")}
-            />
-            <IconButton
-              icon={<PlusCircleIcon />}
-              label="TE Premium"
-              size="sm"
-              variant={tep === "tep" ? "primary" : "default"}
-              onClick={() => setTep("tep")}
-            />
-          </div>
-
-          <div className="mb-4 flex flex-wrap items-center gap-1.5">
-            {availablePositions.map((pos) => {
-              const active = !deselectedPositions.has(pos);
-              return (
-                <button
-                  key={pos}
-                  type="button"
-                  onClick={() => togglePosition(pos)}
-                  aria-pressed={active}
-                  className={`border px-3 py-1 text-xs font-medium transition-colors ${
-                    active
-                      ? "border-[var(--map-tag)] bg-[var(--map-tag)] font-bold text-[var(--map-tag-ink)]"
-                      : "border-border text-ink-muted line-through hover:bg-page"
-                  }`}
-                >
-                  {pos}
-                </button>
-              );
-            })}
-            {deselectedPositions.size > 0 ? (
-              <button
-                type="button"
-                onClick={() => setDeselectedPositions(new Set())}
-                className="px-3 py-1 text-xs font-medium text-ink-muted underline-offset-2 hover:underline"
-              >
-                Reset
-              </button>
-            ) : null}
-          </div>
-
-          <ValueTable rows={rows.slice(0, 300)} maxValue={maxValue} />
-          {rows.length > 300 ? (
-            <p className="mt-3 text-xs text-ink-muted">Top 300 of {rows.length}</p>
-          ) : null}
-        </PlateCard>
-      )}
+        </ul>
+      </div>
     </div>
   );
 }

@@ -24,6 +24,7 @@ import { cumulativeSeriesByManager } from "@/lib/payouts";
 import { formatRecord, formatPoints, ordinal } from "@/lib/format";
 import { TitleWithHistory } from "@/components/HistoryButtons";
 import { PlateCard } from "@/components/ui/PlateCard";
+import { PickButton } from "@/components/ui/PickButton";
 import { useAsItStands } from "@/hooks/useAsItStands";
 import { getCurrentWeek } from "@/lib/sleeper";
 
@@ -257,37 +258,6 @@ function SeasonDetail({ season, profile }: { season: SeasonRecord; profile: Leag
   );
 }
 
-/** One pick in the history list: All-time, or a season. */
-function HistoryPick({
-  active,
-  onClick,
-  title,
-  subtitle,
-  note,
-}: {
-  active: boolean;
-  onClick: () => void;
-  title: string;
-  subtitle?: string;
-  note: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-current={active || undefined}
-      onClick={onClick}
-      className={`flex w-full flex-col gap-0.5 border px-3 py-2 text-left transition-colors ${
-        active ? "border-ink-primary bg-[color-mix(in_srgb,var(--map-tag)_7%,transparent)]" : "border-border hover:border-ink-primary/40"
-      }`}
-    >
-      <span className="flex items-baseline gap-2">
-        <span className="font-semibold text-ink-primary">{title}</span>
-        {subtitle ? <span className="min-w-0 truncate text-sm text-ink-secondary">{subtitle}</span> : null}
-      </span>
-      <span className="min-w-0 truncate text-sm text-ink-secondary">{note}</span>
-    </button>
-  );
-}
 
 const ALL_TIME = "all-time";
 
@@ -365,7 +335,7 @@ function LeagueHistoryContent() {
         </div>
         <ul className="order-1 flex flex-col gap-2 md:order-2" aria-label="All-time and each season">
           <li>
-            <HistoryPick
+            <PickButton
               active={picked === null}
               onClick={() => setPickedId(ALL_TIME)}
               title="All-time"
@@ -374,7 +344,7 @@ function LeagueHistoryContent() {
           </li>
           {seasons.map((season) => (
             <li key={season.leagueId}>
-              <HistoryPick
+              <PickButton
                 active={picked?.leagueId === season.leagueId}
                 onClick={() => setPickedId(season.leagueId)}
                 title={season.season}
