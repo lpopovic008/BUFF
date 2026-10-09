@@ -1,28 +1,21 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { LeagueLegendEntry, LeagueMark } from "@/components/LeagueMark";
 import { replayRedZonePlay } from "@/components/GameRows";
 import { FeedEntry, FeedScope, RedZoneNow, useRedZoneFeed } from "@/hooks/useRedZoneFeed";
 import { useLiveMode } from "@/hooks/useLiveTick";
+import { useTeamPlayers } from "@/hooks/useTeamPlayers";
 import { GameStarters, GroupedStarter } from "@/lib/my-starters";
 import { NFLGame } from "@/lib/nfl-schedule";
 import { formatPlayPoints } from "@/lib/play-points";
+import { PlayLine, statLine } from "@/lib/play-lines";
 import { nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 
 const PAGE = 30;
-
-/** The nearest ancestor that scrolls (the map's column, side by side), or null for the page itself. */
-function scrollParent(el: HTMLElement): HTMLElement | null {
-  for (let node = el.parentElement; node; node = node.parentElement) {
-    const { overflowY } = getComputedStyle(node);
-    if ((overflowY === "auto" || overflowY === "scroll") && node.scrollHeight > node.clientHeight) return node;
-  }
-  return null;
-}
 
 function TeamLogo({ team, side = 16 }: { team: string; side?: number }) {
   return (
@@ -39,7 +32,7 @@ function TeamLogo({ team, side = 16 }: { team: string; side?: number }) {
   );
 }
 
-/** A starter's name as the feed shows it — a team defense by its team. */
+/** A starter's name as the alerts show it — a team defense by its team. */
 function displayName(p: GroupedStarter): string {
   return p.position === "DEF" && p.team ? `${p.team} D/ST` : p.name;
 }
@@ -72,53 +65,78 @@ function TotalChip({ total }: { total: number }) {
 }
 
 /**
- * What the play was worth, on one line: the points it earned (green up, red
- * down), then the player's PPR total for the game through this play,
- * highlighted. A play with two of your starters lists each, by surname.
+ * What the play was worth to one person: the points it earned (green up, red
+ * down, for your starters), then their PPR total for the game through this
+ * play, highlighted.
  */
-function PlayPoints({ entry }: { entry: FeedEntry }) {
-  const { players, points, others } = entry;
-  // Name each line once there's more than one — your starters by surname, everyone else as ESPN writes them.
-  const labeled = players.length + others.length > 1;
+function LinePoints({ line, mine, at }: { line: PlayLine; mine: boolean; at: number }) {
+  if (line.delta === null || line.total === null) return null;
   return (
-    <span className="flex flex-col items-end gap-0.5" title={POINTS_TITLE}>
-      {players.map((p) => {
-        const pts = points[p.playerId];
-        if (!pts) return null;
-        const surname = p.position === "DEF" ? displayName(p) : p.name.split(" ").slice(1).join(" ") || p.name;
-        return (
-          <span key={p.playerId} className="flex items-center gap-1.5 whitespace-nowrap leading-none tabular-nums">
-            {labeled ? <span className="text-[0.625rem] text-ink-muted">{surname}</span> : null}
-            {/* Tagged so the starters list can fly a copy of it over to this player's total. */}
-            <span
-              data-rz-player={p.playerId}
-              data-rz-delta={pts.delta}
-              data-rz-at={entry.play.at ?? 0}
-              className={`text-sm font-bold ${deltaClass(pts.delta)}`}
-            >
-              {formatPlayPoints(pts.delta)}
-            </span>
-            <TotalChip total={pts.total} />
-          </span>
-        );
-      })}
-      {/* Everyone else's (the all-plays view): the same numbers, the +/- left uncolored. */}
-      {others.map((o) => (
-        <span key={o.key} className="flex items-center gap-1.5 whitespace-nowrap leading-none tabular-nums">
-          {labeled ? <span className="text-[0.625rem] text-ink-muted">{o.label}</span> : null}
-          <span
-            data-rz-actor={o.label}
-            data-rz-team={entry.play.offense ?? ""}
-            data-rz-delta={o.delta}
-            data-rz-at={entry.play.at ?? 0}
-            className="text-sm font-bold text-ink-primary"
-          >
-            {formatPlayPoints(o.delta)}
-          </span>
-          <TotalChip total={o.total} />
-        </span>
-      ))}
+    <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap leading-none tabular-nums" title={POINTS_TITLE}>
+      {/* Tagged so the starters list can fly a copy of it over to this player's total. */}
+      <span
+        {...(line.playerId ? { "data-rz-player": line.playerId } : { "data-rz-actor": line.label ?? "", "data-rz-team": line.team ?? "" })}
+        data-rz-delta={line.delta}
+        data-rz-at={at}
+        className={`text-sm font-bold ${mine ? deltaClass(line.delta) : "text-ink-primary"}`}
+      >
+        {formatPlayPoints(line.delta)}
+      </span>
+      <TotalChip total={line.total} />
     </span>
+  );
+}
+
+/**
+ * One person in a play: their photo (a defense's logo), position and name,
+ * the leagues you start them in, how their game is going, and what the play
+ * was worth to them.
+ */
+function PlayerLine({
+  line,
+  starter,
+  stats,
+  legendByLeagueId,
+  at,
+}: {
+  line: PlayLine;
+  /** Set when they're one of your starters. */
+  starter: GroupedStarter | undefined;
+  stats: Record<string, number> | undefined;
+  legendByLeagueId: Map<string, LeagueLegendEntry>;
+  at: number;
+}) {
+  const defense = line.position === "DEF";
+  const summary = statLine(line.position, stats);
+  return (
+    <li className="flex items-center gap-2">
+      {defense && line.team ? (
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-page">
+          <TeamLogo team={line.team} side={16} />
+        </span>
+      ) : line.playerId ? (
+        <PlayerHeadshot playerId={line.playerId} size={24} />
+      ) : (
+        <span className="h-6 w-6 shrink-0 rounded-full border border-border bg-page" aria-hidden />
+      )}
+      <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-1.5">
+        {line.position ? (
+          <span className={`shrink-0 text-[0.625rem] font-semibold uppercase ${POSITION_TEXT_COLOR[line.position] ?? "text-ink-muted"}`}>
+            {line.position}
+          </span>
+        ) : null}
+        <span className="min-w-0 break-words text-[0.8125rem] font-bold text-ink-primary">{line.name}</span>
+        {starter && starter.leagueIds.length > 0 ? (
+          <span className="flex shrink-0 items-center gap-0.5 self-center">
+            {starter.leagueIds.map((id) => (
+              <LeagueMark key={id} league={legendByLeagueId.get(id)} className="h-3 w-3" />
+            ))}
+          </span>
+        ) : null}
+        {summary ? <span className="whitespace-nowrap text-[0.6875rem] tabular-nums text-ink-muted">{summary}</span> : null}
+      </span>
+      <LinePoints line={line} mine={!!starter} at={at} />
+    </li>
   );
 }
 
@@ -156,39 +174,47 @@ function PlayBadges({ entry }: { entry: FeedEntry }) {
   );
 }
 
+/** The time of day a play happened, e.g. "1:42 PM". */
+function clockTime(at: number | null): string {
+  return at === null ? "" : new Date(at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
 /**
- * One play: your starter's photo, who (with the leagues they're started in),
- * ESPN's line for the play, and when — the down and distance it was snapped
- * on, the team with the ball, the clock. A play none of your starters were in
- * (the all-plays view) leads with the team with the ball instead. A play that arrives while you watch
- * slides in and washes its row in color — green for a score, red otherwise.
+ * One play: when it happened, the team with the ball and the matchup on top
+ * (the down and distance it was snapped on, and the game clock, across from
+ * them); a line for each person in it; ESPN's description underneath. A play
+ * that arrives while you watch slides in and washes its row in the theme's
+ * ink — green for a good one for you.
  */
 function FeedRow({
   entry,
+  starterById,
+  weekStats,
   legendByLeagueId,
   arrivedLive,
   index,
 }: {
   entry: FeedEntry;
+  starterById: Map<string, GroupedStarter>;
+  weekStats: Record<string, Record<string, number>>;
   legendByLeagueId: Map<string, LeagueLegendEntry>;
   arrivedLive: boolean;
   index: number;
 }) {
   // Decided once, when the row first appears.
   const [live] = useState(arrivedLive);
-  const hasPoints = Object.values(entry.points).some((p) => p.delta !== 0) || entry.others.some((o) => o.delta !== 0);
-  const { play, players } = entry;
-  const lead = players[0] as GroupedStarter | undefined;
-  const leagueIds = [...new Set(players.flatMap((p) => p.leagueIds))];
+  const { play, players, lines, game } = entry;
+  const hasPoints = lines.some((l) => !!l.delta);
   const good = play.scoring || (play.turnover && players.length > 0 && players.every((p) => p.position === "DEF"));
-  const { game } = entry;
+  const time = clockTime(play.at);
+  const team = play.offense ?? game.awayTeam;
   return (
     // Tapping a play (on desktop) replays its points flying over to the starters list.
     <li
       onClick={(e) => replayRedZonePlay(e.currentTarget)}
       title={hasPoints ? "Replay" : undefined}
-      className={`grid grid-cols-[auto_minmax(0,1fr)] items-start gap-2 border-b border-border px-1 py-2 last:border-b-0 ${
-        play.scoring ? "shadow-[inset_3px_0_0_var(--status-good)]" : ""
+      className={`flex flex-col gap-1.5 border-b border-border py-2 pr-1 last:border-b-0 ${
+        play.scoring ? "pl-2.5 shadow-[inset_3px_0_0_var(--status-good)]" : "pl-1"
       } ${hasPoints ? "md:cursor-pointer md:hover:bg-[color-mix(in_srgb,var(--ink-primary)_4%,transparent)]" : ""}`}
       style={{
         animation: live
@@ -198,61 +224,37 @@ function FeedRow({
         ["--rz-flash" as string]: good ? "var(--status-good)" : "var(--ink-primary)",
       }}
     >
-      <span className="relative mt-0.5">
-        {!lead || (lead.position === "DEF" && lead.team) ? (
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-page">
-            {(lead?.team ?? play.offense) ? <TeamLogo team={(lead?.team ?? play.offense)!} side={20} /> : null}
-          </span>
-        ) : (
-          <PlayerHeadshot playerId={lead.playerId} size={32} />
-        )}
-        {players.length > 1 ? (
-          <span className="absolute -bottom-1 -right-1 rounded-full border border-surface-raised bg-ink-primary px-1 text-[0.5625rem] font-bold leading-tight text-surface-raised">
-            +{players.length - 1}
-          </span>
-        ) : null}
-      </span>
-      {/* Who and when on the top line; the play's full description underneath, with what it was worth beside it. */}
-      <span className="flex min-w-0 flex-col gap-0.5">
-        <span className="flex items-start justify-between gap-2">
-          <span className="min-w-0">
-            {lead ? (
-              <span className="flex min-w-0 flex-wrap items-center gap-x-1.5">
-                <span className="min-w-0 break-words text-[0.8125rem] font-bold text-ink-primary">
-                  {players.map(displayName).join(" & ")}
-                </span>
-                <span className={`shrink-0 text-[0.625rem] font-semibold uppercase ${POSITION_TEXT_COLOR[lead.position] ?? "text-ink-muted"}`}>
-                  {lead.position === "DEF" ? "" : lead.position}
-                </span>
-                <span className="flex shrink-0 items-center gap-0.5">
-                  {leagueIds.map((id) => (
-                    <LeagueMark key={id} league={legendByLeagueId.get(id)} className="h-3 w-3" />
-                  ))}
-                </span>
-              </span>
-            ) : (
-              <span className="flex min-w-0 flex-wrap items-baseline gap-x-1.5">
-                <span className="text-[0.8125rem] font-bold text-ink-primary">{play.offense ?? game.awayTeam}</span>
-                <span className="text-[0.625rem] uppercase text-ink-muted">
-                  {game.awayTeam} @ {game.homeTeam}
-                </span>
-              </span>
-            )}
-          </span>
-          <span className="flex shrink-0 items-center gap-1 whitespace-nowrap pt-px text-[0.6875rem] tabular-nums text-ink-muted">
-            <PlayBadges entry={entry} />
-            {play.downDistance ? <span className="font-semibold text-ink-secondary">{play.downDistance}</span> : null}
-            {play.offense ? <TeamLogo team={play.offense} side={12} /> : null}
-            {whenLabel(entry)}
+      <span className="flex items-center justify-between gap-2 text-[0.6875rem] leading-none">
+        <span className="flex min-w-0 items-center gap-1.5 whitespace-nowrap">
+          {time ? <span className="tabular-nums text-ink-muted">{time}</span> : null}
+          <span className="font-bold text-ink-primary">{team}</span>
+          <span className="flex items-center gap-1" title={`${game.awayTeam} @ ${game.homeTeam}`}>
+            <TeamLogo team={game.awayTeam} side={14} />
+            <span className="text-ink-muted">@</span>
+            <TeamLogo team={game.homeTeam} side={14} />
           </span>
         </span>
-        <span className="flex items-start justify-between gap-2">
-          <span className="min-w-0 break-words text-[0.75rem] leading-snug text-ink-secondary">{play.text}</span>
-          <span className="shrink-0">
-            <PlayPoints entry={entry} />
-          </span>
+        <span className="flex shrink-0 items-center gap-1 whitespace-nowrap tabular-nums text-ink-muted">
+          <PlayBadges entry={entry} />
+          {play.downDistance ? <span className="font-semibold text-ink-secondary">{play.downDistance}</span> : null}
+          {whenLabel(entry)}
         </span>
       </span>
+      {lines.length > 0 ? (
+        <ul className="flex flex-col gap-1">
+          {lines.map((line) => (
+            <PlayerLine
+              key={line.key}
+              line={line}
+              starter={line.playerId ? starterById.get(line.playerId) : undefined}
+              stats={line.playerId ? weekStats[line.playerId] : undefined}
+              legendByLeagueId={legendByLeagueId}
+              at={play.at ?? 0}
+            />
+          ))}
+        </ul>
+      ) : null}
+      <span className="break-words text-[0.75rem] leading-snug text-ink-secondary">{play.text}</span>
     </li>
   );
 }
@@ -302,6 +304,7 @@ export function RedZone({
   starters,
   weekGames,
   legend,
+  weekStats,
   compactOnPhone = false,
 }: {
   /** Your starters, grouped by the game they're playing in. */
@@ -309,12 +312,16 @@ export function RedZone({
   /** Every game of the week. */
   weekGames: NFLGame[];
   legend: LeagueLegendEntry[];
-  /** On phones, show the plays in a box three rows tall that scrolls on its own, instead of one as tall as the screen. */
+  /** Everyone's stat line so far this week, by Sleeper id. */
+  weekStats: Record<string, Record<string, number>>;
+  /** On phones, show the plays in a box three rows tall that scrolls on its own, instead of running down the page. */
   compactOnPhone?: boolean;
 }) {
   const mode = useLiveMode();
   const [scope, setScope] = useState<FeedScope>("mine");
-  const feed = useRedZoneFeed(starters, weekGames, scope);
+  const teamPlayers = useTeamPlayers(weekStats);
+  const feed = useRedZoneFeed(starters, weekGames, scope, teamPlayers);
+  const starterById = useMemo(() => new Map(starters.flatMap((g) => g.players.map((p) => [p.playerId, p] as const))), [starters]);
   const [shown, setShown] = useState(PAGE);
   // Plays already on hand when the feed fills in just slide in; ones that arrive after that flash.
   const [settled, setSettled] = useState(false);
@@ -343,7 +350,7 @@ export function RedZone({
     return () => observer.disconnect();
   }, [compactOnPhone, hasEntries]);
   const moreToShow = feed.entries.length > shown;
-  // Scrolling to the end of the plays loads the next page of them — no button.
+  // Scrolling near the end of the plays loads the next page of them — no button.
   useEffect(() => {
     const sentinel = sentinelRef.current;
     if (!sentinel) return;
@@ -353,36 +360,6 @@ export function RedZone({
     observer.observe(sentinel);
     return () => observer.disconnect();
   }, [moreToShow, shown]);
-
-  // The box is never taller than the space under the header and ticker, so
-  // the page (or, side by side, the map's column) stops scrolling once the
-  // Red Zone's title reaches the top. Until then the plays stay put and a
-  // scroll over them moves the page; from there on it scrolls the plays.
-  const cardRef = useRef<HTMLDivElement>(null);
-  const [atTop, setAtTop] = useState(false);
-  useEffect(() => {
-    const card = cardRef.current;
-    if (!card) return;
-    const check = () => {
-      const scroller = scrollParent(card);
-      const root = getComputedStyle(document.documentElement);
-      const top = scroller
-        ? scroller.getBoundingClientRect().top
-        : (parseFloat(root.getPropertyValue("--header-h")) || 0) + (parseFloat(root.getPropertyValue("--ticker-h")) || 0);
-      const atEnd = scroller
-        ? scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 2
-        : window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
-      setAtTop(card.getBoundingClientRect().top <= top + 4 || atEnd);
-    };
-    queueMicrotask(check);
-    // Any scroll on the page — the window's or the map column's.
-    document.addEventListener("scroll", check, { capture: true, passive: true });
-    window.addEventListener("resize", check);
-    return () => {
-      document.removeEventListener("scroll", check, { capture: true });
-      window.removeEventListener("resize", check);
-    };
-  }, [hasEntries]);
 
   const pickScope = (next: FeedScope) => {
     if (next === scope) return;
@@ -401,58 +378,56 @@ export function RedZone({
       : weekGames.some((g) => g.state !== "pre");
 
   return (
-    <Card
-      ref={cardRef}
-      className={`flex flex-col gap-2 p-3 md:max-h-[calc(100vh-var(--header-h,0px)-var(--ticker-h,0px)-2px-1.5rem)] ${
-        // Less the page's own bottom padding, so the title lands right under the ticker.
-        compactOnPhone
-          ? ""
-          : "max-md:max-h-[calc(100dvh-var(--header-h,0px)-var(--ticker-h,0px)-1.5rem)] sm:max-md:max-h-[calc(100dvh-var(--header-h,0px)-var(--ticker-h,0px)-2rem)]"
-      }`}
-    >
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="flex min-w-0 items-center gap-2">
-          <span className="relative flex h-2.5 w-2.5 shrink-0" aria-hidden>
-            {live ? <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-status-critical opacity-60" /> : null}
-            <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${live ? "bg-status-critical" : "bg-ink-muted"}`} />
-          </span>
-          <span className="whitespace-nowrap text-sm font-bold uppercase tracking-[0.2em] text-ink-primary">Red Zone</span>
-        </h2>
-        <div className="flex shrink-0 border border-border text-[0.6875rem] font-semibold" role="group" aria-label="Which plays">
-          {SCOPES.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              aria-pressed={scope === opt.value}
-              onClick={() => pickScope(opt.value)}
-              className={`whitespace-nowrap px-2 py-0.5 transition-colors ${
-                scope === opt.value ? "bg-ink-primary text-surface-raised" : "text-ink-secondary hover:text-ink-primary"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
+    // The plays run on down the page (or, side by side, the map's column),
+    // with the title and anything in the red zone now sticking at the top as
+    // they pass under it — so one swipe carries straight on from the page into
+    // the plays. On a phone with a game on, they sit in a short box of their own instead.
+    <Card className="flex flex-col gap-2 p-3">
+      <div
+        className={`z-10 -mx-3 -mt-3 flex flex-col gap-2 border-b border-border bg-surface-raised px-3 pb-2 pt-3 md:sticky md:top-0 ${
+          compactOnPhone ? "" : "max-md:sticky max-md:top-[calc(var(--header-h,0px)+var(--ticker-h,0px))]"
+        }`}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="flex min-w-0 items-center gap-2">
+            <span className="relative flex h-2.5 w-2.5 shrink-0" aria-hidden>
+              {live ? <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-status-critical opacity-60" /> : null}
+              <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${live ? "bg-status-critical" : "bg-ink-muted"}`} />
+            </span>
+            <span className="whitespace-nowrap text-sm font-bold uppercase tracking-[0.2em] text-ink-primary">Red Zone</span>
+          </h2>
+          <div className="flex shrink-0 border border-border text-[0.6875rem] font-semibold" role="group" aria-label="Which plays">
+            {SCOPES.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                aria-pressed={scope === opt.value}
+                onClick={() => pickScope(opt.value)}
+                className={`whitespace-nowrap px-2 py-0.5 transition-colors ${
+                  scope === opt.value ? "bg-ink-primary text-surface-raised" : "text-ink-secondary hover:text-ink-primary"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
 
-      {feed.redZone.length > 0 ? (
-        <ul className="flex flex-col gap-1" aria-label="In the red zone now">
-          {feed.redZone.map((alert) => (
-            <RedZoneAlert key={alert.game.id} alert={alert} />
-          ))}
-        </ul>
-      ) : null}
+        {feed.redZone.length > 0 ? (
+          <ul className="flex flex-col gap-1" aria-label="In the red zone now">
+            {feed.redZone.map((alert) => (
+              <RedZoneAlert key={alert.game.id} alert={alert} />
+            ))}
+          </ul>
+        ) : null}
+      </div>
 
       {entries.length > 0 ? (
         <>
           <div
             ref={boxRef}
             className={
-              compactOnPhone
-                ? `max-md:max-h-[var(--rz-box-h,15rem)] max-md:overflow-y-auto max-md:overscroll-contain max-md:border-y max-md:border-border md:min-h-0 md:flex-1 ${
-                    atTop ? "md:overflow-y-auto" : "md:overflow-hidden"
-                  }`
-                : `min-h-0 flex-1 ${atTop ? "overflow-y-auto" : "overflow-hidden"}`
+              `relative ${compactOnPhone ? "max-md:max-h-[var(--rz-box-h,15rem)] max-md:overflow-y-auto max-md:overscroll-contain max-md:border-b max-md:border-border" : ""}`
             }
           >
             <ol ref={listRef} className="flex flex-col" aria-label={scope === "mine" ? "Plays your starters were part of" : "Every play"} aria-live="polite">
@@ -460,13 +435,16 @@ export function RedZone({
                 <FeedRow
                   key={`${entry.game.id}-${entry.play.id}`}
                   entry={entry}
+                  starterById={starterById}
+                  weekStats={weekStats}
                   legendByLeagueId={legendByLeagueId}
                   arrivedLive={settled}
                   index={i}
                 />
               ))}
             </ol>
-            {entries.length > shown ? <div ref={sentinelRef} className="h-px" aria-hidden /> : null}
+            {/* The last screen or so of plays: scrolling into it brings in the next ones before you reach the end. */}
+            {entries.length > shown ? <div ref={sentinelRef} className="pointer-events-none absolute inset-x-0 bottom-0 h-[min(60rem,100%)]" aria-hidden /> : null}
           </div>
         </>
       ) : (

@@ -12,6 +12,7 @@ interface PlayerRecord {
   last_name?: string;
   position?: string;
   team?: string | null;
+  active?: boolean;
 }
 
 let cache: Record<string, PlayerRecord> | null = null;
@@ -91,5 +92,27 @@ export async function loadPlayerIdIndex(): Promise<Map<string, string>> {
     idx.set(`${record.position}-${normalizeName(record.full_name)}`, id);
   }
   idIndexCache = idx;
+  return idx;
+}
+
+let teamIndexCache: Map<string, ResolvedPlayer[]> | null = null;
+
+/**
+ * Every active player, by NFL team — for matching a name-only source that
+ * knows the team (ESPN's play-by-play, "J.Allen" on BUF) to a Sleeper id.
+ * Empty if the dump fails to load (and not cached, so a later call can retry).
+ */
+export async function loadTeamPlayers(): Promise<Map<string, ResolvedPlayer[]>> {
+  if (teamIndexCache) return teamIndexCache;
+  const players = await loadPlayers();
+  if (!players) return new Map();
+  const idx = new Map<string, ResolvedPlayer[]>();
+  for (const [id, record] of Object.entries(players)) {
+    if (!record.team || record.active === false || !record.full_name || !record.position) continue;
+    const list = idx.get(record.team) ?? [];
+    list.push({ playerId: id, name: record.full_name, position: record.position, team: record.team });
+    idx.set(record.team, list);
+  }
+  teamIndexCache = idx;
   return idx;
 }

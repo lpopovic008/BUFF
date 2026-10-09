@@ -4,18 +4,17 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { GameStarters, GroupedStarter } from "@/lib/my-starters";
 import { NFLGame } from "@/lib/nfl-schedule";
 import { LIVE_TTL_SECONDS } from "@/lib/live-clock";
-import { FeedCandidate, GamePlay, getGamePlays, playFirstSeenAt, playFromLastPlay, playersInPlay, playTextActors, playTextNamePattern } from "@/lib/play-by-play";
-import { pprPointsForPlay } from "@/lib/play-points";
+import { FeedCandidate, GamePlay, getGamePlays, playFirstSeenAt, playFromLastPlay, playersInPlay } from "@/lib/play-by-play";
+import { LinePlayer, linesForPlays, PlayLine } from "@/lib/play-lines";
 
-/** A play — with whichever of your starters were part of it (none, in the all-plays view, for most). */
+/** A play — with whichever of your starters were part of it (none, in the all-plays view, for most) — and everyone in it, a line each. */
 export interface FeedEntry {
   play: GamePlay;
   game: NFLGame;
+  /** Your starters in the play. */
   players: GroupedStarter[];
-  /** Per player: standard PPR points from this play, and their game total through it. */
-  points: Record<string, { delta: number; total: number }>;
-  /** In the all-plays view, everyone else the play scored points for — by ESPN's shorthand name ("B.Mayfield"), or a team defense ("TB D/ST"). */
-  others: { key: string; label: string; delta: number; total: number }[];
+  /** Everyone the play names, then the defense when it scored — each with the play's standard PPR points and their game total through it. */
+  lines: PlayLine[];
 }
 
 /** A game where a team has the ball inside the 20 right now — in your-players view, only a team you have starters on. */
@@ -132,8 +131,16 @@ export type FeedScope = "mine" | "all";
  * live clock and it keeps itself current.
  *
  * `starters` is your starters grouped by game; `weekGames` is every game of the week.
+ * Each play lists everyone in it, matched by name to your starters or else to
+ * `teamPlayers`, for their photos and positions.
  */
-export function useRedZoneFeed(starters: GameStarters[], weekGames: NFLGame[], scope: FeedScope): RedZoneFeed {
+export function useRedZoneFeed(
+  starters: GameStarters[],
+  weekGames: NFLGame[],
+  scope: FeedScope,
+  /** Who a play's names can be matched to, by team, likeliest first. */
+  teamPlayers: Map<string, LinePlayer[]>
+): RedZoneFeed {
   const games = useMemo<GameStarters[]>(() => {
     if (scope === "mine") return starters.filter((g) => g.players.length > 0);
     const playersByGame = new Map(starters.map((g) => [g.game.id, g.players]));
@@ -151,48 +158,22 @@ export function useRedZoneFeed(starters: GameStarters[], weekGames: NFLGame[], s
       const plays = withScoreboardPlay(game, playsByGame[game.id] ?? []);
       // In game order, so each player's running total builds up play by play.
       plays.sort((a, b) => a.sequence - b.sequence);
-      const totals = new Map<string, number>();
-      const addTo = (key: string, delta: number) => {
-        const total = Math.round(((totals.get(key) ?? 0) + delta) * 100) / 100;
-        totals.set(key, total);
-        return total;
-      };
+      // Names are matched to your starters first, then to everyone else on the two teams.
+      const pool: LinePlayer[] = [...players, ...(teamPlayers.get(game.homeTeam) ?? []), ...(teamPlayers.get(game.awayTeam) ?? [])];
+      const myDefenses = new Set(players.filter((p) => p.position === "DEF" && p.team).map((p) => p.team!));
+      const lines = linesForPlays(plays, [game.homeTeam, game.awayTeam], pool, myDefenses);
       for (const play of plays) {
         const matched = playersInPlay(play, candidates);
         if (matched.length === 0 && scope === "mine") continue;
-        const points: FeedEntry["points"] = {};
-        for (const c of matched) {
-          const delta = pprPointsForPlay(play, c);
-          points[c.playerId] = { delta, total: addTo(c.playerId, delta) };
-        }
-        // Everyone else's points too, in the all-plays view — named the way
-        // ESPN's line names them, kept apart from your own starters already above.
-        const others: FeedEntry["others"] = [];
-        if (scope === "all") {
-          const mine = matched.map((c) => playTextNamePattern(c.name)).filter((r): r is RegExp => r !== null);
-          for (const { label, candidate } of playTextActors(play)) {
-            if (mine.some((r) => r.test(label))) continue;
-            const delta = pprPointsForPlay(play, candidate);
-            const total = addTo(candidate.playerId, delta);
-            if (delta !== 0) others.push({ key: candidate.playerId, label, delta, total });
-          }
-          const defense = play.offense ? [game.homeTeam, game.awayTeam].find((t) => t !== play.offense) : undefined;
-          if (defense && !matched.some((c) => c.position === "DEF" && c.team === defense)) {
-            const key = `DEF:${defense}`;
-            const delta = pprPointsForPlay(play, { playerId: key, name: `${defense} D/ST`, position: "DEF", team: defense });
-            const total = addTo(key, delta);
-            if (delta !== 0) others.push({ key, label: `${defense} D/ST`, delta, total });
-          }
-        }
         const involved = matched.map((c) => byId.get(c.playerId)).filter((p): p is GroupedStarter => !!p);
-        out.push({ play, game, players: involved, points, others });
+        out.push({ play, game, players: involved, lines: lines.get(play.id) ?? [] });
       }
     }
     return out.sort((a, b) => {
       const byTime = (b.play.at ?? 0) - (a.play.at ?? 0);
       return byTime !== 0 ? byTime : b.play.sequence - a.play.sequence;
     });
-  }, [games, playsByGame, scope]);
+  }, [games, playsByGame, scope, teamPlayers]);
 
   const redZone = useMemo(() => {
     const out: RedZoneNow[] = [];

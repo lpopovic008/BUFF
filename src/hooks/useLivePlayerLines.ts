@@ -14,9 +14,11 @@ export interface LivePlayerLines {
   projected: Record<string, number>;
   /** Every player's projected stat line, by id — to score a projection under a league's own rules. */
   projectionStats: Record<string, Record<string, number>>;
+  /** Every player's stat line so far this week, by id. */
+  stats: Record<string, Record<string, number>>;
 }
 
-const EMPTY: LivePlayerLines = { lines: [], projected: {}, projectionStats: {} };
+const EMPTY: LivePlayerLines = { lines: [], projected: {}, projectionStats: {}, stats: {} };
 
 /**
  * Every NFL player's standard PPR points so far this week and their
@@ -54,6 +56,7 @@ export function useLivePlayerLines(season: string | null, week: number | null, g
       setResult({
         projected,
         projectionStats,
+        stats: Object.fromEntries(Object.entries(stats).map(([id, line]) => [id, line.stats])),
         lines: resolved.map((p) => ({
           playerId: p.playerId,
           name: p.name,
