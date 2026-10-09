@@ -41,6 +41,7 @@ import { useLeagueTeams } from "@/hooks/useLeagueTeams";
 import { recapDisplayFont } from "@/lib/fonts";
 import { RecapEditor } from "./RecapEditor";
 import { GraphicCopyMenu } from "./GraphicCopyMenu";
+import { RecapContents, recapContents } from "./RecapContents";
 import { TitleWithHistory } from "@/components/HistoryButtons";
 
 // week=0 is a sentinel for the preseason write-up — a free-write space that
@@ -563,7 +564,19 @@ function RecapContent() {
         // wrapping it in the page's light Card would double up on chrome. The
         // plain-textarea fallback (no model) still needs the Card for its
         // border/background.
-        return model ? editor : <Card className="p-5">{editor}</Card>;
+        if (!model) return <Card className="p-5">{editor}</Card>;
+        // The contents down the left (30%), the write-up on the right (70%);
+        // on a phone, just the write-up.
+        return (
+          <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-[minmax(12rem,3fr)_minmax(0,7fr)]">
+            <aside className="hidden md:sticky md:top-[calc(var(--header-h,0px)+1rem)] md:block md:max-h-[calc(100vh-var(--header-h,0px)-2rem)] md:overflow-y-auto">
+              <RecapContents
+                entries={recapContents(model, { bowl: resultPicks?.bowlOfWeek ?? null, honorable: resultPicks?.honorableBowl ?? null })}
+              />
+            </aside>
+            <div className="min-w-0">{editor}</div>
+          </div>
+        );
       })()}
     </div>
   );

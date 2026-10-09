@@ -419,7 +419,7 @@ function AiRecapBody({
 // theme shares the same translucent-white surface (see recap-graphic.ts's
 // COLOR.card) — the graphic doesn't tint cards per section, so neither does
 // this.
-const SECTION_TITLE: Record<Exclude<RecapSectionKey, "bowl" | "honorable">, { emoji: string; label: string }> = {
+export const SECTION_TITLE: Record<Exclude<RecapSectionKey, "bowl" | "honorable">, { emoji: string; label: string }> = {
   aiRecap: { emoji: "✨", label: "AI Recap" },
   highScorer: { emoji: "🏆", label: "High Scorer" },
   winners: { emoji: "💵", label: "Winners" },
@@ -432,6 +432,7 @@ const SECTION_TITLE: Record<Exclude<RecapSectionKey, "bowl" | "honorable">, { em
 
 /** Every section's shared shell: a translucent card matching the graphic's own, an include/exclude checkbox pinned to the top-right corner (unchecked greys the whole box out and leaves it out of both the copied text and the graphic), and a "+"/"–" button pinned to the bottom-right that shows or hides `detail`. `poster` switches to the wider-padded gradient-tinted card the two decided/preview matchups use in the graphic. */
 function SectionBox({
+  section,
   included,
   onToggleIncluded,
   header,
@@ -441,6 +442,8 @@ function SectionBox({
   onToggleDetail,
   poster = false,
 }: {
+  /** Which section this is — the contents list down the side finds it by this. */
+  section: RecapSectionKey;
   included: boolean;
   onToggleIncluded: () => void;
   header: React.ReactNode;
@@ -451,7 +454,7 @@ function SectionBox({
   poster?: boolean;
 }) {
   return (
-    <div className={`rn-card ${poster ? "rn-poster-card" : ""} ${included ? "" : "rn-excluded"}`}>
+    <div data-recap-section={section} className={`rn-card ${poster ? "rn-poster-card" : ""} ${included ? "" : "rn-excluded"}`}>
       <label
         className="rn-include-toggle-wrap"
         title={included ? "Included — click to leave this out" : "Excluded — click to include it"}
@@ -549,12 +552,13 @@ export function RecapSectionsEditor({
   return (
     <div className="recap-neon app-theme">
       <span className="rn-badge">Commi$h</span>
-      <div className="rn-title-row">
+      <div data-recap-section="title" className="rn-title-row">
         <TitleField value={model.title} onChange={(v) => set("title", v)} />
         <div className="rn-underline" />
       </div>
 
       <SectionBox
+        section="aiRecap"
         included={included("aiRecap")}
         onToggleIncluded={() => toggleIncluded("aiRecap")}
         header={<SectionHeader emoji={SECTION_TITLE.aiRecap.emoji} label={SECTION_TITLE.aiRecap.label} />}
@@ -573,6 +577,7 @@ export function RecapSectionsEditor({
       </SectionBox>
 
       <SectionBox
+        section="bowl"
         poster
         included={included("bowl")}
         onToggleIncluded={() => toggleIncluded("bowl")}
@@ -591,6 +596,7 @@ export function RecapSectionsEditor({
       </SectionBox>
 
       <SectionBox
+        section="honorable"
         poster
         included={included("honorable")}
         onToggleIncluded={() => toggleIncluded("honorable")}
@@ -613,6 +619,7 @@ export function RecapSectionsEditor({
       </SectionBox>
 
       <SectionBox
+        section="highScorer"
         included={included("highScorer")}
         onToggleIncluded={() => toggleIncluded("highScorer")}
         header={<SectionHeader emoji="🏆" label="High Scorer" />}
@@ -625,6 +632,7 @@ export function RecapSectionsEditor({
       </SectionBox>
 
       <SectionBox
+        section="winners"
         included={included("winners")}
         onToggleIncluded={() => toggleIncluded("winners")}
         header={<SectionHeader emoji={SECTION_TITLE.winners.emoji} label={SECTION_TITLE.winners.label} />}
@@ -636,6 +644,7 @@ export function RecapSectionsEditor({
       </SectionBox>
 
       <SectionBox
+        section="lastWeek"
         included={included("lastWeek")}
         onToggleIncluded={() => toggleIncluded("lastWeek")}
         header={<SectionHeader emoji={SECTION_TITLE.lastWeek.emoji} label={SECTION_TITLE.lastWeek.label} />}
@@ -647,6 +656,7 @@ export function RecapSectionsEditor({
       </SectionBox>
 
       <SectionBox
+        section="standings"
         included={included("standings")}
         onToggleIncluded={() => toggleIncluded("standings")}
         header={<SectionHeader emoji={SECTION_TITLE.standings.emoji} label={SECTION_TITLE.standings.label} />}
@@ -658,6 +668,7 @@ export function RecapSectionsEditor({
       </SectionBox>
 
       <SectionBox
+        section="records"
         included={included("records")}
         onToggleIncluded={() => toggleIncluded("records")}
         header={<SectionHeader emoji={SECTION_TITLE.records.emoji} label={SECTION_TITLE.records.label} />}
@@ -669,9 +680,10 @@ export function RecapSectionsEditor({
       </SectionBox>
 
       <div className="rn-divider" />
-      <p className={`${recapDisplayFont.className} rn-upcoming-title`}>{upcomingWeekLabel(model.upcomingWeek)}</p>
+      <p data-recap-section="upcoming" className={`${recapDisplayFont.className} rn-upcoming-title`}>{upcomingWeekLabel(model.upcomingWeek)}</p>
 
       <SectionBox
+        section="upcomingBowl"
         poster
         included={included("upcomingBowl")}
         onToggleIncluded={() => toggleIncluded("upcomingBowl")}
@@ -694,6 +706,7 @@ export function RecapSectionsEditor({
       </SectionBox>
 
       <SectionBox
+        section="upcomingHonorable"
         poster
         included={included("upcomingHonorable")}
         onToggleIncluded={() => toggleIncluded("upcomingHonorable")}
