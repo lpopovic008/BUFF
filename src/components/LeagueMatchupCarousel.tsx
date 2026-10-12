@@ -8,7 +8,6 @@ import { PendingMatchups } from "@/hooks/useAsItStands";
 import { TeamStanding } from "@/lib/league-data";
 import { MatchupRows } from "@/components/LeagueTicker";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
-import { ChevronRightIcon } from "@/components/ui/Icon";
 import { abbreviateFirstName, formatPoints } from "@/lib/format";
 
 // Sleeper's own slot code — abbreviate the one that's spelled out.
@@ -139,7 +138,6 @@ function MatchupHeader({
   right,
   standings,
   headToHead,
-  open,
 }: {
   leagueId: string;
   left: MatchupTeam;
@@ -147,8 +145,6 @@ function MatchupHeader({
   standings: Map<number, TeamStanding>;
   /** Each side's all-time record against the other, by roster — absent until it's loaded. */
   headToHead: Map<number, AllTimeRecord> | null;
-  /** In the phone's stack: whether its lineup is showing, marked in the middle. Unset elsewhere. */
-  open?: boolean;
 }) {
   const label = (t: MatchupTeam, align: "left" | "right") => (
     <TeamNameLabel
@@ -176,14 +172,7 @@ function MatchupHeader({
     <div className="flex flex-col gap-1.5 bg-[var(--map-tag)] px-2 py-2 text-[var(--map-tag-ink)]">
       <div className={`grid ${SLOT_COLS} items-start gap-1 sm:gap-2`}>
         {label(left, "left")}
-        {open === undefined ? (
-          <span />
-        ) : (
-          <ChevronRightIcon
-            aria-hidden
-            className={`h-3.5 w-3.5 justify-self-center transition-transform duration-500 ${open ? "rotate-90" : ""}`}
-          />
-        )}
+        <span />
         {right ? label(right, "right") : <div />}
       </div>
       <div className={`grid ${SLOT_COLS} items-baseline gap-1 text-[0.9375rem] font-semibold tabular-nums sm:gap-2 sm:text-lg`}>
@@ -247,12 +236,40 @@ function MatchupSlide({
   );
 }
 
+/**
+ * A shut matchup in the phone's stack, on one line: each team's name and
+ * score, the scores meeting in the middle — on the same plate as the full
+ * header it opens into.
+ */
+function CompactHeader({ left, right }: { left: MatchupTeam; right: MatchupTeam | undefined }) {
+  return (
+    <div
+      className={`grid ${SLOT_COLS} items-baseline gap-1 bg-[var(--map-tag)] px-2 py-2 text-[0.8125rem] text-[var(--map-tag-ink)] sm:gap-2`}
+    >
+      <span className="flex min-w-0 items-baseline justify-between gap-2">
+        <span className="truncate font-semibold">{left.teamName}</span>
+        <span className="shrink-0 font-semibold tabular-nums">{formatPoints(left.points)}</span>
+      </span>
+      <span />
+      {right ? (
+        <span className="flex min-w-0 items-baseline justify-between gap-2">
+          <span className="shrink-0 font-semibold tabular-nums">{formatPoints(right.points)}</span>
+          <span className="truncate text-right font-semibold">{right.teamName}</span>
+        </span>
+      ) : (
+        <span />
+      )}
+    </div>
+  );
+}
+
 /** How long a lineup takes to fold open or shut in the phone's stack. */
 const FOLD_MS = 450;
 
 /**
- * Phones: every matchup's header stacked, yours on top; tapping one opens its
- * lineup underneath and shuts whichever was open (tapping the open one shuts
+ * Phones: every matchup stacked, yours on top — the open one with its full
+ * header and lineup, the rest down to a line each (names and scores).
+ * Tapping one opens it and shuts whichever was open (tapping the open one shuts
  * it). Opens on yours. The tapped header holds still on screen while the one
  * above it folds shut, rather than jumping up with it.
  */
@@ -318,14 +335,18 @@ function MatchupStack({
               }}
               className="cursor-pointer"
             >
-              <MatchupHeader
-                leagueId={leagueId}
-                left={mine}
-                right={other}
-                standings={standings}
-                headToHead={headToHeadFor(mine, other, owners, allTime)}
-                open={open}
-              />
+              {/* Open, the full header; shut, just the names and scores. */}
+              {open ? (
+                <MatchupHeader
+                  leagueId={leagueId}
+                  left={mine}
+                  right={other}
+                  standings={standings}
+                  headToHead={headToHeadFor(mine, other, owners, allTime)}
+                />
+              ) : (
+                <CompactHeader left={mine} right={other} />
+              )}
             </div>
             {/* Folds open and shut by its height (0fr to 1fr). */}
             <div
