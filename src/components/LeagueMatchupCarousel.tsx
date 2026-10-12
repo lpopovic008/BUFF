@@ -8,8 +8,7 @@ import { PendingMatchups } from "@/hooks/useAsItStands";
 import { TeamStanding } from "@/lib/league-data";
 import { MatchupRows } from "@/components/LeagueTicker";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
-import { IconButton } from "@/components/ui/IconButton";
-import { ChevronLeftIcon, ChevronRightIcon } from "@/components/ui/Icon";
+import { ChevronRightIcon } from "@/components/ui/Icon";
 import { abbreviateFirstName, formatPoints } from "@/lib/format";
 
 // Sleeper's own slot code — abbreviate the one that's spelled out.
@@ -140,6 +139,7 @@ function MatchupHeader({
   right,
   standings,
   headToHead,
+  open,
 }: {
   leagueId: string;
   left: MatchupTeam;
@@ -147,6 +147,8 @@ function MatchupHeader({
   standings: Map<number, TeamStanding>;
   /** Each side's all-time record against the other, by roster — absent until it's loaded. */
   headToHead: Map<number, AllTimeRecord> | null;
+  /** In the phone's stack: whether its lineup is showing, marked in the middle. Unset elsewhere. */
+  open?: boolean;
 }) {
   const label = (t: MatchupTeam, align: "left" | "right") => (
     <TeamNameLabel
@@ -174,7 +176,14 @@ function MatchupHeader({
     <div className="flex flex-col gap-1.5 bg-[var(--map-tag)] px-2 py-2 text-[var(--map-tag-ink)]">
       <div className={`grid ${SLOT_COLS} items-start gap-1 sm:gap-2`}>
         {label(left, "left")}
-        <span />
+        {open === undefined ? (
+          <span />
+        ) : (
+          <ChevronRightIcon
+            aria-hidden
+            className={`h-3.5 w-3.5 justify-self-center transition-transform duration-500 ${open ? "rotate-90" : ""}`}
+          />
+        )}
         {right ? label(right, "right") : <div />}
       </div>
       <div className={`grid ${SLOT_COLS} items-baseline gap-1 text-[0.9375rem] font-semibold tabular-nums sm:gap-2 sm:text-lg`}>
@@ -196,6 +205,18 @@ function MatchupHeader({
   );
 }
 
+/** A matchup's lineups, slot by slot: yours (or the first team's) on the left. */
+function MatchupLineup({ game, myRosterId }: { game: ResolvedMatchupGame; myRosterId: number | null }) {
+  const [mine, other] = sides(game, myRosterId);
+  return (
+    <div className="flex flex-col gap-2.5 px-2">
+      {mine.slots.map((slot, i) => (
+        <SlotRow key={i} slot={slot.slot} my={slot} their={other?.slots[i]} />
+      ))}
+    </div>
+  );
+}
+
 function MatchupSlide({
   leagueId,
   game,
@@ -211,26 +232,118 @@ function MatchupSlide({
   owners: Map<number, string>;
   allTime: Map<string, Map<string, AllTimeRecord>> | null;
 }) {
-  const mine = game.teams.find((t) => t.rosterId === myRosterId) ?? game.teams[0];
-  const other = game.teams.find((t) => t.rosterId !== mine.rosterId);
+  const [mine, other] = sides(game, myRosterId);
+  return (
+    <div className="flex flex-col gap-3">
+      <MatchupHeader
+        leagueId={leagueId}
+        left={mine}
+        right={other}
+        standings={standings}
+        headToHead={headToHeadFor(mine, other, owners, allTime)}
+      />
+      <MatchupLineup game={game} myRosterId={myRosterId} />
+    </div>
+  );
+}
+
+/** How long a lineup takes to fold open or shut in the phone's stack. */
+const FOLD_MS = 450;
+
+/**
+ * Phones: every matchup's header stacked, yours on top; tapping one opens its
+ * lineup underneath and shuts whichever was open (tapping the open one shuts
+ * it). Opens on yours. The tapped header holds still on screen while the one
+ * above it folds shut, rather than jumping up with it.
+ */
+function MatchupStack({
+  leagueId,
+  games,
+  myRosterId,
+  standings,
+  owners,
+  allTime,
+}: {
+  leagueId: string;
+  games: ResolvedMatchupGame[];
+  myRosterId: number | null;
+  standings: Map<number, TeamStanding>;
+  owners: Map<number, string>;
+  allTime: Map<string, Map<string, AllTimeRecord>> | null;
+}) {
+  const myGame = games.find((g) => g.teams.some((t) => t.rosterId === myRosterId));
+  const stacked = myGame ? [myGame, ...games.filter((g) => g !== myGame)] : games;
+  // Undefined until something's tapped: then yours is the one open.
+  const [chosen, setChosen] = useState<number | null | undefined>(undefined);
+  const openId = chosen === undefined ? (myGame?.matchupId ?? null) : chosen;
+  const hold = useRef(0);
+  useEffect(() => () => cancelAnimationFrame(hold.current), []);
+
+  function toggle(matchupId: number, header: HTMLElement) {
+    setChosen(openId === matchupId ? null : matchupId);
+    // Keep the tapped header where it is while everything around it folds.
+    cancelAnimationFrame(hold.current);
+    const top = header.getBoundingClientRect().top;
+    let start: number | null = null;
+    const follow = (now: number) => {
+      start ??= now;
+      const drift = header.getBoundingClientRect().top - top;
+      if (Math.abs(drift) >= 1) window.scrollBy(0, drift);
+      if (now - start < FOLD_MS + 100) hold.current = requestAnimationFrame(follow);
+    };
+    hold.current = requestAnimationFrame(follow);
+  }
 
   return (
-    <div className="w-full shrink-0 snap-center px-0.5">
-      <div className="flex flex-col gap-3">
-        <MatchupHeader
-          leagueId={leagueId}
-          left={mine}
-          right={other}
-          standings={standings}
-          headToHead={headToHeadFor(mine, other, owners, allTime)}
-        />
-        <div className="flex flex-col gap-2.5 px-2">
-          {mine.slots.map((slot, i) => (
-            <SlotRow key={i} slot={slot.slot} my={slot} their={other?.slots[i]} />
-          ))}
-        </div>
-      </div>
-    </div>
+    <ul className="flex flex-col gap-2 [overflow-anchor:none]" aria-label="This week's matchups">
+      {stacked.map((g) => {
+        const [mine, other] = sides(g, myRosterId);
+        const open = g.matchupId === openId;
+        return (
+          <li key={g.matchupId}>
+            {/* The whole header toggles its lineup — except the team names, which still go to each team's page. */}
+            <div
+              role="button"
+              tabIndex={0}
+              aria-expanded={open}
+              aria-controls={`lineup-${g.matchupId}`}
+              onClick={(e) => {
+                if ((e.target as Element).closest("a")) return;
+                toggle(g.matchupId, e.currentTarget);
+              }}
+              onKeyDown={(e) => {
+                if (e.target !== e.currentTarget || (e.key !== "Enter" && e.key !== " ")) return;
+                e.preventDefault();
+                toggle(g.matchupId, e.currentTarget);
+              }}
+              className="cursor-pointer"
+            >
+              <MatchupHeader
+                leagueId={leagueId}
+                left={mine}
+                right={other}
+                standings={standings}
+                headToHead={headToHeadFor(mine, other, owners, allTime)}
+                open={open}
+              />
+            </div>
+            {/* Folds open and shut by its height (0fr to 1fr). */}
+            <div
+              id={`lineup-${g.matchupId}`}
+              className={`grid transition-[grid-template-rows] ease-in-out ${open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
+              style={{ transitionDuration: `${FOLD_MS}ms` }}
+              inert={!open}
+            >
+              <div className="min-h-0 overflow-hidden">
+                <div className="pb-2 pt-3">
+                  <MatchupLineup game={g} myRosterId={myRosterId} />
+                </div>
+              </div>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -265,8 +378,8 @@ function sides(game: ResolvedMatchupGame, myRosterId: number | null) {
 
 /**
  * Sleeper-style matchup view: full lineup, slot by slot, for the league's
- * current week. On a phone it's a carousel, swiped between every matchup
- * that week; from tablet width up the chosen matchup takes the left 70%
+ * current week. On a phone every matchup's header is stacked, and tapping one
+ * opens its lineup (see MatchupStack); from tablet width up the chosen matchup takes the left 70%
  * and every matchup is listed down the right 30% — boxes in the league
  * ticker's format — to pick from. Opens on your own matchup.
  */
@@ -288,9 +401,6 @@ export function LeagueMatchupCarousel({
   /** With "as it stands" on, this season's unfinished weeks' matchups, counted in the head-to-heads. */
   pending?: PendingMatchups | null;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const hasScrolledToMine = useRef(false);
-  const [index, setIndex] = useState(0);
   // The matchup shown large beside the list (tablet and up): yours until another is picked.
   const [pickedId, setPickedId] = useState<number | null>(null);
   const allTimeOfficial = useAllTimeHeadToHead(leagueId);
@@ -301,72 +411,15 @@ export function LeagueMatchupCarousel({
   // Empty until every season's matchups have loaded.
   const allTime = allTimeByOwner.size > 0 ? allTimeByOwner : null;
 
-  useEffect(() => {
-    if (hasScrolledToMine.current || !containerRef.current || myRosterId == null || games.length === 0) return;
-    const myIndex = games.findIndex((g) => g.teams.some((t) => t.rosterId === myRosterId));
-    if (myIndex < 0) return;
-    const container = containerRef.current;
-    container.scrollTo({ left: myIndex * container.clientWidth });
-    hasScrolledToMine.current = true;
-    queueMicrotask(() => setIndex(myIndex));
-  }, [games, myRosterId]);
-
-  function scrollToIndex(i: number) {
-    if (!containerRef.current) return;
-    const clamped = Math.max(0, Math.min(games.length - 1, i));
-    containerRef.current.scrollTo({ left: clamped * containerRef.current.clientWidth, behavior: "smooth" });
-    setIndex(clamped);
-  }
-
-  function handleScroll() {
-    if (!containerRef.current || containerRef.current.clientWidth === 0) return;
-    setIndex(Math.round(containerRef.current.scrollLeft / containerRef.current.clientWidth));
-  }
-
   if (games.length === 0) return null;
   const myGame = games.find((g) => g.teams.some((t) => t.rosterId === myRosterId));
   const picked = games.find((g) => g.matchupId === pickedId) ?? myGame ?? games[0];
 
   return (
     <>
-      {/* Phones: swipe between matchups. */}
-      <div className="flex flex-col gap-3 md:hidden">
-        <div
-          ref={containerRef}
-          onScroll={handleScroll}
-          className="flex snap-x snap-mandatory overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        >
-          {games.map((g) => (
-            <MatchupSlide
-              key={g.matchupId}
-              leagueId={leagueId}
-              game={g}
-              myRosterId={myRosterId}
-              standings={standings}
-              owners={owners}
-              allTime={allTime}
-            />
-          ))}
-        </div>
-        {games.length > 1 ? (
-          <div className="flex items-center justify-center gap-3 text-xs text-ink-muted">
-            <IconButton
-              icon={<ChevronLeftIcon />}
-              label="Previous matchup"
-              onClick={() => scrollToIndex(index - 1)}
-              disabled={index === 0}
-            />
-            <span className="tabular-nums">
-              {index + 1} / {games.length}
-            </span>
-            <IconButton
-              icon={<ChevronRightIcon />}
-              label="Next matchup"
-              onClick={() => scrollToIndex(index + 1)}
-              disabled={index === games.length - 1}
-            />
-          </div>
-        ) : null}
+      {/* Phones: every matchup's header stacked; tap one for its lineup. */}
+      <div className="md:hidden">
+        <MatchupStack leagueId={leagueId} games={games} myRosterId={myRosterId} standings={standings} owners={owners} allTime={allTime} />
       </div>
 
       {/* Tablet and up: the chosen matchup large on the left (70%), every matchup listed on the right (30%, never narrower than 16rem so names stay readable). */}

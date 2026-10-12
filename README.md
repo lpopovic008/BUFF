@@ -22,8 +22,9 @@ from every linked season. Ships as a static site, hosted for free on
   fantasy week.
 - **League page** (`/league?id=...`) — above everything else, a Sleeper-style
   matchup view: your full starting lineup against your opponent's, slot by
-  slot (QB, RB, FLEX, ...), with live points — swipe or use the arrows to
-  page through every other matchup that week. Below that, standings and
+  slot (QB, RB, FLEX, ...), with live points. On a phone every matchup's
+  header is stacked, yours open on top; tap another to open its lineup (and
+  shut yours). From tablet width up, pick one from the list beside it. Below that, standings and
   recent waiver/trade activity (player names resolved, not raw IDs). Every
   team name throughout the app (standings, matchups, the dashboard) links to
   that team's full roster with KTC trade values for every player
