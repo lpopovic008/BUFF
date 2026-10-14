@@ -1,8 +1,9 @@
 "use client";
 
 import { Card } from "@/components/ui/Card";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { PayoutSetup } from "@/components/PayoutSetup";
+import { BoardRow, PayoutBoard } from "@/components/PayoutBoard";
 import { paymentSwatch, placeSwatch, ruleSwatches } from "@/lib/payout-colors";
 import { LeagueSeason } from "@/lib/league-money";
 import {
@@ -16,15 +17,6 @@ import {
   PlanLedger,
   RulePayment,
 } from "@/lib/payout-plan";
-
-// The grid's columns (in rem). The manager column widens to fit the longest
-// team name (never narrower than MANAGER_REM), as far as the room left after
-// every week's MIN_WEEK_REM and the money columns allows; the weeks share
-// whatever's left equally, regular season and playoffs alike, so the grid
-// reads like a calendar. On narrow screens the grid scrolls instead.
-const MANAGER_REM = 7;
-const MONEY_COL_REM = 3.5;
-const MIN_WEEK_REM = 1.75;
 
 const RULE_GROUPS = ["Regular season", "Playoffs", "Season"] as const;
 
@@ -64,12 +56,13 @@ function legendLine(rule: PayoutRule, ledger: PlanLedger, regularSeasonWeeks: nu
 }
 
 /**
- * The week grid: rows are managers, columns are the season's weeks (regular
- * season, then playoffs, per Sleeper's schedule) and the season-end awards;
- * cells are dollars. Behind each row runs a bar for that manager's season
- * earnings so far. The week in progress, when it's counted ("as it stands"),
- * is shaded: its amounts update live as games are scored, but aren't settled
- * until the week is over.
+ * The week grid, drawn as a board in 3D (see PayoutBoard): rows are managers,
+ * columns are the season's weeks (regular season, then playoffs, per
+ * Sleeper's schedule) and the season-end awards; every payout stands as a
+ * block as tall as the amount, and each manager's total as a bar. The week
+ * in progress, when it's counted ("as it stands"), is shaded: its amounts
+ * update live as games are scored, but aren't settled until the week is over.
+ * Under it, the legend of rules and their colors.
  */
 function WeekGrid({
   ledger,
@@ -92,20 +85,10 @@ function WeekGrid({
 }) {
   const ruleText = new Map(plan.rules.map((r) => [r.id, describeRecipients(r)]));
   const swatches = ruleSwatches(plan.rules, regularSeasonWeeks);
-  /** A paid amount, in the color of the rule that paid the most of it. */
-  const paid = (amount: number, payments: RulePayment[] | undefined, bold = false) => {
+  /** The color of the rule that paid the most of an amount. */
+  const colorOf = (payments: RulePayment[] | undefined) => {
     const top = [...(payments ?? [])].sort((a, b) => b.amount - a.amount)[0];
-    const c = top ? paymentSwatch(top, swatches) : undefined;
-    return c ? (
-      <span
-        className={`px-1 py-0.5 ${bold ? "font-bold" : "font-semibold"}`}
-        style={{ backgroundColor: c.bg, color: c.ink }}
-      >
-        {money(amount)}
-      </span>
-    ) : (
-      <span className="text-ink-primary">{money(amount)}</span>
-    );
+    return top ? paymentSwatch(top, swatches) : undefined;
   };
   const breakdown = (payments: RulePayment[] | undefined) =>
     (payments ?? []).map((p) => `${money(p.amount)} for ${ruleText.get(p.ruleId) ?? "a rule"}`).join("; ");
@@ -113,180 +96,45 @@ function WeekGrid({
   const seasonDecided = ledger.seasonOver || ledger.regularSeasonOver;
 
   const weeks = Array.from({ length: Math.max(lastWeek, ...ledger.weeks) }, (_, i) => i + 1);
-  const isPlayoff = (w: number) => w > regularSeasonWeeks;
-  const playoffCount = weeks.filter(isPlayoff).length;
   // Only while it's counted and not yet official: with "as it stands" off, it isn't paid out until it's over.
   const live =
     !ledger.seasonOver && currentWeek != null && currentWeek > finishedThrough && ledger.weeksPlayed.includes(currentWeek)
       ? currentWeek
       : null;
-  const maxTotal = Math.max(0, ...ledger.managers.map((m) => m.total));
-  // The shading for the week in progress: the theme's ink at low opacity, so
-  // the numbers stay readable on top in either theme.
-  const LIVE_BG = "bg-[color-mix(in_srgb,var(--map-tag)_9%,transparent)]";
-  const firstPlayoff = regularSeasonWeeks + 1;
-  const moneyCols = hasSeasonRules ? 3 : 2;
 
-  // Size the manager column to the longest team name, in the cells' own font.
-  const wrap = useRef<HTMLDivElement>(null);
-  const [managerPx, setManagerPx] = useState<number | null>(null);
-  const namesKey = ledger.managers.map((m) => teamNames.get(m.rosterId) ?? m.name).join("\n");
-  useLayoutEffect(() => {
-    const el = wrap.current;
-    if (!el) return;
-    const ctx = document.createElement("canvas").getContext("2d");
-    const measure = () => {
-      const cell = el.querySelector<HTMLElement>("[data-team-name]");
-      if (!cell || !ctx) return;
-      ctx.font = getComputedStyle(cell).font;
-      const widest = Math.max(0, ...namesKey.split("\n").map((n) => ctx.measureText(n).width));
-      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-      const room = el.clientWidth - (weeks.length * MIN_WEEK_REM + moneyCols * MONEY_COL_REM) * rem;
-      // The name plus the cell's right padding and a hair of slack.
-      const want = Math.ceil(widest) + 0.75 * rem + 4;
-      // When even narrow weeks don't leave room (the grid scrolls then anyway),
-      // the pinned name column may take up to 40% of the view.
-      setManagerPx(Math.max(MANAGER_REM * rem, Math.min(want, Math.max(room, 0.4 * el.clientWidth))));
-    };
-    // Fires once on observing, then on every resize.
-    const observer = new ResizeObserver(measure);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [namesKey, weeks.length, moneyCols]);
-  const managerWidth = managerPx != null ? `${managerPx}px` : `${MANAGER_REM}rem`;
+  const rows: BoardRow[] = ledger.managers.map((mgr) => ({
+    key: mgr.rosterId,
+    name: teamNames.get(mgr.rosterId) ?? mgr.name,
+    username: mgr.name,
+    weeks: weeks.map((w) => {
+      const amount = mgr.weekly[w] ?? 0;
+      const played = ledger.weeksPlayed.includes(w);
+      const detail = mgr.weeklyDetail[w];
+      return {
+        amount: played ? amount : 0,
+        pending: !played,
+        live: w === live,
+        swatch: colorOf(detail),
+        title: !played
+          ? `Week ${w}: not played yet`
+          : `Week ${w}${w === live ? " (in progress, not final)" : ""}: ${amount > 0 ? breakdown(detail) : "nothing"}`,
+      };
+    }),
+    season: hasSeasonRules
+      ? {
+          amount: mgr.seasonEnd,
+          pending: mgr.seasonEnd <= 0 && !seasonDecided,
+          swatch: colorOf(mgr.seasonDetail),
+          title: mgr.seasonEnd > 0 ? breakdown(mgr.seasonDetail) : seasonDecided ? "No season-end award" : "Decided at season’s end",
+        }
+      : null,
+    total: mgr.total,
+    net: mgr.net,
+  }));
 
   return (
     <div>
-      <div ref={wrap} className="overflow-x-auto">
-        <table
-          className="w-full table-fixed border-separate border-spacing-0 text-xs xl:text-sm"
-          style={{ minWidth: `calc(${managerWidth} + ${weeks.length * MIN_WEEK_REM + moneyCols * MONEY_COL_REM}rem)` }}
-        >
-          <colgroup>
-            <col style={{ width: managerWidth }} />
-            {weeks.map((w) => (
-              <col key={w} />
-            ))}
-            {hasSeasonRules ? <col style={{ width: `${MONEY_COL_REM}rem` }} /> : null}
-            <col style={{ width: `${MONEY_COL_REM}rem` }} />
-            <col style={{ width: `${MONEY_COL_REM}rem` }} />
-          </colgroup>
-          <thead>
-            {playoffCount > 0 ? (
-              <tr className="text-[0.625rem] uppercase tracking-wide text-ink-muted">
-                <th className="sticky left-0 z-10 bg-surface-raised" />
-                <th colSpan={regularSeasonWeeks} className="pb-0.5 text-center font-medium">
-                  Regular season
-                </th>
-                <th colSpan={playoffCount} className="border-l border-grid pb-0.5 text-center font-medium">
-                  Playoffs
-                </th>
-                <th colSpan={hasSeasonRules ? 3 : 2} />
-              </tr>
-            ) : null}
-            <tr className="text-xs uppercase tracking-wide text-ink-muted">
-              <th className="sticky left-0 z-10 bg-surface-raised py-2 pr-3 text-left font-medium">Manager</th>
-              {weeks.map((w) => (
-                <th
-                  key={w}
-                  className={`px-0.5 py-2 text-center font-medium tabular-nums ${w === firstPlayoff ? "border-l border-grid" : ""} ${
-                    w === live ? LIVE_BG : ""
-                  }`}
-                  title={w === live ? `Week ${w} is in progress: its payouts update live and aren’t final yet` : undefined}
-                >
-                  {w === live ? (
-                    <span className="flex flex-col items-center leading-tight">
-                      <span className="bg-[var(--map-tag)] px-1 font-bold text-[var(--map-tag-ink)]">{w}</span>
-                      <span className="mt-0.5 text-[0.5625rem] font-semibold tracking-wider">Live</span>
-                    </span>
-                  ) : (
-                    w
-                  )}
-                </th>
-              ))}
-              {hasSeasonRules ? <th className="px-1.5 py-2 text-center font-medium">Season</th> : null}
-              <th className="py-2 pl-3 text-right font-medium">Total</th>
-              <th className="py-2 pl-3 text-right font-medium" title="Total won, less the buy-in">
-                Net
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {ledger.managers.map((mgr) => (
-              <tr key={mgr.rosterId}>
-                {/* Team name over the Sleeper username, smaller — as the standings table had it. */}
-                <td className="sticky left-0 z-10 border-t border-grid bg-surface-raised py-0.5 pr-3">
-                  <div data-team-name className="truncate font-medium leading-tight text-ink-primary">
-                    {teamNames.get(mgr.rosterId) ?? mgr.name}
-                  </div>
-                  <div className="truncate text-[0.6875rem] leading-tight text-ink-muted">{mgr.name}</div>
-                </td>
-                {weeks.map((w, i) => {
-                  const amount = mgr.weekly[w] ?? 0;
-                  const played = ledger.weeksPlayed.includes(w);
-                  const detail = mgr.weeklyDetail[w];
-                  const pending = w === live;
-                  return (
-                    <td
-                      key={w}
-                      className={`relative border-t border-grid px-0.5 py-0.5 text-center tabular-nums ${
-                        w === firstPlayoff ? "border-l" : ""
-                      } ${pending ? LIVE_BG : ""}`}
-                      title={
-                        !played
-                          ? `Week ${w}: not played yet`
-                          : `Week ${w}${pending ? " (in progress, not final)" : ""}: ${amount > 0 ? breakdown(detail) : "nothing"}`
-                      }
-                    >
-                      {i === 0 && maxTotal > 0 ? (
-                        // This manager's season earnings, as a thin bar along the bottom of the row's weeks.
-                        <span
-                          aria-hidden
-                          className="pointer-events-none absolute bottom-0 left-0 z-0 h-[3px] bg-[var(--map-tag)] transition-[width] duration-500"
-                          // Every week column is the same width, so the full bar is that many of this first cell.
-                          style={{ width: `${(mgr.total / maxTotal) * weeks.length * 100}%` }}
-                        />
-                      ) : null}
-                      <span className={`relative z-[1] ${pending ? "italic" : ""}`}>
-                        {!played ? (
-                          <span className="text-ink-muted">·</span>
-                        ) : amount > 0 ? (
-                          paid(amount, detail)
-                        ) : (
-                          <span className="text-ink-muted">—</span>
-                        )}
-                      </span>
-                    </td>
-                  );
-                })}
-                {hasSeasonRules ? (
-                  <td
-                    className="border-t border-grid px-1.5 py-0.5 text-center tabular-nums"
-                    title={mgr.seasonEnd > 0 ? breakdown(mgr.seasonDetail) : seasonDecided ? "No season-end award" : "Decided at season’s end"}
-                  >
-                    {mgr.seasonEnd > 0 ? (
-                      paid(mgr.seasonEnd, mgr.seasonDetail, true)
-                    ) : seasonDecided ? (
-                      <span className="text-ink-muted">—</span>
-                    ) : (
-                      <span className="text-ink-muted">·</span>
-                    )}
-                  </td>
-                ) : null}
-                <td className="border-t border-grid py-0.5 pl-3 text-right font-semibold tabular-nums text-ink-primary">{money(mgr.total)}</td>
-                <td
-                  className={`border-t border-grid py-0.5 pl-3 text-right tabular-nums ${
-                    mgr.net > 0 ? "text-status-good" : mgr.net < 0 ? "text-status-critical" : "text-ink-muted"
-                  }`}
-                >
-                  {mgr.net > 0 ? "+" : mgr.net < 0 ? "−" : ""}
-                  {money(Math.abs(mgr.net))}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <PayoutBoard rows={rows} weeks={weeks} regularSeasonWeeks={regularSeasonWeeks} hasSeason={hasSeasonRules} />
       {plan.rules.length ? (
         <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-3 md:grid-cols-3">
           {RULE_GROUPS.map((group) => {

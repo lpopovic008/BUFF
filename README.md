@@ -66,7 +66,9 @@ from every linked season. Ships as a static site, hosted for free on
   win/high-score/earnings breakdown for that year specifically.
 - **Money tracking** — for leagues with a commissioner profile (see below),
   the league page adds pot accounting, a season earnings leaderboard, a
-  week-by-week payout grid, and a record/high-score table. It replaces
+  week-by-week payout grid drawn as a 3D board at the home map's angle
+  (every payout a block as tall as it's worth, each manager's total a bar),
+  and a record/high-score table. It replaces
   keeping this by hand in a spreadsheet.
 
 ## Commissioner leagues (payout tracking)
