@@ -300,9 +300,9 @@ lost points or is projected for 6+), then shut again — skipping any view that
 would list no one new. Every line has the same fixed columns, so they stay
 lined up whatever the game's state: the time of the player's latest play that
 moved their points and its +/- (only while the game's on, from
-`useLastActions` / `lastActions`; blank but kept otherwise), their name,
-their total (their projection before kickoff), and their position, small, in
-its color. A shown line is where a changed total animates (see below).
+`useLastActions` / `lastActions`; blank but kept otherwise), their name
+with their position (small, in its color) right after it, and their total
+(their projection before kickoff). A shown line is where a changed total animates (see below).
 Once a game kicks off, rows are ordered by points, then
 projection; before kickoff, by projection alone. Before kickoff each row
 shows its projection in faint italics with one decimal, so it reads as a

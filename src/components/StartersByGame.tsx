@@ -289,7 +289,8 @@ type Phase = "pre" | "live" | "final";
  * A player line's text, in typing order — each in a column of its own, kept
  * even when empty so every line's columns stay in line: the time of their
  * latest play that moved their points and what it was worth (while the game's
- * on), their name, their total (the projection before kickoff), their position.
+ * on), their name with their position right after it, their total (the
+ * projection before kickoff).
  */
 function linePieces(player: GroupedStarter, phase: Phase, action: LastAction | undefined): string[] {
   const live = phase === "live" && action;
@@ -304,16 +305,17 @@ function linePieces(player: GroupedStarter, phase: Phase, action: LastAction | u
   return [
     live ? clockTime(action.at) : "",
     player.name,
+    player.position,
     live ? `${action.delta > 0 ? "+" : ""}${formatPoints(action.delta)}` : "",
     total,
-    player.position,
   ];
 }
 
 /**
  * One player's line under a game: the time of their latest play that moved
- * their points (while it's on), their name, that play's +/-, their total (or
- * projection, before kickoff) and their position, small, in its color. Types
+ * their points (while it's on), their name with their position (small, in its
+ * color) right after it, that play's +/-, and their total (or projection,
+ * before kickoff). Types
  * itself in the first time it scrolls into view, and deletes itself when its
  * game shuts or its block is switched off. Once typed in, the total follows
  * the points as they change (see GameRows): the name lit as the play lights up
@@ -337,7 +339,7 @@ function GameLine({
   const pieces = linePieces(player, phase, action);
   const total = totalChars(pieces);
   const count = useTypedCount(shown && seen ? total : 0);
-  const [time, name, delta, points, position] = typedSlices(pieces, count);
+  const [time, name, position, delta, points] = typedSlices(pieces, count);
   const [typedIn, setTypedIn] = useState(false);
   if (shown && seen && count >= total && !typedIn) setTypedIn(true);
   if (!shown && typedIn) setTypedIn(false);
@@ -349,8 +351,12 @@ function GameLine({
   return (
     <div ref={ref} className="flex items-center gap-1.5 text-[0.8125rem] leading-tight">
       <span className="w-[4.6em] shrink-0 text-[0.6875rem] tabular-nums text-ink-muted">{time}</span>
-      <span className="min-w-0 flex-1 truncate text-ink-primary">
-        <span className={motion.highlight ? `-mx-1 px-1 ${lit}` : undefined}>{name || "\u200b"}</span>
+      {/* The name, with their position, small and in its color, right after it. */}
+      <span className="flex min-w-0 flex-1 items-baseline gap-1">
+        <span className={`min-w-0 truncate text-ink-primary ${motion.highlight ? `-mx-1 px-1 ${lit}` : ""}`}>{name || "\u200b"}</span>
+        <span className={`shrink-0 text-[0.5625rem] font-semibold uppercase ${POSITION_TEXT_COLOR[player.position] ?? "text-ink-muted"}`}>
+          {position}
+        </span>
       </span>
       <span
         className={`w-[3.8em] shrink-0 text-right tabular-nums ${
@@ -371,9 +377,6 @@ function GameLine({
         ) : (
           points
         )}
-      </span>
-      <span className={`w-[2.4em] shrink-0 text-right text-[0.5625rem] font-semibold uppercase ${POSITION_TEXT_COLOR[player.position] ?? "text-ink-muted"}`}>
-        {position}
       </span>
     </div>
   );
