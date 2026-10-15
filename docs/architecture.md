@@ -363,8 +363,8 @@ team's line is every starter's points added up play by play under the
 league's rules (`teamTimeline`), whatever a starter's Sleeper total has that
 no play accounts for counted at the end of their game, so the lines end on
 the teams' totals. Time runs through the week's game windows
-(`gameWindows`: the starters' games, overlaps merged), the quiet between
-them squeezed into thin etched columns, labelled by each window's start
+(`gameWindows`: the starters' games, overlaps merged), set back to back
+with the time between them cut out and a line where each starts, labelled by each window's start
 (the day only when it changes) and the end. Yours is black (white in the
 dark), theirs grey; the ground between the lines is green while you lead
 and red while you trail (`leadPieces`), with how much of the week so far

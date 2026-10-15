@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { GameStarters, GroupedStarter } from "@/lib/my-starters";
 import { NFLGame } from "@/lib/nfl-schedule";
 import { cleanPlayText } from "@/lib/play-by-play";
@@ -11,8 +11,6 @@ import { clock, GAME_MS, niceStep, quarterName, useLiveNow, useSize } from "./Po
 
 // Room around the plot for its labels, in px.
 const PAD = { left: 30, right: 10, top: 14, bottom: 26 };
-// The quiet stretch between two game windows, squeezed down to an etched column this wide.
-const GAP_PX = 9;
 
 /** One starter in a matchup: who, their points in the league so far, and their projection under its rules. */
 export interface MatchupStarter {
@@ -47,8 +45,8 @@ function gameSpan(game: NFLGame, lastPlayAt: number, now: number | null): Span {
  * A matchup's two team totals over the week, in the points graph's style:
  * your team's line (black, white in the dark) and theirs (grey), each every
  * starter's points added up play by play — scored under the league's rules,
- * ending on Sleeper's totals — through the week's game windows, the quiet
- * stretches between them squeezed into thin etched columns. The ground
+ * ending on Sleeper's totals — through the week's game windows, set back to
+ * back with the time between them cut out, a line where each starts. The ground
  * between the lines is green wherever you lead, red wherever you trail, and
  * each team's projected pace (its starters' projections, each earned evenly
  * over their game) is dashed under it. Up in the corner, how much of the
@@ -128,7 +126,6 @@ export function MatchupGraph({
   const plotRef = useRef<HTMLDivElement>(null);
   const size = useSize(plotRef);
   const [cursor, setCursor] = useState<{ at: number; playId?: string } | null>(null);
-  const etchId = `etch-${useId().replace(/:/g, "")}`;
 
   const { windows } = model;
   const start = windows[0]?.from ?? null;
@@ -139,20 +136,14 @@ export function MatchupGraph({
   const lineEnd = start === null || end === null || !started ? null : over ? end : Math.min(end, Math.max(start, now ?? start, ...model.lines.flatMap((l) => l.steps.map((s) => s.at))));
 
   const plot = size && start !== null && end !== null ? { w: Math.max(0, size.width - PAD.left - PAD.right), h: Math.max(0, size.height - PAD.top - PAD.bottom) } : null;
-  const gaps = windows.length - 1;
   const playing = windows.reduce((sum, w) => sum + (w.to - w.from), 0);
-  const perMs = plot && playing > 0 ? (plot.w - gaps * GAP_PX) / playing : 0;
-  // Along the screen: each window evenly, the quiet between two a thin column.
+  const perMs = plot && playing > 0 ? plot.w / playing : 0;
+  // Along the screen: the game windows back to back, the time between them cut out.
   const x = (at: number) => {
     let px = PAD.left;
-    for (let i = 0; i < windows.length; i++) {
-      const w = windows[i];
+    for (const w of windows) {
       if (at <= w.to) return px + Math.max(0, at - w.from) * perMs;
       px += (w.to - w.from) * perMs;
-      const next = windows[i + 1];
-      if (!next) return px;
-      if (at < next.from) return px + (GAP_PX * (at - w.to)) / (next.from - w.to);
-      px += GAP_PX;
     }
     return px;
   };
@@ -163,9 +154,6 @@ export function MatchupGraph({
       const width = (w.to - w.from) * perMs;
       if (px <= left + width || i === windows.length - 1) return Math.min(w.to, w.from + Math.max(0, px - left) / (perMs || 1));
       left += width;
-      const next = windows[i + 1];
-      if (px < left + GAP_PX) return w.to + ((px - left) / GAP_PX) * (next.from - w.to);
-      left += GAP_PX;
     }
     return start ?? 0;
   };
@@ -318,14 +306,9 @@ export function MatchupGraph({
                 />
               )
             )}
-            {/* The quiet between game windows: thin columns of etched lines. */}
-            <defs>
-              <pattern id={etchId} width={3} height={3} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-                <line x1={0} y1={0} x2={0} y2={3} className="stroke-ink-muted" strokeOpacity={0.55} strokeWidth={1} />
-              </pattern>
-            </defs>
-            {windows.slice(0, -1).map((w) => (
-              <rect key={`gap${w.to}`} x={x(w.to)} y={PAD.top} width={GAP_PX} height={plot.h} fill={`url(#${etchId})`} className="stroke-ink-muted" strokeOpacity={0.35} strokeWidth={0.75} />
+            {/* A line where each game window starts, the time between them cut out. */}
+            {windows.slice(1).map((w) => (
+              <line key={`win${w.from}`} x1={x(w.from)} x2={x(w.from)} y1={PAD.top} y2={PAD.top + plot.h} className="stroke-ink-muted" strokeOpacity={0.35} />
             ))}
             {/* The points axis. */}
             {yTicks.map((v) => (
