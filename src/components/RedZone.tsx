@@ -199,11 +199,14 @@ function MarkColumn({ marks }: { marks: PlayMark[] }) {
   );
 }
 
+/** The field line's thickness. */
+const FIELD_LINE = 1.5;
+
 /**
  * Where on the field the ball was snapped, as a little diagram: the field a
- * green line, the offense driving left to right, with short ticks at the two
- * goal lines and the 50 — half the line's height, so the yard line, in blue,
- * fits above them over the blue dot where the ball was.
+ * green line, the offense driving left to right, with short green ticks at
+ * the two goal lines and the 50 — half the line's height, so the yard line,
+ * in blue, fits above them, centered over the blue dot where the ball was.
  */
 function FieldSpot({ yardsToEndzone }: { yardsToEndzone: number }) {
   const left = 2;
@@ -213,13 +216,15 @@ function FieldSpot({ yardsToEndzone }: { yardsToEndzone: number }) {
   const yard = Math.min(yardsToEndzone, 100 - yardsToEndzone);
   return (
     <svg viewBox="0 0 64 15" className="h-[0.9375rem] w-16 shrink-0 overflow-visible" aria-hidden>
+      {/* The ticks run down to the field line's bottom edge, flush with it. */}
       {[left, (left + right) / 2, right].map((tx) => (
-        <line key={tx} x1={tx} y1={ground} x2={tx} y2={ground - 4.5} stroke="var(--color-ink-muted)" strokeWidth={1} />
+        <line key={tx} x1={tx} y1={ground + FIELD_LINE / 2} x2={tx} y2={ground - 4.5} stroke="var(--color-status-good)" strokeWidth={1} />
       ))}
-      <line x1={left} y1={ground} x2={right} y2={ground} stroke="var(--color-status-good)" strokeWidth={1.5} />
+      <line x1={left} y1={ground} x2={right} y2={ground} stroke="var(--color-status-good)" strokeWidth={FIELD_LINE} />
       <circle cx={x} cy={ground} r={1.75} fill="var(--series-1)" />
+      {/* Always centered over the dot, even at the goal line. */}
       <text
-        x={Math.min(right - 3, Math.max(left + 3, x))}
+        x={x}
         y={6.5}
         textAnchor="middle"
         fontSize={8}
