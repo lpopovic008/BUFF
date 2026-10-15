@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { formatCountdown } from "@/lib/format";
 import { TYPE_MS_PER_CHAR, totalChars, typedSlices, useSeenOnce, useTypedCount } from "@/hooks/useTyped";
 import { setHeaderKickoff } from "@/lib/header-clock";
 import { formatKickoffTime, GameStarters, finishedBlocksLast, groupGamesByTimeBlock, GroupedStarter, PlayerSide } from "@/lib/my-starters";
 import { NFLGame } from "@/lib/nfl-schedule";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
-import { nflLogoMaxWidth, nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
+import { nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import { LeagueLegendEntry, LeagueMark } from "./LeagueMark";
 import { GameRows, RowMotion } from "./GameRows";
 
@@ -168,16 +168,22 @@ function PlayerRow({
   );
 }
 
-/** A game's header: matchup title on the left with each team's own colour soft-highlighting its half, kickoff time pinned to the right edge on the same line — no boxed outline, no weekday (the column header above already states the day). Text stays the standard ink colour rather than the team's own hex, since some teams' brand colours (navy, black) read fine as a soft background tint but lose all contrast as literal text in dark mode. */
-/** A game header's text, in typing order: "vs", then the kickoff time. */
-function headerPieces(game: NFLGame): string[] {
-  return ["vs", formatKickoffTime(game.kickoff)];
+/**
+ * What a team's line shows on its right, in typing order: before kickoff, the
+ * kickoff time on the top (away) line and nothing on the bottom; once it's
+ * started, the game's clock beside the top score ("6:12 - 3rd", "Final"),
+ * then each team's score.
+ */
+function teamLinePieces(game: NFLGame, side: "away" | "home"): string[] {
+  if (game.state === "pre") return side === "away" ? [formatKickoffTime(game.kickoff)] : [];
+  const score = String(side === "away" ? game.awayScore : game.homeScore);
+  if (side === "home") return [score];
+  const status = game.state === "post" ? "Final" : (game.statusDetail ?? "");
+  return status ? [status, score] : [score];
 }
 
 // Every logo covers about the area of a square this many px on a side.
 const LOGO_SIDE = 20;
-// Each logo sits centered in a slot this wide, so every game's "vs" lands in the same column.
-const LOGO_SLOT = Math.ceil(nflLogoMaxWidth(LOGO_SIDE));
 
 /**
  * A team's official logo, in its own colors, fading in once its header
@@ -209,76 +215,33 @@ function TeamLogo({ team, visible }: { team: string; visible: boolean }) {
 }
 
 /**
- * A game's header: the two teams' logos — away, "vs", home — on the left,
- * each logo centered in a slot as wide as the widest logo, so every game's
- * "vs" lines up in one column down the list; kickoff time pinned to the
- * right edge (no weekday; the block's bar above already states the day). Types itself in the first time it scrolls into
- * view, and deletes itself when its block is switched off.
+ * One team's line in a game's box: its logo over the players' position
+ * column, and on the right — over their points — its score once the game's
+ * started (the top line also carries the game's clock, or the kickoff time
+ * before it starts). Types itself in the first time it scrolls into view,
+ * and deletes itself when its block is switched off.
  */
-function GameHeader({
-  game,
-  shown = true,
-  open = false,
-  onToggle,
-}: {
-  game: NFLGame;
-  shown?: boolean;
-  /** Showing everyone in the game, not just your players. */
-  open?: boolean;
-  /** Opens or closes the game; leave out when there's no one more to show. */
-  onToggle?: () => void;
-}) {
+function TeamLine({ game, side, shown = true }: { game: NFLGame; side: "away" | "home"; shown?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const seen = useSeenOnce(ref);
-  const pieces = headerPieces(game);
+  const pieces = teamLinePieces(game, side);
   const count = useTypedCount(shown && seen ? totalChars(pieces) : 0);
-  const [vs, time] = typedSlices(pieces, count);
-  const logos = (
-    <>
-      <span className="flex shrink-0 justify-center" style={{ width: LOGO_SLOT }}>
-        <TeamLogo team={game.awayTeam} visible={count > 0} />
-      </span>
-      <span aria-hidden className="w-[2ch] text-center">
-        {vs}
-      </span>
-      <span className="flex shrink-0 justify-center" style={{ width: LOGO_SLOT }}>
-        <TeamLogo team={game.homeTeam} visible={count >= 2} />
-      </span>
-    </>
-  );
+  const typed = typedSlices(pieces, count);
+  const visible = shown && seen;
+  const team = side === "away" ? game.awayTeam : game.homeTeam;
+  const started = game.state !== "pre";
+  // The status (or kickoff time) in small muted type, the score as big as the points under it.
+  const [status, score] = started ? (side === "away" && pieces.length > 1 ? typed : [null, typed[0]]) : [typed[0] ?? null, null];
   return (
-    <div ref={ref} className="flex min-h-[1.25rem] items-center justify-between gap-2">
-      <h3
-        className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-ink-muted"
-        aria-label={`${game.awayTeam} at ${game.homeTeam}`}
-      >
-        {/* Tapping the matchup opens it up to everyone in the game, and back. */}
-        {/* The same dot as the time blocks' bars: filled while the game is opened up, an outline when it's
-            just your players. A game with no one more to show holds the dot's space, keeping every "vs" in line. */}
-        {onToggle ? (
-          <button
-            type="button"
-            onClick={onToggle}
-            aria-expanded={open}
-            title={open ? "Show just your players" : "Show everyone in this game"}
-            className="flex cursor-pointer items-center gap-1.5 transition-opacity hover:opacity-80"
-          >
-            <span
-              aria-hidden
-              className={`h-2 w-2 shrink-0 rounded-full border border-current transition-opacity duration-150 ${open ? "bg-current" : ""} ${
-                count > 0 ? "" : "opacity-0"
-              }`}
-            />
-            {logos}
-          </button>
-        ) : (
-          <>
-            <span aria-hidden className="h-2 w-2 shrink-0" />
-            {logos}
-          </>
-        )}
-      </h3>
-      <span className="shrink-0 text-xs uppercase tracking-wide text-ink-muted">{time}</span>
+    <div ref={ref} className="flex min-h-[1.375rem] items-center gap-1.5">
+      <span className="flex w-[2.4em] shrink-0 justify-center text-[0.6875rem]">
+        <TeamLogo team={team} visible={visible} />
+      </span>
+      <span className="min-w-0 flex-1" />
+      {status ? <span className="shrink-0 text-xs uppercase tracking-wide text-ink-muted">{status}</span> : null}
+      {score !== null ? (
+        <span className="w-[3.4em] shrink-0 text-right text-[0.9375rem] font-bold tabular-nums text-ink-primary">{score}</span>
+      ) : null}
     </div>
   );
 }
@@ -319,7 +282,7 @@ function BlockGames({
   const longest = Math.max(
     0,
     ...games.flatMap((g) => [
-      totalChars(headerPieces(g.game)),
+      totalChars(teamLinePieces(g.game, "away")),
       ...shownPlayers(g).map((p) => totalChars(playerPieces(p, g.game.state !== "pre"))),
     ])
   );
@@ -338,80 +301,133 @@ function BlockGames({
       aria-hidden={collapsed || undefined}
     >
       <div className="min-h-0 overflow-hidden">
-        {/* One unbroken line down the block's indent, from its bar through its last game,
-            dropping straight down from the bar's dot (0.5rem of padding + half its 0.5rem width). */}
-        <div className="ml-[calc(0.75rem-0.5px)] flex flex-col gap-2 border-l border-ink-muted/50 pl-2 pt-2">
-          {games.map((g) => {
-            const { game, players, everyone, live } = g;
-            const shown = shownPlayers(g);
-            // Only a game with more people in it than your own players opens up.
-            const expandable = (everyone?.length ?? 0) > players.length;
-            const open = openGames.has(game.id);
-            const closing = closingGames.has(game.id);
-            // The rows opening the game adds — they type in down the list, and delete back up it.
-            const yours = new Set(players.map((p) => p.playerId));
-            const added = shown.filter((p) => !yours.has(p.playerId));
-            const addedAt = new Map(added.map((p, i) => [p.playerId, i]));
-            const started = game.state !== "pre";
-            const closeMs = reducedMotion()
-              ? 0
-              : (added.length - 1) * OPEN_ROW_STAGGER_MS +
-                Math.max(0, ...added.map((p) => totalChars(playerPieces(p, started)))) * OPEN_MS_PER_CHAR +
-                80;
-            return (
-              // Each game boxed, so one game's players never run into the next's.
-              <div key={game.id} className="flex flex-col gap-1 border border-ink-muted/40 px-2 py-1.5">
-                <GameHeader
-                  game={game}
-                  shown={!hidden}
-                  open={open && !closing}
-                  onToggle={expandable ? () => onToggleGame(game.id, closeMs) : undefined}
-                />
-                {/* A game no one is listed in is just its header — no room held for rows. */}
-                {/* The game's players hang off it on a line of their own, dropping straight down from
-                    the game's dot (half its 0.5rem width in). */}
-                {shown.length > 0 ? (
-                  <div className="ml-[calc(0.25rem-0.5px)] border-l border-ink-muted/50 pl-2">
-                    <GameRows
-                      players={shown}
-                      sortByPoints={!!live}
-                      render={(player, motion) => {
-                        const i = addedAt.get(player.playerId);
-                        return (
-                          <PlayerRow
-                            player={player}
-                            legendByLeagueId={legendByLeagueId}
-                            started={started}
-                            shown={!hidden && !(closing && i !== undefined)}
-                            motion={motion}
-                            sideColors={open && !closing}
-                            typing={
-                              i === undefined
-                                ? undefined
-                                : {
-                                    msPerChar: OPEN_MS_PER_CHAR,
-                                    delayMs: (closing ? added.length - 1 - i : i) * OPEN_ROW_STAGGER_MS,
-                                  }
-                            }
-                          />
-                        );
-                      }}
-                    />
-                  </div>
-                ) : null}
-              </div>
-            );
-          })}
+        <div className="flex flex-col gap-2 pt-2">
+          {games.map((g) => (
+            <GameBox
+              key={g.game.id}
+              g={g}
+              shown={shownPlayers(g)}
+              hidden={hidden}
+              open={openGames.has(g.game.id)}
+              closing={closingGames.has(g.game.id)}
+              legendByLeagueId={legendByLeagueId}
+              onToggle={onToggleGame}
+            />
+          ))}
         </div>
       </div>
     </div>
   );
 }
 
-/** How fast an opened game's added names type in, and delete again as it closes. */
-const OPEN_MS_PER_CHAR = 28;
-/** Each added row starts a beat after the one before it. */
-const OPEN_ROW_STAGGER_MS = 45;
+/** How long a game's box takes to slide open or shut — as long as a time block takes to fold. */
+const FOLD_MS = 200;
+
+/**
+ * One game, boxed: the away team's line with your players for them under it,
+ * then the home team's with theirs — each player's points on the right, under
+ * their team's score. Tapping anywhere in it opens it up to everyone worth
+ * watching in the game (see liveGameRows), and back: the added names type in
+ * (or delete themselves) just as a time block's do, and the box slides to its
+ * new height.
+ */
+function GameBox({
+  g,
+  shown,
+  hidden,
+  open,
+  closing,
+  legendByLeagueId,
+  onToggle,
+}: {
+  g: GameStarters;
+  /** The players listed: yours, or everyone when it's open. */
+  shown: GroupedStarter[];
+  /** Its time block is switched off. */
+  hidden: boolean;
+  open: boolean;
+  /** Open, with the added names deleting themselves before it shuts. */
+  closing: boolean;
+  legendByLeagueId: Map<string, LeagueLegendEntry>;
+  /** Opens the game, or shuts it once `closeMs` of deleting has played out. */
+  onToggle: (gameId: string, closeMs: number) => void;
+}) {
+  const { game, players, everyone, live } = g;
+  // Only a game with more people in it than your own players opens up.
+  const expandable = (everyone?.length ?? 0) > players.length;
+  const started = game.state !== "pre";
+  // The rows opening the game adds, which delete themselves as it shuts.
+  const yours = new Set(players.map((p) => p.playerId));
+  const added = new Set(shown.filter((p) => !yours.has(p.playerId)).map((p) => p.playerId));
+  const closeMs = reducedMotion()
+    ? 0
+    : Math.max(0, ...shown.filter((p) => added.has(p.playerId)).map((p) => totalChars(playerPieces(p, started)))) * TYPE_MS_PER_CHAR + 60;
+  // Each player under the team they play for (anyone else's under the home team).
+  const awayPlayers = shown.filter((p) => p.team === game.awayTeam);
+  const homePlayers = shown.filter((p) => p.team !== game.awayTeam);
+
+  // Slides to its new height whenever its rows change (opening, shutting).
+  const box = useRef<HTMLDivElement>(null);
+  const lastHeight = useRef<number | null>(null);
+  const rowsKey = shown.map((p) => p.playerId).join(",");
+  useLayoutEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const next = el.offsetHeight;
+    const prev = lastHeight.current;
+    lastHeight.current = next;
+    if (prev === null || prev === next || reducedMotion()) return;
+    el.animate([{ height: `${prev}px`, overflow: "hidden" }, { height: `${next}px`, overflow: "hidden" }], { duration: FOLD_MS, easing: "ease-out" });
+  }, [rowsKey]);
+
+  const rows = (list: GroupedStarter[]) =>
+    list.length > 0 ? (
+      <GameRows
+        players={list}
+        sortByPoints={!!live}
+        render={(player, motion) => (
+          <PlayerRow
+            player={player}
+            legendByLeagueId={legendByLeagueId}
+            started={started}
+            shown={!hidden && !(closing && added.has(player.playerId))}
+            motion={motion}
+            sideColors={open && !closing}
+          />
+        )}
+      />
+    ) : null;
+
+  const toggle = () => onToggle(game.id, closeMs);
+  return (
+    // Each game boxed, so one game's players never run into the next's.
+    <div
+      ref={box}
+      role={expandable ? "button" : undefined}
+      tabIndex={expandable ? 0 : undefined}
+      aria-expanded={expandable ? open && !closing : undefined}
+      aria-label={`${game.awayTeam} at ${game.homeTeam}${expandable ? (open && !closing ? " — show just your players" : " — show everyone in this game") : ""}`}
+      onClick={expandable ? toggle : undefined}
+      onKeyDown={
+        expandable
+          ? (e) => {
+              if (e.target !== e.currentTarget || (e.key !== "Enter" && e.key !== " ")) return;
+              e.preventDefault();
+              toggle();
+            }
+          : undefined
+      }
+      className={`flex flex-col gap-0.5 border border-ink-muted/40 px-2 py-1.5 ${
+        expandable ? "cursor-pointer transition-colors hover:border-ink-muted" : ""
+      }`}
+    >
+      <TeamLine game={game} side="away" shown={!hidden} />
+      {rows(awayPlayers)}
+      <TeamLine game={game} side="home" shown={!hidden} />
+      {rows(homePlayers)}
+    </div>
+  );
+}
 
 function reducedMotion(): boolean {
   return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -593,8 +609,7 @@ export function StartersByGame({
           <div className="flex flex-col gap-4">
             {columns.map((column) => (
               <div key={column.label} className="flex flex-col">
-                {/* The whole bar toggles its slate on the map: a filled dot when
-                    its games are showing, an outlined one when hidden. */}
+                {/* The whole bar toggles its slate on the map (and folds its games here). */}
                 <button
                   type="button"
                   onClick={() => onToggleBlock(column.label)}
@@ -603,15 +618,7 @@ export function StartersByGame({
                   // Styled like the map's game tags: the same solid contrasting fill and ink.
                   className="flex w-full cursor-pointer items-baseline justify-between gap-2 bg-[var(--map-tag)] px-2 py-1 text-left text-xs font-bold uppercase tracking-wide text-[var(--map-tag-ink)] transition-opacity hover:opacity-90 active:opacity-80"
                 >
-                  <span className="flex min-w-0 items-center gap-2">
-                    <span
-                      aria-hidden
-                      className={`h-2 w-2 shrink-0 rounded-full border border-current ${
-                        hiddenBlocks.has(column.label) ? "" : "bg-current"
-                      }`}
-                    />
-                    <span className="min-w-0 truncate">{column.label}</span>
-                  </span>
+                  <span className="min-w-0 truncate">{column.label}</span>
                   <BlockClock games={column.games} now={now} />
                 </button>
                 <BlockGames

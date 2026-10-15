@@ -289,8 +289,10 @@ next tick always asks again.
 
 **Starters by game** (`startersListGames`, `liveGameRows` in
 `lib/my-starters.ts`, `useLivePlayerLines`): every game of the week is
-listed, showing your own starters by default. Tapping a game's logos (marked by a dot, filled while open) opens
-it up to everyone worth watching in it: the starters you're facing, plus
+listed, each in a box of its own: the away team's logo with its score (and
+the game's clock, or the kickoff time before it starts) on the right, your
+players for that team under it, then the home team's line and players.
+Tapping anywhere in a game's box opens it up to everyone worth watching in it: the starters you're facing, plus
 anyone in the game who has scored or lost points or is projected for 6+.
 Tap again to close. Once a game kicks off, rows are ordered by points, then
 projection; before kickoff, by projection alone. Before kickoff each row
@@ -336,11 +338,11 @@ motion, get the new numbers and order with no animation.
 This covers your starters and the ones you face (their games' play-by-play
 is followed), plus anyone else listed in those games.
 
-Opening a game (tapping its matchup) types the added players' lines in, one
-character at a time, each row a beat after the one above. Closing it deletes
-them again like a backspace, bottom row first, before the game folds back to
-your own players (`OPEN_MS_PER_CHAR` and `OPEN_ROW_STAGGER_MS` in
-`StartersByGame.tsx`).
+Opening a game types the added players' lines in just as a time block's
+lines do when it's switched back on — all together, a character at a time at
+the same speed — while the box slides to its new height. Closing it deletes
+them again like a backspace, then the box slides shut around your own players
+(`GameBox` in `StartersByGame.tsx`).
 
 **Red Zone** (`useRedZoneFeed`, `RedZone.tsx`, `lib/play-by-play.ts`): by
 default ("Team") the plays your starters are in. "All" shows every
