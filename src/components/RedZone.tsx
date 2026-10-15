@@ -61,8 +61,10 @@ function deltaClass(delta: number): string {
 /** The player's game total through a play, on the app's highlight plate. */
 function TotalChip({ total }: { total: number }) {
   return (
-    // The same size as the player's name beside it.
-    <span className="bg-[var(--map-tag)] px-1.5 py-1 text-[0.8125rem] font-bold leading-none tabular-nums text-[var(--map-tag-ink)]">{total.toFixed(2)}</span>
+    // The same size as the player's name, and exactly as tall as their photo.
+    <span className="flex h-[1.125rem] items-center bg-[var(--map-tag)] px-1.5 text-[0.8125rem] font-bold leading-none tabular-nums text-[var(--map-tag-ink)]">
+      {total.toFixed(2)}
+    </span>
   );
 }
 
@@ -80,8 +82,8 @@ function LinePoints({ line, mine, at }: { line: PlayLine; mine: boolean; at: num
         {...(line.playerId ? { "data-rz-player": line.playerId } : { "data-rz-actor": line.label ?? "", "data-rz-team": line.team ?? "" })}
         data-rz-delta={line.delta}
         data-rz-at={at}
-        // The same type as the stat line (green or red for your own player's).
-        className={`text-[0.6875rem] ${mine ? deltaClass(line.delta) : "text-ink-secondary"}`}
+        // The total's type, not bold (green or red for your own player's).
+        className={`text-[0.8125rem] ${mine ? deltaClass(line.delta) : "text-ink-secondary"}`}
       >
         {formatPlayPoints(line.delta)}
       </span>
@@ -253,7 +255,7 @@ function FeedRow({
       onClick={(e) => replayRedZonePlay(e.currentTarget)}
       title={hasPoints ? "Replay" : undefined}
       // Every row leaves room down its left for a marked play's strip (see MarkColumn).
-      className={`relative flex flex-col gap-1.5 border-b border-border py-2 pl-3 pr-1 last:border-b-0 ${hasPoints ? "md:cursor-pointer md:hover:bg-[color-mix(in_srgb,var(--ink-primary)_4%,transparent)]" : ""}`}
+      className={`relative flex flex-col gap-1 border-b border-border py-2 pl-3 pr-1 last:border-b-0 ${hasPoints ? "md:cursor-pointer md:hover:bg-[color-mix(in_srgb,var(--ink-primary)_4%,transparent)]" : ""}`}
       style={{
         animation: live
           ? "rise 0.35s ease-out backwards, rz-flash 2.4s ease-out"
@@ -294,7 +296,7 @@ function FeedRow({
         {play.text}
       </span>
       {lines.length > 0 ? (
-        <ul className="flex flex-col gap-1">
+        <ul className="flex flex-col gap-0.5">
           {lines.map((line) => (
             <PlayerLine
               key={line.key}
