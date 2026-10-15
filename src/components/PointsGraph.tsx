@@ -200,21 +200,18 @@ export function PointsGraph({
   // halfway along, wherever there's room.
   const marks: { at: number; label: string }[] = [];
   if (plot) {
-    const all = [
-      { at: start, label: clock(start) },
-      // Halftime has no mark of its own: the 3rd quarter's start stands for its end.
-      ...quarters.filter((q) => q.period > 1).map((q) => ({ at: q.at, label: clock(q.at) })),
-      { at: end, label: `${over ? "" : "~"}${clock(end)}` },
-    ];
-    for (const m of all) {
-      const last = marks[marks.length - 1];
-      if (last && x(m.at) - x(last.at) < 40) {
-        // Too close to the one before: the end always shows, in its place.
-        if (m.at === end && marks.length > 1) marks[marks.length - 1] = m;
-        continue;
-      }
-      marks.push(m);
+    const kickoffMark = { at: start, label: clock(start), rank: 0 };
+    const endMark = { at: end, label: `${over ? "" : "~"}${clock(end)}`, rank: 1 };
+    // Halftime has no mark of its own: the 3rd quarter's start stands for its end, and keeps its place under its line before the others.
+    const quarterMarks = quarters
+      .filter((q) => q.period > 1)
+      .map((q) => ({ at: q.at, label: clock(q.at), rank: q.period === 3 ? 2 : 3 }));
+    // Placed in order of standing, each only where it won't crowd one already placed.
+    for (const m of [kickoffMark, endMark, ...quarterMarks].sort((p, q) => p.rank - q.rank)) {
+      if (marks.some((placed) => Math.abs(x(placed.at) - x(m.at)) < 40)) continue;
+      marks.push({ at: m.at, label: m.label });
     }
+    marks.sort((p, q) => p.at - q.at);
   }
   const gaps = marks.slice(1).flatMap((m, i) => {
     const prev = marks[i];
@@ -351,8 +348,10 @@ export function PointsGraph({
               .map((q, i, shown) => (
                 <g key={`q${q.period}`}>
                   <line x1={x(q.at)} x2={x(q.at)} y1={PAD.top} y2={PAD.top + plot.h} className="stroke-ink-muted" strokeOpacity={0.35} />
-                  {/* Its label steps aside while the cursor's time is over it, or when it'd crowd the one before. */}
-                  {compact || (cursorAt !== null && Math.abs(x(q.at) + 8 - x(cursorAt)) < 30) || (i > 0 && x(q.at) - x(shown[i - 1].at) < 24) ? null : (
+                  {/* Its label steps aside while the cursor's time is over it, or when it'd crowd the one before — the 3rd quarter's keeping its place. */}
+                  {compact || (cursorAt !== null && Math.abs(x(q.at) + 8 - x(cursorAt)) < 30) ||
+                  (i > 0 && q.period !== 3 && x(q.at) - x(shown[i - 1].at) < 24) ||
+                  (shown[i + 1]?.period === 3 && x(shown[i + 1].at) - x(q.at) < 24) ? null : (
                     <text x={x(q.at) + 3} y={PAD.top - 4} className="fill-ink-muted text-[0.5625rem] font-semibold uppercase">
                       {quarterName(q.period)}
                     </text>
