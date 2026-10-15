@@ -50,6 +50,9 @@ const LOGO_ASPECT: Record<string, number> = {
   WAS: 1.81,
 };
 
+/** Every NFL team, by Sleeper's abbreviation. */
+export const NFL_TEAMS = Object.keys(LOGO_ASPECT);
+
 /**
  * A team logo's width and height in px, sized so every logo covers about
  * the same area as a `side`-px square: a wide one (the Chargers' bolt) runs

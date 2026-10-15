@@ -297,12 +297,27 @@ a player's line doesn't toggle) steps through its views, set apart below the
 teams: your starters in it, then yours and the ones you're facing, then
 everyone worth watching (`liveGameRows`: anyone in the game who has scored or
 lost points or is projected for 6+), then shut again — skipping any view that
-would list no one new. Every line has the same fixed columns, so they stay
-lined up whatever the game's state: the time of the player's latest play that
-moved their points and its +/- (only while the game's on, from
-`useLastActions` / `lastActions`; blank but kept otherwise), their name
-with their position (small, in its color) right after it, and their total
-(their projection before kickoff). A shown line is where a changed total animates (see below).
+would list no one new. A bar on top — Team, VS, ALL — sets every box to one
+of those views at once; tapping the lit one again shuts them all. Every line
+has the same columns, so they stay lined up whatever the game's state: the
+time of the player's latest play that moved their points (no AM/PM, to keep
+it narrow) and its +/- (only while the game's on, from `useLastActions` /
+`lastActions`; the time's space is kept otherwise), their name with their
+position (small, in its color) right after it, the logo of every league
+they're started in — the first tracked league on the right, the rest
+building leftward, in the +/-'s place when the game isn't on; if they'd reach
+the position, just the first shows, with "+N" for the rest — and their total
+(their projection before kickoff). A shown line is where a changed total
+animates (see below).
+
+A game's box swipes left (touch, mouse drag, or a trackpad's sideways
+scroll) to show an eye button that takes that one game off the map, or puts
+it back; its border goes dashed while it's off. Like the block headers'
+choices, it holds for the week shown. The teams on their bye come last,
+under their own BYE header below even the finished blocks, each in a box
+with any of your starters on it (and the ones you face) — plus a "No team"
+box for starters without an NFL team.
+
 Once a game kicks off, rows are ordered by points, then
 projection; before kickoff, by projection alone. Before kickoff each row
 shows its projection in faint italics with one decimal, so it reads as a

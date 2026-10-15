@@ -5,7 +5,8 @@ import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { GameMap, MappedGame } from "@/components/GameMap";
 import { LeagueTicker, TickerLeague } from "@/components/LeagueTicker";
-import { LeagueLegendEntry, StartersByGame } from "@/components/StartersByGame";
+import { ByeTeam, LeagueLegendEntry, StartersByGame } from "@/components/StartersByGame";
+import { NFL_TEAMS } from "@/lib/nfl-logos";
 import { RedZone } from "@/components/RedZone";
 import { useConfig } from "@/hooks/useConfig";
 import { MatchupTarget, useDashboardMatchups } from "@/hooks/useDashboardMatchups";
@@ -144,6 +145,15 @@ export default function DashboardPage() {
   const toggleBlock = (label: string) => {
     setBlockState({ week: shownWeek, choices: new Map(blockChoices).set(label, hiddenBlocks.has(label)) });
   };
+  // Single games taken off the map (swiped over in the starters list) — for that week.
+  const [mapOff, setMapOff] = useState<{ week: number | null; ids: Set<string> }>(() => ({ week: null, ids: new Set() }));
+  const offMap = useMemo(() => (mapOff.week === shownWeek ? mapOff.ids : new Set<string>()), [mapOff, shownWeek]);
+  const toggleMap = (gameId: string) => {
+    const ids = new Set(offMap);
+    if (ids.has(gameId)) ids.delete(gameId);
+    else ids.add(gameId);
+    setMapOff({ week: shownWeek, ids });
+  };
 
   const filteredStarters = useMemo(
     () => (myStarters ?? []).filter((s) => effectiveSelected.has(s.leagueId)),
@@ -225,6 +235,24 @@ export default function DashboardPage() {
 
   const anyGameLive = weekGames.some((g) => g.state === "in");
 
+  // The teams with no game this week, each with your starters on it (and the
+  // ones you face) — and any starter with no NFL team at all, together last.
+  const byes = useMemo<ByeTeam[]>(() => {
+    const playing = new Set(weekGames.flatMap((g) => [g.homeTeam, g.awayTeam]));
+    const teams = NFL_TEAMS.filter((t) => !playing.has(t)).sort();
+    const benched = [
+      ...grouped.notPlaying.map((p) => ({ ...p, side: "mine" as const })),
+      ...groupedOpponent.notPlaying.map((p) => ({ ...p, side: "opponent" as const })),
+    ];
+    const out: ByeTeam[] = teams.map((team) => {
+      const everyone = benched.filter((p) => p.team === team);
+      return { team, players: everyone.filter((p) => p.side === "mine"), everyone };
+    });
+    const teamless = benched.filter((p) => !p.team || !teams.includes(p.team));
+    if (teamless.length > 0) out.push({ team: null, players: teamless.filter((p) => p.side === "mine"), everyone: teamless });
+    return out;
+  }, [weekGames, grouped.notPlaying, groupedOpponent.notPlaying]);
+
   const mappedGames = useMemo<MappedGame[]>(() => {
     const startersByGameId = new Map(grouped.games.map((g) => [g.game.id, g.players]));
     const opponentStartersByGameId = new Map(groupedOpponent.games.map((g) => [g.game.id, g.players]));
@@ -293,7 +321,7 @@ export default function DashboardPage() {
             {weekGames.length > 0 ? (
               <div className="animate-[rise_0.5s_ease-out_backwards]">
                 <GameMap
-                  games={mappedGames.filter((g) => !hiddenBlocks.has(kickoffBlockLabel(g.game)))}
+                  games={mappedGames.filter((g) => !hiddenBlocks.has(kickoffBlockLabel(g.game)) && !offMap.has(g.game.id))}
                   legend={legend}
                 />
               </div>
@@ -332,11 +360,13 @@ export default function DashboardPage() {
               // Fresh for each week, so switching weeks doesn't count every total up from the last week's.
               key={shownWeek ?? 0}
               games={listedGames}
-              notPlaying={grouped.notPlaying}
+              byes={byes}
               legend={legend}
               allLeaguesHidden={config.leagues.length > 0 && config.leagues.every((l) => l.hidden)}
               hiddenBlocks={hiddenBlocks}
               onToggleBlock={toggleBlock}
+              offMap={offMap}
+              onToggleMap={toggleMap}
             />
           )}
         </div>
