@@ -200,18 +200,36 @@ function MarkColumn({ marks }: { marks: PlayMark[] }) {
 }
 
 /**
- * Which half of the field the ball was snapped in, as two little boxes — the
- * offense's own half, then the other team's — the one it's in filled: the
- * right one, it's going in (red inside the 20); the left, it's coming out.
+ * Where on the field the ball was snapped, as a little diagram: the field a
+ * green line, the offense driving left to right, with short ticks at the two
+ * goal lines and the 50 — half the line's height, so the yard line, in blue,
+ * fits above them over the blue dot where the ball was.
  */
 function FieldSpot({ yardsToEndzone }: { yardsToEndzone: number }) {
-  const goingIn = yardsToEndzone < 50;
-  const fill = yardsToEndzone <= 20 ? "bg-status-critical border-status-critical" : "bg-ink-primary border-ink-primary";
+  const left = 2;
+  const right = 62;
+  const ground = 13.5;
+  const x = left + ((right - left) * (100 - yardsToEndzone)) / 100;
+  const yard = Math.min(yardsToEndzone, 100 - yardsToEndzone);
   return (
-    <span className="flex shrink-0 gap-px" aria-hidden>
-      <span className={`h-2 w-2 border ${goingIn ? "border-ink-muted" : fill}`} />
-      <span className={`h-2 w-2 border ${goingIn ? fill : "border-ink-muted"}`} />
-    </span>
+    <svg viewBox="0 0 64 15" className="h-[0.9375rem] w-16 shrink-0 overflow-visible" aria-hidden>
+      {[left, (left + right) / 2, right].map((tx) => (
+        <line key={tx} x1={tx} y1={ground} x2={tx} y2={ground - 4.5} stroke="var(--color-ink-muted)" strokeWidth={1} />
+      ))}
+      <line x1={left} y1={ground} x2={right} y2={ground} stroke="var(--color-status-good)" strokeWidth={1.5} />
+      <circle cx={x} cy={ground} r={1.75} fill="var(--series-1)" />
+      <text
+        x={Math.min(right - 3, Math.max(left + 3, x))}
+        y={6.5}
+        textAnchor="middle"
+        fontSize={8}
+        fontWeight={700}
+        fill="var(--series-1)"
+        className="tabular-nums"
+      >
+        {yard}
+      </text>
+    </svg>
   );
 }
 
@@ -274,13 +292,12 @@ function FeedRow({
             <TeamLogo team={game.homeTeam} side={14} />
           </span>
         </span>
-        {/* The snap: down and distance, where on the field, then when. */}
+        {/* The snap: down and distance, where on the field (see FieldSpot), then when. */}
         <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap tabular-nums text-ink-muted">
           {play.downDistance ? <span className="font-semibold text-ink-secondary">{play.downDistance}</span> : null}
-          {spot ? (
-            <span className="flex items-center gap-1" title={`Snapped from the ${spot}`}>
-              <span className="text-ink-secondary">{spot}</span>
-              {play.yardsToEndzone !== undefined ? <FieldSpot yardsToEndzone={play.yardsToEndzone} /> : null}
+          {play.yardsToEndzone !== undefined ? (
+            <span className="flex items-center" title={spot ? `Snapped from the ${spot}` : undefined}>
+              <FieldSpot yardsToEndzone={play.yardsToEndzone} />
             </span>
           ) : null}
           <span>{whenLabel(entry)}</span>
