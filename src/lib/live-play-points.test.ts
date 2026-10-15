@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { lastActions, pendingPlayPoints, PENDING_PLAY_MS, periodStarts, pointsTimeline } from "./live-play-points";
+import { lastActions, pendingPlayPoints, PENDING_PLAY_MS, pacePieces, periodStarts, pointsTimeline } from "./live-play-points";
 import { GamePlay } from "./play-by-play";
 
 function play(id: string, text: string, offense = "BUF"): GamePlay {
@@ -61,5 +61,19 @@ test("pointsTimeline runs a player's total up play by play, in game order", () =
   assert.deepEqual(periodStarts(plays), [
     { period: 1, at: 1000 },
     { period: 2, at: 3000 },
+  ]);
+});
+
+test("pacePieces splits the line where it falls behind the projection's pace", () => {
+  // Pace climbs from 0 at t=0 to 10 at t=100. They score 5 at t=10, so they lead until pace reaches 5 at t=50.
+  assert.deepEqual(pacePieces([{ at: 10, total: 5 }], 0, 80, 100, 10), [
+    { from: 0, to: 10, value: 0, onPace: false },
+    { from: 10, to: 50, value: 5, onPace: true },
+    { from: 50, to: 80, value: 5, onPace: false },
+  ]);
+  // No projection: nothing to measure against.
+  assert.deepEqual(pacePieces([{ at: 10, total: 5 }], 0, 20, 100, null), [
+    { from: 0, to: 10, value: 0, onPace: null },
+    { from: 10, to: 20, value: 5, onPace: null },
   ]);
 });

@@ -107,3 +107,45 @@ export function periodStarts(plays: GamePlay[]): { period: number; at: number }[
   }
   return out;
 }
+
+/** A stretch of a points line where it holds one value — and whether that's on pace for the projection there. */
+export interface PacePiece {
+  from: number;
+  to: number;
+  value: number;
+  /** At or above the pace line the whole stretch; null with no projection to measure against. */
+  onPace: boolean | null;
+}
+
+/**
+ * A step line's flat stretches, from `start` to `lineEnd`, each split where
+ * it crosses the pace line — a straight climb from 0 at `start` to
+ * `projected` at `paceEnd` — so each piece is wholly on pace or behind it.
+ */
+export function pacePieces(
+  steps: { at: number; total: number }[],
+  start: number,
+  lineEnd: number,
+  paceEnd: number,
+  projected: number | null
+): PacePiece[] {
+  const flats: { from: number; to: number; value: number }[] = [];
+  let from = start;
+  let value = 0;
+  for (const s of steps) {
+    if (s.at > from) flats.push({ from, to: s.at, value });
+    from = Math.max(from, s.at);
+    value = s.total;
+  }
+  if (lineEnd > from) flats.push({ from, to: lineEnd, value });
+  if (projected === null || projected <= 0 || paceEnd <= start) return flats.map((f) => ({ ...f, onPace: null }));
+  const out: PacePiece[] = [];
+  for (const f of flats) {
+    // The pace line climbs, so a flat stretch is on pace up to where pace catches it, and behind after.
+    const caught = start + (f.value / projected) * (paceEnd - start);
+    if (caught >= f.to) out.push({ ...f, onPace: true });
+    else if (caught <= f.from) out.push({ ...f, onPace: false });
+    else out.push({ ...f, to: caught, onPace: true }, { ...f, from: caught, onPace: false });
+  }
+  return out;
+}

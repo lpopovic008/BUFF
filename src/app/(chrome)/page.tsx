@@ -360,7 +360,7 @@ export default function DashboardPage() {
                   </div>
                   {graphed ? (
                     <div className="absolute inset-0">
-                      <PointsGraph player={graphed.player} game={graphed.game} onClose={() => setGraphPick(null)} />
+                      <PointsGraph key={`${graphed.game.id}-${graphed.player.playerId}`} player={graphed.player} game={graphed.game} onClose={() => setGraphPick(null)} />
                     </div>
                   ) : null}
                 </div>
