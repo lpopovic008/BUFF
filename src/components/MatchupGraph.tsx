@@ -7,10 +7,13 @@ import { cleanPlayText } from "@/lib/play-by-play";
 import { pointsTimeline } from "@/lib/live-play-points";
 import { gameWindows, leadPieces, Span, StarterPace, StarterTimeline, teamPace, teamTimeline, TeamStep } from "@/lib/matchup-timeline";
 import { useGamePlays, withScoreboardPlay } from "@/hooks/useRedZoneFeed";
+import { kickoffBlockLabel } from "@/lib/game-map";
 import { clock, GAME_MS, niceStep, quarterName, useLiveNow, useSize } from "./PointsGraph";
 
 // Room around the plot for its labels, in px.
 const PAD = { left: 30, right: 10, top: 14, bottom: 26 };
+// Room along the bottom once the time blocks' names go to two lines.
+const STACKED_BOTTOM = 38;
 
 /** One starter in a matchup: who, their points in the league so far, and their projection under its rules. */
 export interface MatchupStarter {
@@ -97,6 +100,8 @@ export function MatchupGraph({
   // Each team's line, its pace, and the windows the week's games take up.
   const model = useMemo(() => {
     const spans: Span[] = [];
+    // When each kickoff time block began (Thursday night, Sunday noon, Sunday afternoon...), by its first game.
+    const blockStarts = new Map<string, number>();
     const lines = sides.map((side) => {
       const timelines: StarterTimeline[] = [];
       const paces: StarterPace[] = [];
@@ -107,6 +112,8 @@ export function MatchupGraph({
         const lastPlayAt = Math.max(0, ...plays.map((p) => p.at ?? 0));
         const span = gameSpan(game, lastPlayAt, now);
         spans.push(span);
+        const block = kickoffBlockLabel(game);
+        blockStarts.set(block, Math.min(blockStarts.get(block) ?? Infinity, span.from));
         if (s.projected !== null && s.projected > 0) paces.push({ projected: s.projected, ...span });
         if (game.state === "pre") continue;
         const steps = pointsTimeline(plays, { playerId: s.playerId, name: s.name, position: s.position, team: s.team }, scoring, {
@@ -121,7 +128,7 @@ export function MatchupGraph({
       }
       return { steps: teamTimeline(timelines), paces };
     });
-    return { lines, windows: gameWindows(spans) };
+    return { lines, windows: gameWindows(spans), blockStarts: [...blockStarts.values()] };
   }, [sides, gameOf, playsByGame, now, scoring]);
 
   const plotRef = useRef<HTMLDivElement>(null);
@@ -136,9 +143,9 @@ export function MatchupGraph({
   // The lines run to now while games are on, to the last game's end once they're all over.
   const lineEnd = start === null || end === null || !started ? null : over ? end : Math.min(end, Math.max(start, now ?? start, ...model.lines.flatMap((l) => l.steps.map((s) => s.at))));
 
-  const plot = size && start !== null && end !== null ? { w: Math.max(0, size.width - PAD.left - PAD.right), h: Math.max(0, size.height - PAD.top - PAD.bottom) } : null;
+  const plotW = size && start !== null && end !== null ? Math.max(0, size.width - PAD.left - PAD.right) : null;
   const playing = windows.reduce((sum, w) => sum + (w.to - w.from), 0);
-  const perMs = plot && playing > 0 ? plot.w / playing : 0;
+  const perMs = plotW !== null && playing > 0 ? plotW / playing : 0;
   // Along the screen: the game windows back to back, the time between them cut out.
   const x = (at: number) => {
     let px = PAD.left;
@@ -200,32 +207,41 @@ export function MatchupGraph({
     return { lead, trail: 100 - lead };
   })();
 
-  // The axis: each window's start ("Sun 1:00", the day only when it changes) and the end ("~" while it's a guess).
-  const marks: { at: number; label: string; anchor: "start" | "middle" | "end" }[] = [];
-  if (plot && start !== null && end !== null) {
-    const all: { at: number; label: string; anchor: "start" | "middle" | "end" }[] = [];
-    for (let i = 0; i < windows.length; i++) {
-      const w = windows[i];
-      const sameDay = i > 0 && new Date(windows[i - 1].from).toDateString() === new Date(w.from).toDateString();
-      all.push({ at: w.from, label: sameDay ? clock(w.from) : dayClock(w.from), anchor: i === 0 ? "start" : "middle" });
-    }
-    all.push({ at: end, label: `${over ? "" : "~"}${clock(end)}`, anchor: "end" });
-    // Each label's reach along the axis — about 5.6px a character — so none runs into the next.
-    const reach = (m: (typeof all)[number]) => {
-      const w = m.label.length * 5.6;
-      const at = x(m.at);
-      return m.anchor === "start" ? [at, at + w] : m.anchor === "end" ? [at - w, at] : [at - w / 2, at + w / 2];
-    };
-    for (const m of all) {
+  // The week in time blocks — every kickoff window (Thursday night, Sunday noon, Sunday afternoon...) a band of
+  // its own, from its first kickoff (or the start of a game window) to the next — each named along the bottom.
+  const bands: Span[] = (() => {
+    if (start === null || end === null) return [];
+    const starts = [...new Set([...windows.map((w) => w.from), ...model.blockStarts])].filter((t) => t >= start && t < end).sort((p, q) => p - q);
+    return starts.map((from, i) => ({ from, to: starts[i + 1] ?? end }));
+  })();
+  type Mark = { at: number; day: string; time: string; anchor: "start" | "middle" | "end" };
+  const weekday = (at: number) => new Date(at).toLocaleDateString("en-US", { weekday: "short" });
+  const allMarks: Mark[] = [
+    ...bands.map((b, i): Mark => ({ at: b.from, day: weekday(b.from), time: clock(b.from), anchor: i === 0 ? "start" : "middle" })),
+    ...(end !== null && bands.length > 0 ? [{ at: end, day: weekday(end), time: `${over ? "" : "~"}${clock(end)}`, anchor: "end" as const }] : []),
+  ];
+  // Each label's reach along the axis — about 5.6px a character — one line ("Sun 1:00") or two (the day over the time).
+  const reach = (m: Mark, stacked: boolean) => {
+    const w = (stacked ? Math.max(m.day.length, m.time.length) : m.day.length + 1 + m.time.length) * 5.6;
+    const at = x(m.at);
+    return m.anchor === "start" ? [at, at + w] : m.anchor === "end" ? [at - w, at] : [at - w / 2, at + w / 2];
+  };
+  const collides = (marks: Mark[], stacked: boolean) => marks.some((m, i) => i > 0 && reach(m, stacked)[0] - reach(marks[i - 1], stacked)[1] < 6);
+  // Any two crowding each other on one line: every label goes to two, the day over the time.
+  const stacked = plotW !== null && collides(allMarks, false);
+  // Still crowded on two lines: the later one gives way (the end always keeps its place).
+  const marks: Mark[] = [];
+  if (plotW !== null) {
+    for (const m of allMarks) {
       const last = marks[marks.length - 1];
-      if (last && reach(m)[0] - reach(last)[1] < 8) {
-        // Crowded: the end always shows, in the one before's place.
+      if (last && reach(m, stacked)[0] - reach(last, stacked)[1] < 6) {
         if (m.anchor === "end" && marks.length > 1) marks[marks.length - 1] = m;
         continue;
       }
       marks.push(m);
     }
   }
+  const plot = plotW !== null && size ? { w: plotW, h: Math.max(0, size.height - PAD.top - (stacked ? STACKED_BOTTOM : PAD.bottom)) } : null;
 
   // Every scoring moment, both teams', in order — for the cursor and the arrow keys.
   const events = useMemo(
@@ -330,9 +346,14 @@ export function MatchupGraph({
                 />
               )
             )}
-            {/* A line where each game window starts, the time between them cut out. */}
-            {windows.slice(1).map((w) => (
-              <line key={`win${w.from}`} x1={x(w.from)} x2={x(w.from)} y1={PAD.top} y2={PAD.top + plot.h} className="stroke-ink-muted" strokeOpacity={0.35} />
+            {/* Every time block a band of its own, every other one faintly shaded, a line where each begins. */}
+            {bands.map((band, i) => (
+              <g key={`band${band.from}`}>
+                {i % 2 === 1 ? (
+                  <rect x={x(band.from)} y={PAD.top} width={Math.max(0, x(band.to) - x(band.from))} height={plot.h} className="fill-ink-muted" fillOpacity={0.07} />
+                ) : null}
+                {i > 0 ? <line x1={x(band.from)} x2={x(band.from)} y1={PAD.top} y2={PAD.top + plot.h} className="stroke-ink-muted" strokeOpacity={0.35} /> : null}
+              </g>
             ))}
             {/* The points axis. */}
             {yTicks.map((v) => (
@@ -343,10 +364,19 @@ export function MatchupGraph({
                 </text>
               </g>
             ))}
-            {/* The clock along the bottom. */}
+            {/* Each time block named along the bottom: "Sun 1:00", or — crowded — the day over the time. */}
             {marks.map((m) => (
               <text key={`x${m.at}`} x={x(m.at)} y={PAD.top + plot.h + 17} textAnchor={m.anchor} className="fill-ink-muted text-[0.625rem] tabular-nums">
-                {m.label}
+                {stacked ? (
+                  <>
+                    <tspan x={x(m.at)}>{m.day}</tspan>
+                    <tspan x={x(m.at)} dy="1.15em">
+                      {m.time}
+                    </tspan>
+                  </>
+                ) : (
+                  `${m.day} ${m.time}`
+                )}
               </text>
             ))}
             {/* Each team's projected pace. */}

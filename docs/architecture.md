@@ -364,8 +364,13 @@ league's rules (`teamTimeline`), whatever a starter's Sleeper total has that
 no play accounts for counted at the end of their game, so the lines end on
 the teams' totals. Time runs through the week's game windows
 (`gameWindows`: the starters' games, overlaps merged), set back to back
-with the time between them cut out and a line where each starts, labelled by each window's start
-(the day only when it changes) and the end. Yours is black (white in the
+with the time between them cut out. The background is split into the
+week's kickoff time blocks (Thursday night, Sunday noon, Sunday
+afternoon... — `kickoffBlockLabel`, as the starters list groups them), each
+a band from its first kickoff to the next, every other one faintly shaded
+with a line where each begins, each named along the bottom ("Sun 1:00") with
+the end after them; should any two names crowd each other, every name goes
+to two lines, the day over the time. Yours is black (white in the
 dark), theirs grey; the ground between the lines is green while you lead
 and red while you trail (`leadPieces`), with how much of the week so far
 you've led and trailed in the corner, and each team's projected pace dashed
