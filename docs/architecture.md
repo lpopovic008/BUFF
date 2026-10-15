@@ -352,10 +352,24 @@ the cursor back and forth a play at a time. × (or tapping their line again)
 takes a graph down; Escape takes them all down and brings the map back. The map stays mounted underneath, just hidden, so its view isn't
 lost. On a phone, the page scrolls up to the graph.
 
-The league page has the same graphs, under the lineups and above the payout
-table: tap any player in a matchup's lineup (yours or theirs) to put theirs
-up — up to four, laid out the same way — scored under that league's rules,
-their projection too, and ending on the points beside them in the lineup.
+The league page always has a graph under the lineups and above the payout
+table (`MatchupGraph`; `lib/matchup-timeline.ts`): the matchup being looked
+at (opened on a phone, picked from the list from tablet width up — yours
+until another is), both teams' totals over the week, nothing to tap. Each
+team's line is every starter's points added up play by play under the
+league's rules (`teamTimeline`), whatever a starter's Sleeper total has that
+no play accounts for counted at the end of their game, so the lines end on
+the teams' totals. Time runs through the week's game windows
+(`gameWindows`: the starters' games, overlaps merged), the quiet between
+them squeezed into thin etched columns, labelled by each window's start
+(the day only when it changes) and the end. Yours is black (white in the
+dark), theirs grey; the ground between the lines is green while you lead
+and red while you trail (`leadPieces`), with how much of the week so far
+you've led and trailed in the corner, and each team's projected pace dashed
+(`teamPace`: each starter's projection earned evenly over their game). The
+cursor, the arrow keys and the description below work as the player
+graph's do, the description naming the player and its +/- green for your
+points, red for theirs.
 
 A game's box swipes left (touch, mouse drag, or a trackpad's sideways
 scroll) to show an eye button that takes that one game off the map, or puts

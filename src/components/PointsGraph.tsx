@@ -12,27 +12,27 @@ import { useGamePlays, withScoreboardPlay } from "@/hooks/useRedZoneFeed";
 const FULL_PAD = { left: 30, right: 10, top: 14, bottom: 26 };
 // Side by side with others, there's no clock along the bottom or labels on top.
 const COMPACT_PAD = { left: 24, right: 6, top: 6, bottom: 6 };
-const HOUR_MS = 60 * 60 * 1000;
+export const HOUR_MS = 60 * 60 * 1000;
 // About how long a game runs, for the empty graph before kickoff.
-const GAME_MS = 3.25 * HOUR_MS;
+export const GAME_MS = 3.25 * HOUR_MS;
 
 /** A time of day without AM/PM, e.g. "1:30". */
-function clock(at: number): string {
+export function clock(at: number): string {
   return new Date(at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).replace(/\s?[AP]M$/i, "");
 }
 
 /** Round, readable steps for the points axis — about four of them over `span`. */
-function niceStep(span: number): number {
+export function niceStep(span: number): number {
   for (const step of [1, 2, 5, 10, 20, 50]) if (span / step <= 5) return step;
   return 100;
 }
 
-function quarterName(period: number): string {
+export function quarterName(period: number): string {
   return period <= 4 ? `Q${period}` : period === 5 ? "OT" : `${period - 4}OT`;
 }
 
 /** The plot's size, tracked as its box resizes. */
-function useSize(ref: React.RefObject<HTMLElement | null>): { width: number; height: number } | null {
+export function useSize(ref: React.RefObject<HTMLElement | null>): { width: number; height: number } | null {
   const [size, setSize] = useState<{ width: number; height: number } | null>(null);
   useEffect(() => {
     const el = ref.current;
@@ -48,7 +48,7 @@ function useSize(ref: React.RefObject<HTMLElement | null>): { width: number; hei
 }
 
 /** A clock that ticks every 15 seconds while the game's on, for the line's live end. */
-function useLiveNow(live: boolean): number | null {
+export function useLiveNow(live: boolean): number | null {
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
     if (!live) return;

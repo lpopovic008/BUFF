@@ -42,7 +42,7 @@ function PlayerName({ name }: { name: string }) {
  * WR; see positionBlendRankIndexFor) on its outer side — left of the name for your team, right of
  * it for theirs — styled like the standings rank beside team names.
  */
-function RankedName({ resolved, align, selected = false }: { resolved: ResolvedSlot; align: "left" | "right"; selected?: boolean }) {
+function RankedName({ resolved, align }: { resolved: ResolvedSlot; align: "left" | "right" }) {
   // Always the same width — room for three digits, kept even when there's no
   // rank — so every name in the column starts (or, on their side, ends) on
   // the same line. The number sits against the name.
@@ -63,7 +63,7 @@ function RankedName({ resolved, align, selected = false }: { resolved: ResolvedS
   return (
     <span className={`flex min-w-0 items-baseline gap-1 ${align === "right" ? "justify-end" : ""}`}>
       {align === "left" ? rank : null}
-      <span className={`truncate ${ROW_TEXT} font-medium text-ink-primary ${selected ? "underline decoration-2 underline-offset-2" : ""}`}>
+      <span className={`truncate ${ROW_TEXT} font-medium text-ink-primary`}>
         <PlayerName name={resolved.player!.name} />
       </span>
       {align === "right" ? rank : null}
@@ -71,33 +71,7 @@ function RankedName({ resolved, align, selected = false }: { resolved: ResolvedS
   );
 }
 
-/** The player's points-over-time graph, put up (or taken down) by tapping their line. */
-interface GraphPick {
-  selectedIds: string[];
-  onSelect: (playerId: string) => void;
-}
-
-/** A player's line made tappable for their graph — the whole line, as it is in the starters list. */
-function pickable(resolved: ResolvedSlot, pick: GraphPick | undefined) {
-  const id = resolved.player?.playerId;
-  if (!pick || !id) return {};
-  const choose = () => pick.onSelect(id);
-  return {
-    role: "button" as const,
-    tabIndex: 0,
-    "aria-pressed": pick.selectedIds.includes(id),
-    "aria-label": `${resolved.player!.name}'s points over time`,
-    onClick: choose,
-    onKeyDown: (e: React.KeyboardEvent) => {
-      if (e.key !== "Enter" && e.key !== " ") return;
-      e.preventDefault();
-      choose();
-    },
-    className: "cursor-pointer",
-  };
-}
-
-function MySlotPlayer({ resolved, pick }: { resolved: ResolvedSlot; pick?: GraphPick }) {
+function MySlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
   if (!resolved.player) {
     return (
       <div className={`grid ${MY_ROW_COLS} items-center gap-0.5 sm:gap-1 ${ROW_TEXT} text-ink-muted`}>
@@ -107,17 +81,16 @@ function MySlotPlayer({ resolved, pick }: { resolved: ResolvedSlot; pick?: Graph
       </div>
     );
   }
-  const { className: pickClass = "", ...pickProps } = pickable(resolved, pick);
   return (
-    <div {...pickProps} className={`grid ${MY_ROW_COLS} items-center gap-0.5 sm:gap-1 ${pickClass}`}>
+    <div className={`grid ${MY_ROW_COLS} items-center gap-0.5 sm:gap-1`}>
       <PlayerHeadshot playerId={resolved.player.playerId} size={22} />
-      <RankedName resolved={resolved} align="left" selected={!!pick?.selectedIds.includes(resolved.player.playerId)} />
+      <RankedName resolved={resolved} align="left" />
       <span className={`text-right tabular-nums ${ROW_TEXT} text-ink-secondary`}>{formatPoints(resolved.livePoints)}</span>
     </div>
   );
 }
 
-function TheirSlotPlayer({ resolved, pick }: { resolved: ResolvedSlot; pick?: GraphPick }) {
+function TheirSlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
   if (!resolved.player) {
     return (
       <div className={`grid ${THEIR_ROW_COLS} items-center gap-0.5 sm:gap-1 ${ROW_TEXT} text-ink-muted`}>
@@ -127,25 +100,24 @@ function TheirSlotPlayer({ resolved, pick }: { resolved: ResolvedSlot; pick?: Gr
       </div>
     );
   }
-  const { className: pickClass = "", ...pickProps } = pickable(resolved, pick);
   return (
-    <div {...pickProps} className={`grid ${THEIR_ROW_COLS} items-center gap-0.5 sm:gap-1 ${pickClass}`}>
+    <div className={`grid ${THEIR_ROW_COLS} items-center gap-0.5 sm:gap-1`}>
       <span className={`tabular-nums ${ROW_TEXT} text-ink-secondary`}>{formatPoints(resolved.livePoints)}</span>
-      <RankedName resolved={resolved} align="right" selected={!!pick?.selectedIds.includes(resolved.player.playerId)} />
+      <RankedName resolved={resolved} align="right" />
       <PlayerHeadshot playerId={resolved.player.playerId} size={22} />
     </div>
   );
 }
 
-function SlotRow({ slot, my, their, pick }: { slot: string; my: ResolvedSlot; their: ResolvedSlot | undefined; pick?: GraphPick }) {
+function SlotRow({ slot, my, their }: { slot: string; my: ResolvedSlot; their: ResolvedSlot | undefined }) {
   return (
     <div className={`grid ${SLOT_COLS} items-center gap-1 sm:gap-2`}>
-      <MySlotPlayer resolved={my} pick={pick} />
+      <MySlotPlayer resolved={my} />
       {/* Every box the same width — the column's, which fits FLEX and no more. Outlined in its own text color, every slot alike. */}
       <span className="justify-self-stretch border border-current py-px text-center text-[0.625rem] font-bold uppercase leading-tight text-ink-primary sm:text-[0.6875rem]">
         {slotLabel(slot)}
       </span>
-      {their ? <TheirSlotPlayer resolved={their} pick={pick} /> : <div />}
+      {their ? <TheirSlotPlayer resolved={their} /> : <div />}
     </div>
   );
 }
@@ -223,12 +195,12 @@ function MatchupHeader({
 }
 
 /** A matchup's lineups, slot by slot: yours (or the first team's) on the left. */
-function MatchupLineup({ game, myRosterId, pick }: { game: ResolvedMatchupGame; myRosterId: number | null; pick?: GraphPick }) {
+function MatchupLineup({ game, myRosterId }: { game: ResolvedMatchupGame; myRosterId: number | null }) {
   const [mine, other] = sides(game, myRosterId);
   return (
     <div className="flex flex-col gap-2.5 px-2">
       {mine.slots.map((slot, i) => (
-        <SlotRow key={i} slot={slot.slot} my={slot} their={other?.slots[i]} pick={pick} />
+        <SlotRow key={i} slot={slot.slot} my={slot} their={other?.slots[i]} />
       ))}
     </div>
   );
@@ -241,7 +213,6 @@ function MatchupSlide({
   standings,
   owners,
   allTime,
-  pick,
 }: {
   leagueId: string;
   game: ResolvedMatchupGame;
@@ -249,7 +220,6 @@ function MatchupSlide({
   standings: Map<number, TeamStanding>;
   owners: Map<number, string>;
   allTime: Map<string, Map<string, AllTimeRecord>> | null;
-  pick?: GraphPick;
 }) {
   const [mine, other] = sides(game, myRosterId);
   return (
@@ -261,7 +231,7 @@ function MatchupSlide({
         standings={standings}
         headToHead={headToHeadFor(mine, other, owners, allTime)}
       />
-      <MatchupLineup game={game} myRosterId={myRosterId} pick={pick} />
+      <MatchupLineup game={game} myRosterId={myRosterId} />
     </div>
   );
 }
@@ -310,7 +280,7 @@ function MatchupStack({
   standings,
   owners,
   allTime,
-  pick,
+  onOpen,
 }: {
   leagueId: string;
   games: ResolvedMatchupGame[];
@@ -318,7 +288,8 @@ function MatchupStack({
   standings: Map<number, TeamStanding>;
   owners: Map<number, string>;
   allTime: Map<string, Map<string, AllTimeRecord>> | null;
-  pick?: GraphPick;
+  /** Told whenever a matchup is opened. */
+  onOpen?: (matchupId: number) => void;
 }) {
   const myGame = games.find((g) => g.teams.some((t) => t.rosterId === myRosterId));
   const stacked = myGame ? [myGame, ...games.filter((g) => g !== myGame)] : games;
@@ -330,6 +301,7 @@ function MatchupStack({
 
   function toggle(matchupId: number, header: HTMLElement) {
     setChosen(openId === matchupId ? null : matchupId);
+    if (openId !== matchupId) onOpen?.(matchupId);
     // Keep the tapped header where it is while everything around it folds.
     cancelAnimationFrame(hold.current);
     const top = header.getBoundingClientRect().top;
@@ -389,7 +361,7 @@ function MatchupStack({
             >
               <div className="min-h-0 overflow-hidden">
                 <div className="pb-2 pt-3">
-                  <MatchupLineup game={g} myRosterId={myRosterId} pick={pick} />
+                  <MatchupLineup game={g} myRosterId={myRosterId} />
                 </div>
               </div>
             </div>
@@ -443,8 +415,7 @@ export function LeagueMatchupCarousel({
   standings,
   owners,
   pending,
-  selectedPlayerIds,
-  onSelectPlayer,
+  onShowMatchup,
 }: {
   leagueId: string;
   games: ResolvedMatchupGame[];
@@ -455,12 +426,9 @@ export function LeagueMatchupCarousel({
   owners: Map<number, string>;
   /** With "as it stands" on, this season's unfinished weeks' matchups, counted in the head-to-heads. */
   pending?: PendingMatchups | null;
-  /** The players whose points-over-time graphs are up, under the lineups. */
-  selectedPlayerIds?: string[];
-  /** Puts a player's graph up (or takes it down) — tapping their line. */
-  onSelectPlayer?: (playerId: string) => void;
+  /** Told whenever another matchup is picked to look at (opened on a phone, picked from the list from tablet width up). */
+  onShowMatchup?: (matchupId: number) => void;
 }) {
-  const pick = onSelectPlayer ? { selectedIds: selectedPlayerIds ?? [], onSelect: onSelectPlayer } : undefined;
   // The matchup shown large beside the list (tablet and up): yours until another is picked.
   const [pickedId, setPickedId] = useState<number | null>(null);
   const allTimeOfficial = useAllTimeHeadToHead(leagueId);
@@ -479,12 +447,20 @@ export function LeagueMatchupCarousel({
     <>
       {/* Phones: every matchup's header stacked; tap one for its lineup. */}
       <div className="md:hidden">
-        <MatchupStack leagueId={leagueId} games={games} myRosterId={myRosterId} standings={standings} owners={owners} allTime={allTime} pick={pick} />
+        <MatchupStack
+          leagueId={leagueId}
+          games={games}
+          myRosterId={myRosterId}
+          standings={standings}
+          owners={owners}
+          allTime={allTime}
+          onOpen={onShowMatchup}
+        />
       </div>
 
       {/* Tablet and up: the chosen matchup large on the left (70%), every matchup listed on the right (30%, never narrower than 16rem so names stay readable). */}
       <div className="hidden md:grid md:grid-cols-[minmax(0,7fr)_minmax(16rem,3fr)] md:items-start md:gap-3">
-        <MatchupSlide leagueId={leagueId} game={picked} myRosterId={myRosterId} standings={standings} owners={owners} allTime={allTime} pick={pick} />
+        <MatchupSlide leagueId={leagueId} game={picked} myRosterId={myRosterId} standings={standings} owners={owners} allTime={allTime} />
         <div className="flex flex-col gap-2">
         <ul className="flex flex-col gap-2" aria-label="This week's matchups">
           {games.map((g) => {
@@ -494,7 +470,10 @@ export function LeagueMatchupCarousel({
                 <button
                   type="button"
                   aria-current={active || undefined}
-                  onClick={() => setPickedId(g.matchupId)}
+                  onClick={() => {
+                    setPickedId(g.matchupId);
+                    onShowMatchup?.(g.matchupId);
+                  }}
                   className={`w-full border px-3 py-2 text-left transition-colors ${
                     active
                       ? "border-ink-primary bg-[color-mix(in_srgb,var(--map-tag)_7%,transparent)]"

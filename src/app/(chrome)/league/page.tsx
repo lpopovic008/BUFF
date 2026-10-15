@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { IconLink } from "@/components/ui/IconButton";
@@ -16,7 +16,7 @@ import { computePlanLedger, PayoutPlan } from "@/lib/payout-plan";
 import { savePayoutPlan } from "@/lib/localStore";
 import { getCurrentWeek, getWeeklyPlayerLines, weighProjection } from "@/lib/sleeper";
 import { useWeekGames } from "@/hooks/useWeekGames";
-import { GraphedPlayer, PointsGraphGrid } from "@/components/PointsGraph";
+import { MatchupGraph, MatchupSide } from "@/components/MatchupGraph";
 import { setHeaderWeek } from "@/lib/header-week";
 import { TitleWithHistory } from "@/components/HistoryButtons";
 
@@ -127,33 +127,18 @@ function LeagueDetailContent() {
   }, [week, shownWeek, lastWeek, regularSeasonWeeks]);
   useEffect(() => () => setHeaderWeek(null), []);
 
-  // Players whose points-over-time graphs are up under the lineups (tapped in
-  // them), up to four — the same graphs as the dashboard's, each play scored
-  // under this league's own rules. For the week shown.
-  const [graphPicks, setGraphPicks] = useState<{ week: number | null; ids: string[] }>(() => ({ week: null, ids: [] }));
-  const pickedIds = useMemo(() => (graphPicks.week === shownWeek ? graphPicks.ids : []), [graphPicks, shownWeek]);
-  const graphsRef = useRef<HTMLElement>(null);
-  const pickGraph = (playerId: string) => {
-    const already = pickedIds.includes(playerId);
-    // Tapped again, theirs comes down; a fifth pushes the first one out.
-    setGraphPicks({ week: shownWeek, ids: already ? pickedIds.filter((id) => id !== playerId) : [...pickedIds, playerId].slice(-4) });
-  };
-  const anyGraph = pickedIds.length > 0;
-  useEffect(() => {
-    if (!anyGraph) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setGraphPicks({ week: null, ids: [] });
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [anyGraph]);
+  // The matchup the graph under the lineups follows: the one being looked at
+  // (opened on a phone, picked from the list from tablet width up) — yours
+  // until another is — drawn whatever its state, every starter's points added
+  // up play by play under this league's rules.
+  const [shownMatchupId, setShownMatchupId] = useState<{ week: number | null; id: number } | null>(null);
   const season = summary?.league.season ?? null;
   const scoring = summary?.league.scoring_settings;
-  const weekGames = useWeekGames(anyGraph ? season : null, shownWeek);
-  // Each graphed player's projection, scored under this league's rules.
+  const weekGames = useWeekGames(season, shownWeek);
+  // Every starter's projection, scored under this league's rules.
   const [projectionStats, setProjectionStats] = useState<Record<string, Record<string, number>> | null>(null);
   useEffect(() => {
-    if (!anyGraph || !season || shownWeek == null) return;
+    if (!season || shownWeek == null) return;
     let cancelled = false;
     getWeeklyPlayerLines("projections", season, shownWeek)
       .then((lines) => {
@@ -163,41 +148,37 @@ function LeagueDetailContent() {
     return () => {
       cancelled = true;
     };
-  }, [anyGraph, season, shownWeek]);
-  const graphs = useMemo<GraphedPlayer[]>(() => {
-    const slots = (carousel?.games ?? []).flatMap((g) => g.teams.flatMap((t) => t.slots));
-    return pickedIds.flatMap((id) => {
-      const slot = slots.find((s) => s.player?.playerId === id);
-      const player = slot?.player;
-      const game = player?.team ? weekGames.find((g) => g.homeTeam === player.team || g.awayTeam === player.team) : undefined;
-      if (!slot || !player || !game) return [];
-      const projection = projectionStats?.[id];
-      const projected = projection ? weighProjection(projection, scoring) : undefined;
-      return [
-        {
-          game,
-          scoring,
-          player: {
-            playerId: id,
-            name: player.name,
-            position: player.position,
-            team: player.team,
-            leagueIds: leagueId ? [leagueId] : [],
+  }, [season, shownWeek]);
+  const graphed = useMemo(() => {
+    const games = carousel?.games ?? [];
+    const myRosterId = myRow?.rosterId ?? null;
+    const chosen = shownMatchupId && shownMatchupId.week === shownWeek ? games.find((g) => g.matchupId === shownMatchupId.id) : undefined;
+    const game = chosen ?? games.find((g) => g.teams.some((t) => t.rosterId === myRosterId)) ?? games[0];
+    if (!game) return null;
+    const first = game.teams.find((t) => t.rosterId === myRosterId) ?? game.teams[0];
+    const second = game.teams.find((t) => t.rosterId !== first.rosterId) ?? null;
+    const side = (t: (typeof game.teams)[number]): MatchupSide => ({
+      name: t.teamName,
+      points: t.points,
+      starters: t.slots.flatMap((slot) => {
+        const p = slot.player;
+        if (!p) return [];
+        const projection = projectionStats?.[p.playerId];
+        const projected = projection ? weighProjection(projection, scoring) : undefined;
+        return [
+          {
+            playerId: p.playerId,
+            name: p.name,
+            position: p.position,
+            team: p.team,
             points: slot.livePoints,
-            pointsByLeague: {},
             projected: typeof projected === "number" ? Math.round(projected * 100) / 100 : null,
           },
-        },
-      ];
+        ];
+      }),
     });
-  }, [pickedIds, carousel, weekGames, projectionStats, scoring, leagueId]);
-  // A graph just put up (once its game has loaded) is brought into view if it's off screen.
-  const shownGraphs = graphs.length;
-  const lastShown = useRef(0);
-  useEffect(() => {
-    if (shownGraphs > lastShown.current) graphsRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    lastShown.current = shownGraphs;
-  }, [shownGraphs]);
+    return { key: game.matchupId, mine: side(first), theirs: second ? side(second) : null };
+  }, [carousel, myRow, shownMatchupId, shownWeek, projectionStats, scoring]);
 
   if (!leagueId) {
     return <Card className="p-12 text-center text-sm text-ink-secondary">No league selected.</Card>;
@@ -248,20 +229,20 @@ function LeagueDetailContent() {
             standings={standings}
             owners={owners}
             pending={pending}
-            selectedPlayerIds={pickedIds}
-            onSelectPlayer={pickGraph}
+            onShowMatchup={(id) => setShownMatchupId({ week: shownWeek, id })}
           />
         </div>
       ) : carousel ? (
         <p className="text-sm text-ink-muted">No matchups this week.</p>
       ) : null}
 
-      {/* Under the lineups: the graphs of whoever's tapped in them. */}
-      {graphs.length > 0 ? (
-        <section ref={graphsRef} aria-label="Points over time" className="h-[18rem] scroll-mb-4 sm:h-[24rem] lg:h-[28rem]">
-          <PointsGraphGrid graphs={graphs} onClose={(id) => setGraphPicks({ week: shownWeek, ids: pickedIds.filter((p) => p !== id) })} />
+      {/* Under the lineups: the matchup's two totals over the week, always there. */}
+      {graphed ? (
+        <section aria-label="Points over the week" className="h-[18rem] animate-[rise_0.5s_ease-out_backwards] [animation-delay:120ms] sm:h-[22rem] lg:h-[26rem]">
+          <MatchupGraph key={`${shownWeek}-${graphed.key}`} mine={graphed.mine} theirs={graphed.theirs} weekGames={weekGames} scoring={scoring} />
         </section>
       ) : null}
+
       {shownMoney && plan && ledger ? (
         <section className="animate-[rise_0.5s_ease-out_backwards] [animation-delay:150ms]">
           <MoneyBoard season={shownMoney} plan={plan} ledger={ledger} currentWeek={week} onPlanChange={changePlan} />
