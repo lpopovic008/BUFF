@@ -360,9 +360,10 @@ of it, at most 40rem, from tablet width up (`MatchupGraph`; `lib/matchup-timelin
 at (opened on a phone, picked from the list from tablet width up — yours
 until another is), both teams' totals over the week, nothing to tap. Each
 team's line is every starter's points added up play by play under the
-league's rules (`teamTimeline`), whatever a starter's Sleeper total has that
-no play accounts for counted at the end of their game, so the lines end on
-the teams' totals. Time runs through the week's game windows
+league's rules as it happens (`teamTimeline`). Once a starter's game is
+final, whatever their Sleeper total has that no play accounts for (yards
+allowed, a stat correction) comes in as one correction at the end of their
+game — never mid-game — so a finished week's lines end on the teams' totals. Time runs through the week's game windows
 (`gameWindows`: the starters' games, overlaps merged), set back to back
 with the time between them cut out and a line where each starts, labelled by each window's start
 (the day only when it changes) and the end. Yours is black (white in the

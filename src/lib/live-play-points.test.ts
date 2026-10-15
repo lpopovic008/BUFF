@@ -121,3 +121,20 @@ test("pointsTimeline moves a defense's points-allowed bracket as the other side 
     ]
   );
 });
+
+test("pointsTimeline scores a passer under a league's own touchdown and interception values, play by play", () => {
+  const at = (seq: number, text: string, extra: Partial<GamePlay> = {}): GamePlay => ({ ...play(String(seq), text), sequence: seq, at: seq * 1000, ...extra });
+  const plays = [
+    at(1, "J.Allen pass deep middle to D.Kincaid for 25 yards, TOUCHDOWN.", { scoring: true }),
+    at(2, "J.Allen pass deep right intended for K.Shakir INTERCEPTED by J.Ramsey at MIA 10.", { turnover: true }),
+  ];
+  // 6-point passing touchdowns and -3 interceptions, 0.04 a passing yard.
+  const scoring = { pass_yd: 0.04, pass_td: 6, pass_int: -3 };
+  assert.deepEqual(
+    pointsTimeline(plays, allen, scoring).map(({ delta, total }) => ({ delta, total })),
+    [
+      { delta: 7, total: 7 }, // 25 yards (1) + the touchdown (6)
+      { delta: -3, total: 4 },
+    ]
+  );
+});
