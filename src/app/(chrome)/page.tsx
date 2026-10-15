@@ -32,6 +32,9 @@ interface LoadedLeague {
 /** The NFL regular season's weeks, all of which the header's week picker offers. */
 const NFL_WEEKS = 18;
 
+/** How many players' graphs can be up at once, in place of the map. */
+const MAX_GRAPHS = 4;
+
 export default function DashboardPage() {
   const { config, loaded } = useConfig();
   const [leagues, setLeagues] = useState<LoadedLeague[] | null>(null);
@@ -155,20 +158,19 @@ export default function DashboardPage() {
     else ids.add(gameId);
     setMapOff({ week: shownWeek, ids });
   };
-  // The player whose points-over-time graph is up in place of the map (tapped in the starters list) — for that week.
-  const [graphPick, setGraphPick] = useState<{ week: number | null; playerId: string; gameId: string } | null>(null);
-  const graphFor = useMemo(
-    () => (graphPick && graphPick.week === shownWeek ? { playerId: graphPick.playerId, gameId: graphPick.gameId } : null),
-    [graphPick, shownWeek]
-  );
+  // The players whose points-over-time graphs are up in place of the map (tapped in the starters list), up to four — for that week.
+  const [graphPicks, setGraphPicks] = useState<{ week: number | null; picks: { playerId: string; gameId: string }[] }>(() => ({ week: null, picks: [] }));
+  const graphFor = useMemo(() => (graphPicks.week === shownWeek ? graphPicks.picks : []), [graphPicks, shownWeek]);
   const mapSlotRef = useRef<HTMLDivElement>(null);
   const pickGraph = (playerId: string, gameId: string) => {
-    if (graphFor?.playerId === playerId && graphFor.gameId === gameId) {
-      setGraphPick(null);
-      return;
-    }
-    setGraphPick({ week: shownWeek, playerId, gameId });
-    // On a phone the map is up the page: bring the graph into view.
+    const already = graphFor.some((p) => p.playerId === playerId && p.gameId === gameId);
+    // Tapped again, theirs comes down; a fifth pushes the first one out.
+    const picks = already
+      ? graphFor.filter((p) => !(p.playerId === playerId && p.gameId === gameId))
+      : [...graphFor, { playerId, gameId }].slice(-MAX_GRAPHS);
+    setGraphPicks({ week: shownWeek, picks });
+    if (already) return;
+    // On a phone the map is up the page: bring the graphs into view.
     requestAnimationFrame(() => {
       const el = mapSlotRef.current;
       if (!el) return;
@@ -176,6 +178,18 @@ export default function DashboardPage() {
       if (rect.top < 0 || rect.bottom > window.innerHeight) el.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   };
+  const unpickGraph = (playerId: string) =>
+    setGraphPicks({ week: shownWeek, picks: graphFor.filter((p) => p.playerId !== playerId) });
+  // Escape takes every graph down and puts the map back.
+  const anyGraph = graphFor.length > 0;
+  useEffect(() => {
+    if (!anyGraph) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setGraphPicks({ week: null, picks: [] });
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [anyGraph]);
 
   const filteredStarters = useMemo(
     () => (myStarters ?? []).filter((s) => effectiveSelected.has(s.leagueId)),
@@ -257,13 +271,16 @@ export default function DashboardPage() {
 
   const anyGameLive = weekGames.some((g) => g.state === "in");
 
-  // The graphed player and their game, as they stand now — so a live graph moves with each tick.
-  const graphed = useMemo(() => {
-    if (!graphFor) return null;
-    const listed = listedGames.find((g) => g.game.id === graphFor.gameId);
-    const player = listed && [...(listed.everyone ?? []), ...listed.players].find((p) => p.playerId === graphFor.playerId);
-    return listed && player ? { game: listed.game, player } : null;
-  }, [graphFor, listedGames]);
+  // The graphed players and their games, as they stand now — so a live graph moves with each tick.
+  const graphed = useMemo(
+    () =>
+      graphFor.flatMap((pick) => {
+        const listed = listedGames.find((g) => g.game.id === pick.gameId);
+        const player = listed && [...(listed.everyone ?? []), ...listed.players].find((p) => p.playerId === pick.playerId);
+        return listed && player ? [{ game: listed.game, player }] : [];
+      }),
+    [graphFor, listedGames]
+  );
 
   // The teams with no game this week, each with your starters on it (and the
   // ones you face) — and any starter with no NFL team at all, together last.
@@ -352,15 +369,24 @@ export default function DashboardPage() {
               <div className="animate-[rise_0.5s_ease-out_backwards]">
                 {/* A player's graph takes the map's place; the map stays put underneath, just out of sight. */}
                 <div ref={mapSlotRef} className="relative scroll-mt-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.5rem)]">
-                  <div className={graphed ? "invisible" : undefined} aria-hidden={graphed ? true : undefined}>
+                  <div className={graphed.length > 0 ? "invisible" : undefined} aria-hidden={graphed.length > 0 ? true : undefined}>
                     <GameMap
                       games={mappedGames.filter((g) => !hiddenBlocks.has(kickoffBlockLabel(g.game)) && !offMap.has(g.game.id))}
                       legend={legend}
                     />
                   </div>
-                  {graphed ? (
-                    <div className="absolute inset-0">
-                      <PointsGraph key={`${graphed.game.id}-${graphed.player.playerId}`} player={graphed.player} game={graphed.game} onClose={() => setGraphPick(null)} />
+                  {/* One graph in full; two stacked; three or four, one to a corner. */}
+                  {graphed.length > 0 ? (
+                    <div
+                      className={`absolute inset-0 grid gap-x-3 gap-y-2 ${
+                        graphed.length === 1 ? "grid-cols-1 grid-rows-1" : graphed.length === 2 ? "grid-cols-1 grid-rows-2" : "grid-cols-2 grid-rows-2"
+                      }`}
+                    >
+                      {graphed.map(({ game, player }) => (
+                        <div key={`${game.id}-${player.playerId}`} className="min-h-0 min-w-0">
+                          <PointsGraph player={player} game={game} compact={graphed.length > 1} onClose={() => unpickGraph(player.playerId)} />
+                        </div>
+                      ))}
                     </div>
                   ) : null}
                 </div>
@@ -407,7 +433,7 @@ export default function DashboardPage() {
               onToggleBlock={toggleBlock}
               offMap={offMap}
               onToggleMap={toggleMap}
-              selectedPlayer={graphed ? graphFor : null}
+              selectedPlayers={graphFor}
               onSelectPlayer={pickGraph}
             />
           )}

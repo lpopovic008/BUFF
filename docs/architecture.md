@@ -313,7 +313,12 @@ the position, just the first shows, with "+N" for the rest — and their total
 animates (see below).
 
 Tapping a player's line puts their fantasy points over time up in the map's
-place (`PointsGraph`; `pointsTimeline`, `periodStarts` and `pacePieces` in
+place — open, with no frame, like the map — and up to four players' can be
+up at once: two stack one over the other, three or four take a corner each,
+and once there's more than one each is pared back to the player's name,
+their total, the points axis, the rules, the pace line and the shading (a
+fifth tapped pushes out the first; each has its own ×). One alone is the
+full graph (`PointsGraph`; `pointsTimeline`, `periodStarts` and `pacePieces` in
 `lib/live-play-points.ts`): a black (white, in the dark) step line by time
 of day, rising at each play that moved their points — scored PPR by the
 play, as the Red Zone's are — with the quarters ruled in. Their projection
@@ -330,8 +335,9 @@ ends on their row's number, which is lit on a plate in the corner. Dragging
 or hovering puts a dotted line under the finger, with the time there, and
 it stays where it's lifted; the description underneath — a fixed height,
 whatever it says — shows the last play by then, its quarter and clock and
-+/- on the right. × or Escape (or tapping their line again) brings the map
-back. The map stays mounted underneath, just hidden, so its view isn't
++/- on the right, under its time of day; the left and right arrow keys step
+the cursor back and forth a play at a time. × (or tapping their line again)
+takes a graph down; Escape takes them all down and brings the map back. The map stays mounted underneath, just hidden, so its view isn't
 lost. On a phone, the page scrolls up to the graph.
 
 A game's box swipes left (touch, mouse drag, or a trackpad's sideways

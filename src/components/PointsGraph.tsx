@@ -9,7 +9,9 @@ import { pacePieces, periodStarts, pointsTimeline } from "@/lib/live-play-points
 import { useGamePlays, withScoreboardPlay } from "@/hooks/useRedZoneFeed";
 
 // Room around the plot for its labels, in px.
-const PAD = { left: 30, right: 10, top: 14, bottom: 26 };
+const FULL_PAD = { left: 30, right: 10, top: 14, bottom: 26 };
+// Side by side with others, there's no clock along the bottom or labels on top.
+const COMPACT_PAD = { left: 24, right: 6, top: 6, bottom: 6 };
 const HOUR_MS = 60 * 60 * 1000;
 // About how long a game runs, for the empty graph before kickoff.
 const GAME_MS = 3.25 * HOUR_MS;
@@ -83,7 +85,19 @@ function minutes(ms: number): string {
  * left where it's lifted, and the description below shows the last play by
  * then.
  */
-export function PointsGraph({ player, game, onClose }: { player: GroupedStarter; game: NFLGame; onClose: () => void }) {
+export function PointsGraph({
+  player,
+  game,
+  onClose,
+  compact = false,
+}: {
+  player: GroupedStarter;
+  game: NFLGame;
+  onClose: () => void;
+  /** One of several on screen: just the name, the total, the points axis and the lines. */
+  compact?: boolean;
+}) {
+  const PAD = compact ? COMPACT_PAD : FULL_PAD;
   const followed = useMemo(() => [{ game, players: [player] }], [game, player]);
   const playsByGame = useGamePlays(followed);
   const plays = useMemo(
@@ -98,19 +112,12 @@ export function PointsGraph({ player, game, onClose }: { player: GroupedStarter;
   const live = game.state === "in";
   const now = useLiveNow(live);
 
-  // Escape puts the map back.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
   const plotRef = useRef<HTMLDivElement>(null);
   const size = useSize(plotRef);
   // Where the finger (or mouse) last was, as a time — kept once it's lifted.
-  const [cursorAt, setCursorAt] = useState<number | null>(null);
+  // Where the finger (or mouse) last was — kept once it's lifted — or, stepped to with the arrow keys, which play.
+  const [cursor, setCursor] = useState<{ at: number; playId?: string } | null>(null);
+  const cursorAt = cursor?.at ?? null;
 
   // Their total in the row — the league's number — which the line ends on.
   const final = game.state === "pre" ? null : player.points;
@@ -178,12 +185,40 @@ export function PointsGraph({ player, game, onClose }: { player: GroupedStarter;
   });
 
   // The play the description shows: the last by the cursor's time, or the latest.
-  const shownStep = cursorAt === null ? (steps[steps.length - 1] ?? null) : ([...steps].reverse().find((s) => s.at <= cursorAt) ?? null);
+  const shownStep =
+    cursor === null
+      ? (steps[steps.length - 1] ?? null)
+      : ((cursor.playId ? steps.find((s) => s.playId === cursor.playId) : undefined) ?? [...steps].reverse().find((s) => s.at <= cursor.at) ?? null);
   const follow = (e: React.PointerEvent<HTMLDivElement>) => {
     const el = plotRef.current;
     if (!el || !plot) return;
-    setCursorAt(timeAt(e.clientX - el.getBoundingClientRect().left));
+    setCursor({ at: timeAt(e.clientX - el.getBoundingClientRect().left) });
   };
+
+  // The arrow keys step the cursor a play at a time — left to the one before it, right to the one after.
+  useEffect(() => {
+    if (compact) return;
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.key !== "ArrowLeft" && e.key !== "ArrowRight") || steps.length === 0) return;
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("input, textarea, select, [contenteditable]")) return;
+      e.preventDefault();
+      const i = shownStep ? steps.indexOf(shownStep) : -1;
+      // On a play already (or no cursor yet, so on the latest): one either side. Between plays, left lands on the one just passed.
+      const onPlay = cursor === null || (shownStep !== null && (cursor.playId === shownStep.playId || cursor.at === shownStep.at));
+      const next =
+        e.key === "ArrowLeft"
+          ? i < 0
+            ? null
+            : steps[onPlay ? Math.max(0, i - 1) : i]
+          : cursor === null
+            ? steps[steps.length - 1]
+            : steps[Math.min(steps.length - 1, i + 1)];
+      if (next) setCursor({ at: next.at, playId: next.playId });
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [compact, steps, cursor, shownStep]);
 
   const status = game.state === "pre" ? `Kickoff ${clock(kickoff)}` : over ? "Final" : (game.statusDetail ?? "Live");
   const shownTotal = final ?? player.projected ?? null;
@@ -191,20 +226,29 @@ export function PointsGraph({ player, game, onClose }: { player: GroupedStarter;
   const fill = (onPace: boolean | null) => (onPace === null ? "fill-ink-muted" : onPace ? "fill-status-good" : "fill-status-critical");
 
   return (
-    <div className="flex h-full w-full flex-col border border-ink-muted/40 bg-[var(--page)]">
+    // Open, like the map: no frame of its own.
+    <div className="flex h-full w-full min-w-0 flex-col bg-[var(--page)]">
       {/* Who, their game, and their total — and the way back to the map. */}
-      <div className="flex items-center gap-2 border-b border-ink-muted/25 px-2 py-1.5">
-        <span className="min-w-0 truncate text-sm text-ink-primary">{player.name}</span>
-        <span className={`shrink-0 text-[0.625rem] font-semibold uppercase ${POSITION_TEXT_COLOR[player.position] ?? "text-ink-muted"}`}>
-          {player.position}
-        </span>
-        <span className="min-w-0 flex-1 truncate text-[0.6875rem] uppercase tracking-wide text-ink-muted">
-          {game.awayTeam} @ {game.homeTeam} · {status}
-        </span>
+      <div className={`flex items-center gap-2 ${compact ? "px-1 py-0.5" : "px-2 py-1.5"}`}>
+        <span className={`min-w-0 truncate text-ink-primary ${compact ? "text-xs" : "text-sm"}`}>{player.name}</span>
+        {compact ? (
+          <span className="min-w-0 flex-1" />
+        ) : (
+          <>
+            <span className={`shrink-0 text-[0.625rem] font-semibold uppercase ${POSITION_TEXT_COLOR[player.position] ?? "text-ink-muted"}`}>
+              {player.position}
+            </span>
+            <span className="min-w-0 flex-1 truncate text-[0.6875rem] uppercase tracking-wide text-ink-muted">
+              {game.awayTeam} @ {game.homeTeam} · {status}
+            </span>
+          </>
+        )}
         {shownTotal !== null ? (
           // Lit on a tag plate, like the map's game tags; a projection in italics.
           <span
-            className={`shrink-0 bg-[var(--map-tag)] px-1.5 text-sm font-bold tabular-nums text-[var(--map-tag-ink)] ${game.state === "pre" ? "italic" : ""}`}
+            className={`shrink-0 bg-[var(--map-tag)] px-1.5 font-bold tabular-nums text-[var(--map-tag-ink)] ${compact ? "text-xs" : "text-sm"} ${
+              game.state === "pre" ? "italic" : ""
+            }`}
           >
             {game.state === "pre" ? shownTotal.toFixed(1) : shownTotal.toFixed(2)}
           </span>
@@ -212,15 +256,20 @@ export function PointsGraph({ player, game, onClose }: { player: GroupedStarter;
         <button
           type="button"
           onClick={onClose}
-          aria-label="Back to the map"
-          title="Back to the map"
+          aria-label={compact ? `Take ${player.name}'s graph down` : "Back to the map"}
+          title={compact ? "Take this graph down" : "Back to the map"}
           className="-mr-1 shrink-0 cursor-pointer px-1 text-base leading-none text-ink-muted transition-opacity hover:opacity-70"
         >
           ×
         </button>
       </div>
 
-      <div ref={plotRef} className="relative min-h-[8rem] flex-1 touch-pan-y select-none" onPointerMove={follow} onPointerDown={follow}>
+      <div
+        ref={plotRef}
+        className={`relative flex-1 select-none ${compact ? "min-h-0" : "min-h-[8rem] touch-pan-y"}`}
+        onPointerMove={compact ? undefined : follow}
+        onPointerDown={compact ? undefined : follow}
+      >
         {plot && size ? (
           <svg width={size.width} height={size.height} className="absolute inset-0 overflow-visible" role="img" aria-label={`${player.name}'s fantasy points over the game`}>
             {/* The ground under the line: green while on pace, red while behind it. */}
@@ -250,13 +299,16 @@ export function PointsGraph({ player, game, onClose }: { player: GroupedStarter;
               .map((q) => (
                 <g key={`q${q.period}`}>
                   <line x1={x(q.at)} x2={x(q.at)} y1={PAD.top} y2={PAD.top + plot.h} className="stroke-ink-muted" strokeOpacity={0.35} />
-                  <text x={x(q.at) + 3} y={PAD.top - 4} className="fill-ink-muted text-[0.5625rem] font-semibold uppercase">
-                    {quarterName(q.period)}
-                  </text>
+                  {/* Its label steps aside while the cursor's time is over it. */}
+                  {compact || (cursorAt !== null && Math.abs(x(q.at) + 8 - x(cursorAt)) < 30) ? null : (
+                    <text x={x(q.at) + 3} y={PAD.top - 4} className="fill-ink-muted text-[0.5625rem] font-semibold uppercase">
+                      {quarterName(q.period)}
+                    </text>
+                  )}
                 </g>
               ))}
             {/* The clock along the bottom, and the minutes between. */}
-            {marks.map((m, i) => (
+            {(compact ? [] : marks).map((m, i) => (
               <text
                 key={`x${m.at}`}
                 x={x(m.at)}
@@ -267,7 +319,7 @@ export function PointsGraph({ player, game, onClose }: { player: GroupedStarter;
                 {m.label}
               </text>
             ))}
-            {gaps.map((g) => (
+            {(compact ? [] : gaps).map((g) => (
               <text key={`g${g.at}`} x={x(g.at)} y={PAD.top + plot.h + 17} textAnchor="middle" className="fill-ink-muted text-[0.5625rem] opacity-60">
                 {g.label}
               </text>
@@ -276,9 +328,11 @@ export function PointsGraph({ player, game, onClose }: { player: GroupedStarter;
             {projected !== null ? (
               <g>
                 <line x1={x(start)} x2={x(end)} y1={y(0)} y2={y(projected)} className="stroke-ink-muted" strokeOpacity={0.7} strokeDasharray="4 3" />
-                <text x={x(end) - 2} y={y(projected) - 4} textAnchor="end" className="fill-ink-muted text-[0.5625rem] uppercase">
-                  Proj {projected.toFixed(1)}
-                </text>
+                {compact ? null : (
+                  <text x={x(end) - 2} y={y(projected) - 4} textAnchor="end" className="fill-ink-muted text-[0.5625rem] uppercase">
+                    Proj {projected.toFixed(1)}
+                  </text>
+                )}
               </g>
             ) : null}
             {/* The line itself. */}
@@ -293,7 +347,7 @@ export function PointsGraph({ player, game, onClose }: { player: GroupedStarter;
               </g>
             ) : null}
             {/* The cursor: a dotted line under the finger, left where it's lifted, with the time there. */}
-            {cursorAt !== null ? (
+            {cursorAt !== null && !compact ? (
               <g>
                 <line x1={x(cursorAt)} x2={x(cursorAt)} y1={PAD.top} y2={PAD.top + plot.h} className="stroke-ink-primary" strokeWidth={1} strokeDasharray="2 2" />
                 <text
@@ -314,13 +368,17 @@ export function PointsGraph({ player, game, onClose }: { player: GroupedStarter;
       </div>
 
       {/* The last play by the cursor (the latest, before any drag) — a fixed height whatever it says. */}
+      {compact ? null : (
       <div className="flex h-[2.75rem] shrink-0 gap-2 overflow-hidden border-t border-ink-muted/25 px-2 py-1 text-[0.6875rem] leading-snug">
         <p className="line-clamp-2 min-w-0 flex-1 text-ink-secondary">
           {shownStep ? cleanPlayText(shownStep.text) : game.state === "pre" ? `Kicks off at ${clock(kickoff)}` : over && steps.length === 0 ? "No scoring plays" : "No points yet"}
         </p>
         {shownStep ? (
           <div className="flex shrink-0 flex-col items-end tabular-nums">
-            <span className="text-ink-muted">{shownStep.period > 0 ? `${quarterName(shownStep.period)} ${shownStep.clock}` : clock(shownStep.at)}</span>
+            <span className="text-ink-muted">
+              {clock(shownStep.at)}
+              {shownStep.period > 0 ? ` · ${quarterName(shownStep.period)} ${shownStep.clock}` : ""}
+            </span>
             <span className={shownStep.delta < 0 ? "text-status-critical" : "text-status-good"}>
               {shownStep.delta > 0 ? "+" : ""}
               {shownStep.delta.toFixed(2)}
@@ -328,6 +386,7 @@ export function PointsGraph({ player, game, onClose }: { player: GroupedStarter;
           </div>
         ) : null}
       </div>
+      )}
     </div>
   );
 }

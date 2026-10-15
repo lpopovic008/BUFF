@@ -373,7 +373,7 @@ function BlockGames({
   legendByLeagueId,
   offMap,
   onToggleMap,
-  selectedPlayer,
+  selectedPlayers,
   onSelectPlayer,
 }: {
   games: GameStarters[];
@@ -390,7 +390,7 @@ function BlockGames({
   /** Games taken off the map, by id. */
   offMap: Set<string>;
   onToggleMap: (gameId: string) => void;
-  selectedPlayer: { playerId: string; gameId: string } | null;
+  selectedPlayers: { playerId: string; gameId: string }[];
   onSelectPlayer: (playerId: string, gameId: string) => void;
 }) {
   // Folded only once the deleting has finished — the longest line sets how long.
@@ -438,7 +438,7 @@ function BlockGames({
               onToggle={onToggleGame}
               legendByLeagueId={legendByLeagueId}
               map={{ off: offMap.has(g.game.id), onToggle: () => onToggleMap(g.game.id) }}
-              selectedPlayerId={selectedPlayer?.gameId === g.game.id ? selectedPlayer.playerId : null}
+              selectedPlayerIds={selectedPlayers.filter((p) => p.gameId === g.game.id).map((p) => p.playerId)}
               onSelectPlayer={(playerId) => onSelectPlayer(playerId, g.game.id)}
             >
               <TeamLine game={g.game} side="away" shown={!hidden} />
@@ -582,7 +582,7 @@ function GameBox({
   onToggle,
   legendByLeagueId,
   map,
-  selectedPlayerId = null,
+  selectedPlayerIds = [],
   onSelectPlayer,
   children,
 }: {
@@ -603,8 +603,8 @@ function GameBox({
   legendByLeagueId: Map<string, LeagueLegendEntry>;
   /** Whether it's off the map, and the button that switches that — none for a bye. */
   map?: { off: boolean; onToggle: () => void };
-  /** The player whose graph is up, if they're in this game. */
-  selectedPlayerId?: string | null;
+  /** The players in this game whose graphs are up. */
+  selectedPlayerIds?: string[];
   /** Puts a player's graph up — none for a bye. */
   onSelectPlayer?: (playerId: string) => void;
   children: React.ReactNode;
@@ -668,7 +668,7 @@ function GameBox({
                 shown={!hidden && !closing}
                 motion={motion}
                 legendByLeagueId={legendByLeagueId}
-                selected={selectedPlayerId === player.playerId}
+                selected={selectedPlayerIds.includes(player.playerId)}
                 onSelect={onSelectPlayer ? () => onSelectPlayer(player.playerId) : undefined}
               />
             )}
@@ -843,7 +843,7 @@ export function StartersByGame({
   onToggleBlock,
   offMap,
   onToggleMap,
-  selectedPlayer,
+  selectedPlayers,
   onSelectPlayer,
 }: {
   games: GameStarters[];
@@ -861,9 +861,9 @@ export function StartersByGame({
   offMap: Set<string>;
   /** Takes one game off the map, or puts it back. */
   onToggleMap: (gameId: string) => void;
-  /** The player whose points-over-time graph is up in place of the map. */
-  selectedPlayer: { playerId: string; gameId: string } | null;
-  /** Puts a player's graph up, or — theirs already up — takes it down. */
+  /** The players whose points-over-time graphs are up in place of the map. */
+  selectedPlayers: { playerId: string; gameId: string }[];
+  /** Puts a player's graph up (up to four), or — theirs already up — takes it down. */
   onSelectPlayer: (playerId: string, gameId: string) => void;
 }) {
   const legendByLeagueId = new Map(legend.map((l) => [l.leagueId, l]));
@@ -1006,7 +1006,7 @@ export function StartersByGame({
                 legendByLeagueId={legendByLeagueId}
                 offMap={offMap}
                 onToggleMap={onToggleMap}
-                selectedPlayer={selectedPlayer}
+                selectedPlayers={selectedPlayers}
                 onSelectPlayer={onSelectPlayer}
               />
             </div>
