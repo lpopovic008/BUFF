@@ -241,8 +241,8 @@ function clockTime(at: number | null): string {
 /**
  * One play: when it happened and the matchup along the top, with the snap
  * across from them — the down and distance, where on the field, the quarter
- * and clock; then ESPN's description, led by the team with the ball; then a
- * line for each person in it. A play
+ * and clock; then a line for each person in it; then ESPN's description, led
+ * by the team with the ball. A play
  * that arrives while you watch slides in and washes its row in the theme's
  * ink — green for a good one for you.
  */
@@ -303,15 +303,6 @@ function FeedRow({
           <span>{whenLabel(entry)}</span>
         </span>
       </span>
-      {/* What happened, led by the team with the ball. */}
-      <span className="break-words text-[0.75rem] leading-snug text-ink-secondary">
-        {play.offense ? (
-          <span className="mr-1.5 inline-flex translate-y-[0.15em] align-baseline">
-            <TeamLogo team={play.offense} side={14} />
-          </span>
-        ) : null}
-        {play.text}
-      </span>
       {lines.length > 0 ? (
         <ul className="flex flex-col gap-0.5">
           {lines.map((line) => (
@@ -325,6 +316,15 @@ function FeedRow({
           ))}
         </ul>
       ) : null}
+      {/* What happened, led by the team with the ball. */}
+      <span className="break-words text-[0.75rem] leading-snug text-ink-secondary">
+        {play.offense ? (
+          <span className="mr-1.5 inline-flex translate-y-[0.15em] align-baseline">
+            <TeamLogo team={play.offense} side={14} />
+          </span>
+        ) : null}
+        {play.text}
+      </span>
     </li>
   );
 }

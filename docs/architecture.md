@@ -359,9 +359,9 @@ where on the field the ball was (a green line with ticks at the goal lines
 and the 50, the offense driving left to right, a blue dot at the ball with
 its yard line in blue above it; `FieldSpot`), and the quarter and clock.
 A scoring play, turnover, red-zone snap or long gain has a colored strip down
-the row's left. Under the top line, ESPN's description, led by the logo of
-the team with the ball, then a line for each person in it
-(`lib/play-lines.ts`). A line is a photo, position and name, the leagues you
+the row's left. Under the top line, a line for each person in it
+(`lib/play-lines.ts`), then ESPN's description, led by the logo of the team
+with the ball. A line is a photo, position and name, the leagues you
 start them in, their game as it stood after that play (`statLine`), and
 what the play earned them with their total through it. The stats are read
 from each play's text (`statsForPlay` in `lib/play-points.ts`, which the PPR
