@@ -125,7 +125,7 @@ function PlayerLine({
             {line.position}
           </span>
         ) : null}
-        <span data-rz-name className="min-w-0 break-words text-[0.8125rem] font-bold text-ink-primary">
+        <span data-rz-name className="min-w-0 break-words text-[0.8125rem] font-bold text-ink-primary max-md:leading-tight">
           {line.name}
         </span>
         {starter && starter.leagueIds.length > 0 ? (
@@ -137,9 +137,9 @@ function PlayerLine({
         ) : null}
         {/* On phones the stat line always gets a line of its own (kept, empty, for someone without one), so every player is the same height. */}
         {summary ? (
-          <span className="whitespace-nowrap text-[0.6875rem] tabular-nums text-ink-muted max-md:basis-full">{summary}</span>
+          <span className="whitespace-nowrap text-[0.6875rem] tabular-nums text-ink-muted max-md:basis-full max-md:leading-tight">{summary}</span>
         ) : (
-          <span className="hidden text-[0.6875rem] max-md:block max-md:basis-full" aria-hidden>
+          <span className="hidden text-[0.6875rem] max-md:block max-md:basis-full max-md:leading-tight" aria-hidden>
             {"\u00a0"}
           </span>
         )}
@@ -147,10 +147,6 @@ function PlayerLine({
       <LinePoints line={line} mine={!!starter} at={at} />
     </li>
   );
-}
-
-function Badge({ children, className }: { children: string; className: string }) {
-  return <span className={`px-1 py-px text-[0.625rem] font-bold uppercase leading-none tracking-wide ${className}`}>{children}</span>;
 }
 
 /** A scoring play's short name: TD, FG, SAF, or 2PT for a two-point try. */
@@ -163,23 +159,45 @@ function scoreLabel(type: string, text: string): string {
   return "PTS";
 }
 
+/** One of a play's marks: its abbreviation, and the color it's drawn in. */
+interface PlayMark {
+  label: string;
+  /** Classes for its fill and the ink on it. */
+  className: string;
+}
+
 /**
- * Each play's marks, abbreviated: a score (TD/FG/SAF), a turnover (TO — green
- * when it's your defense taking the ball away, red when your player gave it
- * up), a red-zone snap (RZ), a long gain (+21).
+ * Each play's marks, abbreviated: a score (TD/FG/SAF/2PT, green), a turnover
+ * (TO — green when it's your defense taking the ball away, red when your
+ * player gave it up), a red-zone snap (RZ, red), a long gain (+21, in ink).
  */
-function PlayBadges({ entry }: { entry: FeedEntry }) {
+function playMarks(entry: FeedEntry): PlayMark[] {
   const { play, players } = entry;
   const defense = players.length > 0 && players.every((p) => p.position === "DEF");
+  const marks: PlayMark[] = [];
+  if (play.scoring) marks.push({ label: scoreLabel(play.type, play.text), className: "bg-status-good text-white" });
+  if (play.turnover) marks.push({ label: "TO", className: defense ? "bg-status-good text-white" : "bg-status-critical text-white" });
+  if (play.redZone && !play.scoring) marks.push({ label: "RZ", className: "bg-status-critical text-white" });
+  if (play.yards >= 20 && !play.scoring) marks.push({ label: `+${play.yards}`, className: "bg-ink-primary text-surface-raised" });
+  return marks;
+}
+
+/**
+ * A marked play's column down the left of its row: a strip in the first
+ * mark's color the row's full height, with each mark's abbreviation on a tag
+ * at its top.
+ */
+function MarkColumn({ marks }: { marks: PlayMark[] }) {
+  if (marks.length === 0) return null;
   return (
-    <>
-      {play.scoring ? <Badge className="bg-status-good text-white">{scoreLabel(play.type, play.text)}</Badge> : null}
-      {play.turnover ? (
-        <Badge className={defense ? "bg-status-good text-white" : "bg-status-critical text-white"}>TO</Badge>
-      ) : null}
-      {play.redZone && !play.scoring ? <Badge className="border border-status-critical text-status-critical">RZ</Badge> : null}
-      {play.yards >= 20 && !play.scoring ? <Badge className="border border-ink-muted text-ink-secondary">{`+${play.yards}`}</Badge> : null}
-    </>
+    <span className="pointer-events-none absolute inset-y-0 left-0 flex w-[1.375rem] flex-col">
+      <span className={`absolute inset-y-0 left-0 w-[3px] ${marks[0].className}`} aria-hidden />
+      {marks.map((m) => (
+        <span key={m.label} className={`relative py-[3px] text-center text-[0.5625rem] font-bold uppercase leading-none ${m.className}`}>
+          {m.label}
+        </span>
+      ))}
+    </span>
   );
 }
 
@@ -240,9 +258,8 @@ function FeedRow({
     <li
       onClick={(e) => replayRedZonePlay(e.currentTarget)}
       title={hasPoints ? "Replay" : undefined}
-      className={`flex flex-col gap-1.5 border-b border-border py-2 pr-1 last:border-b-0 ${
-        play.scoring ? "pl-2.5 shadow-[inset_3px_0_0_var(--status-good)]" : "pl-1"
-      } ${hasPoints ? "md:cursor-pointer md:hover:bg-[color-mix(in_srgb,var(--ink-primary)_4%,transparent)]" : ""}`}
+      // Every row leaves room down its left for a marked play's column (see MarkColumn).
+      className={`relative flex flex-col gap-1.5 border-b border-border py-2 pl-7 pr-1 last:border-b-0 ${hasPoints ? "md:cursor-pointer md:hover:bg-[color-mix(in_srgb,var(--ink-primary)_4%,transparent)]" : ""}`}
       style={{
         animation: live
           ? "rise 0.35s ease-out backwards, rz-flash 2.4s ease-out"
@@ -251,6 +268,7 @@ function FeedRow({
         ["--rz-flash" as string]: good ? "var(--status-good)" : "var(--ink-primary)",
       }}
     >
+      <MarkColumn marks={playMarks(entry)} />
       <span className="flex items-center justify-between gap-2 text-[0.6875rem] leading-none">
         <span className="flex min-w-0 items-center gap-1.5 whitespace-nowrap">
           {time ? <span className="tabular-nums text-ink-muted">{time}</span> : null}
@@ -262,7 +280,6 @@ function FeedRow({
         </span>
         {/* The snap: down and distance, where on the field, then when. */}
         <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap tabular-nums text-ink-muted">
-          <PlayBadges entry={entry} />
           {play.downDistance ? <span className="font-semibold text-ink-secondary">{play.downDistance}</span> : null}
           {spot ? (
             <span className="flex items-center gap-1" title={`Snapped from the ${spot}`}>
