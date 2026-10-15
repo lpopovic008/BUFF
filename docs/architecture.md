@@ -332,10 +332,10 @@ is a dashed pace line, 0 at kickoff to the full projection at the final
 whistle, and the ground under their line is green wherever they're at or
 ahead of it, red wherever they're behind. Halftime (`halftimeSpan`: the 2nd quarter's last play to the 3rd's first)
 is squeezed into a thin column of etched lines, the rest of the clock
-running evenly either side of it. The time axis shows just kickoff, each
-quarter's start and the end ("~" while that's an estimate — live, it runs on
-to about when the game should end), with the minutes between each pair
-halfway along where there's room — halftime left out, so the 2nd quarter's
+running evenly either side of it. The time axis is labelled with just kickoff
+and each quarter's start — not the end (live, the axis runs on to about when
+the game should end) — with the minutes between each pair, and once it's
+over from the last to the end, halfway along where there's room — halftime left out, so the 2nd quarter's
 figure is how long it really took, and the 3rd quarter's start stands for
 halftime's end. In the full graph, up in its top-left corner, two figures
 give how much of the game so far they've been on pace (green) and behind it
@@ -367,9 +367,8 @@ the teams' totals. Time runs through the week's game windows
 with the time between them cut out. The background is split into the
 week's kickoff time blocks (Thursday night, Sunday noon, Sunday
 afternoon... — `kickoffBlockLabel`, as the starters list groups them), each
-a band from its first kickoff to the next, every other one faintly shaded
-with a line where each begins, each named along the bottom ("Sun 1:00") with
-the end after them; should any two names crowd each other, every name goes
+a band from its first kickoff to the next, with a line where each begins,
+each named along the bottom ("Sun 1:00"); should any two names crowd each other, every name goes
 to two lines, the day over the time. Yours is black (white in the
 dark), theirs grey; the ground between the lines is green while you lead
 and red while you trail (`leadPieces`), with how much of the week so far

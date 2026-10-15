@@ -218,7 +218,6 @@ export function MatchupGraph({
   const weekday = (at: number) => new Date(at).toLocaleDateString("en-US", { weekday: "short" });
   const allMarks: Mark[] = [
     ...bands.map((b, i): Mark => ({ at: b.from, day: weekday(b.from), time: clock(b.from), anchor: i === 0 ? "start" : "middle" })),
-    ...(end !== null && bands.length > 0 ? [{ at: end, day: weekday(end), time: `${over ? "" : "~"}${clock(end)}`, anchor: "end" as const }] : []),
   ];
   // Each label's reach along the axis — about 5.6px a character — one line ("Sun 1:00") or two (the day over the time).
   const reach = (m: Mark, stacked: boolean) => {
@@ -229,13 +228,12 @@ export function MatchupGraph({
   const collides = (marks: Mark[], stacked: boolean) => marks.some((m, i) => i > 0 && reach(m, stacked)[0] - reach(marks[i - 1], stacked)[1] < 6);
   // Any two crowding each other on one line: every label goes to two, the day over the time.
   const stacked = plotW !== null && collides(allMarks, false);
-  // Still crowded on two lines: the later one gives way (the end always keeps its place).
+  // Still crowded on two lines: the later one gives way.
   const marks: Mark[] = [];
   if (plotW !== null) {
     for (const m of allMarks) {
       const last = marks[marks.length - 1];
       if (last && reach(m, stacked)[0] - reach(last, stacked)[1] < 6) {
-        if (m.anchor === "end" && marks.length > 1) marks[marks.length - 1] = m;
         continue;
       }
       marks.push(m);
@@ -346,14 +344,9 @@ export function MatchupGraph({
                 />
               )
             )}
-            {/* Every time block a band of its own, every other one faintly shaded, a line where each begins. */}
-            {bands.map((band, i) => (
-              <g key={`band${band.from}`}>
-                {i % 2 === 1 ? (
-                  <rect x={x(band.from)} y={PAD.top} width={Math.max(0, x(band.to) - x(band.from))} height={plot.h} className="fill-ink-muted" fillOpacity={0.07} />
-                ) : null}
-                {i > 0 ? <line x1={x(band.from)} x2={x(band.from)} y1={PAD.top} y2={PAD.top + plot.h} className="stroke-ink-muted" strokeOpacity={0.35} /> : null}
-              </g>
+            {/* Every time block a band of its own, a line where each begins. */}
+            {bands.slice(1).map((band) => (
+              <line key={`band${band.from}`} x1={x(band.from)} x2={x(band.from)} y1={PAD.top} y2={PAD.top + plot.h} className="stroke-ink-muted" strokeOpacity={0.35} />
             ))}
             {/* The points axis. */}
             {yTicks.map((v) => (
