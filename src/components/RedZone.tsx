@@ -61,7 +61,8 @@ function deltaClass(delta: number): string {
 /** The player's game total through a play, on the app's highlight plate. */
 function TotalChip({ total }: { total: number }) {
   return (
-    <span className="bg-[var(--map-tag)] px-1.5 py-1 text-base font-bold leading-none tabular-nums text-[var(--map-tag-ink)]">{total.toFixed(2)}</span>
+    // The same size as the player's name beside it.
+    <span className="bg-[var(--map-tag)] px-1.5 py-1 text-[0.8125rem] font-bold leading-none tabular-nums text-[var(--map-tag-ink)]">{total.toFixed(2)}</span>
   );
 }
 
@@ -79,7 +80,8 @@ function LinePoints({ line, mine, at }: { line: PlayLine; mine: boolean; at: num
         {...(line.playerId ? { "data-rz-player": line.playerId } : { "data-rz-actor": line.label ?? "", "data-rz-team": line.team ?? "" })}
         data-rz-delta={line.delta}
         data-rz-at={at}
-        className={`text-sm font-bold ${mine ? deltaClass(line.delta) : "text-ink-primary"}`}
+        // The same type as the stat line (green or red for your own player's).
+        className={`text-[0.6875rem] ${mine ? deltaClass(line.delta) : "text-ink-secondary"}`}
       >
         {formatPlayPoints(line.delta)}
       </span>
