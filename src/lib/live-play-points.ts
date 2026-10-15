@@ -45,25 +45,25 @@ export function pendingPlayPoints(
   return out;
 }
 
-/** The latest play in a game that one of your players got points on (or lost them). */
-export interface LatestScore {
-  play: GamePlay;
-  /** Each of your players it moved, and by how much. */
-  scorers: { playerId: string; delta: number }[];
+/** A player's latest play that moved their points: when it was, and what it was worth. */
+export interface LastAction {
+  at: number | null;
+  delta: number;
 }
 
 /**
- * Of a game's plays, the latest one that moved any of `candidates`' points —
- * null when none has yet. A play wiped out by a penalty, or one they were only
- * named in (an incompletion thrown their way), doesn't count.
+ * Each of `candidates`' latest play that moved their points (or cost them),
+ * by player id — none for someone it hasn't happened to yet. A play wiped out
+ * by a penalty, or one they were only named in (an incompletion thrown their
+ * way), doesn't count.
  */
-export function latestScoringPlay(plays: GamePlay[], candidates: FeedCandidate[]): LatestScore | null {
-  const latestFirst = [...plays].sort((a, b) => b.sequence - a.sequence);
-  for (const play of latestFirst) {
-    const scorers = playersInPlay(play, candidates)
-      .map((c) => ({ playerId: c.playerId, delta: pprPointsForPlay(play, c) }))
-      .filter((s) => s.delta !== 0);
-    if (scorers.length > 0) return { play, scorers };
+export function lastActions(plays: GamePlay[], candidates: FeedCandidate[]): Record<string, LastAction> {
+  const out: Record<string, LastAction> = {};
+  for (const play of [...plays].sort((a, b) => a.sequence - b.sequence)) {
+    for (const c of playersInPlay(play, candidates)) {
+      const delta = pprPointsForPlay(play, c);
+      if (delta !== 0) out[c.playerId] = { at: play.at, delta };
+    }
   }
-  return null;
+  return out;
 }

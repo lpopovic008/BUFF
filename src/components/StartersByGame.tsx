@@ -10,7 +10,8 @@ import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import { nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import { LeagueLegendEntry, LeagueMark } from "./LeagueMark";
 import { GameRows, RowMotion } from "./GameRows";
-import { LatestScore } from "@/lib/live-play-points";
+import { LastAction } from "@/lib/live-play-points";
+import { useLastActions } from "@/hooks/useLastActions";
 
 export type { LeagueLegendEntry };
 
@@ -255,6 +256,130 @@ function TeamLine({ game, side, shown = true }: { game: NFLGame; side: "away" | 
 }
 
 /**
+ * A game's views, stepped through by tapping its matchup: 0, shut (just the
+ * teams); 1, your players; 2, yours and the ones you're facing; 3, everyone
+ * worth watching (see liveGameRows).
+ */
+function viewPlayers({ players, everyone }: GameStarters, view: number): GroupedStarter[] {
+  const all = everyone ?? players;
+  if (view <= 0) return [];
+  if (view === 1) return all.filter((p) => (p.side ?? "mine") === "mine");
+  if (view === 2) return all.filter((p) => (p.side ?? "mine") !== "other");
+  return all;
+}
+
+/** The views a tap steps through for a game: shut, then each that lists someone more than the one before, then back. */
+function viewCycle(g: GameStarters): number[] {
+  const cycle = [0];
+  let listed = 0;
+  for (const view of [1, 2, 3]) {
+    const n = viewPlayers(g, view).length;
+    if (n > listed) {
+      cycle.push(view);
+      listed = n;
+    }
+  }
+  return cycle;
+}
+
+/** Where a game is: before kickoff, being played, or over. */
+type Phase = "pre" | "live" | "final";
+
+/**
+ * A player line's text, in typing order — each in a column of its own, kept
+ * even when empty so every line's columns stay in line: the time of their
+ * latest play that moved their points and what it was worth (while the game's
+ * on), their name, their total (the projection before kickoff), their position.
+ */
+function linePieces(player: GroupedStarter, phase: Phase, action: LastAction | undefined): string[] {
+  const live = phase === "live" && action;
+  const total =
+    phase === "pre"
+      ? player.projected != null
+        ? formatProjection(player.projected)
+        : "–"
+      : player.points !== null
+        ? formatPoints(player.points)
+        : "–";
+  return [
+    live ? clockTime(action.at) : "",
+    player.name,
+    live ? `${action.delta > 0 ? "+" : ""}${formatPoints(action.delta)}` : "",
+    total,
+    player.position,
+  ];
+}
+
+/**
+ * One player's line under a game: the time of their latest play that moved
+ * their points (while it's on), their name, that play's +/-, their total (or
+ * projection, before kickoff) and their position, small, in its color. Types
+ * itself in the first time it scrolls into view, and deletes itself when its
+ * game shuts or its block is switched off. Once typed in, the total follows
+ * the points as they change (see GameRows): the name lit as the play lights up
+ * in the Red Zone, the +/- lit as it's applied, the total lit as it counts up.
+ */
+function GameLine({
+  player,
+  phase,
+  action,
+  shown,
+  motion,
+}: {
+  player: GroupedStarter;
+  phase: Phase;
+  action: LastAction | undefined;
+  shown: boolean;
+  motion: RowMotion;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const seen = useSeenOnce(ref);
+  const pieces = linePieces(player, phase, action);
+  const total = totalChars(pieces);
+  const count = useTypedCount(shown && seen ? total : 0);
+  const [time, name, delta, points, position] = typedSlices(pieces, count);
+  const [typedIn, setTypedIn] = useState(false);
+  if (shown && seen && count >= total && !typedIn) setTypedIn(true);
+  if (!shown && typedIn) setTypedIn(false);
+  const side = player.side ?? "mine";
+  const lit = "bg-[var(--map-tag)] text-[var(--map-tag-ink)]";
+  // While points are being applied, the +/- being applied; otherwise their latest play's.
+  const shownDelta = typedIn && phase === "live" && action ? (motion.chip?.delta ?? action.delta) : null;
+  const shownPoints = typedIn && phase !== "pre" ? (motion.points ?? player.points) : null;
+  return (
+    <div ref={ref} className="flex items-center gap-1.5 text-[0.8125rem] leading-tight">
+      <span className="w-[4.6em] shrink-0 text-[0.6875rem] tabular-nums text-ink-muted">{time}</span>
+      <span className="min-w-0 flex-1 truncate text-ink-primary">
+        <span className={motion.highlight ? `-mx-1 px-1 ${lit}` : undefined}>{name || "\u200b"}</span>
+      </span>
+      <span
+        className={`w-[3.8em] shrink-0 text-right tabular-nums ${
+          shownDelta !== null && motion.chip ? `font-bold ${lit}` : (shownDelta ?? action?.delta ?? 0) < 0 ? "text-status-critical" : "text-status-good"
+        }`}
+      >
+        {shownDelta !== null ? `${shownDelta > 0 ? "+" : ""}${formatPoints(shownDelta)}` : delta}
+      </span>
+      <span
+        className={`w-[3.4em] shrink-0 text-right tabular-nums ${
+          phase === "pre" ? `pr-[0.2em] font-light italic opacity-75 ${SIDE_PROJECTION_COLOR[side]}` : SIDE_POINTS_COLOR[side]
+        }`}
+      >
+        {shownPoints !== null && shownPoints !== undefined ? (
+          <span data-points className={`relative inline-block ${motion.counting ? `-mx-1 px-1 font-bold ${lit}` : ""}`}>
+            {formatPoints(shownPoints)}
+          </span>
+        ) : (
+          points
+        )}
+      </span>
+      <span className={`w-[2.4em] shrink-0 text-right text-[0.5625rem] font-semibold uppercase ${POSITION_TEXT_COLOR[player.position] ?? "text-ink-muted"}`}>
+        {position}
+      </span>
+    </div>
+  );
+}
+
+/**
  * A kickoff window's games, collapsing when its block is switched off: every
  * line deletes itself, letter by letter, then the block folds shut. Switched
  * back on, it opens and the lines type themselves back in.
@@ -262,25 +387,22 @@ function TeamLine({ game, side, shown = true }: { game: NFLGame; side: "away" | 
 function BlockGames({
   games,
   hidden,
-  legendByLeagueId,
-  openGames,
+  views,
   closingGames,
+  actions,
   onToggleGame,
-  latestScores,
 }: {
   games: GameStarters[];
-  latestScores: Record<string, LatestScore>;
   hidden: boolean;
-  legendByLeagueId: Map<string, LeagueLegendEntry>;
-  /** Games opened up to everyone in them, by game id. */
-  openGames: Set<string>;
-  /** Opened games on their way shut: the added rows deleting themselves first. */
+  /** Each game's view (see viewPlayers), by game id — shut when missing. */
+  views: Map<string, number>;
+  /** Games on their way shut: their lines deleting themselves first. */
   closingGames: Set<string>;
-  /** Opens a game, or closes it once `closeMs` of deleting has played out. */
-  onToggleGame: (gameId: string, closeMs: number) => void;
+  /** Each listed player's latest play that moved their points. */
+  actions: Record<string, LastAction>;
+  /** Moves a game to `view`; shutting it once `closeMs` of deleting has played out. */
+  onToggleGame: (gameId: string, view: number, closeMs: number) => void;
 }) {
-  // An opened game lists everyone worth watching in it; a shut one, nobody (just its latest play for you).
-  const shownPlayers = ({ game, players, everyone }: GameStarters) => (openGames.has(game.id) ? (everyone ?? players) : []);
   // Folded only once the deleting has finished — the longest line sets how long.
   const [prevHidden, setPrevHidden] = useState(hidden);
   const [folded, setFolded] = useState(hidden);
@@ -292,7 +414,7 @@ function BlockGames({
     0,
     ...games.flatMap((g) => [
       totalChars(teamLinePieces(g.game, "away")),
-      ...shownPlayers(g).map((p) => totalChars(playerPieces(p, g.game.state !== "pre"))),
+      ...viewPlayers(g, views.get(g.game.id) ?? 0).map((p) => totalChars(linePieces(p, phaseOf(g.game), actions[p.playerId]))),
     ])
   );
   useEffect(() => {
@@ -315,12 +437,10 @@ function BlockGames({
             <GameBox
               key={g.game.id}
               g={g}
-              shown={shownPlayers(g)}
-              hidden={hidden}
-              open={openGames.has(g.game.id)}
+              view={views.get(g.game.id) ?? 0}
               closing={closingGames.has(g.game.id)}
-              latest={latestScores[g.game.id] ?? null}
-              legendByLeagueId={legendByLeagueId}
+              hidden={hidden}
+              actions={actions}
               onToggle={onToggleGame}
             />
           ))}
@@ -330,57 +450,13 @@ function BlockGames({
   );
 }
 
+function phaseOf(game: NFLGame): Phase {
+  return game.state === "pre" ? "pre" : game.state === "post" ? "final" : "live";
+}
+
 /** The time of day a play happened, e.g. "1:42 PM". */
 function clockTime(at: number | null): string {
   return at === null ? "" : new Date(at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-}
-
-/**
- * A shut game's line for the latest play one of your players got points on:
- * when it happened, who, what it was worth, and their total. It's where the
- * points land when they change (see GameRows): the name lit as the play
- * lights up in the Red Zone, then the +/- lit as it's applied, then the total
- * lit as it counts up. All your players in the game are followed for that,
- * though only the play's scorers are shown.
- */
-function LatestScoreRow({ players, latest, hidden }: { players: GroupedStarter[]; latest: LatestScore; hidden: boolean }) {
-  const delta = new Map(latest.scorers.map((s) => [s.playerId, s.delta]));
-  const time = clockTime(latest.play.at);
-  return (
-    <div className={`mt-0.5 border-t border-ink-muted/25 pt-1 transition-opacity duration-150 ${hidden ? "opacity-0" : ""}`}>
-      <GameRows
-        players={players}
-        sortByPoints={false}
-        render={(player, motion) => {
-          const scored = delta.get(player.playerId);
-          if (scored === undefined) return null;
-          // While points are being applied, the +/- being applied (a replayed play's, say); otherwise this play's.
-          const d = motion.chip?.delta ?? scored;
-          const points = motion.points ?? player.points;
-          const lit = "bg-[var(--map-tag)] text-[var(--map-tag-ink)]";
-          return (
-            <div className="flex items-center gap-1.5 text-[0.8125rem] leading-tight">
-              <span className="shrink-0 text-xs tabular-nums text-ink-muted">{time}</span>
-              <span className="min-w-0 flex-1 truncate text-ink-primary">
-                <span className={motion.highlight ? `-mx-1 px-1 ${lit}` : undefined}>{player.name}</span>
-              </span>
-              <span className={`shrink-0 tabular-nums ${motion.chip ? `px-1 font-bold ${lit}` : d > 0 ? "text-status-good" : "text-status-critical"}`}>
-                {d > 0 ? "+" : ""}
-                {formatPoints(d)}
-              </span>
-              <span className="w-[3.4em] shrink-0 text-right tabular-nums">
-                {points !== null ? (
-                  <span data-points className={`relative inline-block ${motion.counting ? `-mx-1 px-1 font-bold ${lit}` : "font-semibold text-ink-primary"}`}>
-                    {formatPoints(points)}
-                  </span>
-                ) : null}
-              </span>
-            </div>
-          );
-        }}
-      />
-    </div>
-  );
 }
 
 /** How long a game's box takes to slide open or shut — as long as a time block takes to fold. */
@@ -388,114 +464,93 @@ const FOLD_MS = 200;
 
 /**
  * One game, boxed: the away team's line, then the home team's — each with its
- * score on the right — and under them the latest play one of your players got
- * points on. Tapping anywhere in it opens it up to everyone worth watching in
- * the game (see liveGameRows), each under the team they play for with their
- * points on the right, and back: the names type in (or delete themselves)
- * just as a time block's do, and the box slides to its new height.
+ * record and its score on the right — and under them, set apart, the players
+ * its view lists. Tapping the matchup (the teams' lines, not the players)
+ * steps through its views: your players, then yours and the ones you're
+ * facing, then everyone worth watching, then shut again (skipping any view
+ * that would list no one new). The lines type in or delete themselves just as
+ * a time block's do, and the box slides to its new height.
  */
 function GameBox({
   g,
-  shown,
-  hidden,
-  open,
+  view,
   closing,
-  latest,
-  legendByLeagueId,
+  hidden,
+  actions,
   onToggle,
 }: {
   g: GameStarters;
-  /** The players listed: everyone when it's open, nobody when it's shut. */
-  shown: GroupedStarter[];
-  /** The latest play one of your players got points on. */
-  latest: LatestScore | null;
+  view: number;
+  /** On its way shut, its lines deleting themselves first. */
+  closing: boolean;
   /** Its time block is switched off. */
   hidden: boolean;
-  open: boolean;
-  /** Open, with the added names deleting themselves before it shuts. */
-  closing: boolean;
-  legendByLeagueId: Map<string, LeagueLegendEntry>;
-  /** Opens the game, or shuts it once `closeMs` of deleting has played out. */
-  onToggle: (gameId: string, closeMs: number) => void;
+  actions: Record<string, LastAction>;
+  onToggle: (gameId: string, view: number, closeMs: number) => void;
 }) {
-  const { game, players, everyone, live } = g;
-  // A game with anyone in it to list opens up.
-  const expandable = (everyone ?? players).length > 0;
-  const started = game.state !== "pre";
-  // Every row opening the game adds deletes itself as it shuts.
-  const added = new Set(shown.map((p) => p.playerId));
-  const closeMs = reducedMotion()
-    ? 0
-    : Math.max(0, ...shown.filter((p) => added.has(p.playerId)).map((p) => totalChars(playerPieces(p, started)))) * TYPE_MS_PER_CHAR + 60;
-  // Each player under the team they play for (anyone else's under the home team).
-  const awayPlayers = shown.filter((p) => p.team === game.awayTeam);
-  const homePlayers = shown.filter((p) => p.team !== game.awayTeam);
+  const { game, live } = g;
+  const phase = phaseOf(game);
+  const shown = viewPlayers(g, view);
+  const cycle = viewCycle(g);
+  const toggleable = cycle.length > 1;
+  const closeMs = reducedMotion() ? 0 : Math.max(0, ...shown.map((p) => totalChars(linePieces(p, phase, actions[p.playerId])))) * TYPE_MS_PER_CHAR + 60;
+  const next = cycle[(cycle.indexOf(view) + 1) % cycle.length] ?? 0;
 
-  // Slides to its new height whenever its rows change (opening, shutting).
+  // Slides to its new height whenever its lines change (stepping through its views).
   const box = useRef<HTMLDivElement>(null);
   const lastHeight = useRef<number | null>(null);
   const lastRows = useRef<string | null>(null);
   const rowsKey = shown.map((p) => p.playerId).join(",");
-  // Measured on every render, so the slide starts from the height it really had (its latest play may have come in since).
+  // Measured on every render, so the slide starts from the height it really had.
   useLayoutEffect(() => {
     const el = box.current;
     if (!el) return;
-    const next = el.offsetHeight;
+    const height = el.offsetHeight;
     const prev = lastHeight.current;
     const rowsChanged = lastRows.current !== null && lastRows.current !== rowsKey;
-    lastHeight.current = next;
+    lastHeight.current = height;
     lastRows.current = rowsKey;
-    if (!rowsChanged || prev === null || prev === next || reducedMotion()) return;
-    el.animate([{ height: `${prev}px`, overflow: "hidden" }, { height: `${next}px`, overflow: "hidden" }], { duration: FOLD_MS, easing: "ease-out" });
+    if (!rowsChanged || prev === null || prev === height || reducedMotion()) return;
+    el.animate([{ height: `${prev}px`, overflow: "hidden" }, { height: `${height}px`, overflow: "hidden" }], { duration: FOLD_MS, easing: "ease-out" });
   });
 
-  const rows = (list: GroupedStarter[]) =>
-    list.length > 0 ? (
-      <GameRows
-        players={list}
-        sortByPoints={!!live}
-        render={(player, motion) => (
-          <PlayerRow
-            player={player}
-            legendByLeagueId={legendByLeagueId}
-            started={started}
-            shown={!hidden && !(closing && added.has(player.playerId))}
-            motion={motion}
-            sideColors={open && !closing}
-          />
-        )}
-      />
-    ) : null;
-
-  const toggle = () => onToggle(game.id, closeMs);
+  const toggle = () => onToggle(game.id, next, closeMs);
+  const label = ["show your players", "show yours and the ones you face", "show everyone in this game", "show just the teams"][next === 0 ? 3 : next - 1];
   return (
     // Each game boxed, so one game's players never run into the next's.
-    <div
-      ref={box}
-      role={expandable ? "button" : undefined}
-      tabIndex={expandable ? 0 : undefined}
-      aria-expanded={expandable ? open && !closing : undefined}
-      aria-label={`${game.awayTeam} at ${game.homeTeam}${expandable ? (open && !closing ? " — show just your players" : " — show everyone in this game") : ""}`}
-      onClick={expandable ? toggle : undefined}
-      onKeyDown={
-        expandable
-          ? (e) => {
-              if (e.target !== e.currentTarget || (e.key !== "Enter" && e.key !== " ")) return;
-              e.preventDefault();
-              toggle();
-            }
-          : undefined
-      }
-      className={`flex flex-col gap-0.5 border border-ink-muted/40 px-2 py-1.5 ${
-        expandable ? "cursor-pointer transition-colors hover:border-ink-muted" : ""
-      }`}
-    >
-      <TeamLine game={game} side="away" shown={!hidden} />
-      {rows(awayPlayers)}
-      <TeamLine game={game} side="home" shown={!hidden} />
-      {rows(homePlayers)}
-      {/* Shut, the latest play one of your players got points on. */}
-      {!open && latest ? <LatestScoreRow players={players} latest={latest} hidden={hidden} /> : null}
+    <div ref={box} className="flex flex-col border border-ink-muted/40 px-2 py-1.5">
+      {/* The matchup — and only the matchup — steps through the game's views. */}
+      <div
+        role={toggleable ? "button" : undefined}
+        tabIndex={toggleable ? 0 : undefined}
+        aria-label={`${game.awayTeam} at ${game.homeTeam}${toggleable ? ` — ${label}` : ""}`}
+        onClick={toggleable ? toggle : undefined}
+        onKeyDown={
+          toggleable
+            ? (e) => {
+                if (e.key !== "Enter" && e.key !== " ") return;
+                e.preventDefault();
+                toggle();
+              }
+            : undefined
+        }
+        className={`flex flex-col gap-0.5 ${toggleable ? "cursor-pointer transition-opacity hover:opacity-80" : ""}`}
+      >
+        <TeamLine game={game} side="away" shown={!hidden} />
+        <TeamLine game={game} side="home" shown={!hidden} />
+      </div>
+      {/* The players its view lists, set apart below the teams. */}
+      {shown.length > 0 ? (
+        <div className="mt-1 border-t border-ink-muted/25 pt-1">
+          <GameRows
+            players={shown}
+            sortByPoints={!!live}
+            render={(player, motion) => (
+              <GameLine player={player} phase={phase} action={actions[player.playerId]} shown={!hidden && !closing} motion={motion} />
+            )}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -615,12 +670,9 @@ export function StartersByGame({
   allLeaguesHidden,
   hiddenBlocks,
   onToggleBlock,
-  latestScores,
 }: {
   games: GameStarters[];
   notPlaying: GroupedStarter[];
-  /** Each game's latest play one of your players got points on, by game id (see useLatestScores). */
-  latestScores: Record<string, LatestScore>;
   /** Each league's name and logo, for the marks on each starter's row. */
   legend: LeagueLegendEntry[];
   /** Every league is hidden in Settings, so there's nobody to list. */
@@ -631,40 +683,54 @@ export function StartersByGame({
   onToggleBlock: (label: string) => void;
 }) {
   const legendByLeagueId = new Map(legend.map((l) => [l.leagueId, l]));
-  // Games opened up (by tapping the matchup) to everyone in them, and those
-  // on their way shut — still open while their added names delete themselves.
-  const [openGames, setOpenGames] = useState<Set<string>>(() => new Set());
+  // Each game's view, stepped through by tapping its matchup (see viewPlayers) —
+  // shut when missing — and the games on their way shut, still listing their
+  // players while the lines delete themselves.
+  const [views, setViews] = useState<Map<string, number>>(() => new Map());
   const [closingGames, setClosingGames] = useState<Set<string>>(() => new Set());
   const closeTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   useEffect(() => {
     const timers = closeTimers.current;
     return () => timers.forEach((t) => clearTimeout(t));
   }, []);
-  const toggleGame = (gameId: string, closeMs: number) => {
+  const toggleGame = (gameId: string, view: number, closeMs: number) => {
     const without = (set: Set<string>) => {
       const next = new Set(set);
       next.delete(gameId);
       return next;
     };
     if (closingGames.has(gameId)) {
-      // Tapped again mid-close: it stays open, and the names type back in.
+      // Tapped again mid-close: it stays where it was, and the names type back in.
       clearTimeout(closeTimers.current.get(gameId));
       closeTimers.current.delete(gameId);
       setClosingGames(without);
-    } else if (openGames.has(gameId)) {
+    } else if (view === 0) {
       setClosingGames((prev) => new Set(prev).add(gameId));
       closeTimers.current.set(
         gameId,
         setTimeout(() => {
           closeTimers.current.delete(gameId);
-          setOpenGames(without);
+          setViews((prev) => {
+            const next = new Map(prev);
+            next.delete(gameId);
+            return next;
+          });
           setClosingGames(without);
         }, closeMs)
       );
     } else {
-      setOpenGames((prev) => new Set(prev).add(gameId));
+      setViews((prev) => new Map(prev).set(gameId, view));
     }
   };
+  // The players showing in each started game, whose latest plays to follow.
+  const followed = useMemo(
+    () =>
+      games
+        .filter((g) => g.game.state !== "pre" && (views.get(g.game.id) ?? 0) > 0)
+        .map((g) => ({ ...g, players: viewPlayers(g, views.get(g.game.id) ?? 0) })),
+    [games, views]
+  );
+  const actions = useLastActions(followed);
   // Finished blocks drop to the bottom as their last game ends, so the next one up is always on top.
   const columns = finishedBlocksLast(groupGamesByTimeBlock(games));
   const nothingToShow = games.length === 0 && notPlaying.length === 0;
@@ -698,11 +764,10 @@ export function StartersByGame({
                 <BlockGames
                   games={column.games}
                   hidden={hiddenBlocks.has(column.label)}
-                  legendByLeagueId={legendByLeagueId}
-                  openGames={openGames}
+                  views={views}
                   closingGames={closingGames}
+                  actions={actions}
                   onToggleGame={toggleGame}
-                  latestScores={latestScores}
                 />
               </div>
             ))}

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { latestScoringPlay, pendingPlayPoints, PENDING_PLAY_MS } from "./live-play-points";
+import { lastActions, pendingPlayPoints, PENDING_PLAY_MS } from "./live-play-points";
 import { GamePlay } from "./play-by-play";
 
 function play(id: string, text: string, offense = "BUF"): GamePlay {
@@ -28,20 +28,17 @@ test("pendingPlayPoints skips plays from the first load, stale plays, and player
   assert.deepEqual(pendingPlayPoints([{ play: play("1", "J.Allen right end for 10 yards"), seenAt: now }], [allen], new Map(), now), {});
 });
 
-test("latestScoringPlay finds the last play that moved one of your players' points", () => {
+test("lastActions keeps each player's latest play that moved their points", () => {
   const kincaid = { playerId: "kincaid", name: "Dalton Kincaid", position: "TE", team: "BUF" };
-  const at = (seq: number, text: string): GamePlay => ({ ...play(String(seq), text), sequence: seq });
+  const cook = { playerId: "cook", name: "James Cook", position: "RB", team: "BUF" };
+  const at = (seq: number, text: string): GamePlay => ({ ...play(String(seq), text), sequence: seq, at: seq * 1000 });
   const plays = [
-    at(1, "J.Allen right end for 10 yards"),
     at(2, "J.Allen pass short left to D.Kincaid for 12 yards"),
-    at(3, "J.Allen pass incomplete deep right to K.Coleman."), // named, but nothing earned
-    at(4, "J.Cook up the middle for 3 yards"), // not yours
+    at(1, "J.Allen right end for 10 yards"),
+    at(3, "J.Allen pass incomplete deep right to D.Kincaid."), // named, but nothing earned
   ];
-  const latest = latestScoringPlay(plays, [allen, kincaid])!;
-  assert.equal(latest.play.id, "2");
-  assert.deepEqual(latest.scorers, [
-    { playerId: "allen", delta: 0.48 },
-    { playerId: "kincaid", delta: 2.2 },
-  ]);
-  assert.equal(latestScoringPlay([at(1, "J.Cook up the middle for 3 yards")], [allen]), null);
+  assert.deepEqual(lastActions(plays, [allen, kincaid, cook]), {
+    allen: { at: 2000, delta: 0.48 },
+    kincaid: { at: 2000, delta: 2.2 },
+  });
 });

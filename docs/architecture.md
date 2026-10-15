@@ -292,17 +292,21 @@ next tick always asks again.
 listed, each in a box of its own: the away team's logo and record (as of
 that game, from ESPN's scoreboard) with its score (and the game's clock, or
 the kickoff time before it starts) on the right, then the home team's line.
-Shut, a game lists no players — just, under the teams, the latest play one
-of your players got points on: when, who, the +/- and their total
-(`useLatestScores`, `latestScoringPlay`). That line is where a changed total
-animates (see below), all your players in the game being followed for it.
-Tapping anywhere in a game's box opens it up to everyone worth watching in
-it, each under the team they play for: the starters you're facing, plus
-anyone in the game who has scored or lost points or is projected for 6+.
-Tap again to close. Once a game kicks off, rows are ordered by points, then
+Shut, a game lists just its teams. Tapping the matchup (the teams' lines —
+a player's line doesn't toggle) steps through its views, set apart below the
+teams: your starters in it, then yours and the ones you're facing, then
+everyone worth watching (`liveGameRows`: anyone in the game who has scored or
+lost points or is projected for 6+), then shut again — skipping any view that
+would list no one new. Every line has the same fixed columns, so they stay
+lined up whatever the game's state: the time of the player's latest play that
+moved their points and its +/- (only while the game's on, from
+`useLastActions` / `lastActions`; blank but kept otherwise), their name,
+their total (their projection before kickoff), and their position, small, in
+its color. A shown line is where a changed total animates (see below).
+Once a game kicks off, rows are ordered by points, then
 projection; before kickoff, by projection alone. Before kickoff each row
 shows its projection in faint italics with one decimal, so it reads as a
-guess rather than a score. In an opened game the projections take their
+guess rather than a score. The projections take their
 side's color too (green, red). Your starters' and opponents' projections are
 scored under the league they're started in; everyone else's are PPR. Points
 are green for your starters, red for the ones you face. Projections come
