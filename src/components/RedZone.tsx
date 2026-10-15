@@ -310,6 +310,7 @@ export function RedZone({
   weekGames,
   legend,
   weekStats,
+  previewGames = [],
   compactOnPhone = false,
 }: {
   /** Your starters, grouped by the game they're playing in. */
@@ -319,13 +320,15 @@ export function RedZone({
   legend: LeagueLegendEntry[];
   /** Everyone's stat line so far this week, by Sleeper id — who's played tells which of ESPN's names is likeliest who. */
   weekStats: Record<string, Record<string, number>>;
+  /** TEMPORARY (see useRedZonePreview): finished games shown play by play, in either view. */
+  previewGames?: NFLGame[];
   /** On phones, show the plays in a box three rows tall that scrolls on its own, instead of running down the page. */
   compactOnPhone?: boolean;
 }) {
   const mode = useLiveMode();
   const [scope, setScope] = useState<FeedScope>("mine");
   const teamPlayers = useTeamPlayers(weekStats);
-  const feed = useRedZoneFeed(starters, weekGames, scope, teamPlayers);
+  const feed = useRedZoneFeed(starters, weekGames, scope, teamPlayers, previewGames);
   const starterById = useMemo(() => new Map(starters.flatMap((g) => g.players.map((p) => [p.playerId, p] as const))), [starters]);
   const [shown, setShown] = useState(PAGE);
   // Plays already on hand when the feed fills in just slide in; ones that arrive after that flash.

@@ -13,6 +13,7 @@ import { useSummariesAsItStands } from "@/hooks/useAsItStands";
 import { StarterSource, useMyStarters } from "@/hooks/useMyStarters";
 import { useNFLState } from "@/hooks/useNFLState";
 import { useWeekGames } from "@/hooks/useWeekGames";
+import { useRedZonePreview } from "@/hooks/useRedZonePreview";
 import { useLivePlayerLines } from "@/hooks/useLivePlayerLines";
 import { useLivePlayPoints } from "@/hooks/useLivePlayPoints";
 import { getLeagueSummary, LeagueSummary, teamStandings } from "@/lib/league-data";
@@ -93,6 +94,8 @@ export default function DashboardPage() {
 
   const nflPhase = useNFLState();
   const weekGames = useWeekGames(nflPhase.season ?? config.season, week);
+  // TEMPORARY: last week's final game in the Red Zone (see useRedZonePreview).
+  const previewGames = useRedZonePreview(nflPhase.season ?? config.season, week != null ? week - 1 : null);
   const { mine: myStarters, opponent: opponentStarters } = useMyStarters(starterSources, week);
 
   // Leagues hidden in Settings stay out of the starters, the map and the Red Zone.
@@ -281,7 +284,7 @@ export default function DashboardPage() {
             {/* Below the map: the Red Zone, your starters' plays as they happen — its title sticks at the top as the plays scroll on under it. On phones it waits at the very bottom of the page until a game is live, then moves up under the map as a short box you scroll within. Your leagues ride the ticker under the header (see LeagueTicker). */}
             {weekGames.length > 0 && myStarters !== null ? (
               <div className={`animate-[rise_0.5s_ease-out_backwards] [animation-delay:120ms] ${anyGameLive ? "" : "max-md:order-last"}`}>
-                <RedZone starters={grouped.games} weekGames={weekGames} legend={legend} weekStats={livePlayers.stats} compactOnPhone={anyGameLive} />
+                <RedZone starters={grouped.games} weekGames={weekGames} legend={legend} weekStats={livePlayers.stats} previewGames={previewGames} compactOnPhone={anyGameLive} />
               </div>
             ) : null}
           </div>
