@@ -21,11 +21,28 @@ export function getThemePreference(): ThemePreference {
   }
 }
 
+// The page's own background in each theme (--page in globals.css) — what the browser paints its status bar
+// with, around a phone's camera, so it runs on seamlessly into the header.
+const PAGE_LIGHT = "#ffffff";
+const PAGE_DARK = "#0d0d0d";
+
+/** Points the browser's theme color — its status bar, around the camera — at the page's background in `dark` or light. */
+function setThemeColor(dark: boolean): void {
+  let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  if (!meta) {
+    meta = document.createElement("meta");
+    meta.name = "theme-color";
+    document.head.appendChild(meta);
+  }
+  meta.content = dark ? PAGE_DARK : PAGE_LIGHT;
+}
+
 export function applyTheme(preference: ThemePreference = getThemePreference()): void {
   const dark =
     preference === "dark" ||
     (preference === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
   document.documentElement.dataset.theme = dark ? "dark" : "light";
+  setThemeColor(dark);
 }
 
 export function setThemePreference(preference: ThemePreference): void {
@@ -52,11 +69,15 @@ export function subscribeThemePreference(onChange: () => void): () => void {
   };
 }
 
-/** Inline <head> script — the same logic as applyTheme, plus listeners for OS changes and other tabs. */
+/** Inline <head> script — the same logic as applyTheme (theme color too), plus listeners for OS changes and other tabs. */
 export const THEME_INIT_SCRIPT = `(function(){
 var m=window.matchMedia("(prefers-color-scheme: dark)");
 function apply(){var p;try{p=localStorage.getItem(${JSON.stringify(THEME_KEY)})}catch(e){}
-document.documentElement.dataset.theme=p==="dark"||(p!=="light"&&m.matches)?"dark":"light"}
+var d=p==="dark"||(p!=="light"&&m.matches);
+document.documentElement.dataset.theme=d?"dark":"light";
+var t=document.querySelector('meta[name="theme-color"]');
+if(!t){t=document.createElement("meta");t.name="theme-color";document.head.appendChild(t)}
+t.content=d?${JSON.stringify(PAGE_DARK)}:${JSON.stringify(PAGE_LIGHT)}}
 apply();m.addEventListener("change",apply);
 addEventListener("storage",function(e){if(e.key===${JSON.stringify(THEME_KEY)})apply()});
 })();`;

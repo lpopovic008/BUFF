@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { formatCountdown } from "@/lib/format";
 import { TYPE_MS_PER_CHAR, totalChars, typedSlices, useSeenOnce, useTypedCount } from "@/hooks/useTyped";
-import { setHeaderKickoff } from "@/lib/header-clock";
 import { formatKickoffTime, GameStarters, finishedBlocksLast, groupGamesByTimeBlock, GroupedStarter, PlayerSide } from "@/lib/my-starters";
 import { NFLGame } from "@/lib/nfl-schedule";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
@@ -757,54 +756,6 @@ function useNow(): number | null {
 }
 
 /**
- * Hands the clock's countdown up to the page header whenever the clock
- * itself is out of sight — scrolled up under the sticky header or past the
- * top of its column — and takes it back once it's showing again.
- */
-function useHeaderWhenHidden(ref: React.RefObject<HTMLElement | null>, target: number | null) {
-  const [hidden, setHidden] = useState(false);
-  // The clock only renders while there's a kickoff ahead; observe it once it does.
-  const showing = target !== null;
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const headerPx = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--header-h")) || 0;
-    const observer = new IntersectionObserver(
-      ([entry]) => setHidden(!entry.isIntersecting && entry.boundingClientRect.top < window.innerHeight / 2),
-      { rootMargin: `-${headerPx}px 0px 0px 0px` }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [ref, showing]);
-  useEffect(() => {
-    setHeaderKickoff(hidden ? target : null);
-  }, [hidden, target]);
-  useEffect(() => () => setHeaderKickoff(null), []);
-}
-
-/** A live-ticking countdown to the next kickoff among your games this week — the next time block about to go live. Renders nothing once every game has already kicked off. */
-function NextKickoffClock({ games, now }: { games: GameStarters[]; now: number | null }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const target = useMemo(() => {
-    if (now === null) return null;
-    // The next kickoff still ahead — the earliest overall may already be underway.
-    return earliestKickoff(games.filter(({ game }) => new Date(game.kickoff).getTime() > now));
-  }, [games, now]);
-  useHeaderWhenHidden(ref, target);
-
-  if (target === null || now === null) return null;
-  const remaining = target - now;
-  if (remaining <= 0) return null;
-
-  return (
-    <div ref={ref} className="flex flex-col items-center gap-0.5 border-b border-grid pb-3 text-center">
-      <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Next kickoff</span>
-      <span className="text-3xl font-bold tabular-nums text-ink-primary">{formatCountdown(remaining)}</span>
-    </div>
-  );
-}
-
-/**
  * A time block's own clock, pinned to the right of its header: a countdown
  * to the block's first kickoff, then "Live" once it's underway and "Final"
  * when every game in it has ended.
@@ -834,11 +785,6 @@ function BlockClock({ games, now }: { games: GameStarters[]; now: number | null 
  * the rest of the dashboard rather than take over the page width. Which
  * leagues show is set in Settings (each league's visibility).
  */
-/** What the page can do to the starters list from outside it: set every box to one view (1 Team, 2 VS, 3 ALL). */
-export interface StartersByGameHandle {
-  showAll: (view: number) => void;
-}
-
 export function StartersByGame({
   games,
   byes,
@@ -851,7 +797,6 @@ export function StartersByGame({
   selectedPlayers,
   onSelectPlayer,
   onBarView,
-  ref,
 }: {
   games: GameStarters[];
   /** The teams on their bye this week, with any starters on them — listed last, under their own header. */
@@ -874,8 +819,6 @@ export function StartersByGame({
   onSelectPlayer: (playerId: string, gameId: string) => void;
   /** Told whenever the bar on top sets every box to a view (Team, VS, ALL) — the Red Zone follows it. */
   onBarView?: (view: number) => void;
-  /** Lets the Red Zone's own Team / VS / ALL set every box here to the same view, as the bar would. */
-  ref?: React.Ref<StartersByGameHandle>;
 }) {
   const legendByLeagueId = new Map(legend.map((l) => [l.leagueId, l]));
   // Every box — each game, then each bye — with what it can list.
@@ -939,7 +882,6 @@ export function StartersByGame({
     setClosingGames(new Set());
     setViews(new Map(boxes.filter((box) => viewCycle(box.listing).length > 1).map((box) => [box.id, view])));
   };
-  useImperativeHandle(ref, () => ({ showAll: openAll }));
   // The bar: every box to one view at once — or, its view tapped again, every box shut.
   const setAllViews = (view: number) => {
     if (view === barView) {
@@ -972,7 +914,6 @@ export function StartersByGame({
 
   return (
     <div className="flex flex-col gap-4">
-      <NextKickoffClock games={games} now={now} />
 
       {nothingToShow ? null : (
         // Every box to one view at once.

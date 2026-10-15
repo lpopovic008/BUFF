@@ -178,29 +178,40 @@ export interface MatchupRowTeam {
  */
 function TickerTeamRow({ team, fitWidth }: { team: MatchupRowTeam; fitWidth: boolean }) {
   const { name, points, standing, mine = false, winning = false } = team;
-  const lit = winning || (mine && HIGHLIGHT_MINE);
   const { rank, record, streak } = standing ?? {};
+  // The winner's whole row — rank through score — on one unbroken plate, like a map tag; the row spans
+  // both of the box's columns (a subgrid), so the plate runs on across the gap to the score.
   return (
-    <>
+    <div
+      className={`col-span-2 grid grid-cols-subgrid items-center ${
+        winning ? "-mx-1.5 bg-[var(--map-tag)] px-1.5 text-[var(--map-tag-ink)]" : ""
+      }`}
+    >
       <div className={`flex items-center gap-1.5 whitespace-nowrap ${fitWidth ? "min-w-0" : ""}`}>
         {/* The place as a bare number in a fixed two digits, right-aligned, so every team name starts at the same x. */}
-        <span className="w-[2ch] shrink-0 text-right text-xs font-medium tabular-nums text-series-4">{rank ?? ""}</span>
+        <span className={`w-[2ch] shrink-0 text-right text-xs font-medium tabular-nums ${winning ? "" : "text-series-4"}`}>{rank ?? ""}</span>
         <span
-          className={`text-sm ${fitWidth ? "min-w-0 truncate" : ""} ${lit ? MY_TEAM_NAME_CLASS : "font-medium text-ink-primary"}`}
+          className={`text-sm ${fitWidth ? "min-w-0 truncate" : ""} ${
+            winning ? "font-bold" : mine && HIGHLIGHT_MINE ? MY_TEAM_NAME_CLASS : "font-medium text-ink-primary"
+          }`}
         >
           {name}
         </span>
         {record ? (
-          <span className="shrink-0 text-xs tabular-nums text-ink-muted">({formatRecord(record.wins, record.losses, record.ties)})</span>
+          <span className={`shrink-0 text-xs tabular-nums ${winning ? "opacity-75" : "text-ink-muted"}`}>
+            ({formatRecord(record.wins, record.losses, record.ties)})
+          </span>
         ) : null}
-        <StreakBadge streak={streak} />
+        <StreakBadge streak={streak} onTag={winning} />
       </div>
       <span
-        className={`justify-self-end text-base tabular-nums ${lit ? MY_TEAM_NAME_CLASS : "font-semibold text-ink-primary"}`}
+        className={`justify-self-end text-base tabular-nums ${
+          winning ? "font-bold" : mine && HIGHLIGHT_MINE ? MY_TEAM_NAME_CLASS : "font-semibold text-ink-primary"
+        }`}
       >
         {points != null ? formatPoints(points) : ""}
       </span>
-    </>
+    </div>
   );
 }
 

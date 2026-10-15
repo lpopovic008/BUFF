@@ -18,7 +18,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#ffffff",
+  // Edge to edge on a phone, so the header's background runs up around the camera (it pads itself down
+  // by the safe area: see NavBar). The status bar's color — its theme color — is set to match the page's
+  // background in the theme in use, before first paint, by THEME_INIT_SCRIPT.
+  viewportFit: "cover",
 };
 
 // Same basePath Next.js itself is built with (see next.config.ts) — GitHub

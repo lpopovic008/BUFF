@@ -372,18 +372,14 @@ const PHONE_ROWS = 3;
 /** Which plays the Red Zone shows: your starters', theirs and the ones you face too, or every play. */
 export type RedZoneScope = "mine" | "vs" | "all";
 
-// The same three as the bar over the starters list, and kept in step with it.
-const SCOPES: { label: string; value: RedZoneScope }[] = [
-  { label: "Team", value: "mine" },
-  { label: "VS", value: "vs" },
-  { label: "All", value: "all" },
-];
+// What the Red Zone is showing, named as the bar over the starters list names it.
+const SCOPE_NAMES: Record<RedZoneScope, string> = { mine: "Team", vs: "VS", all: "All" };
 
 /**
  * The Red Zone: plays as they happen, newest on top — the ones your starters
  * are part of (Team), those and the ones your opponents' starters are (VS),
- * or every play of every game (All), kept in step with the bar over the
- * starters list — and, pinned
+ * or every play of every game (All), as the bar over the starters list sets
+ * it (named in the top right) — and, pinned
  * above them, the games where a team has the ball inside the 20. Follows the
  * shared live clock, so it moves with the scores everywhere else on the page.
  */
@@ -395,15 +391,13 @@ export function RedZone({
   weekStats,
   compactOnPhone = false,
   scope,
-  onScopeChange,
 }: {
   /** Your starters, grouped by the game they're playing in. */
   starters: GameStarters[];
   /** The starters you're facing, grouped the same way — their plays join yours under VS. */
   opponents: GameStarters[];
-  /** Which plays to show — shared with the Team / VS / ALL bar over the starters list. */
+  /** Which plays to show — set by the Team / VS / ALL bar over the starters list. */
   scope: RedZoneScope;
-  onScopeChange: (scope: RedZoneScope) => void;
   /** Every game of the week. */
   weekGames: NFLGame[];
   legend: LeagueLegendEntry[];
@@ -467,7 +461,7 @@ export function RedZone({
     return () => observer.disconnect();
   }, [moreToShow, shown]);
 
-  // A new scope — picked here or on the starters list's bar — starts the plays over from the top.
+  // A new scope, picked on the starters list's bar, starts the plays over from the top.
   const [prevScope, setPrevScope] = useState(scope);
   if (scope !== prevScope) {
     setPrevScope(scope);
@@ -477,9 +471,6 @@ export function RedZone({
   useEffect(() => {
     boxRef.current?.scrollTo({ top: 0 });
   }, [scope]);
-  const pickScope = (next: RedZoneScope) => {
-    if (next !== scope) onScopeChange(next);
-  };
 
   const legendByLeagueId = new Map(legend.map((l) => [l.leagueId, l]));
   const entries = feed.entries;
@@ -506,21 +497,10 @@ export function RedZone({
             </span>
             <span className="whitespace-nowrap text-sm font-bold uppercase tracking-[0.2em] text-ink-primary">Red Zone</span>
           </h2>
-          <div className="flex shrink-0 border border-border text-[0.6875rem] font-semibold" role="group" aria-label="Which plays">
-            {SCOPES.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                aria-pressed={scope === opt.value}
-                onClick={() => pickScope(opt.value)}
-                className={`whitespace-nowrap px-2 py-0.5 transition-colors ${
-                  scope === opt.value ? "bg-ink-primary text-surface-raised" : "text-ink-secondary hover:text-ink-primary"
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
+          {/* What it's showing — set by the bar over the starters list. */}
+          <span className="shrink-0 text-[0.6875rem] font-bold uppercase tracking-wide text-ink-secondary" aria-label={`Showing: ${SCOPE_NAMES[scope]}`}>
+            {SCOPE_NAMES[scope]}
+          </span>
         </div>
 
         {feed.redZone.length > 0 ? (

@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useNFLState } from "@/hooks/useNFLState";
 import { useCombinedRecord } from "@/hooks/useCombinedRecord";
 import { MenuIcon } from "@/components/ui/Icon";
 import { formatCountdown } from "@/lib/format";
-import { useHeaderKickoff } from "@/lib/header-clock";
+import { useWeekGames } from "@/hooks/useWeekGames";
 import { useHeaderWeek } from "@/lib/header-week";
 import { WeekPicker, weekLabel } from "@/components/WeekPicker";
 
@@ -17,8 +17,12 @@ const links = [
   { href: "/settings", label: "Settings" },
 ];
 
-/** The next-kickoff countdown, ticking each second, once the dashboard hands it up (see header-clock.ts). */
-function HeaderKickoffClock({ target }: { target: number }) {
+/**
+ * The countdown to the NFL week's next kickoff, ticking each second, beside
+ * the week in the header on every page — gone once the week's last game has
+ * kicked off.
+ */
+function HeaderKickoffClock({ kickoffs }: { kickoffs: number[] }) {
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
     const tick = () => setNow(Date.now());
@@ -29,7 +33,9 @@ function HeaderKickoffClock({ target }: { target: number }) {
       clearTimeout(first);
     };
   }, []);
-  if (now === null || target <= now) return null;
+  if (now === null) return null;
+  const target = kickoffs.find((t) => t > now);
+  if (target === undefined) return null;
   return (
     <span
       className="text-base font-bold tabular-nums text-ink-secondary animate-[fade-in_0.2s_ease-out] sm:text-2xl"
@@ -52,7 +58,12 @@ const HEADER_BUTTON =
 export function NavBar() {
   const phase = useNFLState();
   const record = useCombinedRecord();
-  const kickoff = useHeaderKickoff();
+  // The NFL week's kickoffs, in order, for the countdown to the next.
+  const weekGames = useWeekGames(phase.loaded ? phase.season : null, phase.loaded ? phase.week : null);
+  const kickoffs = useMemo(
+    () => weekGames.map((g) => new Date(g.kickoff).getTime()).filter((t) => !Number.isNaN(t)).sort((a, b) => a - b),
+    [weekGames]
+  );
   // A page showing a week of its own (the league page) makes the header's week its picker.
   const pickable = useHeaderWeek();
   const [open, setOpen] = useState(false);
@@ -90,8 +101,10 @@ export function NavBar() {
   }, []);
 
   return (
-    <header ref={ref} className="sticky top-0 z-50 border-b border-border bg-page/95 backdrop-blur">
-      <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 py-3 sm:gap-3 sm:px-6 md:px-1">
+    // Padded down by the safe area, so on a phone its background fills the strip around the camera and
+    // its contents start just under it — and no lower: a little less padding of its own on a phone.
+    <header ref={ref} className="sticky top-0 z-50 border-b border-border bg-page/95 pt-[env(safe-area-inset-top)] backdrop-blur">
+      <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 py-2 sm:gap-3 sm:px-6 sm:py-3 md:px-1">
         {/* The wordmark — a map tag. (Back and forward sit just under the header: see HistoryButtons.) */}
         <div className="flex items-center gap-2 justify-self-start sm:gap-3">
           <Link
@@ -103,7 +116,7 @@ export function NavBar() {
         </div>
 
         {phase.loaded && phase.label ? (
-          <span className="flex items-baseline gap-2 justify-self-center sm:gap-4">
+          <span className="flex items-baseline gap-4 justify-self-center sm:gap-8">
             {pickable ? (
               <WeekPicker
                 {...pickable}
@@ -113,8 +126,8 @@ export function NavBar() {
             ) : (
               <span className="text-lg font-extrabold uppercase tracking-wide text-ink-primary sm:text-3xl">{phase.label}</span>
             )}
-            {/* The dashboard's next-kickoff clock, while it's scrolled out of view. */}
-            {kickoff !== null ? <HeaderKickoffClock key={kickoff} target={kickoff} /> : null}
+            {/* The countdown to the next kickoff, always here, set apart from the week. */}
+            <HeaderKickoffClock kickoffs={kickoffs} />
           </span>
         ) : (
           <span />

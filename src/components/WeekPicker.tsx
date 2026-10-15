@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDownIcon } from "@/components/ui/Icon";
 
 /** "Week 4", or "Preseason" for week 0. */
 export function weekLabel(week: number): string {
@@ -9,7 +8,7 @@ export function weekLabel(week: number): string {
 }
 
 /**
- * The header's week, as a button that opens the season's weeks to pick from —
+ * The header's week, underlined, as a button that opens the season's weeks to pick from —
  * the current one marked, playoff weeks labeled. Closes on a pick, a click
  * elsewhere, or Escape.
  */
@@ -63,10 +62,10 @@ export function WeekPicker({
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1 text-lg font-extrabold uppercase tracking-wide text-ink-primary sm:gap-2 sm:text-3xl"
+        // Underlined, rather than an arrow, to say it opens.
+        className="text-lg font-extrabold uppercase tracking-wide text-ink-primary underline decoration-2 underline-offset-[0.2em] sm:text-3xl sm:decoration-[3px]"
       >
         {label}
-        <ChevronDownIcon className={`h-4 w-4 text-ink-secondary transition-transform sm:h-6 sm:w-6 ${open ? "rotate-180" : ""}`} />
       </button>
       {open ? (
         <ul

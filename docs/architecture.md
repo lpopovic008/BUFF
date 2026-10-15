@@ -299,12 +299,11 @@ a player's line doesn't toggle) steps through its views, set apart below the
 teams: your starters in it, then yours and the ones you're facing, then
 everyone worth watching (`liveGameRows`: anyone in the game who has scored or
 lost points or is projected for 6+), then shut again — skipping any view that
-would list no one new. A bar under the next-kickoff clock — Team, VS, ALL — sets every box to one
-of those views at once; tapping the lit one again shuts them all. It's tied
-to the Red Zone's own Team / VS / All both ways: picking one on the bar
-switches the Red Zone to match, and picking one in the Red Zone sets every
-box here the same way (through `StartersByGameHandle.showAll`). Shutting
-them all, or tapping a single box, leaves the Red Zone as it was. Every line
+would list no one new. A bar at the top of the list — Team, VS, ALL — sets every box to one
+of those views at once; tapping the lit one again shuts them all. It also
+sets what the Red Zone shows (Team, VS or All), which it names in its top
+right — the Red Zone has no buttons of its own. Shutting them all, or
+tapping a single box, leaves the Red Zone as it was. Every line
 has the same columns, so they stay lined up whatever the game's state: the
 time of the player's latest play that moved their points (no AM/PM, to keep
 it narrow) and its +/- (only while the game's on, from `useLastActions` /
@@ -403,9 +402,19 @@ else's points from `/stats` (undocumented, the same endpoints the Sleeper
 app uses). Stats are fetched only once a game this week has started, and
 then re-read each tick.
 
+**Header** (`NavBar.tsx`): the NFL week (on pages with their own week, an
+underlined button that opens the week picker) with, set apart beside it on
+every page, the countdown to that week's next kickoff, from its scoreboard
+— gone once its last game has kicked off. On a phone the page runs edge to
+edge (`viewport-fit=cover`) and the header pads itself down by the safe
+area, so its background fills the strip around the camera; the browser's
+theme color (the status bar's) is set to the page's background in the theme
+in use, by the inline theme script and again on every theme change.
+
 **League ticker** (`LeagueTicker.tsx`): each league's matchup this week
-under the header. The winner's row — name and score — is lit like a map
-tag once the week is official (`lastFinishedWeek`); with "as it stands" on,
+under the header. The winner's whole row — rank, name, record, streak and
+score, one unbroken plate (the row spans the box's two columns as a
+subgrid) — is lit like a map tag once the week is official (`lastFinishedWeek`); with "as it stands" on,
 whoever leads right now is lit instead. Nobody is lit while the score is
 level.
 

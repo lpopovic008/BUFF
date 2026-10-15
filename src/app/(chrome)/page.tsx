@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { GameMap, MappedGame } from "@/components/GameMap";
 import { LeagueTicker, TickerLeague } from "@/components/LeagueTicker";
-import { ByeTeam, LeagueLegendEntry, StartersByGame, StartersByGameHandle } from "@/components/StartersByGame";
+import { ByeTeam, LeagueLegendEntry, StartersByGame } from "@/components/StartersByGame";
 import { NFL_TEAMS } from "@/lib/nfl-logos";
 import { PointsGraphGrid } from "@/components/PointsGraph";
 import { RedZone, RedZoneScope } from "@/components/RedZone";
@@ -32,8 +32,7 @@ interface LoadedLeague {
 /** The NFL regular season's weeks, all of which the header's week picker offers. */
 const NFL_WEEKS = 18;
 
-// The Red Zone's scopes and the starters bar's views (1 Team, 2 VS, 3 ALL), one for one.
-const SCOPE_VIEW: Record<RedZoneScope, number> = { mine: 1, vs: 2, all: 3 };
+// The starters bar's views (1 Team, 2 VS, 3 ALL) and the Red Zone's scopes, one for one.
 const VIEW_SCOPE: Record<number, RedZoneScope> = { 1: "mine", 2: "vs", 3: "all" };
 
 /** How many players' graphs can be up at once, in place of the map. */
@@ -163,9 +162,8 @@ export default function DashboardPage() {
     else ids.add(gameId);
     setMapOff({ week: shownWeek, ids });
   };
-  // Which plays the Red Zone shows — Team, VS or All — kept in step with the bar over the starters list, both ways.
+  // Which plays the Red Zone shows — Team, VS or All — set by the bar over the starters list.
   const [feedScope, setFeedScope] = useState<RedZoneScope>("mine");
-  const startersRef = useRef<StartersByGameHandle>(null);
   // The players whose points-over-time graphs are up in place of the map (tapped in the starters list), up to four — for that week.
   const [graphPicks, setGraphPicks] = useState<{ week: number | null; picks: { playerId: string; gameId: string }[] }>(() => ({ week: null, picks: [] }));
   const graphFor = useMemo(() => (graphPicks.week === shownWeek ? graphPicks.picks : []), [graphPicks, shownWeek]);
@@ -421,11 +419,6 @@ export default function DashboardPage() {
                   starters={grouped.games}
                   opponents={groupedOpponent.games}
                   scope={feedScope}
-                  onScopeChange={(next) => {
-                    setFeedScope(next);
-                    // The starters list follows: every game to the same view.
-                    startersRef.current?.showAll(SCOPE_VIEW[next]);
-                  }}
                   weekGames={weekGames}
                   legend={legend}
                   weekStats={livePlayers.stats}
@@ -461,7 +454,6 @@ export default function DashboardPage() {
               onToggleMap={toggleMap}
               selectedPlayers={graphFor}
               onSelectPlayer={pickGraph}
-              ref={startersRef}
               // The Red Zone follows the bar's Team / VS / ALL.
               onBarView={(view) => setFeedScope(VIEW_SCOPE[view] ?? "mine")}
             />
