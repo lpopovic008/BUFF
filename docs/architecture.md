@@ -324,10 +324,16 @@ of day, rising at each play that moved their points — scored PPR by the
 play, as the Red Zone's are — with the quarters ruled in. Their projection
 is a dashed pace line, 0 at kickoff to the full projection at the final
 whistle, and the ground under their line is green wherever they're at or
-ahead of it, red wherever they're behind. The time axis shows just kickoff,
-each quarter's start and the end ("~" while that's an estimate — live, it
-runs on to about when the game should end), with the minutes between each
-pair halfway along where there's room. Live, the line runs to now and grows
+ahead of it, red wherever they're behind. Halftime (`halftimeSpan`: the 2nd quarter's last play to the 3rd's first)
+is squeezed into a thin column of etched lines, the rest of the clock
+running evenly either side of it. The time axis shows just kickoff, each
+quarter's start and the end ("~" while that's an estimate — live, it runs on
+to about when the game should end), with the minutes between each pair
+halfway along where there's room — halftime left out, so the 2nd quarter's
+figure is how long it really took, and the 3rd quarter's start stands for
+halftime's end. In the full graph, up in its top-left corner, two figures
+give how much of the game so far they've been on pace (green) and behind it
+(red), halftime aside. Live, the line runs to now and grows
 as plays come in, sharing the Red Zone's play-by-play fetches. When their
 total in your league differs from the plays' (its own scoring, or stats no
 play carries) a dashed rise at the end makes up the difference, so the line

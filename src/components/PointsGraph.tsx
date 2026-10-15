@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { GroupedStarter } from "@/lib/my-starters";
 import { NFLGame } from "@/lib/nfl-schedule";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import { cleanPlayText } from "@/lib/play-by-play";
-import { pacePieces, periodStarts, pointsTimeline } from "@/lib/live-play-points";
+import { halftimeSpan, pacePieces, periodStarts, pointsTimeline } from "@/lib/live-play-points";
 import { useGamePlays, withScoreboardPlay } from "@/hooks/useRedZoneFeed";
 
 // Room around the plot for its labels, in px.
@@ -109,6 +109,8 @@ export function PointsGraph({
     [plays, player.playerId, player.name, player.position, player.team]
   );
   const quarters = useMemo(() => periodStarts(plays), [plays]);
+  const halftime = useMemo(() => halftimeSpan(plays), [plays]);
+  const etchId = `etch-${useId().replace(/:/g, "")}`;
   const live = game.state === "in";
   const now = useLiveNow(live);
 
@@ -141,9 +143,25 @@ export function PointsGraph({
   const hi = Math.max(lo + step, Math.ceil(Math.max(...values, 5) / step) * step);
 
   const plot = size && Number.isFinite(start) ? { w: Math.max(0, size.width - PAD.left - PAD.right), h: Math.max(0, size.height - PAD.top - PAD.bottom) } : null;
-  const x = (at: number) => PAD.left + (plot ? ((at - start) / (end - start)) * plot.w : 0);
+  // Halftime squeezed down to a thin etched column; the rest of the clock runs evenly either side of it.
+  const ht = halftime && halftime.from > start && halftime.to < end ? halftime : null;
+  const htWidth = ht ? (compact ? 5 : 9) : 0;
+  const perMs = plot ? (plot.w - htWidth) / (end - start - (ht ? ht.to - ht.from : 0)) : 0;
+  const x = (at: number) => {
+    if (!ht || at <= ht.from) return PAD.left + (at - start) * perMs;
+    const before = PAD.left + (ht.from - start) * perMs;
+    if (at >= ht.to) return before + htWidth + (at - ht.to) * perMs;
+    return before + (htWidth * (at - ht.from)) / (ht.to - ht.from);
+  };
   const y = (v: number) => PAD.top + (plot ? (1 - (v - lo) / (hi - lo)) * plot.h : 0);
-  const timeAt = (px: number) => (plot ? start + Math.min(1, Math.max(0, (px - PAD.left) / plot.w)) * (end - start) : start);
+  const timeAt = (px: number) => {
+    if (!plot || perMs <= 0) return start;
+    const rel = Math.min(plot.w, Math.max(0, px - PAD.left));
+    const before = ht ? (ht.from - start) * perMs : Infinity;
+    if (!ht || rel <= before) return start + rel / perMs;
+    if (rel >= before + htWidth) return ht.to + (rel - before - htWidth) / perMs;
+    return ht.from + ((rel - before) / htWidth) * (ht.to - ht.from);
+  };
 
   // The step line: flat between plays, straight up (or down) at each.
   let line = "";
@@ -152,7 +170,27 @@ export function PointsGraph({
     for (const s of steps) line += ` H${x(s.at)} V${y(s.total)}`;
     line += ` H${x(lineEnd)}`;
   }
-  const pieces = plot && lineEnd !== null ? pacePieces(steps, start, lineEnd, end, projected) : [];
+  // Measured along the screen, so the pace line is straight and stands still through halftime's column.
+  const pieces =
+    plot && lineEnd !== null
+      ? pacePieces(steps.map((s) => ({ at: x(s.at), total: s.total })), x(start), x(lineEnd), x(end), projected)
+      : [];
+  // How much of the game so far they've been on pace, and behind it — halftime aside.
+  const share = (() => {
+    const htFrom = ht ? x(ht.from) : 0;
+    const htTo = ht ? x(ht.to) : 0;
+    const playing = (p: { from: number; to: number }) => p.to - p.from - Math.max(0, Math.min(p.to, htTo) - Math.max(p.from, htFrom));
+    let ahead = 0;
+    let behind = 0;
+    for (const p of pieces) {
+      if (p.onPace === true) ahead += playing(p);
+      else if (p.onPace === false) behind += playing(p);
+    }
+    const total = ahead + behind;
+    if (total <= 0) return null;
+    const onPace = Math.round((ahead / total) * 100);
+    return { onPace, behind: 100 - onPace };
+  })();
 
   const yTicks: number[] = [];
   for (let v = lo; v <= hi + 1e-9; v += step) yTicks.push(Math.round(v * 100) / 100);
@@ -164,6 +202,7 @@ export function PointsGraph({
   if (plot) {
     const all = [
       { at: start, label: clock(start) },
+      // Halftime has no mark of its own: the 3rd quarter's start stands for its end.
       ...quarters.filter((q) => q.period > 1).map((q) => ({ at: q.at, label: clock(q.at) })),
       { at: end, label: `${over ? "" : "~"}${clock(end)}` },
     ];
@@ -181,7 +220,9 @@ export function PointsGraph({
     const prev = marks[i];
     // Only spans that have played out, with room for the label.
     if (!over && m.at === end) return [];
-    return x(m.at) - x(prev.at) >= 70 ? [{ at: (prev.at + m.at) / 2, label: minutes(m.at - prev.at) }] : [];
+    // The clock that ran between them, halftime left out — so the 2nd quarter's figure is how long it really took.
+    const halftimeIn = ht ? Math.max(0, Math.min(m.at, ht.to) - Math.max(prev.at, ht.from)) : 0;
+    return x(m.at) - x(prev.at) >= 70 ? [{ px: (x(prev.at) + x(m.at)) / 2, label: minutes(m.at - prev.at - halftimeIn) }] : [];
   });
 
   // The play the description shows: the last by the cursor's time, or the latest.
@@ -276,14 +317,25 @@ export function PointsGraph({
             {pieces.map((p) => (
               <rect
                 key={`${p.from}-${p.to}`}
-                x={x(p.from)}
-                width={Math.max(0, x(p.to) - x(p.from))}
+                x={p.from}
+                width={Math.max(0, p.to - p.from)}
                 y={Math.min(y(p.value), baseline)}
                 height={Math.abs(baseline - y(p.value))}
                 className={fill(p.onPace)}
                 fillOpacity={0.22}
               />
             ))}
+            {/* Halftime: a thin column of etched lines. */}
+            {ht ? (
+              <g>
+                <defs>
+                  <pattern id={etchId} width={3} height={3} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                    <line x1={0} y1={0} x2={0} y2={3} className="stroke-ink-muted" strokeOpacity={0.55} strokeWidth={1} />
+                  </pattern>
+                </defs>
+                <rect x={x(ht.from)} y={PAD.top} width={htWidth} height={plot.h} fill={`url(#${etchId})`} className="stroke-ink-muted" strokeOpacity={0.35} strokeWidth={0.75} />
+              </g>
+            ) : null}
             {/* The points axis: a faint rule at each step, 0 a little stronger. */}
             {yTicks.map((v) => (
               <g key={`y${v}`}>
@@ -296,11 +348,11 @@ export function PointsGraph({
             {/* Where each quarter began. */}
             {quarters
               .filter((q) => q.period > 1)
-              .map((q) => (
+              .map((q, i, shown) => (
                 <g key={`q${q.period}`}>
                   <line x1={x(q.at)} x2={x(q.at)} y1={PAD.top} y2={PAD.top + plot.h} className="stroke-ink-muted" strokeOpacity={0.35} />
-                  {/* Its label steps aside while the cursor's time is over it. */}
-                  {compact || (cursorAt !== null && Math.abs(x(q.at) + 8 - x(cursorAt)) < 30) ? null : (
+                  {/* Its label steps aside while the cursor's time is over it, or when it'd crowd the one before. */}
+                  {compact || (cursorAt !== null && Math.abs(x(q.at) + 8 - x(cursorAt)) < 30) || (i > 0 && x(q.at) - x(shown[i - 1].at) < 24) ? null : (
                     <text x={x(q.at) + 3} y={PAD.top - 4} className="fill-ink-muted text-[0.5625rem] font-semibold uppercase">
                       {quarterName(q.period)}
                     </text>
@@ -320,7 +372,7 @@ export function PointsGraph({
               </text>
             ))}
             {(compact ? [] : gaps).map((g) => (
-              <text key={`g${g.at}`} x={x(g.at)} y={PAD.top + plot.h + 17} textAnchor="middle" className="fill-ink-muted text-[0.5625rem] opacity-60">
+              <text key={`g${g.px}`} x={g.px} y={PAD.top + plot.h + 17} textAnchor="middle" className="fill-ink-muted text-[0.5625rem] opacity-60">
                 {g.label}
               </text>
             ))}
@@ -344,6 +396,17 @@ export function PointsGraph({
                 ) : null}
                 {/* Where it stands now, while the game's on. */}
                 {live ? <circle cx={x(lineEnd)} cy={y(makeUp ?? playTotal)} r={2.5} fill="currentColor" className="animate-pulse" /> : null}
+              </g>
+            ) : null}
+            {/* How much of the game they've been on pace (green) and behind it (red), up in the corner. */}
+            {!compact && share ? (
+              <g className="text-[0.625rem] font-semibold tabular-nums" paintOrder="stroke" stroke="var(--page)" strokeWidth={3}>
+                <text x={PAD.left + 5} y={PAD.top + 11} className="fill-status-good">
+                  {share.onPace}%
+                </text>
+                <text x={PAD.left + 5} y={PAD.top + 23} className="fill-status-critical">
+                  {share.behind}%
+                </text>
               </g>
             ) : null}
             {/* The cursor: a dotted line under the finger, left where it's lifted, with the time there. */}

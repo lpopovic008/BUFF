@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { lastActions, pendingPlayPoints, PENDING_PLAY_MS, pacePieces, periodStarts, pointsTimeline } from "./live-play-points";
+import { halftimeSpan, lastActions, pendingPlayPoints, PENDING_PLAY_MS, pacePieces, periodStarts, pointsTimeline } from "./live-play-points";
 import { GamePlay } from "./play-by-play";
 
 function play(id: string, text: string, offense = "BUF"): GamePlay {
@@ -76,4 +76,10 @@ test("pacePieces splits the line where it falls behind the projection's pace", (
     { from: 0, to: 10, value: 0, onPace: null },
     { from: 10, to: 20, value: 5, onPace: null },
   ]);
+});
+
+test("halftimeSpan runs from the 2nd quarter's last play to the 3rd's first", () => {
+  const at = (seq: number, period: number, ms: number | null): GamePlay => ({ ...play(String(seq), "x"), sequence: seq, period, at: ms });
+  assert.deepEqual(halftimeSpan([at(1, 2, 1000), at(2, 2, 2000), at(3, 3, 5000), at(4, 3, 6000), at(5, 2, null)]), { from: 2000, to: 5000 });
+  assert.equal(halftimeSpan([at(1, 2, 1000)]), null);
 });

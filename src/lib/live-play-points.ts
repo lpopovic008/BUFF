@@ -149,3 +149,15 @@ export function pacePieces(
   }
   return out;
 }
+
+/** Halftime, from the 2nd quarter's last play to the 3rd's first — null until the 3rd quarter's begun. */
+export function halftimeSpan(plays: GamePlay[]): { from: number; to: number } | null {
+  let from = -Infinity;
+  let to = Infinity;
+  for (const play of plays) {
+    if (play.at === null) continue;
+    if (play.period === 2) from = Math.max(from, play.at);
+    if (play.period === 3) to = Math.min(to, play.at);
+  }
+  return Number.isFinite(from) && Number.isFinite(to) && to > from ? { from, to } : null;
+}
