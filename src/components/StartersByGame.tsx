@@ -340,7 +340,7 @@ function BlockGames({
       <div className="min-h-0 overflow-hidden">
         {/* One unbroken line down the block's indent, from its bar through its last game,
             dropping straight down from the bar's dot (0.5rem of padding + half its 0.5rem width). */}
-        <div className="ml-[calc(0.75rem-0.5px)] flex flex-col gap-3 border-l border-ink-muted/50 pl-2 pt-2">
+        <div className="ml-[calc(0.75rem-0.5px)] flex flex-col gap-2 border-l border-ink-muted/50 pl-2 pt-2">
           {games.map((g) => {
             const { game, players, everyone, live } = g;
             const shown = shownPlayers(g);
@@ -359,7 +359,8 @@ function BlockGames({
                 Math.max(0, ...added.map((p) => totalChars(playerPieces(p, started)))) * OPEN_MS_PER_CHAR +
                 80;
             return (
-              <div key={game.id} className="flex flex-col gap-1">
+              // Each game boxed, so one game's players never run into the next's.
+              <div key={game.id} className="flex flex-col gap-1 border border-ink-muted/40 px-2 py-1.5">
                 <GameHeader
                   game={game}
                   shown={!hidden}
