@@ -10,6 +10,7 @@ import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import { nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import { LeagueLegendEntry, LeagueMark } from "./LeagueMark";
 import { GameRows, RowMotion } from "./GameRows";
+import { LatestScore } from "@/lib/live-play-points";
 
 export type { LeagueLegendEntry };
 
@@ -265,8 +266,10 @@ function BlockGames({
   openGames,
   closingGames,
   onToggleGame,
+  latestScores,
 }: {
   games: GameStarters[];
+  latestScores: Record<string, LatestScore>;
   hidden: boolean;
   legendByLeagueId: Map<string, LeagueLegendEntry>;
   /** Games opened up to everyone in them, by game id. */
@@ -276,9 +279,8 @@ function BlockGames({
   /** Opens a game, or closes it once `closeMs` of deleting has played out. */
   onToggleGame: (gameId: string, closeMs: number) => void;
 }) {
-  // An opened game lists everyone worth watching in it; otherwise just your players.
-  const shownPlayers = ({ game, players, everyone }: GameStarters) =>
-    openGames.has(game.id) && everyone ? everyone : players;
+  // An opened game lists everyone worth watching in it; a shut one, nobody (just its latest play for you).
+  const shownPlayers = ({ game, players, everyone }: GameStarters) => (openGames.has(game.id) ? (everyone ?? players) : []);
   // Folded only once the deleting has finished — the longest line sets how long.
   const [prevHidden, setPrevHidden] = useState(hidden);
   const [folded, setFolded] = useState(hidden);
@@ -317,6 +319,7 @@ function BlockGames({
               hidden={hidden}
               open={openGames.has(g.game.id)}
               closing={closingGames.has(g.game.id)}
+              latest={latestScores[g.game.id] ?? null}
               legendByLeagueId={legendByLeagueId}
               onToggle={onToggleGame}
             />
@@ -327,16 +330,69 @@ function BlockGames({
   );
 }
 
+/** The time of day a play happened, e.g. "1:42 PM". */
+function clockTime(at: number | null): string {
+  return at === null ? "" : new Date(at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+/**
+ * A shut game's line for the latest play one of your players got points on:
+ * when it happened, who, what it was worth, and their total. It's where the
+ * points land when they change (see GameRows): the name lit as the play
+ * lights up in the Red Zone, then the +/- lit as it's applied, then the total
+ * lit as it counts up. All your players in the game are followed for that,
+ * though only the play's scorers are shown.
+ */
+function LatestScoreRow({ players, latest, hidden }: { players: GroupedStarter[]; latest: LatestScore; hidden: boolean }) {
+  const delta = new Map(latest.scorers.map((s) => [s.playerId, s.delta]));
+  const time = clockTime(latest.play.at);
+  return (
+    <div className={`mt-0.5 border-t border-ink-muted/25 pt-1 transition-opacity duration-150 ${hidden ? "opacity-0" : ""}`}>
+      <GameRows
+        players={players}
+        sortByPoints={false}
+        render={(player, motion) => {
+          const scored = delta.get(player.playerId);
+          if (scored === undefined) return null;
+          // While points are being applied, the +/- being applied (a replayed play's, say); otherwise this play's.
+          const d = motion.chip?.delta ?? scored;
+          const points = motion.points ?? player.points;
+          const lit = "bg-[var(--map-tag)] text-[var(--map-tag-ink)]";
+          return (
+            <div className="flex items-center gap-1.5 text-[0.8125rem] leading-tight">
+              <span className="shrink-0 text-xs tabular-nums text-ink-muted">{time}</span>
+              <span className="min-w-0 flex-1 truncate text-ink-primary">
+                <span className={motion.highlight ? `-mx-1 px-1 ${lit}` : undefined}>{player.name}</span>
+              </span>
+              <span className={`shrink-0 tabular-nums ${motion.chip ? `px-1 font-bold ${lit}` : d > 0 ? "text-status-good" : "text-status-critical"}`}>
+                {d > 0 ? "+" : ""}
+                {formatPoints(d)}
+              </span>
+              <span className="w-[3.4em] shrink-0 text-right tabular-nums">
+                {points !== null ? (
+                  <span data-points className={`relative inline-block ${motion.counting ? `-mx-1 px-1 font-bold ${lit}` : "font-semibold text-ink-primary"}`}>
+                    {formatPoints(points)}
+                  </span>
+                ) : null}
+              </span>
+            </div>
+          );
+        }}
+      />
+    </div>
+  );
+}
+
 /** How long a game's box takes to slide open or shut — as long as a time block takes to fold. */
 const FOLD_MS = 200;
 
 /**
- * One game, boxed: the away team's line with your players for them under it,
- * then the home team's with theirs — each player's points on the right, under
- * their team's score. Tapping anywhere in it opens it up to everyone worth
- * watching in the game (see liveGameRows), and back: the added names type in
- * (or delete themselves) just as a time block's do, and the box slides to its
- * new height.
+ * One game, boxed: the away team's line, then the home team's — each with its
+ * score on the right — and under them the latest play one of your players got
+ * points on. Tapping anywhere in it opens it up to everyone worth watching in
+ * the game (see liveGameRows), each under the team they play for with their
+ * points on the right, and back: the names type in (or delete themselves)
+ * just as a time block's do, and the box slides to its new height.
  */
 function GameBox({
   g,
@@ -344,12 +400,15 @@ function GameBox({
   hidden,
   open,
   closing,
+  latest,
   legendByLeagueId,
   onToggle,
 }: {
   g: GameStarters;
-  /** The players listed: yours, or everyone when it's open. */
+  /** The players listed: everyone when it's open, nobody when it's shut. */
   shown: GroupedStarter[];
+  /** The latest play one of your players got points on. */
+  latest: LatestScore | null;
   /** Its time block is switched off. */
   hidden: boolean;
   open: boolean;
@@ -360,12 +419,11 @@ function GameBox({
   onToggle: (gameId: string, closeMs: number) => void;
 }) {
   const { game, players, everyone, live } = g;
-  // Only a game with more people in it than your own players opens up.
-  const expandable = (everyone?.length ?? 0) > players.length;
+  // A game with anyone in it to list opens up.
+  const expandable = (everyone ?? players).length > 0;
   const started = game.state !== "pre";
-  // The rows opening the game adds, which delete themselves as it shuts.
-  const yours = new Set(players.map((p) => p.playerId));
-  const added = new Set(shown.filter((p) => !yours.has(p.playerId)).map((p) => p.playerId));
+  // Every row opening the game adds deletes itself as it shuts.
+  const added = new Set(shown.map((p) => p.playerId));
   const closeMs = reducedMotion()
     ? 0
     : Math.max(0, ...shown.filter((p) => added.has(p.playerId)).map((p) => totalChars(playerPieces(p, started)))) * TYPE_MS_PER_CHAR + 60;
@@ -376,16 +434,20 @@ function GameBox({
   // Slides to its new height whenever its rows change (opening, shutting).
   const box = useRef<HTMLDivElement>(null);
   const lastHeight = useRef<number | null>(null);
+  const lastRows = useRef<string | null>(null);
   const rowsKey = shown.map((p) => p.playerId).join(",");
+  // Measured on every render, so the slide starts from the height it really had (its latest play may have come in since).
   useLayoutEffect(() => {
     const el = box.current;
     if (!el) return;
     const next = el.offsetHeight;
     const prev = lastHeight.current;
+    const rowsChanged = lastRows.current !== null && lastRows.current !== rowsKey;
     lastHeight.current = next;
-    if (prev === null || prev === next || reducedMotion()) return;
+    lastRows.current = rowsKey;
+    if (!rowsChanged || prev === null || prev === next || reducedMotion()) return;
     el.animate([{ height: `${prev}px`, overflow: "hidden" }, { height: `${next}px`, overflow: "hidden" }], { duration: FOLD_MS, easing: "ease-out" });
-  }, [rowsKey]);
+  });
 
   const rows = (list: GroupedStarter[]) =>
     list.length > 0 ? (
@@ -432,6 +494,8 @@ function GameBox({
       {rows(awayPlayers)}
       <TeamLine game={game} side="home" shown={!hidden} />
       {rows(homePlayers)}
+      {/* Shut, the latest play one of your players got points on. */}
+      {!open && latest ? <LatestScoreRow players={players} latest={latest} hidden={hidden} /> : null}
     </div>
   );
 }
@@ -551,9 +615,12 @@ export function StartersByGame({
   allLeaguesHidden,
   hiddenBlocks,
   onToggleBlock,
+  latestScores,
 }: {
   games: GameStarters[];
   notPlaying: GroupedStarter[];
+  /** Each game's latest play one of your players got points on, by game id (see useLatestScores). */
+  latestScores: Record<string, LatestScore>;
   /** Each league's name and logo, for the marks on each starter's row. */
   legend: LeagueLegendEntry[];
   /** Every league is hidden in Settings, so there's nobody to list. */
@@ -635,6 +702,7 @@ export function StartersByGame({
                   openGames={openGames}
                   closingGames={closingGames}
                   onToggleGame={toggleGame}
+                  latestScores={latestScores}
                 />
               </div>
             ))}

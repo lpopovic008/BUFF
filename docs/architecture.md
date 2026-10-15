@@ -289,10 +289,15 @@ next tick always asks again.
 
 **Starters by game** (`startersListGames`, `liveGameRows` in
 `lib/my-starters.ts`, `useLivePlayerLines`): every game of the week is
-listed, each in a box of its own: the away team's logo with its score (and
-the game's clock, or the kickoff time before it starts) on the right, your
-players for that team under it, then the home team's line and players.
-Tapping anywhere in a game's box opens it up to everyone worth watching in it: the starters you're facing, plus
+listed, each in a box of its own: the away team's logo and record (as of
+that game, from ESPN's scoreboard) with its score (and the game's clock, or
+the kickoff time before it starts) on the right, then the home team's line.
+Shut, a game lists no players — just, under the teams, the latest play one
+of your players got points on: when, who, the +/- and their total
+(`useLatestScores`, `latestScoringPlay`). That line is where a changed total
+animates (see below), all your players in the game being followed for it.
+Tapping anywhere in a game's box opens it up to everyone worth watching in
+it, each under the team they play for: the starters you're facing, plus
 anyone in the game who has scored or lost points or is projected for 6+.
 Tap again to close. Once a game kicks off, rows are ordered by points, then
 projection; before kickoff, by projection alone. Before kickoff each row

@@ -44,3 +44,26 @@ export function pendingPlayPoints(
   }
   return out;
 }
+
+/** The latest play in a game that one of your players got points on (or lost them). */
+export interface LatestScore {
+  play: GamePlay;
+  /** Each of your players it moved, and by how much. */
+  scorers: { playerId: string; delta: number }[];
+}
+
+/**
+ * Of a game's plays, the latest one that moved any of `candidates`' points —
+ * null when none has yet. A play wiped out by a penalty, or one they were only
+ * named in (an incompletion thrown their way), doesn't count.
+ */
+export function latestScoringPlay(plays: GamePlay[], candidates: FeedCandidate[]): LatestScore | null {
+  const latestFirst = [...plays].sort((a, b) => b.sequence - a.sequence);
+  for (const play of latestFirst) {
+    const scorers = playersInPlay(play, candidates)
+      .map((c) => ({ playerId: c.playerId, delta: pprPointsForPlay(play, c) }))
+      .filter((s) => s.delta !== 0);
+    if (scorers.length > 0) return { play, scorers };
+  }
+  return null;
+}

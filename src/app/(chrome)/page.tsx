@@ -15,6 +15,7 @@ import { useNFLState } from "@/hooks/useNFLState";
 import { useWeekGames } from "@/hooks/useWeekGames";
 import { useLivePlayerLines } from "@/hooks/useLivePlayerLines";
 import { useLivePlayPoints } from "@/hooks/useLivePlayPoints";
+import { useLatestScores } from "@/hooks/useLatestScores";
 import { getLeagueSummary, LeagueSummary, teamStandings } from "@/lib/league-data";
 import { GameStarters, groupStartersByGame, GroupedStarter, startersListGames } from "@/lib/my-starters";
 import { avatarUrl, getCurrentWeek, weighProjection } from "@/lib/sleeper";
@@ -205,6 +206,8 @@ export default function DashboardPage() {
   const trackedRaw = useMemo(() => listedRaw.map((g) => ({ game: g.game, players: g.everyone ?? g.players })), [listedRaw]);
   // Points the Red Zone has seen that Sleeper hasn't counted yet go on top, until Sleeper catches up.
   const pendingPoints = useLivePlayPoints(watchedGames, trackedRaw);
+  // Under each game in the starters list, the latest play one of your players got points on.
+  const latestScores = useLatestScores(grouped.games);
   const listedGames = useMemo(
     () => startersListGames(weekGames, grouped.games, groupedOpponent.games, livePlayers.lines, projected, pendingPoints),
     [weekGames, grouped.games, groupedOpponent.games, livePlayers, projected, pendingPoints]
@@ -337,6 +340,7 @@ export default function DashboardPage() {
               allLeaguesHidden={config.leagues.length > 0 && config.leagues.every((l) => l.hidden)}
               hiddenBlocks={hiddenBlocks}
               onToggleBlock={toggleBlock}
+              latestScores={latestScores}
             />
           )}
         </div>

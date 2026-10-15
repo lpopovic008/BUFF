@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { pendingPlayPoints, PENDING_PLAY_MS } from "./live-play-points";
+import { latestScoringPlay, pendingPlayPoints, PENDING_PLAY_MS } from "./live-play-points";
 import { GamePlay } from "./play-by-play";
 
 function play(id: string, text: string, offense = "BUF"): GamePlay {
@@ -26,4 +26,22 @@ test("pendingPlayPoints skips plays from the first load, stale plays, and player
     {}
   );
   assert.deepEqual(pendingPlayPoints([{ play: play("1", "J.Allen right end for 10 yards"), seenAt: now }], [allen], new Map(), now), {});
+});
+
+test("latestScoringPlay finds the last play that moved one of your players' points", () => {
+  const kincaid = { playerId: "kincaid", name: "Dalton Kincaid", position: "TE", team: "BUF" };
+  const at = (seq: number, text: string): GamePlay => ({ ...play(String(seq), text), sequence: seq });
+  const plays = [
+    at(1, "J.Allen right end for 10 yards"),
+    at(2, "J.Allen pass short left to D.Kincaid for 12 yards"),
+    at(3, "J.Allen pass incomplete deep right to K.Coleman."), // named, but nothing earned
+    at(4, "J.Cook up the middle for 3 yards"), // not yours
+  ];
+  const latest = latestScoringPlay(plays, [allen, kincaid])!;
+  assert.equal(latest.play.id, "2");
+  assert.deepEqual(latest.scorers, [
+    { playerId: "allen", delta: 0.48 },
+    { playerId: "kincaid", delta: 2.2 },
+  ]);
+  assert.equal(latestScoringPlay([at(1, "J.Cook up the middle for 3 yards")], [allen]), null);
 });
