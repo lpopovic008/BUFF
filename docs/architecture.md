@@ -352,11 +352,13 @@ you scroll into the last screen of them (no "Show more"). On a phone while a
 game is live it's a short box three plays tall under the map instead.
 
 Each play reads: the time of day it happened and the matchup's logos, with
-the snap across from them — the down and distance, the yard line with a
-little field showing where the ball was (its arrow near the right end when
-the offense is going in, near the left when it's coming out; `FieldSpot`,
-`yardLineLabel`), and the quarter and clock. Under that, ESPN's description,
-led by the team with the ball, then a line for each person in it
+the snap across from them — the down and distance, the yard line with two
+little boxes for the field's halves, the one the ball was in filled (the
+right one when the offense is going in, red inside the 20; the left when
+it's coming out; `FieldSpot`, `yardLineLabel`), and the quarter and clock.
+A scoring play, turnover, red-zone snap or long gain has a colored strip down
+the row's left. Under the top line, ESPN's description, led by the logo of
+the team with the ball, then a line for each person in it
 (`lib/play-lines.ts`). A line is a photo, position and name, the leagues you
 start them in, their game as it stood after that play (`statLine`), and
 what the play earned them with their total through it. The stats are read

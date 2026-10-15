@@ -61,7 +61,7 @@ function deltaClass(delta: number): string {
 /** The player's game total through a play, on the app's highlight plate. */
 function TotalChip({ total }: { total: number }) {
   return (
-    <span className="bg-[var(--map-tag)] px-1.5 py-1 text-[0.6875rem] font-bold leading-none tabular-nums text-[var(--map-tag-ink)]">{total.toFixed(2)}</span>
+    <span className="bg-[var(--map-tag)] px-1.5 py-1 text-base font-bold leading-none tabular-nums text-[var(--map-tag-ink)]">{total.toFixed(2)}</span>
   );
 }
 
@@ -183,39 +183,31 @@ function playMarks(entry: FeedEntry): PlayMark[] {
 }
 
 /**
- * A marked play's column down the left of its row: a strip in the first
- * mark's color the row's full height, with each mark's abbreviation on a tag
- * at its top.
+ * A marked play's strip down the left of its row, in its first mark's color.
+ * The marks' abbreviations are only read out, for now.
  */
 function MarkColumn({ marks }: { marks: PlayMark[] }) {
   if (marks.length === 0) return null;
   return (
-    <span className="pointer-events-none absolute inset-y-0 left-0 flex w-[1.375rem] flex-col">
-      <span className={`absolute inset-y-0 left-0 w-[3px] ${marks[0].className}`} aria-hidden />
-      {marks.map((m) => (
-        <span key={m.label} className={`relative py-[3px] text-center text-[0.5625rem] font-bold uppercase leading-none ${m.className}`}>
-          {m.label}
-        </span>
-      ))}
+    <span className={`pointer-events-none absolute inset-y-0 left-0 w-[3px] ${marks[0].className}`}>
+      <span className="sr-only">{marks.map((m) => m.label).join(", ")}</span>
     </span>
   );
 }
 
 /**
- * A little field, the offense driving left to right: the goal lines at the
- * ends, the 50 between, and an arrowhead where the ball was snapped — near
- * the right end it's going in, near the left it's coming out.
+ * Which half of the field the ball was snapped in, as two little boxes — the
+ * offense's own half, then the other team's — the one it's in filled: the
+ * right one, it's going in (red inside the 20); the left, it's coming out.
  */
 function FieldSpot({ yardsToEndzone }: { yardsToEndzone: number }) {
-  const x = 1 + (34 * (100 - yardsToEndzone)) / 100;
+  const goingIn = yardsToEndzone < 50;
+  const fill = yardsToEndzone <= 20 ? "bg-status-critical border-status-critical" : "bg-ink-primary border-ink-primary";
   return (
-    <svg width="36" height="9" viewBox="0 0 36 9" aria-hidden className="shrink-0 overflow-visible">
-      <line x1={1} y1={4.5} x2={35} y2={4.5} stroke="currentColor" strokeOpacity={0.45} strokeWidth={1} />
-      <line x1={1} y1={1} x2={1} y2={8} stroke="currentColor" strokeOpacity={0.6} strokeWidth={1} />
-      <line x1={18} y1={2.5} x2={18} y2={6.5} stroke="currentColor" strokeOpacity={0.45} strokeWidth={1} />
-      <line x1={35} y1={1} x2={35} y2={8} stroke="currentColor" strokeWidth={1.25} />
-      <path d={`M${x - 2.5},1.5 L${x + 2.5},4.5 L${x - 2.5},7.5 Z`} fill="var(--color-ink-primary)" />
-    </svg>
+    <span className="flex shrink-0 gap-px" aria-hidden>
+      <span className={`h-2 w-2 border ${goingIn ? "border-ink-muted" : fill}`} />
+      <span className={`h-2 w-2 border ${goingIn ? fill : "border-ink-muted"}`} />
+    </span>
   );
 }
 
@@ -258,8 +250,8 @@ function FeedRow({
     <li
       onClick={(e) => replayRedZonePlay(e.currentTarget)}
       title={hasPoints ? "Replay" : undefined}
-      // Every row leaves room down its left for a marked play's column (see MarkColumn).
-      className={`relative flex flex-col gap-1.5 border-b border-border py-2 pl-7 pr-1 last:border-b-0 ${hasPoints ? "md:cursor-pointer md:hover:bg-[color-mix(in_srgb,var(--ink-primary)_4%,transparent)]" : ""}`}
+      // Every row leaves room down its left for a marked play's strip (see MarkColumn).
+      className={`relative flex flex-col gap-1.5 border-b border-border py-2 pl-3 pr-1 last:border-b-0 ${hasPoints ? "md:cursor-pointer md:hover:bg-[color-mix(in_srgb,var(--ink-primary)_4%,transparent)]" : ""}`}
       style={{
         animation: live
           ? "rise 0.35s ease-out backwards, rz-flash 2.4s ease-out"
@@ -292,7 +284,11 @@ function FeedRow({
       </span>
       {/* What happened, led by the team with the ball. */}
       <span className="break-words text-[0.75rem] leading-snug text-ink-secondary">
-        {play.offense ? <span className="mr-1.5 font-bold text-ink-primary">{play.offense}</span> : null}
+        {play.offense ? (
+          <span className="mr-1.5 inline-flex translate-y-[0.15em] align-baseline">
+            <TeamLogo team={play.offense} side={14} />
+          </span>
+        ) : null}
         {play.text}
       </span>
       {lines.length > 0 ? (
