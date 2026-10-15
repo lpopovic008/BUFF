@@ -74,6 +74,13 @@ export interface NFLGame {
   statusDetail?: string | null;
   /** Possession, red zone and the latest play, while the game is being played. */
   live?: LiveSituation | null;
+  /**
+   * Each team's record as of this game, as ESPN gives it ("2-3", "4-1-1"):
+   * before it's over, the record coming in; once it's final, counting it —
+   * so after week 1 every team is 1-0 or 0-1.
+   */
+  homeRecord?: string;
+  awayRecord?: string;
 }
 
 // ESPN writes "USA"; the others are here so a spelling change doesn't silently
@@ -132,6 +139,8 @@ export function parseScoreboard(data: unknown): NFLGame[] {
       neutralSite: comp.neutralSite === true,
       statusDetail: statusType && typeof statusType.shortDetail === "string" ? statusType.shortDetail : null,
       live: state === "in" ? parseSituation(comp.situation, teamById) : null,
+      ...withRecord("homeRecord", recordOf(home)),
+      ...withRecord("awayRecord", recordOf(away)),
     });
   }
   return games;
@@ -223,6 +232,16 @@ function teamAbbr(competitor: unknown): string | null {
   if (!isRecord(team)) return null;
   return typeof team.abbreviation === "string" ? team.abbreviation : null;
 }
+
+/** A team's overall record in a game's competitor entry ("2-3"), if ESPN gave one. */
+function recordOf(competitor: unknown): string | null {
+  if (!isRecord(competitor) || !Array.isArray(competitor.records)) return null;
+  const records = competitor.records.filter(isRecord);
+  const overall = records.find((r) => r.type === "total") ?? records[0];
+  return overall && typeof overall.summary === "string" && overall.summary ? overall.summary : null;
+}
+
+const withRecord = (key: "homeRecord" | "awayRecord", record: string | null) => (record ? { [key]: record } : {});
 
 function scoreOf(competitor: unknown): number {
   if (!isRecord(competitor)) return 0;

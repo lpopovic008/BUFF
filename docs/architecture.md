@@ -356,8 +356,11 @@ game is live it's a short box three plays tall under the map instead.
 Each play reads: the time of day it happened and the matchup's logos, with
 the snap across from them — the down and distance, a little diagram of
 where on the field the ball was (a green line with ticks at the goal lines
-and the 50, the offense driving left to right, a blue dot at the ball with
-its yard line in blue above it; `FieldSpot`), and the quarter and clock.
+and the 50, and a slim triangle at the ball pointing the way the offense is
+going, its yard line above it; `FieldSpot`), and the quarter and clock.
+ESPN doesn't say which end of the stadium a team is attacking — teams switch
+ends every quarter — so the diagram keeps one layout all game: the home
+team's goal line on the left, the home team driving right, the visitors left.
 A scoring play, turnover, red-zone snap or long gain has a colored strip down
 the row's left. Under the top line, a line for each person in it
 (`lib/play-lines.ts`), then ESPN's description, led by the logo of the team

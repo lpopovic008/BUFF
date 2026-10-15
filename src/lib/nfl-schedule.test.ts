@@ -163,3 +163,27 @@ test("parseScoreboard tolerates missing/malformed fields instead of throwing", (
   assert.deepEqual(parseScoreboard({ events: [{ competitions: [] }] }), []);
   assert.deepEqual(parseScoreboard({ events: [{ competitions: [{ competitors: [competitor("home", "BUF", "0")] }] }] }), []);
 });
+
+test("parseScoreboard reads each team's record as of the game", () => {
+  // Week 1, once it's final: every team 1-0 or 0-1.
+  const games = parseScoreboard({
+    events: [
+      {
+        id: 1,
+        competitions: [
+          {
+            competitors: [
+              { ...competitor("home", "SEA", "13"), records: [{ type: "total", summary: "1-0" }, { type: "home", summary: "1-0" }] },
+              { ...competitor("away", "NE", "10"), records: [{ type: "road", summary: "0-1" }, { type: "total", summary: "0-1" }] },
+            ],
+            status: { type: { state: "post" } },
+          },
+        ],
+      },
+      { id: 2, competitions: [{ competitors: [competitor("home", "BUF", "0"), competitor("away", "NYJ", "0")], status: { type: { state: "pre" } } }] },
+    ],
+  });
+  assert.deepEqual([games[0].homeRecord, games[0].awayRecord], ["1-0", "0-1"]);
+  // None given, none made up.
+  assert.deepEqual([games[1].homeRecord, games[1].awayRecord], [undefined, undefined]);
+});

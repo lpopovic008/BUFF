@@ -216,7 +216,7 @@ function TeamLogo({ team, visible }: { team: string; visible: boolean }) {
 
 /**
  * One team's line in a game's box: its logo over the players' position
- * column, and on the right — over their points — its score once the game's
+ * column with the team's record as of this game beside it, and on the right — over their points — its score once the game's
  * started (the top line also carries the game's clock, or the kickoff time
  * before it starts). Types itself in the first time it scrolls into view,
  * and deletes itself when its block is switched off.
@@ -229,6 +229,7 @@ function TeamLine({ game, side, shown = true }: { game: NFLGame; side: "away" | 
   const typed = typedSlices(pieces, count);
   const visible = shown && seen;
   const team = side === "away" ? game.awayTeam : game.homeTeam;
+  const record = side === "away" ? game.awayRecord : game.homeRecord;
   const started = game.state !== "pre";
   // The status (or kickoff time) in small muted type, the score as big as the points under it.
   const [status, score] = started ? (side === "away" && pieces.length > 1 ? typed : [null, typed[0]]) : [typed[0] ?? null, null];
@@ -237,6 +238,12 @@ function TeamLine({ game, side, shown = true }: { game: NFLGame; side: "away" | 
       <span className="flex w-[2.4em] shrink-0 justify-center text-[0.6875rem]">
         <TeamLogo team={team} visible={visible} />
       </span>
+      {/* Its record as of this game — counting it once it's final. */}
+      {record ? (
+        <span className={`shrink-0 text-xs tabular-nums text-ink-muted transition-opacity duration-150 ${visible ? "" : "opacity-0"}`}>
+          {record}
+        </span>
+      ) : null}
       <span className="min-w-0 flex-1" />
       {status ? <span className="shrink-0 text-xs uppercase tracking-wide text-ink-muted">{status}</span> : null}
       {score !== null ? (
