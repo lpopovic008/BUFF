@@ -439,22 +439,28 @@ export function PointsGraph({
         ) : null}
       </div>
 
-      {/* The last play by the cursor (the latest, before any drag) — a fixed height whatever it says. */}
+      {/* The last play by the cursor (the latest, before any drag), in full. Every play's description sits in
+          the same spot, all but the shown one invisible, so the box is as tall as the longest and never
+          changes size as the cursor moves. */}
       {compact ? null : (
-      <div className="flex h-[2.75rem] shrink-0 gap-2 overflow-hidden border-t border-ink-muted/25 px-2 py-1 text-[0.6875rem] leading-snug">
-        <p className="line-clamp-2 min-w-0 flex-1 text-ink-secondary">
-          {shownStep ? cleanPlayText(shownStep.text) : game.state === "pre" ? `Kicks off at ${clock(kickoff)}` : over && steps.length === 0 ? "No scoring plays" : "No points yet"}
-        </p>
-        {shownStep ? (
-          <div className="flex shrink-0 flex-col items-end tabular-nums">
-            {/* The time of day is up on the cursor; here, just the quarter and the game clock. */}
-            <span className="text-ink-muted">{shownStep.period > 0 ? `${quarterName(shownStep.period)} ${shownStep.clock}` : "\u00a0"}</span>
-            <span className={shownStep.delta < 0 ? "text-status-critical" : "text-status-good"}>
-              {shownStep.delta > 0 ? "+" : ""}
-              {shownStep.delta.toFixed(2)}
-            </span>
-          </div>
-        ) : null}
+      <div className="flex shrink-0 gap-2 border-t border-ink-muted/25 px-2 py-1 text-[0.6875rem] leading-snug">
+        <div className="grid min-w-0 flex-1 text-ink-secondary">
+          {steps.map((st) => (
+            <p key={st.playId} className={`col-start-1 row-start-1 ${st === shownStep ? "" : "invisible"}`} aria-hidden={st !== shownStep}>
+              {cleanPlayText(st.text)}
+            </p>
+          ))}
+          <p className={`col-start-1 row-start-1 ${shownStep ? "invisible" : ""}`} aria-hidden={!!shownStep}>
+            {game.state === "pre" ? `Kicks off at ${clock(kickoff)}` : over && steps.length === 0 ? "No scoring plays" : "No points yet"}
+          </p>
+        </div>
+        {/* Two lines whatever's shown, so the box keeps its height. The time of day is up on the cursor; here, just the quarter and the game clock. */}
+        <div className="flex shrink-0 flex-col items-end tabular-nums">
+          <span className="text-ink-muted">{shownStep && shownStep.period > 0 ? `${quarterName(shownStep.period)} ${shownStep.clock}` : "\u00a0"}</span>
+          <span className={shownStep && shownStep.delta < 0 ? "text-status-critical" : "text-status-good"}>
+            {shownStep ? `${shownStep.delta > 0 ? "+" : ""}${shownStep.delta.toFixed(2)}` : "\u00a0"}
+          </span>
+        </div>
       </div>
       )}
     </div>

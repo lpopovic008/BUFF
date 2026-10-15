@@ -345,15 +345,18 @@ total still differ from the plays' (stats no play carries, such as yards
 allowed) a dashed rise at the end makes up the difference, so the line
 ends on their row's number, which is lit on a plate in the corner. Dragging
 or hovering puts a dotted line under the finger, with the time there, and
-it stays where it's lifted; the description underneath — a fixed height,
-whatever it says — shows the last play by then, with its +/- on the right
+it stays where it's lifted; the description underneath shows the last play
+by then in full — every play's description laid in the same spot, all but
+the shown one invisible, so the box is as tall as the longest and keeps its
+size as the cursor moves — with its +/- on the right
 under its quarter and game clock (the time of day is on the cursor); the left and right arrow keys step
 the cursor back and forth a play at a time. × (or tapping their line again)
 takes a graph down; Escape takes them all down and brings the map back. The map stays mounted underneath, just hidden, so its view isn't
 lost. On a phone, the page scrolls up to the graph.
 
 The league page always has a graph under the lineups and above the payout
-table (`MatchupGraph`; `lib/matchup-timeline.ts`): the matchup being looked
+table, three quarters of the screen tall on a phone (`75svh`) and up to 70%
+of it, at most 40rem, from tablet width up (`MatchupGraph`; `lib/matchup-timeline.ts`): the matchup being looked
 at (opened on a phone, picked from the list from tablet width up — yours
 until another is), both teams' totals over the week, nothing to tap. Each
 team's line is every starter's points added up play by play under the

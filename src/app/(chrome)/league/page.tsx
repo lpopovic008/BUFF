@@ -238,7 +238,7 @@ function LeagueDetailContent() {
 
       {/* Under the lineups: the matchup's two totals over the week, always there. */}
       {graphed ? (
-        <section aria-label="Points over the week" className="h-[18rem] animate-[rise_0.5s_ease-out_backwards] [animation-delay:120ms] sm:h-[22rem] lg:h-[26rem]">
+        <section aria-label="Points over the week" className="h-[75svh] animate-[rise_0.5s_ease-out_backwards] [animation-delay:120ms] md:h-[min(70svh,40rem)]">
           <MatchupGraph key={`${shownWeek}-${graphed.key}`} mine={graphed.mine} theirs={graphed.theirs} weekGames={weekGames} scoring={scoring} />
         </section>
       ) : null}

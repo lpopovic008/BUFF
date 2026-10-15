@@ -387,31 +387,28 @@ export function MatchupGraph({
         ) : null}
       </div>
 
-      {/* The last scoring play by the cursor (the latest, before any drag) — a fixed height whatever it says. */}
-      <div className="flex h-[2.75rem] shrink-0 gap-2 overflow-hidden border-t border-ink-muted/25 px-2 py-1 text-[0.6875rem] leading-snug">
-        <p className="line-clamp-2 min-w-0 flex-1 text-ink-secondary">
-          {shownEvent ? (
-            <>
-              <span className={shownEvent.mine ? "text-ink-primary" : "text-ink-muted"}>{shownEvent.name}</span> · {cleanPlayText(shownEvent.text)}
-            </>
-          ) : started ? (
-            "No points yet"
-          ) : start !== null ? (
-            `Kicks off ${dayClock(start)}`
-          ) : (
-            ""
-          )}
-        </p>
-        {shownEvent ? (
-          <div className="flex shrink-0 flex-col items-end tabular-nums">
-            <span className="text-ink-muted">{shownEvent.period > 0 ? `${quarterName(shownEvent.period)} ${shownEvent.clock}` : " "}</span>
-            {/* Your points green, theirs red. */}
-            <span className={shownEvent.mine ? "text-status-good" : "text-status-critical"}>
-              {shownEvent.delta > 0 ? "+" : ""}
-              {shownEvent.delta.toFixed(2)}
-            </span>
-          </div>
-        ) : null}
+      {/* The last scoring play by the cursor (the latest, before any drag), in full. Every play's description
+          sits in the same spot, all but the shown one invisible, so the box is as tall as the longest
+          and never changes size as the cursor moves. */}
+      <div className="flex shrink-0 gap-2 border-t border-ink-muted/25 px-2 py-1 text-[0.6875rem] leading-snug">
+        <div className="grid min-w-0 flex-1 text-ink-secondary">
+          {events.map((e) => (
+            <p key={`${e.mine}-${e.playId}`} className={`col-start-1 row-start-1 ${e === shownEvent ? "" : "invisible"}`} aria-hidden={e !== shownEvent}>
+              <span className={e.mine ? "text-ink-primary" : "text-ink-muted"}>{e.name}</span> · {cleanPlayText(e.text)}
+            </p>
+          ))}
+          <p className={`col-start-1 row-start-1 ${shownEvent ? "invisible" : ""}`} aria-hidden={!!shownEvent}>
+            {started ? "No points yet" : start !== null ? `Kicks off ${dayClock(start)}` : "\u00a0"}
+          </p>
+        </div>
+        {/* Two lines whatever's shown, so the box keeps its height. */}
+        <div className="flex shrink-0 flex-col items-end tabular-nums">
+          <span className="text-ink-muted">{shownEvent && shownEvent.period > 0 ? `${quarterName(shownEvent.period)} ${shownEvent.clock}` : "\u00a0"}</span>
+          {/* Your points green, theirs red. */}
+          <span className={shownEvent?.mine ? "text-status-good" : "text-status-critical"}>
+            {shownEvent ? `${shownEvent.delta > 0 ? "+" : ""}${shownEvent.delta.toFixed(2)}` : "\u00a0"}
+          </span>
+        </div>
       </div>
     </div>
   );
