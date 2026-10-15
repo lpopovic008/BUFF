@@ -371,7 +371,8 @@ and red while you trail (`leadPieces`), with how much of the week so far
 you've led and trailed in the corner, and each team's projected pace dashed
 (`teamPace`: each starter's projection earned evenly over their game). The
 cursor, the arrow keys and the description below work as the player
-graph's do, the description naming the player and its +/- green for your
+graph's do — the cursor also labelling each team's total at that moment
+where it crosses their line, yours on a solid plate and theirs outlined — the description naming the player and its +/- green for your
 points, red for theirs.
 
 A game's box swipes left (touch, mouse drag, or a trackpad's sideways

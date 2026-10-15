@@ -51,7 +51,8 @@ function gameSpan(game: NFLGame, lastPlayAt: number, now: number | null): Span {
  * each team's projected pace (its starters' projections, each earned evenly
  * over their game) is dashed under it. Up in the corner, how much of the
  * week so far you've led and trailed. Drag or hover for a dotted cursor, left
- * where it's lifted, with the last scoring play by then described below; the
+ * where it's lifted, with each team's total at that moment labelled where it
+ * crosses their line and the last scoring play by then described below; the
  * arrow keys step it a play at a time.
  */
 export function MatchupGraph({
@@ -265,6 +266,29 @@ export function MatchupGraph({
     setCursor({ at: timeAt(e.clientX - el.getBoundingClientRect().left) });
   };
   const cursorAt = cursor?.at ?? null;
+  // Each team's total at the cursor's time (as of the line's end, past it) — labelled where the cursor crosses each line.
+  const cursorTotals = (() => {
+    if (cursorAt === null || lineEnd === null || !plot) return [];
+    const t = Math.min(cursorAt, lineEnd);
+    const totalAt = (steps: TeamStep[]) => {
+      let v = 0;
+      for (const st of steps) if (st.at <= t) v = st.total;
+      return v;
+    };
+    const tags = [{ own: true, value: totalAt(myLine) }, ...(theirs ? [{ own: false, value: totalAt(theirLine) }] : [])].map((tag) => ({
+      ...tag,
+      lineY: y(tag.value),
+      tagY: y(tag.value),
+    }));
+    // Two totals close together: nudged apart so their labels don't overlap, the higher one above.
+    if (tags.length === 2 && Math.abs(tags[0].tagY - tags[1].tagY) < 15) {
+      const [upper, lower] = tags[0].value >= tags[1].value ? [tags[0], tags[1]] : [tags[1], tags[0]];
+      const mid = (upper.tagY + lower.tagY) / 2;
+      upper.tagY = mid - 7.5;
+      lower.tagY = mid + 7.5;
+    }
+    return tags;
+  })();
 
   const team = (side: MatchupSide, own: boolean) => (
     <span className="flex min-w-0 items-center gap-1.5">
@@ -364,6 +388,37 @@ export function MatchupGraph({
                 >
                   {dayClock(cursorAt)}
                 </text>
+                {/* Each team's total there: yours on the solid plate, theirs outlined, as in the header — beside the
+                    cursor, on its left once it's near the right edge. */}
+                {cursorTotals.map((tag) => {
+                  const label = tag.value.toFixed(2);
+                  const width = label.length * 6.2 + 8;
+                  const cx = x(Math.min(cursorAt, lineEnd ?? cursorAt));
+                  const left = cx + 6 + width > PAD.left + plot.w;
+                  const bx = left ? cx - 6 - width : cx + 6;
+                  return (
+                    <g key={tag.own ? "mine" : "theirs"}>
+                      <circle cx={cx} cy={tag.lineY} r={2.5} className={tag.own ? "fill-ink-primary" : "fill-ink-muted"} />
+                      <rect
+                        x={bx}
+                        y={tag.tagY - 7}
+                        width={width}
+                        height={14}
+                        className={tag.own ? "fill-[var(--map-tag)]" : "fill-[var(--page)] stroke-ink-muted"}
+                        strokeWidth={tag.own ? 0 : 1}
+                      />
+                      <text
+                        x={bx + width / 2}
+                        y={tag.tagY}
+                        dy="0.34em"
+                        textAnchor="middle"
+                        className={`text-[0.625rem] font-bold tabular-nums ${tag.own ? "fill-[var(--map-tag-ink)]" : "fill-ink-primary"}`}
+                      >
+                        {label}
+                      </text>
+                    </g>
+                  );
+                })}
               </g>
             ) : null}
           </svg>
