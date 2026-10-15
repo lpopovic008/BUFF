@@ -300,7 +300,11 @@ teams: your starters in it, then yours and the ones you're facing, then
 everyone worth watching (`liveGameRows`: anyone in the game who has scored or
 lost points or is projected for 6+), then shut again — skipping any view that
 would list no one new. A bar under the next-kickoff clock — Team, VS, ALL — sets every box to one
-of those views at once; tapping the lit one again shuts them all. Every line
+of those views at once; tapping the lit one again shuts them all. It's tied
+to the Red Zone's own Team / VS / All both ways: picking one on the bar
+switches the Red Zone to match, and picking one in the Red Zone sets every
+box here the same way (through `StartersByGameHandle.showAll`). Shutting
+them all, or tapping a single box, leaves the Red Zone as it was. Every line
 has the same columns, so they stay lined up whatever the game's state: the
 time of the player's latest play that moved their points (no AM/PM, to keep
 it narrow) and its +/- (only while the game's on, from `useLastActions` /
@@ -332,10 +336,10 @@ is a dashed pace line, 0 at kickoff to the full projection at the final
 whistle, and the ground under their line is green wherever they're at or
 ahead of it, red wherever they're behind. Halftime (`halftimeSpan`: the 2nd quarter's last play to the 3rd's first)
 is squeezed into a thin column of etched lines, the rest of the clock
-running evenly either side of it. The time axis is labelled with just kickoff
-and each quarter's start — not the end (live, the axis runs on to about when
-the game should end) — with the minutes between each pair, and once it's
-over from the last to the end, halfway along where there's room — halftime left out, so the 2nd quarter's
+running evenly either side of it. The time axis shows just kickoff, each
+quarter's start and the end ("~" while that's an estimate — live, it runs on
+to about when the game should end), with the minutes between each pair
+halfway along where there's room — halftime left out, so the 2nd quarter's
 figure is how long it really took, and the 3rd quarter's start stands for
 halftime's end. In the full graph, up in its top-left corner, two figures
 give how much of the game so far they've been on pace (green) and behind it
@@ -399,6 +403,12 @@ else's points from `/stats` (undocumented, the same endpoints the Sleeper
 app uses). Stats are fetched only once a game this week has started, and
 then re-read each tick.
 
+**League ticker** (`LeagueTicker.tsx`): each league's matchup this week
+under the header. The winner's row — name and score — is lit like a map
+tag once the week is official (`lastFinishedWeek`); with "as it stands" on,
+whoever leads right now is lit instead. Nobody is lit while the score is
+level.
+
 **Red Zone points ahead of Sleeper** (`useLivePlayPoints`,
 `lib/live-play-points.ts`): ESPN's plays usually land before Sleeper's
 matchup points move. So each number in the starters list is Sleeper's, plus
@@ -438,7 +448,8 @@ them again like a backspace, then the box slides shut around your own players
 (`GameBox` in `StartersByGame.tsx`).
 
 **Red Zone** (`useRedZoneFeed`, `RedZone.tsx`, `lib/play-by-play.ts`): by
-default ("Team") the plays your starters are in. "All" shows every
+default ("Team") the plays your starters are in; "VS" adds the plays the
+starters you're facing are in; "All" shows every
 play of every game that's started, and only then fetches the games none of
 your starters are in. The plays run on down the page (or, side by side, the
 map's column) under a title that sticks at the top as they pass beneath it, so

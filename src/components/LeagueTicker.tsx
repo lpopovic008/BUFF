@@ -14,6 +14,8 @@ export interface TickerLeague {
   my: TeamStanding | null;
   opponent?: TeamStanding;
   leagueSize: number;
+  /** Whose matchup it is to light up as won: the final result, or — with "as it stands" on — whoever leads now. None while it's level, or not yet decided. */
+  winner?: "my" | "opponent" | null;
 }
 
 // Whether your own team's name and score are marked out like the map's tags.
@@ -163,6 +165,8 @@ export interface MatchupRowTeam {
   standing?: TeamStanding;
   /** Your own team, marked out like a map tag (when HIGHLIGHT_MINE is on). */
   mine?: boolean;
+  /** The matchup's winner (or, as it stands, its leader): its name and score lit like a map tag. */
+  winning?: boolean;
 }
 
 /**
@@ -173,7 +177,8 @@ export interface MatchupRowTeam {
  * (`fitWidth`) a name too long for it ends in an ellipsis.
  */
 function TickerTeamRow({ team, fitWidth }: { team: MatchupRowTeam; fitWidth: boolean }) {
-  const { name, points, standing, mine = false } = team;
+  const { name, points, standing, mine = false, winning = false } = team;
+  const lit = winning || (mine && HIGHLIGHT_MINE);
   const { rank, record, streak } = standing ?? {};
   return (
     <>
@@ -181,7 +186,7 @@ function TickerTeamRow({ team, fitWidth }: { team: MatchupRowTeam; fitWidth: boo
         {/* The place as a bare number in a fixed two digits, right-aligned, so every team name starts at the same x. */}
         <span className="w-[2ch] shrink-0 text-right text-xs font-medium tabular-nums text-series-4">{rank ?? ""}</span>
         <span
-          className={`text-sm ${fitWidth ? "min-w-0 truncate" : ""} ${mine && HIGHLIGHT_MINE ? MY_TEAM_NAME_CLASS : "font-medium text-ink-primary"}`}
+          className={`text-sm ${fitWidth ? "min-w-0 truncate" : ""} ${lit ? MY_TEAM_NAME_CLASS : "font-medium text-ink-primary"}`}
         >
           {name}
         </span>
@@ -191,7 +196,7 @@ function TickerTeamRow({ team, fitWidth }: { team: MatchupRowTeam; fitWidth: boo
         <StreakBadge streak={streak} />
       </div>
       <span
-        className={`justify-self-end text-base tabular-nums ${mine && HIGHLIGHT_MINE ? MY_TEAM_NAME_CLASS : "font-semibold text-ink-primary"}`}
+        className={`justify-self-end text-base tabular-nums ${lit ? MY_TEAM_NAME_CLASS : "font-semibold text-ink-primary"}`}
       >
         {points != null ? formatPoints(points) : ""}
       </span>
@@ -254,8 +259,13 @@ function TickerItem({
       {matchup && my ? (
         <MatchupRows
           teams={[
-            { name: matchup.my.teamName, points: matchup.my.points, standing: my, mine: true },
-            { name: matchup.opponent?.teamName ?? "Bye", points: matchup.opponent ? matchup.opponent.points : null, standing: opponent },
+            { name: matchup.my.teamName, points: matchup.my.points, standing: my, mine: true, winning: league.winner === "my" },
+            {
+              name: matchup.opponent?.teamName ?? "Bye",
+              points: matchup.opponent ? matchup.opponent.points : null,
+              standing: opponent,
+              winning: league.winner === "opponent",
+            },
           ]}
         />
       ) : (

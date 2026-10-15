@@ -369,26 +369,41 @@ function RedZoneAlert({ alert }: { alert: RedZoneNow }) {
 /** How many plays the phone's live box shows at once. */
 const PHONE_ROWS = 3;
 
-const SCOPES: { label: string; value: FeedScope }[] = [
+/** Which plays the Red Zone shows: your starters', theirs and the ones you face too, or every play. */
+export type RedZoneScope = "mine" | "vs" | "all";
+
+// The same three as the bar over the starters list, and kept in step with it.
+const SCOPES: { label: string; value: RedZoneScope }[] = [
   { label: "Team", value: "mine" },
+  { label: "VS", value: "vs" },
   { label: "All", value: "all" },
 ];
 
 /**
- * The Red Zone: plays as they happen, newest on top — by default only the
- * ones your starters are part of, or every play of every game — and, pinned
+ * The Red Zone: plays as they happen, newest on top — the ones your starters
+ * are part of (Team), those and the ones your opponents' starters are (VS),
+ * or every play of every game (All), kept in step with the bar over the
+ * starters list — and, pinned
  * above them, the games where a team has the ball inside the 20. Follows the
  * shared live clock, so it moves with the scores everywhere else on the page.
  */
 export function RedZone({
   starters,
+  opponents,
   weekGames,
   legend,
   weekStats,
   compactOnPhone = false,
+  scope,
+  onScopeChange,
 }: {
   /** Your starters, grouped by the game they're playing in. */
   starters: GameStarters[];
+  /** The starters you're facing, grouped the same way — their plays join yours under VS. */
+  opponents: GameStarters[];
+  /** Which plays to show — shared with the Team / VS / ALL bar over the starters list. */
+  scope: RedZoneScope;
+  onScopeChange: (scope: RedZoneScope) => void;
   /** Every game of the week. */
   weekGames: NFLGame[];
   legend: LeagueLegendEntry[];
@@ -398,9 +413,20 @@ export function RedZone({
   compactOnPhone?: boolean;
 }) {
   const mode = useLiveMode();
-  const [scope, setScope] = useState<FeedScope>("mine");
   const teamPlayers = useTeamPlayers(weekStats);
-  const feed = useRedZoneFeed(starters, weekGames, scope, teamPlayers);
+  // Under VS, the plays of your starters and the ones you face alike.
+  const followed = useMemo<GameStarters[]>(() => {
+    if (scope !== "vs") return starters;
+    const byGame = new Map<string, GameStarters>(starters.map((g) => [g.game.id, { ...g, players: [...g.players] }]));
+    for (const g of opponents) {
+      const entry = byGame.get(g.game.id) ?? { game: g.game, players: [] };
+      for (const p of g.players) if (!entry.players.some((q) => q.playerId === p.playerId)) entry.players.push(p);
+      byGame.set(g.game.id, entry);
+    }
+    return [...byGame.values()];
+  }, [scope, starters, opponents]);
+  const feedScope: FeedScope = scope === "all" ? "all" : "mine";
+  const feed = useRedZoneFeed(followed, weekGames, feedScope, teamPlayers);
   const starterById = useMemo(() => new Map(starters.flatMap((g) => g.players.map((p) => [p.playerId, p] as const))), [starters]);
   const [shown, setShown] = useState(PAGE);
   // Plays already on hand when the feed fills in just slide in; ones that arrive after that flash.
@@ -441,21 +467,25 @@ export function RedZone({
     return () => observer.disconnect();
   }, [moreToShow, shown]);
 
-  const pickScope = (next: FeedScope) => {
-    if (next === scope) return;
-    setScope(next);
+  // A new scope — picked here or on the starters list's bar — starts the plays over from the top.
+  const [prevScope, setPrevScope] = useState(scope);
+  if (scope !== prevScope) {
+    setPrevScope(scope);
     setShown(PAGE);
     setSettled(false);
+  }
+  useEffect(() => {
     boxRef.current?.scrollTo({ top: 0 });
+  }, [scope]);
+  const pickScope = (next: RedZoneScope) => {
+    if (next !== scope) onScopeChange(next);
   };
 
   const legendByLeagueId = new Map(legend.map((l) => [l.leagueId, l]));
   const entries = feed.entries;
   const live = mode === "live";
   const anyStarted =
-    scope === "mine"
-      ? starters.some((g) => g.game.state !== "pre" && g.players.length > 0)
-      : weekGames.some((g) => g.state !== "pre");
+    scope === "all" ? weekGames.some((g) => g.state !== "pre") : followed.some((g) => g.game.state !== "pre" && g.players.length > 0);
 
   return (
     // The plays run on down the page (or, side by side, the map's column),
@@ -510,7 +540,7 @@ export function RedZone({
               `relative ${compactOnPhone ? "max-md:max-h-[var(--rz-box-h,15rem)] max-md:overflow-y-auto max-md:overscroll-contain max-md:border-b max-md:border-border" : ""}`
             }
           >
-            <ol ref={listRef} className="flex flex-col" aria-label={scope === "mine" ? "Plays your starters were part of" : "Every play"} aria-live="polite">
+            <ol ref={listRef} className="flex flex-col" aria-label={scope === "mine" ? "Plays your starters were part of" : scope === "vs" ? "Plays your starters or the ones you face were part of" : "Every play"} aria-live="polite">
               {entries.slice(0, shown).map((entry, i) => (
                 <FeedRow
                   key={`${entry.game.id}-${entry.play.id}`}
@@ -533,10 +563,14 @@ export function RedZone({
             : !anyStarted
               ? scope === "mine"
                 ? "Plays your starters are part of land here as they happen, once their games kick off."
-                : "Every play lands here as it happens, once the week's games kick off."
+                : scope === "vs"
+                  ? "Plays your starters and the ones you face are part of land here as they happen, once their games kick off."
+                  : "Every play lands here as it happens, once the week's games kick off."
               : scope === "mine"
                 ? "No plays from your starters yet."
-                : "No plays yet."}
+                : scope === "vs"
+                  ? "No plays from your starters or the ones you face yet."
+                  : "No plays yet."}
         </p>
       )}
     </Card>

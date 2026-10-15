@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { formatCountdown } from "@/lib/format";
 import { TYPE_MS_PER_CHAR, totalChars, typedSlices, useSeenOnce, useTypedCount } from "@/hooks/useTyped";
 import { setHeaderKickoff } from "@/lib/header-clock";
@@ -834,6 +834,11 @@ function BlockClock({ games, now }: { games: GameStarters[]; now: number | null 
  * the rest of the dashboard rather than take over the page width. Which
  * leagues show is set in Settings (each league's visibility).
  */
+/** What the page can do to the starters list from outside it: set every box to one view (1 Team, 2 VS, 3 ALL). */
+export interface StartersByGameHandle {
+  showAll: (view: number) => void;
+}
+
 export function StartersByGame({
   games,
   byes,
@@ -845,6 +850,8 @@ export function StartersByGame({
   onToggleMap,
   selectedPlayers,
   onSelectPlayer,
+  onBarView,
+  ref,
 }: {
   games: GameStarters[];
   /** The teams on their bye this week, with any starters on them — listed last, under their own header. */
@@ -865,6 +872,10 @@ export function StartersByGame({
   selectedPlayers: { playerId: string; gameId: string }[];
   /** Puts a player's graph up (up to four), or — theirs already up — takes it down. */
   onSelectPlayer: (playerId: string, gameId: string) => void;
+  /** Told whenever the bar on top sets every box to a view (Team, VS, ALL) — the Red Zone follows it. */
+  onBarView?: (view: number) => void;
+  /** Lets the Red Zone's own Team / VS / ALL set every box here to the same view, as the bar would. */
+  ref?: React.Ref<StartersByGameHandle>;
 }) {
   const legendByLeagueId = new Map(legend.map((l) => [l.leagueId, l]));
   // Every box — each game, then each bye — with what it can list.
@@ -920,6 +931,15 @@ export function StartersByGame({
       setViews((prev) => new Map(prev).set(id, view));
     }
   };
+  // Every box to one view at once.
+  const openAll = (view: number) => {
+    setBarView(view);
+    closeTimers.current.forEach((t) => clearTimeout(t));
+    closeTimers.current.clear();
+    setClosingGames(new Set());
+    setViews(new Map(boxes.filter((box) => viewCycle(box.listing).length > 1).map((box) => [box.id, view])));
+  };
+  useImperativeHandle(ref, () => ({ showAll: openAll }));
   // The bar: every box to one view at once — or, its view tapped again, every box shut.
   const setAllViews = (view: number) => {
     if (view === barView) {
@@ -931,11 +951,8 @@ export function StartersByGame({
       }
       return;
     }
-    setBarView(view);
-    closeTimers.current.forEach((t) => clearTimeout(t));
-    closeTimers.current.clear();
-    setClosingGames(new Set());
-    setViews(new Map(boxes.filter((box) => viewCycle(box.listing).length > 1).map((box) => [box.id, view])));
+    openAll(view);
+    onBarView?.(view);
   };
   // The players showing in each started game, whose latest plays to follow.
   const followed = useMemo(

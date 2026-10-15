@@ -5,19 +5,19 @@ import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { GameMap, MappedGame } from "@/components/GameMap";
 import { LeagueTicker, TickerLeague } from "@/components/LeagueTicker";
-import { ByeTeam, LeagueLegendEntry, StartersByGame } from "@/components/StartersByGame";
+import { ByeTeam, LeagueLegendEntry, StartersByGame, StartersByGameHandle } from "@/components/StartersByGame";
 import { NFL_TEAMS } from "@/lib/nfl-logos";
 import { PointsGraphGrid } from "@/components/PointsGraph";
-import { RedZone } from "@/components/RedZone";
+import { RedZone, RedZoneScope } from "@/components/RedZone";
 import { useConfig } from "@/hooks/useConfig";
 import { MatchupTarget, useDashboardMatchups } from "@/hooks/useDashboardMatchups";
-import { useSummariesAsItStands } from "@/hooks/useAsItStands";
+import { useAsItStands, useSummariesAsItStands } from "@/hooks/useAsItStands";
 import { StarterSource, useMyStarters } from "@/hooks/useMyStarters";
 import { useNFLState } from "@/hooks/useNFLState";
 import { useWeekGames } from "@/hooks/useWeekGames";
 import { useLivePlayerLines } from "@/hooks/useLivePlayerLines";
 import { useLivePlayPoints } from "@/hooks/useLivePlayPoints";
-import { getLeagueSummary, LeagueSummary, teamStandings } from "@/lib/league-data";
+import { getLeagueSummary, lastFinishedWeek, LeagueSummary, teamStandings } from "@/lib/league-data";
 import { GameStarters, groupStartersByGame, GroupedStarter, startersListGames } from "@/lib/my-starters";
 import { avatarUrl, getCurrentWeek, weighProjection } from "@/lib/sleeper";
 import { kickoffBlockLabel } from "@/lib/game-map";
@@ -31,6 +31,10 @@ interface LoadedLeague {
 
 /** The NFL regular season's weeks, all of which the header's week picker offers. */
 const NFL_WEEKS = 18;
+
+// The Red Zone's scopes and the starters bar's views (1 Team, 2 VS, 3 ALL), one for one.
+const SCOPE_VIEW: Record<RedZoneScope, number> = { mine: 1, vs: 2, all: 3 };
+const VIEW_SCOPE: Record<number, RedZoneScope> = { 1: "mine", 2: "vs", 3: "all" };
 
 /** How many players' graphs can be up at once, in place of the map. */
 const MAX_GRAPHS = 4;
@@ -96,6 +100,7 @@ export default function DashboardPage() {
   // Each league's standings — counting the week being played, when "as it stands" is on.
   const officialSummaries = useMemo(() => leagues?.map((l) => l.summary) ?? null, [leagues]);
   const shownSummaries = useSummariesAsItStands(officialSummaries);
+  const asItStands = useAsItStands();
 
   // Your starters across every league, filed under the NFL game each is
   // playing in — one box for all leagues, rather than a few faces per league.
@@ -158,6 +163,9 @@ export default function DashboardPage() {
     else ids.add(gameId);
     setMapOff({ week: shownWeek, ids });
   };
+  // Which plays the Red Zone shows — Team, VS or All — kept in step with the bar over the starters list, both ways.
+  const [feedScope, setFeedScope] = useState<RedZoneScope>("mine");
+  const startersRef = useRef<StartersByGameHandle>(null);
   // The players whose points-over-time graphs are up in place of the map (tapped in the starters list), up to four — for that week.
   const [graphPicks, setGraphPicks] = useState<{ week: number | null; picks: { playerId: string; gameId: string }[] }>(() => ({ week: null, picks: [] }));
   const graphFor = useMemo(() => (graphPicks.week === shownWeek ? graphPicks.picks : []), [graphPicks, shownWeek]);
@@ -356,6 +364,13 @@ export default function DashboardPage() {
       my: myRow ? standingOf(myRow.rosterId) : null,
       opponent: matchup?.opponent ? standingOf(matchup.opponent.rosterId) : undefined,
       leagueSize: summary.standings.length,
+      // The winner once the week's official — or, with "as it stands" on, whoever's ahead now.
+      winner:
+        matchup?.opponent && matchup.my.points !== matchup.opponent.points && (asItStands || (shownWeek != null && shownWeek <= lastFinishedWeek(leagues[i].summary.league)))
+          ? matchup.my.points > matchup.opponent.points
+            ? "my"
+            : "opponent"
+          : null,
     };
   });
 
@@ -404,6 +419,13 @@ export default function DashboardPage() {
                   // Fresh for each week, so a week's plays slide in rather than flashing as new.
                   key={shownWeek ?? 0}
                   starters={grouped.games}
+                  opponents={groupedOpponent.games}
+                  scope={feedScope}
+                  onScopeChange={(next) => {
+                    setFeedScope(next);
+                    // The starters list follows: every game to the same view.
+                    startersRef.current?.showAll(SCOPE_VIEW[next]);
+                  }}
                   weekGames={weekGames}
                   legend={legend}
                   weekStats={livePlayers.stats}
@@ -439,6 +461,9 @@ export default function DashboardPage() {
               onToggleMap={toggleMap}
               selectedPlayers={graphFor}
               onSelectPlayer={pickGraph}
+              ref={startersRef}
+              // The Red Zone follows the bar's Team / VS / ALL.
+              onBarView={(view) => setFeedScope(VIEW_SCOPE[view] ?? "mine")}
             />
           )}
         </div>

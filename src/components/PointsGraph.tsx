@@ -205,27 +205,26 @@ export function PointsGraph({
   const yTicks: number[] = [];
   for (let v = lo; v <= hi + 1e-9; v += step) yTicks.push(Math.round(v * 100) / 100);
 
-  // The clock along the bottom: kickoff and each quarter's start (not the end), with
-  // the minutes between each pair — and, once it's over, from the last to the end —
+  // The clock along the bottom: kickoff, each quarter's start, and the end —
+  // "~" while that's only a guess — with the minutes between each pair
   // halfway along, wherever there's room.
   const marks: { at: number; label: string }[] = [];
   if (plot) {
     const kickoffMark = { at: start, label: clock(start), rank: 0 };
+    const endMark = { at: end, label: `${over ? "" : "~"}${clock(end)}`, rank: 1 };
     // Halftime has no mark of its own: the 3rd quarter's start stands for its end, and keeps its place under its line before the others.
     const quarterMarks = quarters
       .filter((q) => q.period > 1)
       .map((q) => ({ at: q.at, label: clock(q.at), rank: q.period === 3 ? 2 : 3 }));
     // Placed in order of standing, each only where it won't crowd one already placed.
-    for (const m of [kickoffMark, ...quarterMarks].sort((p, q) => p.rank - q.rank)) {
+    for (const m of [kickoffMark, endMark, ...quarterMarks].sort((p, q) => p.rank - q.rank)) {
       if (marks.some((placed) => Math.abs(x(placed.at) - x(m.at)) < 40)) continue;
       marks.push({ at: m.at, label: m.label });
     }
     marks.sort((p, q) => p.at - q.at);
   }
-  // The end has no label of its own, but still closes the last span.
-  const spans = plot ? [...marks, { at: end, label: "" }] : [];
-  const gaps = spans.slice(1).flatMap((m, i) => {
-    const prev = spans[i];
+  const gaps = marks.slice(1).flatMap((m, i) => {
+    const prev = marks[i];
     // Only spans that have played out, with room for the label.
     if (!over && m.at === end) return [];
     // The clock that ran between them, halftime left out — so the 2nd quarter's figure is how long it really took.
@@ -375,7 +374,7 @@ export function PointsGraph({
                 key={`x${m.at}`}
                 x={x(m.at)}
                 y={PAD.top + plot.h + 17}
-                textAnchor={i === 0 ? "start" : "middle"}
+                textAnchor={i === 0 ? "start" : m.at === end ? "end" : "middle"}
                 className="fill-ink-muted text-[0.625rem] tabular-nums"
               >
                 {m.label}
