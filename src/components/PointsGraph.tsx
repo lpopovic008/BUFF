@@ -77,10 +77,11 @@ function minutes(ms: number): string {
  * projection at the final whistle, and the ground under their line is green
  * wherever they're at or ahead of that pace, red wherever they're behind it.
  * Live, the line runs up to now and moves as plays come in, the axis running
- * on to about when the game should end. Points are scored by the play (PPR,
- * as the Red Zone's are); should their total in your league differ — its own
- * scoring, or stats no single play carries — a dashed rise at the end makes
- * up the difference, so the line always ends on the number in their row.
+ * on to about when the game should end. Each play is scored under the
+ * league's own rules (`scoring`; PPR without one) — bonuses, a TE premium, a
+ * defense's points-allowed bracket and all; should Sleeper's total still
+ * differ — stats no single play carries — a dashed rise at the end makes up
+ * the difference, so the line always ends on the number in their row.
  * Dragging (or hovering) across it puts a dotted line under the finger,
  * left where it's lifted, and the description below shows the last play by
  * then.
@@ -90,10 +91,13 @@ export function PointsGraph({
   game,
   onClose,
   compact = false,
+  scoring,
 }: {
   player: GroupedStarter;
   game: NFLGame;
   onClose: () => void;
+  /** The league's scoring (Sleeper's scoring_settings) each play is scored under — standard PPR without one. */
+  scoring?: Record<string, number>;
   /** One of several on screen: just the name, the total, the points axis and the lines. */
   compact?: boolean;
 }) {
@@ -105,8 +109,14 @@ export function PointsGraph({
     [game, playsByGame]
   );
   const steps = useMemo(
-    () => pointsTimeline(plays, { playerId: player.playerId, name: player.name, position: player.position, team: player.team }),
-    [plays, player.playerId, player.name, player.position, player.team]
+    () =>
+      pointsTimeline(
+        plays,
+        { playerId: player.playerId, name: player.name, position: player.position, team: player.team },
+        scoring,
+        { home: game.homeTeam, away: game.awayTeam }
+      ),
+    [plays, player.playerId, player.name, player.position, player.team, scoring, game.homeTeam, game.awayTeam]
   );
   const quarters = useMemo(() => periodStarts(plays), [plays]);
   const halftime = useMemo(() => halftimeSpan(plays), [plays]);
@@ -447,6 +457,34 @@ export function PointsGraph({
         ) : null}
       </div>
       )}
+    </div>
+  );
+}
+
+/** One graph to put up: the player, their game, and the scoring to draw it under. */
+export interface GraphedPlayer {
+  player: GroupedStarter;
+  game: NFLGame;
+  scoring?: Record<string, number>;
+}
+
+/**
+ * Up to four players' graphs, filling the box they're given: one alone in
+ * full, two stacked one over the other, three or four one to a corner — each
+ * pared back (see PointsGraph's `compact`) once there's more than one.
+ */
+export function PointsGraphGrid({ graphs, onClose }: { graphs: GraphedPlayer[]; onClose: (playerId: string) => void }) {
+  return (
+    <div
+      className={`grid h-full w-full gap-x-3 gap-y-2 ${
+        graphs.length === 1 ? "grid-cols-1 grid-rows-1" : graphs.length === 2 ? "grid-cols-1 grid-rows-2" : "grid-cols-2 grid-rows-2"
+      }`}
+    >
+      {graphs.map(({ player, game, scoring }) => (
+        <div key={`${game.id}-${player.playerId}`} className="min-h-0 min-w-0">
+          <PointsGraph player={player} game={game} scoring={scoring} compact={graphs.length > 1} onClose={() => onClose(player.playerId)} />
+        </div>
+      ))}
     </div>
   );
 }

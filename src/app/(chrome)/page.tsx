@@ -7,7 +7,7 @@ import { GameMap, MappedGame } from "@/components/GameMap";
 import { LeagueTicker, TickerLeague } from "@/components/LeagueTicker";
 import { ByeTeam, LeagueLegendEntry, StartersByGame } from "@/components/StartersByGame";
 import { NFL_TEAMS } from "@/lib/nfl-logos";
-import { PointsGraph } from "@/components/PointsGraph";
+import { PointsGraphGrid } from "@/components/PointsGraph";
 import { RedZone } from "@/components/RedZone";
 import { useConfig } from "@/hooks/useConfig";
 import { MatchupTarget, useDashboardMatchups } from "@/hooks/useDashboardMatchups";
@@ -272,6 +272,10 @@ export default function DashboardPage() {
   const anyGameLive = weekGames.some((g) => g.state === "in");
 
   // The graphed players and their games, as they stand now — so a live graph moves with each tick.
+  const scoringByLeague = useMemo(
+    () => new Map((leagues ?? []).map((l) => [l.tracked.leagueId, l.summary.league.scoring_settings])),
+    [leagues]
+  );
   const graphed = useMemo(
     () =>
       graphFor.flatMap((pick) => {
@@ -377,16 +381,16 @@ export default function DashboardPage() {
                   </div>
                   {/* One graph in full; two stacked; three or four, one to a corner. */}
                   {graphed.length > 0 ? (
-                    <div
-                      className={`absolute inset-0 grid gap-x-3 gap-y-2 ${
-                        graphed.length === 1 ? "grid-cols-1 grid-rows-1" : graphed.length === 2 ? "grid-cols-1 grid-rows-2" : "grid-cols-2 grid-rows-2"
-                      }`}
-                    >
-                      {graphed.map(({ game, player }) => (
-                        <div key={`${game.id}-${player.playerId}`} className="min-h-0 min-w-0">
-                          <PointsGraph player={player} game={game} compact={graphed.length > 1} onClose={() => unpickGraph(player.playerId)} />
-                        </div>
-                      ))}
+                    <div className="absolute inset-0">
+                      <PointsGraphGrid
+                        graphs={graphed.map(({ game, player }) => ({
+                          game,
+                          player,
+                          // Under the league their row's points are scored in (the first they're started in); anyone else's is PPR, as their row is.
+                          scoring: player.side === "other" ? undefined : scoringByLeague.get(player.leagueIds[0]),
+                        }))}
+                        onClose={unpickGraph}
+                      />
                     </div>
                   ) : null}
                 </div>

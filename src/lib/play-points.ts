@@ -63,6 +63,26 @@ function defenseStats(play: GamePlay, text: string): PlayStats {
   return stats;
 }
 
+/** Whether a gain of `yards` (or a touchdown) moved the chains, from the down and distance it was snapped on. */
+function firstDown(play: GamePlay, yards: number, touchdown: boolean): boolean {
+  if (touchdown) return true;
+  const toGo = /&\s*(\d+)/.exec(play.downDistance ?? "");
+  return toGo !== null && yards >= Number(toGo[1]);
+}
+
+/**
+ * The stats some leagues pay extra for, in Sleeper's names: a first down
+ * ("rec_fd"), a 40-yard-plus play ("rec_40p"), a 40-yard-plus touchdown
+ * ("rec_td_40p") — "pass_cmp_40p" for a long completion.
+ */
+function bonusStats(stats: PlayStats, kind: "pass" | "rush" | "rec", yards: number, touchdown: boolean, moved: boolean) {
+  if (moved) add(stats, `${kind}_fd`);
+  if (yards >= 40) {
+    add(stats, kind === "pass" ? "pass_cmp_40p" : `${kind}_40p`);
+    if (touchdown) add(stats, `${kind}_td_40p`);
+  }
+}
+
 /**
  * What one player did on one play, read from its line: passes thrown and
  * completed, yards and touchdowns, carries, catches, kicks — or, for a team
@@ -95,6 +115,10 @@ export function statsForPlay(play: GamePlay, player: FeedCandidate): PlayStats {
       const yards = Number(fg[1]);
       add(stats, "fgm");
       add(stats, yards >= 50 ? "fgm_50p" : yards >= 40 ? "fgm_40_49" : "fgm_0_39");
+      // Sleeper's own distance buckets, which a league's scoring is written in.
+      if (yards < 40) add(stats, yards < 20 ? "fgm_0_19" : yards < 30 ? "fgm_20_29" : "fgm_30_39");
+      if (yards >= 50) add(stats, yards >= 60 ? "fgm_60p" : "fgm_50_59");
+      add(stats, "fgm_yds", yards);
     }
   }
   const xp = new RegExp(`${name} extra point is (GOOD|No Good|Blocked)`, "i").exec(text);
@@ -110,8 +134,10 @@ export function statsForPlay(play: GamePlay, player: FeedCandidate): PlayStats {
     if (/INTERCEPTED/.test(main)) add(stats, "pass_int");
     else if (!/pass incomplete/i.test(main.slice(pass.index))) {
       add(stats, "pass_cmp");
-      add(stats, "pass_yd", yardsAfter(main, pass.index) ?? play.yards);
+      const yards = yardsAfter(main, pass.index) ?? play.yards;
+      add(stats, "pass_yd", yards);
       if (offenseTd) add(stats, "pass_td");
+      bonusStats(stats, "pass", yards, offenseTd, firstDown(play, yards, offenseTd));
     }
   }
 
@@ -119,16 +145,20 @@ export function statsForPlay(play: GamePlay, player: FeedCandidate): PlayStats {
   const catchMatch = new RegExp(`pass(?: (?:short|deep))?(?: (?:left|middle|right))? to ${name}`).exec(main);
   if (catchMatch) {
     add(stats, "rec");
-    add(stats, "rec_yd", yardsAfter(main, catchMatch.index) ?? play.yards);
+    const yards = yardsAfter(main, catchMatch.index) ?? play.yards;
+    add(stats, "rec_yd", yards);
     if (offenseTd) add(stats, "rec_td");
+    bonusStats(stats, "rec", yards, offenseTd, firstDown(play, yards, offenseTd));
   }
 
   // Running: the line opens with the runner, doing anything but passing, being sacked or kicking.
   const run = new RegExp(`^${name} (?!pass|sacked|kicks|punts|\\d+ yard field goal|extra point|spiked)`).exec(main.trim());
   if (run && !pass) {
     add(stats, "rush_att");
-    add(stats, "rush_yd", yardsAfter(main.trim(), 0) ?? play.yards);
+    const yards = yardsAfter(main.trim(), 0) ?? play.yards;
+    add(stats, "rush_yd", yards);
     if (offenseTd) add(stats, "rush_td");
+    bonusStats(stats, "rush", yards, offenseTd, firstDown(play, yards, offenseTd));
   }
 
   // Losing the ball: whoever ESPN names fumbling, or else whoever had it — the
@@ -196,4 +226,93 @@ export function pprPointsForPlay(play: GamePlay, player: FeedCandidate): number 
 export function formatPlayPoints(points: number): string {
   const s = String(round2(Math.abs(points)));
   return points > 0 ? `+${s}` : points < 0 ? `-${s}` : "0";
+}
+
+/** Sleeper's default PPR scoring, in its own stat names — the rules a graph falls back on when a player has no league's. */
+export const PPR_SCORING: Record<string, number> = {
+  pass_yd: 0.04,
+  pass_td: 4,
+  pass_int: -1,
+  pass_2pt: 2,
+  rush_yd: 0.1,
+  rush_td: 6,
+  rush_2pt: 2,
+  rec: 1,
+  rec_yd: 0.1,
+  rec_td: 6,
+  rec_2pt: 2,
+  fum_lost: -2,
+  fgm_0_19: 3,
+  fgm_20_29: 3,
+  fgm_30_39: 3,
+  fgm_40_49: 4,
+  fgm_50p: 5,
+  fgmiss: -1,
+  xpm: 1,
+  xpmiss: -1,
+  sack: 1,
+  int: 2,
+  fum_rec: 2,
+  def_td: 6,
+  safe: 2,
+  blk_kick: 2,
+  pts_allow_0: 10,
+  pts_allow_1_6: 7,
+  pts_allow_7_13: 4,
+  pts_allow_14_20: 1,
+  pts_allow_21_27: 0,
+  pts_allow_28_34: -1,
+  pts_allow_35p: -4,
+};
+
+// A defense's points-allowed brackets, in Sleeper's names, by the most it can have allowed.
+const POINTS_ALLOWED: [number, string][] = [
+  [0, "pts_allow_0"],
+  [6, "pts_allow_1_6"],
+  [13, "pts_allow_7_13"],
+  [20, "pts_allow_14_20"],
+  [27, "pts_allow_21_27"],
+  [34, "pts_allow_28_34"],
+  [Infinity, "pts_allow_35p"],
+];
+
+// Stat lines past these marks earn some leagues a bonus, once each.
+const THRESHOLDS: [string, (s: PlayStats) => number, number][] = [
+  ["bonus_pass_yd_300", (s) => s.pass_yd ?? 0, 300],
+  ["bonus_pass_yd_400", (s) => s.pass_yd ?? 0, 400],
+  ["bonus_rush_yd_100", (s) => s.rush_yd ?? 0, 100],
+  ["bonus_rush_yd_200", (s) => s.rush_yd ?? 0, 200],
+  ["bonus_rec_yd_100", (s) => s.rec_yd ?? 0, 100],
+  ["bonus_rec_yd_200", (s) => s.rec_yd ?? 0, 200],
+  ["bonus_rush_rec_yd_100", (s) => (s.rush_yd ?? 0) + (s.rec_yd ?? 0), 100],
+  ["bonus_rush_rec_yd_200", (s) => (s.rush_yd ?? 0) + (s.rec_yd ?? 0), 200],
+  ["bonus_pass_cmp_25", (s) => s.pass_cmp ?? 0, 25],
+  ["bonus_rush_att_20", (s) => s.rush_att ?? 0, 20],
+];
+
+/**
+ * A stat line's points under a league's own scoring (Sleeper's
+ * scoring_settings): every stat it pays for, misses at their own price, its
+ * catch bonus by position (a TE premium), any yardage marks passed and — for
+ * a defense with `pts_allow` in its line — the points-allowed bracket it's in.
+ * Score a running total of a player's game and the bonuses land on the play
+ * that crossed the mark.
+ */
+export function scoreStats(stats: PlayStats, scoring: Record<string, number>, position: string): number {
+  let sum = 0;
+  for (const [key, n] of Object.entries(stats)) {
+    if (key === "pts_allow") continue;
+    const weight = scoring[key];
+    if (typeof weight === "number") sum += weight * n;
+  }
+  sum += (scoring.fgmiss ?? 0) * Math.max(0, (stats.fga ?? 0) - (stats.fgm ?? 0));
+  sum += (scoring.xpmiss ?? 0) * Math.max(0, (stats.xpa ?? 0) - (stats.xpm ?? 0));
+  const catchBonus = position === "TE" ? "bonus_rec_te" : position === "RB" ? "bonus_rec_rb" : position === "WR" ? "bonus_rec_wr" : null;
+  if (catchBonus) sum += (scoring[catchBonus] ?? 0) * (stats.rec ?? 0);
+  for (const [key, value, mark] of THRESHOLDS) if (value(stats) >= mark) sum += scoring[key] ?? 0;
+  if (typeof stats.pts_allow === "number") {
+    const bracket = POINTS_ALLOWED.find(([most]) => stats.pts_allow <= most)?.[1];
+    if (bracket) sum += scoring[bracket] ?? 0;
+  }
+  return round2(sum);
 }

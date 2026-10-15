@@ -5,7 +5,7 @@
 // plays and stands on its own again.
 
 import { FeedCandidate, GamePlay, playersInPlay } from "./play-by-play";
-import { pprPointsForPlay } from "./play-points";
+import { PlayStats, PPR_SCORING, pprPointsForPlay, scoreStats, statsForPlay } from "./play-points";
 
 /** A play, and when this page first saw it — 0 for plays already there when the game's play-by-play first loaded. */
 export interface SeenPlay {
@@ -83,17 +83,50 @@ export interface PointsStep {
 /**
  * A player's game, play by play: each play that moved their points (or cost
  * them), in game order, with their running total — what a points-over-time
- * graph draws. Plays ESPN gave no time for are left out.
+ * graph draws. Points are their league's (`scoring`, Sleeper's
+ * scoring_settings; standard PPR without one), worked out on their running
+ * stat line so yardage bonuses land on the play that crossed the mark. A
+ * defense's points-allowed bracket moving as the other side scores is a step
+ * of its own (given the game's `teams`). Plays ESPN gave no time for count
+ * toward the next play that has one.
  */
-export function pointsTimeline(plays: GamePlay[], candidate: FeedCandidate): PointsStep[] {
+export function pointsTimeline(
+  plays: GamePlay[],
+  candidate: FeedCandidate,
+  scoring: Record<string, number> = PPR_SCORING,
+  teams?: { home: string; away: string }
+): PointsStep[] {
   const out: PointsStep[] = [];
+  const running: PlayStats = {};
+  let allowed: number | null = null;
+  // Their points as of the last step drawn: from plays, and with the points-allowed bracket on top.
+  let drawnPlays = 0;
+  let drawnAll = 0;
   let total = 0;
   for (const play of [...plays].sort((a, b) => a.sequence - b.sequence)) {
-    if (play.at === null || playersInPlay(play, [candidate]).length === 0) continue;
-    const delta = pprPointsForPlay(play, candidate);
-    if (delta === 0) continue;
-    total = Math.round((total + delta) * 100) / 100;
-    out.push({ playId: play.id, at: play.at, period: play.period, clock: play.clock, text: play.text, delta, total });
+    if (candidate.position === "DEF" && teams && play.score) {
+      if (candidate.team === teams.home) allowed = play.score.away;
+      else if (candidate.team === teams.away) allowed = play.score.home;
+    }
+    if (playersInPlay(play, [candidate]).length > 0) {
+      for (const [key, n] of Object.entries(statsForPlay(play, candidate))) running[key] = (running[key] ?? 0) + n;
+    }
+    if (play.at === null) continue;
+    const fromPlays = scoreStats(running, scoring, candidate.position);
+    const all = allowed === null ? fromPlays : scoreStats({ ...running, pts_allow: allowed }, scoring, candidate.position);
+    const playDelta = Math.round((fromPlays - drawnPlays) * 100) / 100;
+    const allowedDelta = Math.round((all - fromPlays - (drawnAll - drawnPlays)) * 100) / 100;
+    const base = { at: play.at, period: play.period, clock: play.clock };
+    if (playDelta !== 0) {
+      total = Math.round((total + playDelta) * 100) / 100;
+      out.push({ ...base, playId: play.id, text: play.text, delta: playDelta, total });
+    }
+    if (allowedDelta !== 0) {
+      total = Math.round((total + allowedDelta) * 100) / 100;
+      out.push({ ...base, playId: `${play.id}:allowed`, text: `${candidate.team ?? ""} D/ST — ${allowed} points allowed`.trim(), delta: allowedDelta, total });
+    }
+    drawnPlays = fromPlays;
+    drawnAll = all;
   }
   return out;
 }

@@ -320,8 +320,14 @@ their total, the points axis, the rules, the pace line and the shading (a
 fifth tapped pushes out the first; each has its own ×). One alone is the
 full graph (`PointsGraph`; `pointsTimeline`, `periodStarts` and `pacePieces` in
 `lib/live-play-points.ts`): a black (white, in the dark) step line by time
-of day, rising at each play that moved their points — scored PPR by the
-play, as the Red Zone's are — with the quarters ruled in. Their projection
+of day, rising at each play that moved their points, with the quarters
+ruled in. Each play is scored under the player's league's own rules
+(`scoring_settings`; on the dashboard, the first league they're started in,
+and PPR for anyone who isn't yours or an opponent's): `scoreStats` in
+`lib/play-points.ts` scores their running stat line after every play, so
+first downs, long-play and yardage bonuses, a TE premium and the like land
+on the play that earned them, and a defense's points-allowed bracket moves
+as a step of its own whenever the other side scores. Their projection
 is a dashed pace line, 0 at kickoff to the full projection at the final
 whistle, and the ground under their line is green wherever they're at or
 ahead of it, red wherever they're behind. Halftime (`halftimeSpan`: the 2nd quarter's last play to the 3rd's first)
@@ -334,17 +340,22 @@ figure is how long it really took, and the 3rd quarter's start stands for
 halftime's end. In the full graph, up in its top-left corner, two figures
 give how much of the game so far they've been on pace (green) and behind it
 (red), halftime aside. Live, the line runs to now and grows
-as plays come in, sharing the Red Zone's play-by-play fetches. When their
-total in your league differs from the plays' (its own scoring, or stats no
-play carries) a dashed rise at the end makes up the difference, so the line
+as plays come in, sharing the Red Zone's play-by-play fetches. Should Sleeper's
+total still differ from the plays' (stats no play carries, such as yards
+allowed) a dashed rise at the end makes up the difference, so the line
 ends on their row's number, which is lit on a plate in the corner. Dragging
 or hovering puts a dotted line under the finger, with the time there, and
 it stays where it's lifted; the description underneath — a fixed height,
-whatever it says — shows the last play by then, its quarter and clock and
-+/- on the right, under its quarter and game clock (the time of day is on the cursor); the left and right arrow keys step
+whatever it says — shows the last play by then, with its +/- on the right
+under its quarter and game clock (the time of day is on the cursor); the left and right arrow keys step
 the cursor back and forth a play at a time. × (or tapping their line again)
 takes a graph down; Escape takes them all down and brings the map back. The map stays mounted underneath, just hidden, so its view isn't
 lost. On a phone, the page scrolls up to the graph.
+
+The league page has the same graphs, under the lineups and above the payout
+table: tap any player in a matchup's lineup (yours or theirs) to put theirs
+up — up to four, laid out the same way — scored under that league's rules,
+their projection too, and ending on the points beside them in the lineup.
 
 A game's box swipes left (touch, mouse drag, or a trackpad's sideways
 scroll) to show an eye button that takes that one game off the map, or puts

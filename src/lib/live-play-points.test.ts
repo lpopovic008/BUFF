@@ -83,3 +83,41 @@ test("halftimeSpan runs from the 2nd quarter's last play to the 3rd's first", ()
   assert.deepEqual(halftimeSpan([at(1, 2, 1000), at(2, 2, 2000), at(3, 3, 5000), at(4, 3, 6000), at(5, 2, null)]), { from: 2000, to: 5000 });
   assert.equal(halftimeSpan([at(1, 2, 1000)]), null);
 });
+
+test("pointsTimeline scores each play under a league's own rules, bonuses on the play that earns them", () => {
+  const kincaid = { playerId: "kincaid", name: "Dalton Kincaid", position: "TE", team: "BUF" };
+  const at = (seq: number, text: string, extra: Partial<GamePlay> = {}): GamePlay => ({ ...play(String(seq), text), sequence: seq, at: seq * 1000, ...extra });
+  const plays = [
+    at(1, "J.Allen pass short left to D.Kincaid to BUF 40 for 60 yards", { downDistance: "2nd & 5" }),
+    at(2, "J.Allen pass short left to D.Kincaid to MIA 10 for 45 yards", { downDistance: "1st & 10" }),
+  ];
+  // Half PPR, a 0.5 TE premium, a point per first down, 3 for a 100-yard game.
+  const scoring = { rec: 0.5, rec_yd: 0.1, bonus_rec_te: 0.5, rec_fd: 1, bonus_rec_yd_100: 3 };
+  assert.deepEqual(
+    pointsTimeline(plays, kincaid, scoring).map(({ delta, total }) => ({ delta, total })),
+    [
+      { delta: 8, total: 8 }, // 0.5 + 0.5 + 6 + 1
+      { delta: 9.5, total: 17.5 }, // 0.5 + 0.5 + 4.5 + 1, and past 100 yards: + 3
+    ]
+  );
+});
+
+test("pointsTimeline moves a defense's points-allowed bracket as the other side scores", () => {
+  const bufDef = { playerId: "BUF", name: "BUF D/ST", position: "DEF", team: "BUF" };
+  const at = (seq: number, text: string, score: { home: number; away: number }): GamePlay => ({ ...play(String(seq), text, "MIA"), sequence: seq, at: seq * 1000, score });
+  const plays = [
+    at(1, "T.Tagovailoa pass short right to T.Hill for 5 yards", { home: 0, away: 0 }),
+    { ...at(2, "T.Tagovailoa sacked at MIA 20 for -6 yards", { home: 0, away: 0 }), type: "Sack" },
+    at(3, "J.Waddle 20 yard pass from T.Tagovailoa, TOUCHDOWN", { home: 7, away: 0 }),
+  ];
+  // BUF is away at MIA: MIA's points are the ones it allows.
+  const steps = pointsTimeline(plays, bufDef, undefined, { home: "MIA", away: "BUF" });
+  assert.deepEqual(
+    steps.map(({ playId, delta, total }) => ({ playId, delta, total })),
+    [
+      { playId: "1:allowed", delta: 10, total: 10 }, // a shutout so far
+      { playId: "2", delta: 1, total: 11 }, // the sack
+      { playId: "3:allowed", delta: -6, total: 5 }, // 7 allowed: the bracket's 10 down to 4
+    ]
+  );
+});
