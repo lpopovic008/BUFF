@@ -438,10 +438,8 @@ export function PointsGraph({
         </p>
         {shownStep ? (
           <div className="flex shrink-0 flex-col items-end tabular-nums">
-            <span className="text-ink-muted">
-              {clock(shownStep.at)}
-              {shownStep.period > 0 ? ` · ${quarterName(shownStep.period)} ${shownStep.clock}` : ""}
-            </span>
+            {/* The time of day is up on the cursor; here, just the quarter and the game clock. */}
+            <span className="text-ink-muted">{shownStep.period > 0 ? `${quarterName(shownStep.period)} ${shownStep.clock}` : "\u00a0"}</span>
             <span className={shownStep.delta < 0 ? "text-status-critical" : "text-status-good"}>
               {shownStep.delta > 0 ? "+" : ""}
               {shownStep.delta.toFixed(2)}

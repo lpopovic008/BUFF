@@ -341,7 +341,7 @@ ends on their row's number, which is lit on a plate in the corner. Dragging
 or hovering puts a dotted line under the finger, with the time there, and
 it stays where it's lifted; the description underneath — a fixed height,
 whatever it says — shows the last play by then, its quarter and clock and
-+/- on the right, under its time of day; the left and right arrow keys step
++/- on the right, under its quarter and game clock (the time of day is on the cursor); the left and right arrow keys step
 the cursor back and forth a play at a time. × (or tapping their line again)
 takes a graph down; Escape takes them all down and brings the map back. The map stays mounted underneath, just hidden, so its view isn't
 lost. On a phone, the page scrolls up to the graph.
