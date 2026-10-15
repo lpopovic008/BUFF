@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { cleanPlayText, downAndDistance, playTextActors, FeedCandidate, GamePlay, isBigPlay, parseSummaryPlays, playersInPlay, playTextNamePattern } from "./play-by-play";
+import { cleanPlayText, downAndDistance, playTextActors, FeedCandidate, GamePlay, isBigPlay, parseSummaryPlays, playersInPlay, playTextNamePattern, yardLineLabel } from "./play-by-play";
 
 function play(over: Partial<GamePlay>): GamePlay {
   return {
@@ -134,6 +134,8 @@ test("parseSummaryPlays reads drives in game order, with the offense from each d
   assert.deepEqual(plays.map((p) => p.downDistance), ["1st & 10", "2nd & Goal"]);
   assert.equal(plays[0].at, Date.parse("2026-10-02T00:44:14Z"));
   assert.equal(plays[1].at, null);
+  // Where each was snapped: ESPN's reading when it gives one (here it doesn't), and how far to go.
+  assert.deepEqual(plays.map((p) => [p.yardLine, p.yardsToEndzone]), [[undefined, 65], [undefined, 3]]);
   // The score after the play, when ESPN gives it.
   assert.deepEqual(plays[0].score, { home: 0, away: 7 });
   assert.equal(plays[1].score, undefined);
@@ -155,4 +157,12 @@ test("playTextActors names who did something, not tacklers or team-tagged names"
   assert.deepEqual(playTextActors(p).map((a) => a.label), ["B.Mayfield", "M.Evans"]);
   const stBrown = play({ text: "J.Goff pass short right to A.St. Brown for 9 yards, TOUCHDOWN. J.Bates extra point is GOOD." });
   assert.deepEqual(playTextActors(stBrown).map((a) => a.label), ["J.Goff", "A.St. Brown", "J.Bates"]);
+});
+
+test("yardLineLabel reads the field from the offense's side", () => {
+  assert.equal(yardLineLabel(play({ offense: "PIT", yardsToEndzone: 22 }), "CLE"), "CLE 22");
+  assert.equal(yardLineLabel(play({ offense: "PIT", yardsToEndzone: 65 }), "CLE"), "PIT 35");
+  assert.equal(yardLineLabel(play({ offense: "PIT", yardsToEndzone: 50 }), "CLE"), "50");
+  assert.equal(yardLineLabel(play({ offense: "PIT", yardsToEndzone: 22, yardLine: "CLE 22" }), null), "CLE 22");
+  assert.equal(yardLineLabel(play({ offense: "PIT" }), "CLE"), null);
 });

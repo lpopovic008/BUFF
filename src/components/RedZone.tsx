@@ -11,6 +11,7 @@ import { useTeamPlayers } from "@/hooks/useTeamPlayers";
 import { GameStarters, GroupedStarter } from "@/lib/my-starters";
 import { NFLGame } from "@/lib/nfl-schedule";
 import { formatPlayPoints } from "@/lib/play-points";
+import { yardLineLabel } from "@/lib/play-by-play";
 import { PlayLine, statLine } from "@/lib/play-lines";
 import { nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
@@ -60,7 +61,7 @@ function deltaClass(delta: number): string {
 /** The player's game total through a play, on the app's highlight plate. */
 function TotalChip({ total }: { total: number }) {
   return (
-    <span className="bg-[var(--map-tag)] px-1 py-px text-[0.6875rem] font-bold tabular-nums text-[var(--map-tag-ink)]">{total.toFixed(2)}</span>
+    <span className="bg-[var(--map-tag)] px-1.5 py-1 text-[0.6875rem] font-bold leading-none tabular-nums text-[var(--map-tag-ink)]">{total.toFixed(2)}</span>
   );
 }
 
@@ -110,13 +111,13 @@ function PlayerLine({
   return (
     <li className="flex items-center gap-2">
       {defense && line.team ? (
-        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-page">
-          <TeamLogo team={line.team} side={16} />
+        <span className="flex h-[1.125rem] w-[1.125rem] shrink-0 items-center justify-center rounded-full bg-page">
+          <TeamLogo team={line.team} side={13} />
         </span>
       ) : line.playerId ? (
-        <PlayerHeadshot playerId={line.playerId} size={24} />
+        <PlayerHeadshot playerId={line.playerId} size={18} />
       ) : (
-        <span className="h-6 w-6 shrink-0 rounded-full border border-border bg-page" aria-hidden />
+        <span className="h-[1.125rem] w-[1.125rem] shrink-0 rounded-full border border-border bg-page" aria-hidden />
       )}
       <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-1.5">
         {line.position ? (
@@ -182,15 +183,34 @@ function PlayBadges({ entry }: { entry: FeedEntry }) {
   );
 }
 
+/**
+ * A little field, the offense driving left to right: the goal lines at the
+ * ends, the 50 between, and an arrowhead where the ball was snapped — near
+ * the right end it's going in, near the left it's coming out.
+ */
+function FieldSpot({ yardsToEndzone }: { yardsToEndzone: number }) {
+  const x = 1 + (34 * (100 - yardsToEndzone)) / 100;
+  return (
+    <svg width="36" height="9" viewBox="0 0 36 9" aria-hidden className="shrink-0 overflow-visible">
+      <line x1={1} y1={4.5} x2={35} y2={4.5} stroke="currentColor" strokeOpacity={0.45} strokeWidth={1} />
+      <line x1={1} y1={1} x2={1} y2={8} stroke="currentColor" strokeOpacity={0.6} strokeWidth={1} />
+      <line x1={18} y1={2.5} x2={18} y2={6.5} stroke="currentColor" strokeOpacity={0.45} strokeWidth={1} />
+      <line x1={35} y1={1} x2={35} y2={8} stroke="currentColor" strokeWidth={1.25} />
+      <path d={`M${x - 2.5},1.5 L${x + 2.5},4.5 L${x - 2.5},7.5 Z`} fill="var(--color-ink-primary)" />
+    </svg>
+  );
+}
+
 /** The time of day a play happened, e.g. "1:42 PM". */
 function clockTime(at: number | null): string {
   return at === null ? "" : new Date(at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
 /**
- * One play: when it happened, the team with the ball and the down and
- * distance it was snapped on along the top (the matchup and the game clock
- * across from them); a line for each person in it; ESPN's description underneath. A play
+ * One play: when it happened and the matchup along the top, with the snap
+ * across from them — the down and distance, where on the field, the quarter
+ * and clock; then ESPN's description, led by the team with the ball; then a
+ * line for each person in it. A play
  * that arrives while you watch slides in and washes its row in the theme's
  * ink — green for a good one for you.
  */
@@ -213,7 +233,8 @@ function FeedRow({
   const hasPoints = lines.some((l) => !!l.delta);
   const good = play.scoring || (play.turnover && players.length > 0 && players.every((p) => p.position === "DEF"));
   const time = clockTime(play.at);
-  const team = play.offense ?? game.awayTeam;
+  const defense = play.offense ? ([game.homeTeam, game.awayTeam].find((t) => t !== play.offense) ?? null) : null;
+  const spot = yardLineLabel(play, defense);
   return (
     // Tapping a play (on desktop) replays its points being applied in the starters list.
     <li
@@ -233,18 +254,29 @@ function FeedRow({
       <span className="flex items-center justify-between gap-2 text-[0.6875rem] leading-none">
         <span className="flex min-w-0 items-center gap-1.5 whitespace-nowrap">
           {time ? <span className="tabular-nums text-ink-muted">{time}</span> : null}
-          <span className="font-bold text-ink-primary">{team}</span>
-          {play.downDistance ? <span className="font-semibold text-ink-secondary">{play.downDistance}</span> : null}
-        </span>
-        <span className="flex shrink-0 items-center gap-1 whitespace-nowrap tabular-nums text-ink-muted">
-          <PlayBadges entry={entry} />
           <span className="flex items-center gap-1" title={`${game.awayTeam} @ ${game.homeTeam}`}>
             <TeamLogo team={game.awayTeam} side={14} />
             <span className="text-ink-muted">@</span>
             <TeamLogo team={game.homeTeam} side={14} />
           </span>
-          {whenLabel(entry)}
         </span>
+        {/* The snap: down and distance, where on the field, then when. */}
+        <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap tabular-nums text-ink-muted">
+          <PlayBadges entry={entry} />
+          {play.downDistance ? <span className="font-semibold text-ink-secondary">{play.downDistance}</span> : null}
+          {spot ? (
+            <span className="flex items-center gap-1" title={`Snapped from the ${spot}`}>
+              <span className="text-ink-secondary">{spot}</span>
+              {play.yardsToEndzone !== undefined ? <FieldSpot yardsToEndzone={play.yardsToEndzone} /> : null}
+            </span>
+          ) : null}
+          <span>{whenLabel(entry)}</span>
+        </span>
+      </span>
+      {/* What happened, led by the team with the ball. */}
+      <span className="break-words text-[0.75rem] leading-snug text-ink-secondary">
+        {play.offense ? <span className="mr-1.5 font-bold text-ink-primary">{play.offense}</span> : null}
+        {play.text}
       </span>
       {lines.length > 0 ? (
         <ul className="flex flex-col gap-1">
@@ -259,7 +291,6 @@ function FeedRow({
           ))}
         </ul>
       ) : null}
-      <span className="break-words text-[0.75rem] leading-snug text-ink-secondary">{play.text}</span>
     </li>
   );
 }

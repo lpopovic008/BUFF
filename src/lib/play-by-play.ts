@@ -31,6 +31,10 @@ export interface GamePlay {
   redZone: boolean;
   /** The down and distance it was snapped on, e.g. "3rd & 4", "1st & Goal" — null for kickoffs, extra points and the like. */
   downDistance: string | null;
+  /** How far the offense had to go when it snapped the ball, 0–100 — unset off a down. */
+  yardsToEndzone?: number;
+  /** ESPN's own reading of where it was snapped, e.g. "MIA 22", when it gives one. */
+  yardLine?: string;
   /** When the play happened, in ms. Null if ESPN didn't say. */
   at: number | null;
   /** The game's score once the play was over, when ESPN gives it. */
@@ -100,12 +104,29 @@ export function parseSummaryPlays(gameId: string, data: unknown): GamePlay[] {
           typeof start.shortDownDistanceText === "string" && start.shortDownDistanceText
             ? start.shortDownDistanceText
             : downAndDistance(down, distance, toEndzone),
+        ...(down >= 1 && down <= 4 && Number.isFinite(toEndzone) && toEndzone >= 0 && toEndzone <= 100 ? { yardsToEndzone: toEndzone } : {}),
+        ...(down >= 1 && typeof start.possessionText === "string" && start.possessionText ? { yardLine: start.possessionText } : {}),
         at: Number.isFinite(at) ? at : null,
         ...(typeof p.homeScore === "number" && typeof p.awayScore === "number" ? { score: { home: p.homeScore, away: p.awayScore } } : {}),
       });
     }
   }
   return plays.sort((a, b) => a.sequence - b.sequence);
+}
+
+/**
+ * Where a play was snapped from, as the field reads: the side of the field
+ * and the yard line ("MIA 22" — the defense's 22, nearly in; "BUF 35" — the
+ * offense's own 35), or "50". ESPN's own reading when it gave one; null off a down.
+ */
+export function yardLineLabel(play: GamePlay, defense: string | null): string | null {
+  if (play.yardLine) return play.yardLine;
+  const togo = play.yardsToEndzone;
+  if (togo === undefined) return null;
+  if (togo === 50) return "50";
+  const side = togo < 50 ? defense : play.offense;
+  const yard = togo < 50 ? togo : 100 - togo;
+  return side ? `${side} ${yard}` : String(yard);
 }
 
 const firstSeen = new Map<string, number>();
