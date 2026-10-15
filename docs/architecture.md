@@ -290,14 +290,16 @@ next tick always asks again.
 **Starters by game** (`startersListGames`, `liveGameRows` in
 `lib/my-starters.ts`, `useLivePlayerLines`): every game of the week is
 listed, each in a box of its own: the away team's logo and record (as of
-that game, from ESPN's scoreboard) with its score (and the game's clock, or
-the kickoff time before it starts) on the right, then the home team's line.
+that game, from ESPN's scoreboard) and its score — set in from the edge,
+inside the players' points — with the game's clock (or the kickoff time
+before it starts) in a column of its own on the far right; then the home
+team's line, whose right column is kept free.
 Shut, a game lists just its teams. Tapping the matchup (the teams' lines —
 a player's line doesn't toggle) steps through its views, set apart below the
 teams: your starters in it, then yours and the ones you're facing, then
 everyone worth watching (`liveGameRows`: anyone in the game who has scored or
 lost points or is projected for 6+), then shut again — skipping any view that
-would list no one new. A bar on top — Team, VS, ALL — sets every box to one
+would list no one new. A bar under the next-kickoff clock — Team, VS, ALL — sets every box to one
 of those views at once; tapping the lit one again shuts them all. Every line
 has the same columns, so they stay lined up whatever the game's state: the
 time of the player's latest play that moved their points (no AM/PM, to keep
@@ -309,6 +311,19 @@ building leftward, in the +/-'s place when the game isn't on; if they'd reach
 the position, just the first shows, with "+N" for the rest — and their total
 (their projection before kickoff). A shown line is where a changed total
 animates (see below).
+
+Tapping a player's line puts their fantasy points over time up in the map's
+place (`PointsGraph`, `pointsTimeline` / `periodStarts` in
+`lib/live-play-points.ts`): a step line by time of day, rising at each play
+that moved their points (scored PPR by the play, as the Red Zone's are),
+with the quarters marked and their projection dashed across for reference.
+Live, it runs to now and grows as plays come in, sharing the Red Zone's
+play-by-play fetches. When their total in your league differs from the
+plays' (its own scoring, or stats no play carries) a dashed rise at the end
+makes up the difference, so the line ends on their row's number. Tap or
+hover a step for its play; × or Escape (or tapping their line again) brings
+the map back. The map stays mounted underneath, just hidden, so its view
+isn't lost. On a phone, the page scrolls up to the graph.
 
 A game's box swipes left (touch, mouse drag, or a trackpad's sideways
 scroll) to show an eye button that takes that one game off the map, or puts

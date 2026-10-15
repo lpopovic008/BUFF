@@ -85,11 +85,13 @@ function TeamLogo({ team, visible }: { team: string; visible: boolean }) {
 }
 
 /**
- * One team's line in a game's box: its logo over the players' position
- * column with the team's record as of this game beside it, and on the right — over their points — its score once the game's
- * started (the top line also carries the game's clock, or the kickoff time
- * before it starts). Types itself in the first time it scrolls into view,
- * and deletes itself when its block is switched off.
+ * One team's line in a game's box: its logo with the team's record as of
+ * this game beside it, then its score once the game's started — set in from
+ * the edge, inside the players' points — and on the far right, on the top
+ * line, the game's clock ("6:12 - 3rd", "Final", or the kickoff time before
+ * it starts); the bottom line keeps that column free. Types itself in the
+ * first time it scrolls into view, and deletes itself when its block is
+ * switched off.
  */
 function TeamLine({ game, side, shown = true }: { game: NFLGame; side: "away" | "home"; shown?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -115,10 +117,12 @@ function TeamLine({ game, side, shown = true }: { game: NFLGame; side: "away" | 
         </span>
       ) : null}
       <span className="min-w-0 flex-1" />
-      {status ? <span className="shrink-0 text-xs uppercase tracking-wide text-ink-muted">{status}</span> : null}
-      {score !== null ? (
-        <span className="w-[3.4em] shrink-0 text-right text-[0.9375rem] font-bold tabular-nums text-ink-primary">{score}</span>
-      ) : null}
+      {/* The score, in from the edge — inside the players' points under it. */}
+      <span className="w-[2.4em] shrink-0 text-right text-[0.9375rem] font-bold tabular-nums text-ink-primary">{score}</span>
+      {/* The game's clock (or kickoff time) on the right; the bottom line's is held for more to come. */}
+      <span className="w-[6.25rem] shrink-0 truncate text-right text-xs uppercase tracking-wide text-ink-muted" title={status ?? undefined}>
+        {status}
+      </span>
     </div>
   );
 }
@@ -218,6 +222,8 @@ function GameLine({
   shown,
   motion,
   legendByLeagueId,
+  selected = false,
+  onSelect,
 }: {
   player: GroupedStarter;
   phase: Phase;
@@ -225,6 +231,10 @@ function GameLine({
   shown: boolean;
   motion: RowMotion;
   legendByLeagueId: Map<string, LeagueLegendEntry>;
+  /** Their points-over-time graph is up in place of the map. */
+  selected?: boolean;
+  /** Puts their graph up (or, already up, takes it down) — none for a player with no game. */
+  onSelect?: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const seen = useSeenOnce(ref);
@@ -270,12 +280,31 @@ function GameLine({
   return (
     <div
       ref={ref}
-      className="flex items-center gap-1.5 py-[3px] text-[0.8125rem] leading-tight"
+      role={onSelect ? "button" : undefined}
+      tabIndex={onSelect ? 0 : undefined}
+      aria-pressed={onSelect ? selected : undefined}
+      onClick={onSelect}
+      onKeyDown={
+        onSelect
+          ? (e) => {
+              if (e.key !== "Enter" && e.key !== " ") return;
+              e.preventDefault();
+              onSelect();
+            }
+          : undefined
+      }
+      className={`flex items-center gap-1.5 py-[3px] text-[0.8125rem] leading-tight ${onSelect ? "cursor-pointer" : ""}`}
       title={leagueNames.length > 0 ? `${player.name} — ${leagueNames.join(", ")}` : player.name}
     >
-      <span className="w-[2.9em] shrink-0 text-[0.6875rem] tabular-nums text-ink-muted">{time}</span>
+      {/* Just wide enough for "12:59", the name tucked in right after it. */}
+      <span className="-mr-1 w-[2.2em] shrink-0 text-[0.6875rem] tabular-nums text-ink-muted">{time}</span>
       <span ref={middle} className="flex min-w-0 flex-1 items-center gap-1">
-        <span ref={nameRef} className={`min-w-0 truncate text-ink-primary ${motion.highlight ? `-mx-1 px-1 ${lit}` : ""}`}>
+        <span
+          ref={nameRef}
+          className={`min-w-0 truncate text-ink-primary ${motion.highlight ? `-mx-1 px-1 ${lit}` : ""} ${
+            selected ? "underline decoration-2 underline-offset-2" : onSelect ? "decoration-ink-muted hover:underline" : ""
+          }`}
+        >
           {name || "​"}
         </span>
         <span ref={positionRef} className={`shrink-0 text-[0.5rem] font-semibold uppercase ${POSITION_TEXT_COLOR[player.position] ?? "text-ink-muted"}`}>
@@ -344,6 +373,8 @@ function BlockGames({
   legendByLeagueId,
   offMap,
   onToggleMap,
+  selectedPlayer,
+  onSelectPlayer,
 }: {
   games: GameStarters[];
   hidden: boolean;
@@ -359,6 +390,8 @@ function BlockGames({
   /** Games taken off the map, by id. */
   offMap: Set<string>;
   onToggleMap: (gameId: string) => void;
+  selectedPlayer: { playerId: string; gameId: string } | null;
+  onSelectPlayer: (playerId: string, gameId: string) => void;
 }) {
   // Folded only once the deleting has finished — the longest line sets how long.
   const [prevHidden, setPrevHidden] = useState(hidden);
@@ -405,6 +438,8 @@ function BlockGames({
               onToggle={onToggleGame}
               legendByLeagueId={legendByLeagueId}
               map={{ off: offMap.has(g.game.id), onToggle: () => onToggleMap(g.game.id) }}
+              selectedPlayerId={selectedPlayer?.gameId === g.game.id ? selectedPlayer.playerId : null}
+              onSelectPlayer={(playerId) => onSelectPlayer(playerId, g.game.id)}
             >
               <TeamLine game={g.game} side="away" shown={!hidden} />
               <TeamLine game={g.game} side="home" shown={!hidden} />
@@ -547,6 +582,8 @@ function GameBox({
   onToggle,
   legendByLeagueId,
   map,
+  selectedPlayerId = null,
+  onSelectPlayer,
   children,
 }: {
   id: string;
@@ -566,6 +603,10 @@ function GameBox({
   legendByLeagueId: Map<string, LeagueLegendEntry>;
   /** Whether it's off the map, and the button that switches that — none for a bye. */
   map?: { off: boolean; onToggle: () => void };
+  /** The player whose graph is up, if they're in this game. */
+  selectedPlayerId?: string | null;
+  /** Puts a player's graph up — none for a bye. */
+  onSelectPlayer?: (playerId: string) => void;
   children: React.ReactNode;
 }) {
   const shown = viewPlayers(listing, view);
@@ -627,6 +668,8 @@ function GameBox({
                 shown={!hidden && !closing}
                 motion={motion}
                 legendByLeagueId={legendByLeagueId}
+                selected={selectedPlayerId === player.playerId}
+                onSelect={onSelectPlayer ? () => onSelectPlayer(player.playerId) : undefined}
               />
             )}
           />
@@ -800,6 +843,8 @@ export function StartersByGame({
   onToggleBlock,
   offMap,
   onToggleMap,
+  selectedPlayer,
+  onSelectPlayer,
 }: {
   games: GameStarters[];
   /** The teams on their bye this week, with any starters on them — listed last, under their own header. */
@@ -816,6 +861,10 @@ export function StartersByGame({
   offMap: Set<string>;
   /** Takes one game off the map, or puts it back. */
   onToggleMap: (gameId: string) => void;
+  /** The player whose points-over-time graph is up in place of the map. */
+  selectedPlayer: { playerId: string; gameId: string } | null;
+  /** Puts a player's graph up, or — theirs already up — takes it down. */
+  onSelectPlayer: (playerId: string, gameId: string) => void;
 }) {
   const legendByLeagueId = new Map(legend.map((l) => [l.leagueId, l]));
   // Every box — each game, then each bye — with what it can list.
@@ -906,6 +955,8 @@ export function StartersByGame({
 
   return (
     <div className="flex flex-col gap-4">
+      <NextKickoffClock games={games} now={now} />
+
       {nothingToShow ? null : (
         // Every box to one view at once.
         <div className="grid grid-cols-3 border border-ink-muted/40" role="group" aria-label="Show in every game">
@@ -925,7 +976,6 @@ export function StartersByGame({
         </div>
       )}
 
-      <NextKickoffClock games={games} now={now} />
 
       {nothingToShow ? (
         <p className="text-sm text-ink-secondary">
@@ -956,6 +1006,8 @@ export function StartersByGame({
                 legendByLeagueId={legendByLeagueId}
                 offMap={offMap}
                 onToggleMap={onToggleMap}
+                selectedPlayer={selectedPlayer}
+                onSelectPlayer={onSelectPlayer}
               />
             </div>
           ))}

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { lastActions, pendingPlayPoints, PENDING_PLAY_MS } from "./live-play-points";
+import { lastActions, pendingPlayPoints, PENDING_PLAY_MS, periodStarts, pointsTimeline } from "./live-play-points";
 import { GamePlay } from "./play-by-play";
 
 function play(id: string, text: string, offense = "BUF"): GamePlay {
@@ -41,4 +41,25 @@ test("lastActions keeps each player's latest play that moved their points", () =
     allen: { at: 2000, delta: 0.48 },
     kincaid: { at: 2000, delta: 2.2 },
   });
+});
+
+test("pointsTimeline runs a player's total up play by play, in game order", () => {
+  const at = (seq: number, text: string, period = 1): GamePlay => ({ ...play(String(seq), text), sequence: seq, period, at: seq * 1000 });
+  const plays = [
+    at(3, "J.Allen pass short left to D.Kincaid for 12 yards", 2),
+    at(1, "J.Allen right end for 10 yards"),
+    at(2, "J.Allen pass incomplete deep right to D.Kincaid."), // nothing earned
+    { ...at(4, "J.Allen left end for 5 yards", 2), at: null }, // no time given
+  ];
+  assert.deepEqual(
+    pointsTimeline(plays, allen).map(({ playId, delta, total }) => ({ playId, delta, total })),
+    [
+      { playId: "1", delta: 1, total: 1 },
+      { playId: "3", delta: 0.48, total: 1.48 },
+    ]
+  );
+  assert.deepEqual(periodStarts(plays), [
+    { period: 1, at: 1000 },
+    { period: 2, at: 3000 },
+  ]);
 });

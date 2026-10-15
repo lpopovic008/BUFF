@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { GameMap, MappedGame } from "@/components/GameMap";
 import { LeagueTicker, TickerLeague } from "@/components/LeagueTicker";
 import { ByeTeam, LeagueLegendEntry, StartersByGame } from "@/components/StartersByGame";
 import { NFL_TEAMS } from "@/lib/nfl-logos";
+import { PointsGraph } from "@/components/PointsGraph";
 import { RedZone } from "@/components/RedZone";
 import { useConfig } from "@/hooks/useConfig";
 import { MatchupTarget, useDashboardMatchups } from "@/hooks/useDashboardMatchups";
@@ -154,6 +155,27 @@ export default function DashboardPage() {
     else ids.add(gameId);
     setMapOff({ week: shownWeek, ids });
   };
+  // The player whose points-over-time graph is up in place of the map (tapped in the starters list) — for that week.
+  const [graphPick, setGraphPick] = useState<{ week: number | null; playerId: string; gameId: string } | null>(null);
+  const graphFor = useMemo(
+    () => (graphPick && graphPick.week === shownWeek ? { playerId: graphPick.playerId, gameId: graphPick.gameId } : null),
+    [graphPick, shownWeek]
+  );
+  const mapSlotRef = useRef<HTMLDivElement>(null);
+  const pickGraph = (playerId: string, gameId: string) => {
+    if (graphFor?.playerId === playerId && graphFor.gameId === gameId) {
+      setGraphPick(null);
+      return;
+    }
+    setGraphPick({ week: shownWeek, playerId, gameId });
+    // On a phone the map is up the page: bring the graph into view.
+    requestAnimationFrame(() => {
+      const el = mapSlotRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      if (rect.top < 0 || rect.bottom > window.innerHeight) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
 
   const filteredStarters = useMemo(
     () => (myStarters ?? []).filter((s) => effectiveSelected.has(s.leagueId)),
@@ -234,6 +256,14 @@ export default function DashboardPage() {
   }, [starterSources, leagues]);
 
   const anyGameLive = weekGames.some((g) => g.state === "in");
+
+  // The graphed player and their game, as they stand now — so a live graph moves with each tick.
+  const graphed = useMemo(() => {
+    if (!graphFor) return null;
+    const listed = listedGames.find((g) => g.game.id === graphFor.gameId);
+    const player = listed && [...(listed.everyone ?? []), ...listed.players].find((p) => p.playerId === graphFor.playerId);
+    return listed && player ? { game: listed.game, player } : null;
+  }, [graphFor, listedGames]);
 
   // The teams with no game this week, each with your starters on it (and the
   // ones you face) — and any starter with no NFL team at all, together last.
@@ -320,10 +350,20 @@ export default function DashboardPage() {
           <div className="flex flex-col gap-6 max-md:contents md:[direction:ltr]">
             {weekGames.length > 0 ? (
               <div className="animate-[rise_0.5s_ease-out_backwards]">
-                <GameMap
-                  games={mappedGames.filter((g) => !hiddenBlocks.has(kickoffBlockLabel(g.game)) && !offMap.has(g.game.id))}
-                  legend={legend}
-                />
+                {/* A player's graph takes the map's place; the map stays put underneath, just out of sight. */}
+                <div ref={mapSlotRef} className="relative scroll-mt-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.5rem)]">
+                  <div className={graphed ? "invisible" : undefined} aria-hidden={graphed ? true : undefined}>
+                    <GameMap
+                      games={mappedGames.filter((g) => !hiddenBlocks.has(kickoffBlockLabel(g.game)) && !offMap.has(g.game.id))}
+                      legend={legend}
+                    />
+                  </div>
+                  {graphed ? (
+                    <div className="absolute inset-0">
+                      <PointsGraph player={graphed.player} game={graphed.game} onClose={() => setGraphPick(null)} />
+                    </div>
+                  ) : null}
+                </div>
               </div>
             ) : null}
 
@@ -367,6 +407,8 @@ export default function DashboardPage() {
               onToggleBlock={toggleBlock}
               offMap={offMap}
               onToggleMap={toggleMap}
+              selectedPlayer={graphed ? graphFor : null}
+              onSelectPlayer={pickGraph}
             />
           )}
         </div>
