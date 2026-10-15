@@ -13,13 +13,13 @@ import { useSummariesAsItStands } from "@/hooks/useAsItStands";
 import { StarterSource, useMyStarters } from "@/hooks/useMyStarters";
 import { useNFLState } from "@/hooks/useNFLState";
 import { useWeekGames } from "@/hooks/useWeekGames";
-import { useRedZonePreview } from "@/hooks/useRedZonePreview";
 import { useLivePlayerLines } from "@/hooks/useLivePlayerLines";
 import { useLivePlayPoints } from "@/hooks/useLivePlayPoints";
 import { getLeagueSummary, LeagueSummary, teamStandings } from "@/lib/league-data";
 import { GameStarters, groupStartersByGame, GroupedStarter, startersListGames } from "@/lib/my-starters";
 import { avatarUrl, getCurrentWeek, weighProjection } from "@/lib/sleeper";
 import { kickoffBlockLabel } from "@/lib/game-map";
+import { setHeaderWeek } from "@/lib/header-week";
 import { TrackedLeague } from "@/lib/localStore";
 
 interface LoadedLeague {
@@ -27,10 +27,24 @@ interface LoadedLeague {
   summary: LeagueSummary;
 }
 
+/** The NFL regular season's weeks, all of which the header's week picker offers. */
+const NFL_WEEKS = 18;
+
 export default function DashboardPage() {
   const { config, loaded } = useConfig();
   const [leagues, setLeagues] = useState<LoadedLeague[] | null>(null);
   const [week, setWeek] = useState<number | null>(null);
+  // The week shown: the current one, unless another's been picked from the header's "Week N".
+  const [viewWeek, setViewWeek] = useState<number | null>(null);
+  const shownWeek = viewWeek ?? week;
+  useEffect(() => {
+    setHeaderWeek(
+      week != null && shownWeek != null
+        ? { week: shownWeek, currentWeek: week, lastWeek: NFL_WEEKS, regularSeasonWeeks: null, onChange: setViewWeek }
+        : null
+    );
+  }, [week, shownWeek]);
+  useEffect(() => () => setHeaderWeek(null), []);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -73,7 +87,7 @@ export default function DashboardPage() {
       })
       .filter((t): t is MatchupTarget => t !== null);
   }, [leagues, config.sleeperUserId]);
-  const matchups = useDashboardMatchups(matchupTargets, week);
+  const matchups = useDashboardMatchups(matchupTargets, shownWeek);
   // Each league's standings — counting the week being played, when "as it stands" is on.
   const officialSummaries = useMemo(() => leagues?.map((l) => l.summary) ?? null, [leagues]);
   const shownSummaries = useSummariesAsItStands(officialSummaries);
@@ -93,10 +107,8 @@ export default function DashboardPage() {
   }, [leagues, config.sleeperUserId]);
 
   const nflPhase = useNFLState();
-  const weekGames = useWeekGames(nflPhase.season ?? config.season, week);
-  // TEMPORARY: last week's final game in the Red Zone (see useRedZonePreview).
-  const previewGames = useRedZonePreview(nflPhase.season ?? config.season, week != null ? week - 1 : null);
-  const { mine: myStarters, opponent: opponentStarters } = useMyStarters(starterSources, week);
+  const weekGames = useWeekGames(nflPhase.season ?? config.season, shownWeek);
+  const { mine: myStarters, opponent: opponentStarters } = useMyStarters(starterSources, shownWeek);
 
   // Leagues hidden in Settings stay out of the starters, the map and the Red Zone.
   const effectiveSelected = useMemo(
@@ -106,17 +118,23 @@ export default function DashboardPage() {
 
   // Kickoff windows ("Sunday Noon") whose games are hidden from the map and
   // folded shut in the starters list — toggled from the list's block headers.
-  // A window closes itself once all its games are final; otherwise everything
-  // shows. A header tap overrides that either way, and sticks.
-  const [blockChoices, setBlockChoices] = useState<Map<string, boolean>>(() => new Map());
+  // In the current week, a window closes itself once all its games are final
+  // (a past week's are all final, so they all stay open); otherwise everything
+  // shows. A header tap overrides that either way, and sticks — for that week.
+  const [blockState, setBlockState] = useState<{ week: number | null; choices: Map<string, boolean> }>(() => ({ week: null, choices: new Map() }));
+  const blockChoices = useMemo(
+    () => (blockState.week === shownWeek ? blockState.choices : new Map<string, boolean>()),
+    [blockState, shownWeek]
+  );
   const finalBlocks = useMemo(() => {
+    if (shownWeek !== week) return new Set<string>();
     const byLabel = new Map<string, boolean>();
     for (const game of weekGames) {
       const label = kickoffBlockLabel(game);
       byLabel.set(label, (byLabel.get(label) ?? true) && game.state === "post");
     }
     return new Set([...byLabel].filter(([, final]) => final).map(([label]) => label));
-  }, [weekGames]);
+  }, [weekGames, shownWeek, week]);
   const hiddenBlocks = useMemo(() => {
     const hidden = new Set<string>();
     for (const label of finalBlocks) if (blockChoices.get(label) !== true) hidden.add(label);
@@ -124,7 +142,7 @@ export default function DashboardPage() {
     return hidden;
   }, [finalBlocks, blockChoices]);
   const toggleBlock = (label: string) => {
-    setBlockChoices((prev) => new Map(prev).set(label, hiddenBlocks.has(label)));
+    setBlockState({ week: shownWeek, choices: new Map(blockChoices).set(label, hiddenBlocks.has(label)) });
   };
 
   const filteredStarters = useMemo(
@@ -154,7 +172,7 @@ export default function DashboardPage() {
   // it — the starters you're facing and anyone else who's scored or is
   // projected well. Before kickoff, projections stand in for points.
   const gamesStarted = weekGames.some((g) => g.state !== "pre");
-  const livePlayers = useLivePlayerLines(nflPhase.season ?? config.season, week, gamesStarted);
+  const livePlayers = useLivePlayerLines(nflPhase.season ?? config.season, shownWeek, gamesStarted);
   // Projections in PPR, except your starters' and opponents', scored under
   // the (first) league they're started in, like their points are.
   const projected = useMemo(() => {
@@ -284,7 +302,15 @@ export default function DashboardPage() {
             {/* Below the map: the Red Zone, your starters' plays as they happen — its title sticks at the top as the plays scroll on under it. On phones it waits at the very bottom of the page until a game is live, then moves up under the map as a short box you scroll within. Your leagues ride the ticker under the header (see LeagueTicker). */}
             {weekGames.length > 0 && myStarters !== null ? (
               <div className={`animate-[rise_0.5s_ease-out_backwards] [animation-delay:120ms] ${anyGameLive ? "" : "max-md:order-last"}`}>
-                <RedZone starters={grouped.games} weekGames={weekGames} legend={legend} weekStats={livePlayers.stats} previewGames={previewGames} compactOnPhone={anyGameLive} />
+                <RedZone
+                  // Fresh for each week, so a week's plays slide in rather than flashing as new.
+                  key={shownWeek ?? 0}
+                  starters={grouped.games}
+                  weekGames={weekGames}
+                  legend={legend}
+                  weekStats={livePlayers.stats}
+                  compactOnPhone={anyGameLive}
+                />
               </div>
             ) : null}
           </div>
@@ -303,6 +329,8 @@ export default function DashboardPage() {
             </p>
           ) : (
             <StartersByGame
+              // Fresh for each week, so switching weeks doesn't count every total up from the last week's.
+              key={shownWeek ?? 0}
               games={listedGames}
               notPlaying={grouped.notPlaying}
               legend={legend}

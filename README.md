@@ -19,7 +19,9 @@ from every linked season. Ships as a static site, hosted for free on
   app only builds on endpoints that are actually documented. During the NFL
   preseason there's no real fantasy schedule yet, so this previews regular
   season week 1 rather than misreading the preseason's own week counter as a
-  fantasy week.
+  fantasy week. Tap the week in the header to look back at (or ahead to) any
+  week: its games on the map, your starters in them, and its plays in the Red
+  Zone.
 - **League page** (`/league?id=...`) — above everything else, a Sleeper-style
   matchup view: your full starting lineup against your opponent's, slot by
   slot (QB, RB, FLEX, ...), with live points. On a phone every matchup's

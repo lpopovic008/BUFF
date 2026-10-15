@@ -1,5 +1,5 @@
 // The week a page is showing, handed up to the page header so its "Week N"
-// becomes the picker for it (the league page, the recaps), rather than a
+// becomes the picker for it (the dashboard, the league page, the recaps), rather than a
 // picker of its own.
 
 import { useSyncExternalStore } from "react";

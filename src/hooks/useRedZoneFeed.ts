@@ -139,20 +139,13 @@ export function useRedZoneFeed(
   weekGames: NFLGame[],
   scope: FeedScope,
   /** Who a play's names can be matched to, by team, likeliest first. */
-  teamPlayers: Map<string, LinePlayer[]>,
-  /** TEMPORARY (see useRedZonePreview): finished games shown play by play in either view. */
-  previewGames: NFLGame[] = []
+  teamPlayers: Map<string, LinePlayer[]>
 ): RedZoneFeed {
   const games = useMemo<GameStarters[]>(() => {
-    const base =
-      scope === "mine"
-        ? starters.filter((g) => g.players.length > 0)
-        : weekGames.map((game) => ({ game, players: starters.find((g) => g.game.id === game.id)?.players ?? [] }));
-    // TEMPORARY: the preview games too.
-    const extra = previewGames.filter((p) => !base.some((g) => g.game.id === p.id)).map((game) => ({ game, players: [] }));
-    return [...base, ...extra];
-  }, [starters, weekGames, scope, previewGames]);
-  const previewIds = useMemo(() => new Set(previewGames.map((g) => g.id)), [previewGames]);
+    if (scope === "mine") return starters.filter((g) => g.players.length > 0);
+    const playersByGame = new Map(starters.map((g) => [g.game.id, g.players]));
+    return weekGames.map((game) => ({ game, players: playersByGame.get(game.id) ?? [] }));
+  }, [starters, weekGames, scope]);
 
   const playsByGame = useGamePlays(games);
 
@@ -171,7 +164,7 @@ export function useRedZoneFeed(
       const lines = linesForPlays(plays, [game.homeTeam, game.awayTeam], pool, myDefenses);
       for (const play of plays) {
         const matched = playersInPlay(play, candidates);
-        if (matched.length === 0 && scope === "mine" && !previewIds.has(game.id)) continue;
+        if (matched.length === 0 && scope === "mine") continue;
         const involved = matched.map((c) => byId.get(c.playerId)).filter((p): p is GroupedStarter => !!p);
         out.push({ play, game, players: involved, lines: lines.get(play.id) ?? [] });
       }
@@ -180,7 +173,7 @@ export function useRedZoneFeed(
       const byTime = (b.play.at ?? 0) - (a.play.at ?? 0);
       return byTime !== 0 ? byTime : b.play.sequence - a.play.sequence;
     });
-  }, [games, playsByGame, scope, teamPlayers, previewIds]);
+  }, [games, playsByGame, scope, teamPlayers]);
 
   const redZone = useMemo(() => {
     const out: RedZoneNow[] = [];
