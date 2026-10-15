@@ -44,10 +44,8 @@ function gameSpan(game: NFLGame, lastPlayAt: number, now: number | null): Span {
 /**
  * A matchup's two team totals over the week, in the points graph's style:
  * your team's line (black, white in the dark) and theirs (grey), each every
- * starter's points added up play by play — each play scored under the
- * league's rules as it happens, and once a starter's game is over, whatever
- * Sleeper has that no play accounts for added as one correction at its end,
- * so a finished week ends on Sleeper's totals — through the week's game windows, set back to
+ * starter's points added up play by play — scored under the league's rules,
+ * ending on Sleeper's totals — through the week's game windows, set back to
  * back with the time between them cut out, a line where each starts. The ground
  * between the lines is green wherever you lead, red wherever you trail, and
  * each team's projected pace (its starters' projections, each earned evenly
@@ -115,11 +113,10 @@ export function MatchupGraph({
           away: game.awayTeam,
         });
         const fromPlays = steps.length > 0 ? steps[steps.length - 1].total : 0;
-        // While the game's on, the line is the plays alone, each scored as it happens under the league's rules.
-        // Whatever Sleeper has that no play accounts for (yards allowed, a stat correction) waits for the final
-        // whistle and comes in as one correction at the end of their game.
-        const rest = game.state === "post" ? Math.round((s.points - fromPlays) * 100) / 100 : 0;
-        timelines.push({ playerId: s.playerId, name: s.name, steps, makeUp: Math.abs(rest) >= 0.05 ? { at: span.to, delta: rest } : null });
+        const rest = Math.round((s.points - fromPlays) * 100) / 100;
+        // What Sleeper has that no play accounts for comes in at the end of their game (or now, while it's on).
+        const restAt = game.state === "post" ? span.to : Math.max(lastPlayAt, Math.min(now ?? lastPlayAt, span.to));
+        timelines.push({ playerId: s.playerId, name: s.name, steps, makeUp: Math.abs(rest) >= 0.05 ? { at: restAt, delta: rest } : null });
       }
       return { steps: teamTimeline(timelines), paces };
     });
