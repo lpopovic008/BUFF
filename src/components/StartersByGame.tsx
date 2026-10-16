@@ -307,8 +307,7 @@ function GameLine({
             }
           : undefined
       }
-      // touch-manipulation: no double-tap gesture, so two names tapped quickly one after the other are two taps, not one double tap.
-      className={`flex items-center gap-1.5 py-[3px] text-[0.8125rem] leading-tight ${onSelect ? "cursor-pointer touch-manipulation" : ""}`}
+      className={`flex items-center gap-1.5 py-[3px] text-[0.8125rem] leading-tight ${onSelect ? "cursor-pointer" : ""}`}
       title={leagueNames.length > 0 ? `${player.name} — ${leagueNames.join(", ")}` : player.name}
     >
       {/* Just wide enough for "12:59", the name tucked in close after it — never touching. */}
