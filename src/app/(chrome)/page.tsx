@@ -34,6 +34,9 @@ const NFL_WEEKS = 18;
 
 /** How many players' graphs can be up at once, in place of the map. */
 const MAX_GRAPHS = 4;
+/** How long after the last name tapped the page slides to the graphs, and how long the slide takes. */
+const GRAPH_PICK_PAUSE_MS = 700;
+const GRAPH_SCROLL_MS = 700;
 
 export default function DashboardPage() {
   const { config, loaded } = useConfig();
@@ -163,21 +166,43 @@ export default function DashboardPage() {
   const [graphPicks, setGraphPicks] = useState<{ week: number | null; picks: { playerId: string; gameId: string }[] }>(() => ({ week: null, picks: [] }));
   const graphFor = useMemo(() => (graphPicks.week === shownWeek ? graphPicks.picks : []), [graphPicks, shownWeek]);
   const mapSlotRef = useRef<HTMLDivElement>(null);
+  // On a phone the map is up the page, so once the picking stops the page slides up to the graphs. Not
+  // after each tap: names are often tapped a few in a row, and the list sliding between two taps would put
+  // the one just picked under the finger, taking its graph back down. A tap that lands while the page is
+  // sliding is let go for the same reason.
+  const graphScroll = useRef<{ timer: number | null; slidingUntil: number }>({ timer: null, slidingUntil: 0 });
+  useEffect(() => {
+    const scroll = graphScroll.current;
+    return () => {
+      if (scroll.timer !== null) clearTimeout(scroll.timer);
+    };
+  }, []);
   const pickGraph = (playerId: string, gameId: string) => {
+    const scroll = graphScroll.current;
+    if (performance.now() < scroll.slidingUntil) return;
     const already = graphFor.some((p) => p.playerId === playerId && p.gameId === gameId);
     // Tapped again, theirs comes down; a fifth pushes the first one out.
     const picks = already
       ? graphFor.filter((p) => !(p.playerId === playerId && p.gameId === gameId))
       : [...graphFor, { playerId, gameId }].slice(-MAX_GRAPHS);
     setGraphPicks({ week: shownWeek, picks });
-    if (already) return;
-    // On a phone the map is up the page: bring the graphs into view.
-    requestAnimationFrame(() => {
+    const waiting = scroll.timer !== null;
+    if (scroll.timer !== null) clearTimeout(scroll.timer);
+    scroll.timer = null;
+    if (picks.length === 0 || (already && !waiting)) return;
+    scroll.timer = window.setTimeout(() => {
+      scroll.timer = null;
       const el = mapSlotRef.current;
       if (!el) return;
+      // Only when the graphs are mostly out of sight (under the header and ticker counts as out of sight).
       const rect = el.getBoundingClientRect();
-      if (rect.top < 0 || rect.bottom > window.innerHeight) el.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
+      const css = getComputedStyle(document.documentElement);
+      const covered = (parseFloat(css.getPropertyValue("--header-h")) || 0) + (parseFloat(css.getPropertyValue("--ticker-h")) || 0);
+      const inSight = Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, covered);
+      if (inSight >= rect.height * 0.4) return;
+      scroll.slidingUntil = performance.now() + GRAPH_SCROLL_MS;
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, GRAPH_PICK_PAUSE_MS);
   };
   const unpickGraph = (playerId: string) =>
     setGraphPicks({ week: shownWeek, picks: graphFor.filter((p) => p.playerId !== playerId) });

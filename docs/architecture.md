@@ -354,7 +354,10 @@ size as the cursor moves — with its +/- on the right
 under its quarter and game clock (the time of day is on the cursor); the left and right arrow keys step
 the cursor back and forth a play at a time. × (or tapping their line again)
 takes a graph down; Escape takes them all down and brings the map back. The map stays mounted underneath, just hidden, so its view isn't
-lost. On a phone, the page scrolls up to the graph.
+lost. On a phone, once the tapping stops (0.7s after the last name) the page
+slides up to the graphs if they are mostly out of sight — never between two
+taps, so the list never slides the name just picked under the next tap; a tap
+that lands while it slides is let go.
 
 Each team's score in the league page's matchups has its projected total
 over it (`liveProjection`): Sleeper's pregame projection for each starter,
