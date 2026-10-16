@@ -29,7 +29,6 @@ export function CareerLeaderboard({
   /** All-time earnings by manager (Sleeper user id), across every season's payouts — null when no season pays anything. */
   earnings?: Map<string, number> | null;
 }) {
-  const maxChampionships = Math.max(1, ...managers.map((m) => m.championships));
   const rows = useMemo(
     () => managers.map((m) => ({ ...m, earned: earnings?.get(m.userId) ?? 0 })),
     [managers, earnings]
@@ -60,7 +59,7 @@ export function CareerLeaderboard({
               <span className="sm:hidden">Best</span>
               <span className="hidden sm:inline">Best finish</span>
             </SortHeader>
-            <SortHeader sortKey="championships" state={sortState} onSort={toggleSort}>
+            <SortHeader sortKey="championships" state={sortState} onSort={toggleSort} align="right">
               <span className="sm:hidden">Titles</span>
               <span className="hidden sm:inline">Championships</span>
             </SortHeader>
@@ -90,17 +89,7 @@ export function CareerLeaderboard({
               <td className="whitespace-nowrap py-2 pr-2 text-right tabular-nums text-ink-secondary sm:pr-3">
                 {m.bestFinishRank ? ordinal(m.bestFinishRank) : "—"}
               </td>
-              <td className="py-2 pr-2 sm:pr-3">
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-10 overflow-hidden bg-page sm:w-24">
-                    <div
-                      className="h-full bg-series-1 transition-[width] duration-500"
-                      style={{ width: `${(m.championships / maxChampionships) * 100}%` }}
-                    />
-                  </div>
-                  <span className="tabular-nums text-ink-secondary">{m.championships}</span>
-                </div>
-              </td>
+              <td className="py-2 pr-2 text-right tabular-nums text-ink-secondary sm:pr-3">{m.championships}</td>
               {earnings ? (
                 <td className="whitespace-nowrap py-2 pr-2 text-right font-semibold tabular-nums text-ink-primary sm:pr-3">
                   {formatMoney(m.earned)}
