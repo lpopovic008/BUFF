@@ -291,10 +291,14 @@ next tick always asks again.
 `lib/my-starters.ts`, `useLivePlayerLines`): every game of the week is
 listed, each in a box of its own: the away team's logo and record (as of
 that game, from ESPN's scoreboard) and its score — right over the players'
-+/- column — with the game's clock (or the kickoff time before it starts)
-in a column on the far right as wide as the players' points, quarter first
-and a hair bigger than the clock ("2Q 12:43", `gameClock`); then the home
-team's line, whose right column is kept free.
++/- column — with the game's status (or the kickoff time before it starts)
+in a column on the far right as wide as the players' points; then the home
+team's line. While the clock runs the quarter is on the top line, a hair
+bigger, and the clock on the home team's line under it ("2Q" over "12:43",
+from `gameClock`); otherwise it's all on the top line ("Half", "End 2Q",
+"Final"). Leagues hidden in Settings are left out of the whole app
+(`visibleLeagues`): the ticker, the starters, the map, the Red Zone, the
+header's record and your teams on the Values page.
 Shut, a game lists just its teams. Tapping the matchup (the teams' lines —
 a player's line doesn't toggle) steps through its views, set apart below the
 teams: your starters in it, then yours and the ones you're facing, then

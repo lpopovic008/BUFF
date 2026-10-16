@@ -132,7 +132,7 @@ export default function SettingsPage() {
                     <div className="flex shrink-0 items-center gap-1">
                       <IconButton
                         icon={league.hidden ? <EyeOffIcon /> : <EyeIcon />}
-                        label={league.hidden ? "Show on dashboard" : "Hide from dashboard"}
+                        label={league.hidden ? "Show in the app" : "Hide from the app"}
                         onClick={() => handleToggleHidden(league.leagueId)}
                       />
                       <IconButton

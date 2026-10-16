@@ -40,15 +40,17 @@ function formatProjection(points: number): string {
 /**
  * What a team's line shows on its right, in typing order: before kickoff, the
  * kickoff time on the top (away) line and nothing on the bottom; once it's
- * started, the game's clock beside the top score ("6:12 - 3rd", "Final"),
- * then each team's score.
+ * started, the game's status beside each score — while the clock runs, the
+ * quarter on the top line ("2Q") and the clock on the bottom ("12:43");
+ * otherwise all of it on the top ("Half", "End 2Q", "Final") — then the score.
  */
 function teamLinePieces(game: NFLGame, side: "away" | "home"): string[] {
   if (game.state === "pre") return side === "away" ? [formatKickoffTime(game.kickoff)] : [];
   const score = String(side === "away" ? game.awayScore : game.homeScore);
-  if (side === "home") return [score];
   const status = game.state === "post" ? "Final" : gameClock(game.statusDetail ?? "");
-  return status ? [status, score] : [score];
+  const running = /^([1-4]Q|\d*OT) (\d{1,2}:\d{2})$/.exec(status);
+  const mine = running ? (side === "away" ? running[1] : running[2]) : side === "away" ? status : "";
+  return mine ? [mine, score] : [score];
 }
 
 
@@ -87,9 +89,10 @@ function TeamLogo({ team, visible }: { team: string; visible: boolean }) {
 /**
  * One team's line in a game's box: its logo with the team's record as of
  * this game beside it, then its score once the game's started — set in from
- * the edge, inside the players' points — and on the far right, on the top
- * line, the game's clock ("6:12 - 3rd", "Final", or the kickoff time before
- * it starts); the bottom line keeps that column free. Types itself in the
+ * the edge, inside the players' points — and on the far right the game's
+ * status: the quarter on the top line and the clock on the bottom while it
+ * runs ("2Q" over "12:43"), otherwise just the top line's ("Half", "Final",
+ * or the kickoff time before it starts). Types itself in the
  * first time it scrolls into view, and deletes itself when its block is
  * switched off.
  */
@@ -104,7 +107,7 @@ function TeamLine({ game, side, shown = true }: { game: NFLGame; side: "away" | 
   const record = side === "away" ? game.awayRecord : game.homeRecord;
   const started = game.state !== "pre";
   // The status (or kickoff time) in small muted type, the score as big as the points under it.
-  const [status, score] = started ? (side === "away" && pieces.length > 1 ? typed : [null, typed[0]]) : [typed[0] ?? null, null];
+  const [status, score] = started ? (pieces.length > 1 ? typed : [null, typed[0]]) : [typed[0] ?? null, null];
   return (
     <div ref={ref} className="flex min-h-[1.375rem] items-center gap-1.5">
       <span className="flex w-[2.4em] shrink-0 justify-center text-[0.6875rem]">
@@ -119,8 +122,8 @@ function TeamLine({ game, side, shown = true }: { game: NFLGame; side: "away" | 
       <span className="min-w-0 flex-1" />
       {/* The score, over the players' +/- column under it. */}
       <span className="w-[2.4em] shrink-0 text-right text-[0.9375rem] font-bold tabular-nums text-ink-primary">{score}</span>
-      {/* The game's clock (or kickoff time) on the right, as wide as the players' points under it — anything
-          longer runs out leftward, never shifting the score; the bottom line's is held for more to come. */}
+      {/* The game's status (or kickoff time) on the right, as wide as the players' points under it — anything
+          longer runs out leftward, never shifting the score. */}
       <span className="flex w-[2.7625rem] shrink-0 items-baseline justify-end gap-[0.3em] whitespace-nowrap text-ink-muted" title={status ?? undefined}>
         <StatusText text={status ?? ""} />
       </span>
@@ -128,8 +131,9 @@ function TeamLine({ game, side, shown = true }: { game: NFLGame; side: "away" | 
   );
 }
 
-/** A game's status in the row: the quarter ("2Q") a hair bigger than the clock beside it; anything else in small type. */
+/** A game's status in the row: the quarter ("2Q") a hair bigger than the clock (on the line under it); anything else in small type. */
 function StatusText({ text }: { text: string }) {
+  if (/^\d{1,2}:\d{2}$/.test(text)) return <span className="text-[0.6875rem] tabular-nums">{text}</span>;
   // Split at the quarter as soon as it's typed, so the sizes hold steady while the clock types in after it.
   const parts = /^([1-4]Q|\d*OT)(?:\s(.*))?$/.exec(text);
   if (!parts) return <span className="text-xs uppercase">{text}</span>;

@@ -2,26 +2,28 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useConfig } from "./useConfig";
+import { visibleLeagues } from "@/lib/localStore";
 import { useSummariesAsItStands } from "./useAsItStands";
 import { getLeagueSummary, LeagueSummary } from "@/lib/league-data";
 import { getCurrentWeek } from "@/lib/sleeper";
 import { formatRecord } from "@/lib/format";
 
-/** Your combined win-loss-tie record across every tracked league, for the header — "as it stands", when that's on. */
+/** Your combined win-loss-tie record across every league you track (but those hidden in Settings), for the header — "as it stands", when that's on. */
 export function useCombinedRecord(): string | null {
   const { config, loaded: configLoaded } = useConfig();
   const [summaries, setSummaries] = useState<LeagueSummary[] | null>(null);
 
   useEffect(() => {
     if (!configLoaded) return;
-    if (config.leagues.length === 0 || !config.sleeperUserId) {
+    const leagues = visibleLeagues(config.leagues);
+    if (leagues.length === 0 || !config.sleeperUserId) {
       queueMicrotask(() => setSummaries(null));
       return;
     }
     let cancelled = false;
     (async () => {
       const currentWeek = await getCurrentWeek();
-      const loaded = await Promise.all(config.leagues.map((l) => getLeagueSummary(l.leagueId, currentWeek)));
+      const loaded = await Promise.all(leagues.map((l) => getLeagueSummary(l.leagueId, currentWeek)));
       if (!cancelled) setSummaries(loaded.filter((s): s is LeagueSummary => s !== null));
     })();
     return () => {

@@ -22,7 +22,7 @@ import { GameStarters, groupStartersByGame, GroupedStarter, startersListGames } 
 import { avatarUrl, getCurrentWeek, weighProjection } from "@/lib/sleeper";
 import { kickoffBlockLabel } from "@/lib/game-map";
 import { setHeaderWeek } from "@/lib/header-week";
-import { TrackedLeague } from "@/lib/localStore";
+import { TrackedLeague, visibleLeagues } from "@/lib/localStore";
 
 interface LoadedLeague {
   tracked: TrackedLeague;
@@ -67,7 +67,8 @@ export default function DashboardPage() {
         if (cancelled) return;
         setWeek(currentWeek);
         const summaries = await Promise.all(
-          config.leagues.map(async (tracked) => {
+          // Leagues hidden in Settings aren't loaded at all: out of the ticker, the starters, the map and the Red Zone.
+          visibleLeagues(config.leagues).map(async (tracked) => {
             const summary = await getLeagueSummary(tracked.leagueId, currentWeek);
             return summary ? { tracked, summary } : null;
           })

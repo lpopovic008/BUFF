@@ -8,6 +8,7 @@ import { LeagueRosterPanel } from "@/components/LeagueRosterPanel";
 import { PickButton } from "@/components/ui/PickButton";
 import { useConfig } from "@/hooks/useConfig";
 import { useMyLeagues } from "@/hooks/useMyLeagues";
+import { visibleLeagues } from "@/lib/localStore";
 import rawSnapshot from "@/data/player-values.json";
 import { LeagueFormat, PlayerValue, PlayerValuesSnapshot, TEPremium, valueFor } from "@/lib/player-values";
 import { TitleWithHistory } from "@/components/HistoryButtons";
@@ -108,7 +109,7 @@ export default function ValuesPage() {
   // All players, or your team in a league (by league id) — All players to start.
   const [pickedId, setPickedId] = useState<string>(ALL_PLAYERS);
 
-  const leagueIds = useMemo(() => config.leagues.map((l) => l.leagueId), [config.leagues]);
+  const leagueIds = useMemo(() => visibleLeagues(config.leagues).map((l) => l.leagueId), [config.leagues]);
   const myLeagues = useMyLeagues(leagueIds, config.sleeperUserId);
 
   const fullList = listType === "dynasty" ? snapshot.dynasty : snapshot.fantasy;

@@ -17,8 +17,13 @@ export interface TrackedLeague {
   nickname?: string;
   /** Whether you're a commissioner of this league — Sleeper's own is_owner flag, kept current by discovery and Settings. */
   isCommish: boolean;
-  /** Left out of the dashboard's starters, map and Red Zone. */
+  /** Left out of the whole app — the ticker, the starters, the map, the Red Zone, your record and your teams — though still listed in Settings, to show again. */
   hidden?: boolean;
+}
+
+/** The leagues to show anywhere in the app: every tracked one but those hidden in Settings. */
+export function visibleLeagues(leagues: TrackedLeague[]): TrackedLeague[] {
+  return leagues.filter((l) => !l.hidden);
 }
 
 /**
@@ -144,7 +149,7 @@ export function setAsItStands(on: boolean): AppConfig {
   return config;
 }
 
-/** Shows or hides a league on the dashboard (see TrackedLeague.hidden). */
+/** Shows or hides a league across the app (see TrackedLeague.hidden). */
 export function toggleLeagueHidden(leagueId: string): AppConfig {
   const config = getConfig();
   config.leagues = config.leagues.map((l) => (l.leagueId === leagueId ? { ...l, hidden: !l.hidden } : l));
