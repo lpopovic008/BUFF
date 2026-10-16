@@ -23,14 +23,12 @@ const SEASON_GAP = 1.6;
 const ACCENT_VARS = ["--color-series-1", "--color-series-2", "--color-series-3"];
 const MIN_LABEL_GAP = 15;
 
-function niceMax(value: number): number {
+/** A round step for the money axis's grid: about a quarter of the top amount, rounded to 1, 2, 2.5 or 5 of its power of ten. */
+function niceStep(value: number): number {
   if (value <= 0) return 10;
-  const magnitude = Math.pow(10, Math.floor(Math.log10(value)));
-  const steps = [1, 2, 2.5, 5, 10];
-  for (const step of steps) {
-    const candidate = step * magnitude;
-    if (candidate >= value) return candidate;
-  }
+  const rough = value / 4;
+  const magnitude = Math.pow(10, Math.floor(Math.log10(rough)));
+  for (const step of [1, 2, 2.5, 5, 10]) if (step * magnitude >= rough) return step * magnitude;
   return 10 * magnitude;
 }
 
@@ -79,7 +77,7 @@ export function MoneyLineChart({ series, lastWeek }: { series: CumulativeSeries[
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
-  const height = width < 500 ? 260 : 320;
+  const height = width < 500 ? 380 : 480;
 
   const colored = useMemo(
     () =>
@@ -103,15 +101,17 @@ export function MoneyLineChart({ series, lastWeek }: { series: CumulativeSeries[
   const plotWidth = Math.max(1, plotRight - PAD_LEFT - 6);
   const xFor = (c: PayoutColumn) => PAD_LEFT + ((c === "season" ? span : c) / span) * plotWidth;
   const plotHeight = height - PAD_TOP - PAD_BOTTOM;
-  const maxAmount = niceMax(Math.max(1, ...series.map((s) => s.finalAmount)));
+  // The axis tops out at the first grid step at or over the biggest amount, so the lines fill the height.
+  const top = Math.max(1, ...series.map((s) => s.finalAmount));
+  const gridStep = niceStep(top);
+  const maxAmount = Math.ceil(top / gridStep) * gridStep;
   const yFor = (amount: number) => PAD_TOP + plotHeight - (amount / maxAmount) * plotHeight;
 
   const labelYs = resolveLabelPositions(
     colored.map((s) => yFor(s.finalAmount)),
     height - 8
   );
-  const gridSteps = 4;
-  const gridLines = Array.from({ length: gridSteps + 1 }, (_, i) => (maxAmount / gridSteps) * i);
+  const gridLines = Array.from({ length: Math.round(maxAmount / gridStep) + 1 }, (_, i) => gridStep * i);
 
   // The weeks along the bottom: every one when there's room, else every other —
   // never so close to the season label that they run together.

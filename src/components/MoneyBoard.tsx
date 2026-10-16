@@ -212,17 +212,7 @@ export function MoneyBoard({
 
   return (
     <Card className="p-5">
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">Payouts</h2>
-        <button
-          type="button"
-          onClick={() => setStacked((s) => !s)}
-          aria-pressed={stacked}
-          className="bg-[var(--map-tag)] px-2 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--map-tag-ink)] hover:opacity-90"
-        >
-          {stacked ? "Spread" : "Stack"}
-        </button>
-      </div>
+      <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-muted">Payouts</h2>
       <WeekGrid
         ledger={ledger}
         plan={plan}
@@ -242,14 +232,25 @@ export function MoneyBoard({
             </div>
           ))}
         </dl>
-        <button
-          type="button"
-          onClick={() => setEditing((e) => !e)}
-          aria-expanded={editing}
-          className="bg-[var(--map-tag)] px-3 py-1.5 text-sm font-semibold text-[var(--map-tag-ink)] hover:opacity-90"
-        >
-          {editing ? "Done editing" : "Edit rules"}
-        </button>
+        {/* Stack (or spread) the board's cubes, over the button that edits its rules. */}
+        <div className="flex flex-col items-stretch gap-2">
+          <button
+            type="button"
+            onClick={() => setStacked((s) => !s)}
+            aria-pressed={stacked}
+            className="border border-[var(--map-tag)] px-3 py-1.5 text-sm font-semibold text-ink-primary hover:opacity-90"
+          >
+            {stacked ? "Spread" : "Stack"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditing((e) => !e)}
+            aria-expanded={editing}
+            className="bg-[var(--map-tag)] px-3 py-1.5 text-sm font-semibold text-[var(--map-tag-ink)] hover:opacity-90"
+          >
+            {editing ? "Done editing" : "Edit rules"}
+          </button>
+        </div>
       </div>
       {plan.rules.length > 0 && !balanced ? (
         <p className="mt-2 text-xs tabular-nums text-status-critical">
