@@ -94,10 +94,9 @@ export function NavBar() {
           <span />
         )}
 
-        <div className="flex items-center justify-self-end gap-4">
-          {record ? (
-            <span className="hidden text-lg font-bold tabular-nums tracking-wide text-ink-primary sm:inline">{record}</span>
-          ) : null}
+        <div className="flex items-center justify-self-end gap-2 sm:gap-4">
+          {/* Your record across the leagues you show (those hidden in Settings left out). */}
+          {record ? <span className="text-sm font-bold tabular-nums tracking-wide text-ink-primary sm:text-lg">{record}</span> : null}
           <button
             ref={menuButton}
             type="button"
