@@ -6,7 +6,7 @@
 // score, not from any one play, so they aren't counted here; nor are kick and
 // punt return touchdowns.
 
-import { FeedCandidate, GamePlay, playTextNamePattern } from "./play-by-play";
+import { FeedCandidate, GamePlay, playAction, playTextNamePattern } from "./play-by-play";
 
 /** Sleeper's default PPR scoring, the parts a single play can earn. */
 export const PPR = {
@@ -91,7 +91,8 @@ function bonusStats(stats: PlayStats, kind: "pass" | "rush" | "rec", yards: numb
  */
 export function statsForPlay(play: GamePlay, player: FeedCandidate): PlayStats {
   // Tacklers and other defenders, in parentheses and brackets, never earn anything.
-  const text = play.text.replace(/\([^)]*\)|\[[^\]]*\]/g, " ").replace(/\s+/g, " ");
+  // From where the play starts: no tacklers, and not the lineman who reported in as eligible.
+  const text = playAction(play.text);
   if (/No Play/i.test(text)) return {};
   if (player.position === "DEF") return defenseStats(play, text);
 

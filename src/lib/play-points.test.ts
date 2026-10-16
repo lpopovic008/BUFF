@@ -84,3 +84,13 @@ test("formatPlayPoints signs and trims", () => {
   assert.equal(formatPlayPoints(-0.3), "-0.3");
   assert.equal(formatPlayPoints(0), "0");
 });
+
+test("a lineman reporting in as eligible, and a direct snap, aren't the runner", () => {
+  const p = play(
+    "A.Palczewski reported in as eligible. Direct snap to R.Harvey. R.Harvey right tackle for 1 yard, TOUCHDOWN. W.Lutz extra point is GOOD, Center-M.Fraboni, Holder-J.Crawshaw.",
+    { scoring: true, offense: "DEN" }
+  );
+  assert.equal(pprPointsForPlay(p, who("RJ Harvey", "RB", "DEN")), 6.1);
+  assert.equal(pprPointsForPlay(p, who("Alex Palczewski", "OL", "DEN")), 0);
+  assert.equal(pprPointsForPlay(p, who("Wil Lutz", "K", "DEN")), 1);
+});

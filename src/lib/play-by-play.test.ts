@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { cleanPlayText, downAndDistance, playTextActors, FeedCandidate, GamePlay, isBigPlay, parseSummaryPlays, playersInPlay, playTextNamePattern, yardLineLabel } from "./play-by-play";
+import { cleanPlayText, downAndDistance, playAction, playTextActors, FeedCandidate, GamePlay, isBigPlay, parseSummaryPlays, playersInPlay, playTextNamePattern, yardLineLabel } from "./play-by-play";
 
 function play(over: Partial<GamePlay>): GamePlay {
   return {
@@ -165,4 +165,28 @@ test("yardLineLabel reads the field from the offense's side", () => {
   assert.equal(yardLineLabel(play({ offense: "PIT", yardsToEndzone: 50 }), "CLE"), "50");
   assert.equal(yardLineLabel(play({ offense: "PIT", yardsToEndzone: 22, yardLine: "CLE 22" }), null), "CLE 22");
   assert.equal(yardLineLabel(play({ offense: "PIT" }), "CLE"), null);
+});
+
+test("the people in a play leave out a lineman reporting in as eligible", () => {
+  const p = play({
+    offense: "DEN",
+    text: "A.Palczewski reported in as eligible. Direct snap to R.Harvey. R.Harvey right tackle for 1 yard, TOUCHDOWN. W.Lutz extra point is GOOD, Center-M.Fraboni, Holder-J.Crawshaw.",
+  });
+  assert.deepEqual(
+    playTextActors(p).map((a) => a.label),
+    ["R.Harvey", "W.Lutz"]
+  );
+  const palczewski: FeedCandidate = { playerId: "1", name: "Alex Palczewski", position: "OL", team: "DEN" };
+  const harvey: FeedCandidate = { playerId: "2", name: "RJ Harvey", position: "RB", team: "DEN" };
+  assert.deepEqual(playersInPlay(p, [palczewski, harvey]).map((c) => c.playerId), ["2"]);
+});
+
+test("playAction drops every pre-snap note ESPN opens a line with, however it words it", () => {
+  assert.equal(
+    playAction("(Shotgun) T.Smith reports in as an eligible receiver. D.Jones reported in as eligible. J.Allen pass short left to D.Kincaid for 5 yards (J.Ramsey)."),
+    "J.Allen pass short left to D.Kincaid for 5 yards ."
+  );
+  assert.equal(playAction("Direct snap to A.St. Brown. A.St. Brown left end for 4 yards."), "A.St. Brown left end for 4 yards.");
+  // A play with none is left as it is.
+  assert.equal(playAction("J.Cook right guard for 3 yards, TOUCHDOWN."), "J.Cook right guard for 3 yards, TOUCHDOWN.");
 });

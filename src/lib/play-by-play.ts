@@ -55,6 +55,26 @@ export function downAndDistance(down: number, distance: number, yardsToEndzone: 
 }
 
 /** Drops the formation note ESPN opens a play with: "(Shotgun) ", "(No Huddle, Shotgun) ". */
+// ESPN's shorthand for a player, as it names them in a play line: "J.Allen", "Jos.Allen", "A.St. Brown".
+const SHORT_NAME = String.raw`[A-Z][A-Za-z']{0,3}\.\s?(?:St\.\s)?[A-Z][A-Za-z'-]+`;
+// The notes ESPN can open a play's line with before the play itself — a lineman reporting in as an eligible
+// receiver, the snap going straight to a runner — each its own sentence: "A.Palczewski reported in as
+// eligible. Direct snap to R.Harvey. R.Harvey right tackle for 1 yard, TOUCHDOWN."
+const PRE_SNAP = new RegExp(String.raw`^(?:\s*(?:${SHORT_NAME} report(?:s|ed) in as (?:an )?eligible(?: receiver)?|Direct snap to ${SHORT_NAME})\.)+\s*`, "i");
+
+/**
+ * A play's line from where the play itself starts: the formation notes ("(Shotgun)") and tacklers in
+ * parentheses blanked, and the pre-snap notes it can open with dropped, so the line starts with whoever
+ * ran, passed or kicked — the lineman who reported in as eligible isn't taken for the runner.
+ */
+export function playAction(text: string): string {
+  return text
+    .replace(/\([^)]*\)|\[[^\]]*\]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(PRE_SNAP, "");
+}
+
 export function cleanPlayText(text: string): string {
   return text.replace(/^\s*\([^)]*\)\s*/, "").trim();
 }
@@ -202,7 +222,7 @@ const DEFENSIVE_TYPES = /sack|interception|fumble recovery \(opponent\)|safety|b
  * is in on the other team's sacks, takeaways and safeties.
  */
 export function playersInPlay(play: GamePlay, candidates: FeedCandidate[]): FeedCandidate[] {
-  const actors = play.text.replace(/\([^)]*\)|\[[^\]]*\]/g, " ");
+  const actors = playAction(play.text);
   const out: FeedCandidate[] = [];
   for (const c of candidates) {
     if (c.position === "DEF") {
@@ -225,7 +245,7 @@ export function playersInPlay(play: GamePlay, candidates: FeedCandidate[]): Feed
  * way your own players' are.
  */
 export function playTextActors(play: GamePlay): { label: string; candidate: FeedCandidate }[] {
-  const text = play.text.replace(/\([^)]*\)|\[[^\]]*\]/g, " ");
+  const text = playAction(play.text);
   const out: { label: string; candidate: FeedCandidate }[] = [];
   const seen = new Set<string>();
   for (const m of text.matchAll(/(?<![A-Za-z.'-])([A-Z][A-Za-z']{0,3})\.\s?((?:St\.\s)?[A-Z][A-Za-z'-]+)/g)) {
