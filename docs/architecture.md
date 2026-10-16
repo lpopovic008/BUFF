@@ -431,9 +431,9 @@ whoever leads right now is lit instead. Nobody is lit while the score is
 level.
 
 **The Red Zone on a phone** sits under the map, above the starters, as a box
-three rows tall that scrolls on its own; a grip under it drags it taller (up
-to 80% of the screen) or back to its three rows, the height kept on that
-device (`commish:red-zone-height`).
+three rows tall that scrolls on its own; double-tapping its title bar fits
+the box to the screen (the card's top under the header and ticker, its
+bottom at the screen's), and double-tapping again takes it back to three rows.
 
 **Red Zone points ahead of Sleeper** (`useLivePlayPoints`,
 `lib/live-play-points.ts`): ESPN's plays usually land before Sleeper's

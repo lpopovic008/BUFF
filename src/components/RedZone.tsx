@@ -368,8 +368,6 @@ function RedZoneAlert({ alert }: { alert: RedZoneNow }) {
 
 /** How many plays the phone's live box shows at once. */
 const PHONE_ROWS = 3;
-/** Where the phone box's dragged height is kept (this device only). */
-const RZ_HEIGHT_KEY = "commish:red-zone-height";
 
 /** Which plays the Red Zone shows: your starters', theirs and the ones you face too, or every play. */
 export type RedZoneScope = "mine" | "vs" | "all";
@@ -405,7 +403,7 @@ export function RedZone({
   legend: LeagueLegendEntry[];
   /** Everyone's stat line so far this week, by Sleeper id — who's played tells which of ESPN's names is likeliest who. */
   weekStats: Record<string, Record<string, number>>;
-  /** On phones, show the plays in a box three rows tall (or as tall as it's dragged) that scrolls on its own, instead of running down the page. */
+  /** On phones, show the plays in a box three rows tall (or, title bar double-tapped, as tall as the screen) that scrolls on its own, instead of running down the page. */
   compactOnPhone?: boolean;
 }) {
   const mode = useLiveMode();
@@ -452,29 +450,37 @@ export function RedZone({
     observer.observe(list);
     return () => observer.disconnect();
   }, [compactOnPhone, hasEntries]);
-  // Dragged taller (or back down) by the grip under it — never shorter than its three rows — and remembered on this device.
-  const [boxHeight, setBoxHeight] = useState<number | null>(() => {
-    if (typeof window === "undefined") return null;
-    try {
-      const saved = Number(localStorage.getItem(RZ_HEIGHT_KEY));
-      return saved > 0 ? saved : null;
-    } catch {
-      return null;
-    }
-  });
-  const resizeTo = (height: number) => {
+  // Double-tapping the title bar fits the phone box to the screen — the card's top under the header and
+  // ticker, its bottom at the screen's — and double-tapping again takes it back to its three rows.
+  const headRef = useRef<HTMLDivElement>(null);
+  const lastTap = useRef(0);
+  const [boxHeight, setBoxHeight] = useState<number | null>(null);
+  const toggleFit = () => {
+    const head = headRef.current;
     const box = boxRef.current;
-    const least = parseFloat(box?.style.getPropertyValue("--rz-box-h") ?? "") || 0;
-    const next = Math.round(Math.min(Math.max(height, least), window.innerHeight * 0.8));
-    // Back down to its three rows (or near enough): no height of its own, so it follows them as they change.
-    const fitted = next <= least + 4 ? null : next;
-    setBoxHeight(fitted);
-    try {
-      if (fitted === null) localStorage.removeItem(RZ_HEIGHT_KEY);
-      else localStorage.setItem(RZ_HEIGHT_KEY, String(fitted));
-    } catch {}
+    const card = head?.parentElement;
+    if (!head || !box || !card) return;
+    if (boxHeight !== null) {
+      setBoxHeight(null);
+      return;
+    }
+    const css = getComputedStyle(document.documentElement);
+    const covered = (parseFloat(css.getPropertyValue("--header-h")) || 0) + (parseFloat(css.getPropertyValue("--ticker-h")) || 0);
+    const cardRect = card.getBoundingClientRect();
+    const above = box.getBoundingClientRect().top - cardRect.top;
+    const below = cardRect.bottom - box.getBoundingClientRect().bottom;
+    setBoxHeight(Math.max(0, Math.floor(window.innerHeight - covered - above - below)));
+    window.scrollTo({ top: window.scrollY + cardRect.top - covered, behavior: "smooth" });
   };
-  const drag = useRef<{ y: number; height: number } | null>(null);
+  const onHeadTap = (e: React.PointerEvent) => {
+    // Its buttons are buttons; and only on a phone, where the box is.
+    if (!compactOnPhone || (e.target as HTMLElement).closest("button") || !window.matchMedia("(max-width: 767px)").matches) return;
+    const now = performance.now();
+    if (now - lastTap.current < 350) {
+      lastTap.current = 0;
+      toggleFit();
+    } else lastTap.current = now;
+  };
   const moreToShow = feed.entries.length > shown;
   // Scrolling near the end of the plays loads the next page of them — no button.
   useEffect(() => {
@@ -509,7 +515,9 @@ export function RedZone({
     // the plays. On a phone with a game on, they sit in a short box of their own instead.
     <Card className="flex flex-col gap-2 p-3">
       <div
-        className={`z-10 -mx-3 -mt-3 flex flex-col gap-2 border-b border-border bg-surface-raised px-3 pb-2 pt-3 md:sticky md:top-0 ${
+        ref={headRef}
+        onPointerUp={onHeadTap}
+        className={`z-10 -mx-3 -mt-3 flex touch-manipulation flex-col gap-2 border-b border-border bg-surface-raised px-3 pb-2 pt-3 select-none md:sticky md:top-0 ${
           compactOnPhone ? "" : "max-md:sticky max-md:top-[calc(var(--header-h,0px)+var(--ticker-h,0px))]"
         }`}
       >
@@ -571,40 +579,6 @@ export function RedZone({
             {/* The last screen or so of plays: scrolling into it brings in the next ones before you reach the end. */}
             {entries.length > shown ? <div ref={sentinelRef} className="pointer-events-none absolute inset-x-0 bottom-0 h-[min(60rem,100%)]" aria-hidden /> : null}
           </div>
-          {/* On a phone, a grip under the box: drag it down for a taller box, back up for the three rows. */}
-          {compactOnPhone ? (
-            <div
-              role="separator"
-              aria-orientation="horizontal"
-              aria-label="Drag to make the plays taller or shorter"
-              tabIndex={0}
-              className="-mb-1.5 -mt-1 flex h-5 cursor-row-resize touch-none items-center justify-center md:hidden"
-              onPointerDown={(e) => {
-                const box = boxRef.current;
-                if (!box) return;
-                e.currentTarget.setPointerCapture(e.pointerId);
-                drag.current = { y: e.clientY, height: box.getBoundingClientRect().height };
-              }}
-              onPointerMove={(e) => {
-                const d = drag.current;
-                if (d) resizeTo(d.height + e.clientY - d.y);
-              }}
-              onPointerUp={() => {
-                drag.current = null;
-              }}
-              onPointerCancel={() => {
-                drag.current = null;
-              }}
-              onKeyDown={(e) => {
-                const box = boxRef.current;
-                if (!box || (e.key !== "ArrowDown" && e.key !== "ArrowUp")) return;
-                e.preventDefault();
-                resizeTo(box.getBoundingClientRect().height + (e.key === "ArrowDown" ? 48 : -48));
-              }}
-            >
-              <span className="h-1 w-10 bg-ink-muted/50" aria-hidden />
-            </div>
-          ) : null}
         </>
       ) : (
         <p className="py-3 text-center text-xs text-ink-muted">
