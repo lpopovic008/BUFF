@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { BlockFace, blockFaces, boardProjector } from "@/lib/board-3d";
+import { BOARD_TILT, BlockFace, blockFaces, boardProjector } from "@/lib/board-3d";
 import { formatMoney as money } from "@/lib/payout-plan";
 
 // The payouts grid as a board seen at the dashboard map's opening angle:
@@ -52,8 +52,11 @@ const MAX_CUBE = ROW_DEPTH - 2 * CUBE_GAP;
 const CUBE_FONT = 10.5;
 const CHAR_EM = 0.5;
 const FACE_PAD = 3;
-/** Room past the end of a stacked bar for its total. */
+/** Room past the end of a stacked bar for its total, and between the pieces while they make room to lengthen. */
 const BAR_LABEL = 44;
+const MAKE_ROOM = 6;
+/** The board leans back a little less than the map, so the tray's walls hide less of it. */
+const TILT = BOARD_TILT - 2;
 /** How long the cubes take to rise when the board first scrolls into view (desktop only), and to stack (or spread back out). */
 const RISE_MS = 1600;
 const STACK_MS = 1500;
@@ -100,8 +103,8 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 /** How far along one stage of the stacking is, at `stack` (0: spread out, 1: stacked), for the stage from `a` to `b`. */
 const stage = (stack: number, a: number, b: number) => easeInOut(clamp01((stack - a) / (b - a)));
 
-/** How wide an amount is on a cube's top at `size`, and the side a cube needs for it to fit. */
-const textWidth = (amount: number, size = CUBE_FONT) => money(amount).length * CHAR_EM * size;
+/** How wide an amount (or any text) is on a cube's top at `size`, and the side a cube needs for it to fit. */
+const textWidth = (amount: number | string, size = CUBE_FONT) => (typeof amount === "number" ? money(amount) : amount).length * CHAR_EM * size;
 const sideFor = (amount: number) => textWidth(amount) + 2 * FACE_PAD;
 
 /** The stretches of the season whose payouts are sized against each other. */
@@ -230,7 +233,7 @@ export function PayoutBoard({
   const totalX = seasonX + seasonCol;
   const netX = totalX + TOTAL_COL;
   const depth = HEADER_DEPTH + rows.length * ROW_DEPTH;
-  const project = boardProjector(W, depth);
+  const project = boardProjector(W, depth, TILT);
   const center = W / 2;
   const rowY = (i: number) => HEADER_DEPTH + i * ROW_DEPTH;
   const cellX = (k: number) => (k >= weeks.length ? seasonX + seasonCol / 2 : weekX(k) + weekCol / 2);
@@ -245,29 +248,49 @@ export function PayoutBoard({
   const sides = paid.flat().map(({ c, stretch }) => sideOf(c.amount, stretch));
   /** The tray's depth: the biggest cube's top is level with the board. */
   const sunk = Math.max(0, ...sides);
-  const base = Math.min(sunk, ...sides);
   // The tray: from the manager column to the totals, under every manager.
   const trayX0 = managerCol;
   const trayX1 = totalX;
-  // Stacked, a bar's length goes with what the manager won (so its face's area does, its height being every bar's).
-  const most = Math.max(1, ...paid.map((cells) => cells.reduce((s, { c }) => s + c.amount, 0)));
-  const perDollar = Math.max(0, trayX1 - trayX0 - 2 * CUBE_GAP - BAR_LABEL) / most;
+  // Stacked, the smallest amount's cube stays as it is and every other piece takes its height and depth,
+  // as long as it needs for its front face to go with its amount — unless a bar would overrun the tray.
+  const least = Math.min(...paid.flat().map(({ c }) => c.amount));
+  const base = Math.min(sunk, ...paid.flat().filter(({ c }) => c.amount === least).map(({ c, stretch }) => sideOf(c.amount, stretch)));
+  const room = trayX1 - trayX0 - 2 * CUBE_GAP - BAR_LABEL;
+  const longest = Math.max(1, ...paid.map((cells) => cells.reduce((s, { c }) => s + (c.amount / least) * base, 0)));
+  const perDollar = (base / least) * Math.min(1, room / longest);
   const barX = trayX0 + CUBE_GAP;
 
-  const slim = stage(stack, 0, 0.35);
-  const slide = stage(stack, 0.3, 0.7);
-  const stretch = stage(stack, 0.65, 1);
+  // Stacking: first the cubes move apart (as little as they can) to make room, then each takes the base's
+  // height and depth and lengthens to its amount, then they slide left together into one bar.
+  const apart = stage(stack, 0, 0.33);
+  const grow = stage(stack, 0.3, 0.66);
+  const close = stage(stack, 0.63, 1);
   // Where each cube is now: its middle, its length across, its depth and its height.
   const geometry = paid.map((cells, i) => {
     const y = rowY(i) + ROW_DEPTH / 2;
+    const lengths = cells.map(({ c }) => c.amount * perDollar);
+    // Room to lengthen in: each piece as near its own square as the ones before it allow, then pulled back in from the tray's far wall.
+    const starts: number[] = [];
+    lengths.forEach((len, n) => {
+      const after = n ? starts[n - 1] + lengths[n - 1] + MAKE_ROOM : barX;
+      starts.push(Math.max(cellX(cells[n].k) - len / 2, after));
+    });
+    let limit = trayX1 - CUBE_GAP;
+    for (let n = lengths.length - 1; n >= 0; n--) {
+      starts[n] = Math.min(starts[n], limit - lengths[n]);
+      limit = starts[n] - MAKE_ROOM;
+    }
+    const squeezed = starts.length > 0 && starts[0] < barX;
     let along = barX;
-    const pieces = cells.map(({ c, k, stretch: st }) => {
+    const pieces = cells.map(({ c, k, stretch: st }, n) => {
       const side = sideOf(c.amount, st);
-      const length = c.amount * perDollar;
-      const small = lerp(side, base, slim);
-      const piece = { k, c, side, x: lerp(cellX(k), along + length / 2, slide), y, len: lerp(small, length, stretch), d: small, h: small };
-      along += length;
-      return piece;
+      const len = lengths[n];
+      const stacked = along + len / 2;
+      const roomy = squeezed ? stacked : starts[n] + len / 2;
+      const thick = lerp(side, base, grow);
+      const x = close > 0 ? lerp(roomy, stacked, close) : lerp(cellX(k), roomy, apart);
+      along += len;
+      return { k, c, side, x, y, len: lerp(side, len, grow), d: thick, h: thick };
     });
     return { pieces, y, end: along };
   });
@@ -295,7 +318,7 @@ export function PayoutBoard({
   };
 
   // The board's extent once projected — its top at the back, the tray's floor at the front — so the drawing is cropped to it.
-  const extent = [project(0, 0), project(W, 0), project(0, depth, -sunk), project(W, depth, -sunk)];
+  const extent = [project(0, 0), project(W, 0), project(0, depth), project(W, depth), project(0, depth, -sunk), project(W, depth, -sunk)];
   const minX = Math.min(...extent.map((p) => p[0])) - 2;
   const maxX = Math.max(...extent.map((p) => p[0])) + 2;
   const minY = Math.min(...extent.map((p) => p[1])) - 8;
@@ -350,47 +373,38 @@ export function PayoutBoard({
         {hasSeason ? <polyline points={down(seasonX)} /> : null}
       </g>
 
-      {/* The squares not paid yet, on the tray's floor. */}
-      {rows.map((r, i) => {
-        const y = rowY(i) + ROW_DEPTH / 2;
-        const unpaid = [...r.weeks, ...(r.season ? [r.season] : [])].map((c, k) => ({ c, k })).filter(({ c }) => c.amount <= 0);
-        return (
-          <g key={r.key}>
-            {unpaid.map(({ c, k }) => (
-              <g key={k}>
-                <title>{c.title}</title>
-                {label(cellX(k), y, D, c.pending ? "·" : "—", FONT.label, {
-                  textAnchor: "middle",
-                  style: { fill: "var(--color-ink-muted)", opacity: c.pending ? 1 : 0.5 },
-                })}
-              </g>
-            ))}
-          </g>
-        );
-      })}
     </g>
   );
 
   // The cubes, a row at a time back to front; in a row, the ones farther from the middle first (the nearer
-  // ones hide their sides). Each has its amount on its top, until they stack.
-  const amountsShown = 1 - clamp01(stack / 0.2);
+  // ones hide their sides). Each has its amount on its top until it lengthens; stacked, the week it was won.
+  const amountsShown = 1 - clamp01((stack - 0.3) / 0.1);
+  const weeksShown = clamp01((stack - 0.4) / 0.1);
+  const onTop = (text: string, room: number) => Math.min(CUBE_FONT, (room - 2 * FACE_PAD) / textWidth(text, 1));
   const standing = rows.map((r, i) => {
     const order = [...geometry[i].pieces].sort((a, b) => Math.abs(b.x - center) - Math.abs(a.x - center));
     return (
       <g key={r.key}>
         {order.map((p) => {
           const h = p.h * rise;
-          const size = Math.min(CUBE_FONT, (p.side - 2 * FACE_PAD) / textWidth(p.c.amount, 1));
+          const won = p.k >= weeks.length ? "Season" : `W${weeks[p.k]}`;
           return (
             <g key={p.k} style={{ opacity: p.c.live ? 0.7 : 1 }}>
               <title>{p.c.title}</title>
               <Cube faces={blockFaces(project, p.x - p.len / 2, p.x + p.len / 2, p.y - p.d / 2, p.y + p.d / 2, h, center, D)} />
               {amountsShown > 0 && rise > 0.6
-                ? label(p.x, p.y, D + h, money(p.c.amount), size, {
+                ? label(p.x, p.y, D + h, money(p.c.amount), onTop(money(p.c.amount), p.side), {
                     textAnchor: "middle",
                     fontWeight: 700,
                     className: "tabular-nums",
                     style: { fill: "var(--map-tag-ink)", fontStyle: p.c.live ? "italic" : undefined, opacity: amountsShown * clamp01((rise - 0.6) / 0.4) },
+                  })
+                : null}
+              {weeksShown > 0
+                ? label(p.x, p.y, D + h, won, onTop(won, p.len), {
+                    textAnchor: "middle",
+                    fontWeight: 700,
+                    style: { fill: "var(--map-tag-ink)", fontStyle: p.c.live ? "italic" : undefined, opacity: weeksShown * rise },
                   })
                 : null}
             </g>
