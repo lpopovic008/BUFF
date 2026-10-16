@@ -357,7 +357,7 @@ takes a graph down; Escape takes them all down and brings the map back. The map 
 lost. On a phone, the page scrolls up to the graph.
 
 Each team's name in the league page's matchups has its projected total
-on its line, over the score (`liveProjection`): Sleeper's pregame projection for each starter,
+on a line already there, right over the score (the rank and record's on a phone) (`liveProjection`): Sleeper's pregame projection for each starter,
 scored under the league's rules, swapped for the starter's actual points
 once their game is final — so it moves only as games finish, never play by
 play.

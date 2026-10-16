@@ -187,15 +187,16 @@ function MatchupHeader({
   };
   return (
     <div className="flex flex-col gap-1.5 bg-[var(--map-tag)] px-2 py-2 text-[var(--map-tag-ink)]">
-      {/* Each name with its projected total on the same line, the projection right over the score. */}
+      {/* Each name with its projected total right over the score, on a line that's there anyway: the name's
+          own, or on a phone (where the name sits over its rank and record) the rank and record's. */}
       <div className={`grid ${SLOT_COLS} items-start gap-1 sm:gap-2`}>
-        <div className="flex min-w-0 items-baseline justify-between gap-2">
+        <div className="flex min-w-0 items-baseline-last justify-between gap-2 sm:items-baseline">
           <div className="min-w-0">{label(left, "left")}</div>
           <Projected rosterId={left.rosterId} align="right" />
         </div>
         <span />
         {right ? (
-          <div className="flex min-w-0 items-baseline justify-between gap-2">
+          <div className="flex min-w-0 items-baseline-last justify-between gap-2 sm:items-baseline">
             <Projected rosterId={right.rosterId} align="left" />
             <div className="min-w-0">{label(right, "right")}</div>
           </div>
