@@ -52,10 +52,11 @@ function gameSpan(game: NFLGame, lastPlayAt: number, now: number | null): Span {
  * back with the time between them cut out, a line where each starts. The ground
  * between the lines is green wherever you lead, red wherever you trail, and
  * each team's projected pace (its starters' projections, each earned evenly
- * over their game) is dashed under it. Up in the corner, how much of the
+ * over their game) is a dotted line under it. Up in the corner, how much of the
  * week so far you've led and trailed. Drag or hover for a dotted cursor, left
- * where it's lifted, with each team's total at that moment labelled where it
- * crosses their line and the last scoring play by then described below; the
+ * where it's lifted: each team's total at that moment shows by their name up
+ * top (a dot where the cursor crosses their line), and the last scoring play
+ * by then is described below; the
  * arrow keys step it a play at a time.
  */
 export function MatchupGraph({
@@ -280,31 +281,19 @@ export function MatchupGraph({
     setCursor({ at: timeAt(e.clientX - el.getBoundingClientRect().left) });
   };
   const cursorAt = cursor?.at ?? null;
-  // Each team's total at the cursor's time (as of the line's end, past it) — labelled where the cursor crosses each line.
+  // Each team's total at the cursor's time — shown by the team's name, a dot where the cursor crosses each
+  // line. At or past the lines' end, the totals as they stand.
   const cursorTotals = (() => {
-    if (cursorAt === null || lineEnd === null || !plot) return [];
-    const t = Math.min(cursorAt, lineEnd);
+    if (cursorAt === null || lineEnd === null || !plot || cursorAt >= lineEnd) return null;
     const totalAt = (steps: TeamStep[]) => {
       let v = 0;
-      for (const st of steps) if (st.at <= t) v = st.total;
+      for (const st of steps) if (st.at <= cursorAt) v = st.total;
       return v;
     };
-    const tags = [{ own: true, value: totalAt(myLine) }, ...(theirs ? [{ own: false, value: totalAt(theirLine) }] : [])].map((tag) => ({
-      ...tag,
-      lineY: y(tag.value),
-      tagY: y(tag.value),
-    }));
-    // Two totals close together: nudged apart so their labels don't overlap, the higher one above.
-    if (tags.length === 2 && Math.abs(tags[0].tagY - tags[1].tagY) < 15) {
-      const [upper, lower] = tags[0].value >= tags[1].value ? [tags[0], tags[1]] : [tags[1], tags[0]];
-      const mid = (upper.tagY + lower.tagY) / 2;
-      upper.tagY = mid - 7.5;
-      lower.tagY = mid + 7.5;
-    }
-    return tags;
+    return { mine: totalAt(myLine), theirs: theirs ? totalAt(theirLine) : null };
   })();
 
-  const team = (side: MatchupSide, own: boolean) => (
+  const team = (side: MatchupSide, own: boolean, value: number) => (
     <span className="flex min-w-0 items-center gap-1.5">
       {/* The line's own look, as a key: yours solid and bright, theirs grey. */}
       <span aria-hidden className={`h-[2px] w-3 shrink-0 ${own ? "bg-ink-primary" : "bg-ink-muted"}`} />
@@ -314,17 +303,17 @@ export function MatchupGraph({
           own ? "bg-[var(--map-tag)] text-[var(--map-tag-ink)]" : "border border-ink-muted/60 text-ink-primary"
         }`}
       >
-        {side.points.toFixed(2)}
+        {value.toFixed(2)}
       </span>
     </span>
   );
 
   return (
     <div className="flex h-full w-full min-w-0 flex-col">
-      {/* The two teams and their totals. */}
+      {/* The two teams and their totals — at the cursor's moment while it's on the lines. */}
       <div className="flex items-center justify-between gap-3 px-2 py-1.5">
-        {team(mine, true)}
-        {theirs ? team(theirs, false) : null}
+        {team(mine, true, cursorTotals?.mine ?? mine.points)}
+        {theirs ? team(theirs, false, cursorTotals?.theirs ?? theirs.points) : null}
       </div>
 
       <div ref={plotRef} className="relative min-h-[8rem] flex-1 touch-pan-y select-none" onPointerMove={follow} onPointerDown={follow}>
@@ -372,9 +361,18 @@ export function MatchupGraph({
                 )}
               </text>
             ))}
-            {/* Each team's projected pace. */}
+            {/* Each team's projected pace: a run of round dots, so it never reads as one of the solid score lines. */}
             {model.lines.map((l, i) => (
-              <path key={`pace${i}`} d={pacePath(l.paces)} fill="none" className={i === 0 ? "stroke-ink-primary" : "stroke-ink-muted"} strokeOpacity={i === 0 ? 0.45 : 0.6} strokeDasharray="4 3" />
+              <path
+                key={`pace${i}`}
+                d={pacePath(l.paces)}
+                fill="none"
+                className={i === 0 ? "stroke-ink-primary" : "stroke-ink-muted"}
+                strokeOpacity={i === 0 ? 0.6 : 0.75}
+                strokeWidth={1.75}
+                strokeLinecap="round"
+                strokeDasharray="0 4"
+              />
             ))}
             {/* The lines themselves: theirs under, yours on top. */}
             {theirs ? <path d={linePath(theirLine)} fill="none" className="stroke-ink-muted" strokeWidth={1.75} /> : null}
@@ -411,37 +409,13 @@ export function MatchupGraph({
                 >
                   {dayClock(cursorAt)}
                 </text>
-                {/* Each team's total there: yours on the solid plate, theirs outlined, as in the header — beside the
-                    cursor, on its left once it's near the right edge. */}
-                {cursorTotals.map((tag) => {
-                  const label = tag.value.toFixed(2);
-                  const width = label.length * 6.2 + 8;
-                  const cx = x(Math.min(cursorAt, lineEnd ?? cursorAt));
-                  const left = cx + 6 + width > PAD.left + plot.w;
-                  const bx = left ? cx - 6 - width : cx + 6;
-                  return (
-                    <g key={tag.own ? "mine" : "theirs"}>
-                      <circle cx={cx} cy={tag.lineY} r={2.5} className={tag.own ? "fill-ink-primary" : "fill-ink-muted"} />
-                      <rect
-                        x={bx}
-                        y={tag.tagY - 7}
-                        width={width}
-                        height={14}
-                        className={tag.own ? "fill-[var(--map-tag)]" : "fill-[var(--page)] stroke-ink-muted"}
-                        strokeWidth={tag.own ? 0 : 1}
-                      />
-                      <text
-                        x={bx + width / 2}
-                        y={tag.tagY}
-                        dy="0.34em"
-                        textAnchor="middle"
-                        className={`text-[0.625rem] font-bold tabular-nums ${tag.own ? "fill-[var(--map-tag-ink)]" : "fill-ink-primary"}`}
-                      >
-                        {label}
-                      </text>
-                    </g>
-                  );
-                })}
+                {/* Where it crosses each line (the totals there are up by the teams' names). */}
+                {cursorTotals ? (
+                  <>
+                    {cursorTotals.theirs !== null ? <circle cx={x(cursorAt)} cy={y(cursorTotals.theirs)} r={2.5} className="fill-ink-muted" /> : null}
+                    <circle cx={x(cursorAt)} cy={y(cursorTotals.mine)} r={2.5} className="fill-ink-primary" />
+                  </>
+                ) : null}
               </g>
             ) : null}
           </svg>
