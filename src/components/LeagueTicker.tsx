@@ -171,21 +171,20 @@ export interface MatchupRowTeam {
 
 /**
  * One team's row in a matchup box: its standing on one line — place, name,
- * record, streak — and its score at the right edge. Two cells of the box's
- * grid, so both teams' scores line up in one column. On the ticker names are
+ * record, streak — and its score at the right edge, where both teams' scores
+ * line up. On the ticker names are
  * never cut short — the entry grows to fit them; in a fixed-width box
  * (`fitWidth`) a name too long for it ends in an ellipsis.
  */
 function TickerTeamRow({ team, fitWidth }: { team: MatchupRowTeam; fitWidth: boolean }) {
   const { name, points, standing, mine = false, winning = false } = team;
   const { rank, record, streak } = standing ?? {};
-  // The winner's whole row — rank through score — on one unbroken plate, like a map tag; the row spans
-  // both of the box's columns (a subgrid), so the plate runs on across the gap to the score.
+  // A plain flex row, standing and score pushed apart: it sizes to its own content in every browser, so
+  // the box it's in is always wide enough for the name and the score. The winner's whole row — rank
+  // through score — is one unbroken plate, like a map tag.
   return (
     <div
-      className={`col-span-2 grid grid-cols-subgrid items-center ${
-        winning ? "-mx-1.5 bg-[var(--map-tag)] px-1.5 text-[var(--map-tag-ink)]" : ""
-      }`}
+      className={`flex items-center justify-between gap-6 ${winning ? "-mx-1.5 bg-[var(--map-tag)] px-1.5 text-[var(--map-tag-ink)]" : ""}`}
     >
       <div className={`flex items-center gap-1.5 whitespace-nowrap ${fitWidth ? "min-w-0" : ""}`}>
         {/* The place as a bare number in a fixed two digits, right-aligned, so every team name starts at the same x. */}
@@ -204,8 +203,9 @@ function TickerTeamRow({ team, fitWidth }: { team: MatchupRowTeam; fitWidth: boo
         ) : null}
         <StreakBadge streak={streak} onTag={winning} />
       </div>
+      {/* Room for a five-digit score ("163.80") at the least, so the scores always line up and always fit. */}
       <span
-        className={`justify-self-end text-base tabular-nums ${
+        className={`min-w-[6ch] shrink-0 whitespace-nowrap text-right text-base tabular-nums ${
           winning ? "font-bold" : mine && HIGHLIGHT_MINE ? MY_TEAM_NAME_CLASS : "font-semibold text-ink-primary"
         }`}
       >
@@ -215,10 +215,14 @@ function TickerTeamRow({ team, fitWidth }: { team: MatchupRowTeam; fitWidth: boo
   );
 }
 
-/** A matchup's two teams, one row each, scores in a column of their own — the body of a ticker entry, and of the league page's matchup list. */
+/**
+ * A matchup's two teams, one row each, the scores lined up at the right edge — the body of a ticker
+ * entry, and of the league page's matchup list. As wide as its widest row (the ticker), or, `fitWidth`,
+ * as wide as its box, a name too long for it ending in an ellipsis.
+ */
 export function MatchupRows({ teams, fitWidth = false }: { teams: MatchupRowTeam[]; fitWidth?: boolean }) {
   return (
-    <div className={`grid items-center gap-x-6 gap-y-1 ${fitWidth ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-[1fr_auto]"}`}>
+    <div className={`flex flex-col gap-y-1 ${fitWidth ? "min-w-0" : ""}`}>
       {teams.map((team, i) => (
         <TickerTeamRow key={i} team={team} fitWidth={fitWidth} />
       ))}
