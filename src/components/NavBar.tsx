@@ -1,12 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useNFLState } from "@/hooks/useNFLState";
 import { useCombinedRecord } from "@/hooks/useCombinedRecord";
 import { MenuIcon } from "@/components/ui/Icon";
-import { formatCountdown } from "@/lib/format";
-import { useWeekGames } from "@/hooks/useWeekGames";
 import { useHeaderWeek } from "@/lib/header-week";
 import { WeekPicker, weekLabel } from "@/components/WeekPicker";
 
@@ -16,35 +14,6 @@ const links = [
   { href: "/draft", label: "Draft" },
   { href: "/settings", label: "Settings" },
 ];
-
-/**
- * The countdown to the NFL week's next kickoff, ticking each second, beside
- * the week in the header on every page — gone once the week's last game has
- * kicked off.
- */
-function HeaderKickoffClock({ kickoffs }: { kickoffs: number[] }) {
-  const [now, setNow] = useState<number | null>(null);
-  useEffect(() => {
-    const tick = () => setNow(Date.now());
-    const id = setInterval(tick, 1000);
-    const first = setTimeout(tick, 0);
-    return () => {
-      clearInterval(id);
-      clearTimeout(first);
-    };
-  }, []);
-  if (now === null) return null;
-  const target = kickoffs.find((t) => t > now);
-  if (target === undefined) return null;
-  return (
-    <span
-      className="text-base font-bold tabular-nums text-ink-secondary animate-[fade-in_0.2s_ease-out] sm:text-2xl"
-      title="Next kickoff"
-    >
-      {formatCountdown(target - now)}
-    </span>
-  );
-}
 
 // The header's square buttons, styled like the map's own controls.
 const HEADER_BUTTON =
@@ -58,12 +27,6 @@ const HEADER_BUTTON =
 export function NavBar() {
   const phase = useNFLState();
   const record = useCombinedRecord();
-  // The NFL week's kickoffs, in order, for the countdown to the next.
-  const weekGames = useWeekGames(phase.loaded ? phase.season : null, phase.loaded ? phase.week : null);
-  const kickoffs = useMemo(
-    () => weekGames.map((g) => new Date(g.kickoff).getTime()).filter((t) => !Number.isNaN(t)).sort((a, b) => a - b),
-    [weekGames]
-  );
   // A page showing a week of its own (the league page) makes the header's week its picker.
   const pickable = useHeaderWeek();
   const [open, setOpen] = useState(false);
@@ -116,7 +79,7 @@ export function NavBar() {
         </div>
 
         {phase.loaded && phase.label ? (
-          <span className="flex items-baseline gap-4 justify-self-center sm:gap-8">
+          <span className="flex items-baseline justify-self-center">
             {pickable ? (
               <WeekPicker
                 {...pickable}
@@ -126,8 +89,6 @@ export function NavBar() {
             ) : (
               <span className="text-lg font-extrabold uppercase tracking-wide text-ink-primary sm:text-3xl">{phase.label}</span>
             )}
-            {/* The countdown to the next kickoff, always here, set apart from the week. */}
-            <HeaderKickoffClock kickoffs={kickoffs} />
           </span>
         ) : (
           <span />

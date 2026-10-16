@@ -507,6 +507,13 @@ export function buildSlabPaths(camera: MapCamera, level = 0): SlabPaths {
 
 export const DEFAULT_SCENE = buildMapScene(DEFAULT_CAMERA);
 
+/** How far down the map's box the land's top edge sits in a scene, as a share of the box's height. */
+export function landTopShare(scene: MapScene): number {
+  let top = Infinity;
+  for (let i = 0; i < OUTLINE.xs.length; i++) top = Math.min(top, scene.project(OUTLINE.xs[i], OUTLINE.ys[i], SLAB_HEIGHT)[1]);
+  return (top - scene.view.y) / scene.view.height;
+}
+
 /**
  * Perspective magnification at the opening view, for sizing and fading the
  * game tags by how close they are to the camera: the map's middle, and the

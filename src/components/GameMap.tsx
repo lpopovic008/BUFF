@@ -7,6 +7,7 @@ import {
   DEFAULT_SCALES,
   DEFAULT_SCENE,
   DEFAULT_CAMERA,
+  landTopShare,
   MAP_ASPECT,
   MapCamera,
   MapScene,
@@ -443,7 +444,16 @@ function ExpandedTag({
  * rise from south of the border below Arizona. Zooming in lets the map
  * run past the edges of its frame, which clips it.
  */
-export function GameMap({ games, legend }: { games: MappedGame[]; legend: LeagueLegendEntry[] }) {
+export function GameMap({
+  games,
+  legend,
+  overhead,
+}: {
+  games: MappedGame[];
+  legend: LeagueLegendEntry[];
+  /** Set in the middle of the open space over the land (as the map opens) — taking no room of its own. */
+  overhead?: React.ReactNode;
+}) {
   const frameRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<HTMLDivElement | null>(null);
   const { camera, isDefault, reset, zoomBy, wasDrag, handlers } = useMapCamera(mapRef);
@@ -541,13 +551,18 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
   // Sized from the opening view only (per screen width, not per frame), so
   // turning the map never makes the page around it jump; other views fit
   // their tags into the same room.
-  const headroomPx = useMemo(() => {
+  const opening = useMemo(() => {
     if (!measure) return null;
     const { width, rootPx } = measure;
     const free = layoutTags(tags, DEFAULT_SCENE, DEFAULT_CAMERA.tilt, width, rootPx, -Infinity);
     const highest = Math.min(0, ...free.map((l) => l.y - l.stem));
-    return Math.max(MIN_HEADROOM_REM * rootPx, Math.ceil(-highest) + 4);
+    const headroom = Math.max(MIN_HEADROOM_REM * rootPx, Math.ceil(-highest) + 4);
+    // The open space over the land as the map opens: from the frame's top down to the land's, or to the highest tag's if that's higher.
+    const landTop = landTopShare(DEFAULT_SCENE) * (width / MAP_ASPECT);
+    const openBottom = Math.min(landTop, ...free.map((l) => l.y - l.stem));
+    return { headroom, openMiddle: (-headroom + openBottom) / 2 };
   }, [measure, tags]);
+  const headroomPx = opening?.headroom ?? null;
 
   const placed = useMemo(() => {
     if (!measure || headroomPx === null) return [];
@@ -641,6 +656,13 @@ export function GameMap({ games, legend }: { games: MappedGame[]; legend: League
                 ))}
               </g>
             </svg>
+
+            {/* In the middle of the open space over the land and its tags, as the map opens — staying put as it turns. */}
+            {overhead && opening ? (
+              <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 -translate-y-1/2" style={{ top: opening.openMiddle }}>
+                {overhead}
+              </div>
+            ) : null}
 
             <div
               // An opened tag runs to the top of the frame, so it lifts the

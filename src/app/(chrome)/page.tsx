@@ -8,6 +8,7 @@ import { LeagueTicker, TickerLeague } from "@/components/LeagueTicker";
 import { ByeTeam, LeagueLegendEntry, StartersByGame } from "@/components/StartersByGame";
 import { NFL_TEAMS } from "@/lib/nfl-logos";
 import { PointsGraphGrid } from "@/components/PointsGraph";
+import { KickoffCountdown } from "@/components/KickoffCountdown";
 import { RedZone } from "@/components/RedZone";
 import { useConfig } from "@/hooks/useConfig";
 import { MatchupTarget, useDashboardMatchups } from "@/hooks/useDashboardMatchups";
@@ -272,6 +273,11 @@ export default function DashboardPage() {
   }, [starterSources, leagues]);
 
   const anyGameLive = weekGames.some((g) => g.state === "in");
+  // The week's kickoffs, in order, for the countdown over the map.
+  const kickoffs = useMemo(
+    () => weekGames.map((g) => new Date(g.kickoff).getTime()).filter((t) => !Number.isNaN(t)).sort((a, b) => a - b),
+    [weekGames]
+  );
 
   // The graphed players and their games, as they stand now — so a live graph moves with each tick.
   const scoringByLeague = useMemo(
@@ -386,6 +392,8 @@ export default function DashboardPage() {
                     <GameMap
                       games={mappedGames.filter((g) => !hiddenBlocks.has(kickoffBlockLabel(g.game)) && !offMap.has(g.game.id))}
                       legend={legend}
+                      // The countdown to the next kickoff, in the open space over the land.
+                      overhead={<KickoffCountdown kickoffs={kickoffs} />}
                     />
                   </div>
                   {/* One graph in full; two stacked; three or four, one to a corner. */}

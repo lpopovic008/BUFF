@@ -415,9 +415,11 @@ app uses). Stats are fetched only once a game this week has started, and
 then re-read each tick.
 
 **Header** (`NavBar.tsx`): the NFL week (on pages with their own week, an
-underlined button that opens the week picker) with, set apart beside it on
-every page, the countdown to that week's next kickoff, from its scoreboard
-— gone once its last game has kicked off. On a phone the page runs edge to
+underlined button that opens the week picker). The countdown to the week's
+next kickoff (`KickoffCountdown`) sits on the dashboard's map instead, in the
+middle of the open space over the land and its tags as the map opens
+(`landTopShare`), taking no room of its own — gone once the week's last game
+has kicked off. On a phone the page runs edge to
 edge (`viewport-fit=cover`) and the header pads itself down by the safe
 area, so its background fills the strip around the camera; the browser's
 theme color (the status bar's) is set to the page's background in the theme
