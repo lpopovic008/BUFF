@@ -740,6 +740,93 @@ function ByeLine({ team, shown }: { team: string | null; shown: boolean }) {
   );
 }
 
+/**
+ * The teams on bye side by side, a quarter of the row each (there are never
+ * more than four). Tapping one steps it through the views, like a game's
+ * matchup; the players it then lists go under the whole row, headed by their
+ * team, so the row itself stays as it is.
+ */
+function ByeRow({
+  byes,
+  views,
+  closingGames,
+  actions,
+  onToggle,
+  legendByLeagueId,
+}: {
+  byes: ByeTeam[];
+  views: Map<string, number>;
+  closingGames: Set<string>;
+  actions: Record<string, LastAction>;
+  onToggle: (id: string, view: number, closeMs: number) => void;
+  legendByLeagueId: Map<string, LeagueLegendEntry>;
+}) {
+  const nextLabel = ["show just the team", "show your players", "show yours and the ones you face", "show everyone"];
+  return (
+    <div className="flex flex-col gap-2 pt-2">
+      <div className="grid grid-cols-4 gap-2">
+        {byes.map((b) => {
+          const id = byeId(b);
+          const view = views.get(id) ?? 0;
+          const toggleable = viewCycle(b).length > 1;
+          const next = nextView(b, view);
+          const open = viewPlayers(b, view).length > 0 && !closingGames.has(id);
+          const toggle = () => onToggle(id, next, closeMsFor(viewPlayers(b, view), "pre", actions));
+          return (
+            <div
+              key={id}
+              role={toggleable ? "button" : undefined}
+              tabIndex={toggleable ? 0 : undefined}
+              aria-label={`${b.team ?? "No team"} on bye${toggleable ? ` — ${nextLabel[next]}` : ""}`}
+              aria-expanded={toggleable ? open : undefined}
+              onClick={toggleable ? toggle : undefined}
+              onKeyDown={
+                toggleable
+                  ? (e) => {
+                      if (e.key !== "Enter" && e.key !== " ") return;
+                      e.preventDefault();
+                      toggle();
+                    }
+                  : undefined
+              }
+              // An open one is outlined in ink, to tie it to its players below.
+              className={`min-w-0 border px-2 py-1.5 ${open ? "border-ink-primary" : "border-ink-muted/40"} ${toggleable ? "cursor-pointer transition-opacity hover:opacity-80" : ""}`}
+            >
+              <ByeLine team={b.team} shown />
+            </div>
+          );
+        })}
+      </div>
+      {byes.map((b) => {
+        const id = byeId(b);
+        const shown = viewPlayers(b, views.get(id) ?? 0);
+        if (shown.length === 0) return null;
+        const closing = closingGames.has(id);
+        return (
+          <div key={id} className="flex flex-col border border-ink-muted/40 px-2 py-1.5">
+            <span className="text-[0.625rem] font-semibold uppercase tracking-wider text-ink-muted">{b.team ?? "No team"}</span>
+            <GameRows
+              players={shown}
+              sortByPoints={false}
+              render={(player, motion) => (
+                <GameLine
+                  player={player}
+                  phase="pre"
+                  action={actions[player.playerId]}
+                  shown={!closing}
+                  motion={motion}
+                  legendByLeagueId={legendByLeagueId}
+                  selected={false}
+                />
+              )}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function reducedMotion(): boolean {
   return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
@@ -985,26 +1072,7 @@ export function StartersByGame({
           {byes.length > 0 ? (
             <div className="flex flex-col">
               <h3 className={headerBar}>Bye</h3>
-              <div className="flex flex-col gap-2 pt-2">
-                {byes.map((b) => (
-                  <GameBox
-                    key={byeId(b)}
-                    id={byeId(b)}
-                    listing={b}
-                    phase="pre"
-                    live={false}
-                    label={`${b.team ?? "No team"} on bye`}
-                    view={views.get(byeId(b)) ?? 0}
-                    closing={closingGames.has(byeId(b))}
-                    hidden={false}
-                    actions={actions}
-                    onToggle={toggleGame}
-                    legendByLeagueId={legendByLeagueId}
-                  >
-                    <ByeLine team={b.team} shown />
-                  </GameBox>
-                ))}
-              </div>
+              <ByeRow byes={byes} views={views} closingGames={closingGames} actions={actions} onToggle={toggleGame} legendByLeagueId={legendByLeagueId} />
             </div>
           ) : null}
         </div>

@@ -356,6 +356,12 @@ the cursor back and forth a play at a time. × (or tapping their line again)
 takes a graph down; Escape takes them all down and brings the map back. The map stays mounted underneath, just hidden, so its view isn't
 lost. On a phone, the page scrolls up to the graph.
 
+Each team's score in the league page's matchups has its projected total
+over it (`liveProjection`): Sleeper's pregame projection for each starter,
+scored under the league's rules, swapped for the starter's actual points
+once their game is final — so it moves only as games finish, never play by
+play.
+
 The league page always has a graph under the lineups and above the payout
 table, three quarters of the screen tall on a phone (`75svh`) and up to 70%
 of it, at most 40rem, from tablet width up (`MatchupGraph`; `lib/matchup-timeline.ts`): the matchup being looked
@@ -385,9 +391,11 @@ A game's box swipes left (touch, mouse drag, or a trackpad's sideways
 scroll) to show an eye button that takes that one game off the map, or puts
 it back; its border goes dashed while it's off. Like the block headers'
 choices, it holds for the week shown. The teams on their bye come last,
-under their own BYE header below even the finished blocks, each in a box
-with any of your starters on it (and the ones you face) — plus a "No team"
-box for starters without an NFL team.
+under their own BYE header below even the finished blocks, side by side in
+one row, a quarter of it each (a week has at most four), plus a "No team"
+box for starters without an NFL team (wrapping onto a second row). Tapping
+one steps it through the views like a game's matchup; the players it then
+lists (yours, and the ones you face) go in a box under the whole row.
 
 Once a game kicks off, rows are ordered by points, then
 projection; before kickoff, by projection alone. Before kickoff each row

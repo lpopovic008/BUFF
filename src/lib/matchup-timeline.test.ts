@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { gameWindows, leadPieces, teamPace, teamTimeline } from "./matchup-timeline";
+import { gameWindows, leadPieces, liveProjection, teamPace, teamTimeline } from "./matchup-timeline";
 
 test("gameWindows merges overlapping games into the week's windows", () => {
   assert.deepEqual(
@@ -55,5 +55,16 @@ test("leadPieces cuts the week wherever either total moved, with who led", () =>
       { from: 10, to: 20, lead: true },
       { from: 20, to: 30, lead: false },
     ]
+  );
+});
+
+test("liveProjection counts projections until a starter's game is over, then their points", () => {
+  assert.equal(
+    liveProjection([
+      { points: 22.4, projected: 18, final: true },
+      { points: 9.1, projected: 15.5, final: false },
+      { points: 3, projected: null, final: false },
+    ]),
+    40.9
   );
 });

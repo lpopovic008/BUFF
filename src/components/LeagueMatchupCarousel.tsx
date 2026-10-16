@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ResolvedMatchupGame, ResolvedSlot } from "@/hooks/useLeagueMatchupCarousel";
 import { HeadToHeadBadge, PointsRankBadges, TeamNameLabel } from "@/components/DashboardMatchupCard";
 import { AllTimeRecord, headToHeadAsItStands, headToHeadKey, useAllTimeHeadToHead } from "@/hooks/useAllTimeHeadToHead";
@@ -9,6 +9,23 @@ import { TeamStanding } from "@/lib/league-data";
 import { MatchupRows } from "@/components/LeagueTicker";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { abbreviateFirstName, formatPoints } from "@/lib/format";
+
+/** Each team's live projected total, by roster (see liveProjection) — none until the projections load. */
+const ProjectedContext = createContext<Map<number, number> | null>(null);
+
+/** A team's projected total, small, over its score. */
+function Projected({ rosterId, align }: { rosterId: number; align: "left" | "right" }) {
+  const projected = useContext(ProjectedContext)?.get(rosterId);
+  if (projected === undefined) return <span />;
+  return (
+    <span
+      className={`text-[0.6875rem] font-normal tabular-nums opacity-70 ${align === "right" ? "text-right" : "text-left"}`}
+      title="Projected: Sleeper's pregame projections, with each player's actual points once their game is over"
+    >
+      proj {formatPoints(projected)}
+    </span>
+  );
+}
 
 // Sleeper's own slot code — abbreviate the one that's spelled out.
 function slotLabel(slot: string): string {
@@ -175,6 +192,11 @@ function MatchupHeader({
         <span />
         {right ? label(right, "right") : <div />}
       </div>
+      <div className={`-mb-1.5 grid ${SLOT_COLS} gap-1 sm:gap-2`}>
+        <Projected rosterId={left.rosterId} align="right" />
+        <span />
+        {right ? <Projected rosterId={right.rosterId} align="left" /> : <span />}
+      </div>
       <div className={`grid ${SLOT_COLS} items-baseline gap-1 text-[0.9375rem] font-semibold tabular-nums sm:gap-2 sm:text-lg`}>
         <span className="flex items-baseline justify-between gap-1 lg:gap-2">
           {badges(left, "left")}
@@ -246,14 +268,20 @@ function CompactHeader({ left, right }: { left: MatchupTeam; right: MatchupTeam 
     <div
       className={`grid ${SLOT_COLS} items-baseline gap-1 bg-[var(--map-tag)] px-2 py-2 text-[0.8125rem] text-[var(--map-tag-ink)] sm:gap-2`}
     >
-      <span className="flex min-w-0 items-baseline justify-between gap-2">
+      <span className="flex min-w-0 items-end justify-between gap-2">
         <span className="truncate font-semibold">{left.teamName}</span>
-        <span className="shrink-0 font-semibold tabular-nums">{formatPoints(left.points)}</span>
+        <span className="flex shrink-0 flex-col items-end leading-tight">
+          <Projected rosterId={left.rosterId} align="right" />
+          <span className="font-semibold tabular-nums">{formatPoints(left.points)}</span>
+        </span>
       </span>
       <span />
       {right ? (
-        <span className="flex min-w-0 items-baseline justify-between gap-2">
-          <span className="shrink-0 font-semibold tabular-nums">{formatPoints(right.points)}</span>
+        <span className="flex min-w-0 items-end justify-between gap-2">
+          <span className="flex shrink-0 flex-col items-start leading-tight">
+            <Projected rosterId={right.rosterId} align="left" />
+            <span className="font-semibold tabular-nums">{formatPoints(right.points)}</span>
+          </span>
           <span className="truncate text-right font-semibold">{right.teamName}</span>
         </span>
       ) : (
@@ -416,6 +444,7 @@ export function LeagueMatchupCarousel({
   owners,
   pending,
   onShowMatchup,
+  projected = null,
 }: {
   leagueId: string;
   games: ResolvedMatchupGame[];
@@ -428,6 +457,8 @@ export function LeagueMatchupCarousel({
   pending?: PendingMatchups | null;
   /** Told whenever another matchup is picked to look at (opened on a phone, picked from the list from tablet width up). */
   onShowMatchup?: (matchupId: number) => void;
+  /** Each team's live projected total, by roster, shown over its score. */
+  projected?: Map<number, number> | null;
 }) {
   // The matchup shown large beside the list (tablet and up): yours until another is picked.
   const [pickedId, setPickedId] = useState<number | null>(null);
@@ -444,7 +475,7 @@ export function LeagueMatchupCarousel({
   const picked = games.find((g) => g.matchupId === pickedId) ?? myGame ?? games[0];
 
   return (
-    <>
+    <ProjectedContext.Provider value={projected}>
       {/* Phones: every matchup's header stacked; tap one for its lineup. */}
       <div className="md:hidden">
         <MatchupStack
@@ -496,6 +527,6 @@ export function LeagueMatchupCarousel({
         </ul>
         </div>
       </div>
-    </>
+    </ProjectedContext.Provider>
   );
 }

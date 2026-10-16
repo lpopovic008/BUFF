@@ -17,6 +17,7 @@ import { savePayoutPlan } from "@/lib/localStore";
 import { getCurrentWeek, getWeeklyPlayerLines, weighProjection } from "@/lib/sleeper";
 import { useWeekGames } from "@/hooks/useWeekGames";
 import { MatchupGraph, MatchupSide } from "@/components/MatchupGraph";
+import { liveProjection } from "@/lib/matchup-timeline";
 import { setHeaderWeek } from "@/lib/header-week";
 import { TitleWithHistory } from "@/components/HistoryButtons";
 
@@ -149,6 +150,26 @@ function LeagueDetailContent() {
       cancelled = true;
     };
   }, [season, shownWeek]);
+  // Each team's projected total: Sleeper's pregame projections, each swapped for the player's actual
+  // points once their game is over — so it only moves as games finish.
+  const projected = useMemo(() => {
+    if (!carousel || !projectionStats) return null;
+    const finalTeams = new Set(weekGames.filter((g) => g.state === "post").flatMap((g) => [g.homeTeam, g.awayTeam]));
+    const out = new Map<number, number>();
+    for (const game of carousel.games) {
+      for (const t of game.teams) {
+        const starters = t.slots.flatMap((slot) => {
+          const p = slot.player;
+          if (!p) return [];
+          const stats = projectionStats[p.playerId];
+          const weighed = stats ? weighProjection(stats, scoring) : undefined;
+          return [{ points: slot.livePoints, projected: typeof weighed === "number" ? weighed : null, final: !!p.team && finalTeams.has(p.team) }];
+        });
+        out.set(t.rosterId, liveProjection(starters));
+      }
+    }
+    return out;
+  }, [carousel, projectionStats, weekGames, scoring]);
   const graphed = useMemo(() => {
     const games = carousel?.games ?? [];
     const myRosterId = myRow?.rosterId ?? null;
@@ -230,6 +251,7 @@ function LeagueDetailContent() {
             owners={owners}
             pending={pending}
             onShowMatchup={(id) => setShownMatchupId({ week: shownWeek, id })}
+            projected={projected}
           />
         </div>
       ) : carousel ? (

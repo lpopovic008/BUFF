@@ -82,6 +82,27 @@ export function teamPace(starters: StarterPace[], at: number): number {
   return Math.round(sum * 100) / 100;
 }
 
+/** A starter, for their team's live projection. */
+export interface ProjectedStarter {
+  /** What they've scored so far. */
+  points: number;
+  /** Sleeper's pregame projection, under the league's rules; null when there's none. */
+  projected: number | null;
+  /** Their game is over, so their points are final. */
+  final: boolean;
+}
+
+/**
+ * A team's projected total as the week goes: each starter's pregame
+ * projection, swapped for what they actually scored once their game is over.
+ * It moves only as games finish, not play by play. A starter with no
+ * projection counts what they've scored.
+ */
+export function liveProjection(starters: ProjectedStarter[]): number {
+  const sum = starters.reduce((s, p) => s + (p.final || p.projected === null ? p.points : p.projected), 0);
+  return Math.round(sum * 100) / 100;
+}
+
 /** A stretch where both totals held: whether you led (true), trailed (false) or were level (null). */
 export interface LeadPiece extends Span {
   mine: number;
