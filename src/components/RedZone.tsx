@@ -534,7 +534,7 @@ export function RedZone({
     box.scrollTop = row.offsetTop;
   }, [spotKey, shown]);
   const pinned = spotEntry && !scrollIn ? spotEntry : null;
-  // Pinned, it's brought into sight — whatever's scrolling the plays (the map's column, or the page) moved
+  // Pinned, it's brought into sight with the title bar it sits in — whatever's scrolling the plays (the map's column, or the page) moved
   // only as far as that takes, so the graph stays under the pointer — and moved back once it's gone.
   const pinnedRef = useRef<HTMLOListElement>(null);
   const pinnedKey = pinned ? `${pinned.game.id}-${pinned.play.id}` : null;
@@ -553,7 +553,8 @@ export function RedZone({
     const bottom = el ? el.getBoundingClientRect().bottom : window.innerHeight;
     const top = el ? el.scrollTop : window.scrollY;
     pageScroll.current ??= { el, top };
-    const over = row.getBoundingClientRect().bottom + 8 - bottom;
+    // The whole title bar it sits in — the play, any red zone now, the title — in sight.
+    const over = (headRef.current ?? row).getBoundingClientRect().bottom + 8 - bottom;
     if (over > 0) (el ?? window).scrollTo({ top: top + over });
   }, [pinnedKey]);
   const moreToShow = feed.entries.length > shown;
@@ -584,65 +585,17 @@ export function RedZone({
     scope === "all" ? weekGames.some((g) => g.state !== "pre") : followed.some((g) => g.game.state !== "pre" && g.players.length > 0);
 
   return (
-    // The plays run on down the page (or, side by side, the map's column),
-    // with the title and anything in the red zone now sticking at the top as
-    // they pass under it — so one swipe carries straight on from the page into
-    // the plays. On a phone with a game on, they sit in a short box of their own instead.
+    // The plays run on down the map's column (from tablet width up), with the
+    // title and anything in the red zone now sticking at the bottom as they
+    // pass over it. On a phone they sit in a short box of their own, the title
+    // bar under it.
     <Card className="flex flex-col gap-2 p-3">
-      <div
-        ref={headRef}
-        onPointerUp={onHeadTap}
-        className={`z-10 -mx-3 -mt-3 flex touch-manipulation flex-col gap-2 border-b border-border bg-surface-raised px-3 pb-2 pt-3 select-none md:sticky md:top-0 ${
-          compactOnPhone ? "" : "max-md:sticky max-md:top-[calc(var(--header-h,0px)+var(--ticker-h,0px))]"
-        }`}
-      >
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="flex min-w-0 items-center gap-2">
-            <span className="relative flex h-2.5 w-2.5 shrink-0" aria-hidden>
-              {live ? <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-status-critical opacity-60" /> : null}
-              <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${live ? "bg-status-critical" : "bg-ink-muted"}`} />
-            </span>
-            <span className="whitespace-nowrap text-sm font-bold uppercase tracking-[0.2em] text-ink-primary">Red Zone</span>
-          </h2>
-          <div className="flex shrink-0 border border-border text-[0.6875rem] font-semibold" role="group" aria-label="Which plays">
-            {SCOPES.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                aria-pressed={scope === opt.value}
-                onClick={() => pickScope(opt.value)}
-                className={`whitespace-nowrap px-2 py-0.5 transition-colors ${
-                  scope === opt.value ? "bg-ink-primary text-surface-raised" : "text-ink-secondary hover:text-ink-primary"
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* The play by a graph's cursor, pinned right under the title (see spotlight). */}
-        {pinned ? (
-          <ol ref={pinnedRef} aria-label="The play by the graph's cursor">
-            <FeedRow key="pinned" entry={pinned} starterById={starterById} legendByLeagueId={legendByLeagueId} arrivedLive={false} index={0} spotlit />
-          </ol>
-        ) : null}
-
-        {feed.redZone.length > 0 ? (
-          <ul className="flex flex-col gap-1" aria-label="In the red zone now">
-            {feed.redZone.map((alert) => (
-              <RedZoneAlert key={alert.game.id} alert={alert} />
-            ))}
-          </ul>
-        ) : null}
-      </div>
-
       {entries.length > 0 ? (
         <div className="relative">
           <div
             ref={boxRef}
             className={
-              `relative ${compactOnPhone ? "max-md:max-h-[var(--rz-user-h,var(--rz-box-h,15rem))] max-md:overflow-y-auto max-md:overscroll-contain max-md:border-b max-md:border-border" : ""}`
+              `relative ${compactOnPhone ? "max-md:max-h-[var(--rz-user-h,var(--rz-box-h,15rem))] max-md:overflow-y-auto max-md:overscroll-contain" : ""}`
             }
             style={boxHeight !== null ? ({ "--rz-user-h": `${boxHeight}px` } as React.CSSProperties) : undefined}
           >
@@ -680,6 +633,56 @@ export function RedZone({
                   : "No plays yet."}
         </p>
       )}
+
+      <div
+        // The title bar sits at the bottom of the box (sticking to the bottom of the column, from tablet width up,
+        // as the plays scroll by above it): the play by a graph's cursor, any red zone now, then the title.
+        ref={headRef}
+        onPointerUp={onHeadTap}
+        className={`z-10 -mx-3 -mb-3 flex touch-manipulation flex-col gap-2 border-t border-border bg-surface-raised px-3 pb-3 pt-2 select-none md:sticky md:bottom-0 ${
+          compactOnPhone ? "" : "max-md:sticky max-md:bottom-0"
+        }`}
+      >
+        {/* The play by a graph's cursor, pinned right over the title (see spotlight). */}
+        {pinned ? (
+          <ol ref={pinnedRef} aria-label="The play by the graph's cursor">
+            <FeedRow key="pinned" entry={pinned} starterById={starterById} legendByLeagueId={legendByLeagueId} arrivedLive={false} index={0} spotlit />
+          </ol>
+        ) : null}
+
+        {feed.redZone.length > 0 ? (
+          <ul className="flex flex-col gap-1" aria-label="In the red zone now">
+            {feed.redZone.map((alert) => (
+              <RedZoneAlert key={alert.game.id} alert={alert} />
+            ))}
+          </ul>
+        ) : null}
+
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="flex min-w-0 items-center gap-2">
+            <span className="relative flex h-2.5 w-2.5 shrink-0" aria-hidden>
+              {live ? <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-status-critical opacity-60" /> : null}
+              <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${live ? "bg-status-critical" : "bg-ink-muted"}`} />
+            </span>
+            <span className="whitespace-nowrap text-sm font-bold uppercase tracking-[0.2em] text-ink-primary">Red Zone</span>
+          </h2>
+          <div className="flex shrink-0 border border-border text-[0.6875rem] font-semibold" role="group" aria-label="Which plays">
+            {SCOPES.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                aria-pressed={scope === opt.value}
+                onClick={() => pickScope(opt.value)}
+                className={`whitespace-nowrap px-2 py-0.5 transition-colors ${
+                  scope === opt.value ? "bg-ink-primary text-surface-raised" : "text-ink-secondary hover:text-ink-primary"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
     </Card>
   );
 }
