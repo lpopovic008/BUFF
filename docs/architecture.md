@@ -351,11 +351,14 @@ total still differ from the plays' (stats no play carries, such as yards
 allowed) a dashed rise at the end makes up the difference, so the line
 ends on their row's number, which is lit on a plate in the corner. Dragging
 or hovering puts a dotted line under the finger, with the time there, and
-it stays where it's lifted; the description underneath shows the last play
-by then in full — every play's description laid in the same spot, all but
-the shown one invisible, so the box is as tall as the longest and keeps its
-size as the cursor moves — with its +/- on the right
-under its quarter and game clock (the time of day is on the cursor); the left and right arrow keys step
+it stays where it's lifted. There's no description under the graph: while
+the cursor is up, the Red Zone shows the last play by then (`spotlight`) —
+on a phone its box scrolls to the play's row and lights it up; from tablet
+width up, where the plays run on down the map's column under the graph, the
+play is pinned right under the Red Zone's title, the column moved only as
+far as it takes to bring it into sight. Tapping the graph again, or
+anywhere off it, takes the cursor away, and the Red Zone (and the column)
+goes back to exactly where it was. The left and right arrow keys step
 the cursor back and forth a play at a time. × (or tapping their line again)
 takes a graph down; Escape takes them all down and brings the map back. The map stays mounted underneath, just hidden, so its view isn't
 lost. On a phone, the page scrolls up to the graph.
@@ -387,7 +390,7 @@ and red while you trail (`leadPieces`), with how much of the week so far
 you've led and trailed in the corner, and each team's projected pace a line
 of round dots, so it never reads as a score line (`teamPace`: each starter's
 projection earned evenly over their game). The cursor, the arrow keys and
-the description below work as the player graph's do — while the cursor is
+the description below work as the player graph's used to — while the cursor is
 on the lines, the totals by the team names up top show each team's total at
 that moment (a dot marks where it crosses each line) — the description naming the player and its +/- green for your
 points, red for theirs.

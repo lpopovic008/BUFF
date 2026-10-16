@@ -4,7 +4,6 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { GroupedStarter } from "@/lib/my-starters";
 import { NFLGame } from "@/lib/nfl-schedule";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
-import { cleanPlayText } from "@/lib/play-by-play";
 import { halftimeSpan, pacePieces, periodStarts, pointsTimeline } from "@/lib/live-play-points";
 import { useGamePlays, withScoreboardPlay } from "@/hooks/useRedZoneFeed";
 
@@ -83,8 +82,9 @@ function minutes(ms: number): string {
  * differ — stats no single play carries — a dashed rise at the end makes up
  * the difference, so the line always ends on the number in their row.
  * Dragging (or hovering) across it puts a dotted line under the finger,
- * left where it's lifted, and the description below shows the last play by
- * then.
+ * left where it's lifted, and the Red Zone shows the last play by then
+ * (`onCursorPlay`); tapping the graph again, or anywhere off it, takes the
+ * cursor away, and the Red Zone goes back to where it was.
  */
 export function PointsGraph({
   player,
@@ -92,6 +92,7 @@ export function PointsGraph({
   onClose,
   compact = false,
   scoring,
+  onCursorPlay,
 }: {
   player: GroupedStarter;
   game: NFLGame;
@@ -100,6 +101,8 @@ export function PointsGraph({
   scoring?: Record<string, number>;
   /** One of several on screen: just the name, the total, the points axis and the lines. */
   compact?: boolean;
+  /** Told the play by the cursor (its game and ESPN play id) whenever that changes — null once the cursor's gone. */
+  onCursorPlay?: (play: { gameId: string; playId: string } | null) => void;
 }) {
   const PAD = compact ? COMPACT_PAD : FULL_PAD;
   const followed = useMemo(() => [{ game, players: [player] }], [game, player]);
@@ -232,7 +235,7 @@ export function PointsGraph({
     return x(m.at) - x(prev.at) >= 70 ? [{ px: (x(prev.at) + x(m.at)) / 2, label: minutes(m.at - prev.at - halftimeIn) }] : [];
   });
 
-  // The play the description shows: the last by the cursor's time, or the latest.
+  // The play by the cursor: the last by its time (or the latest, for the arrow keys to start from).
   const shownStep =
     cursor === null
       ? (steps[steps.length - 1] ?? null)
@@ -242,6 +245,58 @@ export function PointsGraph({
     if (!el || !plot) return;
     setCursor({ at: timeAt(e.clientX - el.getBoundingClientRect().left) });
   };
+  // A press on the graph: with the cursor up, a tap (no drag) takes it away; a drag moves it. A mouse
+  // just hovering moves it too — but not straight back after a tap took it away, until it leaves and returns.
+  const press = useRef<{ x: number; y: number; clearing: boolean; moved: boolean } | null>(null);
+  const hoverOff = useRef(false);
+  const plotHandlers = compact
+    ? {}
+    : {
+        onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => {
+          hoverOff.current = false;
+          press.current = { x: e.clientX, y: e.clientY, clearing: cursor !== null, moved: false };
+          if (cursor === null) follow(e);
+        },
+        onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => {
+          const p = press.current;
+          if (p) {
+            if (!p.moved && Math.hypot(e.clientX - p.x, e.clientY - p.y) < 6) return;
+            p.moved = true;
+            follow(e);
+          } else if (e.pointerType === "mouse" && !hoverOff.current) follow(e);
+        },
+        onPointerUp: () => {
+          const p = press.current;
+          press.current = null;
+          if (p?.clearing && !p.moved) {
+            setCursor(null);
+            hoverOff.current = true;
+          }
+        },
+        onPointerCancel: () => {
+          press.current = null;
+        },
+        onPointerLeave: (e: React.PointerEvent<HTMLDivElement>) => {
+          if (e.pointerType === "mouse") hoverOff.current = false;
+        },
+      };
+  // Anywhere off the graph takes the cursor away too.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const cursorUp = cursor !== null;
+  useEffect(() => {
+    if (!cursorUp) return;
+    const off = (e: PointerEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) setCursor(null);
+    };
+    document.addEventListener("pointerdown", off, true);
+    return () => document.removeEventListener("pointerdown", off, true);
+  }, [cursorUp]);
+  // The Red Zone shows the play by the cursor (a defense's points-allowed step is its play's).
+  const cursorPlayId = cursor !== null && shownStep ? shownStep.playId.split(":")[0] : null;
+  useEffect(() => {
+    onCursorPlay?.(cursorPlayId ? { gameId: game.id, playId: cursorPlayId } : null);
+  }, [cursorPlayId, game.id, onCursorPlay]);
+  useEffect(() => () => onCursorPlay?.(null), [onCursorPlay]);
 
   // The arrow keys step the cursor a play at a time — left to the one before it, right to the one after.
   useEffect(() => {
@@ -275,7 +330,7 @@ export function PointsGraph({
 
   return (
     // Open, like the map: no frame of its own.
-    <div className="flex h-full w-full min-w-0 flex-col bg-[var(--page)]">
+    <div ref={rootRef} className="flex h-full w-full min-w-0 flex-col bg-[var(--page)]">
       {/* Who, their game, and their total — and the way back to the map. */}
       <div className={`flex items-center gap-2 ${compact ? "px-1 py-0.5" : "px-2 py-1.5"}`}>
         <span className={`min-w-0 truncate text-ink-primary ${compact ? "text-xs" : "text-sm"}`}>{player.name}</span>
@@ -315,8 +370,7 @@ export function PointsGraph({
       <div
         ref={plotRef}
         className={`relative flex-1 select-none ${compact ? "min-h-0" : "min-h-[8rem] touch-pan-y"}`}
-        onPointerMove={compact ? undefined : follow}
-        onPointerDown={compact ? undefined : follow}
+        {...plotHandlers}
       >
         {plot && size ? (
           <svg width={size.width} height={size.height} className="absolute inset-0 overflow-visible" role="img" aria-label={`${player.name}'s fantasy points over the game`}>
@@ -439,30 +493,6 @@ export function PointsGraph({
         ) : null}
       </div>
 
-      {/* The last play by the cursor (the latest, before any drag), in full. Every play's description sits in
-          the same spot, all but the shown one invisible, so the box is as tall as the longest and never
-          changes size as the cursor moves. */}
-      {compact ? null : (
-      <div className="flex shrink-0 gap-2 border-t border-ink-muted/25 px-2 py-1 text-[0.6875rem] leading-snug">
-        <div className="grid min-w-0 flex-1 text-ink-secondary">
-          {steps.map((st) => (
-            <p key={st.playId} className={`col-start-1 row-start-1 ${st === shownStep ? "" : "invisible"}`} aria-hidden={st !== shownStep}>
-              {cleanPlayText(st.text)}
-            </p>
-          ))}
-          <p className={`col-start-1 row-start-1 ${shownStep ? "invisible" : ""}`} aria-hidden={!!shownStep}>
-            {game.state === "pre" ? `Kicks off at ${clock(kickoff)}` : over && steps.length === 0 ? "No scoring plays" : "No points yet"}
-          </p>
-        </div>
-        {/* Two lines whatever's shown, so the box keeps its height. The time of day is up on the cursor; here, just the quarter and the game clock. */}
-        <div className="flex shrink-0 flex-col items-end tabular-nums">
-          <span className="text-ink-muted">{shownStep && shownStep.period > 0 ? `${quarterName(shownStep.period)} ${shownStep.clock}` : "\u00a0"}</span>
-          <span className={shownStep && shownStep.delta < 0 ? "text-status-critical" : "text-status-good"}>
-            {shownStep ? `${shownStep.delta > 0 ? "+" : ""}${shownStep.delta.toFixed(2)}` : "\u00a0"}
-          </span>
-        </div>
-      </div>
-      )}
     </div>
   );
 }
@@ -479,7 +509,16 @@ export interface GraphedPlayer {
  * full, two stacked one over the other, three or four one to a corner — each
  * pared back (see PointsGraph's `compact`) once there's more than one.
  */
-export function PointsGraphGrid({ graphs, onClose }: { graphs: GraphedPlayer[]; onClose: (playerId: string) => void }) {
+export function PointsGraphGrid({
+  graphs,
+  onClose,
+  onCursorPlay,
+}: {
+  graphs: GraphedPlayer[];
+  onClose: (playerId: string) => void;
+  /** Told the play by the (one, full) graph's cursor — see PointsGraph. */
+  onCursorPlay?: (play: { gameId: string; playId: string } | null) => void;
+}) {
   return (
     <div
       className={`grid h-full w-full gap-x-3 gap-y-2 ${
@@ -488,7 +527,14 @@ export function PointsGraphGrid({ graphs, onClose }: { graphs: GraphedPlayer[]; 
     >
       {graphs.map(({ player, game, scoring }) => (
         <div key={`${game.id}-${player.playerId}`} className="min-h-0 min-w-0">
-          <PointsGraph player={player} game={game} scoring={scoring} compact={graphs.length > 1} onClose={() => onClose(player.playerId)} />
+          <PointsGraph
+            player={player}
+            game={game}
+            scoring={scoring}
+            compact={graphs.length > 1}
+            onClose={() => onClose(player.playerId)}
+            onCursorPlay={graphs.length > 1 ? undefined : onCursorPlay}
+          />
         </div>
       ))}
     </div>

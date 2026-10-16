@@ -262,12 +262,15 @@ function FeedRow({
   legendByLeagueId,
   arrivedLive,
   index,
+  spotlit = false,
 }: {
   entry: FeedEntry;
   starterById: Map<string, GroupedStarter>;
   legendByLeagueId: Map<string, LeagueLegendEntry>;
   arrivedLive: boolean;
   index: number;
+  /** The play by a player graph's cursor: lit up. */
+  spotlit?: boolean;
 }) {
   // Decided once, when the row first appears.
   const [live] = useState(arrivedLive);
@@ -280,10 +283,13 @@ function FeedRow({
   return (
     // Tapping a play (on desktop) replays its points being applied in the starters list.
     <li
+      data-play={`${game.id}-${play.id}`}
       onClick={(e) => replayRedZonePlay(e.currentTarget)}
       title={hasPoints ? "Replay" : undefined}
       // Every row leaves room down its left for a marked play's strip (see MarkColumn).
-      className={`relative flex flex-col gap-1 border-b border-border py-2 pl-3 pr-1 last:border-b-0 ${hasPoints ? "md:cursor-pointer md:hover:bg-[color-mix(in_srgb,var(--ink-primary)_4%,transparent)]" : ""}`}
+      className={`relative flex flex-col gap-1 border-b border-border py-2 pl-3 pr-1 last:border-b-0 ${
+        spotlit ? "bg-[color-mix(in_srgb,var(--ink-primary)_8%,var(--surface-raised))] outline outline-1 -outline-offset-1 outline-ink-primary" : ""
+      } ${hasPoints ? "md:cursor-pointer md:hover:bg-[color-mix(in_srgb,var(--ink-primary)_4%,transparent)]" : ""}`}
       style={{
         animation: live
           ? "rise 0.35s ease-out backwards, rz-flash 2.4s ease-out"
@@ -393,6 +399,7 @@ export function RedZone({
   legend,
   weekStats,
   compactOnPhone = false,
+  spotlight = null,
 }: {
   /** Your starters, grouped by the game they're playing in. */
   starters: GameStarters[];
@@ -403,6 +410,12 @@ export function RedZone({
   legend: LeagueLegendEntry[];
   /** Everyone's stat line so far this week, by Sleeper id — who's played tells which of ESPN's names is likeliest who. */
   weekStats: Record<string, Record<string, number>>;
+  /**
+   * The play by a player graph's cursor, while it's up: on a phone the box scrolls to it (lit up), and
+   * from tablet width up — where the plays run on down the map's column, under the graph — it's pinned
+   * over the top of the plays. Either way, once it's gone the plays are back just where they were.
+   */
+  spotlight?: { gameId: string; playId: string } | null;
   /** On phones, show the plays in a box three rows tall (or, title bar double-tapped, as tall as the screen) that scrolls on its own, instead of running down the page. */
   compactOnPhone?: boolean;
 }) {
@@ -481,6 +494,68 @@ export function RedZone({
       toggleFit();
     } else lastTap.current = now;
   };
+  // The play by a graph's cursor. Not among these plays (another of the buttons is picked)? Found among the game's
+  // every play instead, just for it.
+  const spotIndex = spotlight ? feed.entries.findIndex((e) => e.game.id === spotlight.gameId && e.play.id === spotlight.playId) : -1;
+  const spotGame = useMemo(
+    () => (spotlight && spotIndex < 0 ? weekGames.filter((g) => g.id === spotlight.gameId) : []),
+    [spotlight, spotIndex, weekGames]
+  );
+  const spotFeed = useRedZoneFeed(starters, spotGame, "all", teamPlayers);
+  const spotEntry = spotlight
+    ? spotIndex >= 0
+      ? feed.entries[spotIndex]
+      : spotFeed.entries.find((e) => e.game.id === spotlight.gameId && e.play.id === spotlight.playId)
+    : undefined;
+  const [phone, setPhone] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 767px)");
+    const update = () => setPhone(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+  // On a phone, the box scrolls to it — its rows loaded that far — and back to where it was once it's gone.
+  const scrollIn = phone && compactOnPhone && spotIndex >= 0;
+  const savedScroll = useRef<number | null>(null);
+  const spotKey = spotlight && scrollIn ? `${spotlight.gameId}-${spotlight.playId}` : null;
+  if (scrollIn && spotIndex >= shown) setShown(spotIndex + PAGE);
+  useEffect(() => {
+    const box = boxRef.current;
+    if (!box) return;
+    if (spotKey === null) {
+      if (savedScroll.current !== null) box.scrollTop = savedScroll.current;
+      savedScroll.current = null;
+      return;
+    }
+    const row = box.querySelector<HTMLElement>(`[data-play="${CSS.escape(spotKey)}"]`);
+    if (!row) return;
+    savedScroll.current ??= box.scrollTop;
+    box.scrollTop = row.offsetTop;
+  }, [spotKey, shown]);
+  const pinned = spotEntry && !scrollIn ? spotEntry : null;
+  // Pinned, it's brought into sight — whatever's scrolling the plays (the map's column, or the page) moved
+  // only as far as that takes, so the graph stays under the pointer — and moved back once it's gone.
+  const pinnedRef = useRef<HTMLOListElement>(null);
+  const pinnedKey = pinned ? `${pinned.game.id}-${pinned.play.id}` : null;
+  const pageScroll = useRef<{ el: HTMLElement | null; top: number } | null>(null);
+  useEffect(() => {
+    if (pinnedKey === null) {
+      const saved = pageScroll.current;
+      pageScroll.current = null;
+      if (saved) (saved.el ?? window).scrollTo({ top: saved.top });
+      return;
+    }
+    const row = pinnedRef.current;
+    if (!row) return;
+    let el: HTMLElement | null = row.parentElement;
+    while (el && !(/(auto|scroll)/.test(getComputedStyle(el).overflowY) && el.scrollHeight > el.clientHeight)) el = el.parentElement;
+    const bottom = el ? el.getBoundingClientRect().bottom : window.innerHeight;
+    const top = el ? el.scrollTop : window.scrollY;
+    pageScroll.current ??= { el, top };
+    const over = row.getBoundingClientRect().bottom + 8 - bottom;
+    if (over > 0) (el ?? window).scrollTo({ top: top + over });
+  }, [pinnedKey]);
   const moreToShow = feed.entries.length > shown;
   // Scrolling near the end of the plays loads the next page of them — no button.
   useEffect(() => {
@@ -546,6 +621,13 @@ export function RedZone({
           </div>
         </div>
 
+        {/* The play by a graph's cursor, pinned right under the title (see spotlight). */}
+        {pinned ? (
+          <ol ref={pinnedRef} aria-label="The play by the graph's cursor">
+            <FeedRow key="pinned" entry={pinned} starterById={starterById} legendByLeagueId={legendByLeagueId} arrivedLive={false} index={0} spotlit />
+          </ol>
+        ) : null}
+
         {feed.redZone.length > 0 ? (
           <ul className="flex flex-col gap-1" aria-label="In the red zone now">
             {feed.redZone.map((alert) => (
@@ -556,7 +638,7 @@ export function RedZone({
       </div>
 
       {entries.length > 0 ? (
-        <>
+        <div className="relative">
           <div
             ref={boxRef}
             className={
@@ -573,13 +655,14 @@ export function RedZone({
                   legendByLeagueId={legendByLeagueId}
                   arrivedLive={settled}
                   index={i}
+                  spotlit={scrollIn && i === spotIndex}
                 />
               ))}
             </ol>
             {/* The last screen or so of plays: scrolling into it brings in the next ones before you reach the end. */}
             {entries.length > shown ? <div ref={sentinelRef} className="pointer-events-none absolute inset-x-0 bottom-0 h-[min(60rem,100%)]" aria-hidden /> : null}
           </div>
-        </>
+        </div>
       ) : (
         <p className="py-3 text-center text-xs text-ink-muted">
           {feed.loading

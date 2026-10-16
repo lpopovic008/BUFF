@@ -181,6 +181,8 @@ export default function DashboardPage() {
       if (rect.top < 0 || rect.bottom > window.innerHeight) el.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   };
+  // The play by the graph's cursor, shown in the Red Zone while the cursor's up.
+  const [spotlight, setSpotlight] = useState<{ gameId: string; playId: string } | null>(null);
   const unpickGraph = (playerId: string) =>
     setGraphPicks({ week: shownWeek, picks: graphFor.filter((p) => p.playerId !== playerId) });
   // Escape takes every graph down and puts the map back.
@@ -407,6 +409,7 @@ export default function DashboardPage() {
                           scoring: player.side === "other" ? undefined : scoringByLeague.get(player.leagueIds[0]),
                         }))}
                         onClose={unpickGraph}
+                        onCursorPlay={setSpotlight}
                       />
                     </div>
                   ) : null}
@@ -426,6 +429,7 @@ export default function DashboardPage() {
                   legend={legend}
                   weekStats={livePlayers.stats}
                   compactOnPhone
+                  spotlight={graphed.length > 0 ? spotlight : null}
                 />
               </div>
             ) : null}
