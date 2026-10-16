@@ -406,9 +406,9 @@ export default function DashboardPage() {
               </div>
             ) : null}
 
-            {/* Below the map: the Red Zone, your starters' plays as they happen — its title sticks at the top as the plays scroll on under it. On phones it waits at the very bottom of the page until a game is live, then moves up under the map as a short box you scroll within. Your leagues ride the ticker under the header (see LeagueTicker). */}
+            {/* Below the map: the Red Zone, your starters' plays as they happen — its title sticks at the top as the plays scroll on under it. On phones, a short box you scroll within (dragged taller if you like), above the starters. Your leagues ride the ticker under the header (see LeagueTicker). */}
             {weekGames.length > 0 && myStarters !== null ? (
-              <div className={`animate-[rise_0.5s_ease-out_backwards] [animation-delay:120ms] ${anyGameLive ? "" : "max-md:order-last"}`}>
+              <div className="animate-[rise_0.5s_ease-out_backwards] [animation-delay:120ms]">
                 <RedZone
                   // Fresh for each week, so a week's plays slide in rather than flashing as new.
                   key={shownWeek ?? 0}
@@ -417,7 +417,7 @@ export default function DashboardPage() {
                   weekGames={weekGames}
                   legend={legend}
                   weekStats={livePlayers.stats}
-                  compactOnPhone={anyGameLive}
+                  compactOnPhone
                 />
               </div>
             ) : null}

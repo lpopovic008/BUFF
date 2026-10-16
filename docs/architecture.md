@@ -430,6 +430,11 @@ subgrid) — is lit like a map tag once the week is official (`lastFinishedWeek`
 whoever leads right now is lit instead. Nobody is lit while the score is
 level.
 
+**The Red Zone on a phone** sits under the map, above the starters, as a box
+three rows tall that scrolls on its own; a grip under it drags it taller (up
+to 80% of the screen) or back to its three rows, the height kept on that
+device (`commish:red-zone-height`).
+
 **Red Zone points ahead of Sleeper** (`useLivePlayPoints`,
 `lib/live-play-points.ts`): ESPN's plays usually land before Sleeper's
 matchup points move. So each number in the starters list is Sleeper's, plus
