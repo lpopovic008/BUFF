@@ -248,3 +248,20 @@ function scoreOf(competitor: unknown): number {
   const n = Number(competitor.score);
   return Number.isFinite(n) ? n : 0;
 }
+
+// ESPN's names for the periods, as the game row writes them.
+const PERIODS: Record<string, string> = { "1st": "1Q", "2nd": "2Q", "3rd": "3Q", "4th": "4Q", ot: "OT" };
+
+/**
+ * A game's clock the short way, quarter first: ESPN's "12:43 - 2nd" as
+ * "2Q 12:43", "End of 2nd Quarter" as "End 2Q", "Halftime" as "Half",
+ * overtime as "OT". Anything else as ESPN has it.
+ */
+export function gameClock(detail: string): string {
+  const running = /^(\d{1,2}:\d{2})\s*-\s*(1st|2nd|3rd|4th|\d*\s*OT)$/i.exec(detail.trim());
+  if (running) return `${PERIODS[running[2].toLowerCase()] ?? running[2].toUpperCase().replace(/\s+/g, "")} ${running[1]}`;
+  const ended = /^End of (1st|2nd|3rd|4th)/i.exec(detail.trim());
+  if (ended) return `End ${PERIODS[ended[1].toLowerCase()]}`;
+  if (/^half/i.test(detail.trim())) return "Half";
+  return detail;
+}

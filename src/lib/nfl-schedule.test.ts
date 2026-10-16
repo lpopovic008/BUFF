@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { isOutsideUS, parseScoreboard } from "./nfl-schedule";
+import { gameClock, isOutsideUS, parseScoreboard } from "./nfl-schedule";
 
 function competitor(homeAway: "home" | "away", abbreviation: string, score: string) {
   return { homeAway, team: { abbreviation }, score };
@@ -186,4 +186,13 @@ test("parseScoreboard reads each team's record as of the game", () => {
   assert.deepEqual([games[0].homeRecord, games[0].awayRecord], ["1-0", "0-1"]);
   // None given, none made up.
   assert.deepEqual([games[1].homeRecord, games[1].awayRecord], [undefined, undefined]);
+});
+
+test("gameClock writes a game's clock quarter first", () => {
+  assert.equal(gameClock("12:43 - 2nd"), "2Q 12:43");
+  assert.equal(gameClock("0:07 - 4th"), "4Q 0:07");
+  assert.equal(gameClock("5:00 - OT"), "OT 5:00");
+  assert.equal(gameClock("End of 3rd Quarter"), "End 3Q");
+  assert.equal(gameClock("Halftime"), "Half");
+  assert.equal(gameClock("Delayed"), "Delayed");
 });

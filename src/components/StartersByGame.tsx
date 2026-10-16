@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { formatCountdown } from "@/lib/format";
 import { TYPE_MS_PER_CHAR, totalChars, typedSlices, useSeenOnce, useTypedCount } from "@/hooks/useTyped";
 import { formatKickoffTime, GameStarters, finishedBlocksLast, groupGamesByTimeBlock, GroupedStarter, PlayerSide } from "@/lib/my-starters";
-import { NFLGame } from "@/lib/nfl-schedule";
+import { gameClock, NFLGame } from "@/lib/nfl-schedule";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import { nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import { LeagueLegendEntry, LeagueMark } from "./LeagueMark";
@@ -47,9 +47,10 @@ function teamLinePieces(game: NFLGame, side: "away" | "home"): string[] {
   if (game.state === "pre") return side === "away" ? [formatKickoffTime(game.kickoff)] : [];
   const score = String(side === "away" ? game.awayScore : game.homeScore);
   if (side === "home") return [score];
-  const status = game.state === "post" ? "Final" : (game.statusDetail ?? "");
+  const status = game.state === "post" ? "Final" : gameClock(game.statusDetail ?? "");
   return status ? [status, score] : [score];
 }
+
 
 // Every logo covers about the area of a square this many px on a side.
 const LOGO_SIDE = 20;
@@ -116,13 +117,27 @@ function TeamLine({ game, side, shown = true }: { game: NFLGame; side: "away" | 
         </span>
       ) : null}
       <span className="min-w-0 flex-1" />
-      {/* The score, in from the edge — inside the players' points under it. */}
+      {/* The score, over the players' +/- column under it. */}
       <span className="w-[2.4em] shrink-0 text-right text-[0.9375rem] font-bold tabular-nums text-ink-primary">{score}</span>
-      {/* The game's clock (or kickoff time) on the right; the bottom line's is held for more to come. */}
-      <span className="w-[6.25rem] shrink-0 truncate text-right text-xs uppercase tracking-wide text-ink-muted" title={status ?? undefined}>
-        {status}
+      {/* The game's clock (or kickoff time) on the right, as wide as the players' points under it — anything
+          longer runs out leftward, never shifting the score; the bottom line's is held for more to come. */}
+      <span className="flex w-[2.7625rem] shrink-0 items-baseline justify-end gap-[0.3em] whitespace-nowrap text-ink-muted" title={status ?? undefined}>
+        <StatusText text={status ?? ""} />
       </span>
     </div>
+  );
+}
+
+/** A game's status in the row: the quarter ("2Q") a hair bigger than the clock beside it; anything else in small type. */
+function StatusText({ text }: { text: string }) {
+  // Split at the quarter as soon as it's typed, so the sizes hold steady while the clock types in after it.
+  const parts = /^([1-4]Q|\d*OT)(?:\s(.*))?$/.exec(text);
+  if (!parts) return <span className="text-xs uppercase">{text}</span>;
+  return (
+    <>
+      <span className="text-[0.75rem] font-semibold uppercase">{parts[1]}</span>
+      {parts[2] ? <span className="text-[0.6875rem] tabular-nums">{parts[2]}</span> : null}
+    </>
   );
 }
 
@@ -295,8 +310,8 @@ function GameLine({
       className={`flex items-center gap-1.5 py-[3px] text-[0.8125rem] leading-tight ${onSelect ? "cursor-pointer" : ""}`}
       title={leagueNames.length > 0 ? `${player.name} — ${leagueNames.join(", ")}` : player.name}
     >
-      {/* Just wide enough for "12:59", the name tucked in right after it. */}
-      <span className="-mr-1 w-[2.2em] shrink-0 text-[0.6875rem] tabular-nums text-ink-muted">{time}</span>
+      {/* Just wide enough for "12:59", the name tucked in close after it — never touching. */}
+      <span className="-mr-0.5 w-[2.6em] shrink-0 text-[0.6875rem] tabular-nums text-ink-muted">{time}</span>
       <span ref={middle} className="flex min-w-0 flex-1 items-center gap-1">
         <span
           ref={nameRef}

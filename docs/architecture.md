@@ -290,9 +290,10 @@ next tick always asks again.
 **Starters by game** (`startersListGames`, `liveGameRows` in
 `lib/my-starters.ts`, `useLivePlayerLines`): every game of the week is
 listed, each in a box of its own: the away team's logo and record (as of
-that game, from ESPN's scoreboard) and its score — set in from the edge,
-inside the players' points — with the game's clock (or the kickoff time
-before it starts) in a column of its own on the far right; then the home
+that game, from ESPN's scoreboard) and its score — right over the players'
++/- column — with the game's clock (or the kickoff time before it starts)
+in a column on the far right as wide as the players' points, quarter first
+and a hair bigger than the clock ("2Q 12:43", `gameClock`); then the home
 team's line, whose right column is kept free.
 Shut, a game lists just its teams. Tapping the matchup (the teams' lines —
 a player's line doesn't toggle) steps through its views, set apart below the
