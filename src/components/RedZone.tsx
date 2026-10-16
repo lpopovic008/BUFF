@@ -382,7 +382,7 @@ const SCOPES: { label: string; value: RedZoneScope }[] = [
 /**
  * The Red Zone: plays as they happen, newest on top — the ones your starters
  * are part of (Team), those and the ones your opponents' starters are (VS),
- * or every play of every game (All), picked with its own buttons — and, pinned
+ * or every play of every game (All, the default), picked with its own buttons — and, pinned
  * above them, the games where a team has the ball inside the 20. Follows the
  * shared live clock, so it moves with the scores everywhere else on the page.
  */
@@ -407,7 +407,7 @@ export function RedZone({
   compactOnPhone?: boolean;
 }) {
   const mode = useLiveMode();
-  const [scope, setScope] = useState<RedZoneScope>("mine");
+  const [scope, setScope] = useState<RedZoneScope>("all");
   const teamPlayers = useTeamPlayers(weekStats);
   // Under VS, the plays of your starters and the ones you face alike.
   const followed = useMemo<GameStarters[]>(() => {

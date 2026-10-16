@@ -456,10 +456,9 @@ them again like a backspace, then the box slides shut around your own players
 (`GameBox` in `StartersByGame.tsx`).
 
 **Red Zone** (`useRedZoneFeed`, `RedZone.tsx`, `lib/play-by-play.ts`): by
-default ("Team") the plays your starters are in; "VS" adds the plays the
-starters you're facing are in; "All" shows every
-play of every game that's started, and only then fetches the games none of
-your starters are in. The plays run on down the page (or, side by side, the
+default ("All") every play of every game that's started; "Team" the plays
+your starters are in; "VS" adds the plays the starters you're facing are
+in. Games none of your starters are in are only fetched under "All". The plays run on down the page (or, side by side, the
 map's column) under a title that sticks at the top as they pass beneath it, so
 one swipe carries straight on from the page into the plays; 30 more load as
 you scroll into the last screen of them (no "Show more"). On a phone while a
