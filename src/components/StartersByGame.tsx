@@ -811,7 +811,6 @@ export function StartersByGame({
   onToggleMap,
   selectedPlayers,
   onSelectPlayer,
-  onBarView,
 }: {
   games: GameStarters[];
   /** The teams on their bye this week, with any starters on them — listed last, under their own header. */
@@ -832,8 +831,6 @@ export function StartersByGame({
   selectedPlayers: { playerId: string; gameId: string }[];
   /** Puts a player's graph up (up to four), or — theirs already up — takes it down. */
   onSelectPlayer: (playerId: string, gameId: string) => void;
-  /** Told whenever the bar on top sets every box to a view (Team, VS, ALL) — the Red Zone follows it. */
-  onBarView?: (view: number) => void;
 }) {
   const legendByLeagueId = new Map(legend.map((l) => [l.leagueId, l]));
   // Every box — each game, then each bye — with what it can list.
@@ -909,7 +906,6 @@ export function StartersByGame({
       return;
     }
     openAll(view);
-    onBarView?.(view);
   };
   // The players showing in each started game, whose latest plays to follow.
   const followed = useMemo(

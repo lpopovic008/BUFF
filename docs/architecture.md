@@ -301,10 +301,8 @@ teams: your starters in it, then yours and the ones you're facing, then
 everyone worth watching (`liveGameRows`: anyone in the game who has scored or
 lost points or is projected for 6+), then shut again — skipping any view that
 would list no one new. A bar at the top of the list — Team, VS, ALL — sets every box to one
-of those views at once; tapping the lit one again shuts them all. It also
-sets what the Red Zone shows (Team, VS or All), which it names in its top
-right — the Red Zone has no buttons of its own. Shutting them all, or
-tapping a single box, leaves the Red Zone as it was. Every line
+of those views at once; tapping the lit one again shuts them all. The Red
+Zone has Team / VS / All buttons of its own, not tied to this bar. Every line
 has the same columns, so they stay lined up whatever the game's state: the
 time of the player's latest play that moved their points (no AM/PM, to keep
 it narrow) and its +/- (only while the game's on, from `useLastActions` /
