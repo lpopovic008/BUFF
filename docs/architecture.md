@@ -356,8 +356,8 @@ the cursor back and forth a play at a time. × (or tapping their line again)
 takes a graph down; Escape takes them all down and brings the map back. The map stays mounted underneath, just hidden, so its view isn't
 lost. On a phone, the page scrolls up to the graph.
 
-Each team's score in the league page's matchups has its projected total
-over it (`liveProjection`): Sleeper's pregame projection for each starter,
+Each team's name in the league page's matchups has its projected total
+on its line, over the score (`liveProjection`): Sleeper's pregame projection for each starter,
 scored under the league's rules, swapped for the starter's actual points
 once their game is final — so it moves only as games finish, never play by
 play.

@@ -13,16 +13,16 @@ import { abbreviateFirstName, formatPoints } from "@/lib/format";
 /** Each team's live projected total, by roster (see liveProjection) — none until the projections load. */
 const ProjectedContext = createContext<Map<number, number> | null>(null);
 
-/** A team's projected total, small, over its score. */
+/** A team's projected total, small, on its name's line (over its score). */
 function Projected({ rosterId, align }: { rosterId: number; align: "left" | "right" }) {
   const projected = useContext(ProjectedContext)?.get(rosterId);
-  if (projected === undefined) return <span />;
+  if (projected === undefined) return null;
   return (
     <span
-      className={`text-[0.6875rem] font-normal tabular-nums opacity-70 ${align === "right" ? "text-right" : "text-left"}`}
+      className={`shrink-0 text-[0.6875rem] font-normal tabular-nums opacity-70 ${align === "right" ? "text-right" : "text-left"}`}
       title="Projected: Sleeper's pregame projections, with each player's actual points once their game is over"
     >
-      proj {formatPoints(projected)}
+      {formatPoints(projected)}
     </span>
   );
 }
@@ -187,15 +187,21 @@ function MatchupHeader({
   };
   return (
     <div className="flex flex-col gap-1.5 bg-[var(--map-tag)] px-2 py-2 text-[var(--map-tag-ink)]">
+      {/* Each name with its projected total on the same line, the projection right over the score. */}
       <div className={`grid ${SLOT_COLS} items-start gap-1 sm:gap-2`}>
-        {label(left, "left")}
+        <div className="flex min-w-0 items-baseline justify-between gap-2">
+          <div className="min-w-0">{label(left, "left")}</div>
+          <Projected rosterId={left.rosterId} align="right" />
+        </div>
         <span />
-        {right ? label(right, "right") : <div />}
-      </div>
-      <div className={`-mb-1.5 grid ${SLOT_COLS} gap-1 sm:gap-2`}>
-        <Projected rosterId={left.rosterId} align="right" />
-        <span />
-        {right ? <Projected rosterId={right.rosterId} align="left" /> : <span />}
+        {right ? (
+          <div className="flex min-w-0 items-baseline justify-between gap-2">
+            <Projected rosterId={right.rosterId} align="left" />
+            <div className="min-w-0">{label(right, "right")}</div>
+          </div>
+        ) : (
+          <div />
+        )}
       </div>
       <div className={`grid ${SLOT_COLS} items-baseline gap-1 text-[0.9375rem] font-semibold tabular-nums sm:gap-2 sm:text-lg`}>
         <span className="flex items-baseline justify-between gap-1 lg:gap-2">
@@ -268,21 +274,17 @@ function CompactHeader({ left, right }: { left: MatchupTeam; right: MatchupTeam 
     <div
       className={`grid ${SLOT_COLS} items-baseline gap-1 bg-[var(--map-tag)] px-2 py-2 text-[0.8125rem] text-[var(--map-tag-ink)] sm:gap-2`}
     >
-      <span className="flex min-w-0 items-end justify-between gap-2">
-        <span className="truncate font-semibold">{left.teamName}</span>
-        <span className="flex shrink-0 flex-col items-end leading-tight">
-          <Projected rosterId={left.rosterId} align="right" />
-          <span className="font-semibold tabular-nums">{formatPoints(left.points)}</span>
-        </span>
+      <span className="flex min-w-0 items-baseline gap-2">
+        <span className="min-w-0 flex-1 truncate font-semibold">{left.teamName}</span>
+        <Projected rosterId={left.rosterId} align="right" />
+        <span className="shrink-0 font-semibold tabular-nums">{formatPoints(left.points)}</span>
       </span>
       <span />
       {right ? (
-        <span className="flex min-w-0 items-end justify-between gap-2">
-          <span className="flex shrink-0 flex-col items-start leading-tight">
-            <Projected rosterId={right.rosterId} align="left" />
-            <span className="font-semibold tabular-nums">{formatPoints(right.points)}</span>
-          </span>
-          <span className="truncate text-right font-semibold">{right.teamName}</span>
+        <span className="flex min-w-0 items-baseline gap-2">
+          <span className="shrink-0 font-semibold tabular-nums">{formatPoints(right.points)}</span>
+          <Projected rosterId={right.rosterId} align="left" />
+          <span className="min-w-0 flex-1 truncate text-right font-semibold">{right.teamName}</span>
         </span>
       ) : (
         <span />
