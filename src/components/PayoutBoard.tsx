@@ -73,6 +73,9 @@ const FACE: Record<BlockFace["side"], string> = {
   right: "color-mix(in srgb, var(--map-tag) 84%, var(--color-surface-raised))",
   top: "color-mix(in srgb, var(--map-tag) 68%, var(--color-surface-raised))",
 };
+/** A cube's top, where its amount sits (the legend's amounts sit on the same). */
+export const CUBE_TOP = FACE.top;
+
 /** The tray's faces: its floor faintly, the walls a little more, the board's front edge most. */
 const TRAY = {
   floor: "color-mix(in srgb, var(--map-tag) 4%, transparent)",

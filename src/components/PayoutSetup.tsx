@@ -22,7 +22,6 @@ import {
   SeasonResults,
 } from "@/lib/payout-plan";
 import { PayoutReading, readPayoutDescription } from "@/lib/payout-ai";
-import { placeSwatch, ruleSwatches, Swatch } from "@/lib/payout-colors";
 
 const FIELD =
   "border border-border bg-page px-2 py-1.5 text-sm text-ink-primary outline-none focus:border-series-1";
@@ -220,11 +219,8 @@ function RuleEditor({
   onMove,
   onRemove,
   startOpen,
-  swatch,
 }: {
   startOpen: boolean;
-  /** The rule's color (see lib/payout-colors.ts). */
-  swatch: Swatch;
   rule: PayoutRule;
   index: number;
   count: number;
@@ -249,12 +245,7 @@ function RuleEditor({
   return (
     <li className="flex flex-col gap-3 border border-border bg-page/40 p-3 sm:p-4">
       <div className="flex items-start gap-3">
-        <span
-          className="mt-0.5 px-1.5 text-xs font-bold tabular-nums"
-          style={{ backgroundColor: swatch.bg, color: swatch.ink }}
-        >
-          {index + 1}
-        </span>
+        <span className="mt-0.5 bg-[var(--map-tag)] px-1.5 text-xs font-bold tabular-nums text-[var(--map-tag-ink)]">{index + 1}</span>
         <div className="min-w-0 flex-1">
           <RuleSentence
             rule={rule}
@@ -496,15 +487,9 @@ function PodiumSplit({
       <span className={LABEL}>Split by final finish</span>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         {split.map((pct, k) => {
-          const sw = placeSwatch(k + 1);
           return (
             <span key={k} className="flex items-center gap-1.5 text-sm text-ink-secondary">
-              <span
-                className="px-1.5 text-xs font-bold"
-                style={sw ? { backgroundColor: sw.bg, color: sw.ink } : undefined}
-              >
-                {ordinal(k + 1)}
-              </span>
+              <span className="bg-[var(--map-tag)] px-1.5 text-xs font-bold text-[var(--map-tag-ink)]">{ordinal(k + 1)}</span>
               <NumberField
                 label={`${ordinal(k + 1)} place share`}
                 value={pct}
@@ -724,7 +709,6 @@ export function PayoutSetup({
   embedded?: boolean;
 }) {
   const budgets = new Map(ledger.budgets.map((b) => [b.ruleId, b]));
-  const swatches = ruleSwatches(plan.rules, season.regularSeasonWeeks);
   const [added, setAdded] = useState<Set<string>>(() => new Set());
   const setRules = (rules: PayoutRule[]) => onChange({ ...plan, rules });
   const balanced = Math.abs(ledger.unallocated) < 0.005;
@@ -768,7 +752,6 @@ export function PayoutSetup({
               <RuleEditor
                 key={rule.id}
                 startOpen={added.has(rule.id)}
-                swatch={swatches.get(rule.id)!}
                 rule={rule}
                 index={i}
                 count={plan.rules.length}

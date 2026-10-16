@@ -3,8 +3,7 @@
 import { Card } from "@/components/ui/Card";
 import { useState } from "react";
 import { PayoutSetup } from "@/components/PayoutSetup";
-import { BoardRow, PayoutBoard } from "@/components/PayoutBoard";
-import { placeSwatch, ruleSwatches } from "@/lib/payout-colors";
+import { BoardRow, CUBE_TOP, PayoutBoard } from "@/components/PayoutBoard";
 import { LeagueSeason } from "@/lib/league-money";
 import {
   awardInfo,
@@ -26,23 +25,38 @@ function ruleGroup(rule: PayoutRule, regularSeasonWeeks: number): (typeof RULE_G
   return rule.fromWeek > regularSeasonWeeks ? "Playoffs" : "Regular season";
 }
 
+/** An amount as the board shows it on a cube's top: bold, in the map tags' ink, on the cube's top face. */
+function AmountPlate({ amount }: { amount: number }) {
+  return (
+    <span className="shrink-0 px-1 font-bold tabular-nums text-[var(--map-tag-ink)]" style={{ backgroundColor: CUBE_TOP }}>
+      {money(amount)}
+    </span>
+  );
+}
+
 /**
- * A rule for the legend, as briefly as it can be said: "$20 to the week's
- * highest scorer". The heading it sits under says when; weeks are only
- * spelled out when a rule doesn't cover its whole stretch.
+ * A rule for the legend, as briefly as it can be said: what one of its
+ * cubes is worth, as it reads on the board, then who it goes to — "[$20] to
+ * the week's highest scorer", or for the podium "[$180] 1st [$108] 2nd
+ * [$72] 3rd". Where the amount comes from the pot, that's said after. The
+ * heading it sits under says when; weeks are only spelled out when a rule
+ * doesn't cover its whole stretch.
  */
-function legendLine(rule: PayoutRule, ledger: PlanLedger, regularSeasonWeeks: number): string {
-  const per = ledger.budgets.find((b) => b.ruleId === rule.id)?.perPayout ?? 0;
-  const amount =
-    rule.amountKind === "dollars"
-      ? money(rule.amount)
-      : rule.amountKind === "percent"
-        ? `${rule.amount}% of the pot (${money((ledger.pot * rule.amount) / 100)})`
-        : `The rest of the pot (about ${money(per)})`;
+function LegendLine({ rule, ledger, regularSeasonWeeks }: { rule: PayoutRule; ledger: PlanLedger; regularSeasonWeeks: number }) {
+  const per = rule.amountKind === "dollars" ? rule.amount : (ledger.budgets.find((b) => b.ruleId === rule.id)?.perPayout ?? 0);
+  const source = rule.amountKind === "percent" ? `${rule.amount}% of the pot` : rule.amountKind === "remainder" ? "the rest of the pot" : null;
   if (rule.award === "podium") {
-    return `${amount} for the podium: ${podiumSplit(rule)
-      .map((pct, k) => `${ordinal(k + 1)} ${+pct.toFixed(2)}% (${money((per * pct) / 100)})`)
-      .join(" · ")}`;
+    return (
+      <li className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs text-ink-primary">
+        {podiumSplit(rule).map((pct, k) => (
+          <span key={k} className="flex items-baseline gap-1">
+            <AmountPlate amount={(per * pct) / 100} />
+            {ordinal(k + 1)}
+          </span>
+        ))}
+        {source ? <span className="text-ink-muted">{source}</span> : null}
+      </li>
+    );
   }
   const weekly = awardInfo(rule.award).timing === "weekly";
   const fullStretch = rule.fromWeek > regularSeasonWeeks || (rule.fromWeek <= 1 && rule.toWeek >= regularSeasonWeeks);
@@ -52,17 +66,26 @@ function legendLine(rule: PayoutRule, ledger: PlanLedger, regularSeasonWeeks: nu
         ? ` (week ${rule.fromWeek})`
         : ` (weeks ${rule.fromWeek}–${rule.toWeek})`
       : "";
-  return `${amount} to ${describeRecipients(rule)}${weeks}`;
+  return (
+    <li className="flex items-baseline gap-2 text-xs text-ink-primary">
+      <AmountPlate amount={per} />
+      <span>
+        to {describeRecipients(rule)}
+        {weeks}
+        {source ? <span className="text-ink-muted"> · {source}</span> : null}
+      </span>
+    </li>
+  );
 }
 
 /**
  * The week grid, drawn as a board in 3D (see PayoutBoard): rows are managers,
  * columns are the season's weeks (regular season, then playoffs, per
- * Sleeper's schedule) and the season-end awards; every payout stands as a
- * block as tall as the amount, and each manager's total as a bar. The week
+ * Sleeper's schedule) and the season-end awards; every payout is a cube
+ * with its amount on top, and each manager's cubes stack into a bar. The week
  * in progress, when it's counted ("as it stands"), is shaded: its amounts
  * update live as games are scored, but aren't settled until the week is over.
- * Under it, the legend of rules and their colors.
+ * Under it, the legend: each rule, with what one of its cubes is worth.
  */
 function WeekGrid({
   ledger,
@@ -87,7 +110,6 @@ function WeekGrid({
   stacked: boolean;
 }) {
   const ruleText = new Map(plan.rules.map((r) => [r.id, describeRecipients(r)]));
-  const swatches = ruleSwatches(plan.rules, regularSeasonWeeks);
   const breakdown = (payments: RulePayment[] | undefined) =>
     (payments ?? []).map((p) => `${money(p.amount)} for ${ruleText.get(p.ruleId) ?? "a rule"}`).join("; ");
   const hasSeasonRules = plan.rules.some((r) => awardInfo(r.award).timing === "season");
@@ -139,22 +161,9 @@ function WeekGrid({
               <div key={group} className={`min-w-0 ${rules.length ? "" : "max-md:hidden"}`}>
                 <h4 className="mb-1 text-[0.625rem] font-semibold uppercase tracking-wider text-ink-muted">{group}</h4>
                 {rules.length ? (
-                  <ol className="flex flex-col gap-1">
+                  <ol className="flex flex-col gap-1.5">
                     {rules.map((r) => (
-                      <li key={r.id} className="flex items-start gap-2 text-xs text-ink-primary">
-                        {r.award === "podium" ? (
-                          <span className="mt-0.5 flex shrink-0 gap-0.5" aria-hidden>
-                            {podiumSplit(r)
-                              .slice(0, 3)
-                              .map((_, k) => (
-                                <span key={k} className="h-3 w-3" style={{ backgroundColor: placeSwatch(k + 1)!.bg }} />
-                              ))}
-                          </span>
-                        ) : (
-                          <span className="mt-0.5 h-3 w-3 shrink-0" style={{ backgroundColor: swatches.get(r.id)!.bg }} aria-hidden />
-                        )}
-                        <span>{legendLine(r, ledger, regularSeasonWeeks)}</span>
-                      </li>
+                      <LegendLine key={r.id} rule={r} ledger={ledger} regularSeasonWeeks={regularSeasonWeeks} />
                     ))}
                   </ol>
                 ) : (
