@@ -42,21 +42,32 @@ export interface BlockFace {
 }
 
 /**
- * The faces of a block standing on the board — footprint [x0, x1] by
- * [y0, y1], `height` tall — that face the camera, ready to fill: the side
- * facing the board's middle, then the front (near) face, then the top, the
- * order they're painted in. The back never shows from this angle.
+ * The faces of a block on the board — footprint [x0, x1] by [y0, y1],
+ * `height` tall, its bottom `bottom` up off the board (0: standing on it;
+ * higher: sitting on another block) — that face the camera, ready to fill:
+ * the side facing the board's middle, then the front (near) face, then the
+ * top, the order they're painted in. The back never shows from this angle.
  */
-export function blockFaces(project: BoardProjector, x0: number, x1: number, y0: number, y1: number, height: number, centerX: number): BlockFace[] {
+export function blockFaces(
+  project: BoardProjector,
+  x0: number,
+  x1: number,
+  y0: number,
+  y1: number,
+  height: number,
+  centerX: number,
+  bottom = 0
+): BlockFace[] {
   const p = (x: number, y: number, h: number) => {
     const [sx, sy] = project(x, y, h);
     return `${sx.toFixed(1)},${sy.toFixed(1)}`;
   };
+  const top = bottom + height;
   const faces: BlockFace[] = [];
   // The camera sits over the board's middle: a block right of it shows its left side, one left of it its right.
-  if (x0 > centerX) faces.push({ side: "left", points: [p(x0, y0, 0), p(x0, y1, 0), p(x0, y1, height), p(x0, y0, height)].join(" ") });
-  else if (x1 < centerX) faces.push({ side: "right", points: [p(x1, y0, 0), p(x1, y1, 0), p(x1, y1, height), p(x1, y0, height)].join(" ") });
-  faces.push({ side: "front", points: [p(x0, y1, 0), p(x1, y1, 0), p(x1, y1, height), p(x0, y1, height)].join(" ") });
-  faces.push({ side: "top", points: [p(x0, y0, height), p(x1, y0, height), p(x1, y1, height), p(x0, y1, height)].join(" ") });
+  if (x0 > centerX) faces.push({ side: "left", points: [p(x0, y0, bottom), p(x0, y1, bottom), p(x0, y1, top), p(x0, y0, top)].join(" ") });
+  else if (x1 < centerX) faces.push({ side: "right", points: [p(x1, y0, bottom), p(x1, y1, bottom), p(x1, y1, top), p(x1, y0, top)].join(" ") });
+  faces.push({ side: "front", points: [p(x0, y1, bottom), p(x1, y1, bottom), p(x1, y1, top), p(x0, y1, top)].join(" ") });
+  faces.push({ side: "top", points: [p(x0, y0, top), p(x1, y0, top), p(x1, y1, top), p(x0, y1, top)].join(" ") });
   return faces;
 }

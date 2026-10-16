@@ -33,3 +33,13 @@ test("a block shows the side facing the board's middle, its front and its top", 
   assert.deepEqual(blockFaces(project, 300, 320, 100, 120, 20, 200).map((f) => f.side), ["left", "front", "top"]);
   assert.deepEqual(blockFaces(project, 190, 210, 100, 120, 20, 200).map((f) => f.side), ["front", "top"]);
 });
+
+test("a block set on another starts where that one ends", () => {
+  const project = boardProjector(400, 300, 32);
+  const resting = blockFaces(project, 10, 30, 100, 120, 20, 200);
+  const raised = blockFaces(project, 10, 30, 100, 120, 20, 200, 20);
+  // Its front face's bottom edge is the resting block's top edge.
+  const frontBottom = raised.find((f) => f.side === "front")!.points.split(" ").slice(0, 2);
+  const restingTop = resting.find((f) => f.side === "front")!.points.split(" ").slice(2, 4).reverse();
+  assert.deepEqual(frontBottom, restingTop);
+});

@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/Card";
 import { useState } from "react";
 import { PayoutSetup } from "@/components/PayoutSetup";
 import { BoardRow, PayoutBoard } from "@/components/PayoutBoard";
-import { paymentSwatch, placeSwatch, ruleSwatches } from "@/lib/payout-colors";
+import { placeSwatch, ruleSwatches } from "@/lib/payout-colors";
 import { LeagueSeason } from "@/lib/league-money";
 import {
   awardInfo,
@@ -72,6 +72,7 @@ function WeekGrid({
   currentWeek,
   finishedThrough,
   teamNames,
+  stacked,
 }: {
   ledger: PlanLedger;
   plan: PayoutPlan;
@@ -82,14 +83,11 @@ function WeekGrid({
   finishedThrough: number;
   /** Team names by roster; each manager's row shows the team name over the username. */
   teamNames: Map<number, string>;
+  /** Each manager's payouts piled into one bar (see PayoutBoard). */
+  stacked: boolean;
 }) {
   const ruleText = new Map(plan.rules.map((r) => [r.id, describeRecipients(r)]));
   const swatches = ruleSwatches(plan.rules, regularSeasonWeeks);
-  /** The color of the rule that paid the most of an amount. */
-  const colorOf = (payments: RulePayment[] | undefined) => {
-    const top = [...(payments ?? [])].sort((a, b) => b.amount - a.amount)[0];
-    return top ? paymentSwatch(top, swatches) : undefined;
-  };
   const breakdown = (payments: RulePayment[] | undefined) =>
     (payments ?? []).map((p) => `${money(p.amount)} for ${ruleText.get(p.ruleId) ?? "a rule"}`).join("; ");
   const hasSeasonRules = plan.rules.some((r) => awardInfo(r.award).timing === "season");
@@ -114,7 +112,6 @@ function WeekGrid({
         amount: played ? amount : 0,
         pending: !played,
         live: w === live,
-        swatch: colorOf(detail),
         title: !played
           ? `Week ${w}: not played yet`
           : `Week ${w}${w === live ? " (in progress, not final)" : ""}: ${amount > 0 ? breakdown(detail) : "nothing"}`,
@@ -124,7 +121,6 @@ function WeekGrid({
       ? {
           amount: mgr.seasonEnd,
           pending: mgr.seasonEnd <= 0 && !seasonDecided,
-          swatch: colorOf(mgr.seasonDetail),
           title: mgr.seasonEnd > 0 ? breakdown(mgr.seasonDetail) : seasonDecided ? "No season-end award" : "Decided at season’s end",
         }
       : null,
@@ -134,7 +130,7 @@ function WeekGrid({
 
   return (
     <div>
-      <PayoutBoard rows={rows} weeks={weeks} regularSeasonWeeks={regularSeasonWeeks} hasSeason={hasSeasonRules} />
+      <PayoutBoard rows={rows} weeks={weeks} regularSeasonWeeks={regularSeasonWeeks} hasSeason={hasSeasonRules} stacked={stacked} />
       {plan.rules.length ? (
         <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-3 md:grid-cols-3">
           {RULE_GROUPS.map((group) => {
@@ -191,6 +187,7 @@ export function MoneyBoard({
   onPlanChange: (plan: PayoutPlan) => void;
 }) {
   const [editing, setEditing] = useState(false);
+  const [stacked, setStacked] = useState(false);
   const balanced = Math.abs(ledger.unallocated) < 0.005;
   const stillToPay = Math.max(0, ledger.committed - ledger.paidToDate);
   const seasonPrizes = ledger.budgets
@@ -206,7 +203,17 @@ export function MoneyBoard({
 
   return (
     <Card className="p-5">
-      <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-muted">Payouts</h2>
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">Payouts</h2>
+        <button
+          type="button"
+          onClick={() => setStacked((s) => !s)}
+          aria-pressed={stacked}
+          className="bg-[var(--map-tag)] px-2 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--map-tag-ink)] hover:opacity-90"
+        >
+          {stacked ? "Spread" : "Stack"}
+        </button>
+      </div>
       <WeekGrid
         ledger={ledger}
         plan={plan}
@@ -215,6 +222,7 @@ export function MoneyBoard({
         currentWeek={currentWeek}
         finishedThrough={season.finishedThrough}
         teamNames={season.teamNames}
+        stacked={stacked}
       />
       <div className="mt-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-t border-grid pt-4">
         <dl className="grid grid-cols-2 gap-x-6 gap-y-2 sm:flex sm:flex-wrap sm:gap-x-8">

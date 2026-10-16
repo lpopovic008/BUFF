@@ -69,7 +69,8 @@ from every linked season. Ships as a static site, hosted for free on
 - **Money tracking** — for leagues with a commissioner profile (see below),
   the league page adds pot accounting, a season earnings leaderboard, a
   week-by-week payout grid drawn as a 3D board at the home map's angle
-  (every payout a block as tall as it's worth, each manager's total a bar),
+  (every payout a cube as big as it's worth; Stack slims each manager's
+  cubes and piles them into one bar as tall as their total),
   and a record/high-score table. It replaces
   keeping this by hand in a spreadsheet.
 

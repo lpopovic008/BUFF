@@ -2,15 +2,15 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { BlockFace, blockFaces, boardProjector } from "@/lib/board-3d";
-import { Swatch } from "@/lib/payout-colors";
 import { formatMoney as money } from "@/lib/payout-plan";
 
 // The payouts grid as a board seen at the dashboard map's opening angle:
 // managers down it (the first at the back), weeks across, then the season's
-// awards, the total and the net. Every payout stands on its square as a
-// block as tall as the amount, in its rule's color; each manager's total is
-// a bar as tall as the total. All in px at the board's near edge, where the
-// perspective leaves things their true size.
+// awards, the total and the net. Every payout sits on its square as a cube,
+// as big (in volume) as the amount, its amount over it. Stacked, each
+// manager's cubes slim down to the smallest cube's base and pile up into one
+// bar on the left, as tall as everything they've won. All in px at the
+// board's near edge, where the perspective leaves things their true size.
 
 /** One square of the board: a week, or the season's awards. */
 export interface BoardCell {
@@ -19,8 +19,6 @@ export interface BoardCell {
   pending: boolean;
   /** The week in progress, whose amounts aren't final. */
   live?: boolean;
-  /** The color of the rule that paid the most of it. */
-  swatch?: Swatch;
   title: string;
 }
 
@@ -39,51 +37,42 @@ export interface BoardRow {
 const MIN_MANAGER = 112;
 const MIN_WEEK = 28;
 const SEASON_COL = 56;
-const TOTAL_COL = 64;
+const TOTAL_COL = 56;
 const NET_COL = 56;
-/** The header strip at the back (week numbers, and the regular season/playoffs labels over them — set well back, clear of the first row's blocks), and each manager's row. */
+/** The header strip at the back (week numbers, and the regular season/playoffs labels over them — set well back, clear of the first row's cubes), and each manager's row. */
 const HEADER_DEPTH = 46;
 const ROW_DEPTH = 44;
-/**
- * The tallest payout's height, and the tallest total's. A payout's height
- * goes with the square root of the amount, so a season prize ten times a
- * week's doesn't flatten every week to nothing; a total's is in proportion.
- */
-const MAX_BLOCK = 72;
-const MAX_BAR = 90;
-/** A block's footprint inside its square, and the total bar's. */
-const BLOCK_INSET_X = 3;
-const BLOCK_INSET_Y = 7;
-const BAR_WIDTH = 18;
-const BAR_DEPTH = 12;
-/** Even the smallest payout stands up off the board. */
-const MIN_BLOCK = 4;
-/** How long the blocks take to rise when the board first scrolls into view (desktop only). */
+/** The biggest cube's side and the smallest's, and the room a cube leaves to the edges of its square. */
+const MAX_CUBE = 34;
+const MIN_CUBE = 6;
+const CUBE_GAP = 4;
+/** The tallest a manager's bar can be, stacked (a taller pile is squeezed down to it). */
+const MAX_STACK = 200;
+/** An amount's height over its cube. */
+const LABEL_LIFT = 8;
+/** How long the cubes take to rise when the board first scrolls into view (desktop only), and to stack (or spread back out). */
 const RISE_MS = 1600;
+const STACK_MS = 1500;
 
 /** An outline in the card's own color behind text, so it reads over whatever it crosses. */
 const HALO = { stroke: "var(--color-surface-raised)", strokeWidth: 3, paintOrder: "stroke", strokeLinejoin: "round" } as const;
 
 const FONT = { name: 13, username: 10.5, header: 11, label: 11.5 };
 
-/** The faces of a block, shaded as if lit from above: the top in its color, the sides darker. */
-const SHADE: Record<BlockFace["side"], number> = { top: 0, front: 26, left: 40, right: 40 };
-const shade = (color: string, side: BlockFace["side"]) =>
-  SHADE[side] === 0 ? color : `color-mix(in srgb, ${color} ${100 - SHADE[side]}%, black)`;
+/** A cube's faces, in the map tags' color: the front full, the side and top washed toward the card as if lit from above. */
+const FACE: Record<BlockFace["side"], string> = {
+  front: "var(--map-tag)",
+  left: "color-mix(in srgb, var(--map-tag) 84%, var(--color-surface-raised))",
+  right: "color-mix(in srgb, var(--map-tag) 84%, var(--color-surface-raised))",
+  top: "color-mix(in srgb, var(--map-tag) 68%, var(--color-surface-raised))",
+};
 
-function Block({
-  faces,
-  color,
-  edge,
-}: {
-  faces: BlockFace[];
-  color: string;
-  edge: string;
-}) {
+function Cube({ faces }: { faces: BlockFace[] }) {
   return (
     <>
       {faces.map((f) => (
-        <polygon key={f.side} points={f.points} style={{ fill: shade(color, f.side), stroke: edge, strokeWidth: 0.75, strokeLinejoin: "round" }} />
+        // Edged in the card's color, so stacked pieces show where one amount ends and the next begins.
+        <polygon key={f.side} points={f.points} style={{ fill: FACE[f.side], stroke: "var(--color-surface-raised)", strokeWidth: 0.75, strokeLinejoin: "round" }} />
       ))}
     </>
   );
@@ -94,11 +83,18 @@ function animationsOn(): boolean {
   return window.matchMedia("(min-width: 768px)").matches && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
+const clamp01 = (t: number) => Math.min(1, Math.max(0, t));
+const easeInOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+/** How far along one stage of the stacking is, at `stack` (0: spread out, 1: stacked), for the stage from `a` to `b`. */
+const stage = (stack: number, a: number, b: number) => easeInOut(clamp01((stack - a) / (b - a)));
+
 export function PayoutBoard({
   rows,
   weeks,
   regularSeasonWeeks,
   hasSeason,
+  stacked,
 }: {
   rows: BoardRow[];
   /** The week numbers across the board. */
@@ -106,6 +102,8 @@ export function PayoutBoard({
   regularSeasonWeeks: number;
   /** Whether there's a column for the season's awards. */
   hasSeason: boolean;
+  /** Each manager's cubes piled into one bar on the left (animated in and out). */
+  stacked: boolean;
 }) {
   const wrap = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
@@ -128,7 +126,7 @@ export function PayoutBoard({
     return () => observer.disconnect();
   }, [namesKey]);
 
-  // The blocks rise off the board the first time it scrolls into view.
+  // The cubes rise off the board the first time it scrolls into view.
   // Flat to start with where they'll rise (the board isn't drawn until it's measured, so this never reaches the server's markup).
   const [rise, setRise] = useState(() => (typeof window !== "undefined" && animationsOn() ? 0 : 1));
   const rising = rise < 1;
@@ -160,6 +158,27 @@ export function PayoutBoard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // How stacked the cubes are, 0 to 1, run toward `stacked` from wherever it is (so a second press mid-way turns it back).
+  const [stack, setStack] = useState(stacked ? 1 : 0);
+  const stackNow = useRef(stack);
+  useEffect(() => {
+    const target = stacked ? 1 : 0;
+    const from = stackNow.current;
+    if (from === target) return;
+    const ms = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 1 : STACK_MS * Math.abs(target - from);
+    let raf = 0;
+    let start: number | null = null;
+    const tick = (now: number) => {
+      start ??= now;
+      const t = Math.min(1, (now - start) / ms);
+      stackNow.current = lerp(from, target, t);
+      setStack(stackNow.current);
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [stacked]);
+
   const moneyCols = (hasSeason ? SEASON_COL : 0) + TOTAL_COL + NET_COL;
   const minWidth = managerCol + weeks.length * MIN_WEEK + moneyCols;
   const W = Math.max(width, minWidth);
@@ -173,23 +192,43 @@ export function PayoutBoard({
   const center = W / 2;
   const rowY = (i: number) => HEADER_DEPTH + i * ROW_DEPTH;
 
-  const maxCell = Math.max(1, ...rows.flatMap((r) => [...r.weeks, ...(r.season ? [r.season] : [])].map((c) => c.amount)));
-  const maxTotal = Math.max(1, ...rows.map((r) => r.total));
-  // Where everything stands, at full height: every payout's block and every total's bar.
-  const geometry = rows.map((r, i) => {
-    const y0 = rowY(i) + BLOCK_INSET_Y;
-    const y1 = rowY(i) + ROW_DEPTH - BLOCK_INSET_Y;
-    const cells = [
-      ...r.weeks.map((c, k) => ({ c, x: weekX(k), w: weekCol })),
-      ...(r.season ? [{ c: r.season, x: seasonX, w: SEASON_COL }] : []),
-    ]
-      .filter(({ c }) => c.amount > 0)
-      .map(({ c, x, w }) => ({ c, x0: x + BLOCK_INSET_X, x1: x + w - BLOCK_INSET_X, y0, y1, h: Math.max(MIN_BLOCK, Math.sqrt(c.amount / maxCell) * MAX_BLOCK) }));
-    const bx = totalX + (TOTAL_COL - BAR_WIDTH) / 2;
-    const by = rowY(i) + (ROW_DEPTH - BAR_DEPTH) / 2;
-    const barH = r.total > 0 ? Math.max(MIN_BLOCK, (r.total / maxTotal) * MAX_BAR) : 0;
-    return { cells, bx, by, barH };
+  // Every payout's cube: its volume goes with the amount, so its side with the cube root, scaled so the
+  // biggest fits its square (a week's is narrower than the season's). Stacked, each slims to the smallest
+  // cube's base, keeping its volume (so its height goes with the amount), and sits on the ones from the
+  // weeks before it — every piece squeezed alike if that would pile higher than MAX_STACK.
+  const paid = rows.map((r) => [
+    ...r.weeks.map((c, k) => ({ c, x: weekX(k) + weekCol / 2, room: weekCol })),
+    ...(r.season ? [{ c: r.season, x: seasonX + SEASON_COL / 2, room: SEASON_COL }] : []),
+  ].filter(({ c }) => c.amount > 0));
+  const roomFor = (room: number) => Math.min(MAX_CUBE, room - 2 * CUBE_GAP, ROW_DEPTH - 2 * CUBE_GAP);
+  const scale = Math.min(Infinity, ...paid.flat().map(({ c, room }) => roomFor(room) / Math.cbrt(c.amount)));
+  const sideOf = (amount: number) => Math.max(MIN_CUBE, scale * Math.cbrt(amount));
+  const sides = paid.flat().map(({ c }) => sideOf(c.amount));
+  const biggest = Math.max(0, ...sides);
+  const base = Math.min(biggest, ...sides);
+  const slimmed = (amount: number) => Math.pow(sideOf(amount), 3) / (base * base);
+  const highest = Math.max(1, ...paid.map((cells) => cells.reduce((s, { c }) => s + slimmed(c.amount), 0)));
+  const squeeze = Math.min(1, MAX_STACK / highest);
+  const barX = managerCol + CUBE_GAP + base / 2;
+
+  const slim = stage(stack, 0, 0.4);
+  const lift = stage(stack, 0.3, 0.65);
+  const slide = stage(stack, 0.55, 1);
+  // Where each cube is now: its middle, its side across (and deep), its height and how far up it sits.
+  const geometry = paid.map((cells, i) => {
+    const y = rowY(i) + ROW_DEPTH / 2;
+    let below = 0;
+    const pieces = cells.map(({ c, x }, k) => {
+      const side = sideOf(c.amount);
+      const tall = slimmed(c.amount) * squeeze;
+      const piece = { k, c, x: lerp(x, barX, slide), y, w: lerp(side, base, slim), h: lerp(side, tall, slim), z: lerp(0, below, lift) };
+      below += tall;
+      return piece;
+    });
+    return { pieces, y, top: below };
   });
+  // Text sits level with the biggest cube's top.
+  const raised = biggest;
 
   const pt = (x: number, y: number, h = 0) => {
     const [sx, sy] = project(x, y, h);
@@ -212,17 +251,16 @@ export function PayoutBoard({
     );
   };
 
-  // The board's extent once projected, every block and bar at full height (and the total over each bar), so the drawing is cropped to it.
+  // The board's extent once projected — every cube at full height as it stands now, with its amount over it,
+  // and the raised headings — so the drawing is cropped to it (and grows and shrinks as the cubes stack).
   const extent = [
-    project(0, 0),
-    project(W, 0),
+    project(0, 0, raised + 8),
+    project(W, 0, raised + 8),
     project(0, depth),
     project(W, depth),
-    ...geometry.flatMap((g) => [
-      ...g.cells.flatMap((b) => [project(b.x0, b.y0, b.h), project(b.x1, b.y0, b.h)]),
-      project(g.bx, g.by, g.barH + 16),
-      project(g.bx + BAR_WIDTH, g.by, g.barH + 16),
-    ]),
+    ...geometry.flatMap((g) =>
+      g.pieces.flatMap((p) => [project(p.x - p.w / 2, p.y - p.w / 2, p.z + p.h + LABEL_LIFT + 6), project(p.x + p.w / 2, p.y - p.w / 2, p.z + p.h + LABEL_LIFT + 6)])
+    ),
   ];
   const minX = Math.min(...extent.map((p) => p[0])) - 2;
   const maxX = Math.max(...extent.map((p) => p[0])) + 2;
@@ -265,18 +303,16 @@ export function PayoutBoard({
         />
       ) : null}
 
-      {/* Each manager: the team name over the username, the squares not paid yet, and the net. */}
+      {/* The squares not paid yet. */}
       {rows.map((r, i) => {
-        const y = rowY(i);
+        const y = rowY(i) + ROW_DEPTH / 2;
         return (
           <g key={r.key}>
-            {label(4, y + ROW_DEPTH * 0.36, 0, r.name, FONT.name, { fontWeight: 600, style: { fill: "var(--color-ink-primary)" } })}
-            {label(4, y + ROW_DEPTH * 0.72, 0, r.username, FONT.username, { style: { fill: "var(--color-ink-muted)" } })}
             {r.weeks.map((c, k) =>
               c.amount > 0 ? null : (
                 <g key={k}>
                   <title>{c.title}</title>
-                  {label(weekX(k) + weekCol / 2, y + ROW_DEPTH / 2, 0, c.pending ? "·" : "—", FONT.label, {
+                  {label(weekX(k) + weekCol / 2, y, 0, c.pending ? "·" : "—", FONT.label, {
                     textAnchor: "middle",
                     style: { fill: "var(--color-ink-muted)", opacity: c.pending ? 1 : 0.5 },
                   })}
@@ -286,96 +322,107 @@ export function PayoutBoard({
             {r.season && r.season.amount <= 0 ? (
               <g>
                 <title>{r.season.title}</title>
-                {label(seasonX + SEASON_COL / 2, y + ROW_DEPTH / 2, 0, r.season.pending ? "·" : "—", FONT.label, {
+                {label(seasonX + SEASON_COL / 2, y, 0, r.season.pending ? "·" : "—", FONT.label, {
                   textAnchor: "middle",
                   style: { fill: "var(--color-ink-muted)", opacity: r.season.pending ? 1 : 0.5 },
                 })}
               </g>
             ) : null}
-            <g>
-              <title>Total won, less the buy-in</title>
-              {label(netX + NET_COL - 2, y + ROW_DEPTH / 2, 0, `${r.net > 0 ? "+" : r.net < 0 ? "−" : ""}${money(Math.abs(r.net))}`, FONT.label, {
-                textAnchor: "end",
-                className: "tabular-nums",
-                style: { fill: r.net > 0 ? "var(--color-status-good)" : r.net < 0 ? "var(--color-status-critical)" : "var(--color-ink-muted)" },
-              })}
-            </g>
           </g>
         );
       })}
     </g>
   );
 
-  // The blocks and bars, back to front, so the nearer ones stand in front of the farther.
-  const standing = rows.map((r, i) => {
-    const { cells, bx, by, barH: fullBar } = geometry[i];
-    const barH = fullBar * rise;
+  // Each manager's name, total and net, level with the biggest cube's top.
+  const names = rows.map((r, i) => {
+    const y = rowY(i);
     return (
       <g key={r.key}>
-        {cells.map(({ c, x0, x1, y0, y1, h: full }, k) => {
-          const h = full * rise;
-          const color = c.swatch?.bg ?? "var(--color-ink-muted)";
-          return (
-            <g key={k} style={{ opacity: c.live ? 0.75 : 1 }}>
-              <title>{c.title}</title>
-              <Block faces={blockFaces(project, x0, x1, y0, y1, h, center)} color={color} edge={shade(color, "right")} />
-              {label((x0 + x1) / 2, (y0 + y1) / 2, h, money(c.amount), FONT.label, {
-                textAnchor: "middle",
-                fontWeight: 700,
-                className: "tabular-nums",
-                style: { fill: c.swatch?.ink ?? "var(--color-surface-raised)", fontStyle: c.live ? "italic" : undefined },
-              })}
-            </g>
-          );
+        {label(4, y + ROW_DEPTH * 0.36, raised, r.name, FONT.name, { fontWeight: 600, style: { fill: "var(--color-ink-primary)", ...HALO } })}
+        {label(4, y + ROW_DEPTH * 0.72, raised, r.username, FONT.username, { style: { fill: "var(--color-ink-muted)", ...HALO } })}
+        {label(totalX + TOTAL_COL / 2, y + ROW_DEPTH / 2, raised, money(r.total), FONT.label, {
+          textAnchor: "middle",
+          fontWeight: 700,
+          className: "tabular-nums",
+          style: { fill: "var(--color-ink-primary)", ...HALO },
         })}
-        {/* The total: a bar as tall as everything won (its amount is drawn over everything, below). */}
         <g>
-          <title>{`${r.name}: ${money(r.total)} won`}</title>
-          {barH > 0 ? (
-            <Block faces={blockFaces(project, bx, bx + BAR_WIDTH, by, by + BAR_DEPTH, barH, center)} color="var(--map-tag)" edge="var(--map-tag)" />
-          ) : null}
+          <title>Total won, less the buy-in</title>
+          {label(netX + NET_COL - 2, y + ROW_DEPTH / 2, raised, `${r.net > 0 ? "+" : r.net < 0 ? "−" : ""}${money(Math.abs(r.net))}`, FONT.label, {
+            textAnchor: "end",
+            className: "tabular-nums",
+            style: { fill: r.net > 0 ? "var(--color-status-good)" : r.net < 0 ? "var(--color-status-critical)" : "var(--color-ink-muted)", ...HALO },
+          })}
         </g>
       </g>
     );
   });
 
-  // Drawn over everything, outlined in the card's color so they read across any block: the column
-  // headings, and each total's amount over its bar.
-  const overlay = (
-    <g>
-      {/* The header: what each column is, at the back of the board. */}
-      <g className="uppercase" style={{ fill: "var(--color-ink-muted)", letterSpacing: "0.05em", ...HALO }}>
-        {firstPlayoff !== 0 ? label(weekX(0) + ((firstPlayoff > 0 ? firstPlayoff : weeks.length) * weekCol) / 2, 6, 0, "Regular season", 9, { textAnchor: "middle" }) : null}
-        {firstPlayoff > 0 ? label(weekX(firstPlayoff) + ((weeks.length - firstPlayoff) * weekCol) / 2, 6, 0, "Playoffs", 9, { textAnchor: "middle" }) : null}
-        {label(4, 21, 0, "Manager", FONT.header, { fontWeight: 500 })}
-        {weeks.map((w, i) =>
-          i === live ? (
-            <g key={w} style={{ fill: "var(--color-ink-primary)" }}>
-              {label(weekX(i) + weekCol / 2, 21, 0, String(w), FONT.header, { textAnchor: "middle", fontWeight: 700 })}
-              {label(weekX(i) + weekCol / 2, 30, 0, "Live", 8, { textAnchor: "middle", fontWeight: 600 })}
-            </g>
-          ) : (
-            <g key={w}>{label(weekX(i) + weekCol / 2, 21, 0, String(w), FONT.header, { textAnchor: "middle", fontWeight: 500 })}</g>
-          )
-        )}
-        {hasSeason ? label(seasonX + SEASON_COL / 2, 21, 0, "Season", FONT.header, { textAnchor: "middle", fontWeight: 500 }) : null}
-        {label(totalX + TOTAL_COL / 2, 21, 0, "Total", FONT.header, { textAnchor: "middle", fontWeight: 500 })}
-        {label(netX + NET_COL - 2, 21, 0, "Net", FONT.header, { textAnchor: "end", fontWeight: 500 })}
-      </g>
-
-      {rows.map((r, i) => {
-        const { by, barH } = geometry[i];
-        return (
-          <g key={r.key}>
-            {label(totalX + TOTAL_COL / 2, by + BAR_DEPTH / 2, barH * rise + 9, money(r.total), FONT.label + 0.5, {
-              textAnchor: "middle",
-              fontWeight: 700,
-              className: "tabular-nums",
-              style: { fill: "var(--color-ink-primary)", ...HALO },
-            })}
+  // The cubes, a row at a time back to front. In a row, spread out, the ones farther from the middle first
+  // (the nearer ones hide their sides); stacking, from the bottom of the pile up.
+  const standing = rows.map((r, i) => {
+    const order = [...geometry[i].pieces].sort((a, b) => (stack < 0.5 ? Math.abs(b.x - center) - Math.abs(a.x - center) : a.z - b.z));
+    return (
+      <g key={r.key}>
+        {order.map((p) => (
+          <g key={p.k} style={{ opacity: p.c.live ? 0.7 : 1 }}>
+            <title>{p.c.title}</title>
+            <Cube faces={blockFaces(project, p.x - p.w / 2, p.x + p.w / 2, p.y - p.w / 2, p.y + p.w / 2, p.h * rise, center, p.z * rise)} />
           </g>
-        );
-      })}
+        ))}
+      </g>
+    );
+  });
+
+  // Over every cube (outlined in the card's color, so they read across any in front): each amount, or once
+  // stacked, each bar's total.
+  const amountsShown = 1 - clamp01(stack / 0.25);
+  const totalShown = clamp01((stack - 0.9) / 0.1);
+  const amounts = rows.map((r, i) => {
+    const { pieces, y, top } = geometry[i];
+    const text = { textAnchor: "middle", fontWeight: 700, className: "tabular-nums" } as const;
+    return (
+      <g key={r.key}>
+        {amountsShown > 0
+          ? pieces.map((p) => (
+              <g key={p.k} style={{ opacity: amountsShown }}>
+                {label(p.x, p.y, (p.z + p.h) * rise + LABEL_LIFT, money(p.c.amount), FONT.label, {
+                  ...text,
+                  style: { fill: "var(--color-ink-primary)", fontStyle: p.c.live ? "italic" : undefined, ...HALO },
+                })}
+              </g>
+            ))
+          : null}
+        {totalShown > 0 && pieces.length ? (
+          <g style={{ opacity: totalShown }}>
+            <title>{`${r.name}: ${money(r.total)} won`}</title>
+            {label(barX, y, top * rise + LABEL_LIFT + 1, money(r.total), FONT.label + 0.5, { ...text, style: { fill: "var(--color-ink-primary)", ...HALO } })}
+          </g>
+        ) : null}
+      </g>
+    );
+  });
+
+  // The header: what each column is, at the back of the board, level with the biggest cube's top.
+  const header = (
+    <g className="uppercase" style={{ fill: "var(--color-ink-muted)", letterSpacing: "0.05em", ...HALO }}>
+      {firstPlayoff !== 0 ? label(weekX(0) + ((firstPlayoff > 0 ? firstPlayoff : weeks.length) * weekCol) / 2, 6, raised, "Regular season", 9, { textAnchor: "middle" }) : null}
+      {firstPlayoff > 0 ? label(weekX(firstPlayoff) + ((weeks.length - firstPlayoff) * weekCol) / 2, 6, raised, "Playoffs", 9, { textAnchor: "middle" }) : null}
+      {label(4, 21, raised, "Manager", FONT.header, { fontWeight: 500 })}
+      {weeks.map((w, i) =>
+        i === live ? (
+          <g key={w} style={{ fill: "var(--color-ink-primary)" }}>
+            {label(weekX(i) + weekCol / 2, 21, raised, String(w), FONT.header, { textAnchor: "middle", fontWeight: 700 })}
+            {label(weekX(i) + weekCol / 2, 30, raised, "Live", 8, { textAnchor: "middle", fontWeight: 600 })}
+          </g>
+        ) : (
+          <g key={w}>{label(weekX(i) + weekCol / 2, 21, raised, String(w), FONT.header, { textAnchor: "middle", fontWeight: 500 })}</g>
+        )
+      )}
+      {hasSeason ? label(seasonX + SEASON_COL / 2, 21, raised, "Season", FONT.header, { textAnchor: "middle", fontWeight: 500 }) : null}
+      {label(totalX + TOTAL_COL / 2, 21, raised, "Total", FONT.header, { textAnchor: "middle", fontWeight: 500 })}
+      {label(netX + NET_COL - 2, 21, raised, "Net", FONT.header, { textAnchor: "end", fontWeight: 500 })}
     </g>
   );
 
@@ -390,11 +437,17 @@ export function PayoutBoard({
           className="block max-w-none"
           style={{ width: width >= minWidth ? "100%" : maxX - minX, height: "auto" }}
           role="img"
-          aria-label="Payouts by week for each manager: every payout stands as a block as tall as the amount, and each manager's total as a bar"
+          aria-label={
+            stacked
+              ? "Each manager's payouts stacked into one bar, as tall as their total"
+              : "Payouts by week for each manager: every payout sits on its square as a cube as big as the amount"
+          }
         >
           {floor}
+          {header}
+          {names}
           {standing}
-          {overlay}
+          {amounts}
         </svg>
       ) : (
         <div style={{ height: HEADER_DEPTH + rows.length * ROW_DEPTH }} />
