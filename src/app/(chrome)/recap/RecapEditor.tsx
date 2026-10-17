@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { RecapModel } from "@/lib/recap-model";
+import { RecapModel, RecapSectionKey } from "@/lib/recap-model";
 import { BowlMatchupResult } from "@/lib/bowl-narrative";
 import { BowlGamePick } from "@/lib/localStore";
 import { LeagueTeamOption } from "@/hooks/useLeagueTeams";
@@ -104,6 +104,8 @@ export function RecapEditor({
   onRenameUpcomingHonorable,
   onChangeUpcomingBowlTeam,
   onChangeUpcomingHonorableTeam,
+  onRemoveSection,
+  onAddSection,
 }: {
   model: RecapModel | null;
   onModelChange: (model: RecapModel) => void;
@@ -136,6 +138,9 @@ export function RecapEditor({
   /** Picking a team for one of next week's matchup slots — writes back to the shared bowl pick the same way a rename does. */
   onChangeUpcomingBowlTeam: (slot: 0 | 1, rosterId: number | "") => void;
   onChangeUpcomingHonorableTeam: (slot: 0 | 1, rosterId: number | "") => void;
+  /** Take a section out of the recap's layout, or add one (see RecapModel.layout). */
+  onRemoveSection?: (key: RecapSectionKey) => void;
+  onAddSection?: (key: RecapSectionKey) => void;
 }) {
   if (!model) {
     return (
@@ -197,6 +202,8 @@ export function RecapEditor({
           onRenameUpcomingHonorable={onRenameUpcomingHonorable}
           onChangeUpcomingBowlTeam={onChangeUpcomingBowlTeam}
           onChangeUpcomingHonorableTeam={onChangeUpcomingHonorableTeam}
+          onRemoveSection={onRemoveSection}
+          onAddSection={onAddSection}
         />
       </ScaleToFit>
     </div>

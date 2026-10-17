@@ -19,7 +19,18 @@
 // beyond the canvas itself, and not theme-reactive — this is a fixed-look
 // card, not a live page.
 
-import { RecapModel, RecapSectionKey, isSectionIncluded, upcomingWeekLabel, WHO_WILL_PREVAIL, GOOD_LUCK_TO_ALL } from "./recap-model";
+import {
+  RecapModel,
+  RecapSectionKey,
+  EXTRA_SECTIONS,
+  isExtraSection,
+  isSectionIncluded,
+  isUpcomingSection,
+  recapLayout,
+  upcomingWeekLabel,
+  WHO_WILL_PREVAIL,
+  GOOD_LUCK_TO_ALL,
+} from "./recap-model";
 
 const WIDTH = 1080;
 const PADDING = 56;
@@ -1238,68 +1249,84 @@ function runLayout(
   const included = (key: RecapSectionKey) => isSectionIncluded({ include: matchups.include ?? {} }, key);
 
   if (model) {
-    if (included("aiRecap")) l.aiRecapCard(GRAPHIC_SECTION_TITLE.aiRecap, model.aiRecap, model.aiRecapDetail);
-    if (included("bowl")) l.decidedMatchup(matchups.bowl ?? PLACEHOLDER_MATCHUP, model.bowlDetail);
-    if (included("honorable")) l.decidedMatchup(matchups.honorable ?? PLACEHOLDER_MATCHUP, model.honorableDetail);
-    if (included("highScorer")) {
-      l.highScorerPodium(
-        GRAPHIC_SECTION_TITLE.highScorer,
-        matchups.highScorer ?? {
-          ...PLACEHOLDER_HIGH_SCORER,
-          // The header's own trophy emoji already covers this — strip the
-          // leading "📈 " format-recap.ts bakes into the saved sentence text.
-          sentence: model.highScorer.replace(/^📈\s*/, ""),
-          detail: model.highScorerDetail,
-        }
-      );
-    }
-
     const winnerRows = matchups.winners ?? winnerRowsFromModel(model, matchups.avatarByName);
-    if (included("winners")) l.winnersRow(GRAPHIC_SECTION_TITLE.winners, winnerRows, model.winnersDetail);
-
-    if (included("lastWeek")) {
-      const lastWeekRows = matchups.lastWeek ?? parseScoreboardRows(model.lastWeek);
-      // Measured at the exact font lastWeekTable renders these names in —
-      // the floor has to fit the names actually shown here, not the
-      // Winners section's (possibly shorter, possibly differently-cased)
-      // usernames.
-      const barFloorPx = measureLongestText(
-        ctx,
-        lastWeekRows.map((r) => r.name),
-        `400 18px ${FONT_STACK}`
-      );
-      l.lastWeekTable(GRAPHIC_SECTION_TITLE.lastWeek, lastWeekRows, barFloorPx, model.lastWeekDetail);
-    }
-
-    if (included("standings")) {
-      l.standingsCashStacks(
-        GRAPHIC_SECTION_TITLE.standings,
-        matchups.standings ?? standingsRowsFromModel(model, matchups.avatarByName),
-        model.standingsDetail
-      );
-    }
-
-    if (included("records")) {
-      l.recordsStandings(
-        GRAPHIC_SECTION_TITLE.records,
-        matchups.records ?? recordsRowsFromModel(model, matchups.avatarByName),
-        model.recordsDetail
-      );
-    }
-
-    if (included("upcomingBowl") || included("upcomingHonorable")) {
-      l.upcomingTitle(upcomingWeekLabel(model.upcomingWeek));
-    }
-    if (included("upcomingBowl")) {
-      l.previewMatchup(GRAPHIC_SECTION_TITLE.upcomingBowl, matchups.upcoming ?? PLACEHOLDER_PREVIEW, model.upcomingBowlDetail, WHO_WILL_PREVAIL);
-    }
-    if (included("upcomingHonorable")) {
-      l.previewMatchup(
-        GRAPHIC_SECTION_TITLE.upcomingHonorable,
-        matchups.upcomingHonorable ?? PLACEHOLDER_PREVIEW,
-        model.upcomingHonorableDetail,
-        GOOD_LUCK_TO_ALL
-      );
+    const layout = recapLayout(model);
+    // Next week's previews (always last) under their week's title, drawn once either is.
+    const upcomingDrawn = layout.find((k) => isUpcomingSection(k) && included(k));
+    // Section by section in the recap's own order (see RecapModel.layout).
+    for (const key of layout) {
+      if (!included(key)) continue;
+      if (key === upcomingDrawn) l.upcomingTitle(upcomingWeekLabel(model.upcomingWeek));
+      if (isExtraSection(key)) {
+        // An added section: its text in a card under its header, like the AI Recap.
+        l.aiRecapCard(EXTRA_SECTIONS[key], model.extra?.[key] ?? "");
+        continue;
+      }
+      switch (key) {
+        case "aiRecap":
+          l.aiRecapCard(GRAPHIC_SECTION_TITLE.aiRecap, model.aiRecap, model.aiRecapDetail);
+          break;
+        case "bowl":
+          l.decidedMatchup(matchups.bowl ?? PLACEHOLDER_MATCHUP, model.bowlDetail);
+          break;
+        case "honorable":
+          l.decidedMatchup(matchups.honorable ?? PLACEHOLDER_MATCHUP, model.honorableDetail);
+          break;
+        case "highScorer":
+          l.highScorerPodium(
+            GRAPHIC_SECTION_TITLE.highScorer,
+            matchups.highScorer ?? {
+              ...PLACEHOLDER_HIGH_SCORER,
+              // The header's own trophy emoji already covers this — strip the
+              // leading "📈 " format-recap.ts bakes into the saved sentence text.
+              sentence: model.highScorer.replace(/^📈\s*/, ""),
+              detail: model.highScorerDetail,
+            }
+          );
+          break;
+        case "winners":
+          l.winnersRow(GRAPHIC_SECTION_TITLE.winners, winnerRows, model.winnersDetail);
+          break;
+        case "lastWeek": {
+          const lastWeekRows = matchups.lastWeek ?? parseScoreboardRows(model.lastWeek);
+          // Measured at the exact font lastWeekTable renders these names in —
+          // the floor has to fit the names actually shown here, not the
+          // Winners section's (possibly shorter, possibly differently-cased)
+          // usernames.
+          const barFloorPx = measureLongestText(
+            ctx,
+            lastWeekRows.map((r) => r.name),
+            `400 18px ${FONT_STACK}`
+          );
+          l.lastWeekTable(GRAPHIC_SECTION_TITLE.lastWeek, lastWeekRows, barFloorPx, model.lastWeekDetail);
+          break;
+        }
+        case "standings":
+          l.standingsCashStacks(
+            GRAPHIC_SECTION_TITLE.standings,
+            matchups.standings ?? standingsRowsFromModel(model, matchups.avatarByName),
+            model.standingsDetail
+          );
+          break;
+        case "records":
+          l.recordsStandings(
+            GRAPHIC_SECTION_TITLE.records,
+            matchups.records ?? recordsRowsFromModel(model, matchups.avatarByName),
+            model.recordsDetail
+          );
+          break;
+        case "upcomingBowl":
+          l.previewMatchup(GRAPHIC_SECTION_TITLE.upcomingBowl, matchups.upcoming ?? PLACEHOLDER_PREVIEW, model.upcomingBowlDetail, WHO_WILL_PREVAIL);
+          break;
+        case "upcomingHonorable":
+          l.previewMatchup(
+            GRAPHIC_SECTION_TITLE.upcomingHonorable,
+            matchups.upcomingHonorable ?? PLACEHOLDER_PREVIEW,
+            model.upcomingHonorableDetail,
+            GOOD_LUCK_TO_ALL
+          );
+          break;
+      }
     }
   } else if (restBody.trim()) {
     l.text(restBody, { size: 19, color: COLOR.secondary, lineHeight: 27 });

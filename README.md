@@ -41,7 +41,13 @@ from every linked season. Ships as a static site, hosted for free on
   team callout naming the two teammates who led the scoring, the commission
   list, a full scoreboard, running money standings, and a preview of next
   week's marquee matchup(s) — that's always fully present, mechanical parts
-  auto-computed and free-write "`<Detail>`" lines left for commentary. Below
+  auto-computed and free-write "`<Detail>`" lines left for commentary. The
+  layout is yours: **+ Add section** under the contents adds a Player of the
+  Week, Low Scorer, Nail-Biter, Blowout of the Week, Lucky & Unlucky,
+  Standings Movers, Waivers & Trades or Commish Notes section (each filled in
+  from that week's data, the notes left blank), and any section can be moved
+  or removed from the contents. The layout is saved per league, and every
+  later week's recap starts from it. Below
   the write-up, name a **Bowl of the Week**/**Honorable Bowl of the Week** for
   the *upcoming* week and pick the two teams playing — save it and this week's
   preview fills in with the two teams' season PF/PA and league rank; the following week, the

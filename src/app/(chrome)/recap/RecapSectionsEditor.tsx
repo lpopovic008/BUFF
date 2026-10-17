@@ -6,6 +6,11 @@ import {
   RecapModel,
   RECAP_SECTIONS,
   RecapSectionKey,
+  EXTRA_SECTIONS,
+  ExtraSectionKey,
+  isExtraSection,
+  isUpcomingSection,
+  recapLayout,
   isSectionIncluded,
   isDetailShown,
   WHO_WILL_PREVAIL,
@@ -428,7 +433,28 @@ export const SECTION_TITLE: Record<Exclude<RecapSectionKey, "bowl" | "honorable"
   records: { emoji: "📋", label: "Season Standings" },
   upcomingBowl: { emoji: "🏈", label: "Matchup of the Week" },
   upcomingHonorable: { emoji: "🥈", label: "Honorable Mention" },
+  ...EXTRA_SECTIONS,
 };
+
+/** Every section by name, for picking one to add. */
+export function sectionName(key: RecapSectionKey): { emoji: string; label: string } {
+  if (key === "bowl") return { emoji: "👑", label: "Bowl of the Week" };
+  if (key === "honorable") return { emoji: "🏆", label: "Honorable Mention" };
+  return SECTION_TITLE[key];
+}
+
+/** An added section's body: its text, a draft written from the week's data (or, for notes, blank), free to edit. */
+function ExtraBody({ value, onChange, section }: { value: string; onChange: (v: string) => void; section: ExtraSectionKey }) {
+  return (
+    <textarea
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={section === "commishNotes" ? "Anything else the league should hear this week…" : "Write this section…"}
+      rows={Math.max(2, value.split("\n").length)}
+      className="rn-detail-textarea"
+    />
+  );
+}
 
 /** Every section's shared shell: a translucent card matching the graphic's own, an include/exclude checkbox pinned to the top-right corner (unchecked greys the whole box out and leaves it out of both the copied text and the graphic), and a "+"/"–" button pinned to the bottom-right that shows or hides `detail`. `poster` switches to the wider-padded gradient-tinted card the two decided/preview matchups use in the graphic. */
 function SectionBox({
@@ -438,8 +464,9 @@ function SectionBox({
   header,
   children,
   detail,
-  detailShown,
+  detailShown = false,
   onToggleDetail,
+  onRemove,
   poster = false,
 }: {
   /** Which section this is — the contents list down the side finds it by this. */
@@ -448,9 +475,12 @@ function SectionBox({
   onToggleIncluded: () => void;
   header: React.ReactNode;
   children: React.ReactNode;
-  detail: React.ReactNode;
-  detailShown: boolean;
-  onToggleDetail: () => void;
+  /** Its optional commentary box, behind the "+" — none for a section that's one block of text already. */
+  detail?: React.ReactNode;
+  detailShown?: boolean;
+  onToggleDetail?: () => void;
+  /** Takes it out of the layout — this week's and every week's after (it can be added back from the contents). */
+  onRemove?: () => void;
   poster?: boolean;
 }) {
   return (
@@ -464,17 +494,24 @@ function SectionBox({
       <div className="rn-card-body" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {header}
         {children}
-        {detailShown ? detail : null}
+        {detail && detailShown ? detail : null}
       </div>
-      <button
-        type="button"
-        onClick={onToggleDetail}
-        title={detailShown ? "Remove the detail box" : "Add a detail box"}
-        aria-label={detailShown ? "Remove the detail box" : "Add a detail box"}
-        className="rn-detail-toggle"
-      >
-        {detailShown ? "–" : "+"}
-      </button>
+      {detail && onToggleDetail ? (
+        <button
+          type="button"
+          onClick={onToggleDetail}
+          title={detailShown ? "Remove the detail box" : "Add a detail box"}
+          aria-label={detailShown ? "Remove the detail box" : "Add a detail box"}
+          className="rn-detail-toggle"
+        >
+          {detailShown ? "–" : "+"}
+        </button>
+      ) : null}
+      {onRemove ? (
+        <button type="button" onClick={onRemove} title="Remove this section" aria-label="Remove this section" className="rn-detail-toggle rn-remove-section">
+          ×
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -512,6 +549,8 @@ export function RecapSectionsEditor({
   onRenameUpcomingHonorable,
   onChangeUpcomingBowlTeam,
   onChangeUpcomingHonorableTeam,
+  onRemoveSection,
+  onAddSection,
 }: {
   model: RecapModel;
   onChange: (model: RecapModel) => void;
@@ -537,6 +576,9 @@ export function RecapSectionsEditor({
   onRenameUpcomingHonorable: (name: string) => void;
   onChangeUpcomingBowlTeam: (slot: 0 | 1, rosterId: number | "") => void;
   onChangeUpcomingHonorableTeam: (slot: 0 | 1, rosterId: number | "") => void;
+  /** Take a section out of the layout (see RecapModel.layout), or add one — the contents down the side do the same. */
+  onRemoveSection?: (key: RecapSectionKey) => void;
+  onAddSection?: (key: RecapSectionKey) => void;
 }) {
   const set = <K extends FieldKey>(key: K, value: RecapModel[K]) => onChange({ ...model, [key]: value });
   const toggleIncluded = (key: RecapSectionKey) =>
@@ -549,15 +591,11 @@ export function RecapSectionsEditor({
   const decidedBowl = decidedMatchupFor(teams, bowlMatchup);
   const decidedHonorable = decidedMatchupFor(teams, honorableMatchup);
 
-  return (
-    <div className="recap-neon app-theme">
-      <span className="rn-badge">Commi$h</span>
-      <div data-recap-section="title" className="rn-title-row">
-        <TitleField value={model.title} onChange={(v) => set("title", v)} />
-        <div className="rn-underline" />
-      </div>
-
+  // Every house-style section's card, by section; the added ones (EXTRA_SECTIONS) are built below.
+  const cards: Partial<Record<RecapSectionKey, React.ReactNode>> = {
+    aiRecap: (
       <SectionBox
+        onRemove={onRemoveSection ? () => onRemoveSection("aiRecap") : undefined}
         section="aiRecap"
         included={included("aiRecap")}
         onToggleIncluded={() => toggleIncluded("aiRecap")}
@@ -575,8 +613,10 @@ export function RecapSectionsEditor({
           standingsLeader={model.records}
         />
       </SectionBox>
-
+    ),
+    bowl: (
       <SectionBox
+        onRemove={onRemoveSection ? () => onRemoveSection("bowl") : undefined}
         section="bowl"
         poster
         included={included("bowl")}
@@ -594,8 +634,10 @@ export function RecapSectionsEditor({
           <p className="rn-caption">Calculated from live scores — not editable.</p>
         )}
       </SectionBox>
-
+    ),
+    honorable: (
       <SectionBox
+        onRemove={onRemoveSection ? () => onRemoveSection("honorable") : undefined}
         section="honorable"
         poster
         included={included("honorable")}
@@ -617,8 +659,10 @@ export function RecapSectionsEditor({
           <p className="rn-caption">Calculated from live scores — not editable.</p>
         )}
       </SectionBox>
-
+    ),
+    highScorer: (
       <SectionBox
+        onRemove={onRemoveSection ? () => onRemoveSection("highScorer") : undefined}
         section="highScorer"
         included={included("highScorer")}
         onToggleIncluded={() => toggleIncluded("highScorer")}
@@ -630,8 +674,10 @@ export function RecapSectionsEditor({
         <HighScorerBody {...live} playerNames={playerNames} />
         <HighScorerSentence {...live} playerNames={playerNames} />
       </SectionBox>
-
+    ),
+    winners: (
       <SectionBox
+        onRemove={onRemoveSection ? () => onRemoveSection("winners") : undefined}
         section="winners"
         included={included("winners")}
         onToggleIncluded={() => toggleIncluded("winners")}
@@ -642,8 +688,10 @@ export function RecapSectionsEditor({
       >
         <WinnersBody {...live} />
       </SectionBox>
-
+    ),
+    lastWeek: (
       <SectionBox
+        onRemove={onRemoveSection ? () => onRemoveSection("lastWeek") : undefined}
         section="lastWeek"
         included={included("lastWeek")}
         onToggleIncluded={() => toggleIncluded("lastWeek")}
@@ -654,8 +702,10 @@ export function RecapSectionsEditor({
       >
         <LastWeekBody {...live} />
       </SectionBox>
-
+    ),
+    standings: (
       <SectionBox
+        onRemove={onRemoveSection ? () => onRemoveSection("standings") : undefined}
         section="standings"
         included={included("standings")}
         onToggleIncluded={() => toggleIncluded("standings")}
@@ -666,8 +716,10 @@ export function RecapSectionsEditor({
       >
         <StandingsBody {...live} />
       </SectionBox>
-
+    ),
+    records: (
       <SectionBox
+        onRemove={onRemoveSection ? () => onRemoveSection("records") : undefined}
         section="records"
         included={included("records")}
         onToggleIncluded={() => toggleIncluded("records")}
@@ -678,11 +730,10 @@ export function RecapSectionsEditor({
       >
         <RecordsStandingsBody recapData={recapData} teams={teams} />
       </SectionBox>
-
-      <div className="rn-divider" />
-      <p data-recap-section="upcoming" className={`${recapDisplayFont.className} rn-upcoming-title`}>{upcomingWeekLabel(model.upcomingWeek)}</p>
-
+    ),
+    upcomingBowl: (
       <SectionBox
+        onRemove={onRemoveSection ? () => onRemoveSection("upcomingBowl") : undefined}
         section="upcomingBowl"
         poster
         included={included("upcomingBowl")}
@@ -704,8 +755,10 @@ export function RecapSectionsEditor({
         <PreviewMatchupBody pick={upcomingBowlPick} teamOptions={teamOptions} onChangeTeam={onChangeUpcomingBowlTeam} />
         <p className="rn-trailer">{WHO_WILL_PREVAIL}</p>
       </SectionBox>
-
+    ),
+    upcomingHonorable: (
       <SectionBox
+        onRemove={onRemoveSection ? () => onRemoveSection("upcomingHonorable") : undefined}
         section="upcomingHonorable"
         poster
         included={included("upcomingHonorable")}
@@ -731,6 +784,67 @@ export function RecapSectionsEditor({
         />
         <p className="rn-trailer">{GOOD_LUCK_TO_ALL}</p>
       </SectionBox>
+    ),
+  };
+  const card = (key: RecapSectionKey): React.ReactNode => {
+    if (!isExtraSection(key)) return cards[key];
+    const { emoji, label } = EXTRA_SECTIONS[key];
+    return (
+      <SectionBox
+        section={key}
+        onRemove={onRemoveSection ? () => onRemoveSection(key) : undefined}
+        included={included(key)}
+        onToggleIncluded={() => toggleIncluded(key)}
+        header={<SectionHeader emoji={emoji} label={label} />}
+      >
+        <ExtraBody section={key} value={model.extra?.[key] ?? ""} onChange={(v) => onChange({ ...model, extra: { ...model.extra, [key]: v } })} />
+      </SectionBox>
+    );
+  };
+  const layout = recapLayout(model);
+  const firstUpcoming = layout.find((k) => isUpcomingSection(k));
+  const missing = RECAP_SECTIONS.map((s) => s.key).filter((k) => !layout.includes(k));
+
+  return (
+    <div className="recap-neon app-theme">
+      <span className="rn-badge">Commi$h</span>
+      <div data-recap-section="title" className="rn-title-row">
+        <TitleField value={model.title} onChange={(v) => set("title", v)} />
+        <div className="rn-underline" />
+      </div>
+
+      {/* The sections in the recap's own order (see RecapModel.layout), next week's previews under their heading. */}
+      {layout.map((key) => (
+        <div key={key} className="contents">
+          {key === firstUpcoming ? (
+            <>
+              <div className="rn-divider" />
+              <p data-recap-section="upcoming" className={`${recapDisplayFont.className} rn-upcoming-title`}>{upcomingWeekLabel(model.upcomingWeek)}</p>
+            </>
+          ) : null}
+          {card(key)}
+        </div>
+      ))}
+
+      {/* On a phone, where there's no contents down the side: a section to add. */}
+      {onAddSection && missing.length > 0 ? (
+        <label className="rn-add-section md:hidden">
+          <span>+ Add a section</span>
+          <select
+            value=""
+            onChange={(e) => {
+              if (e.target.value) onAddSection(e.target.value as RecapSectionKey);
+            }}
+          >
+            <option value="">Choose…</option>
+            {missing.map((k) => (
+              <option key={k} value={k}>
+                {sectionName(k).emoji} {sectionName(k).label}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
     </div>
   );
 }

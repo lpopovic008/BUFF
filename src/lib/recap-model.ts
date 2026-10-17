@@ -30,7 +30,31 @@ export function upcomingWeekLabel(week: number): string {
   return `UPCOMING WEEK ${week}:`;
 }
 
-/** Every section the write-up/graphic can show, in the order they appear — the single source of truth the include/exclude checkboxes (and the graphic's own section toggles) are built from, so the two can never drift apart. */
+/**
+ * The sections added on top of the house style's own — each one a single
+ * editable block of text under its own header, written from the week's data
+ * (see format-recap.ts's buildExtraSections) or, for Commish Notes, left for
+ * the commish to fill. They only appear once added to the layout (see
+ * `RecapModel.layout`).
+ */
+export const EXTRA_SECTIONS = {
+  playerOfWeek: { emoji: "⭐", label: "Player of the Week" },
+  lowScorer: { emoji: "📉", label: "Low Scorer" },
+  closestGame: { emoji: "😬", label: "Nail-Biter" },
+  blowout: { emoji: "💥", label: "Blowout of the Week" },
+  luck: { emoji: "🍀", label: "Lucky & Unlucky" },
+  movers: { emoji: "🧗", label: "Standings Movers" },
+  transactions: { emoji: "🔄", label: "Waivers & Trades" },
+  commishNotes: { emoji: "📝", label: "Commish Notes" },
+} as const;
+
+export type ExtraSectionKey = keyof typeof EXTRA_SECTIONS;
+
+export function isExtraSection(key: string): key is ExtraSectionKey {
+  return key in EXTRA_SECTIONS;
+}
+
+/** Every section the write-up/graphic can show, the house style's own in the order they appear by default — the single source of truth the include/exclude checkboxes (and the graphic's own section toggles) are built from, so the two can never drift apart. */
 export const RECAP_SECTIONS = [
   { key: "aiRecap", label: "✨ AI Recap" },
   { key: "bowl", label: "👑 Bowl of the Week" },
@@ -42,9 +66,56 @@ export const RECAP_SECTIONS = [
   { key: "records", label: "📋 Season Standings" },
   { key: "upcomingBowl", label: "🥇 Matchup of the Week" },
   { key: "upcomingHonorable", label: "🥈 Honorable Mention Preview" },
+  { key: "playerOfWeek", label: "⭐ Player of the Week" },
+  { key: "lowScorer", label: "📉 Low Scorer" },
+  { key: "closestGame", label: "😬 Nail-Biter" },
+  { key: "blowout", label: "💥 Blowout of the Week" },
+  { key: "luck", label: "🍀 Lucky & Unlucky" },
+  { key: "movers", label: "🧗 Standings Movers" },
+  { key: "transactions", label: "🔄 Waivers & Trades" },
+  { key: "commishNotes", label: "📝 Commish Notes" },
 ] as const;
 
 export type RecapSectionKey = (typeof RECAP_SECTIONS)[number]["key"];
+
+/** The two previews of next week's matchups — always kept together at the end, under the "UPCOMING WEEK N:" heading. */
+const UPCOMING_SECTIONS: RecapSectionKey[] = ["upcomingBowl", "upcomingHonorable"];
+
+export function isUpcomingSection(key: RecapSectionKey): boolean {
+  return UPCOMING_SECTIONS.includes(key);
+}
+
+/** The house style's own sections, in their own order — the layout of every recap until the commish changes it. */
+export const DEFAULT_LAYOUT: RecapSectionKey[] = [
+  "aiRecap",
+  "bowl",
+  "honorable",
+  "highScorer",
+  "winners",
+  "lastWeek",
+  "standings",
+  "records",
+  "upcomingBowl",
+  "upcomingHonorable",
+];
+
+/** A layout made sound: only known sections, each once, the upcoming previews kept together at the end. */
+export function normalizeLayout(layout: readonly string[]): RecapSectionKey[] {
+  const known = new Set<string>(RECAP_SECTIONS.map((s) => s.key));
+  const seen = new Set<string>();
+  const keys: RecapSectionKey[] = [];
+  for (const k of layout) {
+    if (!known.has(k) || seen.has(k)) continue;
+    seen.add(k);
+    keys.push(k as RecapSectionKey);
+  }
+  return [...keys.filter((k) => !isUpcomingSection(k)), ...keys.filter((k) => isUpcomingSection(k))];
+}
+
+/** The sections a recap has, in order — its own layout, or the house style's. */
+export function recapLayout(model: Pick<RecapModel, "layout">): RecapSectionKey[] {
+  return normalizeLayout(model.layout ?? DEFAULT_LAYOUT);
+}
 
 export interface RecapModel {
   title: string;
@@ -76,6 +147,10 @@ export interface RecapModel {
   upcomingHonorableDetail: string;
   /** A key mapped to `false` leaves that section out of both the flattened text and the graphic; anything missing (including every section on an older saved recap) defaults to included. */
   include: Partial<Record<RecapSectionKey, boolean>>;
+  /** The added sections' text (see EXTRA_SECTIONS), by section. */
+  extra: Partial<Record<ExtraSectionKey, string>>;
+  /** Which sections this recap has, in order (see recapLayout) — the house style's own when absent, as on every recap saved before sections could be added, removed and moved. New weeks start from the league's last layout (see localStore's getRecapLayout). */
+  layout?: RecapSectionKey[];
   /** Whether a section's Detail box renders on screen — see isDetailShown. Purely a UI affordance (the "+"/"–" button in SectionBox's corner); never affects the flattened text, which includes a Detail line whenever it has content regardless of whether the box happens to be open. */
   detailShown: Partial<Record<RecapSectionKey, boolean>>;
 }
@@ -85,8 +160,8 @@ export function isSectionIncluded(model: Pick<RecapModel, "include">, key: Recap
   return model.include?.[key] !== false;
 }
 
-/** Which model field holds a given section's optional free-write commentary — the single place that maps a section to its Detail field, so the "+" toggle and the flattener can't drift apart on which field goes with which section. */
-export const DETAIL_FIELD: Record<RecapSectionKey, keyof RecapModel> = {
+/** Which model field holds a given section's optional free-write commentary — the single place that maps a section to its Detail field, so the "+" toggle and the flattener can't drift apart on which field goes with which section. The added sections (EXTRA_SECTIONS) are one block of text already, so they have none. */
+export const DETAIL_FIELD: Partial<Record<RecapSectionKey, keyof RecapModel>> = {
   aiRecap: "aiRecapDetail",
   bowl: "bowlDetail",
   honorable: "honorableDetail",
@@ -106,9 +181,11 @@ export const DETAIL_FIELD: Record<RecapSectionKey, keyof RecapModel> = {
  * typed before this toggle existed doesn't suddenly hide it.
  */
 export function isDetailShown(model: RecapModel, key: RecapSectionKey): boolean {
+  const field = DETAIL_FIELD[key];
+  if (!field) return false;
   const explicit = model.detailShown?.[key];
   if (explicit !== undefined) return explicit;
-  return (model[DETAIL_FIELD[key]] as string).trim() !== "";
+  return ((model[field] as string) ?? "").trim() !== "";
 }
 
 /** Every field defaults to this until real data or a hand-typed edit replaces it. */
@@ -135,50 +212,79 @@ export const EMPTY_RECAP_MODEL: RecapModel = {
   upcomingBowlDetail: "",
   upcomingHonorableLines: "",
   upcomingHonorableDetail: "",
+  extra: {},
   include: {},
   detailShown: {},
 };
+
+/** An added section's header line in the flattened text: "⭐ Player of the Week:". */
+export function extraSectionHeader(key: ExtraSectionKey): string {
+  return `${EXTRA_SECTIONS[key].emoji} ${EXTRA_SECTIONS[key].label}:`;
+}
 
 /** Flattens a model into the exact literal text that gets saved, copied, and posted — an excluded section (see `include`) is left out entirely, header and all. The one place that knows this layout — the parser below mirrors it exactly for a fully-included recap, the only shape older saved text can be in. */
 export function joinRecapModel(model: RecapModel): string {
   const included = (key: RecapSectionKey) => isSectionIncluded(model, key);
   const lines: string[] = [];
   lines.push(model.title, "");
-  if (included("aiRecap") && model.aiRecap.trim()) {
-    lines.push(RECAP_HEADERS.aiRecap, model.aiRecap);
-    if (model.aiRecapDetail) lines.push("", model.aiRecapDetail);
-    lines.push("");
+  let upcomingTitled = false;
+  let last: RecapSectionKey | null = null;
+  // Section by section in the recap's own order; the upcoming previews (always last) under their week's heading.
+  for (const key of recapLayout(model)) {
+    if (isUpcomingSection(key) && !upcomingTitled) {
+      lines.push(upcomingWeekLabel(model.upcomingWeek), "");
+      upcomingTitled = true;
+    }
+    if (!included(key)) continue;
+    if (isExtraSection(key)) {
+      const text = (model.extra?.[key] ?? "").trim();
+      if (!text) continue;
+      lines.push(extraSectionHeader(key), ...text.split("\n"), "");
+      last = key;
+      continue;
+    }
+    switch (key) {
+      case "aiRecap":
+        if (!model.aiRecap.trim()) continue;
+        lines.push(RECAP_HEADERS.aiRecap, model.aiRecap);
+        if (model.aiRecapDetail) lines.push("", model.aiRecapDetail);
+        lines.push("");
+        break;
+      case "bowl":
+        lines.push(model.bowlResult, model.bowlDetail, "");
+        break;
+      case "honorable":
+        lines.push(model.honorableResult, model.honorableDetail, "");
+        break;
+      case "highScorer":
+        lines.push(model.highScorer, model.highScorerDetail, "");
+        break;
+      case "winners":
+      case "lastWeek":
+      case "standings":
+      case "records": {
+        const [list, detail] = {
+          winners: [model.winners, model.winnersDetail],
+          lastWeek: [model.lastWeek, model.lastWeekDetail],
+          standings: [model.standings, model.standingsDetail],
+          records: [model.records, model.recordsDetail],
+        }[key];
+        lines.push(RECAP_HEADERS[key], ...list.split("\n"));
+        if (detail) lines.push("", detail);
+        lines.push("");
+        break;
+      }
+      case "upcomingBowl":
+        lines.push(RECAP_HEADERS.upcomingBowl, ...model.upcomingBowlLines.split("\n"), "", model.upcomingBowlDetail, WHO_WILL_PREVAIL, "");
+        break;
+      case "upcomingHonorable":
+        lines.push(RECAP_HEADERS.upcomingHonorable, ...model.upcomingHonorableLines.split("\n"), "", model.upcomingHonorableDetail, GOOD_LUCK_TO_ALL, "");
+        break;
+    }
+    last = key;
   }
-  if (included("bowl")) lines.push(model.bowlResult, model.bowlDetail, "");
-  if (included("honorable")) lines.push(model.honorableResult, model.honorableDetail, "");
-  if (included("highScorer")) lines.push(model.highScorer, model.highScorerDetail, "");
-  if (included("winners")) {
-    lines.push(RECAP_HEADERS.winners, ...model.winners.split("\n"));
-    if (model.winnersDetail) lines.push("", model.winnersDetail);
-    lines.push("");
-  }
-  if (included("lastWeek")) {
-    lines.push(RECAP_HEADERS.lastWeek, ...model.lastWeek.split("\n"));
-    if (model.lastWeekDetail) lines.push("", model.lastWeekDetail);
-    lines.push("");
-  }
-  if (included("standings")) {
-    lines.push(RECAP_HEADERS.standings, ...model.standings.split("\n"));
-    if (model.standingsDetail) lines.push("", model.standingsDetail);
-    lines.push("");
-  }
-  if (included("records")) {
-    lines.push(RECAP_HEADERS.records, ...model.records.split("\n"));
-    if (model.recordsDetail) lines.push("", model.recordsDetail);
-    lines.push("");
-  }
-  lines.push(upcomingWeekLabel(model.upcomingWeek), "");
-  if (included("upcomingBowl")) {
-    lines.push(RECAP_HEADERS.upcomingBowl, ...model.upcomingBowlLines.split("\n"), "", model.upcomingBowlDetail, WHO_WILL_PREVAIL, "");
-  }
-  if (included("upcomingHonorable")) {
-    lines.push(RECAP_HEADERS.upcomingHonorable, ...model.upcomingHonorableLines.split("\n"), "", model.upcomingHonorableDetail, GOOD_LUCK_TO_ALL);
-  }
+  // The sign-off closes the write-up: nothing after it.
+  if (last === "upcomingHonorable") lines.pop();
   return lines.join("\n");
 }
 
@@ -339,7 +445,8 @@ export function parseRecapModel(body: string): RecapModel | null {
     // recap recovered from it always starts with everything included and
     // every Detail box collapsed (or open, if it already has text — see
     // isDetailShown), same as `joinRecapModel` would need to reproduce this
-    // exact text.
+    // exact text — and the house style's own sections, nothing added.
+    extra: {},
     include: {},
     detailShown: {},
   };

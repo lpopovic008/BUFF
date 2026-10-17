@@ -17,7 +17,7 @@ import {
   buildPreseasonRecapModel,
   findWeekTopStarters,
 } from "@/lib/format-recap";
-import { RecapModel, parseRecapModel, EMPTY_RECAP_MODEL } from "@/lib/recap-model";
+import { RecapModel, RecapSectionKey, parseRecapModel, EMPTY_RECAP_MODEL, normalizeLayout, recapLayout, isUpcomingSection } from "@/lib/recap-model";
 import {
   formatBowlResultLine,
   formatUpcomingBowlBlock,
@@ -30,7 +30,7 @@ import {
 import { loadLeagueMoney, LeagueMoney } from "@/lib/league-money";
 import { findLeagueProfile, defaultProfileFor } from "@/lib/league-config";
 import { summarizeWeek } from "@/lib/payouts";
-import { getRecap, getBowlPicks, saveBowlPicks, RecapBowlPicks, SavedRecap } from "@/lib/localStore";
+import { getRecap, getBowlPicks, saveBowlPicks, getRecapLayout, saveRecapLayout, RecapBowlPicks, SavedRecap } from "@/lib/localStore";
 import { resolveGoogleClientId } from "@/lib/google-config";
 import { useConfig } from "@/hooks/useConfig";
 import { useRecapActions } from "@/hooks/useRecapActions";
@@ -41,7 +41,7 @@ import { useLeagueTeams } from "@/hooks/useLeagueTeams";
 import { recapDisplayFont } from "@/lib/fonts";
 import { RecapEditor } from "./RecapEditor";
 import { GraphicCopyMenu } from "./GraphicCopyMenu";
-import { RecapContents, recapContents } from "./RecapContents";
+import { RecapContents, recapContents, sectionsToAdd } from "./RecapContents";
 import { TitleWithHistory } from "@/components/HistoryButtons";
 
 // week=0 is a sentinel for the preseason write-up — a free-write space that
@@ -71,7 +71,9 @@ function resolveHouseStyleState(
   // JSON — spreading it over EMPTY_RECAP_MODEL backfills anything missing
   // instead of leaving it undefined, which every reader here (joinRecapModel,
   // isDetailShown, ...) assumes is always at least an empty string.
-  if (saved.model) return { model: { ...EMPTY_RECAP_MODEL, ...saved.model }, plainBody: "", fresh };
+  // The added sections' text is backfilled from the fresh draft too, so a section added to an older saved week
+  // starts from this week's data rather than blank.
+  if (saved.model) return { model: { ...EMPTY_RECAP_MODEL, ...saved.model, extra: { ...fresh.extra, ...saved.model.extra } }, plainBody: "", fresh };
   const parsed = parseRecapModel(saved.body);
   return parsed ? { model: parsed, plainBody: "", fresh } : { model: null, plainBody: saved.body, fresh };
 }
@@ -84,6 +86,12 @@ async function fetchTeamNames(leagueId: string): Promise<Record<number, string>>
     teamNames[r.roster_id] = displayManagerName(r.owner_id ? usersById.get(r.owner_id) : undefined);
   }
   return teamNames;
+}
+
+/** The league's recap layout (see RecapModel.layout) — what a new week's write-up starts from; the house style's when it's never been changed. */
+function leagueLayout(leagueId: string): RecapSectionKey[] | undefined {
+  const saved = getRecapLayout(leagueId);
+  return saved ? normalizeLayout(saved) : undefined;
 }
 
 interface RecapHeader {
@@ -240,6 +248,7 @@ function RecapContent() {
             setUpcomingBowlPreview(resolveBowlMatchupPreview(upcoming.bowlOfWeek));
             setUpcomingHonorablePreview(resolveBowlMatchupPreview(upcoming.honorableBowl));
             const fresh = buildPreseasonRecapModel({
+              layout: leagueLayout(leagueId),
               leagueName: league.name,
               season: league.season,
               upcomingBowlLines: formatUpcomingBowlBlock(upcoming.bowlOfWeek, PRESEASON_WEEK + 1, names, []),
@@ -308,6 +317,7 @@ function RecapContent() {
           setHighScorerNames(playerNames);
 
           const fresh = buildWeeklyRecapModel({
+            layout: leagueLayout(leagueId),
             data,
             ledger: leagueMoney.ledger,
             playerNames,
@@ -426,6 +436,43 @@ function RecapContent() {
     saveBowlPicks(leagueId, header.season, pickWeek, updated);
     handlePicksSaved(updated);
   }
+
+  // Changing the recap's sections — adding, removing or moving one — changes this week's write-up and the
+  // league's layout, which every week after starts from.
+  const changeLayout = (next: RecapSectionKey[], added?: RecapSectionKey) => {
+    if (!model) return;
+    const layout = normalizeLayout(next);
+    setModel({
+      ...model,
+      layout,
+      // A section added back is in again, even if it was unchecked before it was removed.
+      include: added ? { ...model.include, [added]: true } : model.include,
+    });
+    if (leagueId) saveRecapLayout(leagueId, layout);
+  };
+  const addSection = (key: RecapSectionKey) => {
+    if (!model) return;
+    const layout = recapLayout(model);
+    // A new section goes last among the write-up's own, before next week's previews.
+    const at = isUpcomingSection(key) ? layout.length : layout.findIndex((k) => isUpcomingSection(k));
+    const next = [...layout];
+    next.splice(at < 0 ? layout.length : at, 0, key);
+    changeLayout(next, key);
+  };
+  const removeSection = (key: RecapSectionKey) => {
+    if (!model) return;
+    changeLayout(recapLayout(model).filter((k) => k !== key));
+  };
+  const moveSection = (key: RecapSectionKey, by: -1 | 1) => {
+    if (!model) return;
+    const layout = recapLayout(model);
+    const i = layout.indexOf(key);
+    const j = i + by;
+    if (i < 0 || j < 0 || j >= layout.length || isUpcomingSection(layout[j]) !== isUpcomingSection(key)) return;
+    const next = [...layout];
+    [next[i], next[j]] = [next[j], next[i]];
+    changeLayout(next);
+  };
 
   const actions = useRecapActions({
     leagueId: leagueId ?? "",
@@ -557,6 +604,8 @@ function RecapContent() {
             onRenameUpcomingHonorable={(name) => renameUpcomingBowl("honorableBowl", name)}
             onChangeUpcomingBowlTeam={(slot, rosterId) => changeUpcomingTeam("bowlOfWeek", slot, rosterId)}
             onChangeUpcomingHonorableTeam={(slot, rosterId) => changeUpcomingTeam("honorableBowl", slot, rosterId)}
+            onRemoveSection={removeSection}
+            onAddSection={addSection}
           />
         );
         // The structured editor's .recap-neon wrapper (see RecapSectionsEditor)
@@ -572,6 +621,10 @@ function RecapContent() {
             <aside className="hidden md:sticky md:top-[calc(var(--header-h,0px)+1rem)] md:block md:max-h-[calc(100vh-var(--header-h,0px)-2rem)] md:overflow-y-auto">
               <RecapContents
                 entries={recapContents(model, { bowl: resultPicks?.bowlOfWeek ?? null, honorable: resultPicks?.honorableBowl ?? null })}
+                toAdd={sectionsToAdd(model)}
+                onMove={moveSection}
+                onRemove={removeSection}
+                onAdd={addSection}
               />
             </aside>
             <div className="min-w-0">{editor}</div>

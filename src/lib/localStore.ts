@@ -11,6 +11,7 @@ const RECAPS_KEY = "commish:recaps";
 const BOWL_PICKS_KEY = "commish:bowl-picks";
 const DRAFT_TARGETS_KEY = "commish:draft-targets";
 const PAYOUT_PLANS_KEY = "commish:payout-plans";
+const RECAP_LAYOUTS_KEY = "commish:recap-layouts";
 
 export interface TrackedLeague {
   leagueId: string;
@@ -339,6 +340,37 @@ export function savePayoutPlan(leagueId: string, plan: PayoutPlan): void {
   writePayoutPlans(all);
 }
 
+/**
+ * Each league's recap layout — which sections its write-ups have, in order
+ * (see recap-model.ts's RecapModel.layout) — keyed by Sleeper league id. The
+ * last one set is what every new week's write-up starts from.
+ */
+function readRecapLayouts(): Record<string, string[]> {
+  if (!isBrowser()) return {};
+  try {
+    const raw = window.localStorage.getItem(RECAP_LAYOUTS_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, string[]>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeRecapLayouts(layouts: Record<string, string[]>): void {
+  if (!isBrowser()) return;
+  window.localStorage.setItem(RECAP_LAYOUTS_KEY, JSON.stringify(layouts));
+  notifyLocalWrite();
+}
+
+export function getRecapLayout(leagueId: string): string[] | null {
+  return readRecapLayouts()[leagueId] ?? null;
+}
+
+export function saveRecapLayout(leagueId: string, layout: string[]): void {
+  const all = readRecapLayouts();
+  all[leagueId] = layout;
+  writeRecapLayouts(all);
+}
+
 const SYNC_STATE_KEY = "commish:sync-state";
 
 /**
@@ -381,6 +413,7 @@ export function exportAllData(): string {
       bowlPicks: readBowlPicks(),
       draftTargets: getDraftTargets(),
       payoutPlans: readPayoutPlans(),
+      recapLayouts: readRecapLayouts(),
     },
     null,
     2
@@ -394,10 +427,12 @@ export function importAllData(json: string): void {
     bowlPicks?: Record<string, RecapBowlPicks>;
     draftTargets?: string[];
     payoutPlans?: Record<string, PayoutPlan>;
+    recapLayouts?: Record<string, string[]>;
   };
   if (parsed.config) saveConfig(parsed.config);
   if (parsed.recaps) writeRecaps(parsed.recaps);
   if (parsed.bowlPicks) writeBowlPicks(parsed.bowlPicks);
   if (parsed.draftTargets) saveDraftTargets(parsed.draftTargets);
   if (parsed.payoutPlans) writePayoutPlans(parsed.payoutPlans);
+  if (parsed.recapLayouts) writeRecapLayouts(parsed.recapLayouts);
 }

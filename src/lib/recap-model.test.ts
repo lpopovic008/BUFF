@@ -1,6 +1,16 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { DETAIL_FIELD, EMPTY_RECAP_MODEL, isDetailShown, joinRecapModel, parseRecapModel, RecapModel } from "./recap-model";
+import {
+  DEFAULT_LAYOUT,
+  DETAIL_FIELD,
+  EMPTY_RECAP_MODEL,
+  isDetailShown,
+  joinRecapModel,
+  normalizeLayout,
+  parseRecapModel,
+  RecapModel,
+  recapLayout,
+} from "./recap-model";
 
 function sampleModel(overrides: Partial<RecapModel> = {}): RecapModel {
   return {
@@ -122,6 +132,37 @@ test("isDetailShown defaults to explicit state once set, otherwise to whether th
 
 test("DETAIL_FIELD maps every section to a real RecapModel field", () => {
   for (const key of Object.keys(DETAIL_FIELD) as (keyof typeof DETAIL_FIELD)[]) {
-    assert.ok(DETAIL_FIELD[key] in EMPTY_RECAP_MODEL, `${key} -> ${DETAIL_FIELD[key]}`);
+    assert.ok(DETAIL_FIELD[key]! in EMPTY_RECAP_MODEL, `${key} -> ${DETAIL_FIELD[key]}`);
   }
+});
+
+test("normalizeLayout drops unknown and repeated sections and keeps next week's previews last", () => {
+  assert.deepEqual(normalizeLayout(["upcomingBowl", "records", "nope", "records", "playerOfWeek", "upcomingHonorable"]), [
+    "records",
+    "playerOfWeek",
+    "upcomingBowl",
+    "upcomingHonorable",
+  ]);
+  assert.deepEqual(recapLayout({}), DEFAULT_LAYOUT);
+});
+
+test("joinRecapModel follows the recap's own layout, added sections under their own headers", () => {
+  const text = joinRecapModel(
+    sampleModel({
+      layout: ["records", "playerOfWeek", "commishNotes", "bowl", "upcomingHonorable"],
+      extra: { playerOfWeek: "Ja'Marr Chase put up 41.20 for The Sharks!", commishNotes: "" },
+    })
+  );
+  const lines = text.split("\n");
+  // Records first, then the added section; an empty one (the notes) is left out; then the bowl.
+  assert.equal(lines.indexOf("📋 Season Standings:"), 2);
+  const star = lines.indexOf("⭐ Player of the Week:");
+  assert.ok(star > 2);
+  assert.equal(lines[star + 1], "Ja'Marr Chase put up 41.20 for The Sharks!");
+  assert.ok(!text.includes("Commish Notes"));
+  assert.ok(lines.indexOf("👑 The Sharks won THE BIJAN BOWL! Congrats to The Sharks!") > star);
+  // Sections left out of the layout are gone, and the upcoming heading comes before the one preview left.
+  assert.ok(!text.includes("🤑 Winners"));
+  assert.ok(lines.indexOf("UPCOMING WEEK 5:") < lines.indexOf("🥈Honorable Mention:"));
+  assert.equal(lines.at(-1), "Good Luck to All!");
 });

@@ -1,7 +1,7 @@
 import { WeekRecapData, MatchupGame } from "./league-data";
 import { PayoutLedger, summarizeWeek, standingsThroughWeek } from "./payouts";
 import { formatPoints, ordinal } from "./format";
-import { RecapModel, RecapSectionKey, joinRecapModel } from "./recap-model";
+import { ExtraSectionKey, RecapModel, RecapSectionKey, joinRecapModel } from "./recap-model";
 
 /** The high-scoring team's own top-scoring starters — who "led the scoring" for that team this week, richest first. */
 export function findWeekTopStarters(
@@ -23,6 +23,76 @@ export function joinLeaderNames(names: string[]): string {
   const [a, b, c] = [names[0] ?? "[player]", names[1] ?? "[player]", names[2] ?? "[player]"];
   return `${a}, ${b} and ${c}`;
 }
+
+/**
+ * The added sections' text (see recap-model.ts's EXTRA_SECTIONS), written
+ * from the week's own matchups, standings and transactions — a first draft
+ * the commish edits freely, like everything else in the write-up. Commish
+ * Notes is theirs to fill.
+ */
+export function buildExtraSections(data: WeekRecapData): Record<ExtraSectionKey, string> {
+  const pts = formatPoints;
+  const decided = data.games
+    .filter((g) => g.teams.length === 2 && g.teams[0].points !== g.teams[1].points)
+    .map((g) => {
+      const [w, l] = g.teams[0].points > g.teams[1].points ? [g.teams[0], g.teams[1]] : [g.teams[1], g.teams[0]];
+      return { w, l, margin: w.points - l.points };
+    });
+  const closest = [...decided].sort((a, b) => a.margin - b.margin)[0];
+  const blowout = [...decided].sort((a, b) => b.margin - a.margin)[0];
+  const luckiest = [...decided].sort((a, b) => a.w.points - b.w.points)[0];
+  const unluckiest = [...decided].sort((a, b) => b.l.points - a.l.points)[0];
+
+  // Who climbed and who slid the furthest in the standings this week.
+  const before = new Map(data.standingsBefore.map((r) => [r.rosterId, r.rank]));
+  const moves = data.standingsAfter
+    .map((r) => ({ row: r, change: (before.get(r.rosterId) ?? r.rank) - r.rank }))
+    .filter((m) => m.change !== 0);
+  const climb = [...moves].sort((a, b) => b.change - a.change)[0];
+  const slide = [...moves].sort((a, b) => a.change - b.change)[0];
+  const spots = (n: number) => `${n} spot${n === 1 ? "" : "s"}`;
+  const movers = [
+    climb && climb.change > 0 ? `${climb.row.teamName} climbed ${spots(climb.change)} to ${ordinal(climb.row.rank)}.` : null,
+    slide && slide.change < 0 ? `${slide.row.teamName} slid ${spots(-slide.change)} to ${ordinal(slide.row.rank)}.` : null,
+  ].filter((line): line is string => line !== null);
+
+  return {
+    playerOfWeek: data.topPlayer
+      ? `${data.topPlayer.name} put up ${pts(data.topPlayer.points)} for ${data.topPlayer.teamName} — the best day of any starter in the league!`
+      : "[player] put up [points] for [team] — the best day of any starter in the league!",
+    lowScorer: data.lowScorer
+      ? `${data.lowScorer.teamName} brought up the rear with ${pts(data.lowScorer.points)}. Better luck next week!`
+      : "[lowest scoring team] brought up the rear with [points]. Better luck next week!",
+    closestGame: closest
+      ? `${closest.w.teamName} edged ${closest.l.teamName} ${pts(closest.w.points)}–${pts(closest.l.points)}, decided by ${closest.margin < 10 ? "just " : ""}${pts(closest.margin)}!`
+      : "[team] edged [team] by just [margin]!",
+    blowout: blowout
+      ? `${blowout.w.teamName} ran ${blowout.l.teamName} off the field, ${pts(blowout.w.points)}–${pts(blowout.l.points)}: a ${pts(blowout.margin)}-point beatdown.`
+      : "[team] ran [team] off the field by [margin].",
+    luck:
+      luckiest && unluckiest
+        ? [
+            `🍀 Luckiest win: ${luckiest.w.teamName} won with just ${pts(luckiest.w.points)}.`,
+            `💔 Toughest loss: ${unluckiest.l.teamName} scored ${pts(unluckiest.l.points)} and still lost.`,
+          ].join("\n")
+        : "🍀 Luckiest win: [team] won with just [points].\n💔 Toughest loss: [team] scored [points] and still lost.",
+    movers: movers.length > 0 ? movers.join("\n") : "No movement in the standings this week.",
+    transactions: data.transactionSummaries.length > 0 ? data.transactionSummaries.map((t) => `• ${t}`).join("\n") : "No moves this week.",
+    commishNotes: "",
+  };
+}
+
+/** The added sections before the season's started: placeholders, like the rest of the preseason write-up. */
+const PRESEASON_EXTRAS: Record<ExtraSectionKey, string> = {
+  playerOfWeek: "[player] put up [points] for [team] — the best day of any starter in the league!",
+  lowScorer: "[lowest scoring team] brought up the rear with [points]. Better luck next week!",
+  closestGame: "[team] edged [team] by just [margin]!",
+  blowout: "[team] ran [team] off the field by [margin].",
+  luck: "🍀 Luckiest win: [team] won with just [points].\n💔 Toughest loss: [team] scored [points] and still lost.",
+  movers: "[team] climbed [n] spots to [rank].",
+  transactions: "No moves this week.",
+  commishNotes: "",
+};
 
 export interface RecapDetails {
   bowlResult: string;
@@ -63,6 +133,7 @@ export function buildWeeklyRecapModel({
   upcomingHonorableLines,
   details = DEFAULT_DETAILS,
   include = {},
+  layout,
 }: {
   data: WeekRecapData;
   ledger: PayoutLedger;
@@ -75,6 +146,8 @@ export function buildWeeklyRecapModel({
   details?: RecapDetails;
   /** Which sections are checked in on screen — carried through so regenerating the mechanical parts after a pick save never resets a section the commish already unchecked. */
   include?: Partial<Record<RecapSectionKey, boolean>>;
+  /** Which sections it has, in order — the league's own layout (see RecapModel.layout); the house style's when absent. */
+  layout?: RecapSectionKey[];
 }): RecapModel {
   const week = data.week;
   const summary = summarizeWeek(ledger, week);
@@ -148,6 +221,8 @@ export function buildWeeklyRecapModel({
     upcomingBowlDetail: details.upcomingBowl,
     upcomingHonorableLines: upcomingHonorableLines.join("\n"),
     upcomingHonorableDetail: details.upcomingHonorable,
+    extra: buildExtraSections(data),
+    layout,
     include,
     detailShown: {},
   };
@@ -172,6 +247,7 @@ export function buildPreseasonRecapModel({
   upcomingHonorableLines,
   details = DEFAULT_DETAILS,
   include = {},
+  layout,
 }: {
   leagueName: string;
   season: string;
@@ -179,6 +255,7 @@ export function buildPreseasonRecapModel({
   upcomingHonorableLines: string[];
   details?: RecapDetails;
   include?: Partial<Record<RecapSectionKey, boolean>>;
+  layout?: RecapSectionKey[];
 }): RecapModel {
   return {
     title: `🚨📋 ${leagueName} — ${season} Preseason`,
@@ -210,6 +287,8 @@ export function buildPreseasonRecapModel({
     upcomingBowlDetail: details.upcomingBowl,
     upcomingHonorableLines: upcomingHonorableLines.join("\n"),
     upcomingHonorableDetail: details.upcomingHonorable,
+    extra: PRESEASON_EXTRAS,
+    layout,
     include,
     detailShown: {},
   };

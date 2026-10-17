@@ -763,3 +763,50 @@
   background: none;
   color: #b06a3b;
 }
+
+/* A section's remove button, in the card's bottom-left corner (the detail toggle has the right). */
+/* Removing a section: a small box beside the include checkbox, clear of the card's own text and buttons. */
+.recap-neon .rn-remove-section {
+  top: 14px;
+  bottom: auto;
+  right: 38px;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+.recap-neon.app-theme .rn-remove-section {
+  top: 9px;
+  right: 36px;
+  border-color: var(--border);
+  background: var(--page);
+  color: var(--ink-secondary);
+}
+.recap-neon.app-theme .rn-poster-card .rn-remove-section {
+  top: 12px;
+}
+
+/* On a phone, where there's no contents down the side: a section to add, under the last. */
+.recap-neon .rn-add-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px dashed var(--rn-hairline);
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--rn-secondary);
+}
+.recap-neon .rn-add-section select {
+  min-width: 0;
+  max-width: 60%;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 500;
+}
+.recap-neon.app-theme .rn-add-section {
+  border-color: var(--border);
+  color: var(--ink-secondary);
+}
