@@ -10,7 +10,8 @@ import { nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import { LeagueLegendEntry, LeagueMark } from "./LeagueMark";
 import { GameRows, RowMotion } from "./GameRows";
 import { FieldSpot } from "./FieldSpot";
-import { LastAction } from "@/lib/live-play-points";
+import { LastAction, paceShare } from "@/lib/live-play-points";
+import { GAME_MS } from "./PointsGraph";
 import { useLastActions } from "@/hooks/useLastActions";
 import { getHomeView, saveHomeView } from "@/lib/localStore";
 
@@ -20,19 +21,18 @@ function formatPoints(points: number): string {
   return points.toFixed(2);
 }
 
-// Whose player it is, by the color of their points: yours green, the ones you're facing red.
-const SIDE_POINTS_COLOR: Record<PlayerSide, string> = {
+// Whose player it is, by the color of their name: yours green, the ones you're facing red.
+const SIDE_NAME_COLOR: Record<PlayerSide, string> = {
   mine: "font-semibold text-status-good",
   opponent: "font-semibold text-status-critical",
   other: "text-ink-primary",
 };
 
-// A projection in an opened game: the same side colors, kept light and italic so it still reads as a guess.
-const SIDE_PROJECTION_COLOR: Record<PlayerSide, string> = {
-  mine: "text-status-good",
-  opponent: "text-status-critical",
-  other: "text-ink-muted",
-};
+/** A live player's points: green while they're on pace for their projection (as their graph reads it), red while behind. */
+function paceColor(points: number | null, projected: number | null | undefined, share: number | undefined): string {
+  if (points === null || share === undefined || projected == null || projected <= 0) return "text-ink-primary";
+  return points >= projected * share ? "text-status-good" : "text-status-critical";
+}
 
 /** A projection, to one decimal — set apart from real points, which have two. */
 function formatProjection(points: number): string {
@@ -266,10 +266,13 @@ function GameLine({
   legendByLeagueId,
   selected = false,
   onSelect,
+  pace,
 }: {
   player: GroupedStarter;
   phase: Phase;
   action: LastAction | undefined;
+  /** How far along their game is, as their graph's pace line reads it (see paceShare) — while it's on. */
+  pace?: number;
   shown: boolean;
   motion: RowMotion;
   legendByLeagueId: Map<string, LeagueLegendEntry>;
@@ -343,7 +346,7 @@ function GameLine({
       <span ref={middle} className="flex min-w-0 flex-1 items-center gap-1">
         <span
           ref={nameRef}
-          className={`min-w-0 truncate text-ink-primary ${motion.highlight ? `-mx-1 px-1 ${lit}` : ""} ${
+          className={`min-w-0 truncate ${SIDE_NAME_COLOR[side]} ${motion.highlight ? `-mx-1 px-1 ${lit}` : ""} ${
             selected ? "underline decoration-2 underline-offset-2" : onSelect ? "decoration-ink-muted hover:underline" : ""
           }`}
         >
@@ -379,7 +382,11 @@ function GameLine({
       ) : null}
       <span
         className={`w-[3.4em] shrink-0 text-right tabular-nums ${
-          phase === "pre" ? `pr-[0.2em] font-light italic opacity-75 ${SIDE_PROJECTION_COLOR[side]}` : SIDE_POINTS_COLOR[side]
+          phase === "pre"
+            ? "pr-[0.2em] font-light italic text-ink-muted"
+            : phase === "live"
+              ? `font-semibold ${paceColor(player.points, player.projected, pace)}`
+              : "font-semibold text-ink-primary"
         }`}
       >
         {shownPoints !== null && shownPoints !== undefined ? (
@@ -411,6 +418,7 @@ function BlockGames({
   views,
   closingGames,
   actions,
+  paces,
   onToggleGame,
   legendByLeagueId,
   offMap,
@@ -426,6 +434,8 @@ function BlockGames({
   closingGames: Set<string>;
   /** Each listed player's latest play that moved their points. */
   actions: Record<string, LastAction>;
+  /** How far along each game on now is, by game id (see paceShare). */
+  paces: Record<string, number>;
   /** Moves a game to `view`; shutting it once `closeMs` of deleting has played out. */
   onToggleGame: (gameId: string, view: number, closeMs: number) => void;
   legendByLeagueId: Map<string, LeagueLegendEntry>;
@@ -477,6 +487,7 @@ function BlockGames({
               closing={closingGames.has(g.game.id)}
               hidden={hidden}
               actions={actions}
+              pace={paces[g.game.id]}
               onToggle={onToggleGame}
               legendByLeagueId={legendByLeagueId}
               map={{ off: offMap.has(g.game.id), onToggle: () => onToggleMap(g.game.id) }}
@@ -622,6 +633,7 @@ function GameBox({
   closing,
   hidden,
   actions,
+  pace,
   onToggle,
   legendByLeagueId,
   map,
@@ -642,6 +654,8 @@ function GameBox({
   /** Its time block is switched off. */
   hidden: boolean;
   actions: Record<string, LastAction>;
+  /** How far along its game is, while it's on (see paceShare). */
+  pace?: number;
   onToggle: (id: string, view: number, closeMs: number) => void;
   legendByLeagueId: Map<string, LeagueLegendEntry>;
   /** Whether it's off the map, and the button that switches that — none for a bye. */
@@ -708,6 +722,7 @@ function GameBox({
                 player={player}
                 phase={phase}
                 action={actions[player.playerId]}
+                pace={pace}
                 shown={!hidden && !closing}
                 motion={motion}
                 legendByLeagueId={legendByLeagueId}
@@ -1045,11 +1060,16 @@ export function StartersByGame({
         .map((g) => ({ ...g, players: viewPlayers(g, views.get(g.game.id) ?? 0) })),
     [games, views]
   );
-  const actions = useLastActions(followed);
+  const { actions, playsByGame } = useLastActions(followed);
+  const now = useNow();
+  // How far along each game on now is, for whether its players are on pace.
+  const paces: Record<string, number> = {};
+  for (const g of followed) {
+    if (g.game.state === "in" && now !== null) paces[g.game.id] = paceShare(new Date(g.game.kickoff).getTime(), playsByGame[g.game.id] ?? [], now, GAME_MS);
+  }
   // Finished blocks drop to the bottom as their last game ends, so the next one up is always on top.
   const columns = finishedBlocksLast(groupGamesByTimeBlock(games));
   const nothingToShow = games.length === 0 && byes.every((b) => b.everyone.length === 0);
-  const now = useNow();
   // A block's header, and the bye's: styled like the map's game tags, the same solid contrasting fill and ink.
   const headerBar = "flex w-full items-baseline justify-between gap-2 bg-[var(--map-tag)] px-2 py-1 text-left text-xs font-bold uppercase tracking-wide text-[var(--map-tag-ink)]";
 
@@ -1100,6 +1120,7 @@ export function StartersByGame({
                 views={views}
                 closingGames={closingGames}
                 actions={actions}
+                paces={paces}
                 onToggleGame={toggleGame}
                 legendByLeagueId={legendByLeagueId}
                 offMap={offMap}

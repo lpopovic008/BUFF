@@ -8,7 +8,8 @@ import { MenuIcon } from "@/components/ui/Icon";
 import { useHeaderWeek } from "@/lib/header-week";
 import { WeekPicker, weekLabel } from "@/components/WeekPicker";
 
-const links = [
+/** The menu's pages — in the header's menu from tablet width up, the tab bar's on a phone. */
+export const NAV_LINKS = [
   { href: "/", label: "Dashboard" },
   { href: "/values", label: "Values" },
   { href: "/draft", label: "Draft" },
@@ -104,7 +105,8 @@ export function NavBar() {
             title="Menu"
             aria-expanded={open}
             onClick={() => setOpen((v) => !v)}
-            className={HEADER_BUTTON}
+            // On a phone the menu is in the tab bar along the bottom (see TabBar).
+            className={`${HEADER_BUTTON} max-md:hidden`}
           >
             <MenuIcon />
           </button>
@@ -114,7 +116,7 @@ export function NavBar() {
             ref={menu}
             className="absolute right-4 top-full z-20 mt-1 flex w-40 flex-col overflow-hidden border border-grid bg-page shadow-md animate-[dropdown_0.15s_ease-out] sm:right-6 md:right-1"
           >
-            {links.map((link) => (
+            {NAV_LINKS.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}

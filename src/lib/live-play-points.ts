@@ -183,6 +183,24 @@ export function pacePieces(
   return out;
 }
 
+/**
+ * How far along a game is, 0–1, as a player graph's pace line reads it: from
+ * kickoff (or its first play, if earlier) to about when it should end —
+ * `gameMs` on, or later should it run past that — with halftime left out.
+ * A player's on pace while their points are at least this share of their
+ * projection.
+ */
+export function paceShare(kickoff: number, plays: GamePlay[], now: number, gameMs: number): number {
+  const times = plays.map((p) => p.at).filter((t): t is number => t !== null);
+  const start = Math.min(Number.isNaN(kickoff) ? Infinity : kickoff, ...times);
+  if (!Number.isFinite(start)) return 0;
+  const end = Math.max(start + gameMs, ...times, now);
+  const ht = halftimeSpan(plays);
+  const beforeHalftimeEnds = (t: number) => (ht ? Math.max(0, Math.min(t, ht.to) - ht.from) : 0);
+  const playing = end - start - beforeHalftimeEnds(end);
+  return playing > 0 ? Math.min(1, Math.max(0, (now - start - beforeHalftimeEnds(now)) / playing)) : 0;
+}
+
 /** Halftime, from the 2nd quarter's last play to the 3rd's first — null until the 3rd quarter's begun. */
 export function halftimeSpan(plays: GamePlay[]): { from: number; to: number } | null {
   let from = -Infinity;

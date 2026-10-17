@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { halftimeSpan, lastActions, pendingPlayPoints, PENDING_PLAY_MS, pacePieces, periodStarts, pointsTimeline } from "./live-play-points";
+import { halftimeSpan, lastActions, pendingPlayPoints, PENDING_PLAY_MS, pacePieces, paceShare, periodStarts, pointsTimeline } from "./live-play-points";
 import { GamePlay } from "./play-by-play";
 
 function play(id: string, text: string, offense = "BUF"): GamePlay {
@@ -120,4 +120,17 @@ test("pointsTimeline moves a defense's points-allowed bracket as the other side 
       { playId: "3:allowed", delta: -6, total: 5 }, // 7 allowed: the bracket's 10 down to 4
     ]
   );
+});
+
+test("paceShare runs from kickoff to about the end, halftime left out", () => {
+  const MIN = 60_000;
+  const play = (id: string, period: number, at: number) => ({ id, gameId: "g", sequence: Number(id), text: "", type: "", period, clock: "", offense: null, scoring: false, turnover: false, yards: 0, redZone: false, downDistance: null, at }) as GamePlay;
+  // 180 minutes of game: at 90 it's half done.
+  assert.equal(paceShare(0, [], 90 * MIN, 180 * MIN), 0.5);
+  // A 20-minute halftime from 80 to 100 doesn't count toward it.
+  const plays = [play("1", 2, 80 * MIN), play("2", 3, 100 * MIN)];
+  assert.equal(paceShare(0, plays, 100 * MIN, 180 * MIN), 80 / 160);
+  assert.equal(paceShare(0, plays, 90 * MIN, 180 * MIN), 80 / 160);
+  // Past the expected end, the game's simply as far along as it can be.
+  assert.equal(paceShare(0, [], 200 * MIN, 180 * MIN), 1);
 });

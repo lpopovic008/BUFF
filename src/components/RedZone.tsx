@@ -421,7 +421,7 @@ export function RedZone({
     return () => observer.disconnect();
   }, [compactOnPhone, hasEntries]);
   // Double-tapping the title bar fits the phone box to the screen — the card's top under the header and
-  // ticker, its bottom at the screen's — and double-tapping again takes it back to its three rows.
+  // ticker, its bottom at the tab bar's top — and double-tapping again takes it back to its three rows.
   const headRef = useRef<HTMLDivElement>(null);
   const lastTap = useRef(0);
   const [boxHeight, setBoxHeight] = useState<number | null>(null);
@@ -436,10 +436,11 @@ export function RedZone({
     }
     const css = getComputedStyle(document.documentElement);
     const covered = (parseFloat(css.getPropertyValue("--header-h")) || 0) + (parseFloat(css.getPropertyValue("--ticker-h")) || 0);
+    const tabBar = parseFloat(css.getPropertyValue("--tabbar-h")) || 0;
     const cardRect = card.getBoundingClientRect();
     const above = box.getBoundingClientRect().top - cardRect.top;
     const below = cardRect.bottom - box.getBoundingClientRect().bottom;
-    setBoxHeight(Math.max(0, Math.floor(window.innerHeight - covered - above - below)));
+    setBoxHeight(Math.max(0, Math.floor(window.innerHeight - covered - tabBar - above - below)));
     window.scrollTo({ top: window.scrollY + cardRect.top - covered, behavior: "smooth" });
   };
   const onHeadTap = (e: React.PointerEvent) => {

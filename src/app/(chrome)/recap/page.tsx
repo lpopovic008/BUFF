@@ -43,6 +43,7 @@ import { RecapEditor } from "./RecapEditor";
 import { GraphicCopyMenu } from "./GraphicCopyMenu";
 import { RecapContents, recapContents, sectionsToAdd } from "./RecapContents";
 import { TitleWithHistory } from "@/components/HistoryButtons";
+import { LeaguePicker } from "@/components/LeaguePicker";
 
 // week=0 is a sentinel for the preseason write-up — a free-write space that
 // exists before there's any real matchup data to auto-generate a recap from.
@@ -500,7 +501,7 @@ function RecapContent() {
   });
 
   if (!leagueId) {
-    return <Card className="p-12 text-center text-sm text-ink-secondary">No league selected.</Card>;
+    return <LeaguePicker title="Write-ups" commishOnly href={(id) => `/recap?id=${id}`} />;
   }
   if (error) {
     return <Card className="p-12 text-center text-sm text-status-critical">{error}</Card>;

@@ -412,14 +412,25 @@ lists (yours, and the ones you face) go in a box under the whole row.
 Once a game kicks off, rows are ordered by points, then
 projection; before kickoff, by projection alone. Before kickoff each row
 shows its projection in faint italics with one decimal, so it reads as a
-guess rather than a score. The projections take their
-side's color too (green, red). Your starters' and opponents' projections are
-scored under the league they're started in; everyone else's are PPR. Points
-are green for your starters, red for the ones you face. Projections come
+guess rather than a score. Whose player it is shows in the name: green for
+your starters, red for the ones you face. Your starters' and opponents' projections are
+scored under the league they're started in; everyone else's are PPR. While
+a game's on, each player's points are green while they're on pace for their
+projection and red while behind it — the same pace line as their graph's
+(`paceShare`: kickoff to about the end, halftime left out). Projections come
 from Sleeper's NFL-wide `/projections` (cached 5 minutes) and everyone
 else's points from `/stats` (undocumented, the same endpoints the Sleeper
 app uses). Stats are fetched only once a game this week has started, and
 then re-read each tick.
+
+**Tab bar** (`TabBar.tsx`, phones only): along the bottom of the screen,
+Games (greyed out, still to be designed), Leagues, Home, Write-ups and the
+menu, the page you're on lit like a map tag; the header's own menu button is
+left to wider screens. Leagues and Write-ups open the league page and the
+recap without a league, which list yours to pick from (`LeaguePicker`; for
+write-ups, the ones you commish) — or, with just one, open it straight away.
+It publishes `--tabbar-h`, so the page's end and the Red Zone's fit-to-screen
+leave room for it.
 
 **Header** (`NavBar.tsx`): the NFL week (on pages with their own week, an
 underlined button that opens the week picker). The countdown to the week's
@@ -505,10 +516,11 @@ you scroll into the last screen of them (no "Show more"). On a phone while a
 game is live it's a short box three plays tall under the map instead.
 
 Each play reads: the time of day it happened and the matchup's logos, with
-the snap across from them — the down and distance, a little diagram of
-where on the field the ball was (a green line with ticks at the goal lines
-and the 50, and a slim triangle at the ball pointing the way the offense is
-going, its yard line above it; `FieldSpot`), and the quarter and clock.
+the snap across from them — the down and distance, where on the field the
+ball was ("BUF 35", outlined), and the quarter and clock. The field diagram
+(`FieldSpot`: a green line with ticks at the goal lines and the 50, and a
+slim triangle at the ball pointing the way the offense is going, its yard
+line above it) is in the starters list's live games instead.
 ESPN doesn't say which end of the stadium a team is attacking — teams switch
 ends every quarter — so the diagram keeps one layout all game: the home
 team's goal line on the left, the home team driving right, the visitors left.

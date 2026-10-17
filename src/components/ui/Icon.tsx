@@ -289,3 +289,23 @@ export function ExternalLinkIcon(props: IconProps) {
     </svg>
   );
 }
+
+export function HomeIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M3 9.5L10 3.5l7 6" />
+      <path d="M5 8v8.5h3.5v-4.5h3v4.5H15V8" />
+    </svg>
+  );
+}
+
+export function FootballIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <ellipse cx="10" cy="10" rx="7.5" ry="4.5" transform="rotate(-35 10 10)" />
+      <line x1="7.5" y1="12.5" x2="12.5" y2="7.5" />
+      <line x1="8.5" y1="9.5" x2="10.5" y2="11.5" />
+      <line x1="9.5" y1="8.5" x2="11.5" y2="10.5" />
+    </svg>
+  );
+}

@@ -20,6 +20,7 @@ import { MatchupGraph, MatchupSide } from "@/components/MatchupGraph";
 import { liveProjection } from "@/lib/matchup-timeline";
 import { setHeaderWeek } from "@/lib/header-week";
 import { TitleWithHistory } from "@/components/HistoryButtons";
+import { LeaguePicker } from "@/components/LeaguePicker";
 
 function LeagueDetailContent() {
   const leagueId = useSearchParams().get("id");
@@ -202,7 +203,7 @@ function LeagueDetailContent() {
   }, [carousel, myRow, shownMatchupId, shownWeek, projectionStats, scoring]);
 
   if (!leagueId) {
-    return <Card className="p-12 text-center text-sm text-ink-secondary">No league selected.</Card>;
+    return <LeaguePicker title="Leagues" href={(id) => `/league?id=${id}`} />;
   }
   if (error) {
     return <Card className="p-12 text-center text-sm text-status-critical">{error}</Card>;
