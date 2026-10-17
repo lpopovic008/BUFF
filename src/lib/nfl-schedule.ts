@@ -55,6 +55,8 @@ export interface LiveSituation {
   isRedZone: boolean;
   /** e.g. "1st & Goal at DET 4". */
   downDistance: string | null;
+  /** Where the ball is, as yards to the end zone the team with it is driving at (0–100) — when ESPN says. */
+  yardsToEndzone?: number;
   lastPlay: LastPlay | null;
 }
 
@@ -176,12 +178,26 @@ export function parseSituation(raw: unknown, teamById: Map<string, string>): Liv
       athletes,
     };
   }
+  const possession = teamOf(raw.possession);
+  const downDistance = typeof raw.downDistanceText === "string" && raw.downDistanceText ? raw.downDistanceText : null;
+  const yardsToEndzone = ballSpot(typeof raw.possessionText === "string" ? raw.possessionText : (downDistance?.split(" at ")[1] ?? ""), possession);
   return {
-    possession: teamOf(raw.possession),
+    possession,
     isRedZone: raw.isRedZone === true,
-    downDistance: typeof raw.downDistanceText === "string" && raw.downDistanceText ? raw.downDistanceText : null,
+    downDistance,
+    ...(yardsToEndzone !== null ? { yardsToEndzone } : {}),
     lastPlay,
   };
+}
+
+/** Yards to the end zone from ESPN's spot of the ball ("DET 4", "50"), for the team with it: on its own side, 100 less the yard line. */
+export function ballSpot(spot: string, possession: string | null): number | null {
+  const m = /^(?:([A-Z]{2,3})\s+)?(\d{1,2})$/.exec(spot.trim());
+  if (!m || !possession) return null;
+  const yard = Number(m[2]);
+  if (yard > 50) return null;
+  if (!m[1] || yard === 50) return 50;
+  return normalizeTeam(m[1]) === possession ? 100 - yard : yard;
 }
 
 function parseVenue(raw: unknown): GameVenue | null {

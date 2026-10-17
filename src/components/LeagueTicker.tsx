@@ -309,7 +309,7 @@ export function LeagueTicker({ leagues }: { leagues: TickerLeague[] }) {
     const el = bar.current;
     if (!el) return;
     const root = document.documentElement.style;
-    const publish = () => root.setProperty("--ticker-h", `${el.offsetHeight}px`);
+    const publish = () => root.setProperty("--ticker-h", `${el.getBoundingClientRect().height}px`);
     publish();
     const observer = new ResizeObserver(publish);
     observer.observe(el);

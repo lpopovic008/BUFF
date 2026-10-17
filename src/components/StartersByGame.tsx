@@ -9,8 +9,10 @@ import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import { nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import { LeagueLegendEntry, LeagueMark } from "./LeagueMark";
 import { GameRows, RowMotion } from "./GameRows";
+import { FieldSpot } from "./FieldSpot";
 import { LastAction } from "@/lib/live-play-points";
 import { useLastActions } from "@/hooks/useLastActions";
+import { getHomeView, saveHomeView } from "@/lib/localStore";
 
 export type { LeagueLegendEntry };
 
@@ -127,6 +129,28 @@ function TeamLine({ game, side, shown = true }: { game: NFLGame; side: "away" | 
       <span className="flex w-[2.7625rem] shrink-0 items-baseline justify-end gap-[0.3em] whitespace-nowrap text-ink-muted" title={status ?? undefined}>
         <StatusText text={status ?? ""} />
       </span>
+    </div>
+  );
+}
+
+/**
+ * Where the ball is while a game's on (see FieldSpot), across both team lines
+ * in the open space between the teams and the scores — laid over them in
+ * columns as wide as theirs, so it's centered in that space.
+ */
+function BallSpot({ game }: { game: NFLGame }) {
+  const live = game.state === "in" ? game.live : null;
+  if (!live?.possession || live.yardsToEndzone === undefined) return null;
+  const record = [game.awayRecord ?? "", game.homeRecord ?? ""].sort((a, b) => b.length - a.length)[0];
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center gap-1.5">
+      <span className="w-[2.4em] shrink-0 text-[0.6875rem]" />
+      {record ? <span className="invisible shrink-0 text-xs tabular-nums">{record}</span> : null}
+      <span className="flex min-w-0 flex-1 justify-center">
+        <FieldSpot yardsToEndzone={live.yardsToEndzone} homeOffense={live.possession === game.homeTeam} />
+      </span>
+      <span className="w-[2.4em] shrink-0 text-[0.9375rem]" />
+      <span className="w-[2.7625rem] shrink-0" />
     </div>
   );
 }
@@ -461,6 +485,7 @@ function BlockGames({
             >
               <TeamLine game={g.game} side="away" shown={!hidden} />
               <TeamLine game={g.game} side="home" shown={!hidden} />
+              <BallSpot game={g.game} />
             </GameBox>
           ))}
         </div>
@@ -668,7 +693,7 @@ function GameBox({
               }
             : undefined
         }
-        className={`flex flex-col gap-0.5 ${toggleable ? "cursor-pointer transition-opacity hover:opacity-80" : ""}`}
+        className={`relative flex flex-col gap-0.5 ${toggleable ? "cursor-pointer transition-opacity hover:opacity-80" : ""}`}
       >
         {children}
       </div>
@@ -935,10 +960,22 @@ export function StartersByGame({
   // Each box's view, stepped through by tapping its matchup (see viewPlayers) —
   // shut when missing — and the boxes on their way shut, still listing their
   // players while the lines delete themselves.
-  const [views, setViews] = useState<Map<string, number>>(() => new Map());
+  // The view the bar on top last set every box to, until a box is tapped on its own — opening as
+  // last left on this browser (Team, the first time), every box that lists anyone in it.
+  const [barView, setBarView] = useState<number | null>(() => (getHomeView().startersView ?? 1) || null);
+  const openTo = (view: number, ids: { id: string; listing: Listing }[]) =>
+    ids.filter((box) => viewCycle(box.listing).length > 1).map((box) => [box.id, view] as const);
+  const [views, setViews] = useState<Map<string, number>>(() => new Map(barView ? openTo(barView, boxes) : []));
   const [closingGames, setClosingGames] = useState<Set<string>>(() => new Set());
-  // The view the bar on top last set every box to, until a box is tapped on its own.
-  const [barView, setBarView] = useState<number | null>(null);
+  // Boxes with someone to list only once the live lines come in open to the bar's view too.
+  const boxIds = boxes.filter((box) => viewCycle(box.listing).length > 1).map((box) => box.id).join(",");
+  const [prevBoxIds, setPrevBoxIds] = useState(boxIds);
+  if (boxIds !== prevBoxIds) {
+    setPrevBoxIds(boxIds);
+    const known = new Set(prevBoxIds.split(","));
+    const added = boxes.filter((box) => !known.has(box.id));
+    if (barView && added.length > 0) setViews((prev) => new Map([...prev, ...openTo(barView, added)]));
+  }
   const closeTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   useEffect(() => {
     const timers = closeTimers.current;
@@ -980,15 +1017,17 @@ export function StartersByGame({
   // Every box to one view at once.
   const openAll = (view: number) => {
     setBarView(view);
+    saveHomeView({ startersView: view });
     closeTimers.current.forEach((t) => clearTimeout(t));
     closeTimers.current.clear();
     setClosingGames(new Set());
-    setViews(new Map(boxes.filter((box) => viewCycle(box.listing).length > 1).map((box) => [box.id, view])));
+    setViews(new Map(openTo(view, boxes)));
   };
   // The bar: every box to one view at once — or, its view tapped again, every box shut.
   const setAllViews = (view: number) => {
     if (view === barView) {
       setBarView(null);
+      saveHomeView({ startersView: 0 });
       for (const box of boxes) {
         const current = views.get(box.id) ?? 0;
         if (current === 0 || closingGames.has(box.id)) continue;
@@ -1015,8 +1054,8 @@ export function StartersByGame({
   const headerBar = "flex w-full items-baseline justify-between gap-2 bg-[var(--map-tag)] px-2 py-1 text-left text-xs font-bold uppercase tracking-wide text-[var(--map-tag-ink)]";
 
   return (
-    <div className="flex flex-col gap-4">
-
+    // Room over the bar, under the ticker; the games start right under it.
+    <div className="flex flex-col gap-0.5 md:pt-3.5">
       {nothingToShow ? null : (
         // Every box to one view at once.
         <div className="grid grid-cols-3 border border-ink-muted/40" role="group" aria-label="Show in every game">
@@ -1035,7 +1074,6 @@ export function StartersByGame({
           ))}
         </div>
       )}
-
 
       {nothingToShow ? (
         <p className="text-sm text-ink-secondary">

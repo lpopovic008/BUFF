@@ -360,7 +360,11 @@ moved only as far as it takes to bring the bar into sight. Tapping the graph aga
 anywhere off it, takes the cursor away, and the Red Zone (and the column)
 goes back to exactly where it was. The left and right arrow keys step
 the cursor back and forth a play at a time. × (or tapping their line again)
-takes a graph down; Escape takes them all down and brings the map back. The map stays mounted underneath, just hidden, so its view isn't
+takes a graph down; Escape takes them all down and brings the map back.
+The graphs up are kept on this browser (`getHomeView`/`saveHomeView`, with
+the week they're from), so a reload or reopening the app brings them back
+until they're closed — as is the starters list's Team/VS/ALL bar, Team the
+first time. The map stays mounted underneath, just hidden, so its view isn't
 lost. On a phone, the page scrolls up to the graph.
 
 Each team's name in the league page's matchups has its projected total
@@ -435,10 +439,20 @@ subgrid) — is lit like a map tag once the week is official (`lastFinishedWeek`
 whoever leads right now is lit instead. Nobody is lit while the score is
 level.
 
+**From tablet width up**, the map's column is exactly as tall as the screen
+under the ticker (the page takes back its own bottom padding, so nothing
+scrolls): the map along its bottom, as wide as the column at its own
+proportions (narrower if that would leave the Red Zone under 10rem —
+`GameMap`'s `room`), and the Red Zone filling the room above it, its plays
+scrolling within its box. `--header-h` and `--ticker-h` are published at
+their exact (fractional) heights so the sum comes out to the pixel.
 **The Red Zone's title bar** (the title, its Team/VS/All buttons and any
-game in the red zone now) sits at the bottom of its box — from tablet width
-up, sticking to the bottom of the map's column as the plays scroll by above
-it. **On a phone** the Red Zone sits under the map, above the starters, as a box
+game in the red zone now) sits at the bottom of its box. Each play shows where
+it was snapped as the field reads ("BUF 35"), outlined so it stands apart
+from the down and distance and the clock either side; the field diagram
+(`FieldSpot`) is in the starters list instead — in a live game's box, across
+both team lines between the teams and the scores, where the ball is now
+(ESPN's situation, `ballSpot`). **On a phone** the Red Zone sits under the map, above the starters, as a box
 three rows tall that scrolls on its own; double-tapping its title bar fits
 the box to the screen (the card's top under the header and ticker, its
 bottom at the screen's), and double-tapping again takes it back to three rows.

@@ -448,11 +448,14 @@ export function GameMap({
   games,
   legend,
   overhead,
+  room,
 }: {
   games: MappedGame[];
   legend: LeagueLegendEntry[];
   /** Set in the middle of the open space over the land (as the map opens) — taking no room of its own. */
   overhead?: React.ReactNode;
+  /** The height the whole map, open space over the land and all, may take (a CSS length) — by default, the screen's under the header less 12rem. */
+  room?: string;
 }) {
   const frameRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<HTMLDivElement | null>(null);
@@ -628,10 +631,14 @@ export function GameMap({
         {...handlers}
       >
         {/* As wide as its column allows, but never so tall it can't be seen whole
-            on the screen: the width is capped by the height left under the header. */}
+            on the screen: the width is capped by the height left under the header (or the room it's given). */}
         <div
           className="mx-auto w-full min-w-0"
-          style={{ maxWidth: `max(20rem, calc((100vh - var(--header-h, 0px) - 12rem) * ${MAP_ASPECT}))` }}
+          style={{
+            maxWidth: room
+              ? `max(20rem, calc((${room} - ${headroomPx ?? 0}px) * ${MAP_ASPECT}))`
+              : `max(20rem, calc((100vh - var(--header-h, 0px) - 12rem) * ${MAP_ASPECT}))`,
+          }}
         >
           <div ref={mapRef} className="relative" style={{ aspectRatio: MAP_ASPECT }}>
             {/* overflow-visible: zoomed-in land runs on past the map box, out to the frame's edges. */}

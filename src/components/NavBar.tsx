@@ -56,7 +56,7 @@ export function NavBar() {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const publish = () => document.documentElement.style.setProperty("--header-h", `${el.offsetHeight}px`);
+    const publish = () => document.documentElement.style.setProperty("--header-h", `${el.getBoundingClientRect().height}px`);
     publish();
     const observer = new ResizeObserver(publish);
     observer.observe(el);

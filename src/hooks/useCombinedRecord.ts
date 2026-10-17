@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useConfig } from "./useConfig";
-import { visibleLeagues } from "@/lib/localStore";
+import { onLocalWrite, visibleLeagues } from "@/lib/localStore";
 import { useSummariesAsItStands } from "./useAsItStands";
 import { getLeagueSummary, LeagueSummary } from "@/lib/league-data";
 import { getCurrentWeek } from "@/lib/sleeper";
@@ -10,12 +10,17 @@ import { formatRecord } from "@/lib/format";
 
 /** Your combined win-loss-tie record across every league you track (but those hidden in Settings), for the header — "as it stands", when that's on. */
 export function useCombinedRecord(): string | null {
-  const { config, loaded: configLoaded } = useConfig();
+  const { config, loaded: configLoaded, refresh } = useConfig();
   const [summaries, setSummaries] = useState<LeagueSummary[] | null>(null);
+  // The header outlives every page: re-read the config when it's saved, so hiding a league in Settings takes it out of the record at once.
+  useEffect(() => onLocalWrite(refresh), [refresh]);
+  const shownIds = visibleLeagues(config.leagues)
+    .map((l) => l.leagueId)
+    .join(",");
 
   useEffect(() => {
     if (!configLoaded) return;
-    const leagues = visibleLeagues(config.leagues);
+    const leagues = shownIds ? shownIds.split(",") : [];
     if (leagues.length === 0 || !config.sleeperUserId) {
       queueMicrotask(() => setSummaries(null));
       return;
@@ -23,13 +28,13 @@ export function useCombinedRecord(): string | null {
     let cancelled = false;
     (async () => {
       const currentWeek = await getCurrentWeek();
-      const loaded = await Promise.all(leagues.map((l) => getLeagueSummary(l.leagueId, currentWeek)));
+      const loaded = await Promise.all(leagues.map((id) => getLeagueSummary(id, currentWeek)));
       if (!cancelled) setSummaries(loaded.filter((s): s is LeagueSummary => s !== null));
     })();
     return () => {
       cancelled = true;
     };
-  }, [configLoaded, config.leagues, config.sleeperUserId]);
+  }, [configLoaded, shownIds, config.sleeperUserId]);
 
   const shown = useSummariesAsItStands(summaries);
 

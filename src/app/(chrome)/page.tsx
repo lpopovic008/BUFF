@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { GameMap, MappedGame } from "@/components/GameMap";
@@ -23,7 +23,7 @@ import { GameStarters, groupStartersByGame, GroupedStarter, startersListGames } 
 import { avatarUrl, getCurrentWeek, weighProjection } from "@/lib/sleeper";
 import { kickoffBlockLabel } from "@/lib/game-map";
 import { setHeaderWeek } from "@/lib/header-week";
-import { TrackedLeague, visibleLeagues } from "@/lib/localStore";
+import { getHomeView, saveHomeView, TrackedLeague, visibleLeagues } from "@/lib/localStore";
 
 interface LoadedLeague {
   tracked: TrackedLeague;
@@ -36,8 +36,17 @@ const NFL_WEEKS = 18;
 /** How many players' graphs can be up at once, in place of the map. */
 const MAX_GRAPHS = 4;
 
+// From tablet width up, where the map and the Red Zone share a column the screen's height.
+const DESKTOP = "(min-width: 768px)";
+const onDesktopChange = (listener: () => void) => {
+  const query = window.matchMedia(DESKTOP);
+  query.addEventListener("change", listener);
+  return () => query.removeEventListener("change", listener);
+};
+
 export default function DashboardPage() {
   const { config, loaded } = useConfig();
+  const desktop = useSyncExternalStore(onDesktopChange, () => window.matchMedia(DESKTOP).matches, () => false);
   const [leagues, setLeagues] = useState<LoadedLeague[] | null>(null);
   const [week, setWeek] = useState<number | null>(null);
   // The week shown: the current one, unless another's been picked from the header's "Week N".
@@ -162,7 +171,16 @@ export default function DashboardPage() {
     setMapOff({ week: shownWeek, ids });
   };
   // The players whose points-over-time graphs are up in place of the map (tapped in the starters list), up to four — for that week.
-  const [graphPicks, setGraphPicks] = useState<{ week: number | null; picks: { playerId: string; gameId: string }[] }>(() => ({ week: null, picks: [] }));
+  // Kept on this browser, so they're still up after a reload until closed.
+  const [graphPicks, setGraphPicksState] = useState<{ week: number | null; picks: { playerId: string; gameId: string }[] }>(() => ({ week: null, picks: [] }));
+  const setGraphPicks = (next: { week: number | null; picks: { playerId: string; gameId: string }[] }) => {
+    setGraphPicksState(next);
+    saveHomeView({ graphs: next.week != null && next.picks.length > 0 ? { week: next.week, picks: next.picks } : undefined });
+  };
+  useEffect(() => {
+    const saved = getHomeView().graphs;
+    if (saved) queueMicrotask(() => setGraphPicksState(saved));
+  }, []);
   const graphFor = useMemo(() => (graphPicks.week === shownWeek ? graphPicks.picks : []), [graphPicks, shownWeek]);
   const mapSlotRef = useRef<HTMLDivElement>(null);
   const pickGraph = (playerId: string, gameId: string) => {
@@ -190,7 +208,9 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!anyGraph) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setGraphPicks({ week: null, picks: [] });
+      if (e.key !== "Escape") return;
+      setGraphPicksState({ week: null, picks: [] });
+      saveHomeView({ graphs: undefined });
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -377,17 +397,21 @@ export default function DashboardPage() {
   });
 
   return (
-    <div className="flex flex-col gap-0.5">
+    // From tablet width up the columns reach the bottom of the screen: the page's own bottom padding is taken back.
+    <div className="flex flex-col gap-0.5 md:-mb-8">
       <h1 className="sr-only">Dashboard</h1>
       <LeagueTicker leagues={leagueCards} />
 
       {/* On phones the map column's wrappers step aside (display: contents), so the Red Zone can sit either under the map or after the starters list. */}
       <div className={`flex flex-col gap-6 md:flex-row md:items-start md:gap-3 ${anyGameLive ? "max-md:pb-16" : ""}`}>
-        {/* The map, with room underneath it for what comes next. Its own scroll container at md+, independent of the starters column beside it. Flipped to rtl so its scrollbar sits on the column's own left edge instead of in the gutter between the two columns — the inner wrapper flips back to ltr so the content itself still reads normally. */}
-        <div className="min-w-0 flex-1 max-md:contents md:sticky md:top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+2px)] md:max-h-[calc(100vh-var(--header-h,0px)-var(--ticker-h,0px)-2px-1.5rem)] md:overflow-y-auto md:[direction:rtl]">
-          <div className="flex flex-col gap-6 max-md:contents md:[direction:ltr]">
+        {/* The map and the Red Zone. From tablet width up, a column exactly as tall as the screen under the ticker: the map along its
+            bottom, as wide as the column at its own proportions, and the Red Zone filling the rest above it, its plays scrolling
+            within it. Should the two not fit, the column scrolls — flipped to rtl so its scrollbar sits on the column's own left
+            edge instead of in the gutter between the two columns; the inner wrapper flips back to ltr so the content reads normally. */}
+        <div className="min-w-0 flex-1 max-md:contents md:sticky md:top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+2px)] md:h-[calc(100vh-var(--header-h,0px)-var(--ticker-h,0px)-2px)] md:overflow-y-auto md:[direction:rtl]">
+          <div className="flex flex-col gap-6 max-md:contents md:h-full md:gap-3 md:[direction:ltr]">
             {weekGames.length > 0 ? (
-              <div className="animate-[rise_0.5s_ease-out_backwards]">
+              <div className="shrink-0 animate-[rise_0.5s_ease-out_backwards]">
                 {/* A player's graph takes the map's place; the map stays put underneath, just out of sight. */}
                 <div ref={mapSlotRef} className="relative scroll-mt-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.5rem)]">
                   <div className={graphed.length > 0 ? "invisible" : undefined} aria-hidden={graphed.length > 0 ? true : undefined}>
@@ -396,6 +420,8 @@ export default function DashboardPage() {
                       legend={legend}
                       // The countdown to the next kickoff, in the open space over the land.
                       overhead={<KickoffCountdown kickoffs={kickoffs} />}
+                      // From tablet width up, the column's height less the Red Zone's least (10rem) and the gap over the map.
+                      room={desktop ? "100vh - var(--header-h, 0px) - var(--ticker-h, 0px) - 2px - 10rem - 0.75rem" : undefined}
                     />
                   </div>
                   {/* One graph in full; two stacked; three or four, one to a corner. */}
@@ -417,9 +443,11 @@ export default function DashboardPage() {
               </div>
             ) : null}
 
-            {/* Below the map: the Red Zone, your starters' plays as they happen — its title sticks at the top as the plays scroll on under it. On phones, a short box you scroll within (dragged taller if you like), above the starters. Your leagues ride the ticker under the header (see LeagueTicker). */}
+            {/* The Red Zone, your starters' plays as they happen: above the map from tablet width up, filling the column's room over it;
+                on phones, under the map, a short box you scroll within (double-tap its title to fit it to the screen). Your leagues
+                ride the ticker under the header (see LeagueTicker). */}
             {weekGames.length > 0 && myStarters !== null ? (
-              <div className="animate-[rise_0.5s_ease-out_backwards] [animation-delay:120ms]">
+              <div className="animate-[rise_0.5s_ease-out_backwards] [animation-delay:120ms] md:order-first md:flex md:min-h-40 md:flex-1 md:flex-col">
                 <RedZone
                   // Fresh for each week, so a week's plays slide in rather than flashing as new.
                   key={shownWeek ?? 0}
@@ -437,7 +465,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Starters by game — one continuous column running alongside the map and leagues, with its own independent scroll at md+ so a long list here doesn't push the left column around or vice versa. Always a quarter of the window wide once side-by-side. */}
-        <div className="w-full animate-[rise_0.5s_ease-out_backwards] [animation-delay:200ms] md:sticky md:top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+2px)] md:max-h-[calc(100vh-var(--header-h,0px)-var(--ticker-h,0px)-2px-1.5rem)] md:w-[30vw] md:shrink-0 md:overflow-y-auto md:pb-16">
+        <div className="w-full animate-[rise_0.5s_ease-out_backwards] [animation-delay:200ms] md:sticky md:top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+2px)] md:max-h-[calc(100vh-var(--header-h,0px)-var(--ticker-h,0px)-2px)] md:w-[30vw] md:shrink-0 md:overflow-y-auto md:pb-16">
           {myStarters === null ? (
             <p className="text-sm text-ink-secondary">Loading your lineups…</p>
           ) : weekGames.length === 0 ? (

@@ -199,50 +199,6 @@ function MarkColumn({ marks }: { marks: PlayMark[] }) {
   );
 }
 
-/** The field line's thickness. */
-const FIELD_LINE = 1.5;
-
-/**
- * Where on the field the ball was snapped, as a little diagram: the field a
- * green line with short green ticks at the two goal lines and the 50 — half
- * the line's height, so the yard line fits above them — and a slim triangle
- * at the ball, pointing the way the offense is going, its yard line centered
- * over it. ESPN doesn't say which end of the stadium a team is attacking
- * (teams switch ends every quarter), so the field is laid out the same way all
- * game: the home team's goal line on the left, the home team driving right
- * and the visitors left.
- */
-function FieldSpot({ yardsToEndzone, homeOffense }: { yardsToEndzone: number; homeOffense: boolean }) {
-  const left = 2;
-  const right = 62;
-  const ground = 13.5;
-  // How far the ball is from the home team's goal line, 0–100.
-  const fromHomeGoal = homeOffense ? 100 - yardsToEndzone : yardsToEndzone;
-  const x = left + ((right - left) * fromHomeGoal) / 100;
-  const yard = Math.min(yardsToEndzone, 100 - yardsToEndzone);
-  // A triangle longer than it is wide, centered on the ball, its tip toward the goal it's driving at.
-  const dir = homeOffense ? 1 : -1;
-  const half = 2.75;
-  const wide = 1.6;
-  return (
-    <svg viewBox="0 0 64 15" className="h-[0.9375rem] w-16 shrink-0 overflow-visible" aria-hidden>
-      {/* The ticks run down to the field line's bottom edge, flush with it. */}
-      {[left, (left + right) / 2, right].map((tx) => (
-        <line key={tx} x1={tx} y1={ground + FIELD_LINE / 2} x2={tx} y2={ground - 4.5} stroke="var(--color-status-good)" strokeWidth={1} />
-      ))}
-      <line x1={left} y1={ground} x2={right} y2={ground} stroke="var(--color-status-good)" strokeWidth={FIELD_LINE} />
-      <path
-        d={`M${x + dir * half},${ground} L${x - dir * half},${ground - wide} L${x - dir * half},${ground + wide} Z`}
-        fill="var(--color-ink-primary)"
-      />
-      {/* Always centered over the ball, even at the goal line. */}
-      <text x={x} y={6.5} textAnchor="middle" fontSize={8} fontWeight={700} fill="var(--color-ink-primary)" className="tabular-nums">
-        {yard}
-      </text>
-    </svg>
-  );
-}
-
 /** The time of day a play happened, e.g. "1:42 PM". */
 function clockTime(at: number | null): string {
   return at === null ? "" : new Date(at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
@@ -308,12 +264,13 @@ function FeedRow({
             <TeamLogo team={game.homeTeam} side={14} />
           </span>
         </span>
-        {/* The snap: down and distance, where on the field (see FieldSpot), then when. */}
+        {/* The snap: down and distance, where on the field, then when. */}
         <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap tabular-nums text-ink-muted">
           {play.downDistance ? <span className="font-semibold text-ink-secondary">{play.downDistance}</span> : null}
-          {play.yardsToEndzone !== undefined ? (
-            <span className="flex items-center" title={spot ? `Snapped from the ${spot}` : undefined}>
-              <FieldSpot yardsToEndzone={play.yardsToEndzone} homeOffense={play.offense === game.homeTeam} />
+          {/* Outlined, so it stands apart from the down and distance and the clock around it. */}
+          {spot ? (
+            <span className="border border-ink-primary px-1 py-px font-semibold text-ink-primary" title={`Snapped from the ${spot}`}>
+              {spot}
             </span>
           ) : null}
           <span>{whenLabel(entry)}</span>
@@ -585,18 +542,17 @@ export function RedZone({
     scope === "all" ? weekGames.some((g) => g.state !== "pre") : followed.some((g) => g.game.state !== "pre" && g.players.length > 0);
 
   return (
-    // The plays run on down the map's column (from tablet width up), with the
-    // title and anything in the red zone now sticking at the bottom as they
-    // pass over it. On a phone they sit in a short box of their own, the title
-    // bar under it.
-    <Card className="flex flex-col gap-2 p-3">
+    // From tablet width up the box fills the room it's given, its plays
+    // scrolling within it over the title bar along its bottom. On a phone
+    // they sit in a short box of their own, the title bar under it.
+    <Card className="flex flex-col gap-2 p-3 md:min-h-0 md:flex-1">
       {entries.length > 0 ? (
-        <div className="relative">
+        <div className="relative md:min-h-0 md:flex-1">
           <div
             ref={boxRef}
-            className={
-              `relative ${compactOnPhone ? "max-md:max-h-[var(--rz-user-h,var(--rz-box-h,15rem))] max-md:overflow-y-auto max-md:overscroll-contain" : ""}`
-            }
+            className={`relative md:h-full md:overflow-y-auto md:overscroll-contain ${
+              compactOnPhone ? "max-md:max-h-[var(--rz-user-h,var(--rz-box-h,15rem))] max-md:overflow-y-auto max-md:overscroll-contain" : ""
+            }`}
             style={boxHeight !== null ? ({ "--rz-user-h": `${boxHeight}px` } as React.CSSProperties) : undefined}
           >
             <ol ref={listRef} className="flex flex-col" aria-label={scope === "mine" ? "Plays your starters were part of" : scope === "vs" ? "Plays your starters or the ones you face were part of" : "Every play"} aria-live="polite">
@@ -635,11 +591,10 @@ export function RedZone({
       )}
 
       <div
-        // The title bar sits at the bottom of the box (sticking to the bottom of the column, from tablet width up,
-        // as the plays scroll by above it): the play by a graph's cursor, any red zone now, then the title.
+        // The title bar sits at the bottom of the box, under the plays: the play by a graph's cursor, any red zone now, then the title.
         ref={headRef}
         onPointerUp={onHeadTap}
-        className={`z-10 -mx-3 -mb-3 flex touch-manipulation flex-col gap-2 border-t border-border bg-surface-raised px-3 pb-3 pt-2 select-none md:sticky md:bottom-0 ${
+        className={`z-10 -mx-3 -mb-3 flex touch-manipulation flex-col gap-2 border-t border-border bg-surface-raised px-3 pb-3 pt-2 select-none md:mt-auto ${
           compactOnPhone ? "" : "max-md:sticky max-md:bottom-0"
         }`}
       >

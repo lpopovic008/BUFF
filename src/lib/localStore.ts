@@ -371,6 +371,39 @@ export function saveRecapLayout(leagueId: string, layout: string[]): void {
   writeRecapLayouts(all);
 }
 
+const HOME_VIEW_KEY = "commish:home-view";
+
+/**
+ * How the home page was last left on this browser: the players whose graphs
+ * were up (for the week they're from) and the starters list's view. Like the
+ * sync state, it describes this browser — never synced, and writing it never
+ * fires onLocalWrite.
+ */
+export interface HomeView {
+  graphs?: { week: number; picks: { playerId: string; gameId: string }[] };
+  /** The starters list's bar: 1 Team, 2 VS, 3 ALL. */
+  startersView?: number;
+}
+
+export function getHomeView(): HomeView {
+  if (!isBrowser()) return {};
+  try {
+    const raw = window.localStorage.getItem(HOME_VIEW_KEY);
+    return raw ? (JSON.parse(raw) as HomeView) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function saveHomeView(patch: Partial<HomeView>): void {
+  if (!isBrowser()) return;
+  try {
+    window.localStorage.setItem(HOME_VIEW_KEY, JSON.stringify({ ...getHomeView(), ...patch }));
+  } catch {
+    // Storage full or blocked: the page just starts fresh next time.
+  }
+}
+
 const SYNC_STATE_KEY = "commish:sync-state";
 
 /**
