@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { ExpandVerticalIcon } from "@/components/ui/Icon";
+import { Ordinals } from "@/components/Ordinals";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { LeagueLegendEntry, LeagueMark } from "@/components/LeagueMark";
 import { replayRedZonePlay } from "@/components/GameRows";
@@ -267,7 +268,11 @@ function FeedRow({
         </span>
         {/* The snap: down and distance, where on the field, then when. */}
         <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap tabular-nums text-ink-muted">
-          {play.downDistance ? <span className="font-semibold text-ink-secondary">{play.downDistance}</span> : null}
+          {play.downDistance ? (
+            <span className="font-semibold text-ink-secondary">
+              <Ordinals text={play.downDistance} />
+            </span>
+          ) : null}
           {/* Outlined, so it stands apart from the down and distance and the clock around it. */}
           {spot ? (
             <span className="border border-ink-primary px-1 py-px font-semibold text-ink-primary" title={`Snapped from the ${spot}`}>
@@ -313,7 +318,7 @@ function RedZoneAlert({ alert }: { alert: RedZoneNow }) {
       <TeamLogo team={alert.team} side={18} />
       <span className="min-w-0 flex-1">
         <span className="block text-[0.6875rem] font-bold uppercase tracking-wide text-status-critical">
-          {alert.downDistance ?? `${alert.team} in the red zone`}
+          {alert.downDistance ? <Ordinals text={alert.downDistance} /> : `${alert.team} in the red zone`}
         </span>
         <span className="block break-words text-[0.75rem] text-ink-primary">
           {alert.players.length > 0 ? alert.players.map(displayName).join(", ") : `${alert.game.awayTeam} @ ${alert.game.homeTeam}`}
@@ -329,9 +334,6 @@ function RedZoneAlert({ alert }: { alert: RedZoneNow }) {
     </li>
   );
 }
-
-/** How many plays the phone's live box shows at once. */
-const PHONE_ROWS = 3;
 
 /** Which plays the Red Zone shows: your starters', theirs and the ones you face too, or every play. */
 export type RedZoneScope = "mine" | "vs" | "all";
@@ -375,7 +377,7 @@ export function RedZone({
    * plays are back just where they were.
    */
   spotlight?: { gameId: string; playId: string } | null;
-  /** On phones, show the plays in a box three rows tall (or, title bar double-tapped, as tall as the screen) that scrolls on its own, instead of running down the page. */
+  /** On phones, show the plays in a box about one play tall (or, ⇕ or the side header double-tapped, as tall as the screen) that scrolls on its own, instead of running down the page. */
   compactOnPhone?: boolean;
   /** From tablet width up, whether the box is stretched to the whole column's height, and the ⇕ button's switch for it (on a phone the button fits the box to the screen). */
   full?: { on: boolean; toggle: () => void };
@@ -418,26 +420,10 @@ export function RedZone({
     const id = setTimeout(() => setSettled(true), 1500);
     return () => clearTimeout(id);
   }, [hasEntries, settled]);
-  // The phone box is exactly as tall as its first three rows — measured, since rows wrap to different heights.
   const boxRef = useRef<HTMLDivElement>(null);
-  const listRef = useRef<HTMLOListElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const box = boxRef.current;
-    const list = listRef.current;
-    if (!compactOnPhone || !box || !list) return;
-    const measure = () => {
-      const rows = Array.from(list.children).slice(0, PHONE_ROWS) as HTMLElement[];
-      const height = rows.reduce((sum, row) => sum + row.offsetHeight, 0);
-      if (height > 0) box.style.setProperty("--rz-box-h", `${height}px`);
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(list);
-    return () => observer.disconnect();
-  }, [compactOnPhone, hasEntries]);
-  // Double-tapping the title bar fits the phone box to the screen — the card's top under the header and
-  // ticker, its bottom at the tab bar's top — and double-tapping again takes it back to its three rows.
+  // Double-tapping the side header (or its ⇕) fits the phone box to the screen — the card's top under the
+  // header and ticker, its bottom at the tab bar's top — and doing it again takes it back to a play's height.
   const headRef = useRef<HTMLDivElement>(null);
   const lastTap = useRef(0);
   const [boxHeight, setBoxHeight] = useState<number | null>(null);
@@ -535,90 +521,57 @@ export function RedZone({
   const anyStarted =
     scope === "all" ? weekGames.some((g) => g.state !== "pre") : followed.some((g) => g.game.state !== "pre" && g.players.length > 0);
 
+  const stretched = phone ? boxHeight !== null : !!full?.on;
   return (
-    // From tablet width up the box fills the room it's given, its plays
-    // scrolling within it over the title bar along its bottom. On a phone
-    // they sit in a short box of their own, the title bar under it.
-    <Card className="flex flex-col gap-2 p-3 md:min-h-0 md:flex-1">
-      {entries.length > 0 ? (
-        <div className="relative md:min-h-0 md:flex-1">
-          <div
-            ref={boxRef}
-            className={`relative md:h-full md:overflow-y-auto md:overscroll-contain ${
-              compactOnPhone ? "max-md:max-h-[var(--rz-user-h,var(--rz-box-h,15rem))] max-md:overflow-y-auto max-md:overscroll-contain" : ""
-            }`}
-            style={boxHeight !== null ? ({ "--rz-user-h": `${boxHeight}px` } as React.CSSProperties) : undefined}
-          >
-            <ol ref={listRef} className="flex flex-col" aria-label={scope === "mine" ? "Plays your starters were part of" : scope === "vs" ? "Plays your starters or the ones you face were part of" : "Every play"} aria-live="polite">
-              {entries.slice(0, shown).map((entry, i) => (
-                <FeedRow
-                  key={`${entry.game.id}-${entry.play.id}`}
-                  entry={entry}
-                  starterById={starterById}
-                  legendByLeagueId={legendByLeagueId}
-                  arrivedLive={settled}
-                  index={i}
-                  spotlit={scrollIn && i === spotIndex}
-                />
-              ))}
-            </ol>
-            {/* The last screen or so of plays: scrolling into it brings in the next ones before you reach the end. */}
-            {entries.length > shown ? <div ref={sentinelRef} className="pointer-events-none absolute inset-x-0 bottom-0 h-[min(60rem,100%)]" aria-hidden /> : null}
-          </div>
-        </div>
-      ) : (
-        <p className="py-3 text-center text-xs text-ink-muted">
-          {feed.loading
-            ? "Loading play-by-play…"
-            : !anyStarted
-              ? scope === "mine"
-                ? "Plays your starters are part of land here as they happen, once their games kick off."
-                : scope === "vs"
-                  ? "Plays your starters and the ones you face are part of land here as they happen, once their games kick off."
-                  : "Every play lands here as it happens, once the week's games kick off."
-              : scope === "mine"
-                ? "No plays from your starters yet."
-                : scope === "vs"
-                  ? "No plays from your starters or the ones you face yet."
-                  : "No plays yet."}
-        </p>
-      )}
-
+    // The header runs down the box's left side; the plays scroll beside it. From tablet width up the box
+    // fills the room it's given; on a phone it's about one big play tall.
+    <Card className="flex flex-row md:min-h-0 md:flex-1">
       <div
-        // The title bar sits at the bottom of the box, under the plays: the play by a graph's cursor, any red zone now, then the title.
+        // Its contents scroll on their own should they outrun the box, never making it taller.
         ref={headRef}
         onPointerUp={onHeadTap}
-        className={`z-10 -mx-3 -mb-3 flex touch-manipulation flex-col gap-2 border-t border-border bg-surface-raised px-3 pb-3 pt-2 select-none md:mt-auto ${
-          compactOnPhone ? "" : "max-md:sticky max-md:bottom-0"
-        }`}
+        className="relative w-12 shrink-0 touch-manipulation select-none border-r border-border"
       >
-        {/* The play by a graph's cursor, pinned right over the title (see spotlight). */}
-        {pinned ? (
-          <ol aria-label="The play by the graph's cursor">
-            <FeedRow key="pinned" entry={pinned} starterById={starterById} legendByLeagueId={legendByLeagueId} arrivedLive={false} index={0} spotlit />
-          </ol>
-        ) : null}
-
-        {feed.redZone.length > 0 ? (
-          <ul className="flex flex-col gap-1" aria-label="In the red zone now">
-            {feed.redZone.map((alert) => (
-              <RedZoneAlert key={alert.game.id} alert={alert} />
-            ))}
-          </ul>
-        ) : null}
-
-        {/* On a phone the games get a line of their own under the title; wider, they sit between the title and the buttons. */}
-        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2 md:flex-nowrap">
-          <h2 className="flex min-w-0 items-center gap-2">
-            <span className="relative flex h-2.5 w-2.5 shrink-0" aria-hidden>
+        <div className="absolute inset-0 flex flex-col items-center gap-1.5 overflow-y-auto px-1 py-2 [scrollbar-width:none]">
+          <h2 className="flex flex-col items-center gap-1" aria-label="Red Zone">
+            <span className="relative flex h-2 w-2 shrink-0" aria-hidden>
               {live ? <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-status-critical opacity-60" /> : null}
-              <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${live ? "bg-status-critical" : "bg-ink-muted"}`} />
+              <span className={`relative inline-flex h-2 w-2 rounded-full ${live ? "bg-status-critical" : "bg-ink-muted"}`} />
             </span>
-            <span className="whitespace-nowrap text-sm font-bold uppercase tracking-[0.2em] text-ink-primary">Red Zone</span>
+            {/* Each letter under the last, a little gap between the words. */}
+            <span className="flex flex-col items-center text-[0.625rem] font-bold uppercase leading-none text-ink-primary" aria-hidden>
+              {"RED ZONE".split("").map((ch, i) => (ch === " " ? <span key={i} className="h-1" /> : <span key={i}>{ch}</span>))}
+            </span>
           </h2>
+          {/* ⇕: the box as tall as the screen (on a phone, fit under the header; wider, the map's whole column) — and back. */}
+          <button
+            type="button"
+            onClick={() => (phone ? toggleFit() : full?.toggle())}
+            aria-pressed={stretched}
+            aria-label={stretched ? "Back to size" : "Fit to the screen"}
+            title={stretched ? "Back to size" : "Fit to the screen"}
+            className="flex h-5 w-full shrink-0 items-center justify-center border border-border text-ink-secondary transition-colors hover:text-ink-primary"
+          >
+            <ExpandVerticalIcon inward={stretched} width={13} height={13} />
+          </button>
+          <div className="flex w-full shrink-0 flex-col border border-border text-[0.625rem] font-semibold" role="group" aria-label="Which plays">
+            {SCOPES.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                aria-pressed={scope === opt.value}
+                onClick={() => pickScope(opt.value)}
+                className={`leading-4 transition-colors ${
+                  scope === opt.value ? "bg-ink-primary text-surface-raised" : "text-ink-secondary hover:text-ink-primary"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
           {switchable.length > 0 ? (
-            // The games on now, each switched in or out of the plays.
-            <div className="flex min-w-0 gap-1 overflow-x-auto [scrollbar-width:none] max-md:order-last max-md:w-full md:flex-1" role="group" aria-label="Games in the Red Zone">
+            // The games on now, each switched in or out of the plays: the visitors over the home team.
+            <div className="flex w-full flex-col items-center gap-1" role="group" aria-label="Games in the Red Zone">
               {switchable.map((g) => {
                 const on = !offGames.has(g.id);
                 return (
@@ -628,50 +581,80 @@ export function RedZone({
                     aria-pressed={on}
                     onClick={() => toggleGame(g.id)}
                     title={`${on ? "Hide" : "Show"} ${g.awayTeam} @ ${g.homeTeam}`}
-                    className={`flex shrink-0 items-center gap-0.5 border px-1 py-0.5 transition-opacity ${
+                    className={`flex w-full shrink-0 flex-col items-center gap-0.5 border py-0.5 transition-opacity ${
                       on ? "border-ink-primary" : "border-border opacity-35 grayscale"
                     }`}
                   >
                     <TeamLogo team={g.awayTeam} side={14} />
-                    <span className="text-[0.625rem] text-ink-muted">@</span>
                     <TeamLogo team={g.homeTeam} side={14} />
                   </button>
                 );
               })}
             </div>
           ) : null}
-          {/* ⇕: the box as tall as the screen (on a phone, fit under the header; wider, the map's whole column) — and back. */}
-          {(() => {
-            const stretched = phone ? boxHeight !== null : !!full?.on;
-            return (
-              <button
-                type="button"
-                onClick={() => (phone ? toggleFit() : full?.toggle())}
-                aria-pressed={stretched}
-                aria-label={stretched ? "Back to size" : "Fit to the screen"}
-                title={stretched ? "Back to size" : "Fit to the screen"}
-                className="flex h-[1.375rem] w-[1.375rem] shrink-0 items-center justify-center border border-border text-ink-secondary transition-colors hover:text-ink-primary max-md:ml-auto"
-              >
-                <ExpandVerticalIcon inward={stretched} width={14} height={14} />
-              </button>
-            );
-          })()}
-          <div className="flex shrink-0 border border-border text-[0.6875rem] font-semibold" role="group" aria-label="Which plays">
-            {SCOPES.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                aria-pressed={scope === opt.value}
-                onClick={() => pickScope(opt.value)}
-                className={`whitespace-nowrap px-2 py-0.5 transition-colors ${
-                  scope === opt.value ? "bg-ink-primary text-surface-raised" : "text-ink-secondary hover:text-ink-primary"
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
         </div>
+      </div>
+
+      <div className="flex min-w-0 flex-1 flex-col gap-2 p-3 md:min-h-0">
+        {/* The play by a graph's cursor, pinned over the plays (see spotlight). */}
+        {pinned ? (
+          <ol aria-label="The play by the graph's cursor" className="shrink-0">
+            <FeedRow key="pinned" entry={pinned} starterById={starterById} legendByLeagueId={legendByLeagueId} arrivedLive={false} index={0} spotlit />
+          </ol>
+        ) : null}
+
+        {feed.redZone.length > 0 ? (
+          <ul className="flex shrink-0 flex-col gap-1" aria-label="In the red zone now">
+            {feed.redZone.map((alert) => (
+              <RedZoneAlert key={alert.game.id} alert={alert} />
+            ))}
+          </ul>
+        ) : null}
+
+        {entries.length > 0 ? (
+          <div className="relative md:min-h-0 md:flex-1">
+            <div
+              ref={boxRef}
+              className={`relative md:h-full md:overflow-y-auto md:overscroll-contain ${
+                // About one play tall: one with three people in it and three lines of description.
+                compactOnPhone ? "max-md:h-[var(--rz-user-h,12.25rem)] max-md:overflow-y-auto max-md:overscroll-contain" : ""
+              }`}
+              style={boxHeight !== null ? ({ "--rz-user-h": `${boxHeight}px` } as React.CSSProperties) : undefined}
+            >
+              <ol className="flex flex-col" aria-label={scope === "mine" ? "Plays your starters were part of" : scope === "vs" ? "Plays your starters or the ones you face were part of" : "Every play"} aria-live="polite">
+                {entries.slice(0, shown).map((entry, i) => (
+                  <FeedRow
+                    key={`${entry.game.id}-${entry.play.id}`}
+                    entry={entry}
+                    starterById={starterById}
+                    legendByLeagueId={legendByLeagueId}
+                    arrivedLive={settled}
+                    index={i}
+                    spotlit={scrollIn && i === spotIndex}
+                  />
+                ))}
+              </ol>
+              {/* The last screen or so of plays: scrolling into it brings in the next ones before you reach the end. */}
+              {entries.length > shown ? <div ref={sentinelRef} className="pointer-events-none absolute inset-x-0 bottom-0 h-[min(60rem,100%)]" aria-hidden /> : null}
+            </div>
+          </div>
+        ) : (
+          <p className="py-3 text-center text-xs text-ink-muted max-md:min-h-[12.25rem]">
+            {feed.loading
+              ? "Loading play-by-play…"
+              : !anyStarted
+                ? scope === "mine"
+                  ? "Plays your starters are part of land here as they happen, once their games kick off."
+                  : scope === "vs"
+                    ? "Plays your starters and the ones you face are part of land here as they happen, once their games kick off."
+                    : "Every play lands here as it happens, once the week's games kick off."
+                : scope === "mine"
+                  ? "No plays from your starters yet."
+                  : scope === "vs"
+                    ? "No plays from your starters or the ones you face yet."
+                    : "No plays yet."}
+          </p>
+        )}
       </div>
     </Card>
   );

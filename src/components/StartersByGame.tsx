@@ -10,6 +10,7 @@ import { nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import { LeagueLegendEntry, LeagueMark } from "./LeagueMark";
 import { GameRows, RowMotion } from "./GameRows";
 import { FieldSpot } from "./FieldSpot";
+import { Ordinals } from "./Ordinals";
 import { LastAction, paceShare } from "@/lib/live-play-points";
 import { GAME_MS } from "./PointsGraph";
 import { useLastActions } from "@/hooks/useLastActions";
@@ -42,17 +43,28 @@ function formatProjection(points: number): string {
 /**
  * What a team's line shows on its right, in typing order: before kickoff, the
  * kickoff time on the top (away) line and nothing on the bottom; once it's
- * started, the game's status beside each score — while the clock runs, the
- * quarter on the top line ("2Q") and the clock on the bottom ("12:43");
- * otherwise all of it on the top ("Half", "End 2Q", "Final") — then the score.
+ * started, the game's status beside each score — on the top line the clock
+ * and the quarter ("12:43 2Q") while it runs, otherwise all of it ("Half",
+ * "End 2Q", "Final"); on the bottom line the down and distance while the
+ * game's on ("2nd & 6") — then the score.
  */
 function teamLinePieces(game: NFLGame, side: "away" | "home"): string[] {
   if (game.state === "pre") return side === "away" ? [formatKickoffTime(game.kickoff)] : [];
   const score = String(side === "away" ? game.awayScore : game.homeScore);
+  const mine = side === "away" ? topStatus(game) : bottomStatus(game);
+  return mine ? [mine, score] : [score];
+}
+
+function topStatus(game: NFLGame): string {
+  if (game.state === "pre") return formatKickoffTime(game.kickoff);
   const status = game.state === "post" ? "Final" : gameClock(game.statusDetail ?? "");
   const running = /^([1-4]Q|\d*OT) (\d{1,2}:\d{2})$/.exec(status);
-  const mine = running ? (side === "away" ? running[1] : running[2]) : side === "away" ? status : "";
-  return mine ? [mine, score] : [score];
+  return running ? `${running[2]} ${running[1]}` : status;
+}
+
+function bottomStatus(game: NFLGame): string {
+  // "1st & 10 at KC 35": just the down and distance — where the ball is shows on the field between the lines.
+  return game.state === "in" ? (game.live?.downDistance?.split(" at ")[0] ?? "") : "";
 }
 
 
@@ -124,12 +136,29 @@ function TeamLine({ game, side, shown = true }: { game: NFLGame; side: "away" | 
       <span className="min-w-0 flex-1" />
       {/* The score, over the players' +/- column under it. */}
       <span className="w-[2.4em] shrink-0 text-right text-[0.9375rem] font-bold tabular-nums text-ink-primary">{score}</span>
-      {/* The game's status (or kickoff time) on the right, as wide as the players' points under it — anything
-          longer runs out leftward, never shifting the score. */}
-      <span className="flex w-[2.7625rem] shrink-0 items-baseline justify-end gap-[0.3em] whitespace-nowrap text-ink-muted" title={status ?? undefined}>
-        <StatusText text={status ?? ""} />
-      </span>
+      {/* The game's status (or kickoff time) on the right. */}
+      <StatusColumn game={game} text={status ?? ""} />
     </div>
+  );
+}
+
+/**
+ * A team line's status, on the right: at least as wide as the players' points
+ * under it, and as wide as the wider of the two lines' (whole) statuses, so
+ * the scores beside them stay in line as they type in.
+ */
+function StatusColumn({ game, text }: { game: NFLGame; text: string }) {
+  return (
+    <span className="grid min-w-[2.7625rem] shrink-0 justify-items-end whitespace-nowrap text-ink-muted" title={text || undefined}>
+      {[topStatus(game), bottomStatus(game)].map((whole, i) => (
+        <span key={i} aria-hidden className="invisible col-start-1 row-start-1 flex items-baseline gap-[0.3em]">
+          <StatusText text={whole} />
+        </span>
+      ))}
+      <span className="col-start-1 row-start-1 flex items-baseline gap-[0.3em]">
+        <StatusText text={text} />
+      </span>
+    </span>
   );
 }
 
@@ -150,23 +179,40 @@ function BallSpot({ game }: { game: NFLGame }) {
         <FieldSpot yardsToEndzone={live.yardsToEndzone} homeOffense={live.possession === game.homeTeam} />
       </span>
       <span className="w-[2.4em] shrink-0 text-[0.9375rem]" />
-      <span className="w-[2.7625rem] shrink-0" />
+      <span className="invisible">
+        <StatusColumn game={game} text="" />
+      </span>
     </div>
   );
 }
 
-/** A game's status in the row: the quarter ("2Q") a hair bigger than the clock (on the line under it); anything else in small type. */
+/**
+ * A game's status in the row: the clock, then the quarter a hair bigger and
+ * outlined ("12:43 [2Q]"); the down and distance, its ordinal raised ("2ⁿᵈ & 6");
+ * anything else in small type.
+ */
 function StatusText({ text }: { text: string }) {
-  if (/^\d{1,2}:\d{2}$/.test(text)) return <span className="text-[0.6875rem] tabular-nums">{text}</span>;
-  // Split at the quarter as soon as it's typed, so the sizes hold steady while the clock types in after it.
-  const parts = /^([1-4]Q|\d*OT)(?:\s(.*))?$/.exec(text);
-  if (!parts) return <span className="text-xs uppercase">{text}</span>;
-  return (
-    <>
-      <span className="text-[0.75rem] font-semibold uppercase">{parts[1]}</span>
-      {parts[2] ? <span className="text-[0.6875rem] tabular-nums">{parts[2]}</span> : null}
-    </>
-  );
+  // Split at the clock as soon as it's typed, so the sizes hold steady while the quarter types in after it
+  // (a quarter as it's typed: "2", "2Q", "O", "OT", "2OT" — not a kickoff time's "PM").
+  const clock = /^(\d{1,2}:\d{0,2})(?:\s([1-4]Q?|\d*OT?))?$/.exec(text);
+  if (clock) {
+    return (
+      <>
+        <span className="text-[0.6875rem] tabular-nums">{clock[1]}</span>
+        {clock[2] ? (
+          <span className="border border-ink-primary px-0.5 text-[0.75rem] font-semibold uppercase leading-tight text-ink-primary">{clock[2]}</span>
+        ) : null}
+      </>
+    );
+  }
+  if (/^\d+(st|nd|rd|th)\b/.test(text)) {
+    return (
+      <span className="text-[0.6875rem] tabular-nums">
+        <Ordinals text={text} />
+      </span>
+    );
+  }
+  return <span className="text-xs uppercase">{text}</span>;
 }
 
 /** Who a box can list: your starters, and everyone worth watching (a game's, see liveGameRows). */
@@ -1037,9 +1083,24 @@ export function StartersByGame({
     setClosingGames(new Set());
     setViews(new Map(openTo(view, boxes)));
   };
-  // The bar: every box to one view at once — or, its view tapped again, every box shut.
+  // The blocks in kickoff order — a finished one folds shut where it is (see the page's hiddenBlocks).
+  const columns = groupGamesByTimeBlock(games);
+  // The view every box in sight is showing, however each got there (the bar, or tapped one by one) — lit on
+  // the bar. A box shows a view when it lists just who that view would: one with none of yours "shows" Team shut.
+  const folded = new Set(columns.filter((c) => hiddenBlocks.has(c.label)).flatMap((c) => c.games.map((g) => g.game.id)));
+  const shownView = (() => {
+    const toggleable = boxes.filter((box) => viewCycle(box.listing).length > 1 && !folded.has(box.id));
+    if (toggleable.length === 0) return barView;
+    const showing = (view: number) =>
+      toggleable.every(
+        (box) => !closingGames.has(box.id) && viewPlayers(box.listing, views.get(box.id) ?? 0).length === viewPlayers(box.listing, view).length
+      );
+    if (barView !== null && showing(barView)) return barView;
+    return [1, 2, 3].find(showing) ?? null;
+  })();
+  // The bar: every box to one view at once — or, the view they're all showing tapped, every box shut.
   const setAllViews = (view: number) => {
-    if (view === barView) {
+    if (view === shownView) {
       setBarView(null);
       saveHomeView({ startersView: 0 });
       for (const box of boxes) {
@@ -1066,8 +1127,6 @@ export function StartersByGame({
   for (const g of followed) {
     if (g.game.state === "in" && now !== null) paces[g.game.id] = paceShare(new Date(g.game.kickoff).getTime(), playsByGame[g.game.id] ?? [], now, GAME_MS);
   }
-  // The blocks in kickoff order — a finished one folds shut where it is (see the page's hiddenBlocks).
-  const columns = groupGamesByTimeBlock(games);
   const nothingToShow = games.length === 0 && byes.every((b) => b.everyone.length === 0);
   // A block's header, and the bye's: styled like the map's game tags, the same solid contrasting fill and ink.
   const headerBar = "flex w-full items-baseline justify-between gap-2 bg-[var(--map-tag)] px-2 py-1 text-left text-xs font-bold uppercase tracking-wide text-[var(--map-tag-ink)]";
@@ -1083,9 +1142,9 @@ export function StartersByGame({
               key={view}
               type="button"
               onClick={() => setAllViews(view)}
-              aria-pressed={barView === view}
+              aria-pressed={shownView === view}
               className={`cursor-pointer py-1 text-xs font-bold uppercase tracking-wide transition-opacity hover:opacity-80 ${
-                barView === view ? "bg-[var(--map-tag)] text-[var(--map-tag-ink)]" : "text-ink-secondary"
+                shownView === view ? "bg-[var(--map-tag)] text-[var(--map-tag-ink)]" : "text-ink-secondary"
               }`}
             >
               {name}

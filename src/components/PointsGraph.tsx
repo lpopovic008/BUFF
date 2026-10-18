@@ -158,7 +158,8 @@ export function PointsGraph({
   const plot = size && Number.isFinite(start) ? { w: Math.max(0, size.width - PAD.left - PAD.right), h: Math.max(0, size.height - PAD.top - PAD.bottom) } : null;
   // Halftime squeezed down to a thin etched column; the rest of the clock runs evenly either side of it.
   const ht = halftime && halftime.from > start && halftime.to < end ? halftime : null;
-  const htWidth = ht ? (compact ? 5 : 9) : 0;
+  // Several graphs up: no column at all — halftime simply left out of the clock.
+  const htWidth = ht && !compact ? 9 : 0;
   const perMs = plot ? (plot.w - htWidth) / (end - start - (ht ? ht.to - ht.from : 0)) : 0;
   const x = (at: number) => {
     if (!ht || at <= ht.from) return PAD.left + (at - start) * perMs;
@@ -388,7 +389,7 @@ export function PointsGraph({
               />
             ))}
             {/* Halftime: a thin column of etched lines. */}
-            {ht ? (
+            {ht && !compact ? (
               <g>
                 <defs>
                   <pattern id={etchId} width={3} height={3} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">

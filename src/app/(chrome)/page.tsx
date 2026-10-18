@@ -201,6 +201,12 @@ export default function DashboardPage() {
   };
   // From tablet width up, the Red Zone stretched to the column's whole height.
   const [redZoneFull, setRedZoneFull] = useState(false);
+  const redZoneRef = useRef<HTMLDivElement>(null);
+  const toggleRedZoneFull = () => {
+    setRedZoneFull((v) => !v);
+    // Stretched, the column scrolls down to it.
+    requestAnimationFrame(() => redZoneRef.current?.scrollIntoView({ block: "end" }));
+  };
   // The play by the graph's cursor, shown in the Red Zone while the cursor's up.
   const [spotlight, setSpotlight] = useState<{ gameId: string; playId: string } | null>(null);
   const unpickGraph = (playerId: string) =>
@@ -422,8 +428,8 @@ export default function DashboardPage() {
                       legend={legend}
                       // The countdown to the next kickoff, in the open space over the land.
                       overhead={<KickoffCountdown kickoffs={kickoffs} />}
-                      // From tablet width up, the column's height less the Red Zone's least (6rem) and the gap over the map.
-                      room={desktop ? "100vh - var(--header-h, 0px) - var(--ticker-h, 0px) - 2px - 6rem - 0.75rem" : undefined}
+                      // From tablet width up, the column's height less the Red Zone's least (15rem, its side header's) and the gap under the map.
+                      room={desktop ? "100vh - var(--header-h, 0px) - var(--ticker-h, 0px) - 2px - 15rem - 0.75rem" : undefined}
                     />
                   </div>
                   {/* One graph in full; two stacked; three or four, one to a corner. */}
@@ -445,14 +451,15 @@ export default function DashboardPage() {
               </div>
             ) : null}
 
-            {/* The Red Zone, your starters' plays as they happen: above the map from tablet width up, filling the column's room over it;
-                on phones, under the map, a short box you scroll within (double-tap its title to fit it to the screen). Your leagues
-                ride the ticker under the header (see LeagueTicker). */}
+            {/* The Red Zone, your starters' plays as they happen, under the map: from tablet width up, filling the column's room
+                under it; on phones, a box about a play tall you scroll within (⇕, or double-tap its side header, to fit it to the
+                screen). Your leagues ride the ticker under the header (see LeagueTicker). */}
             {weekGames.length > 0 && myStarters !== null ? (
               <div
-                className={`animate-[rise_0.5s_ease-out_backwards] [animation-delay:120ms] md:order-first md:flex md:flex-col ${
-                  // Stretched (its ⇕ button), the whole column's height — the map below, scrolled to.
-                  redZoneFull ? "md:h-full md:flex-none" : "md:min-h-24 md:flex-1"
+                ref={redZoneRef}
+                className={`animate-[rise_0.5s_ease-out_backwards] [animation-delay:120ms] md:flex md:flex-col ${
+                  // Stretched (its ⇕ button), the whole column's height — the map above it, scrolled past.
+                  redZoneFull ? "md:h-full md:flex-none" : "md:min-h-60 md:flex-1"
                 }`}
               >
                 <RedZone
@@ -465,7 +472,7 @@ export default function DashboardPage() {
                   weekStats={livePlayers.stats}
                   compactOnPhone
                   spotlight={graphed.length > 0 ? spotlight : null}
-                  full={{ on: redZoneFull, toggle: () => setRedZoneFull((v) => !v) }}
+                  full={{ on: redZoneFull, toggle: toggleRedZoneFull }}
                 />
               </div>
             ) : null}

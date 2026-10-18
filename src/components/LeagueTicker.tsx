@@ -239,14 +239,12 @@ export function MatchupRows({ teams, fitWidth = false }: { teams: MatchupRowTeam
 function TickerItem({
   league,
   position,
-  total,
   minWidth,
   copy,
 }: {
   league: TickerLeague;
-  /** Where this league falls in your own ordering of them (1-based), and out of how many. */
+  /** Where this league falls in your own ordering of them (1-based). */
   position: number;
-  total: number;
   minWidth: string;
   copy: boolean;
 }) {
@@ -260,8 +258,9 @@ function TickerItem({
       className="relative flex w-max shrink-0 flex-col justify-center gap-0.5 border-r border-border px-4 py-1.5"
       style={{ minWidth }}
     >
-      <span className="absolute right-4 top-1.5 text-[0.625rem] font-medium tabular-nums leading-[1.5] text-ink-muted">
-        {position}/{total}
+      {/* Its place in your leagues, outlined. */}
+      <span className="absolute right-4 top-1.5 border border-ink-primary px-1 text-[0.625rem] font-semibold tabular-nums leading-[1.4] text-ink-primary">
+        {position}
       </span>
       {/* Against the left edge, padded on the right so a long title never runs into the position. */}
       <div className="flex items-center gap-1.5 pr-8 text-[0.625rem] font-semibold uppercase tracking-wide text-ink-muted">
@@ -335,7 +334,6 @@ export function LeagueTicker({ leagues }: { leagues: TickerLeague[] }) {
               key={`${league.leagueId}-${i}`}
               league={league}
               position={(i % leagues.length) + 1}
-              total={leagues.length}
               minWidth={minWidth}
               copy={i >= leagues.length}
             />
