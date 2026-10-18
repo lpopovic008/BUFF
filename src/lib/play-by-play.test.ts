@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { cleanPlayText, downAndDistance, playAction, playTextActors, FeedCandidate, GamePlay, isBigPlay, parseSummaryPlays, playersInPlay, playTextNamePattern, yardLineLabel } from "./play-by-play";
+import { noteScoreboardSnap, playFromLastPlay, runningClock } from "./play-by-play";
 
 function play(over: Partial<GamePlay>): GamePlay {
   return {
@@ -189,4 +190,22 @@ test("playAction drops every pre-snap note ESPN opens a line with, however it wo
   assert.equal(playAction("Direct snap to A.St. Brown. A.St. Brown left end for 4 yards."), "A.St. Brown left end for 4 yards.");
   // A play with none is left as it is.
   assert.equal(playAction("J.Cook right guard for 3 yards, TOUCHDOWN."), "J.Cook right guard for 3 yards, TOUCHDOWN.");
+});
+
+test("a scoreboard-only play gets the snap the scoreboard showed just before it: down and distance, spot and clock", () => {
+  const snap = (period: number, clock: string, downDistance: string | null, yardsToEndzone?: number, yardLine?: string) => ({
+    period, clock, downDistance, yardsToEndzone, yardLine, offense: "KC",
+  });
+  // The scoreboard after play A shows the snap coming up; then play B turns up as the latest.
+  noteScoreboardSnap("g9", "A", snap(2, "6:00", "2nd & 4", 35, "BUF 35"));
+  noteScoreboardSnap("g9", "B", snap(2, "5:21", "1st & 10", 23, "BUF 23"));
+  const last = { id: "B", text: "P.Mahomes pass short middle to T.Kelce to BUF 23 for 12 yards.", type: "Pass Reception", scoreValue: 0, team: "KC", athletes: [] };
+  const play = playFromLastPlay("g9", last, 0, runningClock("5:21 - 2nd"));
+  assert.equal(play.downDistance, "2nd & 4");
+  assert.equal(play.yardLine, "BUF 35");
+  assert.equal(play.yardsToEndzone, 35);
+  assert.deepEqual([play.period, play.clock], [2, "6:00"]);
+  // A play turning up before any snap was seen still reads the game's time now.
+  const first = playFromLastPlay("g10", { ...last, id: "C" }, 0, runningClock("2:00 - OT"));
+  assert.deepEqual([first.period, first.clock, first.downDistance], [5, "2:00", null]);
 });

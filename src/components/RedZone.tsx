@@ -10,7 +10,7 @@ import { FeedEntry, FeedScope, RedZoneNow, useRedZoneFeed } from "@/hooks/useRed
 import { useLiveMode } from "@/hooks/useLiveTick";
 import { useTeamPlayers } from "@/hooks/useTeamPlayers";
 import { GameStarters, GroupedStarter } from "@/lib/my-starters";
-import { NFLGame } from "@/lib/nfl-schedule";
+import { gameClock, NFLGame } from "@/lib/nfl-schedule";
 import { formatPlayPoints } from "@/lib/play-points";
 import { yardLineLabel } from "@/lib/play-by-play";
 import { PlayLine, statLine } from "@/lib/play-lines";
@@ -45,11 +45,12 @@ function periodLabel(period: number): string {
   return period === 5 ? "OT" : `${period - 4}OT`;
 }
 
-/** When in the game a play happened: "Q2 4:31", or the scoreboard's own line for a play just in. */
+/** When in the game a play happened: "Q2 4:31" — or, a play just in between quarters, the game's status ("End 2Q"). */
 function whenLabel(entry: FeedEntry): string {
   const { play, game } = entry;
   if (play.period > 0) return `${periodLabel(play.period)} ${play.clock}`.trim();
-  return game.statusDetail ?? "Live";
+  // Between quarters: the game's own status, worded as everywhere else ("End 2Q", "Half").
+  return gameClock(game.statusDetail ?? "") || "Live";
 }
 
 const POINTS_TITLE =

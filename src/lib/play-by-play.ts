@@ -161,22 +161,64 @@ export function playFirstSeenAt(playId: string): number {
   return at;
 }
 
-/** The scoreboard's latest play, shaped like a summary play so it can sit in the feed until the summary catches up. */
-export function playFromLastPlay(gameId: string, last: LastPlay, seenAt: number): GamePlay {
+/** A snap as the scoreboard shows it: when in the game, the down and distance, where the ball is, and who has it. */
+export interface ScoreboardSnap {
+  period: number;
+  clock: string;
+  downDistance: string | null;
+  yardsToEndzone?: number;
+  yardLine?: string;
+  offense: string | null;
+}
+
+/** The game clock in ESPN's status line ("4:31 - 2nd", "2:00 - OT") as a period and a clock; nothing between quarters. */
+export function runningClock(detail: string | null | undefined): { period: number; clock: string } {
+  const m = /^(\d{1,2}:\d{2})\s*-\s*(1st|2nd|3rd|4th|(\d*)\s*OT)$/i.exec((detail ?? "").trim());
+  if (!m) return { period: 0, clock: "" };
+  const quarter = ["1st", "2nd", "3rd", "4th"].indexOf(m[2].toLowerCase()) + 1;
+  return { period: quarter > 0 ? quarter : 4 + Number(m[3] || 1), clock: m[1] };
+}
+
+// Each game's snap coming up as the scoreboard last showed it, with the play it came after — and, by play,
+// the snap each new play was run from: the one showing just before that play turned up as the latest.
+const comingSnap = new Map<string, { afterPlayId: string | null; snap: ScoreboardSnap }>();
+const snapOfPlay = new Map<string, ScoreboardSnap>();
+
+/**
+ * Notes a game's scoreboard: the snap coming up (its situation and clock), and the latest play. When a new
+ * latest play turns up, the snap the scoreboard showed just before it is the one it was run from — so a play
+ * the play-by-play hasn't caught up to yet still has its down and distance, its spot and its time.
+ */
+export function noteScoreboardSnap(gameId: string, latestPlayId: string | null, snap: ScoreboardSnap): void {
+  const prev = comingSnap.get(gameId);
+  if (prev && latestPlayId && prev.afterPlayId !== latestPlayId && !snapOfPlay.has(latestPlayId)) snapOfPlay.set(latestPlayId, prev.snap);
+  comingSnap.set(gameId, { afterPlayId: latestPlayId, snap });
+}
+
+/**
+ * The scoreboard's latest play, shaped like a summary play so it can sit in the feed until the summary
+ * catches up — with the snap it was run from (see noteScoreboardSnap), or, not seen, at least the game's
+ * time now, so it reads like every other play.
+ */
+export function playFromLastPlay(gameId: string, last: LastPlay, seenAt: number, now?: { period: number; clock: string }): GamePlay {
+  const snap = snapOfPlay.get(last.id);
+  const when = snap && snap.period > 0 ? snap : (now ?? { period: 0, clock: "" });
   return {
     id: last.id,
     gameId,
     sequence: Number.MAX_SAFE_INTEGER,
     text: cleanPlayText(last.text),
     type: last.type,
-    period: 0,
-    clock: "",
-    offense: last.team,
+    period: when.period,
+    clock: when.clock,
+    offense: last.team ?? snap?.offense ?? null,
     scoring: last.scoreValue > 0,
     turnover: /interception|fumble recovery \(opponent\)/i.test(last.type),
     yards: 0,
-    redZone: false,
-    downDistance: null,
+    redZone: !!snap?.downDistance && snap.yardsToEndzone !== undefined && snap.yardsToEndzone <= 20,
+    downDistance: snap?.downDistance ?? null,
+    ...(snap?.downDistance && snap.yardsToEndzone !== undefined ? { yardsToEndzone: snap.yardsToEndzone } : {}),
+    ...(snap?.downDistance && snap.yardLine ? { yardLine: snap.yardLine } : {}),
     at: seenAt,
   };
 }

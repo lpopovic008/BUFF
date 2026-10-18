@@ -582,7 +582,11 @@ endpoint (about 600 KB raw, so it isn't fetched on every tick). A finished
 game is fetched once. A game in progress is re-fetched when the scoreboard's
 latest play involves one of your starters or puts points up, and otherwise
 at most once a minute. In between, the scoreboard's latest play is shown on
-its own. ESPN's plays carry no player ids, only shorthand like
+its own, in the same shape as every other: the scoreboard only gives its
+text, but the snap it showed just before that play turned up as the latest
+is the one it was run from, so its down and distance, spot and quarter and
+clock come from there (`noteScoreboardSnap`) — or, with no snap seen yet,
+the game's time now. ESPN's plays carry no player ids, only shorthand like
 "A.Rodgers pass short left to D.Washington", so starters are matched by that
 shorthand, only on the team with the ball, ignoring tacklers. A team defense
 is matched on the other side's sacks and takeaways. The red-zone alerts come

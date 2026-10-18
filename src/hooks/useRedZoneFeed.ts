@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { GameStarters, GroupedStarter } from "@/lib/my-starters";
 import { NFLGame } from "@/lib/nfl-schedule";
 import { LIVE_TTL_SECONDS } from "@/lib/live-clock";
-import { FeedCandidate, GamePlay, getGamePlays, playFirstSeenAt, playFromLastPlay, playersInPlay } from "@/lib/play-by-play";
+import { FeedCandidate, GamePlay, getGamePlays, noteScoreboardSnap, playFirstSeenAt, playFromLastPlay, playersInPlay, runningClock } from "@/lib/play-by-play";
 import { LinePlayer, linesForPlays, PlayLine } from "@/lib/play-lines";
 
 /** A play — with whichever of your starters were part of it (none, in the all-plays view, for most) — and everyone in it, a line each. */
@@ -47,9 +47,20 @@ function candidatesOf(players: GroupedStarter[]): FeedCandidate[] {
  * the play-by-play catches up to it.
  */
 export function withScoreboardPlay(game: NFLGame, plays: GamePlay[]): GamePlay[] {
-  const last = game.live?.lastPlay;
+  const live = game.live;
+  const now = runningClock(game.statusDetail);
+  // The snap coming up, for the play that follows it (see noteScoreboardSnap): "2nd & 6 at BUF 23".
+  const [downDistance, yardLine] = (live?.downDistance ?? "").split(" at ");
+  noteScoreboardSnap(game.id, live?.lastPlay?.id ?? null, {
+    ...now,
+    downDistance: downDistance || null,
+    ...(live?.yardsToEndzone !== undefined ? { yardsToEndzone: live.yardsToEndzone } : {}),
+    ...(yardLine ? { yardLine } : {}),
+    offense: live?.possession ?? null,
+  });
+  const last = live?.lastPlay;
   if (!last) return plays;
-  const synthetic = playFromLastPlay(game.id, last, playFirstSeenAt(last.id));
+  const synthetic = playFromLastPlay(game.id, last, playFirstSeenAt(last.id), now);
   return plays.some((p) => p.id === synthetic.id || p.text === synthetic.text) ? plays : [...plays, synthetic];
 }
 
