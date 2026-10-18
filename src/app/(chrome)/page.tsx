@@ -188,30 +188,38 @@ export default function DashboardPage() {
     if (saved) queueMicrotask(() => setGraphPicksState(saved));
   }, []);
   const graphFor = useMemo(() => (graphPicks.week === shownWeek ? graphPicks.picks : []), [graphPicks, shownWeek]);
-  const mapSlotRef = useRef<HTMLDivElement>(null);
   const pickGraph = (playerId: string, gameId: string) => {
     const already = graphFor.some((p) => p.playerId === playerId && p.gameId === gameId);
     // Tapped again, theirs comes down; a fifth pushes the first one out.
     const picks = already
       ? graphFor.filter((p) => !(p.playerId === playerId && p.gameId === gameId))
       : [...graphFor, { playerId, gameId }].slice(-MAX_GRAPHS);
+    // The page stays where it is, so more players can be picked; the graphs are up the page to scroll back to.
     setGraphPicks({ week: shownWeek, picks });
-    if (already) return;
-    // On a phone the map is up the page: bring the graphs into view.
-    requestAnimationFrame(() => {
-      const el = mapSlotRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      if (rect.top < 0 || rect.bottom > window.innerHeight) el.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
   };
   // From tablet width up, the Red Zone stretched to the column's whole height.
   const [redZoneFull, setRedZoneFull] = useState(false);
   const redZoneRef = useRef<HTMLDivElement>(null);
+  const mapColumnRef = useRef<HTMLDivElement>(null);
+  // Where the map's column (and the page) stood before the Red Zone was stretched — back to just that once it's not.
+  const scrollBeforeFull = useRef<{ column: number; page: number } | null>(null);
   const toggleRedZoneFull = () => {
-    setRedZoneFull((v) => !v);
-    // Stretched, the column scrolls down to it.
-    requestAnimationFrame(() => redZoneRef.current?.scrollIntoView({ block: "end" }));
+    const column = mapColumnRef.current;
+    if (!redZoneFull) {
+      scrollBeforeFull.current = { column: column?.scrollTop ?? 0, page: window.scrollY };
+      setRedZoneFull(true);
+      // Stretched, the column scrolls down to it.
+      requestAnimationFrame(() => redZoneRef.current?.scrollIntoView({ block: "end" }));
+      return;
+    }
+    setRedZoneFull(false);
+    const before = scrollBeforeFull.current;
+    scrollBeforeFull.current = null;
+    if (before)
+      requestAnimationFrame(() => {
+        if (column) column.scrollTop = before.column;
+        window.scrollTo({ top: before.page });
+      });
   };
   // The play by the graph's cursor, shown in the Red Zone while the cursor's up.
   const [spotlight, setSpotlight] = useState<{ gameId: string; playId: string } | null>(null);
@@ -422,12 +430,12 @@ export default function DashboardPage() {
             bottom, as wide as the column at its own proportions, and the Red Zone filling the rest above it, its plays scrolling
             within it. Should the two not fit, the column scrolls — flipped to rtl so its scrollbar sits on the column's own left
             edge instead of in the gutter between the two columns; the inner wrapper flips back to ltr so the content reads normally. */}
-        <div className="min-w-0 flex-1 max-md:contents md:sticky md:top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+2px)] md:h-[calc(100vh-var(--header-h,0px)-var(--ticker-h,0px)-2px)] md:overflow-y-auto md:[direction:rtl]">
+        <div ref={mapColumnRef} className="min-w-0 flex-1 max-md:contents md:sticky md:top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+2px)] md:h-[calc(100vh-var(--header-h,0px)-var(--ticker-h,0px)-2px)] md:overflow-y-auto md:[direction:rtl]">
           <div className="flex flex-col max-md:contents md:h-full md:[direction:ltr]">
             {weekGames.length > 0 ? (
               <div className="shrink-0 animate-[rise_0.5s_ease-out_backwards]">
                 {/* A player's graph takes the map's place; the map stays put underneath, just out of sight. */}
-                <div ref={mapSlotRef} className="relative scroll-mt-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.5rem)]">
+                <div className="relative">
                   <div className={graphed.length > 0 ? "invisible" : undefined} aria-hidden={graphed.length > 0 ? true : undefined}>
                     <GameMap
                       games={mappedGames.filter((g) => !hiddenBlocks.has(kickoffBlockLabel(g.game)) && !offMap.has(g.game.id))}
@@ -438,7 +446,7 @@ export default function DashboardPage() {
                       room={desktop ? "100vh - var(--header-h, 0px) - var(--ticker-h, 0px) - 2px - 10rem" : undefined}
                     />
                   </div>
-                  {/* One graph in full; two stacked; three or four, one to a corner. */}
+                  {/* One graph in full; two side by side; three or four, one to a corner. */}
                   {graphed.length > 0 ? (
                     // As much room over them as there is over the starters list's bar.
                     <div className="absolute inset-0 pt-3.5">

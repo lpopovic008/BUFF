@@ -373,7 +373,7 @@ until they're closed — as is the starters list's Team/VS/ALL bar, Team the
 first time. The bar lights whichever view every game in sight is showing,
 however they got there (the bar, or each tapped on to it); a game with none
 of yours counts as showing Team shut, and folded blocks don't count. The map stays mounted underneath, just hidden, so its view isn't
-lost. On a phone, the page scrolls up to the graph.
+lost. Picking a player never moves the page, so more can be picked; the graphs are up the page to scroll back to. Two sit side by side, three or four one to a corner, and each graph's player is named in his side's color (green yours, red the ones you face).
 
 Each team's name in the league page's matchups has its projected total
 on a line already there, right over the score (the rank and record's on a phone) (`liveProjection`): Sleeper's pregame projection for each starter,
@@ -443,9 +443,11 @@ then re-read each tick.
 **Tab bar** (`TabBar.tsx`, phones only): along the bottom of the screen,
 Profile & settings, Leagues, Home, Values and Draft, the page you're on lit
 like a map tag; the header's own menu button is left to wider screens.
-Leagues opens the league page without a league, which lists yours to pick
-from (`LeaguePicker`) — or, with just one, opens it straight away; the recap
-does the same for the leagues you commish.
+Leagues opens the league page without a league: every league you show under
+its own header plate, lit like a map tag, with your matchup this week under
+it (`MyLeagues`); either opens the league. The recap opened without a league
+lists the ones you commish to pick from (`LeaguePicker`) — or, with just one,
+opens it straight away.
 It sits flush with the screen's bottom edge (no safe-area padding under
 the buttons), and on a phone the page doesn't bounce past its ends
 (`overscroll-behavior: none`), so the bar never gets dragged up off the
@@ -484,12 +486,14 @@ it. `--header-h` and `--ticker-h` are published at
 their exact (fractional) heights so the sum comes out to the pixel.
 **The Red Zone** has no box of its own: its plays spread out to the next
 section or the screen's edge (on a phone, both edges). **Its header** runs
-down its left side, 1.5rem wide: the live dot and RED ZONE a letter to a
+down its left side, 1.75rem wide: the live dot and RED ZONE a letter to a
 line, ⇕ under them; and its Team/VS/All buttons stacked along the bottom.
 A game hidden in the starters list (its matchup swiped over) shows none of
 its plays. It sits right under the map (or the graphs), no gap between. ⇕ stretches the box to the map's
 whole column (the map then above it, scrolled past) — on a phone, fits it
-to the screen as double-tapping the side header does — and back. Any game
+to the screen as double-tapping the side header does — and back, to just
+where the page (and the map's column) stood before. Each game's latest play
+is outlined in the theme's ink, a hair heavier than the rows' rules. Any game
 in the red zone now sits over the plays. Each play shows where
 it was snapped as the field reads ("BUF 35"), outlined so it stands apart
 from the down and distance and the clock either side; the field diagram

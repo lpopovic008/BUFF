@@ -220,6 +220,7 @@ function FeedRow({
   arrivedLive,
   index,
   spotlit = false,
+  latest = false,
 }: {
   entry: FeedEntry;
   starterById: Map<string, GroupedStarter>;
@@ -228,6 +229,8 @@ function FeedRow({
   index: number;
   /** The play by a player graph's cursor: lit up. */
   spotlit?: boolean;
+  /** Its game's latest play: outlined in the theme's ink, a hair heavier than the rows' rules. */
+  latest?: boolean;
 }) {
   // Decided once, when the row first appears.
   const [live] = useState(arrivedLive);
@@ -245,7 +248,11 @@ function FeedRow({
       title={hasPoints ? "Replay" : undefined}
       // Every row leaves room down its left for a marked play's strip (see MarkColumn).
       className={`relative flex flex-col gap-1 border-b border-border py-2 pl-3 pr-1 last:border-b-0 ${
-        spotlit ? "bg-[color-mix(in_srgb,var(--ink-primary)_8%,var(--surface-raised))] outline outline-1 -outline-offset-1 outline-ink-primary" : ""
+        spotlit
+          ? "bg-[color-mix(in_srgb,var(--ink-primary)_8%,var(--surface-raised))] outline outline-1 -outline-offset-1 outline-ink-primary"
+          : latest
+            ? "outline outline-[1.5px] -outline-offset-[1.5px] outline-ink-primary"
+            : ""
       } ${hasPoints ? "md:cursor-pointer md:hover:bg-[color-mix(in_srgb,var(--ink-primary)_4%,transparent)]" : ""}`}
       style={{
         animation: live
@@ -421,6 +428,8 @@ export function RedZone({
   const headRef = useRef<HTMLDivElement>(null);
   const lastTap = useRef(0);
   const [boxHeight, setBoxHeight] = useState<number | null>(null);
+  // Where the page was before the box was fitted, to go back to once it's taken back down.
+  const scrollBeforeFit = useRef<number | null>(null);
   const toggleFit = () => {
     const head = headRef.current;
     const box = boxRef.current;
@@ -428,8 +437,12 @@ export function RedZone({
     if (!head || !box || !card) return;
     if (boxHeight !== null) {
       setBoxHeight(null);
+      const before = scrollBeforeFit.current;
+      scrollBeforeFit.current = null;
+      if (before !== null) requestAnimationFrame(() => window.scrollTo({ top: before }));
       return;
     }
+    scrollBeforeFit.current = window.scrollY;
     const css = getComputedStyle(document.documentElement);
     const covered = (parseFloat(css.getPropertyValue("--header-h")) || 0) + (parseFloat(css.getPropertyValue("--ticker-h")) || 0);
     const tabBar = parseFloat(css.getPropertyValue("--tabbar-h")) || 0;
@@ -512,6 +525,14 @@ export function RedZone({
 
   const legendByLeagueId = new Map(legend.map((l) => [l.leagueId, l]));
   const entries = feed.entries;
+  // Each game's latest play (the plays run newest first), outlined.
+  const latestPlays = new Set<string>();
+  const gamesSeen = new Set<string>();
+  for (const e of entries) {
+    if (gamesSeen.has(e.game.id)) continue;
+    gamesSeen.add(e.game.id);
+    latestPlays.add(`${e.game.id}-${e.play.id}`);
+  }
   const live = mode === "live";
   const anyStarted =
     scope === "all" ? weekGames.some((g) => g.state !== "pre") : followed.some((g) => g.game.state !== "pre" && g.players.length > 0);
@@ -526,7 +547,7 @@ export function RedZone({
         // Its contents sit inside it, never making the Red Zone taller; the games scroll should they outrun it.
         ref={headRef}
         onPointerUp={onHeadTap}
-        className="relative w-6 shrink-0 touch-manipulation select-none border-r border-border"
+        className="relative w-7 shrink-0 touch-manipulation select-none border-r border-border"
       >
         <div className="absolute inset-0 flex flex-col items-center gap-1.5 px-0.5 py-1.5">
           {/* The title down the top, ⇕ under it. */}
@@ -561,7 +582,7 @@ export function RedZone({
                 type="button"
                 aria-pressed={scope === opt.value}
                 onClick={() => pickScope(opt.value)}
-                className={`leading-[1.6] transition-colors ${
+                className={`py-1 leading-tight transition-colors ${
                   scope === opt.value ? "bg-ink-primary text-surface-raised" : "text-ink-secondary hover:text-ink-primary"
                 }`}
               >
@@ -608,6 +629,7 @@ export function RedZone({
                     arrivedLive={settled}
                     index={i}
                     spotlit={i === spotIndex}
+                    latest={latestPlays.has(`${entry.game.id}-${entry.play.id}`)}
                   />
                 ))}
               </ol>

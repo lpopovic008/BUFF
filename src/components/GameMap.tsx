@@ -757,7 +757,8 @@ export function GameMap({
               ) : null}
             </div>
 
-            <div className="absolute bottom-0 left-0 z-10 flex gap-1">
+            {/* A hair up from the frame's bottom edge, clear of whatever's under the map. */}
+            <div className="absolute bottom-2 left-0 z-10 flex gap-1">
               <button type="button" aria-label="Zoom out" onClick={() => zoomBy(1 / ZOOM_STEP)} {...stop} className={controlClass}>
                 −
               </button>

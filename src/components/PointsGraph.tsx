@@ -334,7 +334,14 @@ export function PointsGraph({
     <div ref={rootRef} className="flex h-full w-full min-w-0 flex-col bg-[var(--page)]">
       {/* Who, their game, and their total — and the way back to the map. */}
       <div className={`flex items-center gap-2 ${compact ? "px-1 py-0.5" : "px-2 py-1.5"}`}>
-        <span className={`min-w-0 truncate text-ink-primary ${compact ? "text-xs" : "text-sm"}`}>{player.name}</span>
+        {/* Whose he is, by the color of his name: yours green, the ones you're facing red. */}
+        <span
+          className={`min-w-0 truncate ${
+            player.side === "opponent" ? "font-semibold text-status-critical" : player.side === "other" ? "text-ink-primary" : "font-semibold text-status-good"
+          } ${compact ? "text-xs" : "text-sm"}`}
+        >
+          {player.name}
+        </span>
         {compact ? (
           <span className="min-w-0 flex-1" />
         ) : (
@@ -508,7 +515,7 @@ export interface GraphedPlayer {
 
 /**
  * Up to four players' graphs, filling the box they're given: one alone in
- * full, two stacked one over the other, three or four one to a corner — each
+ * full, two side by side, three or four one to a corner — each
  * pared back (see PointsGraph's `compact`) once there's more than one.
  */
 export function PointsGraphGrid({
@@ -524,7 +531,7 @@ export function PointsGraphGrid({
   return (
     <div
       className={`grid h-full w-full gap-x-3 gap-y-2 ${
-        graphs.length === 1 ? "grid-cols-1 grid-rows-1" : graphs.length === 2 ? "grid-cols-1 grid-rows-2" : "grid-cols-2 grid-rows-2"
+        graphs.length === 1 ? "grid-cols-1 grid-rows-1" : graphs.length === 2 ? "grid-cols-2 grid-rows-1" : "grid-cols-2 grid-rows-2"
       }`}
     >
       {graphs.map(({ player, game, scoring }) => (

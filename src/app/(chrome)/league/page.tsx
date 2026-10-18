@@ -24,7 +24,7 @@ import { onPace, paceShare } from "@/lib/live-play-points";
 import { liveProjection } from "@/lib/matchup-timeline";
 import { setHeaderWeek } from "@/lib/header-week";
 import { TitleWithHistory } from "@/components/HistoryButtons";
-import { LeaguePicker } from "@/components/LeaguePicker";
+import { MyLeagues } from "@/components/MyLeagues";
 
 function LeagueDetailContent() {
   const leagueId = useSearchParams().get("id");
@@ -236,7 +236,7 @@ function LeagueDetailContent() {
   }, [carousel, myRow, shownMatchupId, shownWeek, projectionStats, scoring]);
 
   if (!leagueId) {
-    return <LeaguePicker title="Leagues" href={(id) => `/league?id=${id}`} />;
+    return <MyLeagues />;
   }
   if (error) {
     return <Card className="p-12 text-center text-sm text-status-critical">{error}</Card>;
