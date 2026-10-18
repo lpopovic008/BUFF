@@ -484,7 +484,7 @@ function BlockGames({
   /** Moves a game to `view`; shutting it once `closeMs` of deleting has played out. */
   onToggleGame: (gameId: string, view: number, closeMs: number) => void;
   legendByLeagueId: Map<string, LeagueLegendEntry>;
-  /** Games taken off the map, by id. */
+  /** Games hidden from the map and the Red Zone, by id. */
   offMap: Set<string>;
   onToggleMap: (gameId: string) => void;
   selectedPlayers: { playerId: string; gameId: string }[];
@@ -565,7 +565,7 @@ const FOLD_MS = 200;
 // How far a box slides over to show its map button, in px.
 const SWIPE_PX = 52;
 
-/** An eye — or, crossed out, a game taken off the map. */
+/** An eye — or, crossed out, a game hidden from the map and the Red Zone. */
 function EyeIcon({ off }: { off: boolean }) {
   return (
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -665,8 +665,9 @@ function Swipeable({ children, action, className }: { children: React.ReactNode;
  * ones you're facing, then everyone worth watching, then shut again (skipping
  * any view that would list no one new). The lines type in or delete
  * themselves just as a time block's do, and the box slides to its new
- * height. A game's box swipes left to show a button that takes it off the
- * map (or puts it back); its border goes dashed while it's off.
+ * height. A game's matchup swipes left to show a button that hides the game
+ * from the map and the Red Zone (or brings it back); while it's hidden its
+ * border goes dashed and its matchup dims.
  */
 function GameBox({
   id,
@@ -703,7 +704,7 @@ function GameBox({
   pace?: number;
   onToggle: (id: string, view: number, closeMs: number) => void;
   legendByLeagueId: Map<string, LeagueLegendEntry>;
-  /** Whether it's off the map, and the button that switches that — none for a bye. */
+  /** Whether it's hidden from the map and the Red Zone, and the button that switches that — none for a bye. */
   map?: { off: boolean; onToggle: () => void };
   /** The players in this game whose graphs are up. */
   selectedPlayerIds?: string[];
@@ -735,71 +736,77 @@ function GameBox({
 
   const toggle = () => onToggle(id, next, closeMsFor(shown, phase, actions));
   const nextLabel = ["show just the teams", "show your players", "show yours and the ones you face", "show everyone"][next];
-  const content = (
-    <div ref={box} className="flex flex-col px-2 py-1.5">
-      {/* The matchup — and only the matchup — steps through the box's views. */}
-      <div
-        role={toggleable ? "button" : undefined}
-        tabIndex={toggleable ? 0 : undefined}
-        aria-label={`${label}${toggleable ? ` — ${nextLabel}` : ""}`}
-        onClick={toggleable ? toggle : undefined}
-        onKeyDown={
-          toggleable
-            ? (e) => {
-                if (e.key !== "Enter" && e.key !== " ") return;
-                e.preventDefault();
-                toggle();
-              }
-            : undefined
-        }
-        className={`relative flex flex-col gap-0.5 ${toggleable ? "cursor-pointer transition-opacity hover:opacity-80" : ""}`}
-      >
-        {children}
-      </div>
-      {/* The players its view lists, set apart below the teams. */}
-      {shown.length > 0 ? (
-        <div className="mt-1 border-t border-ink-muted/25 pt-1">
-          <GameRows
-            players={shown}
-            sortByPoints={live}
-            render={(player, motion) => (
-              <GameLine
-                player={player}
-                phase={phase}
-                action={actions[player.playerId]}
-                pace={pace}
-                shown={!hidden && !closing}
-                motion={motion}
-                legendByLeagueId={legendByLeagueId}
-                selected={selectedPlayerIds.includes(player.playerId)}
-                onSelect={onSelectPlayer ? () => onSelectPlayer(player.playerId) : undefined}
-              />
-            )}
-          />
-        </div>
-      ) : null}
+  // The matchup — and only the matchup — steps through the box's views.
+  const matchup = (
+    <div
+      role={toggleable ? "button" : undefined}
+      tabIndex={toggleable ? 0 : undefined}
+      aria-label={`${label}${toggleable ? ` — ${nextLabel}` : ""}`}
+      onClick={toggleable ? toggle : undefined}
+      onKeyDown={
+        toggleable
+          ? (e) => {
+              if (e.key !== "Enter" && e.key !== " ") return;
+              e.preventDefault();
+              toggle();
+            }
+          : undefined
+      }
+      className={`relative flex flex-col gap-0.5 ${toggleable ? "cursor-pointer transition-opacity hover:opacity-80" : ""}`}
+    >
+      {children}
     </div>
   );
-  // Each game boxed, so one game's players never run into the next's.
-  if (!map) return <div className="border border-ink-muted/40">{content}</div>;
+  // Each game boxed, so one game's players never run into the next's — its border dashed while it's hidden.
   return (
-    <Swipeable
-      className={`border border-ink-muted/40 ${map.off ? "border-dashed" : ""}`}
-      action={
-        <button
-          type="button"
-          onClick={map.onToggle}
-          aria-pressed={!map.off}
-          aria-label={`${map.off ? "Show" : "Hide"} ${label} on the map`}
-          title={`${map.off ? "Show on" : "Hide from"} the map`}
-          className="flex w-full cursor-pointer items-start justify-center bg-[var(--map-tag)] pt-3 text-[var(--map-tag-ink)] transition-opacity hover:opacity-90"
-        >
-          <EyeIcon off={map.off} />
-        </button>
-      }
-    >
-      {content}
-    </Swipeable>
+    <div className={`border border-ink-muted/40 ${map?.off ? "border-dashed" : ""}`}>
+      <div ref={box} className="flex flex-col px-2 py-1.5">
+        {map ? (
+          // Just the matchup swipes over, out to the box's edges, to show the button that hides the game.
+          <Swipeable
+            className="-mx-2 -mt-1.5"
+            action={
+              <button
+                type="button"
+                onClick={map.onToggle}
+                aria-pressed={!map.off}
+                aria-label={`${map.off ? "Show" : "Hide"} ${label} on the map and in the Red Zone`}
+                title={`${map.off ? "Show on" : "Hide from"} the map and the Red Zone`}
+                className="flex w-full cursor-pointer items-center justify-center bg-[var(--map-tag)] text-[var(--map-tag-ink)] transition-opacity hover:opacity-90"
+              >
+                <EyeIcon off={map.off} />
+              </button>
+            }
+          >
+            <div className={`px-2 pt-1.5 ${map.off ? "opacity-50" : ""}`}>{matchup}</div>
+          </Swipeable>
+        ) : (
+          matchup
+        )}
+        {/* The players its view lists, set apart below the teams. */}
+        {shown.length > 0 ? (
+          <div className="mt-1 border-t border-ink-muted/25 pt-1">
+            <GameRows
+              players={shown}
+              sortByPoints={live}
+              render={(player, motion) => (
+                <GameLine
+                  player={player}
+                  phase={phase}
+                  action={actions[player.playerId]}
+                  pace={pace}
+                  shown={!hidden && !closing}
+                  motion={motion}
+                  legendByLeagueId={legendByLeagueId}
+                  selected={selectedPlayerIds.includes(player.playerId)}
+                  onSelect={onSelectPlayer ? () => onSelectPlayer(player.playerId) : undefined}
+                />
+              )}
+            />
+          </div>
+        ) : null}
+      </div>
+    </div>
   );
 }
 
@@ -999,7 +1006,7 @@ export function StartersByGame({
   hiddenBlocks: Set<string>;
   /** Shows or hides one kickoff window's games on the map. */
   onToggleBlock: (label: string) => void;
-  /** Games taken off the map one at a time (swiped over), by id. */
+  /** Games hidden from the map and the Red Zone one at a time (their matchups swiped over), by id. */
   offMap: Set<string>;
   /** Takes one game off the map, or puts it back. */
   onToggleMap: (gameId: string) => void;

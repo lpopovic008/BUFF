@@ -355,9 +355,8 @@ allowed) a dashed rise at the end makes up the difference, so the line
 ends on their row's number, which is lit on a plate in the corner. Dragging
 or hovering puts a dotted line under the finger, with the time there, and
 it stays where it's lifted. There's no description under the graph: while
-the cursor is up, the Red Zone shows the last play by then (`spotlight`) —
-on a phone its box scrolls to the play's row and lights it up; from tablet
-width up the play is pinned over the Red Zone's plays.
+the cursor is up, the Red Zone shows the last play by then (`spotlight`),
+laid over the top of its plays, lit up — nothing under it moves.
 Nothing else moves: a finger on the graph moves only its cursor
 (`touch-action: none`), never the page. Tapping the graph again, or
 anywhere off it, takes the cursor away, and the Red Zone goes back to
@@ -412,10 +411,12 @@ on the lines, the totals by the team names up top show each team's total at
 that moment (a dot marks where it crosses each line) — the description naming the player and its +/- green for your
 points, red for theirs.
 
-A game's box swipes left (touch, mouse drag, or a trackpad's sideways
-scroll) to show an eye button that takes that one game off the map, or puts
-it back; its border goes dashed while it's off. Like the block headers'
-choices, it holds for the week shown. The teams on their bye come last,
+A game's matchup (just the team lines, not its players) swipes left (touch,
+mouse drag, or a trackpad's sideways scroll) to show an eye button that
+hides that one game from the map and the Red Zone, or brings it back; while
+it's hidden its border goes dashed and its matchup dims. It holds for the
+week shown, kept on this browser (`HomeView.hiddenGames`) so it's still
+hidden after a reload. The teams on their bye come last,
 under their own BYE header below every block, side by side in
 one row, a quarter of it each (a week has at most four), plus a "No team"
 box for starters without an NFL team (wrapping onto a second row). Tapping
@@ -438,11 +439,11 @@ app uses). Stats are fetched only once a game this week has started, and
 then re-read each tick.
 
 **Tab bar** (`TabBar.tsx`, phones only): along the bottom of the screen,
-Games (greyed out, still to be designed), Leagues, Home, Write-ups and the
-menu, the page you're on lit like a map tag; the header's own menu button is
-left to wider screens. Leagues and Write-ups open the league page and the
-recap without a league, which list yours to pick from (`LeaguePicker`; for
-write-ups, the ones you commish) — or, with just one, open it straight away.
+Profile & settings, Leagues, Home, Values and Draft, the page you're on lit
+like a map tag; the header's own menu button is left to wider screens.
+Leagues opens the league page without a league, which lists yours to pick
+from (`LeaguePicker`) — or, with just one, opens it straight away; the recap
+does the same for the leagues you commish.
 It sits flush with the screen's bottom edge (no safe-area padding under
 the buttons), and on a phone the page doesn't bounce past its ends
 (`overscroll-behavior: none`), so the bar never gets dragged up off the
@@ -482,14 +483,12 @@ their exact (fractional) heights so the sum comes out to the pixel.
 **The Red Zone** has no box of its own: its plays spread out to the next
 section or the screen's edge (on a phone, both edges). **Its header** runs
 down its left side, 1.5rem wide: the live dot and RED ZONE a letter to a
-line, ⇕ under them; then the games on now (scrolling should they outrun
-it); then its Team/VS/All buttons stacked along the bottom. Each
-game on now is a button of its two logos, the visitors over the home team:
-switched off, none of its plays show (it stays listed after it ends while
-it's off, so it can be switched back on). ⇕ stretches the box to the map's
+line, ⇕ under them; and its Team/VS/All buttons stacked along the bottom.
+A game hidden in the starters list (its matchup swiped over) shows none of
+its plays. It sits right under the map (or the graphs), no gap between. ⇕ stretches the box to the map's
 whole column (the map then above it, scrolled past) — on a phone, fits it
-to the screen as double-tapping the side header does — and back. The play
-by a graph's cursor and any game in the red zone now sit over the plays. Each play shows where
+to the screen as double-tapping the side header does — and back. Any game
+in the red zone now sits over the plays. Each play shows where
 it was snapped as the field reads ("BUF 35"), outlined so it stands apart
 from the down and distance and the clock either side; the field diagram
 (`FieldSpot`) is in the starters list instead — in a live game's box, across

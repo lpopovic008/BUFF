@@ -334,6 +334,8 @@ function RedZoneAlert({ alert }: { alert: RedZoneNow }) {
   );
 }
 
+const NO_GAMES = new Set<string>();
+
 /** Which plays the Red Zone shows: your starters', theirs and the ones you face too, or every play. */
 export type RedZoneScope = "mine" | "vs" | "all";
 
@@ -360,6 +362,7 @@ export function RedZone({
   compactOnPhone = false,
   spotlight = null,
   full,
+  hiddenGames = NO_GAMES,
 }: {
   /** Your starters, grouped by the game they're playing in. */
   starters: GameStarters[];
@@ -371,15 +374,16 @@ export function RedZone({
   /** Everyone's stat line so far this week, by Sleeper id — who's played tells which of ESPN's names is likeliest who. */
   weekStats: Record<string, Record<string, number>>;
   /**
-   * The play by a player graph's cursor, while it's up: on a phone the box scrolls to it (lit up), and
-   * from tablet width up it's pinned in the title bar, over the title. Either way, once it's gone the
-   * plays are back just where they were.
+   * The play by a player graph's cursor, while it's up: laid over the top of the plays, lit up, so
+   * nothing under it moves.
    */
   spotlight?: { gameId: string; playId: string } | null;
   /** On phones, show the plays in a box about one play tall (or, ⇕ or the side header double-tapped, as tall as the screen) that scrolls on its own, instead of running down the page. */
   compactOnPhone?: boolean;
   /** From tablet width up, whether the box is stretched to the whole column's height, and the ⇕ button's switch for it (on a phone the button fits the box to the screen). */
   full?: { on: boolean; toggle: () => void };
+  /** Games hidden in the starters list (their matchups swiped over), by id: none of their plays shown. */
+  hiddenGames?: Set<string>;
 }) {
   const mode = useLiveMode();
   const [scope, setScope] = useState<RedZoneScope>("all");
@@ -395,18 +399,9 @@ export function RedZone({
     }
     return [...byGame.values()];
   }, [scope, starters, opponents]);
-  // Games switched off from the title bar: none of their plays shown.
-  const [offGames, setOffGames] = useState<Set<string>>(() => new Set());
-  const toggleGame = (id: string) =>
-    setOffGames((prev) => {
-      const next = new Set(prev);
-      if (!next.delete(id)) next.add(id);
-      return next;
-    });
-  const shownFollowed = useMemo(() => followed.filter((g) => !offGames.has(g.game.id)), [followed, offGames]);
-  const shownGames = useMemo(() => weekGames.filter((g) => !offGames.has(g.id)), [weekGames, offGames]);
-  // The games on now — and any switched off that have since ended, so they can be switched back on.
-  const switchable = weekGames.filter((g) => g.state === "in" || offGames.has(g.id));
+  // Games hidden in the starters list (their matchups swiped over): none of their plays shown.
+  const shownFollowed = useMemo(() => followed.filter((g) => !hiddenGames.has(g.game.id)), [followed, hiddenGames]);
+  const shownGames = useMemo(() => weekGames.filter((g) => !hiddenGames.has(g.id)), [weekGames, hiddenGames]);
   const feedScope: FeedScope = scope === "all" ? "all" : "mine";
   const feed = useRedZoneFeed(shownFollowed, shownGames, feedScope, teamPlayers);
   const starterById = useMemo(() => new Map(starters.flatMap((g) => g.players.map((p) => [p.playerId, p] as const))), [starters]);
@@ -474,25 +469,8 @@ export function RedZone({
     query.addEventListener("change", update);
     return () => query.removeEventListener("change", update);
   }, []);
-  // On a phone, the box scrolls to it — its rows loaded that far — and back to where it was once it's gone.
-  const scrollIn = phone && compactOnPhone && spotIndex >= 0;
-  const savedScroll = useRef<number | null>(null);
-  const spotKey = spotlight && scrollIn ? `${spotlight.gameId}-${spotlight.playId}` : null;
-  if (scrollIn && spotIndex >= shown) setShown(spotIndex + PAGE);
-  useEffect(() => {
-    const box = boxRef.current;
-    if (!box) return;
-    if (spotKey === null) {
-      if (savedScroll.current !== null) box.scrollTop = savedScroll.current;
-      savedScroll.current = null;
-      return;
-    }
-    const row = box.querySelector<HTMLElement>(`[data-play="${CSS.escape(spotKey)}"]`);
-    if (!row) return;
-    savedScroll.current ??= box.scrollTop;
-    box.scrollTop = row.offsetTop;
-  }, [spotKey, shown]);
-  const pinned = spotEntry && !scrollIn ? spotEntry : null;
+  // Laid over the top of the plays, so nothing under it moves.
+  const pinned = spotEntry ?? null;
   const moreToShow = feed.entries.length > shown;
   // Scrolling near the end of the plays loads the next page of them — no button.
   useEffect(() => {
@@ -557,29 +535,8 @@ export function RedZone({
               <ExpandVerticalIcon inward={stretched} width={14} height={14} />
             </button>
           </div>
-          {/* The games on now, each switched in or out of the plays: the visitors over the home team. */}
-          <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 overflow-y-auto [scrollbar-width:none]" role="group" aria-label="Games in the Red Zone">
-            {switchable.map((g) => {
-              const on = !offGames.has(g.id);
-              return (
-                <button
-                  key={g.id}
-                  type="button"
-                  aria-pressed={on}
-                  onClick={() => toggleGame(g.id)}
-                  title={`${on ? "Hide" : "Show"} ${g.awayTeam} @ ${g.homeTeam}`}
-                  className={`flex w-full shrink-0 flex-col items-center gap-0.5 border py-0.5 transition-opacity ${
-                    on ? "border-ink-primary" : "border-border opacity-35 grayscale"
-                  }`}
-                >
-                  <TeamLogo team={g.awayTeam} side={12} />
-                  <TeamLogo team={g.homeTeam} side={12} />
-                </button>
-              );
-            })}
-          </div>
           {/* Which plays, along the bottom. */}
-          <div className="flex w-full shrink-0 flex-col border border-border text-[0.5625rem] font-semibold" role="group" aria-label="Which plays">
+          <div className="mt-auto flex w-full shrink-0 flex-col border border-border text-[0.5625rem] font-semibold" role="group" aria-label="Which plays">
             {SCOPES.map((opt) => (
               <button
                 key={opt.value}
@@ -597,10 +554,10 @@ export function RedZone({
         </div>
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col gap-2 py-1 pl-1.5 max-md:pr-2 md:min-h-0">
-        {/* The play by a graph's cursor, pinned over the plays (see spotlight). */}
+      <div className="relative flex min-w-0 flex-1 flex-col gap-2 py-1 pl-1.5 max-md:pr-2 md:min-h-0">
+        {/* The play by a graph's cursor, laid over the top of the plays (see spotlight) — nothing under it moves. */}
         {pinned ? (
-          <ol aria-label="The play by the graph's cursor" className="shrink-0">
+          <ol aria-label="The play by the graph's cursor" className="absolute left-1.5 right-0 top-1 z-20 bg-page shadow-md max-md:right-2">
             <FeedRow key="pinned" entry={pinned} starterById={starterById} legendByLeagueId={legendByLeagueId} arrivedLive={false} index={0} spotlit />
           </ol>
         ) : null}
@@ -632,7 +589,6 @@ export function RedZone({
                     legendByLeagueId={legendByLeagueId}
                     arrivedLive={settled}
                     index={i}
-                    spotlit={scrollIn && i === spotIndex}
                   />
                 ))}
               </ol>

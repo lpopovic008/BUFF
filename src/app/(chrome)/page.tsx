@@ -161,14 +161,20 @@ export default function DashboardPage() {
   const toggleBlock = (label: string) => {
     setBlockState({ week: shownWeek, choices: new Map(blockChoices).set(label, hiddenBlocks.has(label)) });
   };
-  // Single games taken off the map (swiped over in the starters list) — for that week.
+  // Single games hidden from the map and the Red Zone (their matchups swiped over in the starters list) — for
+  // that week, and kept on this browser, so they're still hidden after a reload.
   const [mapOff, setMapOff] = useState<{ week: number | null; ids: Set<string> }>(() => ({ week: null, ids: new Set() }));
+  useEffect(() => {
+    const saved = getHomeView().hiddenGames;
+    if (saved) queueMicrotask(() => setMapOff({ week: saved.week, ids: new Set(saved.ids) }));
+  }, []);
   const offMap = useMemo(() => (mapOff.week === shownWeek ? mapOff.ids : new Set<string>()), [mapOff, shownWeek]);
   const toggleMap = (gameId: string) => {
     const ids = new Set(offMap);
     if (ids.has(gameId)) ids.delete(gameId);
     else ids.add(gameId);
     setMapOff({ week: shownWeek, ids });
+    saveHomeView({ hiddenGames: shownWeek != null && ids.size > 0 ? { week: shownWeek, ids: [...ids] } : undefined });
   };
   // The players whose points-over-time graphs are up in place of the map (tapped in the starters list), up to four — for that week.
   // Kept on this browser, so they're still up after a reload until closed.
@@ -417,7 +423,7 @@ export default function DashboardPage() {
             within it. Should the two not fit, the column scrolls — flipped to rtl so its scrollbar sits on the column's own left
             edge instead of in the gutter between the two columns; the inner wrapper flips back to ltr so the content reads normally. */}
         <div className="min-w-0 flex-1 max-md:contents md:sticky md:top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+2px)] md:h-[calc(100vh-var(--header-h,0px)-var(--ticker-h,0px)-2px)] md:overflow-y-auto md:[direction:rtl]">
-          <div className="flex flex-col gap-6 max-md:contents md:h-full md:gap-3 md:[direction:ltr]">
+          <div className="flex flex-col max-md:contents md:h-full md:[direction:ltr]">
             {weekGames.length > 0 ? (
               <div className="shrink-0 animate-[rise_0.5s_ease-out_backwards]">
                 {/* A player's graph takes the map's place; the map stays put underneath, just out of sight. */}
@@ -428,8 +434,8 @@ export default function DashboardPage() {
                       legend={legend}
                       // The countdown to the next kickoff, in the open space over the land.
                       overhead={<KickoffCountdown kickoffs={kickoffs} />}
-                      // From tablet width up, the column's height less the Red Zone's least (10rem, room for its side header) and the gap under the map.
-                      room={desktop ? "100vh - var(--header-h, 0px) - var(--ticker-h, 0px) - 2px - 10rem - 0.75rem" : undefined}
+                      // From tablet width up, the column's height less the Red Zone's least (10rem, room for its side header), right under it.
+                      room={desktop ? "100vh - var(--header-h, 0px) - var(--ticker-h, 0px) - 2px - 10rem" : undefined}
                     />
                   </div>
                   {/* One graph in full; two stacked; three or four, one to a corner. */}
@@ -458,8 +464,8 @@ export default function DashboardPage() {
             {weekGames.length > 0 && myStarters !== null ? (
               <div
                 ref={redZoneRef}
-                // On a phone, out to the screen's edges.
-                className={`animate-[rise_0.5s_ease-out_backwards] [animation-delay:120ms] max-md:-mx-4 md:flex md:flex-col ${
+                // On a phone, out to the screen's edges and right under the map (taking back the gap between the sections).
+                className={`animate-[rise_0.5s_ease-out_backwards] [animation-delay:120ms] max-md:-mx-4 max-md:-mt-6 md:flex md:flex-col ${
                   // Stretched (its ⇕ button), the whole column's height — the map above it, scrolled past.
                   redZoneFull ? "md:h-full md:flex-none" : "md:min-h-40 md:flex-1"
                 }`}
@@ -474,6 +480,7 @@ export default function DashboardPage() {
                   weekStats={livePlayers.stats}
                   compactOnPhone
                   spotlight={graphed.length > 0 ? spotlight : null}
+                  hiddenGames={offMap}
                   full={{ on: redZoneFull, toggle: toggleRedZoneFull }}
                 />
               </div>

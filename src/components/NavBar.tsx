@@ -8,8 +8,8 @@ import { MenuIcon } from "@/components/ui/Icon";
 import { useHeaderWeek } from "@/lib/header-week";
 import { WeekPicker, weekLabel } from "@/components/WeekPicker";
 
-/** The menu's pages — in the header's menu from tablet width up, the tab bar's on a phone. */
-export const NAV_LINKS = [
+/** The menu's pages, from tablet width up (on a phone, the tab bar along the bottom has them). */
+const NAV_LINKS = [
   { href: "/", label: "Dashboard" },
   { href: "/values", label: "Values" },
   { href: "/draft", label: "Draft" },

@@ -299,17 +299,6 @@ export function HomeIcon(props: IconProps) {
   );
 }
 
-export function FootballIcon(props: IconProps) {
-  return (
-    <svg {...base(props)}>
-      <ellipse cx="10" cy="10" rx="7.5" ry="4.5" transform="rotate(-35 10 10)" />
-      <line x1="7.5" y1="12.5" x2="12.5" y2="7.5" />
-      <line x1="8.5" y1="9.5" x2="10.5" y2="11.5" />
-      <line x1="9.5" y1="8.5" x2="11.5" y2="10.5" />
-    </svg>
-  );
-}
-
 /** Up and down chevrons — or, `inward`, pointing at each other. */
 export function ExpandVerticalIcon({ inward = false, ...props }: IconProps & { inward?: boolean }) {
   return (
@@ -325,6 +314,38 @@ export function ExpandVerticalIcon({ inward = false, ...props }: IconProps & { i
           <path d="M6.5 13L10 16.5l3.5-3.5" />
         </>
       )}
+    </svg>
+  );
+}
+
+export function UserIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="10" cy="6.5" r="3.25" />
+      <path d="M3.5 17c.8-3.2 3.3-5 6.5-5s5.7 1.8 6.5 5" />
+    </svg>
+  );
+}
+
+/** A line climbing across a baseline — player values. */
+export function TrendIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M3 16.5h14" />
+      <path d="M3.5 13l4-4 3 2.5L16.5 5" />
+      <path d="M12.5 5h4v4" />
+    </svg>
+  );
+}
+
+/** A clipboard with picks listed — the draft. */
+export function ClipboardIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <rect x="4" y="4" width="12" height="13.5" />
+      <path d="M7.5 2.5h5v3h-5z" />
+      <line x1="7" y1="9.5" x2="13" y2="9.5" />
+      <line x1="7" y1="12.5" x2="13" y2="12.5" />
     </svg>
   );
 }
