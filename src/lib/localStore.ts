@@ -245,18 +245,40 @@ export function deleteRecap(leagueId: string, season: string, week: number): voi
   writeRecaps(recaps);
 }
 
-/** The commish's picks for a week's marquee matchup(s) — a name plus the two teams (by roster id) it's between, to build the recap's "Matchup of the Week"/"Honorable Mention" narrative around. */
+/** The commish's picks for a week's marquee matchup(s) — a name plus the two teams (by roster id) it's between, to build the recap's "Matchup of the Week" narratives around. */
 export interface BowlGamePick {
   name: string;
   rosterIds: number[];
 }
 
 export interface RecapBowlPicks {
+  /** Matchup of the Week (#1). */
   bowlOfWeek: BowlGamePick;
+  /** Matchup of the Week #2 — "Honorable Mention", as it was once called. */
   honorableBowl: BowlGamePick;
+  /** Matchups of the Week #3 on, in order (absent on picks saved before there could be more than two). */
+  more?: BowlGamePick[];
 }
 
 const EMPTY_BOWL_PICK: BowlGamePick = { name: "", rosterIds: [] };
+
+/** A week's pick for its nth Matchup of the Week (1-based) — empty when there isn't one. */
+export function pickAt(picks: RecapBowlPicks | null | undefined, n: number): BowlGamePick {
+  if (!picks) return EMPTY_BOWL_PICK;
+  if (n === 1) return picks.bowlOfWeek;
+  if (n === 2) return picks.honorableBowl;
+  return picks.more?.[n - 3] ?? EMPTY_BOWL_PICK;
+}
+
+/** The picks with the nth Matchup of the Week's (1-based) replaced. */
+export function withPickAt(picks: RecapBowlPicks, n: number, pick: BowlGamePick): RecapBowlPicks {
+  if (n === 1) return { ...picks, bowlOfWeek: pick };
+  if (n === 2) return { ...picks, honorableBowl: pick };
+  const more = [...(picks.more ?? [])];
+  while (more.length < n - 3) more.push({ ...EMPTY_BOWL_PICK });
+  more[n - 3] = pick;
+  return { ...picks, more };
+}
 const EMPTY_BOWL_PICKS: RecapBowlPicks = { bowlOfWeek: { ...EMPTY_BOWL_PICK }, honorableBowl: { ...EMPTY_BOWL_PICK } };
 
 function readBowlPicks(): Record<string, RecapBowlPicks> {

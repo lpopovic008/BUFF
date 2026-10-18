@@ -20,8 +20,11 @@ export const RECAP_HEADERS = {
   standings: "💰 Updated Standings:",
   records: "📋 Season Standings:",
   upcomingBowl: "🥇 Matchup of the Week:",
-  upcomingHonorable: "🥈Honorable Mention:",
+  upcomingHonorable: "🥈 Matchup of the Week #2:",
 } as const;
+
+/** #2's header before it was renamed — still read from text saved back then (see parseRecapModel). */
+const LEGACY_UPCOMING_HONORABLE = "🥈Honorable Mention:";
 
 export const WHO_WILL_PREVAIL = "WHO WILL PREVAIL?!";
 export const GOOD_LUCK_TO_ALL = "Good Luck to All!";
@@ -58,14 +61,27 @@ export function isExtraSection(key: string): key is ExtraSectionKey {
 export const RECAP_SECTIONS = [
   { key: "aiRecap", label: "✨ AI Recap" },
   { key: "bowl", label: "👑 Bowl of the Week" },
-  { key: "honorable", label: "🏆 Honorable Mention" },
+  { key: "honorable", label: "🏆 Bowl of the Week #2" },
   { key: "highScorer", label: "📈 High Scorer" },
   { key: "winners", label: "🤑 Winners Podium" },
   { key: "lastWeek", label: "🗓️ Last Week Results" },
   { key: "standings", label: "💰 Updated Standings" },
   { key: "records", label: "📋 Season Standings" },
   { key: "upcomingBowl", label: "🥇 Matchup of the Week" },
-  { key: "upcomingHonorable", label: "🥈 Honorable Mention Preview" },
+  { key: "upcomingHonorable", label: "🥈 Matchup of the Week #2" },
+  // The results, then the previews, of Matchups of the Week past the second (see MORE_MATCHUPS).
+  { key: "matchup3", label: "🏅 Bowl of the Week #3" },
+  { key: "matchup4", label: "🏅 Bowl of the Week #4" },
+  { key: "matchup5", label: "🏅 Bowl of the Week #5" },
+  { key: "matchup6", label: "🏅 Bowl of the Week #6" },
+  { key: "matchup7", label: "🏅 Bowl of the Week #7" },
+  { key: "matchup8", label: "🏅 Bowl of the Week #8" },
+  { key: "upcomingMatchup3", label: "🏈 Matchup of the Week #3" },
+  { key: "upcomingMatchup4", label: "🏈 Matchup of the Week #4" },
+  { key: "upcomingMatchup5", label: "🏈 Matchup of the Week #5" },
+  { key: "upcomingMatchup6", label: "🏈 Matchup of the Week #6" },
+  { key: "upcomingMatchup7", label: "🏈 Matchup of the Week #7" },
+  { key: "upcomingMatchup8", label: "🏈 Matchup of the Week #8" },
   { key: "playerOfWeek", label: "⭐ Player of the Week" },
   { key: "lowScorer", label: "📉 Low Scorer" },
   { key: "closestGame", label: "😬 Nail-Biter" },
@@ -78,11 +94,36 @@ export const RECAP_SECTIONS = [
 
 export type RecapSectionKey = (typeof RECAP_SECTIONS)[number]["key"];
 
-/** The two previews of next week's matchups — always kept together at the end, under the "UPCOMING WEEK N:" heading. */
-const UPCOMING_SECTIONS: RecapSectionKey[] = ["upcomingBowl", "upcomingHonorable"];
+/** Matchups of the Week past the house style's two, up to as many as a league has games (at most 8: a 16-team league). */
+export const MORE_MATCHUPS = [3, 4, 5, 6, 7, 8] as const;
+export type MoreMatchup = (typeof MORE_MATCHUPS)[number];
 
+/** The nth Matchup of the Week's (1-based) result section — how last week's pick turned out — and its preview of next week's. */
+export function resultMatchupKey(n: number): RecapSectionKey {
+  return (n === 1 ? "bowl" : n === 2 ? "honorable" : `matchup${n}`) as RecapSectionKey;
+}
+export function upcomingMatchupKey(n: number): RecapSectionKey {
+  return (n === 1 ? "upcomingBowl" : n === 2 ? "upcomingHonorable" : `upcomingMatchup${n}`) as RecapSectionKey;
+}
+
+/** Which Matchup of the Week (1-based) a section is the result or the preview of — null for any other section. */
+export function matchupNumber(key: RecapSectionKey): number | null {
+  if (key === "bowl" || key === "upcomingBowl") return 1;
+  if (key === "honorable" || key === "upcomingHonorable") return 2;
+  const m = /^(?:upcomingMatchup|matchup)(\d)$/.exec(key);
+  return m ? Number(m[1]) : null;
+}
+
+/** Next week's previews — always kept together at the end, under the "UPCOMING WEEK N:" heading. */
 export function isUpcomingSection(key: RecapSectionKey): boolean {
-  return UPCOMING_SECTIONS.includes(key);
+  return key === "upcomingBowl" || key === "upcomingHonorable" || key.startsWith("upcomingMatchup");
+}
+
+/** A Matchup of the Week's name on screen and in the text: "Bowl of the Week #2" for a result, "Matchup of the Week #2" for a preview. */
+export function matchupTitle(n: number, upcoming: boolean): { emoji: string; label: string } {
+  const suffix = n === 1 ? "" : ` #${n}`;
+  if (upcoming) return { emoji: n === 2 ? "🥈" : "🏈", label: `Matchup of the Week${suffix}` };
+  return { emoji: n === 1 ? "👑" : n === 2 ? "🏆" : "🏅", label: `Bowl of the Week${suffix}` };
 }
 
 /** The house style's own sections, in their own order — the layout of every recap until the commish changes it. */
@@ -149,10 +190,19 @@ export interface RecapModel {
   include: Partial<Record<RecapSectionKey, boolean>>;
   /** The added sections' text (see EXTRA_SECTIONS), by section. */
   extra: Partial<Record<ExtraSectionKey, string>>;
+  /** Matchups of the Week past the second (see MORE_MATCHUPS), by number: how last week's pick turned out, and next week's preview — each with its Detail. */
+  more?: Partial<Record<MoreMatchup, MoreMatchupText>>;
   /** Which sections this recap has, in order (see recapLayout) — the house style's own when absent, as on every recap saved before sections could be added, removed and moved. New weeks start from the league's last layout (see localStore's getRecapLayout). */
   layout?: RecapSectionKey[];
   /** Whether a section's Detail box renders on screen — see isDetailShown. Purely a UI affordance (the "+"/"–" button in SectionBox's corner); never affects the flattened text, which includes a Detail line whenever it has content regardless of whether the box happens to be open. */
   detailShown: Partial<Record<RecapSectionKey, boolean>>;
+}
+
+export interface MoreMatchupText {
+  result: string;
+  resultDetail: string;
+  lines: string;
+  detail: string;
 }
 
 /** Whether a section should be shown — the one place both the text flattener and the UI check, so "excluded" always means the same thing everywhere. */
@@ -182,10 +232,13 @@ export const DETAIL_FIELD: Partial<Record<RecapSectionKey, keyof RecapModel>> = 
  */
 export function isDetailShown(model: RecapModel, key: RecapSectionKey): boolean {
   const field = DETAIL_FIELD[key];
-  if (!field) return false;
+  const n = matchupNumber(key);
+  const more = n !== null && n > 2 ? model.more?.[n as MoreMatchup] : undefined;
+  const text = field ? ((model[field] as string) ?? "") : more ? (isUpcomingSection(key) ? more.detail : more.resultDetail) : null;
+  if (text === null) return false;
   const explicit = model.detailShown?.[key];
   if (explicit !== undefined) return explicit;
-  return ((model[field] as string) ?? "").trim() !== "";
+  return text.trim() !== "";
 }
 
 /** Every field defaults to this until real data or a hand-typed edit replaces it. */
@@ -280,6 +333,18 @@ export function joinRecapModel(model: RecapModel): string {
       case "upcomingHonorable":
         lines.push(RECAP_HEADERS.upcomingHonorable, ...model.upcomingHonorableLines.split("\n"), "", model.upcomingHonorableDetail, GOOD_LUCK_TO_ALL, "");
         break;
+      default: {
+        // A Matchup of the Week past the second: its result like the Bowl of the Week's, its preview like #1's.
+        const n = matchupNumber(key);
+        const more = n !== null ? model.more?.[n as MoreMatchup] : undefined;
+        if (!more) continue;
+        if (isUpcomingSection(key)) {
+          const { emoji, label } = matchupTitle(n!, true);
+          lines.push(`${emoji} ${label}:`, ...more.lines.split("\n"), "", more.detail, WHO_WILL_PREVAIL, "");
+        } else {
+          lines.push(more.result, more.resultDetail, "");
+        }
+      }
     }
     last = key;
   }
@@ -405,7 +470,7 @@ export function parseRecapModel(body: string): RecapModel | null {
   i = upcomingBowl.next;
   if (lines[i] === "") i++;
 
-  if (lines[i] !== RECAP_HEADERS.upcomingHonorable) return null;
+  if (lines[i] !== RECAP_HEADERS.upcomingHonorable && lines[i] !== LEGACY_UPCOMING_HONORABLE) return null;
   i++;
   const upcomingHonorable = splitOnTrailingMarker(lines, i, GOOD_LUCK_TO_ALL);
   if (!upcomingHonorable) return null;

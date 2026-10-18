@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { buildExtraSections } from "./format-recap";
+import { suggestMatchups } from "./bowl-narrative";
 import { WeekRecapData, MatchupGame, StandingsRow } from "./league-data";
 
 const team = (rosterId: number, teamName: string, points: number) => ({
@@ -56,4 +57,14 @@ test("buildExtraSections writes each added section from the week's data", () => 
   assert.match(extra.movers, /Otters slid 2 spots to 4th/);
   assert.equal(extra.transactions, "• Sharks added Rome Odunze");
   assert.equal(extra.commishNotes, "");
+});
+
+test("suggestMatchups puts the top teams' close game first and a mismatch last", () => {
+  const row = (rosterId: number, rank: number, wins: number, pf: number, pa: number) => ({
+    rosterId, ownerId: null, managerName: "", teamName: "", avatar: null, wins, losses: 6 - wins, ties: 0, pointsFor: pf, pointsAgainst: pa, rank,
+  });
+  const standings = [row(1, 1, 6, 800, 600), row(2, 2, 5, 780, 620), row(3, 3, 3, 700, 700), row(4, 4, 3, 690, 700), row(5, 5, 1, 600, 800), row(6, 6, 0, 550, 820)];
+  const order = suggestMatchups([[1, 6], [3, 4], [1, 2]].map((p) => p as [number, number]), standings);
+  assert.deepEqual(order[0], [1, 2]);
+  assert.deepEqual(order.at(-1), [1, 6]);
 });

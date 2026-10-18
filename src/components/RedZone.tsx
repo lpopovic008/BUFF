@@ -374,8 +374,8 @@ export function RedZone({
   /** Everyone's stat line so far this week, by Sleeper id — who's played tells which of ESPN's names is likeliest who. */
   weekStats: Record<string, Record<string, number>>;
   /**
-   * The play by a player graph's cursor, while it's up: laid over the top of the plays, lit up, so
-   * nothing under it moves.
+   * The play by a player graph's cursor, while it's up: the plays scroll to it, lit up, so you can
+   * scroll on from there to what led up to it; once it's gone they're back just where they were.
    */
   spotlight?: { gameId: string; playId: string } | null;
   /** On phones, show the plays in a box about one play tall (or, ⇕ or the side header double-tapped, as tall as the screen) that scrolls on its own, instead of running down the page. */
@@ -469,8 +469,26 @@ export function RedZone({
     query.addEventListener("change", update);
     return () => query.removeEventListener("change", update);
   }, []);
-  // Laid over the top of the plays, so nothing under it moves.
-  const pinned = spotEntry ?? null;
+  // Among the plays: the box scrolls to it (its rows loaded that far), lit up, so you can scroll on from there
+  // to what led up to it — and back to where it was once it's gone.
+  const savedScroll = useRef<number | null>(null);
+  const spotKey = spotlight && spotIndex >= 0 ? `${spotlight.gameId}-${spotlight.playId}` : null;
+  if (spotIndex >= shown) setShown(spotIndex + PAGE);
+  useEffect(() => {
+    const box = boxRef.current;
+    if (!box) return;
+    if (spotKey === null) {
+      if (savedScroll.current !== null) box.scrollTop = savedScroll.current;
+      savedScroll.current = null;
+      return;
+    }
+    const row = box.querySelector<HTMLElement>(`[data-play="${CSS.escape(spotKey)}"]`);
+    if (!row) return;
+    savedScroll.current ??= box.scrollTop;
+    box.scrollTop = row.offsetTop;
+  }, [spotKey, shown]);
+  // Not among them (another of the buttons is picked): laid over the top of the plays instead.
+  const pinned = spotEntry && spotIndex < 0 ? spotEntry : null;
   const moreToShow = feed.entries.length > shown;
   // Scrolling near the end of the plays loads the next page of them — no button.
   useEffect(() => {
@@ -555,7 +573,7 @@ export function RedZone({
       </div>
 
       <div className="relative flex min-w-0 flex-1 flex-col gap-2 py-1 pl-1.5 max-md:pr-2 md:min-h-0">
-        {/* The play by a graph's cursor, laid over the top of the plays (see spotlight) — nothing under it moves. */}
+        {/* The play by a graph's cursor when it isn't among these plays, laid over the top of them (see spotlight). */}
         {pinned ? (
           <ol aria-label="The play by the graph's cursor" className="absolute left-1.5 right-0 top-1 z-20 bg-page shadow-md max-md:right-2">
             <FeedRow key="pinned" entry={pinned} starterById={starterById} legendByLeagueId={legendByLeagueId} arrivedLive={false} index={0} spotlit />
@@ -589,6 +607,7 @@ export function RedZone({
                     legendByLeagueId={legendByLeagueId}
                     arrivedLive={settled}
                     index={i}
+                    spotlit={i === spotIndex}
                   />
                 ))}
               </ol>

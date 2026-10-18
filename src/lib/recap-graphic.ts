@@ -30,6 +30,9 @@ import {
   upcomingWeekLabel,
   WHO_WILL_PREVAIL,
   GOOD_LUCK_TO_ALL,
+  matchupNumber,
+  matchupTitle,
+  MoreMatchup,
 } from "./recap-model";
 
 const WIDTH = 1080;
@@ -133,6 +136,9 @@ export interface RecapGraphicExtras {
   honorable?: DecidedMatchup | null;
   upcoming?: PreviewMatchup | null;
   upcomingHonorable?: PreviewMatchup | null;
+  /** The Matchups of the Week past the second, by number (3 on): how each turned out, and next week's. */
+  more?: Record<number, DecidedMatchup | null>;
+  morePreviews?: Record<number, PreviewMatchup | null>;
   highScorer?: HighScorerGraphicData | null;
   winners?: WinnerGraphicRow[] | null;
   /** Live per-team rows for Last Week Results, by team name (not the ledger's real-person manager name, which is what the flattened text's own Last Week block uses). Null falls back to parsing that flattened text. */
@@ -426,7 +432,7 @@ const GRAPHIC_SECTION_TITLE: Record<
   standings: { emoji: "💰", label: "Standings" },
   records: { emoji: "📋", label: "Season Standings" },
   upcomingBowl: { emoji: "🏈", label: "Matchup of the Week" },
-  upcomingHonorable: { emoji: "🥈", label: "Honorable Mention" },
+  upcomingHonorable: { emoji: "🥈", label: "Matchup of the Week #2" },
 };
 
 /** Gold / silver / bronze, each a light-metal-light sweep for a shiny highlight rather than a flat tint. */
@@ -1326,6 +1332,17 @@ function runLayout(
             GOOD_LUCK_TO_ALL
           );
           break;
+        default: {
+          // A Matchup of the Week past the second: its result like the Bowl of the Week's, its preview like #1's.
+          const n = matchupNumber(key);
+          if (n === null) break;
+          const more = model.more?.[n as MoreMatchup];
+          if (isUpcomingSection(key)) {
+            l.previewMatchup(matchupTitle(n, true), matchups.morePreviews?.[n] ?? PLACEHOLDER_PREVIEW, more?.detail ?? "", WHO_WILL_PREVAIL);
+          } else {
+            l.decidedMatchup(matchups.more?.[n] ?? PLACEHOLDER_MATCHUP, more?.resultDetail ?? "");
+          }
+        }
       }
     }
   } else if (restBody.trim()) {

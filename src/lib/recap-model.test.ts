@@ -163,6 +163,25 @@ test("joinRecapModel follows the recap's own layout, added sections under their 
   assert.ok(lines.indexOf("👑 The Sharks won THE BIJAN BOWL! Congrats to The Sharks!") > star);
   // Sections left out of the layout are gone, and the upcoming heading comes before the one preview left.
   assert.ok(!text.includes("🤑 Winners"));
-  assert.ok(lines.indexOf("UPCOMING WEEK 5:") < lines.indexOf("🥈Honorable Mention:"));
+  assert.ok(lines.indexOf("UPCOMING WEEK 5:") < lines.indexOf("🥈 Matchup of the Week #2:"));
   assert.equal(lines.at(-1), "Good Luck to All!");
+});
+
+test("parseRecapModel still reads text saved when the second matchup was the Honorable Mention", () => {
+  const text = joinRecapModel(sampleModel()).replace("🥈 Matchup of the Week #2:", "🥈Honorable Mention:");
+  assert.equal(parseRecapModel(text)?.upcomingHonorableLines, sampleModel().upcomingHonorableLines);
+});
+
+test("joinRecapModel writes a third Matchup of the Week's result and preview", () => {
+  const text = joinRecapModel(
+    sampleModel({
+      layout: ["bowl", "matchup3", "upcomingBowl", "upcomingMatchup3"],
+      more: { 3: { result: "🏅 The Eels won THE TIDE BOWL!", resultDetail: "", lines: "THE REEF BOWL\nThe Eels vs The Crabs", detail: "" } },
+    })
+  );
+  const lines = text.split("\n");
+  assert.ok(lines.includes("🏅 The Eels won THE TIDE BOWL!"));
+  const header = lines.indexOf("🏈 Matchup of the Week #3:");
+  assert.ok(header > lines.indexOf("UPCOMING WEEK 5:"));
+  assert.equal(lines[header + 2], "The Eels vs The Crabs");
 });

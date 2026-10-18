@@ -16,9 +16,15 @@ import {
   WHO_WILL_PREVAIL,
   GOOD_LUCK_TO_ALL,
   upcomingWeekLabel,
+  DETAIL_FIELD,
+  matchupNumber,
+  matchupTitle,
+  MoreMatchup,
+  resultMatchupKey,
+  upcomingMatchupKey,
 } from "@/lib/recap-model";
 import { BowlMatchupResult } from "@/lib/bowl-narrative";
-import { BowlGamePick } from "@/lib/localStore";
+import { BowlGamePick, pickAt, RecapBowlPicks } from "@/lib/localStore";
 import { LeagueTeamOption } from "@/hooks/useLeagueTeams";
 import { WeekRecapData } from "@/lib/league-data";
 import { PayoutLedger } from "@/lib/payouts";
@@ -424,23 +430,37 @@ function AiRecapBody({
 // theme shares the same translucent-white surface (see recap-graphic.ts's
 // COLOR.card) — the graphic doesn't tint cards per section, so neither does
 // this.
-export const SECTION_TITLE: Record<Exclude<RecapSectionKey, "bowl" | "honorable">, { emoji: string; label: string }> = {
+export const SECTION_TITLE: Record<"aiRecap" | "highScorer" | "winners" | "lastWeek" | "standings" | "records" | ExtraSectionKey, { emoji: string; label: string }> = {
   aiRecap: { emoji: "✨", label: "AI Recap" },
   highScorer: { emoji: "🏆", label: "High Scorer" },
   winners: { emoji: "💵", label: "Winners" },
   lastWeek: { emoji: "📊", label: "Last Week" },
   standings: { emoji: "💰", label: "Standings" },
   records: { emoji: "📋", label: "Season Standings" },
-  upcomingBowl: { emoji: "🏈", label: "Matchup of the Week" },
-  upcomingHonorable: { emoji: "🥈", label: "Honorable Mention" },
   ...EXTRA_SECTIONS,
 };
 
-/** Every section by name, for picking one to add. */
+/** Every section by name, for picking one to add — a Matchup of the Week's result ("Bowl of the Week #2") told apart from its preview ("Matchup of the Week #2"). */
 export function sectionName(key: RecapSectionKey): { emoji: string; label: string } {
-  if (key === "bowl") return { emoji: "👑", label: "Bowl of the Week" };
-  if (key === "honorable") return { emoji: "🏆", label: "Honorable Mention" };
-  return SECTION_TITLE[key];
+  const n = matchupNumber(key);
+  if (n !== null) return matchupTitle(n, isUpcomingSection(key));
+  return SECTION_TITLE[key as keyof typeof SECTION_TITLE];
+}
+
+/** The sections a recap doesn't have that it could: every one but the Matchups of the Week past the league's number of games. */
+export function addableSections(layout: RecapSectionKey[], maxMatchups: number): RecapSectionKey[] {
+  return RECAP_SECTIONS.map((s) => s.key as RecapSectionKey).filter((k) => !layout.includes(k) && (matchupNumber(k) ?? 0) <= maxMatchups);
+}
+
+/** The Matchups of the Week the editor works with: this week's picks (made last week) and how they turned out, next week's picks, and what renaming one or picking its teams does. */
+export interface RecapMatchups {
+  resultPicks: RecapBowlPicks | null;
+  upcomingPicks: RecapBowlPicks | null;
+  /** How each of this week's picks turned out, by number (1-based) — null until it's scored. */
+  results: Record<number, BowlMatchupResult | null>;
+  onRenameResult: (n: number, name: string) => void;
+  onRenameUpcoming: (n: number, name: string) => void;
+  onChangeUpcomingTeam: (n: number, slot: 0 | 1, rosterId: number | "") => void;
 }
 
 /** An added section's body: its text, a draft written from the week's data (or, for notes, blank), free to edit. */
@@ -531,36 +551,21 @@ function SectionBox({
 export function RecapSectionsEditor({
   model,
   onChange,
-  bowlMatchup,
-  honorableMatchup,
-  bowlPick,
-  honorablePick,
-  upcomingBowlPick,
-  upcomingHonorablePick,
+  matchups,
   teams,
   teamOptions,
   recapData,
   ledger,
   week,
   playerNames,
-  onRenameBowl,
-  onRenameHonorable,
-  onRenameUpcomingBowl,
-  onRenameUpcomingHonorable,
-  onChangeUpcomingBowlTeam,
-  onChangeUpcomingHonorableTeam,
+  maxMatchups = 2,
   onRemoveSection,
   onAddSection,
 }: {
   model: RecapModel;
   onChange: (model: RecapModel) => void;
-  bowlMatchup: BowlMatchupResult | null;
-  honorableMatchup: BowlMatchupResult | null;
-  /** Raw, always-present picks the name inputs and team selects bind to — never null-gated or trimmed like the resolved matchups above, so typing a name before picking teams (or vice versa) always shows exactly what's stored. */
-  bowlPick: BowlGamePick | null;
-  honorablePick: BowlGamePick | null;
-  upcomingBowlPick: BowlGamePick | null;
-  upcomingHonorablePick: BowlGamePick | null;
+  /** The Matchups of the Week — this week's picks and how they turned out, next week's, and their renames and team picks. */
+  matchups: RecapMatchups;
   teams: Record<number, GraphicTeam>;
   /** The league's roster pool for the upcoming-matchup team pickers below — null until useLeagueTeams finishes loading. */
   teamOptions: LeagueTeamOption[] | null;
@@ -570,12 +575,8 @@ export function RecapSectionsEditor({
   week: number;
   /** Player id -> display name, for the High Scorer podium's top-3-player photos. */
   playerNames: Record<string, string>;
-  onRenameBowl: (name: string) => void;
-  onRenameHonorable: (name: string) => void;
-  onRenameUpcomingBowl: (name: string) => void;
-  onRenameUpcomingHonorable: (name: string) => void;
-  onChangeUpcomingBowlTeam: (slot: 0 | 1, rosterId: number | "") => void;
-  onChangeUpcomingHonorableTeam: (slot: 0 | 1, rosterId: number | "") => void;
+  /** How many Matchups of the Week there can be — one per game the league plays a week. */
+  maxMatchups?: number;
   /** Take a section out of the layout (see RecapModel.layout), or add one — the contents down the side do the same. */
   onRemoveSection?: (key: RecapSectionKey) => void;
   onAddSection?: (key: RecapSectionKey) => void;
@@ -588,8 +589,86 @@ export function RecapSectionsEditor({
   const toggleDetail = (key: RecapSectionKey) =>
     onChange({ ...model, detailShown: { ...model.detailShown, [key]: !isDetailShown(model, key) } });
   const live: LiveWeekData = { recapData, ledger, week, teams };
-  const decidedBowl = decidedMatchupFor(teams, bowlMatchup);
-  const decidedHonorable = decidedMatchupFor(teams, honorableMatchup);
+
+  // A Matchup of the Week's Detail, wherever it's kept: a field of its own for the first two, `more` for the rest.
+  const matchupDetail = (key: RecapSectionKey): string => {
+    const field = DETAIL_FIELD[key];
+    if (field) return model[field] as string;
+    const more = model.more?.[matchupNumber(key) as MoreMatchup];
+    return (isUpcomingSection(key) ? more?.detail : more?.resultDetail) ?? "";
+  };
+  const setMatchupDetail = (key: RecapSectionKey, value: string) => {
+    const field = DETAIL_FIELD[key];
+    if (field) return onChange({ ...model, [field]: value });
+    const n = matchupNumber(key) as MoreMatchup;
+    const more = model.more?.[n] ?? { result: "", resultDetail: "", lines: "", detail: "" };
+    onChange({ ...model, more: { ...model.more, [n]: { ...more, [isUpcomingSection(key) ? "detail" : "resultDetail"]: value } } });
+  };
+  // How the nth Matchup of the Week picked last week turned out: its name, and the two teams once it's scored.
+  const resultCard = (n: number) => {
+    const key = resultMatchupKey(n);
+    const result = matchups.results[n] ?? null;
+    return (
+      <SectionBox
+        onRemove={onRemoveSection ? () => onRemoveSection(key) : undefined}
+        section={key}
+        poster
+        included={included(key)}
+        onToggleIncluded={() => toggleIncluded(key)}
+        header={
+          <BowlNameInput
+            value={pickAt(matchups.resultPicks, n).name}
+            placeholder={`Name the ${matchupTitle(n, false).label}…`}
+            onRename={(name) => matchups.onRenameResult(n, name)}
+          />
+        }
+        detailShown={detailShown(key)}
+        onToggleDetail={() => toggleDetail(key)}
+        detail={<DetailField value={matchupDetail(key)} onChange={(v) => setMatchupDetail(key, v)} />}
+      >
+        {decidedMatchupFor(teams, result) ? (
+          <DecidedMatchupBody matchup={result} teams={teams} />
+        ) : (
+          <p className="rn-caption">Calculated from live scores — not editable.</p>
+        )}
+      </SectionBox>
+    );
+  };
+  // Next week's nth Matchup of the Week: its name and its two teams (suggested best first — see suggestMatchups).
+  const previewCard = (n: number) => {
+    const key = upcomingMatchupKey(n);
+    const { emoji, label } = matchupTitle(n, true);
+    return (
+      <SectionBox
+        onRemove={onRemoveSection ? () => onRemoveSection(key) : undefined}
+        section={key}
+        poster
+        included={included(key)}
+        onToggleIncluded={() => toggleIncluded(key)}
+        header={
+          <>
+            <SectionHeader emoji={emoji} label={label} />
+            <BowlNameInput
+              value={pickAt(matchups.upcomingPicks, n).name}
+              placeholder={`Name next week's ${label}…`}
+              onRename={(name) => matchups.onRenameUpcoming(n, name)}
+            />
+          </>
+        }
+        detailShown={detailShown(key)}
+        onToggleDetail={() => toggleDetail(key)}
+        detail={<DetailField value={matchupDetail(key)} onChange={(v) => setMatchupDetail(key, v)} />}
+      >
+        <PreviewMatchupBody
+          pick={pickAt(matchups.upcomingPicks, n)}
+          teamOptions={teamOptions}
+          onChangeTeam={(slot, rosterId) => matchups.onChangeUpcomingTeam(n, slot, rosterId)}
+        />
+        {/* The second closes the house style's write-up; every other one asks who'll win. */}
+        <p className="rn-trailer">{n === 2 ? GOOD_LUCK_TO_ALL : WHO_WILL_PREVAIL}</p>
+      </SectionBox>
+    );
+  };
 
   // Every house-style section's card, by section; the added ones (EXTRA_SECTIONS) are built below.
   const cards: Partial<Record<RecapSectionKey, React.ReactNode>> = {
@@ -614,52 +693,8 @@ export function RecapSectionsEditor({
         />
       </SectionBox>
     ),
-    bowl: (
-      <SectionBox
-        onRemove={onRemoveSection ? () => onRemoveSection("bowl") : undefined}
-        section="bowl"
-        poster
-        included={included("bowl")}
-        onToggleIncluded={() => toggleIncluded("bowl")}
-        header={
-          <BowlNameInput value={bowlPick?.name ?? ""} placeholder="Name the Bowl of the Week…" onRename={onRenameBowl} />
-        }
-        detailShown={detailShown("bowl")}
-        onToggleDetail={() => toggleDetail("bowl")}
-        detail={<DetailField value={model.bowlDetail} onChange={(v) => set("bowlDetail", v)} />}
-      >
-        {decidedBowl ? (
-          <DecidedMatchupBody matchup={bowlMatchup} teams={teams} />
-        ) : (
-          <p className="rn-caption">Calculated from live scores — not editable.</p>
-        )}
-      </SectionBox>
-    ),
-    honorable: (
-      <SectionBox
-        onRemove={onRemoveSection ? () => onRemoveSection("honorable") : undefined}
-        section="honorable"
-        poster
-        included={included("honorable")}
-        onToggleIncluded={() => toggleIncluded("honorable")}
-        header={
-          <BowlNameInput
-            value={honorablePick?.name ?? ""}
-            placeholder="Name the Honorable Mention…"
-            onRename={onRenameHonorable}
-          />
-        }
-        detailShown={detailShown("honorable")}
-        onToggleDetail={() => toggleDetail("honorable")}
-        detail={<DetailField value={model.honorableDetail} onChange={(v) => set("honorableDetail", v)} />}
-      >
-        {decidedHonorable ? (
-          <DecidedMatchupBody matchup={honorableMatchup} teams={teams} />
-        ) : (
-          <p className="rn-caption">Calculated from live scores — not editable.</p>
-        )}
-      </SectionBox>
-    ),
+    bowl: resultCard(1),
+    honorable: resultCard(2),
     highScorer: (
       <SectionBox
         onRemove={onRemoveSection ? () => onRemoveSection("highScorer") : undefined}
@@ -731,62 +766,12 @@ export function RecapSectionsEditor({
         <RecordsStandingsBody recapData={recapData} teams={teams} />
       </SectionBox>
     ),
-    upcomingBowl: (
-      <SectionBox
-        onRemove={onRemoveSection ? () => onRemoveSection("upcomingBowl") : undefined}
-        section="upcomingBowl"
-        poster
-        included={included("upcomingBowl")}
-        onToggleIncluded={() => toggleIncluded("upcomingBowl")}
-        header={
-          <>
-            <SectionHeader emoji={SECTION_TITLE.upcomingBowl.emoji} label={SECTION_TITLE.upcomingBowl.label} />
-            <BowlNameInput
-              value={upcomingBowlPick?.name ?? ""}
-              placeholder="Name next week's Matchup of the Week…"
-              onRename={onRenameUpcomingBowl}
-            />
-          </>
-        }
-        detailShown={detailShown("upcomingBowl")}
-        onToggleDetail={() => toggleDetail("upcomingBowl")}
-        detail={<DetailField value={model.upcomingBowlDetail} onChange={(v) => set("upcomingBowlDetail", v)} />}
-      >
-        <PreviewMatchupBody pick={upcomingBowlPick} teamOptions={teamOptions} onChangeTeam={onChangeUpcomingBowlTeam} />
-        <p className="rn-trailer">{WHO_WILL_PREVAIL}</p>
-      </SectionBox>
-    ),
-    upcomingHonorable: (
-      <SectionBox
-        onRemove={onRemoveSection ? () => onRemoveSection("upcomingHonorable") : undefined}
-        section="upcomingHonorable"
-        poster
-        included={included("upcomingHonorable")}
-        onToggleIncluded={() => toggleIncluded("upcomingHonorable")}
-        header={
-          <>
-            <SectionHeader emoji={SECTION_TITLE.upcomingHonorable.emoji} label={SECTION_TITLE.upcomingHonorable.label} />
-            <BowlNameInput
-              value={upcomingHonorablePick?.name ?? ""}
-              placeholder="Name next week's Honorable Mention…"
-              onRename={onRenameUpcomingHonorable}
-            />
-          </>
-        }
-        detailShown={detailShown("upcomingHonorable")}
-        onToggleDetail={() => toggleDetail("upcomingHonorable")}
-        detail={<DetailField value={model.upcomingHonorableDetail} onChange={(v) => set("upcomingHonorableDetail", v)} />}
-      >
-        <PreviewMatchupBody
-          pick={upcomingHonorablePick}
-          teamOptions={teamOptions}
-          onChangeTeam={onChangeUpcomingHonorableTeam}
-        />
-        <p className="rn-trailer">{GOOD_LUCK_TO_ALL}</p>
-      </SectionBox>
-    ),
+    upcomingBowl: previewCard(1),
+    upcomingHonorable: previewCard(2),
   };
   const card = (key: RecapSectionKey): React.ReactNode => {
+    const n = matchupNumber(key);
+    if (n !== null && n > 2) return isUpcomingSection(key) ? previewCard(n) : resultCard(n);
     if (!isExtraSection(key)) return cards[key];
     const { emoji, label } = EXTRA_SECTIONS[key];
     return (
@@ -803,7 +788,7 @@ export function RecapSectionsEditor({
   };
   const layout = recapLayout(model);
   const firstUpcoming = layout.find((k) => isUpcomingSection(k));
-  const missing = RECAP_SECTIONS.map((s) => s.key).filter((k) => !layout.includes(k));
+  const missing = addableSections(layout, maxMatchups);
 
   return (
     <div className="recap-neon app-theme">
@@ -837,11 +822,21 @@ export function RecapSectionsEditor({
             }}
           >
             <option value="">Choose…</option>
-            {missing.map((k) => (
-              <option key={k} value={k}>
-                {sectionName(k).emoji} {sectionName(k).label}
-              </option>
-            ))}
+            {/* This week's recap, then next week's previews — each under its own heading. */}
+            {[
+              { label: "This week's recap", keys: missing.filter((k) => !isUpcomingSection(k)) },
+              { label: `Upcoming week ${model.upcomingWeek}`, keys: missing.filter((k) => isUpcomingSection(k)) },
+            ].map((group) =>
+              group.keys.length > 0 ? (
+                <optgroup key={group.label} label={group.label}>
+                  {group.keys.map((k) => (
+                    <option key={k} value={k}>
+                      {sectionName(k).emoji} {sectionName(k).label}
+                    </option>
+                  ))}
+                </optgroup>
+              ) : null
+            )}
           </select>
         </label>
       ) : null}

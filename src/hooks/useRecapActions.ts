@@ -48,6 +48,9 @@ export interface RecapActionsArgs {
   honorableMatchup: BowlMatchupResult | null;
   upcomingMatchup: BowlMatchupPreview | null;
   upcomingHonorableMatchup: BowlMatchupPreview | null;
+  /** The same for the Matchups of the Week past the second, by number (3 on). */
+  moreMatchups?: Record<number, BowlMatchupResult | null>;
+  morePreviews?: Record<number, BowlMatchupPreview | null>;
   /** Roster id -> team name/logo/username, for turning the matchups above into the graphic's MatchupTeam shape, and for the Winners/Standings sections' usernames. */
   teams: Record<number, GraphicTeam>;
   /** This write-up's own week's matchup data and money ledger — feeds the graphic's High Scorer podium, Winners margins, and Updated Standings, the same live data the on-screen sections already show (see RecapSectionsEditor). Null in preseason or before it's loaded. */
@@ -151,6 +154,8 @@ export function useRecapActions(args: RecapActionsArgs) {
       honorable: decidedMatchupFor(canvasTeams, args.honorableMatchup),
       upcoming: previewMatchupFor(canvasTeams, args.upcomingMatchup),
       upcomingHonorable: previewMatchupFor(canvasTeams, args.upcomingHonorableMatchup),
+      more: Object.fromEntries(Object.entries(args.moreMatchups ?? {}).map(([n, m]) => [n, decidedMatchupFor(canvasTeams, m)])),
+      morePreviews: Object.fromEntries(Object.entries(args.morePreviews ?? {}).map(([n, m]) => [n, previewMatchupFor(canvasTeams, m)])),
       highScorer: highScorerForGraphic(
         args.recapData,
         args.ledger,

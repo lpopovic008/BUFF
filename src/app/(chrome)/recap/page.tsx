@@ -9,7 +9,7 @@ import {
   CheckIcon,
   UploadIcon,
 } from "@/components/ui/Icon";
-import { computeWeekRecap, lastWeekOf, regularSeasonWeeksOf, WeekRecapData } from "@/lib/league-data";
+import { computeWeekRecap, lastWeekOf, MatchupGame, regularSeasonWeeksOf, StandingsRow, WeekRecapData } from "@/lib/league-data";
 import { setHeaderWeek } from "@/lib/header-week";
 import {
   formatRecapMarkdown,
@@ -17,7 +17,20 @@ import {
   buildPreseasonRecapModel,
   findWeekTopStarters,
 } from "@/lib/format-recap";
-import { RecapModel, RecapSectionKey, parseRecapModel, EMPTY_RECAP_MODEL, normalizeLayout, recapLayout, isUpcomingSection } from "@/lib/recap-model";
+import {
+  RecapModel,
+  RecapSectionKey,
+  parseRecapModel,
+  EMPTY_RECAP_MODEL,
+  normalizeLayout,
+  recapLayout,
+  isUpcomingSection,
+  matchupNumber,
+  matchupTitle,
+  MORE_MATCHUPS,
+  MoreMatchup,
+  MoreMatchupText,
+} from "@/lib/recap-model";
 import {
   formatBowlResultLine,
   formatUpcomingBowlBlock,
@@ -26,15 +39,16 @@ import {
   resolveBowlMatchupPreview,
   BowlMatchupResult,
   BowlMatchupPreview,
+  suggestMatchups,
 } from "@/lib/bowl-narrative";
 import { loadLeagueMoney, LeagueMoney } from "@/lib/league-money";
 import { findLeagueProfile, defaultProfileFor } from "@/lib/league-config";
 import { summarizeWeek } from "@/lib/payouts";
-import { getRecap, getBowlPicks, saveBowlPicks, getRecapLayout, saveRecapLayout, RecapBowlPicks, SavedRecap } from "@/lib/localStore";
+import { getRecap, getBowlPicks, saveBowlPicks, getRecapLayout, saveRecapLayout, pickAt, withPickAt, RecapBowlPicks, SavedRecap } from "@/lib/localStore";
 import { resolveGoogleClientId } from "@/lib/google-config";
 import { useConfig } from "@/hooks/useConfig";
 import { useRecapActions } from "@/hooks/useRecapActions";
-import { getCurrentWeek, getRecapWeek, getLeague, getLeagueRosters, getLeagueUsers } from "@/lib/sleeper";
+import { getCurrentWeek, getRecapWeek, getLeague, getLeagueRosters, getLeagueUsers, getMatchups } from "@/lib/sleeper";
 import { resolvePlayers } from "@/lib/players";
 import { displayManagerName } from "@/lib/format";
 import { useLeagueTeams } from "@/hooks/useLeagueTeams";
@@ -51,6 +65,57 @@ const PRESEASON_WEEK = 0;
 
 function simplePreseasonTemplate(leagueName: string, season: string): string {
   return [`🚨📋 ${leagueName} — ${season} Preseason`, "", "[Write your season preview here.]", ""].join("\n");
+}
+
+/**
+ * The text of the Matchups of the Week past the second (see RecapModel.more): each one's result from this
+ * week's picks (made last week) against this week's games, and its preview from next week's picks.
+ */
+function moreMatchupTexts(
+  resultPicks: RecapBowlPicks | null,
+  upcomingPicks: RecapBowlPicks,
+  nextWeek: number,
+  names: Record<number, string>,
+  games: MatchupGame[],
+  standings: StandingsRow[]
+): Partial<Record<MoreMatchup, MoreMatchupText>> {
+  const out: Partial<Record<MoreMatchup, MoreMatchupText>> = {};
+  for (const n of MORE_MATCHUPS) {
+    out[n] = {
+      result: formatBowlResultLine(matchupTitle(n, false).emoji, pickAt(resultPicks, n), names, games),
+      resultDetail: "",
+      lines: formatUpcomingBowlBlock(pickAt(upcomingPicks, n), nextWeek, names, standings).join("\n"),
+      detail: "",
+    };
+  }
+  return out;
+}
+
+/** A week's games as pairs of roster ids, from Sleeper's schedule. */
+async function weekPairs(leagueId: string, week: number): Promise<[number, number][]> {
+  const byMatchup = new Map<number, number[]>();
+  for (const m of await getMatchups(leagueId, week)) {
+    if (m.matchup_id == null) continue;
+    byMatchup.set(m.matchup_id, [...(byMatchup.get(m.matchup_id) ?? []), m.roster_id]);
+  }
+  return [...byMatchup.values()].filter((ids) => ids.length === 2).map((ids) => [ids[0], ids[1]]);
+}
+
+/**
+ * Next week's Matchups of the Week still without teams, filled with the best of the games left — best first
+ * (see suggestMatchups), each game used once. Only those in the layout; null when there's nothing to fill.
+ */
+function suggestPicks(picks: RecapBowlPicks, layout: RecapSectionKey[], ranked: [number, number][]): RecapBowlPicks | null {
+  const numbers = layout.filter((k) => isUpcomingSection(k)).map((k) => matchupNumber(k) ?? 0).sort((a, b) => a - b);
+  const taken = new Set(numbers.flatMap((n) => pickAt(picks, n).rosterIds));
+  const left = ranked.filter(([a, b]) => !taken.has(a) && !taken.has(b));
+  let next = picks;
+  for (const n of numbers) {
+    const pick = pickAt(next, n);
+    if (pick.rosterIds.length > 0 || left.length === 0) continue;
+    next = withPickAt(next, n, { ...pick, rosterIds: [...left.shift()!] });
+  }
+  return next === picks ? null : next;
 }
 
 /**
@@ -74,7 +139,11 @@ function resolveHouseStyleState(
   // isDetailShown, ...) assumes is always at least an empty string.
   // The added sections' text is backfilled from the fresh draft too, so a section added to an older saved week
   // starts from this week's data rather than blank.
-  if (saved.model) return { model: { ...EMPTY_RECAP_MODEL, ...saved.model, extra: { ...fresh.extra, ...saved.model.extra } }, plainBody: "", fresh };
+  // So is the text of the Matchups of the Week past the second.
+  if (saved.model) {
+    const model = { ...EMPTY_RECAP_MODEL, ...saved.model, extra: { ...fresh.extra, ...saved.model.extra }, more: { ...fresh.more, ...saved.model.more } };
+    return { model, plainBody: "", fresh };
+  }
   const parsed = parseRecapModel(saved.body);
   return parsed ? { model: parsed, plainBody: "", fresh } : { model: null, plainBody: saved.body, fresh };
 }
@@ -99,7 +168,6 @@ interface RecapHeader {
   title: string;
   leagueName: string;
   season: string;
-  subtitle: string;
 }
 
 function RecapContent() {
@@ -152,6 +220,21 @@ function RecapContent() {
   const [honorableMatchup, setHonorableMatchup] = useState<BowlMatchupResult | null>(null);
   const [upcomingBowlPreview, setUpcomingBowlPreview] = useState<BowlMatchupPreview | null>(null);
   const [upcomingHonorablePreview, setUpcomingHonorablePreview] = useState<BowlMatchupPreview | null>(null);
+  // How many Matchups of the Week there can be — one per game the league plays a week — and next week's games,
+  // best first (see suggestMatchups), for filling in any added later.
+  const [maxMatchups, setMaxMatchups] = useState(2);
+  const [rankedPairs, setRankedPairs] = useState<[number, number][]>([]);
+  // The Matchups of the Week past the second: how this week's turned out, and next week's for the graphic.
+  const moreResults = useMemo(() => {
+    const out: Record<number, BowlMatchupResult | null> = {};
+    for (const n of MORE_MATCHUPS) out[n] = recapData ? resolveBowlMatchup(pickAt(resultPicks, n), recapData.games) : null;
+    return out;
+  }, [resultPicks, recapData]);
+  const morePreviews = useMemo(() => {
+    const out: Record<number, BowlMatchupPreview | null> = {};
+    for (const n of MORE_MATCHUPS) out[n] = resolveBowlMatchupPreview(pickAt(upcomingPicks, n));
+    return out;
+  }, [upcomingPicks]);
 
   // Feeds the bowl-pick team selects — a league-wide roster dump, loaded lazily
   // (the picker shows "Loading teams…" until ready) and needed for both regular
@@ -235,7 +318,6 @@ function RecapContent() {
             title: `${league.name} — Preseason`,
             leagueName: league.name,
             season: league.season,
-            subtitle: "Free-write — nothing to auto-generate yet.",
           });
 
           const saved = getRecap(leagueId, league.season, PRESEASON_WEEK);
@@ -244,17 +326,30 @@ function RecapContent() {
             if (cancelled) return;
             setTeamNames(names);
 
-            const upcoming = getBowlPicks(leagueId, league.season, PRESEASON_WEEK + 1);
+            // Week 1's games, for its Matchups of the Week — in the schedule's order, there being no standings yet.
+            const pairs = await weekPairs(leagueId, PRESEASON_WEEK + 1);
+            if (cancelled) return;
+            setMaxMatchups(Math.max(2, pairs.length));
+            setRankedPairs(suggestMatchups(pairs, []));
+            let upcoming = getBowlPicks(leagueId, league.season, PRESEASON_WEEK + 1);
+            const suggested = suggestPicks(upcoming, recapLayout({ layout: saved?.model?.layout ?? leagueLayout(leagueId) }), suggestMatchups(pairs, []));
+            if (suggested) {
+              upcoming = suggested;
+              saveBowlPicks(leagueId, league.season, PRESEASON_WEEK + 1, upcoming);
+            }
             setUpcomingPicks(upcoming);
             setUpcomingBowlPreview(resolveBowlMatchupPreview(upcoming.bowlOfWeek));
             setUpcomingHonorablePreview(resolveBowlMatchupPreview(upcoming.honorableBowl));
-            const fresh = buildPreseasonRecapModel({
-              layout: leagueLayout(leagueId),
-              leagueName: league.name,
-              season: league.season,
-              upcomingBowlLines: formatUpcomingBowlBlock(upcoming.bowlOfWeek, PRESEASON_WEEK + 1, names, []),
-              upcomingHonorableLines: formatUpcomingHonorableBlock(upcoming.honorableBowl, PRESEASON_WEEK + 1, names),
-            });
+            const fresh = {
+              ...buildPreseasonRecapModel({
+                layout: leagueLayout(leagueId),
+                leagueName: league.name,
+                season: league.season,
+                upcomingBowlLines: formatUpcomingBowlBlock(upcoming.bowlOfWeek, PRESEASON_WEEK + 1, names, []),
+                upcomingHonorableLines: formatUpcomingHonorableBlock(upcoming.honorableBowl, PRESEASON_WEEK + 1, names),
+              }),
+              more: moreMatchupTexts(null, upcoming, PRESEASON_WEEK + 1, names, [], []),
+            };
             const resolved = resolveHouseStyleState(fresh, saved);
             setModel(resolved.model);
             setPlainBody(resolved.plainBody);
@@ -275,7 +370,6 @@ function RecapContent() {
           title: `${data.league.name} — Week ${week} Recap`,
           leagueName: data.league.name,
           season: data.league.season,
-          subtitle: "Auto-generated from Sleeper data. Edit freely before copying it out to your group chat.",
         });
 
         // Every league gets the house-style recap — the money blocks, last
@@ -299,7 +393,17 @@ function RecapContent() {
           // this week's now-final matchups; next week's pick (being set on THIS
           // page, below) previews using standings through this week.
           const resultPick = getBowlPicks(leagueId, data.league.season, week);
-          const upcoming = getBowlPicks(leagueId, data.league.season, week + 1);
+          // Next week's Matchups of the Week still without teams get the best of next week's games (see suggestMatchups).
+          const pairs = await weekPairs(leagueId, week + 1);
+          if (cancelled) return;
+          setMaxMatchups(Math.max(2, pairs.length || data.games.length));
+          setRankedPairs(suggestMatchups(pairs, data.standingsAfter));
+          let upcoming = getBowlPicks(leagueId, data.league.season, week + 1);
+          const suggested = suggestPicks(upcoming, recapLayout({ layout: saved?.model?.layout ?? leagueLayout(leagueId) }), suggestMatchups(pairs, data.standingsAfter));
+          if (suggested) {
+            upcoming = suggested;
+            saveBowlPicks(leagueId, data.league.season, week + 1, upcoming);
+          }
           setUpcomingPicks(upcoming);
           setResultPicks(resultPick);
           setBowlMatchup(resolveBowlMatchup(resultPick.bowlOfWeek, data.games));
@@ -317,16 +421,19 @@ function RecapContent() {
           for (const p of resolvedPlayers) playerNames[p.playerId] = p.name;
           setHighScorerNames(playerNames);
 
-          const fresh = buildWeeklyRecapModel({
-            layout: leagueLayout(leagueId),
-            data,
-            ledger: leagueMoney.ledger,
-            playerNames,
-            bowlResultLine: formatBowlResultLine("👑", resultPick.bowlOfWeek, names, data.games),
-            honorableResultLine: formatBowlResultLine("🏆", resultPick.honorableBowl, names, data.games),
-            upcomingBowlLines: formatUpcomingBowlBlock(upcoming.bowlOfWeek, week + 1, names, data.standingsAfter),
-            upcomingHonorableLines: formatUpcomingHonorableBlock(upcoming.honorableBowl, week + 1, names),
-          });
+          const fresh = {
+            ...buildWeeklyRecapModel({
+              layout: leagueLayout(leagueId),
+              data,
+              ledger: leagueMoney.ledger,
+              playerNames,
+              bowlResultLine: formatBowlResultLine("👑", resultPick.bowlOfWeek, names, data.games),
+              honorableResultLine: formatBowlResultLine("🏆", resultPick.honorableBowl, names, data.games),
+              upcomingBowlLines: formatUpcomingBowlBlock(upcoming.bowlOfWeek, week + 1, names, data.standingsAfter),
+              upcomingHonorableLines: formatUpcomingHonorableBlock(upcoming.honorableBowl, week + 1, names),
+            }),
+            more: moreMatchupTexts(resultPick, upcoming, week + 1, names, data.games, data.standingsAfter),
+          };
           const resolvedState = resolveHouseStyleState(fresh, saved);
           setModel(resolvedState.model);
           setPlainBody(resolvedState.plainBody);
@@ -348,7 +455,7 @@ function RecapContent() {
 
   /**
    * A next-week pick changed (team, or a rename routed through here — see
-   * renameUpcomingBowl below). Only the two "upcoming" preview fields are
+   * renameUpcoming below). Only the "upcoming" preview fields are
    * mechanically derived from picks, so only those get regenerated — every
    * other field (title, winners, standings, hand-typed details, ...) is left
    * exactly as the commish has it. Rebuilding the whole model from scratch
@@ -360,80 +467,79 @@ function RecapContent() {
     setUpcomingBowlPreview(resolveBowlMatchupPreview(picks.bowlOfWeek));
     setUpcomingHonorablePreview(resolveBowlMatchupPreview(picks.honorableBowl));
     if (!leagueId || week === null) return;
+    if (week !== PRESEASON_WEEK && !recapData) return;
+    // Before Week 1 there are no standings for the previews' PF/PA yet.
+    const standings = week === PRESEASON_WEEK ? [] : (recapData?.standingsAfter ?? []);
     setModel((current) => {
       if (!current) return current;
-      if (week === PRESEASON_WEEK) {
-        return {
-          ...current,
-          upcomingBowlLines: formatUpcomingBowlBlock(picks.bowlOfWeek, PRESEASON_WEEK + 1, teamNames, []).join("\n"),
-          upcomingHonorableLines: formatUpcomingHonorableBlock(picks.honorableBowl, PRESEASON_WEEK + 1, teamNames).join("\n"),
-        };
+      const more = { ...current.more };
+      for (const n of MORE_MATCHUPS) {
+        const lines = formatUpcomingBowlBlock(pickAt(picks, n), week + 1, teamNames, standings).join("\n");
+        more[n] = { result: "", resultDetail: "", detail: "", ...more[n], lines };
       }
-      if (!recapData) return current;
       return {
         ...current,
-        upcomingBowlLines: formatUpcomingBowlBlock(picks.bowlOfWeek, week + 1, teamNames, recapData.standingsAfter).join(
-          "\n"
-        ),
+        upcomingBowlLines: formatUpcomingBowlBlock(picks.bowlOfWeek, week + 1, teamNames, standings).join("\n"),
         upcomingHonorableLines: formatUpcomingHonorableBlock(picks.honorableBowl, week + 1, teamNames).join("\n"),
+        more,
       };
     });
   }
 
-  /** A next-week matchup's team slot changed — writes back to the shared pick record and folds the new preview lines into the model via handlePicksSaved above. */
-  function changeUpcomingTeam(field: keyof RecapBowlPicks, slot: 0 | 1, rosterId: number | "") {
+  /** One of next week's Matchups of the Week (1-based) got a team — writes back to the shared pick record and folds the new preview lines into the model via handlePicksSaved above. */
+  function changeUpcomingTeam(n: number, slot: 0 | 1, rosterId: number | "") {
     if (!leagueId || !header || week === null) return;
     const pickWeek = week + 1;
     const current = upcomingPicks ?? getBowlPicks(leagueId, header.season, pickWeek);
-    const pick = current[field];
+    const pick = pickAt(current, n);
     const nextIds = [...pick.rosterIds];
     if (rosterId !== "") nextIds[slot] = rosterId;
     else nextIds.splice(slot, 1);
-    const updatedPick = { ...pick, rosterIds: nextIds.filter((id) => id !== undefined) };
-    const updated: RecapBowlPicks = { ...current, [field]: updatedPick };
+    const updated = withPickAt(current, n, { ...pick, rosterIds: nextIds.filter((id) => id !== undefined) });
     saveBowlPicks(leagueId, header.season, pickWeek, updated);
     handlePicksSaved(updated);
   }
 
   /**
-   * Renaming this week's Bowl of the Week/Honorable Mention writes straight
-   * back to the same week-keyed BowlGamePick that was set as the "upcoming"
-   * pick on last week's page (see saveBowlPicks/getBowlPicks) — so the name
-   * is never duplicated per-section, and a league visiting last week's page
-   * again would see the same updated name in its own preview box too.
+   * Renaming one of this week's Bowls of the Week writes straight back to
+   * the same week-keyed pick that was set as an "upcoming" pick on last
+   * week's page (see saveBowlPicks/getBowlPicks) — so the name is never
+   * duplicated per-section, and a league visiting last week's page again
+   * would see the same updated name in its own preview box too.
    */
-  function renameResultBowl(field: keyof RecapBowlPicks, name: string) {
+  function renameResult(n: number, name: string) {
     if (!leagueId || !header || !recapData || week === null) return;
     const current = getBowlPicks(leagueId, header.season, week);
-    const updatedPick = { ...current[field], name };
-    const updated: RecapBowlPicks = { ...current, [field]: updatedPick };
+    const updatedPick = { ...pickAt(current, n), name };
+    const updated = withPickAt(current, n, updatedPick);
     saveBowlPicks(leagueId, header.season, week, updated);
     setResultPicks(updated);
 
     const matchup = resolveBowlMatchup(updatedPick, recapData.games);
-    if (field === "bowlOfWeek") setBowlMatchup(matchup);
-    else setHonorableMatchup(matchup);
+    if (n === 1) setBowlMatchup(matchup);
+    if (n === 2) setHonorableMatchup(matchup);
 
+    const line = formatBowlResultLine(matchupTitle(n, false).emoji, updatedPick, teamNames, recapData.games);
     setModel((prev) => {
       if (!prev) return prev;
-      if (field === "bowlOfWeek") {
-        return { ...prev, bowlResult: formatBowlResultLine("👑", updatedPick, teamNames, recapData.games) };
-      }
-      return { ...prev, honorableResult: formatBowlResultLine("🏆", updatedPick, teamNames, recapData.games) };
+      if (n === 1) return { ...prev, bowlResult: line };
+      if (n === 2) return { ...prev, honorableResult: line };
+      const more = prev.more?.[n as MoreMatchup] ?? { result: "", resultDetail: "", lines: "", detail: "" };
+      return { ...prev, more: { ...prev.more, [n]: { ...more, result: line } } };
     });
   }
 
   /**
-   * Renaming next week's preview writes to the same pick record
+   * Renaming one of next week's previews writes to the same pick record
    * handlePicksSaved above already knows how to fold back into the model —
    * reused as-is so a rename regenerates the preview lines identically to a
    * picker save.
    */
-  function renameUpcomingBowl(field: keyof RecapBowlPicks, name: string) {
+  function renameUpcoming(n: number, name: string) {
     if (!leagueId || !header || week === null) return;
     const pickWeek = week + 1;
     const current = upcomingPicks ?? getBowlPicks(leagueId, header.season, pickWeek);
-    const updated: RecapBowlPicks = { ...current, [field]: { ...current[field], name } };
+    const updated = withPickAt(current, n, { ...pickAt(current, n), name });
     saveBowlPicks(leagueId, header.season, pickWeek, updated);
     handlePicksSaved(updated);
   }
@@ -459,6 +565,15 @@ function RecapContent() {
     const next = [...layout];
     next.splice(at < 0 ? layout.length : at, 0, key);
     changeLayout(next, key);
+    // A Matchup of the Week added for next week starts on the best of next week's games still free.
+    if (isUpcomingSection(key) && leagueId && header && week !== null) {
+      const current = upcomingPicks ?? getBowlPicks(leagueId, header.season, week + 1);
+      const suggested = suggestPicks(current, normalizeLayout(next), rankedPairs);
+      if (suggested) {
+        saveBowlPicks(leagueId, header.season, week + 1, suggested);
+        handlePicksSaved(suggested);
+      }
+    }
   };
   const removeSection = (key: RecapSectionKey) => {
     if (!model) return;
@@ -494,6 +609,8 @@ function RecapContent() {
     honorableMatchup,
     upcomingMatchup: upcomingBowlPreview,
     upcomingHonorableMatchup: upcomingHonorablePreview,
+    moreMatchups: moreResults,
+    morePreviews,
     teams: teamsById,
     recapData,
     ledger: money?.ledger ?? null,
@@ -554,10 +671,9 @@ function RecapContent() {
             </>
           }
         >
-          <h1 className="min-w-0 text-2xl font-semibold text-ink-primary">{header.title}</h1>
+          <h1 className="min-w-0 text-2xl font-semibold text-ink-primary">{header.leagueName}</h1>
         </TitleWithHistory>
-        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-          <p className="text-sm text-ink-secondary">{header.subtitle}</p>
+        <div className="flex flex-wrap items-baseline justify-end gap-x-3 gap-y-1">
           <div className="flex flex-wrap items-center gap-2 text-xs text-ink-muted">
             {actions.lastSavedAt ? (
               <span>Auto-saved {new Date(actions.lastSavedAt).toLocaleString()}</span>
@@ -587,24 +703,21 @@ function RecapContent() {
             plainBody={plainBody}
             onPlainBodyChange={setPlainBody}
             freshModel={freshModel}
-            bowlMatchup={bowlMatchup}
-            honorableMatchup={honorableMatchup}
-            bowlPick={resultPicks?.bowlOfWeek ?? null}
-            honorablePick={resultPicks?.honorableBowl ?? null}
-            upcomingBowlPick={upcomingPicks?.bowlOfWeek ?? null}
-            upcomingHonorablePick={upcomingPicks?.honorableBowl ?? null}
+            matchups={{
+              resultPicks,
+              upcomingPicks,
+              results: { ...moreResults, 1: bowlMatchup, 2: honorableMatchup },
+              onRenameResult: renameResult,
+              onRenameUpcoming: renameUpcoming,
+              onChangeUpcomingTeam: changeUpcomingTeam,
+            }}
+            maxMatchups={maxMatchups}
             teams={teamsById}
             teamOptions={teamOptions}
             recapData={recapData}
             ledger={money?.ledger ?? null}
             week={week}
             playerNames={highScorerNames}
-            onRenameBowl={(name) => renameResultBowl("bowlOfWeek", name)}
-            onRenameHonorable={(name) => renameResultBowl("honorableBowl", name)}
-            onRenameUpcomingBowl={(name) => renameUpcomingBowl("bowlOfWeek", name)}
-            onRenameUpcomingHonorable={(name) => renameUpcomingBowl("honorableBowl", name)}
-            onChangeUpcomingBowlTeam={(slot, rosterId) => changeUpcomingTeam("bowlOfWeek", slot, rosterId)}
-            onChangeUpcomingHonorableTeam={(slot, rosterId) => changeUpcomingTeam("honorableBowl", slot, rosterId)}
             onRemoveSection={removeSection}
             onAddSection={addSection}
           />
@@ -621,8 +734,9 @@ function RecapContent() {
           <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-[minmax(12rem,3fr)_minmax(0,7fr)]">
             <aside className="hidden md:sticky md:top-[calc(var(--header-h,0px)+1rem)] md:block md:max-h-[calc(100vh-var(--header-h,0px)-2rem)] md:overflow-y-auto">
               <RecapContents
-                entries={recapContents(model, { bowl: resultPicks?.bowlOfWeek ?? null, honorable: resultPicks?.honorableBowl ?? null })}
-                toAdd={sectionsToAdd(model)}
+                entries={recapContents(model, resultPicks)}
+                toAdd={sectionsToAdd(model, maxMatchups)}
+                upcomingLabel={`Upcoming week ${model.upcomingWeek}`}
                 onMove={moveSection}
                 onRemove={removeSection}
                 onAdd={addSection}

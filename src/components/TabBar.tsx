@@ -48,7 +48,7 @@ export function TabBar() {
       // Flush with the screen's bottom edge — no room left under the buttons.
       className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-page/95 backdrop-blur [transform:translateZ(0)] md:hidden"
     >
-      <div className="grid h-12 grid-cols-5">
+      <div className="grid h-16 grid-cols-5">
         {tabs.map(({ href, label, icon: Icon, active }) => (
           <Link key={href} href={href} aria-label={label} title={label} aria-current={active ? "page" : undefined} className={tabClass(active)}>
             <Icon width={22} height={22} />

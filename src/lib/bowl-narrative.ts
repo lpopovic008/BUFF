@@ -165,3 +165,34 @@ export function formatUpcomingHonorableBlock(
   const [aId, bId] = pick.rosterIds;
   return [name, `${teamNames[aId] ?? "[team 1]"} vs ${teamNames[bId] ?? "[team 2]"}`];
 }
+
+/**
+ * A week's matchups, best first — the ones worth calling Matchup of the Week:
+ * two teams near the top of the standings (rank), close to each other (rank
+ * and record), both scoring plenty (points for), and alike in their luck
+ * (points against). With no standings yet (the preseason), they keep the
+ * schedule's order.
+ */
+export function suggestMatchups(pairs: [number, number][], standings: StandingsRow[]): [number, number][] {
+  const byId = new Map(standings.map((s) => [s.rosterId, s]));
+  if (byId.size < 2) return pairs;
+  const n = byId.size;
+  const maxPF = Math.max(1, ...standings.map((s) => s.pointsFor));
+  const maxPA = Math.max(1, ...standings.map((s) => s.pointsAgainst));
+  const winPct = (s: StandingsRow) => {
+    const games = s.wins + s.losses + s.ties;
+    return games > 0 ? (s.wins + s.ties / 2) / games : 0.5;
+  };
+  const score = ([a, b]: [number, number]) => {
+    const x = byId.get(a);
+    const y = byId.get(b);
+    if (!x || !y) return -Infinity;
+    const quality = 1 - ((x.rank + y.rank) / 2 - 1) / (n - 1);
+    const closeness = 1 - Math.abs(x.rank - y.rank) / (n - 1);
+    const scoring = (x.pointsFor + y.pointsFor) / (2 * maxPF);
+    const records = 1 - Math.abs(winPct(x) - winPct(y));
+    const luck = 1 - Math.abs(x.pointsAgainst - y.pointsAgainst) / maxPA;
+    return 0.35 * quality + 0.25 * closeness + 0.2 * scoring + 0.1 * records + 0.1 * luck;
+  };
+  return [...pairs].sort((p, q) => score(q) - score(p));
+}

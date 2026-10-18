@@ -355,8 +355,10 @@ allowed) a dashed rise at the end makes up the difference, so the line
 ends on their row's number, which is lit on a plate in the corner. Dragging
 or hovering puts a dotted line under the finger, with the time there, and
 it stays where it's lifted. There's no description under the graph: while
-the cursor is up, the Red Zone shows the last play by then (`spotlight`),
-laid over the top of its plays, lit up — nothing under it moves.
+the cursor is up, the Red Zone's plays scroll to the last play by then
+(`spotlight`), lit up, so you can scroll on from there to what led up to it;
+once the cursor's gone they're back where they were. (A play not among the
+plays shown — another of its buttons picked — is laid over the top of them.)
 Nothing else moves: a finger on the graph moves only its cursor
 (`touch-action: none`), never the page. Tapping the graph again, or
 anywhere off it, takes the cursor away, and the Red Zone goes back to

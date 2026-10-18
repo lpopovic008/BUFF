@@ -47,12 +47,16 @@ from every linked season. Ships as a static site, hosted for free on
   Standings Movers, Waivers & Trades or Commish Notes section (each filled in
   from that week's data, the notes left blank), and any section can be moved
   or removed from the contents. The layout is saved per league, and every
-  later week's recap starts from it. Below
-  the write-up, name a **Bowl of the Week**/**Honorable Bowl of the Week** for
-  the *upcoming* week and pick the two teams playing — save it and this week's
-  preview fills in with the two teams' season PF/PA and league rank; the following week, the
-  same pick resolves into the result: who actually won, pulled straight from
-  Sleeper. Nothing picked yet? Every field still shows its bracket placeholder
+  later week's recap starts from it. The list to add from is split into
+  this week's recap and the upcoming week. Under the write-up, name next
+  week's **Matchup of the Week** and **Matchup of the Week #2** — and, added
+  from the list, #3 on, one for every game the league plays — and pick the
+  two teams playing. Each one with no teams yet is suggested: the best of
+  next week's games still free, by standings rank, how close the two teams
+  are in rank and record, their points for, and their points against. A pick
+  fills its preview in with the two teams' season PF/PA and league rank; the
+  following week, the same pick resolves into the result — its **Bowl of the
+  Week** (#2, #3, …): who actually won, pulled straight from Sleeper. Nothing picked yet? Every field still shows its bracket placeholder
   (`[team] won the [Week 1 Bowl Game Name]`) so the shape of the write-up is
   always there. Saving a pick regenerates the mechanical parts of the current
   draft in place, keeping every `<Detail>` line exactly as written. **Copy

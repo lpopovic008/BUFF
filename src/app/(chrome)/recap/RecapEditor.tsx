@@ -2,13 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { RecapModel, RecapSectionKey } from "@/lib/recap-model";
-import { BowlMatchupResult } from "@/lib/bowl-narrative";
-import { BowlGamePick } from "@/lib/localStore";
 import { LeagueTeamOption } from "@/hooks/useLeagueTeams";
 import { WeekRecapData } from "@/lib/league-data";
 import { PayoutLedger } from "@/lib/payouts";
 import { GraphicTeam } from "@/lib/recap-graphic-data";
-import { RecapSectionsEditor } from "./RecapSectionsEditor";
+import { RecapMatchups, RecapSectionsEditor } from "./RecapSectionsEditor";
 
 // The editor's authored width (see recap-neon.css's .recap-neon) — the
 // narrowest it lays out at. Every size inside it (avatars, fonts, paddings)
@@ -86,24 +84,14 @@ export function RecapEditor({
   plainBody,
   onPlainBodyChange,
   freshModel,
-  bowlMatchup,
-  honorableMatchup,
-  bowlPick,
-  honorablePick,
-  upcomingBowlPick,
-  upcomingHonorablePick,
+  matchups,
+  maxMatchups,
   teams,
   teamOptions,
   recapData,
   ledger,
   week,
   playerNames,
-  onRenameBowl,
-  onRenameHonorable,
-  onRenameUpcomingBowl,
-  onRenameUpcomingHonorable,
-  onChangeUpcomingBowlTeam,
-  onChangeUpcomingHonorableTeam,
   onRemoveSection,
   onAddSection,
 }: {
@@ -113,13 +101,10 @@ export function RecapEditor({
   onPlainBodyChange: (body: string) => void;
   /** The structured model computed fresh from this week's live data, regardless of what actually won out above — offered as an escape hatch (see the plain-textarea branch below) for a saved recap old enough to predate the header boxes, which otherwise gets permanently stuck as one flat field. Null only while data is still loading. */
   freshModel: RecapModel | null;
-  bowlMatchup: BowlMatchupResult | null;
-  honorableMatchup: BowlMatchupResult | null;
-  /** Raw, always-present picks the name inputs and team selects bind to directly — see RecapSectionsEditor's BowlNameInput/PreviewMatchupBody. */
-  bowlPick: BowlGamePick | null;
-  honorablePick: BowlGamePick | null;
-  upcomingBowlPick: BowlGamePick | null;
-  upcomingHonorablePick: BowlGamePick | null;
+  /** The Matchups of the Week — this week's picks and how they turned out, next week's, and their renames and team picks (see RecapMatchups). */
+  matchups: RecapMatchups;
+  /** How many Matchups of the Week there can be — one per game the league plays a week. */
+  maxMatchups?: number;
   /** Roster id -> team name/logo/username, resolving the matchups above into names to display. */
   teams: Record<number, GraphicTeam>;
   /** The league's roster pool for the upcoming-matchup team pickers — null until useLeagueTeams finishes loading. */
@@ -130,14 +115,6 @@ export function RecapEditor({
   week: number;
   /** Player id -> display name, for the High Scorer callout's "led by" names. */
   playerNames: Record<string, string>;
-  /** Double-clicking a matchup's header renames it — writes back to the shared bowl pick (see recap/page.tsx) so the same game's name stays identical everywhere it's shown, this week and next. */
-  onRenameBowl: (name: string) => void;
-  onRenameHonorable: (name: string) => void;
-  onRenameUpcomingBowl: (name: string) => void;
-  onRenameUpcomingHonorable: (name: string) => void;
-  /** Picking a team for one of next week's matchup slots — writes back to the shared bowl pick the same way a rename does. */
-  onChangeUpcomingBowlTeam: (slot: 0 | 1, rosterId: number | "") => void;
-  onChangeUpcomingHonorableTeam: (slot: 0 | 1, rosterId: number | "") => void;
   /** Take a section out of the recap's layout, or add one (see RecapModel.layout). */
   onRemoveSection?: (key: RecapSectionKey) => void;
   onAddSection?: (key: RecapSectionKey) => void;
@@ -184,24 +161,14 @@ export function RecapEditor({
         <RecapSectionsEditor
           model={model}
           onChange={onModelChange}
-          bowlMatchup={bowlMatchup}
-          honorableMatchup={honorableMatchup}
-          bowlPick={bowlPick}
-          honorablePick={honorablePick}
-          upcomingBowlPick={upcomingBowlPick}
-          upcomingHonorablePick={upcomingHonorablePick}
+          matchups={matchups}
+          maxMatchups={maxMatchups}
           teams={teams}
           teamOptions={teamOptions}
           recapData={recapData}
           ledger={ledger}
           week={week}
           playerNames={playerNames}
-          onRenameBowl={onRenameBowl}
-          onRenameHonorable={onRenameHonorable}
-          onRenameUpcomingBowl={onRenameUpcomingBowl}
-          onRenameUpcomingHonorable={onRenameUpcomingHonorable}
-          onChangeUpcomingBowlTeam={onChangeUpcomingBowlTeam}
-          onChangeUpcomingHonorableTeam={onChangeUpcomingHonorableTeam}
           onRemoveSection={onRemoveSection}
           onAddSection={onAddSection}
         />

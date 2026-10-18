@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { PlateCard } from "@/components/ui/PlateCard";
-import { BowlGamePick } from "@/lib/localStore";
-import { isSectionIncluded, isUpcomingSection, RECAP_SECTIONS, recapLayout, RecapModel, RecapSectionKey } from "@/lib/recap-model";
-import { sectionName } from "./RecapSectionsEditor";
+import { pickAt, RecapBowlPicks } from "@/lib/localStore";
+import { isSectionIncluded, isUpcomingSection, matchupNumber, recapLayout, RecapModel, RecapSectionKey } from "@/lib/recap-model";
+import { addableSections, sectionName } from "./RecapSectionsEditor";
 
 interface Entry {
   /** Matches the section's data-recap-section in the editor. */
@@ -20,10 +20,7 @@ interface Entry {
 }
 
 /** The write-up's sections, in the editor's order (the recap's own layout), named as the editor shows them. */
-export function recapContents(
-  model: RecapModel,
-  picks: { bowl: BowlGamePick | null; honorable: BowlGamePick | null }
-): Entry[] {
+export function recapContents(model: RecapModel, resultPicks: RecapBowlPicks | null): Entry[] {
   const layout = recapLayout(model);
   const entries: Entry[] = [{ key: "title", label: model.title.trim() || "Title", included: true }];
   for (const key of layout) {
@@ -31,7 +28,9 @@ export function recapContents(
       entries.push({ key: "upcoming", label: `Upcoming week ${model.upcomingWeek}`, included: true });
     }
     const named = sectionName(key);
-    const picked = key === "bowl" ? picks.bowl?.name?.trim() : key === "honorable" ? picks.honorable?.name?.trim() : "";
+    // A Bowl of the Week by the name it was given, once it has one.
+    const n = matchupNumber(key);
+    const picked = n !== null && !isUpcomingSection(key) ? pickAt(resultPicks, n).name.trim() : "";
     entries.push({
       key,
       section: key,
@@ -44,10 +43,9 @@ export function recapContents(
   return entries;
 }
 
-/** The sections not in the recap's layout — the ones there are to add. */
-export function sectionsToAdd(model: RecapModel): RecapSectionKey[] {
-  const layout = recapLayout(model);
-  return RECAP_SECTIONS.map((s) => s.key).filter((k) => !layout.includes(k));
+/** The sections not in the recap's layout — the ones there are to add (a Matchup of the Week for each of the league's games). */
+export function sectionsToAdd(model: RecapModel, maxMatchups: number): RecapSectionKey[] {
+  return addableSections(recapLayout(model), maxMatchups);
 }
 
 /** The header and ticker's height: how far down the page a section has to be to be in view. */
@@ -84,11 +82,14 @@ function RowButton({ label, onClick, disabled, children }: { label: string; onCl
 export function RecapContents({
   entries,
   toAdd = [],
+  upcomingLabel = "Upcoming week",
   onMove,
   onRemove,
   onAdd,
 }: {
   entries: Entry[];
+  /** The heading over next week's sections in the list to add: "Upcoming week 5". */
+  upcomingLabel?: string;
   /** The sections there are to add (see sectionsToAdd). */
   toAdd?: RecapSectionKey[];
   onMove?: (key: RecapSectionKey, by: -1 | 1) => void;
@@ -191,26 +192,37 @@ export function RecapContents({
               ×
             </RowButton>
           </div>
-          <ul className="flex flex-col">
-            {toAdd.map((key) => {
-              const { emoji, label } = sectionName(key);
-              return (
-                <li key={key}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onAdd(key);
-                      setAdding(false);
-                    }}
-                    className="flex w-full items-baseline gap-2 px-2 py-1.5 text-left text-sm text-ink-secondary transition-colors hover:bg-page hover:text-ink-primary"
-                  >
-                    <span aria-hidden className="w-5 shrink-0 text-center">{emoji}</span>
-                    <span className="min-w-0 truncate">{label}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+          {/* This week's recap, then next week's previews — each under its own heading. */}
+          {[
+            { label: "This week's recap", keys: toAdd.filter((k) => !isUpcomingSection(k)) },
+            { label: upcomingLabel, keys: toAdd.filter((k) => isUpcomingSection(k)) },
+          ].map((group) =>
+            group.keys.length > 0 ? (
+              <div key={group.label} className="flex flex-col">
+                <span className="px-2 pb-0.5 pt-2 text-[0.625rem] font-semibold uppercase tracking-wider text-ink-muted">{group.label}</span>
+                <ul className="flex flex-col">
+                  {group.keys.map((key) => {
+                    const { emoji, label } = sectionName(key);
+                    return (
+                      <li key={key}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onAdd(key);
+                            setAdding(false);
+                          }}
+                          className="flex w-full items-baseline gap-2 px-2 py-1.5 text-left text-sm text-ink-secondary transition-colors hover:bg-page hover:text-ink-primary"
+                        >
+                          <span aria-hidden className="w-5 shrink-0 text-center">{emoji}</span>
+                          <span className="min-w-0 truncate">{label}</span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ) : null
+          )}
         </div>
       ) : (
         <button
