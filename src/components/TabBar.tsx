@@ -57,7 +57,8 @@ export function TabBar() {
     <nav
       ref={ref}
       aria-label="Pages"
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-page/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+      // Flush with the screen's bottom edge — no room left under the buttons.
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-page/95 backdrop-blur [transform:translateZ(0)] md:hidden"
     >
       {open ? (
         <div className="absolute bottom-full right-2 mb-1 flex w-40 flex-col overflow-hidden border border-grid bg-page shadow-md animate-[dropdown_0.15s_ease-out]">

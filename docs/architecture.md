@@ -380,6 +380,12 @@ scored under the league's rules, swapped for the starter's actual points
 once their game is final — so it moves only as games finish, never play by
 play.
 
+In the lineups, a starter who hasn't played yet shows a dash rather than
+0.00; while their game's on, their points are green on pace for their
+projection and red behind it (`onPace`, `paceShare` — as their player graph
+reads it), and once it's over, green if they beat it and red if not
+(`LineTone`).
+
 The league page always has a graph under the lineups and above the payout
 table, three quarters of the screen tall on a phone (`75svh`) and up to 70%
 of it, at most 40rem, from tablet width up (`MatchupGraph`; `lib/matchup-timeline.ts`): the matchup being looked
@@ -437,8 +443,11 @@ menu, the page you're on lit like a map tag; the header's own menu button is
 left to wider screens. Leagues and Write-ups open the league page and the
 recap without a league, which list yours to pick from (`LeaguePicker`; for
 write-ups, the ones you commish) — or, with just one, open it straight away.
-It publishes `--tabbar-h`, so the page's end and the Red Zone's fit-to-screen
-leave room for it.
+It sits flush with the screen's bottom edge (no safe-area padding under
+the buttons), and on a phone the page doesn't bounce past its ends
+(`overscroll-behavior: none`), so the bar never gets dragged up off the
+bottom. It publishes `--tabbar-h`, so the page's end and the Red Zone's
+fit-to-screen leave room for it.
 
 **Header** (`NavBar.tsx`): the NFL week (on pages with their own week, an
 underlined button that opens the week picker). The countdown to the week's
@@ -473,7 +482,7 @@ their exact (fractional) heights so the sum comes out to the pixel.
 **The Red Zone** has no box of its own: its plays spread out to the next
 section or the screen's edge (on a phone, both edges). **Its header** runs
 down its left side, 1.5rem wide: the live dot and RED ZONE a letter to a
-line, ⇕ beside them; then the games on now (scrolling should they outrun
+line, ⇕ under them; then the games on now (scrolling should they outrun
 it); then its Team/VS/All buttons stacked along the bottom. Each
 game on now is a button of its two logos, the visitors over the home team:
 switched off, none of its plays show (it stays listed after it ends while

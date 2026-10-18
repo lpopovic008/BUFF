@@ -10,6 +10,26 @@ import { MatchupRows } from "@/components/LeagueTicker";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { abbreviateFirstName, formatPoints } from "@/lib/format";
 
+/**
+ * How a starter's points read, by player id: "pre" before they've played (a dash), "good" on pace for
+ * their projection (or, game over, beating it), "bad" behind it, null with nothing to measure against.
+ */
+export type LineTone = "pre" | "good" | "bad" | null;
+const EMPTY_TONES = new Map<string, LineTone>();
+const LineToneContext = createContext<Map<string, LineTone>>(EMPTY_TONES);
+
+/** A starter's points in the lineup: a dash before they've played; green on pace, red behind. */
+function SlotPoints({ resolved, align }: { resolved: ResolvedSlot; align: "left" | "right" }) {
+  const tone = useContext(LineToneContext).get(resolved.player?.playerId ?? "");
+  const notYet = tone === "pre" && resolved.livePoints === 0;
+  const color = tone === "good" ? "font-semibold text-status-good" : tone === "bad" ? "font-semibold text-status-critical" : "text-ink-secondary";
+  return (
+    <span className={`tabular-nums ${align === "right" ? "text-right" : ""} ${ROW_TEXT} ${notYet ? "text-ink-muted" : color}`}>
+      {notYet ? "–" : formatPoints(resolved.livePoints)}
+    </span>
+  );
+}
+
 /** Each team's live projected total, by roster (see liveProjection) — none until the projections load. */
 const ProjectedContext = createContext<Map<number, number> | null>(null);
 
@@ -102,7 +122,7 @@ function MySlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
     <div className={`grid ${MY_ROW_COLS} items-center gap-0.5 sm:gap-1`}>
       <PlayerHeadshot playerId={resolved.player.playerId} size={22} />
       <RankedName resolved={resolved} align="left" />
-      <span className={`text-right tabular-nums ${ROW_TEXT} text-ink-secondary`}>{formatPoints(resolved.livePoints)}</span>
+      <SlotPoints resolved={resolved} align="right" />
     </div>
   );
 }
@@ -119,7 +139,7 @@ function TheirSlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
   }
   return (
     <div className={`grid ${THEIR_ROW_COLS} items-center gap-0.5 sm:gap-1`}>
-      <span className={`tabular-nums ${ROW_TEXT} text-ink-secondary`}>{formatPoints(resolved.livePoints)}</span>
+      <SlotPoints resolved={resolved} align="left" />
       <RankedName resolved={resolved} align="right" />
       <PlayerHeadshot playerId={resolved.player.playerId} size={22} />
     </div>
@@ -448,6 +468,7 @@ export function LeagueMatchupCarousel({
   pending,
   onShowMatchup,
   projected = null,
+  lineTones,
 }: {
   leagueId: string;
   games: ResolvedMatchupGame[];
@@ -462,6 +483,8 @@ export function LeagueMatchupCarousel({
   onShowMatchup?: (matchupId: number) => void;
   /** Each team's live projected total, by roster, shown over its score. */
   projected?: Map<number, number> | null;
+  /** How each starter's points read (see LineTone), by player id. */
+  lineTones?: Map<string, LineTone>;
 }) {
   // The matchup shown large beside the list (tablet and up): yours until another is picked.
   const [pickedId, setPickedId] = useState<number | null>(null);
@@ -479,6 +502,7 @@ export function LeagueMatchupCarousel({
 
   return (
     <ProjectedContext.Provider value={projected}>
+    <LineToneContext.Provider value={lineTones ?? EMPTY_TONES}>
       {/* Phones: every matchup's header stacked; tap one for its lineup. */}
       <div className="md:hidden">
         <MatchupStack
@@ -530,6 +554,7 @@ export function LeagueMatchupCarousel({
         </ul>
         </div>
       </div>
+    </LineToneContext.Provider>
     </ProjectedContext.Provider>
   );
 }

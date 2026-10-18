@@ -201,6 +201,16 @@ export function paceShare(kickoff: number, plays: GamePlay[], now: number, gameM
   return playing > 0 ? Math.min(1, Math.max(0, (now - start - beforeHalftimeEnds(now)) / playing)) : 0;
 }
 
+/**
+ * Whether a player is on pace for their projection: their points at least
+ * `share` of it (see paceShare; 1 once the game's over, so whether they beat
+ * it). Null with no projection, or nothing to measure.
+ */
+export function onPace(points: number | null, projected: number | null | undefined, share: number | undefined): boolean | null {
+  if (points === null || share === undefined || projected == null || projected <= 0) return null;
+  return points >= projected * share;
+}
+
 /** Halftime, from the 2nd quarter's last play to the 3rd's first — null until the 3rd quarter's begun. */
 export function halftimeSpan(plays: GamePlay[]): { from: number; to: number } | null {
   let from = -Infinity;

@@ -168,6 +168,15 @@ html {
   font-size: clamp(16px, 14.6px + 0.366vw, 24px);
 }
 
+/* On a phone the page doesn't bounce past its ends: iOS drags everything,
+   the fixed tab bar along the bottom too, when it does. */
+@media (max-width: 767px) {
+  html,
+  body {
+    overscroll-behavior-y: none;
+  }
+}
+
 body {
   background: var(--color-page);
   color: var(--color-ink-primary);

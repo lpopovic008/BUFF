@@ -533,8 +533,8 @@ export function RedZone({
         className="relative w-6 shrink-0 touch-manipulation select-none border-r border-border"
       >
         <div className="absolute inset-0 flex flex-col items-center gap-1.5 px-0.5 py-1.5">
-          {/* The title down the top, ⇕ beside it. */}
-          <div className="flex shrink-0 items-start gap-px">
+          {/* The title down the top, ⇕ under it. */}
+          <div className="flex shrink-0 flex-col items-center gap-1">
             <h2 className="flex flex-col items-center gap-1" aria-label="Red Zone">
               <span className="relative flex h-1.5 w-1.5 shrink-0" aria-hidden>
                 {live ? <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-status-critical opacity-60" /> : null}
@@ -552,9 +552,9 @@ export function RedZone({
               aria-pressed={stretched}
               aria-label={stretched ? "Back to size" : "Fit to the screen"}
               title={stretched ? "Back to size" : "Fit to the screen"}
-              className="-mr-0.5 flex shrink-0 items-center justify-center text-ink-secondary transition-colors hover:text-ink-primary"
+              className="flex shrink-0 items-center justify-center text-ink-secondary transition-colors hover:text-ink-primary"
             >
-              <ExpandVerticalIcon inward={stretched} width={11} height={11} />
+              <ExpandVerticalIcon inward={stretched} width={14} height={14} />
             </button>
           </div>
           {/* The games on now, each switched in or out of the plays: the visitors over the home team. */}

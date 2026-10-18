@@ -17,6 +17,10 @@ import { savePayoutPlan } from "@/lib/localStore";
 import { getCurrentWeek, getWeeklyPlayerLines, weighProjection } from "@/lib/sleeper";
 import { useWeekGames } from "@/hooks/useWeekGames";
 import { MatchupGraph, MatchupSide } from "@/components/MatchupGraph";
+import { LineTone } from "@/components/LeagueMatchupCarousel";
+import { GAME_MS, useLiveNow } from "@/components/PointsGraph";
+import { useGamePlays } from "@/hooks/useRedZoneFeed";
+import { onPace, paceShare } from "@/lib/live-play-points";
 import { liveProjection } from "@/lib/matchup-timeline";
 import { setHeaderWeek } from "@/lib/header-week";
 import { TitleWithHistory } from "@/components/HistoryButtons";
@@ -171,6 +175,35 @@ function LeagueDetailContent() {
     }
     return out;
   }, [carousel, projectionStats, weekGames, scoring]);
+  // How each starter's points read in the lineups: not played yet (a dash), or — while their game's on —
+  // on pace for their projection or behind it, as their player graph reads it; once it's over, whether they beat it.
+  const liveGames = useMemo(() => weekGames.filter((g) => g.state === "in").map((game) => ({ game, players: [] })), [weekGames]);
+  const playsByGame = useGamePlays(liveGames);
+  const now = useLiveNow(liveGames.length > 0);
+  const lineTones = useMemo(() => {
+    const out = new Map<string, LineTone>();
+    if (!carousel) return out;
+    const gameOf = new Map(weekGames.flatMap((g) => [[g.homeTeam, g] as const, [g.awayTeam, g] as const]));
+    for (const game of carousel.games) {
+      for (const t of game.teams) {
+        for (const slot of t.slots) {
+          const p = slot.player;
+          if (!p) continue;
+          const nfl = p.team ? gameOf.get(p.team) : undefined;
+          if (!nfl || nfl.state === "pre") {
+            out.set(p.playerId, "pre");
+            continue;
+          }
+          const stats = projectionStats?.[p.playerId];
+          const weighed = stats ? weighProjection(stats, scoring) : undefined;
+          const share = nfl.state === "post" ? 1 : now === null ? undefined : paceShare(new Date(nfl.kickoff).getTime(), playsByGame[nfl.id] ?? [], now, GAME_MS);
+          const pace = onPace(slot.livePoints, typeof weighed === "number" ? weighed : null, share);
+          out.set(p.playerId, pace === null ? null : pace ? "good" : "bad");
+        }
+      }
+    }
+    return out;
+  }, [carousel, weekGames, projectionStats, scoring, playsByGame, now]);
   const graphed = useMemo(() => {
     const games = carousel?.games ?? [];
     const myRosterId = myRow?.rosterId ?? null;
@@ -253,6 +286,7 @@ function LeagueDetailContent() {
             pending={pending}
             onShowMatchup={(id) => setShownMatchupId({ week: shownWeek, id })}
             projected={projected}
+            lineTones={lineTones}
           />
         </div>
       ) : carousel ? (

@@ -11,7 +11,7 @@ import { LeagueLegendEntry, LeagueMark } from "./LeagueMark";
 import { GameRows, RowMotion } from "./GameRows";
 import { FieldSpot } from "./FieldSpot";
 import { Ordinals } from "./Ordinals";
-import { LastAction, paceShare } from "@/lib/live-play-points";
+import { LastAction, onPace, paceShare } from "@/lib/live-play-points";
 import { GAME_MS } from "./PointsGraph";
 import { useLastActions } from "@/hooks/useLastActions";
 import { getHomeView, saveHomeView } from "@/lib/localStore";
@@ -31,8 +31,8 @@ const SIDE_NAME_COLOR: Record<PlayerSide, string> = {
 
 /** A player's points: green while they're on pace for their projection (as their graph reads it) — once the game's over, if they beat it — red otherwise. */
 function paceColor(points: number | null, projected: number | null | undefined, share: number | undefined): string {
-  if (points === null || share === undefined || projected == null || projected <= 0) return "text-ink-primary";
-  return points >= projected * share ? "text-status-good" : "text-status-critical";
+  const pace = onPace(points, projected, share);
+  return pace === null ? "text-ink-primary" : pace ? "text-status-good" : "text-status-critical";
 }
 
 /** A projection, to one decimal — set apart from real points, which have two. */
