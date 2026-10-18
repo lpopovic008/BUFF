@@ -288,7 +288,8 @@ function FeedRow({
           <span>{whenLabel(entry)}</span>
         </span>
       </span>
-      {lines.length > 0 ? (
+      {/* The people in it, only when the play put points on the board for someone — a play worth nothing is just its line and description. */}
+      {hasPoints ? (
         <ul className="flex flex-col gap-0.5">
           {lines.map((line) => (
             <PlayerLine

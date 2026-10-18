@@ -563,7 +563,8 @@ ends every quarter — so the diagram keeps one layout all game: the home
 team's goal line on the left, the home team driving right, the visitors left.
 A scoring play, turnover, red-zone snap or long gain has a colored strip down
 the row's left. Under the top line, a line for each person in it
-(`lib/play-lines.ts`), then ESPN's description, led by the logo of the team
+(`lib/play-lines.ts`) — only when the play earned someone points; a play
+worth nothing has none — then ESPN's description, led by the logo of the team
 with the ball. A line is a photo, position and name, the leagues you
 start them in, their game as it stood after that play (`statLine`), and
 what the play earned them with their total through it. The stats are read
