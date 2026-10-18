@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { formatCountdown } from "@/lib/format";
 import { TYPE_MS_PER_CHAR, totalChars, typedSlices, useSeenOnce, useTypedCount } from "@/hooks/useTyped";
-import { formatKickoffTime, GameStarters, finishedBlocksLast, groupGamesByTimeBlock, GroupedStarter, PlayerSide } from "@/lib/my-starters";
+import { formatKickoffTime, GameStarters, groupGamesByTimeBlock, GroupedStarter, PlayerSide } from "@/lib/my-starters";
 import { gameClock, NFLGame } from "@/lib/nfl-schedule";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import { nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
@@ -28,7 +28,7 @@ const SIDE_NAME_COLOR: Record<PlayerSide, string> = {
   other: "text-ink-primary",
 };
 
-/** A live player's points: green while they're on pace for their projection (as their graph reads it), red while behind. */
+/** A player's points: green while they're on pace for their projection (as their graph reads it) — once the game's over, if they beat it — red otherwise. */
 function paceColor(points: number | null, projected: number | null | undefined, share: number | undefined): string {
   if (points === null || share === undefined || projected == null || projected <= 0) return "text-ink-primary";
   return points >= projected * share ? "text-status-good" : "text-status-critical";
@@ -384,9 +384,8 @@ function GameLine({
         className={`w-[3.4em] shrink-0 text-right tabular-nums ${
           phase === "pre"
             ? "pr-[0.2em] font-light italic text-ink-muted"
-            : phase === "live"
-              ? `font-semibold ${paceColor(player.points, player.projected, pace)}`
-              : "font-semibold text-ink-primary"
+            : // Live, against their pace; over, against the whole projection.
+              `font-semibold ${paceColor(player.points, player.projected, phase === "live" ? pace : 1)}`
         }`}
       >
         {shownPoints !== null && shownPoints !== undefined ? (
@@ -1067,8 +1066,8 @@ export function StartersByGame({
   for (const g of followed) {
     if (g.game.state === "in" && now !== null) paces[g.game.id] = paceShare(new Date(g.game.kickoff).getTime(), playsByGame[g.game.id] ?? [], now, GAME_MS);
   }
-  // Finished blocks drop to the bottom as their last game ends, so the next one up is always on top.
-  const columns = finishedBlocksLast(groupGamesByTimeBlock(games));
+  // The blocks in kickoff order — a finished one folds shut where it is (see the page's hiddenBlocks).
+  const columns = groupGamesByTimeBlock(games);
   const nothingToShow = games.length === 0 && byes.every((b) => b.everyone.length === 0);
   // A block's header, and the bye's: styled like the map's game tags, the same solid contrasting fill and ink.
   const headerBar = "flex w-full items-baseline justify-between gap-2 bg-[var(--map-tag)] px-2 py-1 text-left text-xs font-bold uppercase tracking-wide text-[var(--map-tag-ink)]";
@@ -1131,7 +1130,7 @@ export function StartersByGame({
             </div>
           ))}
 
-          {/* The byes, always last — under the finished blocks too. */}
+          {/* The byes, always last. */}
           {byes.length > 0 ? (
             <div className="flex flex-col">
               <h3 className={headerBar}>Bye</h3>

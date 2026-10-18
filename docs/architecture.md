@@ -354,11 +354,11 @@ or hovering puts a dotted line under the finger, with the time there, and
 it stays where it's lifted. There's no description under the graph: while
 the cursor is up, the Red Zone shows the last play by then (`spotlight`) —
 on a phone its box scrolls to the play's row and lights it up; from tablet
-width up, where the plays run on down the map's column under the graph, the
-play is pinned in the Red Zone's title bar, over the title, the column
-moved only as far as it takes to bring the bar into sight. Tapping the graph again, or
-anywhere off it, takes the cursor away, and the Red Zone (and the column)
-goes back to exactly where it was. The left and right arrow keys step
+width up the play is pinned in the Red Zone's title bar, over the title.
+Nothing else moves: a finger on the graph moves only its cursor
+(`touch-action: none`), never the page. Tapping the graph again, or
+anywhere off it, takes the cursor away, and the Red Zone goes back to
+exactly where it was. The left and right arrow keys step
 the cursor back and forth a play at a time. × (or tapping their line again)
 takes a graph down; Escape takes them all down and brings the map back.
 The graphs up are kept on this browser (`getHomeView`/`saveHomeView`, with
@@ -403,7 +403,7 @@ A game's box swipes left (touch, mouse drag, or a trackpad's sideways
 scroll) to show an eye button that takes that one game off the map, or puts
 it back; its border goes dashed while it's off. Like the block headers'
 choices, it holds for the week shown. The teams on their bye come last,
-under their own BYE header below even the finished blocks, side by side in
+under their own BYE header below every block, side by side in
 one row, a quarter of it each (a week has at most four), plus a "No team"
 box for starters without an NFL team (wrapping onto a second row). Tapping
 one steps it through the views like a game's matchup; the players it then
@@ -417,7 +417,8 @@ your starters, red for the ones you face. Your starters' and opponents' projecti
 scored under the league they're started in; everyone else's are PPR. While
 a game's on, each player's points are green while they're on pace for their
 projection and red while behind it — the same pace line as their graph's
-(`paceShare`: kickoff to about the end, halftime left out). Projections come
+(`paceShare`: kickoff to about the end, halftime left out); once it's over,
+green if they beat their projection, red if not. Projections come
 from Sleeper's NFL-wide `/projections` (cached 5 minutes) and everyone
 else's points from `/stats` (undocumented, the same endpoints the Sleeper
 app uses). Stats are fetched only once a game this week has started, and
@@ -453,12 +454,21 @@ level.
 **From tablet width up**, the map's column is exactly as tall as the screen
 under the ticker (the page takes back its own bottom padding, so nothing
 scrolls): the map along its bottom, as wide as the column at its own
-proportions (narrower if that would leave the Red Zone under 10rem —
+proportions (narrower if that would leave the Red Zone under 6rem —
 `GameMap`'s `room`), and the Red Zone filling the room above it, its plays
-scrolling within its box. `--header-h` and `--ticker-h` are published at
+scrolling within its box. The map's frame starts just over the land (or its
+highest tag) as the map opens — the empty band at the top of the map's box
+cut off — with the countdown right over the land, half a rem either side of
+it. `--header-h` and `--ticker-h` are published at
 their exact (fractional) heights so the sum comes out to the pixel.
-**The Red Zone's title bar** (the title, its Team/VS/All buttons and any
-game in the red zone now) sits at the bottom of its box. Each play shows where
+**The Red Zone's title bar** (the title, the games on now, its ⇕ and
+Team/VS/All buttons, and any game in the red zone now) sits at the bottom of
+its box. Each game on now is a button of its two logos: switched off, none of
+its plays show (it stays listed after it ends while it's off, so it can be
+switched back on). ⇕ stretches the box to the map's whole column (the map
+then below it, scrolled to) — on a phone, fits it to the screen as
+double-tapping the title bar does — and back. On a phone the games get a
+line of their own under the title. Each play shows where
 it was snapped as the field reads ("BUF 35"), outlined so it stands apart
 from the down and distance and the clock either side; the field diagram
 (`FieldSpot`) is in the starters list instead — in a live game's box, across
@@ -466,7 +476,7 @@ both team lines between the teams and the scores, where the ball is now
 (ESPN's situation, `ballSpot`). **On a phone** the Red Zone sits under the map, above the starters, as a box
 three rows tall that scrolls on its own; double-tapping its title bar fits
 the box to the screen (the card's top under the header and ticker, its
-bottom at the screen's), and double-tapping again takes it back to three rows.
+bottom at the tab bar's), and double-tapping again takes it back to three rows.
 
 **Red Zone points ahead of Sleeper** (`useLivePlayPoints`,
 `lib/live-play-points.ts`): ESPN's plays usually land before Sleeper's

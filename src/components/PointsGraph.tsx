@@ -369,7 +369,8 @@ export function PointsGraph({
 
       <div
         ref={plotRef}
-        className={`relative flex-1 select-none ${compact ? "min-h-0" : "min-h-[8rem] touch-pan-y"}`}
+        // touch-none: a finger on the graph moves its cursor and nothing else — the page doesn't scroll under it.
+        className={`relative flex-1 select-none ${compact ? "min-h-0" : "min-h-[8rem] touch-none"}`}
         {...plotHandlers}
       >
         {plot && size ? (

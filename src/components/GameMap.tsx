@@ -66,10 +66,11 @@ const FULL_FADE_TILT = 10;
 // The near/far size nudge stays within this range.
 const MIN_TAG_SCALE = 0.85;
 const MAX_TAG_SCALE = 1.2;
-// Room kept above the map for the tags of its northernmost sites — at
-// least this much, more when the opening view's tags need it (narrow
-// screens, where the Northeast's tags have to stack higher).
+// Room kept over the land (or its highest tag, if that's higher) when
+// there's nothing set over it; with something (the countdown), this much
+// either side of that instead.
 const MIN_HEADROOM_REM = 1.5;
+const OVERHEAD_GAP_REM = 0.5;
 const ZOOM_STEP = 1.25;
 // Clearance between a tag's bottom and its site, in rem — the visible stem
 // (see stemRem: it grows with the game's starters, like the ring).
@@ -554,27 +555,37 @@ export function GameMap({
   // Sized from the opening view only (per screen width, not per frame), so
   // turning the map never makes the page around it jump; other views fit
   // their tags into the same room.
+  // The frame's top sits just over the land as the map opens (or its highest tag, if that's higher) — the
+  // empty band of the map's box above that cut off — with room for what's set over it (the countdown), if anything.
+  const [overheadPx, setOverheadPx] = useState(0);
+  const overheadRef = useRef<HTMLDivElement | null>(null);
   const opening = useMemo(() => {
     if (!measure) return null;
     const { width, rootPx } = measure;
     const free = layoutTags(tags, DEFAULT_SCENE, DEFAULT_CAMERA.tilt, width, rootPx, -Infinity);
-    const highest = Math.min(0, ...free.map((l) => l.y - l.stem));
-    const headroom = Math.max(MIN_HEADROOM_REM * rootPx, Math.ceil(-highest) + 4);
-    // The open space over the land as the map opens: from the frame's top down to the land's, or to the highest tag's if that's higher.
     const landTop = landTopShare(DEFAULT_SCENE) * (width / MAP_ASPECT);
     const openBottom = Math.min(landTop, ...free.map((l) => l.y - l.stem));
-    return { headroom, openMiddle: (-headroom + openBottom) / 2 };
-  }, [measure, tags]);
-  const headroomPx = opening?.headroom ?? null;
+    const gap = OVERHEAD_GAP_REM * rootPx;
+    // Where the frame's top is, from the map box's top: below it, the band above is cut off.
+    const frameTop = Math.floor(overheadPx > 0 ? openBottom - overheadPx - 2 * gap : openBottom - MIN_HEADROOM_REM * rootPx);
+    return { frameTop, overheadMiddle: openBottom - gap - overheadPx / 2, overLand: landTop - frameTop };
+  }, [measure, tags, overheadPx]);
+  const frameTop = opening?.frameTop ?? null;
+  useEffect(() => {
+    const el = overheadRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => setOverheadPx(el.offsetHeight));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [opening !== null]); // eslint-disable-line react-hooks/exhaustive-deps -- the element appears once the opening view's measured
 
   const placed = useMemo(() => {
-    if (!measure || headroomPx === null) return [];
+    if (!measure || frameTop === null) return [];
     // Paint far tags first so nearer ones sit on top.
-    return layoutTags(tags, scene, camera.tilt, measure.width, measure.rootPx, -headroomPx).sort((a, b) => a.y - b.y);
-  }, [measure, headroomPx, scene, camera.tilt, tags]);
+    return layoutTags(tags, scene, camera.tilt, measure.width, measure.rootPx, frameTop).sort((a, b) => a.y - b.y);
+  }, [measure, frameTop, scene, camera.tilt, tags]);
 
   const selectedTag = placed.find((p) => p.id === selected) ?? null;
-  const headroom = headroomPx ?? 0;
 
   /**
    * Tags may overlap, so a tap resolves to every tag under it rather than
@@ -625,18 +636,19 @@ export function GameMap({
         // anything removed from inside it (an opened tag closing) is repainted
         // away cleanly rather than leaving stale pixels behind in some browsers.
         className="relative isolate w-full cursor-grab touch-none select-none overflow-clip outline-none [contain:paint] [-webkit-touch-callout:none] active:cursor-grabbing focus-visible:ring-1 focus-visible:ring-ink-muted"
-        style={{ paddingTop: headroomPx === null ? `${MIN_HEADROOM_REM}rem` : headroomPx }}
         tabIndex={0}
         aria-label="US map. Drag to spin and tilt it; drag with two fingers, Shift or the right mouse button to move it; pinch, Ctrl+scroll or the +/- keys to zoom; arrow keys to turn; double-click or Home to reset the view."
         {...handlers}
       >
-        {/* As wide as its column allows, but never so tall it can't be seen whole
-            on the screen: the width is capped by the height left under the header (or the room it's given). */}
+        {/* As wide as its column allows, but never so tall it can't be seen whole on the screen: the width is
+            capped by the height left under the header — or by the room it's given, the frame's whole height (the
+            box less the band cut off its top) in it. */}
         <div
           className="mx-auto w-full min-w-0"
           style={{
+            marginTop: frameTop === null ? `${MIN_HEADROOM_REM}rem` : -frameTop,
             maxWidth: room
-              ? `max(20rem, calc((${room} - ${headroomPx ?? 0}px) * ${MAP_ASPECT}))`
+              ? `max(20rem, calc((${room} - ${opening?.overLand ?? 0}px) * ${MAP_ASPECT / (1 - landTopShare(DEFAULT_SCENE))}))`
               : `max(20rem, calc((100vh - var(--header-h, 0px) - 12rem) * ${MAP_ASPECT}))`,
           }}
         >
@@ -664,9 +676,9 @@ export function GameMap({
               </g>
             </svg>
 
-            {/* In the middle of the open space over the land and its tags, as the map opens — staying put as it turns. */}
+            {/* Just over the land and its tags, as the map opens — staying put as it turns. */}
             {overhead && opening ? (
-              <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 -translate-y-1/2" style={{ top: opening.openMiddle }}>
+              <div ref={overheadRef} className="pointer-events-none absolute left-1/2 -translate-x-1/2 -translate-y-1/2" style={{ top: opening.overheadMiddle }}>
                 {overhead}
               </div>
             ) : null}
@@ -736,7 +748,7 @@ export function GameMap({
                   x={selectedTag.x}
                   y={selectedTag.y}
                   // The top of the frame, just inside it.
-                  top={-headroom + 3}
+                  top={(frameTop ?? 0) + 3}
                   mapWidth={measure.width}
                   rootPx={measure.rootPx}
                   legendByLeagueId={legendByLeagueId}

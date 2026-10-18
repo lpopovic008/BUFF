@@ -309,3 +309,22 @@ export function FootballIcon(props: IconProps) {
     </svg>
   );
 }
+
+/** Up and down chevrons — or, `inward`, pointing at each other. */
+export function ExpandVerticalIcon({ inward = false, ...props }: IconProps & { inward?: boolean }) {
+  return (
+    <svg {...base(props)}>
+      {inward ? (
+        <>
+          <path d="M6.5 3.5L10 7l3.5-3.5" />
+          <path d="M6.5 16.5L10 13l3.5 3.5" />
+        </>
+      ) : (
+        <>
+          <path d="M6.5 7L10 3.5L13.5 7" />
+          <path d="M6.5 13L10 16.5l3.5-3.5" />
+        </>
+      )}
+    </svg>
+  );
+}

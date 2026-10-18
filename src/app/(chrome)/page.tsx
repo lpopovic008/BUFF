@@ -199,6 +199,8 @@ export default function DashboardPage() {
       if (rect.top < 0 || rect.bottom > window.innerHeight) el.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   };
+  // From tablet width up, the Red Zone stretched to the column's whole height.
+  const [redZoneFull, setRedZoneFull] = useState(false);
   // The play by the graph's cursor, shown in the Red Zone while the cursor's up.
   const [spotlight, setSpotlight] = useState<{ gameId: string; playId: string } | null>(null);
   const unpickGraph = (playerId: string) =>
@@ -420,8 +422,8 @@ export default function DashboardPage() {
                       legend={legend}
                       // The countdown to the next kickoff, in the open space over the land.
                       overhead={<KickoffCountdown kickoffs={kickoffs} />}
-                      // From tablet width up, the column's height less the Red Zone's least (10rem) and the gap over the map.
-                      room={desktop ? "100vh - var(--header-h, 0px) - var(--ticker-h, 0px) - 2px - 10rem - 0.75rem" : undefined}
+                      // From tablet width up, the column's height less the Red Zone's least (6rem) and the gap over the map.
+                      room={desktop ? "100vh - var(--header-h, 0px) - var(--ticker-h, 0px) - 2px - 6rem - 0.75rem" : undefined}
                     />
                   </div>
                   {/* One graph in full; two stacked; three or four, one to a corner. */}
@@ -447,7 +449,12 @@ export default function DashboardPage() {
                 on phones, under the map, a short box you scroll within (double-tap its title to fit it to the screen). Your leagues
                 ride the ticker under the header (see LeagueTicker). */}
             {weekGames.length > 0 && myStarters !== null ? (
-              <div className="animate-[rise_0.5s_ease-out_backwards] [animation-delay:120ms] md:order-first md:flex md:min-h-40 md:flex-1 md:flex-col">
+              <div
+                className={`animate-[rise_0.5s_ease-out_backwards] [animation-delay:120ms] md:order-first md:flex md:flex-col ${
+                  // Stretched (its ⇕ button), the whole column's height — the map below, scrolled to.
+                  redZoneFull ? "md:h-full md:flex-none" : "md:min-h-24 md:flex-1"
+                }`}
+              >
                 <RedZone
                   // Fresh for each week, so a week's plays slide in rather than flashing as new.
                   key={shownWeek ?? 0}
@@ -458,6 +465,7 @@ export default function DashboardPage() {
                   weekStats={livePlayers.stats}
                   compactOnPhone
                   spotlight={graphed.length > 0 ? spotlight : null}
+                  full={{ on: redZoneFull, toggle: () => setRedZoneFull((v) => !v) }}
                 />
               </div>
             ) : null}

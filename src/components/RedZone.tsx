@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Card } from "@/components/ui/Card";
+import { ExpandVerticalIcon } from "@/components/ui/Icon";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { LeagueLegendEntry, LeagueMark } from "@/components/LeagueMark";
 import { replayRedZonePlay } from "@/components/GameRows";
@@ -357,6 +358,7 @@ export function RedZone({
   weekStats,
   compactOnPhone = false,
   spotlight = null,
+  full,
 }: {
   /** Your starters, grouped by the game they're playing in. */
   starters: GameStarters[];
@@ -369,12 +371,14 @@ export function RedZone({
   weekStats: Record<string, Record<string, number>>;
   /**
    * The play by a player graph's cursor, while it's up: on a phone the box scrolls to it (lit up), and
-   * from tablet width up — where the plays run on down the map's column, under the graph — it's pinned
-   * over the top of the plays. Either way, once it's gone the plays are back just where they were.
+   * from tablet width up it's pinned in the title bar, over the title. Either way, once it's gone the
+   * plays are back just where they were.
    */
   spotlight?: { gameId: string; playId: string } | null;
   /** On phones, show the plays in a box three rows tall (or, title bar double-tapped, as tall as the screen) that scrolls on its own, instead of running down the page. */
   compactOnPhone?: boolean;
+  /** From tablet width up, whether the box is stretched to the whole column's height, and the ⇕ button's switch for it (on a phone the button fits the box to the screen). */
+  full?: { on: boolean; toggle: () => void };
 }) {
   const mode = useLiveMode();
   const [scope, setScope] = useState<RedZoneScope>("all");
@@ -390,8 +394,20 @@ export function RedZone({
     }
     return [...byGame.values()];
   }, [scope, starters, opponents]);
+  // Games switched off from the title bar: none of their plays shown.
+  const [offGames, setOffGames] = useState<Set<string>>(() => new Set());
+  const toggleGame = (id: string) =>
+    setOffGames((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
+  const shownFollowed = useMemo(() => followed.filter((g) => !offGames.has(g.game.id)), [followed, offGames]);
+  const shownGames = useMemo(() => weekGames.filter((g) => !offGames.has(g.id)), [weekGames, offGames]);
+  // The games on now — and any switched off that have since ended, so they can be switched back on.
+  const switchable = weekGames.filter((g) => g.state === "in" || offGames.has(g.id));
   const feedScope: FeedScope = scope === "all" ? "all" : "mine";
-  const feed = useRedZoneFeed(followed, weekGames, feedScope, teamPlayers);
+  const feed = useRedZoneFeed(shownFollowed, shownGames, feedScope, teamPlayers);
   const starterById = useMemo(() => new Map(starters.flatMap((g) => g.players.map((p) => [p.playerId, p] as const))), [starters]);
   const [shown, setShown] = useState(PAGE);
   // Plays already on hand when the feed fills in just slide in; ones that arrive after that flash.
@@ -492,29 +508,6 @@ export function RedZone({
     box.scrollTop = row.offsetTop;
   }, [spotKey, shown]);
   const pinned = spotEntry && !scrollIn ? spotEntry : null;
-  // Pinned, it's brought into sight with the title bar it sits in — whatever's scrolling the plays (the map's column, or the page) moved
-  // only as far as that takes, so the graph stays under the pointer — and moved back once it's gone.
-  const pinnedRef = useRef<HTMLOListElement>(null);
-  const pinnedKey = pinned ? `${pinned.game.id}-${pinned.play.id}` : null;
-  const pageScroll = useRef<{ el: HTMLElement | null; top: number } | null>(null);
-  useEffect(() => {
-    if (pinnedKey === null) {
-      const saved = pageScroll.current;
-      pageScroll.current = null;
-      if (saved) (saved.el ?? window).scrollTo({ top: saved.top });
-      return;
-    }
-    const row = pinnedRef.current;
-    if (!row) return;
-    let el: HTMLElement | null = row.parentElement;
-    while (el && !(/(auto|scroll)/.test(getComputedStyle(el).overflowY) && el.scrollHeight > el.clientHeight)) el = el.parentElement;
-    const bottom = el ? el.getBoundingClientRect().bottom : window.innerHeight;
-    const top = el ? el.scrollTop : window.scrollY;
-    pageScroll.current ??= { el, top };
-    // The whole title bar it sits in — the play, any red zone now, the title — in sight.
-    const over = (headRef.current ?? row).getBoundingClientRect().bottom + 8 - bottom;
-    if (over > 0) (el ?? window).scrollTo({ top: top + over });
-  }, [pinnedKey]);
   const moreToShow = feed.entries.length > shown;
   // Scrolling near the end of the plays loads the next page of them — no button.
   useEffect(() => {
@@ -601,7 +594,7 @@ export function RedZone({
       >
         {/* The play by a graph's cursor, pinned right over the title (see spotlight). */}
         {pinned ? (
-          <ol ref={pinnedRef} aria-label="The play by the graph's cursor">
+          <ol aria-label="The play by the graph's cursor">
             <FeedRow key="pinned" entry={pinned} starterById={starterById} legendByLeagueId={legendByLeagueId} arrivedLive={false} index={0} spotlit />
           </ol>
         ) : null}
@@ -614,7 +607,8 @@ export function RedZone({
           </ul>
         ) : null}
 
-        <div className="flex items-center justify-between gap-2">
+        {/* On a phone the games get a line of their own under the title; wider, they sit between the title and the buttons. */}
+        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2 md:flex-nowrap">
           <h2 className="flex min-w-0 items-center gap-2">
             <span className="relative flex h-2.5 w-2.5 shrink-0" aria-hidden>
               {live ? <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-status-critical opacity-60" /> : null}
@@ -622,6 +616,46 @@ export function RedZone({
             </span>
             <span className="whitespace-nowrap text-sm font-bold uppercase tracking-[0.2em] text-ink-primary">Red Zone</span>
           </h2>
+          {switchable.length > 0 ? (
+            // The games on now, each switched in or out of the plays.
+            <div className="flex min-w-0 gap-1 overflow-x-auto [scrollbar-width:none] max-md:order-last max-md:w-full md:flex-1" role="group" aria-label="Games in the Red Zone">
+              {switchable.map((g) => {
+                const on = !offGames.has(g.id);
+                return (
+                  <button
+                    key={g.id}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => toggleGame(g.id)}
+                    title={`${on ? "Hide" : "Show"} ${g.awayTeam} @ ${g.homeTeam}`}
+                    className={`flex shrink-0 items-center gap-0.5 border px-1 py-0.5 transition-opacity ${
+                      on ? "border-ink-primary" : "border-border opacity-35 grayscale"
+                    }`}
+                  >
+                    <TeamLogo team={g.awayTeam} side={14} />
+                    <span className="text-[0.625rem] text-ink-muted">@</span>
+                    <TeamLogo team={g.homeTeam} side={14} />
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+          {/* ⇕: the box as tall as the screen (on a phone, fit under the header; wider, the map's whole column) — and back. */}
+          {(() => {
+            const stretched = phone ? boxHeight !== null : !!full?.on;
+            return (
+              <button
+                type="button"
+                onClick={() => (phone ? toggleFit() : full?.toggle())}
+                aria-pressed={stretched}
+                aria-label={stretched ? "Back to size" : "Fit to the screen"}
+                title={stretched ? "Back to size" : "Fit to the screen"}
+                className="flex h-[1.375rem] w-[1.375rem] shrink-0 items-center justify-center border border-border text-ink-secondary transition-colors hover:text-ink-primary max-md:ml-auto"
+              >
+                <ExpandVerticalIcon inward={stretched} width={14} height={14} />
+              </button>
+            );
+          })()}
           <div className="flex shrink-0 border border-border text-[0.6875rem] font-semibold" role="group" aria-label="Which plays">
             {SCOPES.map((opt) => (
               <button
