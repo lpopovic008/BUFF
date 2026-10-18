@@ -493,8 +493,7 @@ its plays. It sits right under the map (or the graphs), no gap between. ⇕ stre
 whole column (the map then above it, scrolled past) — on a phone, fits it
 to the screen as double-tapping the side header does — and back, to just
 where the page (and the map's column) stood before. Each game's latest play
-has its top line (time, matchup, down and distance, spot, clock) lit like a
-map tag. Any game
+has its matchup (the two teams' logos) lit like a map tag. Any game
 in the red zone now sits over the plays. Each play shows where
 it was snapped as the field reads ("BUF 35"), outlined so it stands apart
 from the down and distance and the clock either side; the field diagram

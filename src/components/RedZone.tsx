@@ -230,7 +230,7 @@ function FeedRow({
   index: number;
   /** The play by a player graph's cursor: lit up. */
   spotlit?: boolean;
-  /** Its game's latest play: its top line lit like a map tag. */
+  /** Its game's latest play: its matchup lit like a map tag. */
   latest?: boolean;
 }) {
   // Decided once, when the row first appears.
@@ -260,17 +260,16 @@ function FeedRow({
       }}
     >
       <MarkColumn marks={playMarks(entry)} />
-      {/* Its game's latest play has this line lit like a map tag, every piece of it in the tag's ink. */}
-      <span
-        className={`flex items-center justify-between gap-2 text-[0.6875rem] leading-none ${
-          latest ? "-mx-1 bg-[var(--map-tag)] px-1 py-1 text-[var(--map-tag-ink)] [&_*]:text-[var(--map-tag-ink)]!" : ""
-        }`}
-      >
+      <span className="flex items-center justify-between gap-2 text-[0.6875rem] leading-none">
         <span className="flex min-w-0 items-center gap-1.5 whitespace-nowrap">
           {time ? <span className="tabular-nums text-ink-muted">{time}</span> : null}
-          <span className="flex items-center gap-1" title={`${game.awayTeam} @ ${game.homeTeam}`}>
+          {/* The matchup — lit like a map tag on its game's latest play. */}
+          <span
+            className={`flex items-center gap-1 ${latest ? "bg-[var(--map-tag)] px-1 py-0.5" : ""}`}
+            title={latest ? `${game.awayTeam} @ ${game.homeTeam} — its latest play` : `${game.awayTeam} @ ${game.homeTeam}`}
+          >
             <TeamLogo team={game.awayTeam} side={14} />
-            <span className="text-ink-muted">@</span>
+            <span className={latest ? "text-[var(--map-tag-ink)]" : "text-ink-muted"}>@</span>
             <TeamLogo team={game.homeTeam} side={14} />
           </span>
         </span>
@@ -283,7 +282,7 @@ function FeedRow({
           ) : null}
           {/* Outlined, so it stands apart from the down and distance and the clock around it. */}
           {spot ? (
-            <span className={`border px-1 py-px font-semibold text-ink-primary ${latest ? "border-current" : "border-ink-primary"}`} title={`Snapped from the ${spot}`}>
+            <span className="border border-ink-primary px-1 py-px font-semibold text-ink-primary" title={`Snapped from the ${spot}`}>
               {spot}
             </span>
           ) : null}
@@ -528,7 +527,7 @@ export function RedZone({
 
   const legendByLeagueId = new Map(legend.map((l) => [l.leagueId, l]));
   const entries = feed.entries;
-  // Each game's latest play (the plays run newest first), its top line lit.
+  // Each game's latest play (the plays run newest first), its matchup lit.
   const latestPlays = new Set<string>();
   const gamesSeen = new Set<string>();
   for (const e of entries) {
