@@ -428,13 +428,14 @@ export default function DashboardPage() {
                       legend={legend}
                       // The countdown to the next kickoff, in the open space over the land.
                       overhead={<KickoffCountdown kickoffs={kickoffs} />}
-                      // From tablet width up, the column's height less the Red Zone's least (15rem, its side header's) and the gap under the map.
-                      room={desktop ? "100vh - var(--header-h, 0px) - var(--ticker-h, 0px) - 2px - 15rem - 0.75rem" : undefined}
+                      // From tablet width up, the column's height less the Red Zone's least (10rem, room for its side header) and the gap under the map.
+                      room={desktop ? "100vh - var(--header-h, 0px) - var(--ticker-h, 0px) - 2px - 10rem - 0.75rem" : undefined}
                     />
                   </div>
                   {/* One graph in full; two stacked; three or four, one to a corner. */}
                   {graphed.length > 0 ? (
-                    <div className="absolute inset-0">
+                    // As much room over them as there is over the starters list's bar.
+                    <div className="absolute inset-0 pt-3.5">
                       <PointsGraphGrid
                         graphs={graphed.map(({ game, player }) => ({
                           game,
@@ -457,9 +458,10 @@ export default function DashboardPage() {
             {weekGames.length > 0 && myStarters !== null ? (
               <div
                 ref={redZoneRef}
-                className={`animate-[rise_0.5s_ease-out_backwards] [animation-delay:120ms] md:flex md:flex-col ${
+                // On a phone, out to the screen's edges.
+                className={`animate-[rise_0.5s_ease-out_backwards] [animation-delay:120ms] max-md:-mx-4 md:flex md:flex-col ${
                   // Stretched (its ⇕ button), the whole column's height — the map above it, scrolled past.
-                  redZoneFull ? "md:h-full md:flex-none" : "md:min-h-60 md:flex-1"
+                  redZoneFull ? "md:h-full md:flex-none" : "md:min-h-40 md:flex-1"
                 }`}
               >
                 <RedZone

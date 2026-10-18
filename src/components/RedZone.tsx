@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Card } from "@/components/ui/Card";
 import { ExpandVerticalIcon } from "@/components/ui/Icon";
 import { Ordinals } from "@/components/Ordinals";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
@@ -523,45 +522,71 @@ export function RedZone({
 
   const stretched = phone ? boxHeight !== null : !!full?.on;
   return (
-    // The header runs down the box's left side; the plays scroll beside it. From tablet width up the box
-    // fills the room it's given; on a phone it's about one big play tall.
-    <Card className="flex flex-row md:min-h-0 md:flex-1">
+    // No box: the header runs down the left side as narrow as it goes, the plays spread out beside it to the
+    // next section or the screen's edge. From tablet width up it fills the room it's given; on a phone it's
+    // about one big play tall.
+    <div className="flex flex-row md:min-h-0 md:flex-1">
       <div
-        // Its contents scroll on their own should they outrun the box, never making it taller.
+        // Its contents sit inside it, never making the Red Zone taller; the games scroll should they outrun it.
         ref={headRef}
         onPointerUp={onHeadTap}
-        className="relative w-12 shrink-0 touch-manipulation select-none border-r border-border"
+        className="relative w-6 shrink-0 touch-manipulation select-none border-r border-border"
       >
-        <div className="absolute inset-0 flex flex-col items-center gap-1.5 overflow-y-auto px-1 py-2 [scrollbar-width:none]">
-          <h2 className="flex flex-col items-center gap-1" aria-label="Red Zone">
-            <span className="relative flex h-2 w-2 shrink-0" aria-hidden>
-              {live ? <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-status-critical opacity-60" /> : null}
-              <span className={`relative inline-flex h-2 w-2 rounded-full ${live ? "bg-status-critical" : "bg-ink-muted"}`} />
-            </span>
-            {/* Each letter under the last, a little gap between the words. */}
-            <span className="flex flex-col items-center text-[0.625rem] font-bold uppercase leading-none text-ink-primary" aria-hidden>
-              {"RED ZONE".split("").map((ch, i) => (ch === " " ? <span key={i} className="h-1" /> : <span key={i}>{ch}</span>))}
-            </span>
-          </h2>
-          {/* ⇕: the box as tall as the screen (on a phone, fit under the header; wider, the map's whole column) — and back. */}
-          <button
-            type="button"
-            onClick={() => (phone ? toggleFit() : full?.toggle())}
-            aria-pressed={stretched}
-            aria-label={stretched ? "Back to size" : "Fit to the screen"}
-            title={stretched ? "Back to size" : "Fit to the screen"}
-            className="flex h-5 w-full shrink-0 items-center justify-center border border-border text-ink-secondary transition-colors hover:text-ink-primary"
-          >
-            <ExpandVerticalIcon inward={stretched} width={13} height={13} />
-          </button>
-          <div className="flex w-full shrink-0 flex-col border border-border text-[0.625rem] font-semibold" role="group" aria-label="Which plays">
+        <div className="absolute inset-0 flex flex-col items-center gap-1.5 px-0.5 py-1.5">
+          {/* The title down the top, ⇕ beside it. */}
+          <div className="flex shrink-0 items-start gap-px">
+            <h2 className="flex flex-col items-center gap-1" aria-label="Red Zone">
+              <span className="relative flex h-1.5 w-1.5 shrink-0" aria-hidden>
+                {live ? <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-status-critical opacity-60" /> : null}
+                <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${live ? "bg-status-critical" : "bg-ink-muted"}`} />
+              </span>
+              {/* Each letter under the last, a little gap between the words. */}
+              <span className="flex flex-col items-center text-[0.5625rem] font-bold uppercase leading-none text-ink-primary" aria-hidden>
+                {"RED ZONE".split("").map((ch, i) => (ch === " " ? <span key={i} className="h-1" /> : <span key={i}>{ch}</span>))}
+              </span>
+            </h2>
+            {/* ⇕: the box as tall as the screen (on a phone, fit under the header; wider, the map's whole column) — and back. */}
+            <button
+              type="button"
+              onClick={() => (phone ? toggleFit() : full?.toggle())}
+              aria-pressed={stretched}
+              aria-label={stretched ? "Back to size" : "Fit to the screen"}
+              title={stretched ? "Back to size" : "Fit to the screen"}
+              className="-mr-0.5 flex shrink-0 items-center justify-center text-ink-secondary transition-colors hover:text-ink-primary"
+            >
+              <ExpandVerticalIcon inward={stretched} width={11} height={11} />
+            </button>
+          </div>
+          {/* The games on now, each switched in or out of the plays: the visitors over the home team. */}
+          <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 overflow-y-auto [scrollbar-width:none]" role="group" aria-label="Games in the Red Zone">
+            {switchable.map((g) => {
+              const on = !offGames.has(g.id);
+              return (
+                <button
+                  key={g.id}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => toggleGame(g.id)}
+                  title={`${on ? "Hide" : "Show"} ${g.awayTeam} @ ${g.homeTeam}`}
+                  className={`flex w-full shrink-0 flex-col items-center gap-0.5 border py-0.5 transition-opacity ${
+                    on ? "border-ink-primary" : "border-border opacity-35 grayscale"
+                  }`}
+                >
+                  <TeamLogo team={g.awayTeam} side={12} />
+                  <TeamLogo team={g.homeTeam} side={12} />
+                </button>
+              );
+            })}
+          </div>
+          {/* Which plays, along the bottom. */}
+          <div className="flex w-full shrink-0 flex-col border border-border text-[0.5625rem] font-semibold" role="group" aria-label="Which plays">
             {SCOPES.map((opt) => (
               <button
                 key={opt.value}
                 type="button"
                 aria-pressed={scope === opt.value}
                 onClick={() => pickScope(opt.value)}
-                className={`leading-4 transition-colors ${
+                className={`leading-[1.6] transition-colors ${
                   scope === opt.value ? "bg-ink-primary text-surface-raised" : "text-ink-secondary hover:text-ink-primary"
                 }`}
               >
@@ -569,33 +594,10 @@ export function RedZone({
               </button>
             ))}
           </div>
-          {switchable.length > 0 ? (
-            // The games on now, each switched in or out of the plays: the visitors over the home team.
-            <div className="flex w-full flex-col items-center gap-1" role="group" aria-label="Games in the Red Zone">
-              {switchable.map((g) => {
-                const on = !offGames.has(g.id);
-                return (
-                  <button
-                    key={g.id}
-                    type="button"
-                    aria-pressed={on}
-                    onClick={() => toggleGame(g.id)}
-                    title={`${on ? "Hide" : "Show"} ${g.awayTeam} @ ${g.homeTeam}`}
-                    className={`flex w-full shrink-0 flex-col items-center gap-0.5 border py-0.5 transition-opacity ${
-                      on ? "border-ink-primary" : "border-border opacity-35 grayscale"
-                    }`}
-                  >
-                    <TeamLogo team={g.awayTeam} side={14} />
-                    <TeamLogo team={g.homeTeam} side={14} />
-                  </button>
-                );
-              })}
-            </div>
-          ) : null}
         </div>
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col gap-2 p-3 md:min-h-0">
+      <div className="flex min-w-0 flex-1 flex-col gap-2 py-1 pl-1.5 max-md:pr-2 md:min-h-0">
         {/* The play by a graph's cursor, pinned over the plays (see spotlight). */}
         {pinned ? (
           <ol aria-label="The play by the graph's cursor" className="shrink-0">
@@ -656,6 +658,6 @@ export function RedZone({
           </p>
         )}
       </div>
-    </Card>
+    </div>
   );
 }

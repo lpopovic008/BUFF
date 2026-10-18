@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { DashboardMatchupView } from "@/hooks/useDashboardMatchups";
 import { formatPoints, formatRecord } from "@/lib/format";
@@ -184,7 +184,7 @@ function TickerTeamRow({ team, fitWidth }: { team: MatchupRowTeam; fitWidth: boo
   // through score — is one unbroken plate, like a map tag.
   return (
     <div
-      className={`flex items-center justify-between gap-6 ${winning ? "-mx-1.5 bg-[var(--map-tag)] px-1.5 text-[var(--map-tag-ink)]" : ""}`}
+      className={`flex items-center justify-between gap-4 ${winning ? "-mx-1.5 bg-[var(--map-tag)] px-1.5 text-[var(--map-tag-ink)]" : ""}`}
     >
       <div className={`flex items-center gap-1.5 whitespace-nowrap ${fitWidth ? "min-w-0" : ""}`}>
         {/* The place as a bare number in a fixed two digits, right-aligned, so every team name starts at the same x. */}
@@ -239,13 +239,11 @@ export function MatchupRows({ teams, fitWidth = false }: { teams: MatchupRowTeam
 function TickerItem({
   league,
   position,
-  minWidth,
   copy,
 }: {
   league: TickerLeague;
   /** Where this league falls in your own ordering of them (1-based). */
   position: number;
-  minWidth: string;
   copy: boolean;
 }) {
   const { matchup, my, opponent } = league;
@@ -255,15 +253,15 @@ function TickerItem({
       aria-hidden={copy || undefined}
       tabIndex={copy ? -1 : undefined}
       draggable={false}
-      className="relative flex w-max shrink-0 flex-col justify-center gap-0.5 border-r border-border px-4 py-1.5"
-      style={{ minWidth }}
+      // Just as wide as it needs, a little padding at either end.
+      className="relative flex w-max shrink-0 flex-col justify-center gap-0.5 border-r border-border px-2.5 py-1.5"
     >
       {/* Its place in your leagues, outlined. */}
-      <span className="absolute right-4 top-1.5 border border-ink-primary px-1 text-[0.625rem] font-semibold tabular-nums leading-[1.4] text-ink-primary">
+      <span className="absolute right-2.5 top-1.5 border border-ink-primary px-1 text-[0.625rem] font-semibold tabular-nums leading-[1.4] text-ink-primary">
         {position}
       </span>
       {/* Against the left edge, padded on the right so a long title never runs into the position. */}
-      <div className="flex items-center gap-1.5 pr-8 text-[0.625rem] font-semibold uppercase tracking-wide text-ink-muted">
+      <div className="flex items-center gap-1.5 pr-6 text-[0.625rem] font-semibold uppercase tracking-wide text-ink-muted">
         {league.logo ? (
           // eslint-disable-next-line @next/next/no-img-element -- a remote Sleeper avatar on a static export; nothing for next/image to optimize
           <img src={league.logo} alt="" draggable={false} className="h-3 w-3 shrink-0 rounded-full object-cover" />
@@ -317,10 +315,24 @@ export function LeagueTicker({ leagues }: { leagues: TickerLeague[] }) {
       root.removeProperty("--ticker-h");
     };
   }, [leagues.length]);
+  // The leagues run as many times over as it takes to span the screen (each entry just as wide as it needs),
+  // then all that twice, so the loop is seamless and even one or two leagues never leave a gap.
+  const [repeat, setRepeat] = useState(1);
+  useLayoutEffect(() => {
+    const box = viewport.current;
+    const strip = track.current;
+    if (!box || !strip) return;
+    const measure = () => {
+      const once = strip.offsetWidth / (2 * repeat);
+      if (once > 0) setRepeat(Math.max(1, Math.ceil(box.clientWidth / once)));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(box);
+    observer.observe(strip);
+    return () => observer.disconnect();
+  }, [repeat, leagues.length]);
   if (leagues.length === 0) return null;
-  // The list runs twice so the loop is seamless; each copy spans at least the
-  // screen, so even one or two leagues never leave a gap.
-  const minWidth = `calc(100vw / ${leagues.length})`;
   return (
     <nav
       ref={bar}
@@ -329,12 +341,11 @@ export function LeagueTicker({ leagues }: { leagues: TickerLeague[] }) {
     >
       <div ref={viewport} className="select-none overflow-hidden [touch-action:pan-y]">
         <div ref={track} className="flex w-max will-change-transform">
-          {[...leagues, ...leagues].map((league, i) => (
+          {Array.from({ length: 2 * repeat }, () => leagues).flat().map((league, i) => (
             <TickerItem
               key={`${league.leagueId}-${i}`}
               league={league}
               position={(i % leagues.length) + 1}
-              minWidth={minWidth}
               copy={i >= leagues.length}
             />
           ))}

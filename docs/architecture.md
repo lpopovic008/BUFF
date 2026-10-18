@@ -364,6 +364,8 @@ anywhere off it, takes the cursor away, and the Red Zone goes back to
 exactly where it was. The left and right arrow keys step
 the cursor back and forth a play at a time. × (or tapping their line again)
 takes a graph down; Escape takes them all down and brings the map back.
+The graphs keep as much room over them as there is over the starters
+list's bar.
 The graphs up are kept on this browser (`getHomeView`/`saveHomeView`, with
 the week they're from), so a reload or reopening the app brings them back
 until they're closed — as is the starters list's Team/VS/ALL bar, Team the
@@ -455,20 +457,24 @@ score, one unbroken plate (the row spans the box's two columns as a
 subgrid) — is lit like a map tag once the week is official (`lastFinishedWeek`); with "as it stands" on,
 whoever leads right now is lit instead. Nobody is lit while the score is
 level. Each league's place in your own order is outlined in its top corner.
+Each entry is just as wide as it needs; the leagues run as many times over
+as it takes to span the screen, then all that twice for a seamless loop.
 
 **From tablet width up**, the map's column is exactly as tall as the screen
 under the ticker (the page takes back its own bottom padding, so nothing
 scrolls): the map at its top, as wide as the column at its own
-proportions (narrower if that would leave the Red Zone under 15rem, its
-side header's height — `GameMap`'s `room`), and the Red Zone filling the
-room under it, its plays scrolling within its box. The map's frame starts just over the land (or its
+proportions (narrower if that would leave the Red Zone under 10rem —
+`GameMap`'s `room`), and the Red Zone filling the room under it, its plays
+scrolling within it. The map's frame starts just over the land (or its
 highest tag) as the map opens — the empty band at the top of the map's box
 cut off — with the countdown right over the land, half a rem either side of
 it. `--header-h` and `--ticker-h` are published at
 their exact (fractional) heights so the sum comes out to the pixel.
-**The Red Zone's header** runs down the left side of its box: the live dot,
-RED ZONE a letter to a line, its ⇕ button, its Team/VS/All buttons stacked,
-and the games on now (scrolling within it should they outrun the box). Each
+**The Red Zone** has no box of its own: its plays spread out to the next
+section or the screen's edge (on a phone, both edges). **Its header** runs
+down its left side, 1.5rem wide: the live dot and RED ZONE a letter to a
+line, ⇕ beside them; then the games on now (scrolling should they outrun
+it); then its Team/VS/All buttons stacked along the bottom. Each
 game on now is a button of its two logos, the visitors over the home team:
 switched off, none of its plays show (it stays listed after it ends while
 it's off, so it can be switched back on). ⇕ stretches the box to the map's
