@@ -220,8 +220,9 @@ search. Each player is a Madden-style card (`PlayerCard`): their Sleeper photo
 in the middle (matched to KTC's name by position and name; a defense's logo, a
 draft pick's year and round, or else their team's logo faintly), team top left,
 position bottom left, and their value bottom right as a two-digit grade, its
-thousands and hundreds places (9,999 reads 99; `valueGrade`), the full value
-on hover — their name under the card. All four format combinations (1QB standard, 1QB TEP, Superflex
+thousands and hundreds places, with the tens and ones kept as decimals that
+split ties (9,999 is 99.99; `valueGrade`). Only the whole grade shows (99;
+`shownGrade`), the decimals on hover — their name under the card. All four format combinations (1QB standard, 1QB TEP, Superflex
 standard, Superflex TEP) come from the same KTC fetch — each player record
 already carries all of them, so there's no extra request per toggle, just a
 different field read client-side. KeepTradeCut has no official public API, so

@@ -10,7 +10,7 @@ import { useConfig } from "@/hooks/useConfig";
 import { useMyLeagues } from "@/hooks/useMyLeagues";
 import { visibleLeagues } from "@/lib/localStore";
 import rawSnapshot from "@/data/player-values.json";
-import { LeagueFormat, PlayerValue, PlayerValuesSnapshot, TEPremium, valueFor } from "@/lib/player-values";
+import { LeagueFormat, PlayerValue, PlayerValuesSnapshot, TEPremium, valueFor, valueGrade } from "@/lib/player-values";
 import { TitleWithHistory } from "@/components/HistoryButtons";
 import { PlateCard } from "@/components/ui/PlateCard";
 import { PlayerCard } from "@/components/PlayerCard";
@@ -34,7 +34,8 @@ function positionSort(a: string, b: string): number {
 
 interface Row {
   player: PlayerValue;
-  value: number;
+  /** Its KTC value as a grade, decimals and all (see valueGrade). */
+  grade: number;
   rank: number;
 }
 
@@ -48,11 +49,11 @@ function ValueCards({ rows, idIndex }: { rows: Row[]; idIndex: Map<string, strin
   }
   return (
     <ul className="grid grid-cols-3 gap-x-2 gap-y-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-      {rows.map(({ player, value, rank }) => (
+      {rows.map(({ player, grade, rank }) => (
         <PlayerCard
           key={`${player.position}-${player.name}`}
           player={player}
-          value={value}
+          grade={grade}
           rank={rank}
           playerId={idIndex.get(`${SLEEPER_POSITION[player.position] ?? player.position}-${normalizeName(player.name)}`) ?? null}
         />
@@ -110,8 +111,9 @@ export default function ValuesPage() {
     return fullList
       .filter((p) => !deselectedPositions.has(p.position))
       .filter((p) => !q || p.name.toLowerCase().includes(q))
-      .map((player) => ({ player, value: valueFor(player, leagueFormat, tep) }))
-      .sort((a, b) => b.value - a.value)
+      // Ranked by the grade's decimals too, so players tied on the whole grade keep KTC's order.
+      .map((player) => ({ player, grade: valueGrade(valueFor(player, leagueFormat, tep)) }))
+      .sort((a, b) => b.grade - a.grade)
       .map((row, i) => ({ ...row, rank: i + 1 }));
   }, [fullList, deselectedPositions, query, leagueFormat, tep]);
 

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { nflLogoUrl } from "@/lib/nfl-logos";
-import { PlayerValue, valueGrade } from "@/lib/player-values";
+import { PlayerValue, shownGrade } from "@/lib/player-values";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import { playerHeadshotUrl, playerPhotoUrl } from "@/lib/sleeper";
 
@@ -49,12 +49,11 @@ function CardFace({ player, playerId }: { player: PlayerValue; playerId: string 
 
 /**
  * A player as a Madden card: their photo in the middle, their team top left, their position bottom
- * left, their grade (see valueGrade) bottom right on the app's plate — and their name under it all.
+ * left, their grade (see valueGrade) bottom right on the app's plate, whole — its decimals, the tie splitter, on hover — and their name under it all.
  */
-export function PlayerCard({ player, value, rank, playerId }: { player: PlayerValue; value: number; rank: number; playerId: string | null }) {
-  const team = teamOf(player);
+export function PlayerCard({ player, grade, rank, playerId }: { player: PlayerValue; grade: number; rank: number; playerId: string | null }) {  const team = teamOf(player);
   return (
-    <li className="flex min-w-0 flex-col gap-1" title={`${player.name} · ${player.position}${team ? ` · ${team}` : ""} · ${value} KTC`}>
+    <li className="flex min-w-0 flex-col gap-1" title={`${player.name} · ${player.position}${team ? ` · ${team}` : ""} · ${grade.toFixed(2)}`}>
       <div className="relative flex aspect-[4/5] items-center justify-center overflow-hidden border border-border bg-surface-raised">
         {team ? (
           <span className="absolute left-1 top-1 border border-ink-primary px-1 text-[0.625rem] font-bold leading-tight text-ink-primary">{team}</span>
@@ -65,7 +64,7 @@ export function PlayerCard({ player, value, rank, playerId }: { player: PlayerVa
           {player.position}
         </span>
         <span className="absolute bottom-0 right-0 bg-[var(--map-tag)] px-1.5 py-0.5 text-lg font-bold leading-none tabular-nums text-[var(--map-tag-ink)]">
-          {valueGrade(value)}
+          {shownGrade(grade)}
         </span>
       </div>
       <span className="line-clamp-2 break-words text-center text-[0.75rem] font-semibold leading-tight text-ink-primary">{player.name}</span>
