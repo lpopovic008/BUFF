@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { ExpandVerticalIcon } from "@/components/ui/Icon";
 import { Ordinals } from "@/components/Ordinals";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
@@ -206,6 +206,51 @@ function clockTime(at: number | null): string {
   return at === null ? "" : new Date(at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
+/** Equal all the way down, for the plain data a play's row is drawn from. */
+function sameData(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) return false;
+  const keys = Object.keys(a);
+  if (keys.length !== Object.keys(b).length) return false;
+  return keys.every((k) => sameData((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k]));
+}
+
+/**
+ * Whether a row would draw just the same: a new play re-reads every game's plays, but only the
+ * rows that changed are drawn again — with thousands of plays on a Sunday, drawing them all freezes a phone.
+ */
+function sameRow(a: FeedRowProps, b: FeedRowProps): boolean {
+  return (
+    a.starterById === b.starterById &&
+    a.legendByLeagueId === b.legendByLeagueId &&
+    a.arrivedLive === b.arrivedLive &&
+    a.spotlit === b.spotlit &&
+    a.latest === b.latest &&
+    (a.entry === b.entry ||
+      (a.entry.game.id === b.entry.game.id &&
+        a.entry.game.statusDetail === b.entry.game.statusDetail &&
+        sameData(a.entry.play, b.entry.play) &&
+        sameData(a.entry.lines, b.entry.lines) &&
+        sameData(
+          a.entry.players.map((p) => p.playerId),
+          b.entry.players.map((p) => p.playerId)
+        )))
+  );
+}
+
+interface FeedRowProps {
+  entry: FeedEntry;
+  starterById: Map<string, GroupedStarter>;
+  legendByLeagueId: Map<string, LeagueLegendEntry>;
+  arrivedLive: boolean;
+  /** Where it sits as the plays first show, for its turn sliding in. */
+  index: number;
+  /** The play by a player graph's cursor: lit up. */
+  spotlit?: boolean;
+  /** Its game's latest play: its matchup lit like a map tag. */
+  latest?: boolean;
+}
+
 /**
  * One play: when it happened and the matchup along the top, with the snap
  * across from them — the down and distance, where on the field, the quarter
@@ -214,27 +259,10 @@ function clockTime(at: number | null): string {
  * that arrives while you watch slides in and washes its row in the theme's
  * ink — green for a good one for you.
  */
-function FeedRow({
-  entry,
-  starterById,
-  legendByLeagueId,
-  arrivedLive,
-  index,
-  spotlit = false,
-  latest = false,
-}: {
-  entry: FeedEntry;
-  starterById: Map<string, GroupedStarter>;
-  legendByLeagueId: Map<string, LeagueLegendEntry>;
-  arrivedLive: boolean;
-  index: number;
-  /** The play by a player graph's cursor: lit up. */
-  spotlit?: boolean;
-  /** Its game's latest play: its matchup lit like a map tag. */
-  latest?: boolean;
-}) {
+const FeedRow = memo(function FeedRow({ entry, starterById, legendByLeagueId, arrivedLive, index, spotlit = false, latest = false }: FeedRowProps) {
   // Decided once, when the row first appears.
   const [live] = useState(arrivedLive);
+  const [slot] = useState(index);
   const { play, players, lines, game } = entry;
   const hasPoints = lines.some((l) => !!l.delta);
   const good = play.scoring || (play.turnover && players.length > 0 && players.every((p) => p.position === "DEF"));
@@ -254,7 +282,7 @@ function FeedRow({
       style={{
         animation: live
           ? "rise 0.35s ease-out backwards, rz-flash 2.4s ease-out"
-          : `rise 0.4s ease-out ${Math.min(index, 10) * 40}ms backwards`,
+          : `rise 0.4s ease-out ${Math.min(slot, 10) * 40}ms backwards`,
         // A new play flashes in the theme's ink (black, or white in dark mode); a good one for you, green.
         ["--rz-flash" as string]: good ? "var(--status-good)" : "var(--ink-primary)",
       }}
@@ -314,7 +342,7 @@ function FeedRow({
       </span>
     </li>
   );
-}
+}, sameRow);
 
 /** Who on your side has the ball inside the 20 right now. */
 function RedZoneAlert({ alert }: { alert: RedZoneNow }) {
@@ -505,16 +533,21 @@ export function RedZone({
   // Not among them (another of the buttons is picked): laid over the top of the plays instead.
   const pinned = spotEntry && spotIndex < 0 ? spotEntry : null;
   const moreToShow = feed.entries.length > shown;
-  // Scrolling near the end of the plays loads the next page of them — no button.
+  // Scrolling near the end of the plays loads the next page of them — no button. Watched within the box when
+  // it scrolls on its own, else the screen; a page is only added once the end of the plays comes near.
   useEffect(() => {
     const sentinel = sentinelRef.current;
-    if (!sentinel) return;
-    const observer = new IntersectionObserver((seen) => {
-      if (seen.some((e) => e.isIntersecting)) setShown((n) => n + PAGE);
-    });
+    const box = boxRef.current;
+    if (!sentinel || !box) return;
+    const observer = new IntersectionObserver(
+      (seen) => {
+        if (seen.some((e) => e.isIntersecting)) setShown((n) => n + PAGE);
+      },
+      { root: getComputedStyle(box).overflowY === "visible" ? null : box, rootMargin: "0px 0px 800px 0px" }
+    );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [moreToShow, shown]);
+  }, [moreToShow, shown, phone]);
 
   // Another scope starts the plays over from the top.
   const pickScope = (next: RedZoneScope) => {
@@ -525,7 +558,7 @@ export function RedZone({
     boxRef.current?.scrollTo({ top: 0 });
   };
 
-  const legendByLeagueId = new Map(legend.map((l) => [l.leagueId, l]));
+  const legendByLeagueId = useMemo(() => new Map(legend.map((l) => [l.leagueId, l])), [legend]);
   const entries = feed.entries;
   // Each game's latest play (the plays run newest first), its matchup lit.
   const latestPlays = new Set<string>();
@@ -635,8 +668,8 @@ export function RedZone({
                   />
                 ))}
               </ol>
-              {/* The last screen or so of plays: scrolling into it brings in the next ones before you reach the end. */}
-              {entries.length > shown ? <div ref={sentinelRef} className="pointer-events-none absolute inset-x-0 bottom-0 h-[min(60rem,100%)]" aria-hidden /> : null}
+              {/* The end of the plays shown: coming within a screen or so of it brings in the next ones. */}
+              {entries.length > shown ? <div ref={sentinelRef} className="h-px" aria-hidden /> : null}
             </div>
           </div>
         ) : (

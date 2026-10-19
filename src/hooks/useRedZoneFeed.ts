@@ -159,14 +159,28 @@ export function useRedZoneFeed(
   }, [starters, weekGames, scope]);
 
   const playsByGame = useGamePlays(games);
+  // Each game's entries as last worked out, kept while nothing they're made from has changed — so a new
+  // play works out only its own game's again, not the thousands of plays in the rest by late Sunday.
+  const [byGame] = useState(() => new Map<string, { key: unknown[]; entries: FeedEntry[] }>());
 
   const entries = useMemo(() => {
     const out: FeedEntry[] = [];
     for (const { game, players } of games) {
       if (game.state === "pre") continue;
+      const fetched = playsByGame[game.id] ?? [];
+      const plays = withScoreboardPlay(game, fetched);
+      const added = plays === fetched ? null : JSON.stringify(plays[plays.length - 1]);
+      const key = [fetched, added, players.map((p) => p.playerId).join(), teamPlayers, scope, game.homeTeam, game.awayTeam];
+      const kept = byGame.get(game.id);
+      if (kept && kept.key.every((k, i) => k === key[i])) {
+        // The game itself as it stands now (its status, for a play between quarters).
+        if (kept.entries[0]?.game !== game) kept.entries = kept.entries.map((e) => ({ ...e, game }));
+        out.push(...kept.entries);
+        continue;
+      }
+      const gameEntries: FeedEntry[] = [];
       const candidates = candidatesOf(players);
       const byId = new Map(players.map((p) => [p.playerId, p]));
-      const plays = withScoreboardPlay(game, playsByGame[game.id] ?? []);
       // In game order, so each player's running total builds up play by play.
       plays.sort((a, b) => a.sequence - b.sequence);
       // Names are matched to your starters first, then to everyone else on the two teams.
@@ -177,14 +191,16 @@ export function useRedZoneFeed(
         const matched = playersInPlay(play, candidates);
         if (matched.length === 0 && scope === "mine") continue;
         const involved = matched.map((c) => byId.get(c.playerId)).filter((p): p is GroupedStarter => !!p);
-        out.push({ play, game, players: involved, lines: lines.get(play.id) ?? [] });
+        gameEntries.push({ play, game, players: involved, lines: lines.get(play.id) ?? [] });
       }
+      byGame.set(game.id, { key, entries: gameEntries });
+      out.push(...gameEntries);
     }
     return out.sort((a, b) => {
       const byTime = (b.play.at ?? 0) - (a.play.at ?? 0);
       return byTime !== 0 ? byTime : b.play.sequence - a.play.sequence;
     });
-  }, [games, playsByGame, scope, teamPlayers]);
+  }, [games, playsByGame, scope, teamPlayers, byGame]);
 
   const redZone = useMemo(() => {
     const out: RedZoneNow[] = [];
