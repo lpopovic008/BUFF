@@ -10,7 +10,7 @@ import { useConfig } from "@/hooks/useConfig";
 import { useMyLeagues } from "@/hooks/useMyLeagues";
 import { visibleLeagues } from "@/lib/localStore";
 import rawSnapshot from "@/data/player-values.json";
-import { LeagueFormat, PlayerValue, PlayerValuesSnapshot, TEPremium, valueFor } from "@/lib/player-values";
+import { LeagueFormat, PlayerValue, PlayerValuesSnapshot, TEPremium, valueFor, valueGrade } from "@/lib/player-values";
 import { TitleWithHistory } from "@/components/HistoryButtons";
 import { PlateCard } from "@/components/ui/PlateCard";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
@@ -49,7 +49,7 @@ function ValueTable({ rows, maxValue }: { rows: Row[]; maxValue: number }) {
             <th className="py-2 pr-3 font-medium">Player</th>
             <th className="hidden py-2 pr-3 font-medium sm:table-cell">Pos</th>
             <th className="hidden py-2 pr-3 text-right font-medium sm:table-cell">Age</th>
-            <th className="py-2 pr-3 font-medium">Value</th>
+            <th className="py-2 pr-3 font-medium">OVR</th>
           </tr>
         </thead>
         <tbody>
@@ -76,7 +76,9 @@ function ValueTable({ rows, maxValue }: { rows: Row[]; maxValue: number }) {
                       style={{ width: `${Math.max(2, (value / maxValue) * 100)}%` }}
                     />
                   </div>
-                  <span className="shrink-0 font-semibold tabular-nums text-ink-primary">{value}</span>
+                  <span className="w-[2ch] shrink-0 text-right font-semibold tabular-nums text-ink-primary" title={`${value} KTC`}>
+                    {valueGrade(value)}
+                  </span>
                 </div>
               </td>
             </tr>

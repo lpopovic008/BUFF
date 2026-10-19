@@ -46,3 +46,8 @@ export function valueFor(player: PlayerValue, format: LeagueFormat, tep: TEPremi
   }
   return tep === "tep" ? player.values.oneQBTep : player.values.oneQBStandard;
 }
+
+/** A KTC value as a Madden-style grade: its thousands and hundreds places, so 9,999 reads 99 and 4,850 reads 48. */
+export function valueGrade(value: number): number {
+  return Math.floor(value / 100);
+}
