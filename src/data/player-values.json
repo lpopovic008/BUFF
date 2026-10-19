@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-19T17:35:43.575Z",
+  "updatedAt": "2026-10-19T18:54:07.928Z",
   "source": "keeptradecut",
   "dynasty": [
     {
@@ -10,20 +10,8 @@
       "values": {
         "oneQBStandard": 9999,
         "oneQBTep": 9999,
-        "superflexStandard": 9999,
-        "superflexTep": 9999
-      }
-    },
-    {
-      "name": "Bijan Robinson",
-      "position": "RB",
-      "team": "ATL",
-      "age": 24.7,
-      "values": {
-        "oneQBStandard": 9998,
-        "oneQBTep": 9998,
-        "superflexStandard": 9997,
-        "superflexTep": 9997
+        "superflexStandard": 9992,
+        "superflexTep": 9992
       }
     },
     {
@@ -32,10 +20,22 @@
       "team": "SEA",
       "age": 24.7,
       "values": {
-        "oneQBStandard": 9997,
-        "oneQBTep": 9997,
-        "superflexStandard": 9999,
-        "superflexTep": 9999
+        "oneQBStandard": 9996,
+        "oneQBTep": 9996,
+        "superflexStandard": 9993,
+        "superflexTep": 9993
+      }
+    },
+    {
+      "name": "Bijan Robinson",
+      "position": "RB",
+      "team": "ATL",
+      "age": 24.7,
+      "values": {
+        "oneQBStandard": 9995,
+        "oneQBTep": 9995,
+        "superflexStandard": 9994,
+        "superflexTep": 9994
       }
     },
     {
@@ -44,10 +44,10 @@
       "team": "CIN",
       "age": 26.6,
       "values": {
-        "oneQBStandard": 8641,
-        "oneQBTep": 8641,
-        "superflexStandard": 8602,
-        "superflexTep": 8602
+        "oneQBStandard": 8651,
+        "oneQBTep": 8651,
+        "superflexStandard": 8606,
+        "superflexTep": 8606
       }
     },
     {
@@ -56,10 +56,10 @@
       "team": "LVR",
       "age": 23.8,
       "values": {
-        "oneQBStandard": 8402,
-        "oneQBTep": 9295,
-        "superflexStandard": 8293,
-        "superflexTep": 9175
+        "oneQBStandard": 8386,
+        "oneQBTep": 9277,
+        "superflexStandard": 8276,
+        "superflexTep": 9157
       }
     },
     {
@@ -68,10 +68,10 @@
       "team": "LAR",
       "age": 25.4,
       "values": {
-        "oneQBStandard": 8174,
-        "oneQBTep": 8174,
-        "superflexStandard": 8182,
-        "superflexTep": 8182
+        "oneQBStandard": 8186,
+        "oneQBTep": 8186,
+        "superflexStandard": 8184,
+        "superflexTep": 8184
       }
     },
     {
@@ -80,10 +80,10 @@
       "team": "BUF",
       "age": 30.4,
       "values": {
-        "oneQBStandard": 7805,
-        "oneQBTep": 7805,
-        "superflexStandard": 9995,
-        "superflexTep": 9995
+        "oneQBStandard": 7800,
+        "oneQBTep": 7800,
+        "superflexStandard": 9997,
+        "superflexTep": 9997
       }
     },
     {
@@ -92,10 +92,10 @@
       "team": "KCC",
       "age": 26,
       "values": {
-        "oneQBStandard": 7647,
-        "oneQBTep": 7647,
-        "superflexStandard": 7489,
-        "superflexTep": 7489
+        "oneQBStandard": 7653,
+        "oneQBTep": 7653,
+        "superflexStandard": 7494,
+        "superflexTep": 7494
       }
     },
     {
@@ -106,8 +106,8 @@
       "values": {
         "oneQBStandard": 7584,
         "oneQBTep": 7584,
-        "superflexStandard": 7521,
-        "superflexTep": 7521
+        "superflexStandard": 7523,
+        "superflexTep": 7523
       }
     },
     {
@@ -118,8 +118,8 @@
       "values": {
         "oneQBStandard": 7400,
         "oneQBTep": 8195,
-        "superflexStandard": 7387,
-        "superflexTep": 8181
+        "superflexStandard": 7390,
+        "superflexTep": 8184
       }
     },
     {
@@ -128,10 +128,10 @@
       "team": "DAL",
       "age": 27.5,
       "values": {
-        "oneQBStandard": 7222,
-        "oneQBTep": 7222,
-        "superflexStandard": 7118,
-        "superflexTep": 7118
+        "oneQBStandard": 7223,
+        "oneQBTep": 7223,
+        "superflexStandard": 7120,
+        "superflexTep": 7120
       }
     },
     {
@@ -140,10 +140,10 @@
       "team": "NYG",
       "age": 23.2,
       "values": {
-        "oneQBStandard": 7187,
-        "oneQBTep": 7187,
-        "superflexStandard": 7147,
-        "superflexTep": 7147
+        "oneQBStandard": 7188,
+        "oneQBTep": 7188,
+        "superflexStandard": 7141,
+        "superflexTep": 7141
       }
     },
     {
@@ -152,10 +152,10 @@
       "team": "LVR",
       "age": 22.9,
       "values": {
-        "oneQBStandard": 7157,
-        "oneQBTep": 7157,
-        "superflexStandard": 6970,
-        "superflexTep": 6970
+        "oneQBStandard": 7154,
+        "oneQBTep": 7154,
+        "superflexStandard": 6971,
+        "superflexTep": 6971
       }
     },
     {
@@ -164,10 +164,10 @@
       "team": "MIN",
       "age": 27.3,
       "values": {
-        "oneQBStandard": 7128,
-        "oneQBTep": 7128,
-        "superflexStandard": 7062,
-        "superflexTep": 7062
+        "oneQBStandard": 7135,
+        "oneQBTep": 7135,
+        "superflexStandard": 7069,
+        "superflexTep": 7069
       }
     },
     {
@@ -176,10 +176,10 @@
       "team": "FA",
       "age": 0,
       "values": {
-        "oneQBStandard": 7098,
-        "oneQBTep": 7098,
-        "superflexStandard": 6877,
-        "superflexTep": 6877
+        "oneQBStandard": 7100,
+        "oneQBTep": 7100,
+        "superflexStandard": 6871,
+        "superflexTep": 6871
       }
     },
     {
@@ -188,10 +188,10 @@
       "team": "ATL",
       "age": 25.2,
       "values": {
-        "oneQBStandard": 7040,
-        "oneQBTep": 7040,
-        "superflexStandard": 6922,
-        "superflexTep": 6922
+        "oneQBStandard": 7049,
+        "oneQBTep": 7049,
+        "superflexStandard": 6930,
+        "superflexTep": 6930
       }
     },
     {
@@ -200,10 +200,10 @@
       "team": "CAR",
       "age": 23.5,
       "values": {
-        "oneQBStandard": 6983,
-        "oneQBTep": 6983,
-        "superflexStandard": 6766,
-        "superflexTep": 6766
+        "oneQBStandard": 6985,
+        "oneQBTep": 6985,
+        "superflexStandard": 6765,
+        "superflexTep": 6765
       }
     },
     {
@@ -212,10 +212,10 @@
       "team": "ARI",
       "age": 21.4,
       "values": {
-        "oneQBStandard": 6959,
-        "oneQBTep": 6959,
-        "superflexStandard": 6702,
-        "superflexTep": 6702
+        "oneQBStandard": 6948,
+        "oneQBTep": 6948,
+        "superflexStandard": 6704,
+        "superflexTep": 6704
       }
     },
     {
@@ -224,10 +224,10 @@
       "team": "IND",
       "age": 27.8,
       "values": {
-        "oneQBStandard": 6935,
-        "oneQBTep": 6935,
-        "superflexStandard": 6612,
-        "superflexTep": 6612
+        "oneQBStandard": 6941,
+        "oneQBTep": 6941,
+        "superflexStandard": 6609,
+        "superflexTep": 6609
       }
     },
     {
@@ -236,10 +236,10 @@
       "team": "NOS",
       "age": 26.3,
       "values": {
-        "oneQBStandard": 6915,
-        "oneQBTep": 6915,
-        "superflexStandard": 6586,
-        "superflexTep": 6586
+        "oneQBStandard": 6904,
+        "oneQBTep": 6904,
+        "superflexStandard": 6575,
+        "superflexTep": 6575
       }
     },
     {
@@ -248,10 +248,10 @@
       "team": "BUF",
       "age": 27.1,
       "values": {
-        "oneQBStandard": 6779,
-        "oneQBTep": 6779,
-        "superflexStandard": 6364,
-        "superflexTep": 6364
+        "oneQBStandard": 6771,
+        "oneQBTep": 6771,
+        "superflexStandard": 6344,
+        "superflexTep": 6344
       }
     },
     {
@@ -260,8 +260,8 @@
       "team": "BAL",
       "age": 26.1,
       "values": {
-        "oneQBStandard": 6589,
-        "oneQBTep": 6589,
+        "oneQBStandard": 6592,
+        "oneQBTep": 6592,
         "superflexStandard": 6352,
         "superflexTep": 6352
       }
@@ -272,10 +272,10 @@
       "team": "JAC",
       "age": 24.6,
       "values": {
-        "oneQBStandard": 6478,
-        "oneQBTep": 6478,
-        "superflexStandard": 6249,
-        "superflexTep": 6249
+        "oneQBStandard": 6476,
+        "oneQBTep": 6476,
+        "superflexStandard": 6244,
+        "superflexTep": 6244
       }
     },
     {
@@ -284,10 +284,10 @@
       "team": "HOU",
       "age": 27.6,
       "values": {
-        "oneQBStandard": 6377,
-        "oneQBTep": 6377,
-        "superflexStandard": 6079,
-        "superflexTep": 6079
+        "oneQBStandard": 6374,
+        "oneQBTep": 6374,
+        "superflexStandard": 6082,
+        "superflexTep": 6082
       }
     },
     {
@@ -298,8 +298,8 @@
       "values": {
         "oneQBStandard": 6366,
         "oneQBTep": 6366,
-        "superflexStandard": 6168,
-        "superflexTep": 6168
+        "superflexStandard": 6167,
+        "superflexTep": 6167
       }
     },
     {
@@ -308,22 +308,10 @@
       "team": "LAR",
       "age": 26.2,
       "values": {
-        "oneQBStandard": 6243,
-        "oneQBTep": 6243,
-        "superflexStandard": 5756,
-        "superflexTep": 5756
-      }
-    },
-    {
-      "name": "George Pickens",
-      "position": "WR",
-      "team": "DAL",
-      "age": 25.6,
-      "values": {
-        "oneQBStandard": 6233,
-        "oneQBTep": 6233,
-        "superflexStandard": 5787,
-        "superflexTep": 5787
+        "oneQBStandard": 6244,
+        "oneQBTep": 6244,
+        "superflexStandard": 5739,
+        "superflexTep": 5739
       }
     },
     {
@@ -332,10 +320,22 @@
       "team": "BAL",
       "age": 29.8,
       "values": {
-        "oneQBStandard": 6232,
-        "oneQBTep": 6232,
-        "superflexStandard": 7180,
-        "superflexTep": 7180
+        "oneQBStandard": 6234,
+        "oneQBTep": 6234,
+        "superflexStandard": 7179,
+        "superflexTep": 7179
+      }
+    },
+    {
+      "name": "George Pickens",
+      "position": "WR",
+      "team": "DAL",
+      "age": 25.6,
+      "values": {
+        "oneQBStandard": 6221,
+        "oneQBTep": 6221,
+        "superflexStandard": 5784,
+        "superflexTep": 5784
       }
     },
     {
@@ -344,10 +344,10 @@
       "team": "GBP",
       "age": 27.4,
       "values": {
-        "oneQBStandard": 6175,
-        "oneQBTep": 6175,
-        "superflexStandard": 5696,
-        "superflexTep": 5696
+        "oneQBStandard": 6181,
+        "oneQBTep": 6181,
+        "superflexStandard": 5699,
+        "superflexTep": 5699
       }
     },
     {
@@ -356,10 +356,10 @@
       "team": "FA",
       "age": 0,
       "values": {
-        "oneQBStandard": 6083,
-        "oneQBTep": 6083,
-        "superflexStandard": 5670,
-        "superflexTep": 5670
+        "oneQBStandard": 6082,
+        "oneQBTep": 6082,
+        "superflexStandard": 5665,
+        "superflexTep": 5665
       }
     },
     {
@@ -368,10 +368,10 @@
       "team": "GBP",
       "age": 23.2,
       "values": {
-        "oneQBStandard": 6053,
-        "oneQBTep": 6053,
-        "superflexStandard": 5526,
-        "superflexTep": 5526
+        "oneQBStandard": 6059,
+        "oneQBTep": 6059,
+        "superflexStandard": 5539,
+        "superflexTep": 5539
       }
     },
     {
@@ -380,10 +380,10 @@
       "team": "MIA",
       "age": 25,
       "values": {
-        "oneQBStandard": 6051,
-        "oneQBTep": 6051,
-        "superflexStandard": 5598,
-        "superflexTep": 5598
+        "oneQBStandard": 6057,
+        "oneQBTep": 6057,
+        "superflexStandard": 5602,
+        "superflexTep": 5602
       }
     },
     {
@@ -392,10 +392,10 @@
       "team": "CHI",
       "age": 24.9,
       "values": {
-        "oneQBStandard": 6022,
-        "oneQBTep": 6022,
-        "superflexStandard": 7371,
-        "superflexTep": 7371
+        "oneQBStandard": 6026,
+        "oneQBTep": 6026,
+        "superflexStandard": 7389,
+        "superflexTep": 7389
       }
     },
     {
@@ -404,22 +404,10 @@
       "team": "NYJ",
       "age": 25.4,
       "values": {
-        "oneQBStandard": 6002,
-        "oneQBTep": 6002,
-        "superflexStandard": 5371,
-        "superflexTep": 5371
-      }
-    },
-    {
-      "name": "Tyler Warren",
-      "position": "TE",
-      "team": "IND",
-      "age": 24.4,
-      "values": {
-        "oneQBStandard": 5990,
-        "oneQBTep": 6656,
-        "superflexStandard": 5594,
-        "superflexTep": 6223
+        "oneQBStandard": 5996,
+        "oneQBTep": 5996,
+        "superflexStandard": 5353,
+        "superflexTep": 5353
       }
     },
     {
@@ -428,10 +416,10 @@
       "team": "SFO",
       "age": 30.4,
       "values": {
-        "oneQBStandard": 5988,
-        "oneQBTep": 5988,
-        "superflexStandard": 5404,
-        "superflexTep": 5404
+        "oneQBStandard": 5990,
+        "oneQBTep": 5990,
+        "superflexStandard": 5402,
+        "superflexTep": 5402
       }
     },
     {
@@ -440,10 +428,22 @@
       "team": "TEN",
       "age": 21.8,
       "values": {
-        "oneQBStandard": 5978,
-        "oneQBTep": 5978,
-        "superflexStandard": 5479,
-        "superflexTep": 5479
+        "oneQBStandard": 5984,
+        "oneQBTep": 5984,
+        "superflexStandard": 5481,
+        "superflexTep": 5481
+      }
+    },
+    {
+      "name": "Tyler Warren",
+      "position": "TE",
+      "team": "IND",
+      "age": 24.4,
+      "values": {
+        "oneQBStandard": 5977,
+        "oneQBTep": 6644,
+        "superflexStandard": 5582,
+        "superflexTep": 6210
       }
     },
     {
@@ -452,10 +452,10 @@
       "team": "JAC",
       "age": 23.7,
       "values": {
-        "oneQBStandard": 5969,
-        "oneQBTep": 5969,
-        "superflexStandard": 5216,
-        "superflexTep": 5216
+        "oneQBStandard": 5977,
+        "oneQBTep": 5977,
+        "superflexStandard": 5231,
+        "superflexTep": 5231
       }
     },
     {
@@ -464,22 +464,10 @@
       "team": "TBB",
       "age": 24.2,
       "values": {
-        "oneQBStandard": 5959,
-        "oneQBTep": 5959,
-        "superflexStandard": 5287,
-        "superflexTep": 5287
-      }
-    },
-    {
-      "name": "Emeka Egbuka",
-      "position": "WR",
-      "team": "TBB",
-      "age": 24,
-      "values": {
-        "oneQBStandard": 5944,
-        "oneQBTep": 5944,
-        "superflexStandard": 5288,
-        "superflexTep": 5288
+        "oneQBStandard": 5956,
+        "oneQBTep": 5956,
+        "superflexStandard": 5293,
+        "superflexTep": 5293
       }
     },
     {
@@ -488,10 +476,22 @@
       "team": "FA",
       "age": 0,
       "values": {
-        "oneQBStandard": 5941,
-        "oneQBTep": 5941,
-        "superflexStandard": 5578,
-        "superflexTep": 5578
+        "oneQBStandard": 5944,
+        "oneQBTep": 5944,
+        "superflexStandard": 5575,
+        "superflexTep": 5575
+      }
+    },
+    {
+      "name": "Emeka Egbuka",
+      "position": "WR",
+      "team": "TBB",
+      "age": 24,
+      "values": {
+        "oneQBStandard": 5940,
+        "oneQBTep": 5940,
+        "superflexStandard": 5285,
+        "superflexTep": 5285
       }
     },
     {
@@ -502,8 +502,8 @@
       "values": {
         "oneQBStandard": 5908,
         "oneQBTep": 5908,
-        "superflexStandard": 7249,
-        "superflexTep": 7249
+        "superflexStandard": 7248,
+        "superflexTep": 7248
       }
     },
     {
@@ -514,8 +514,8 @@
       "values": {
         "oneQBStandard": 5885,
         "oneQBTep": 5885,
-        "superflexStandard": 6818,
-        "superflexTep": 6818
+        "superflexStandard": 6829,
+        "superflexTep": 6829
       }
     },
     {
@@ -524,10 +524,10 @@
       "team": "CLE",
       "age": 22.9,
       "values": {
-        "oneQBStandard": 5877,
-        "oneQBTep": 5877,
-        "superflexStandard": 5123,
-        "superflexTep": 5123
+        "oneQBStandard": 5882,
+        "oneQBTep": 5882,
+        "superflexStandard": 5125,
+        "superflexTep": 5125
       }
     },
     {
@@ -536,34 +536,10 @@
       "team": "CHI",
       "age": 22.8,
       "values": {
-        "oneQBStandard": 5873,
-        "oneQBTep": 5873,
-        "superflexStandard": 5273,
-        "superflexTep": 5273
-      }
-    },
-    {
-      "name": "Javonte Williams",
-      "position": "RB",
-      "team": "DAL",
-      "age": 26.5,
-      "values": {
-        "oneQBStandard": 5853,
-        "oneQBTep": 5853,
-        "superflexStandard": 5188,
-        "superflexTep": 5188
-      }
-    },
-    {
-      "name": "Derrick Henry",
-      "position": "RB",
-      "team": "BAL",
-      "age": 32.8,
-      "values": {
-        "oneQBStandard": 5852,
-        "oneQBTep": 5852,
-        "superflexStandard": 5168,
-        "superflexTep": 5168
+        "oneQBStandard": 5880,
+        "oneQBTep": 5880,
+        "superflexStandard": 5282,
+        "superflexTep": 5282
       }
     },
     {
@@ -572,10 +548,22 @@
       "team": "CIN",
       "age": 27.8,
       "values": {
-        "oneQBStandard": 5845,
-        "oneQBTep": 5845,
-        "superflexStandard": 5193,
-        "superflexTep": 5193
+        "oneQBStandard": 5847,
+        "oneQBTep": 5847,
+        "superflexStandard": 5201,
+        "superflexTep": 5201
+      }
+    },
+    {
+      "name": "Javonte Williams",
+      "position": "RB",
+      "team": "DAL",
+      "age": 26.5,
+      "values": {
+        "oneQBStandard": 5846,
+        "oneQBTep": 5846,
+        "superflexStandard": 5190,
+        "superflexTep": 5190
       }
     },
     {
@@ -586,8 +574,20 @@
       "values": {
         "oneQBStandard": 5839,
         "oneQBTep": 5839,
-        "superflexStandard": 5202,
-        "superflexTep": 5202
+        "superflexStandard": 5199,
+        "superflexTep": 5199
+      }
+    },
+    {
+      "name": "Derrick Henry",
+      "position": "RB",
+      "team": "BAL",
+      "age": 32.8,
+      "values": {
+        "oneQBStandard": 5835,
+        "oneQBTep": 5835,
+        "superflexStandard": 5152,
+        "superflexTep": 5152
       }
     },
     {
@@ -596,10 +596,10 @@
       "team": "PHI",
       "age": 27.9,
       "values": {
-        "oneQBStandard": 5744,
-        "oneQBTep": 5744,
-        "superflexStandard": 5220,
-        "superflexTep": 5220
+        "oneQBStandard": 5738,
+        "oneQBTep": 5738,
+        "superflexStandard": 5209,
+        "superflexTep": 5209
       }
     },
     {
@@ -608,10 +608,10 @@
       "team": "SFO",
       "age": 26.8,
       "values": {
-        "oneQBStandard": 5625,
-        "oneQBTep": 5625,
-        "superflexStandard": 7022,
-        "superflexTep": 7022
+        "oneQBStandard": 5629,
+        "oneQBTep": 5629,
+        "superflexStandard": 7013,
+        "superflexTep": 7013
       }
     },
     {
@@ -620,10 +620,10 @@
       "team": "FA",
       "age": 0,
       "values": {
-        "oneQBStandard": 5622,
-        "oneQBTep": 5622,
-        "superflexStandard": 5193,
-        "superflexTep": 5193
+        "oneQBStandard": 5619,
+        "oneQBTep": 5619,
+        "superflexStandard": 5195,
+        "superflexTep": 5195
       }
     },
     {
@@ -632,10 +632,10 @@
       "team": "NOS",
       "age": 22.2,
       "values": {
-        "oneQBStandard": 5603,
-        "oneQBTep": 5603,
-        "superflexStandard": 5022,
-        "superflexTep": 5022
+        "oneQBStandard": 5613,
+        "oneQBTep": 5613,
+        "superflexStandard": 5033,
+        "superflexTep": 5033
       }
     },
     {
@@ -644,10 +644,10 @@
       "team": "CHI",
       "age": 22.5,
       "values": {
-        "oneQBStandard": 5575,
-        "oneQBTep": 6210,
-        "superflexStandard": 5091,
-        "superflexTep": 5682
+        "oneQBStandard": 5571,
+        "oneQBTep": 6205,
+        "superflexStandard": 5086,
+        "superflexTep": 5676
       }
     },
     {
@@ -656,10 +656,10 @@
       "team": "CLE",
       "age": 23,
       "values": {
-        "oneQBStandard": 5549,
-        "oneQBTep": 5549,
-        "superflexStandard": 4664,
-        "superflexTep": 4664
+        "oneQBStandard": 5551,
+        "oneQBTep": 5551,
+        "superflexStandard": 4678,
+        "superflexTep": 4678
       }
     },
     {
@@ -668,10 +668,10 @@
       "team": "ARI",
       "age": 26.6,
       "values": {
-        "oneQBStandard": 5501,
-        "oneQBTep": 5501,
-        "superflexStandard": 4767,
-        "superflexTep": 4767
+        "oneQBStandard": 5486,
+        "oneQBTep": 5486,
+        "superflexStandard": 4756,
+        "superflexTep": 4756
       }
     },
     {
@@ -680,10 +680,10 @@
       "team": "WAS",
       "age": 25.8,
       "values": {
-        "oneQBStandard": 5456,
-        "oneQBTep": 5456,
-        "superflexStandard": 6192,
-        "superflexTep": 6192
+        "oneQBStandard": 5453,
+        "oneQBTep": 5453,
+        "superflexStandard": 6214,
+        "superflexTep": 6214
       }
     },
     {
@@ -692,22 +692,10 @@
       "team": "LAC",
       "age": 23.6,
       "values": {
-        "oneQBStandard": 5424,
-        "oneQBTep": 5424,
-        "superflexStandard": 4713,
-        "superflexTep": 4713
-      }
-    },
-    {
-      "name": "Sam LaPorta",
-      "position": "TE",
-      "team": "DET",
-      "age": 25.8,
-      "values": {
-        "oneQBStandard": 5381,
-        "oneQBTep": 5999,
-        "superflexStandard": 4824,
-        "superflexTep": 5389
+        "oneQBStandard": 5421,
+        "oneQBTep": 5421,
+        "superflexStandard": 4707,
+        "superflexTep": 4707
       }
     },
     {
@@ -716,10 +704,22 @@
       "team": "CAR",
       "age": 25,
       "values": {
-        "oneQBStandard": 5360,
-        "oneQBTep": 5360,
-        "superflexStandard": 4730,
-        "superflexTep": 4730
+        "oneQBStandard": 5375,
+        "oneQBTep": 5375,
+        "superflexStandard": 4758,
+        "superflexTep": 4758
+      }
+    },
+    {
+      "name": "Sam LaPorta",
+      "position": "TE",
+      "team": "DET",
+      "age": 25.8,
+      "values": {
+        "oneQBStandard": 5374,
+        "oneQBTep": 5991,
+        "superflexStandard": 4821,
+        "superflexTep": 5386
       }
     },
     {
@@ -728,10 +728,10 @@
       "team": "CHI",
       "age": 27.8,
       "values": {
-        "oneQBStandard": 5336,
-        "oneQBTep": 5336,
-        "superflexStandard": 4597,
-        "superflexTep": 4597
+        "oneQBStandard": 5338,
+        "oneQBTep": 5338,
+        "superflexStandard": 4601,
+        "superflexTep": 4601
       }
     },
     {
@@ -740,22 +740,10 @@
       "team": "FA",
       "age": 0,
       "values": {
-        "oneQBStandard": 5328,
-        "oneQBTep": 5328,
-        "superflexStandard": 4789,
-        "superflexTep": 4789
-      }
-    },
-    {
-      "name": "A.J. Brown",
-      "position": "WR",
-      "team": "NEP",
-      "age": 29.3,
-      "values": {
-        "oneQBStandard": 5306,
-        "oneQBTep": 5306,
-        "superflexStandard": 4616,
-        "superflexTep": 4616
+        "oneQBStandard": 5329,
+        "oneQBTep": 5329,
+        "superflexStandard": 4784,
+        "superflexTep": 4784
       }
     },
     {
@@ -766,8 +754,8 @@
       "values": {
         "oneQBStandard": 5303,
         "oneQBTep": 5303,
-        "superflexStandard": 6710,
-        "superflexTep": 6710
+        "superflexStandard": 6707,
+        "superflexTep": 6707
       }
     },
     {
@@ -776,22 +764,10 @@
       "team": "FA",
       "age": 0,
       "values": {
-        "oneQBStandard": 5302,
-        "oneQBTep": 5302,
-        "superflexStandard": 4807,
-        "superflexTep": 4807
-      }
-    },
-    {
-      "name": "Ladd McConkey",
-      "position": "WR",
-      "team": "LAC",
-      "age": 25,
-      "values": {
-        "oneQBStandard": 5299,
-        "oneQBTep": 5299,
-        "superflexStandard": 4582,
-        "superflexTep": 4582
+        "oneQBStandard": 5300,
+        "oneQBTep": 5300,
+        "superflexStandard": 4805,
+        "superflexTep": 4805
       }
     },
     {
@@ -800,10 +776,34 @@
       "team": "GBP",
       "age": 26,
       "values": {
-        "oneQBStandard": 5294,
-        "oneQBTep": 5907,
-        "superflexStandard": 4750,
-        "superflexTep": 5310
+        "oneQBStandard": 5297,
+        "oneQBTep": 5909,
+        "superflexStandard": 4737,
+        "superflexTep": 5296
+      }
+    },
+    {
+      "name": "Ladd McConkey",
+      "position": "WR",
+      "team": "LAC",
+      "age": 25,
+      "values": {
+        "oneQBStandard": 5293,
+        "oneQBTep": 5293,
+        "superflexStandard": 4570,
+        "superflexTep": 4570
+      }
+    },
+    {
+      "name": "A.J. Brown",
+      "position": "WR",
+      "team": "NEP",
+      "age": 29.3,
+      "values": {
+        "oneQBStandard": 5292,
+        "oneQBTep": 5292,
+        "superflexStandard": 4591,
+        "superflexTep": 4591
       }
     },
     {
@@ -812,10 +812,10 @@
       "team": "KCC",
       "age": 31.1,
       "values": {
-        "oneQBStandard": 5269,
-        "oneQBTep": 5269,
-        "superflexStandard": 6346,
-        "superflexTep": 6346
+        "oneQBStandard": 5267,
+        "oneQBTep": 5267,
+        "superflexStandard": 6335,
+        "superflexTep": 6335
       }
     },
     {
@@ -824,10 +824,10 @@
       "team": "CAR",
       "age": 27.4,
       "values": {
-        "oneQBStandard": 5219,
-        "oneQBTep": 5219,
-        "superflexStandard": 4440,
-        "superflexTep": 4440
+        "oneQBStandard": 5233,
+        "oneQBTep": 5233,
+        "superflexStandard": 4470,
+        "superflexTep": 4470
       }
     },
     {
@@ -836,22 +836,10 @@
       "team": "NYG",
       "age": 26.5,
       "values": {
-        "oneQBStandard": 5194,
-        "oneQBTep": 5798,
-        "superflexStandard": 4665,
-        "superflexTep": 5218
-      }
-    },
-    {
-      "name": "KC Concepcion",
-      "position": "WR",
-      "team": "CLE",
-      "age": 22.1,
-      "values": {
-        "oneQBStandard": 5188,
-        "oneQBTep": 5188,
-        "superflexStandard": 4555,
-        "superflexTep": 4555
+        "oneQBStandard": 5204,
+        "oneQBTep": 5809,
+        "superflexStandard": 4688,
+        "superflexTep": 5244
       }
     },
     {
@@ -860,10 +848,22 @@
       "team": "CLE",
       "age": 22.2,
       "values": {
-        "oneQBStandard": 5187,
-        "oneQBTep": 5792,
-        "superflexStandard": 4479,
-        "superflexTep": 5017
+        "oneQBStandard": 5193,
+        "oneQBTep": 5798,
+        "superflexStandard": 4489,
+        "superflexTep": 5028
+      }
+    },
+    {
+      "name": "KC Concepcion",
+      "position": "WR",
+      "team": "CLE",
+      "age": 22.1,
+      "values": {
+        "oneQBStandard": 5191,
+        "oneQBTep": 5191,
+        "superflexStandard": 4569,
+        "superflexTep": 4569
       }
     },
     {
@@ -872,10 +872,10 @@
       "team": "PIT",
       "age": 28,
       "values": {
-        "oneQBStandard": 5181,
-        "oneQBTep": 5181,
-        "superflexStandard": 4445,
-        "superflexTep": 4445
+        "oneQBStandard": 5172,
+        "oneQBTep": 5172,
+        "superflexStandard": 4439,
+        "superflexTep": 4439
       }
     },
     {
@@ -884,10 +884,10 @@
       "team": "KCC",
       "age": 26.5,
       "values": {
-        "oneQBStandard": 5162,
-        "oneQBTep": 5162,
-        "superflexStandard": 4471,
-        "superflexTep": 4471
+        "oneQBStandard": 5159,
+        "oneQBTep": 5159,
+        "superflexStandard": 4469,
+        "superflexTep": 4469
       }
     },
     {
@@ -898,20 +898,8 @@
       "values": {
         "oneQBStandard": 5077,
         "oneQBTep": 5077,
-        "superflexStandard": 4339,
-        "superflexTep": 4339
-      }
-    },
-    {
-      "name": "Rome Odunze",
-      "position": "WR",
-      "team": "CHI",
-      "age": 24.4,
-      "values": {
-        "oneQBStandard": 5060,
-        "oneQBTep": 5060,
-        "superflexStandard": 4371,
-        "superflexTep": 4371
+        "superflexStandard": 4341,
+        "superflexTep": 4341
       }
     },
     {
@@ -920,10 +908,22 @@
       "team": "SEA",
       "age": 23,
       "values": {
-        "oneQBStandard": 5060,
-        "oneQBTep": 5060,
-        "superflexStandard": 4363,
-        "superflexTep": 4363
+        "oneQBStandard": 5076,
+        "oneQBTep": 5076,
+        "superflexStandard": 4378,
+        "superflexTep": 4378
+      }
+    },
+    {
+      "name": "Rome Odunze",
+      "position": "WR",
+      "team": "CHI",
+      "age": 24.4,
+      "values": {
+        "oneQBStandard": 5072,
+        "oneQBTep": 5072,
+        "superflexStandard": 4377,
+        "superflexTep": 4377
       }
     },
     {
@@ -932,8 +932,8 @@
       "team": "DET",
       "age": 25.6,
       "values": {
-        "oneQBStandard": 5053,
-        "oneQBTep": 5053,
+        "oneQBStandard": 5064,
+        "oneQBTep": 5064,
         "superflexStandard": 4345,
         "superflexTep": 4345
       }
@@ -944,10 +944,10 @@
       "team": "NYG",
       "age": 24.7,
       "values": {
-        "oneQBStandard": 5044,
-        "oneQBTep": 5044,
-        "superflexStandard": 4250,
-        "superflexTep": 4250
+        "oneQBStandard": 5037,
+        "oneQBTep": 5037,
+        "superflexStandard": 4242,
+        "superflexTep": 4242
       }
     },
     {
@@ -956,10 +956,10 @@
       "team": "PHI",
       "age": 29.7,
       "values": {
-        "oneQBStandard": 4948,
-        "oneQBTep": 4948,
-        "superflexStandard": 4187,
-        "superflexTep": 4187
+        "oneQBStandard": 4942,
+        "oneQBTep": 4942,
+        "superflexStandard": 4190,
+        "superflexTep": 4190
       }
     },
     {
@@ -968,10 +968,10 @@
       "team": "FA",
       "age": 0,
       "values": {
-        "oneQBStandard": 4939,
-        "oneQBTep": 4939,
-        "superflexStandard": 4365,
-        "superflexTep": 4365
+        "oneQBStandard": 4934,
+        "oneQBTep": 4934,
+        "superflexStandard": 4357,
+        "superflexTep": 4357
       }
     },
     {
@@ -980,10 +980,22 @@
       "team": "NYJ",
       "age": 21.6,
       "values": {
-        "oneQBStandard": 4923,
-        "oneQBTep": 5506,
-        "superflexStandard": 4343,
-        "superflexTep": 4872
+        "oneQBStandard": 4928,
+        "oneQBTep": 5512,
+        "superflexStandard": 4351,
+        "superflexTep": 4881
+      }
+    },
+    {
+      "name": "Makai Lemon",
+      "position": "WR",
+      "team": "PHI",
+      "age": 22.4,
+      "values": {
+        "oneQBStandard": 4858,
+        "oneQBTep": 4858,
+        "superflexStandard": 4204,
+        "superflexTep": 4204
       }
     },
     {
@@ -994,20 +1006,8 @@
       "values": {
         "oneQBStandard": 4853,
         "oneQBTep": 4853,
-        "superflexStandard": 5477,
-        "superflexTep": 5477
-      }
-    },
-    {
-      "name": "Makai Lemon",
-      "position": "WR",
-      "team": "PHI",
-      "age": 22.4,
-      "values": {
-        "oneQBStandard": 4848,
-        "oneQBTep": 4848,
-        "superflexStandard": 4201,
-        "superflexTep": 4201
+        "superflexStandard": 5479,
+        "superflexTep": 5479
       }
     },
     {
@@ -1016,10 +1016,10 @@
       "team": "FA",
       "age": 0,
       "values": {
-        "oneQBStandard": 4826,
-        "oneQBTep": 4826,
-        "superflexStandard": 4292,
-        "superflexTep": 4292
+        "oneQBStandard": 4827,
+        "oneQBTep": 4827,
+        "superflexStandard": 4302,
+        "superflexTep": 4302
       }
     },
     {
@@ -1028,10 +1028,10 @@
       "team": "CHI",
       "age": 24.4,
       "values": {
-        "oneQBStandard": 4722,
-        "oneQBTep": 4722,
-        "superflexStandard": 3957,
-        "superflexTep": 3957
+        "oneQBStandard": 4714,
+        "oneQBTep": 4714,
+        "superflexStandard": 3960,
+        "superflexTep": 3960
       }
     },
     {
@@ -1040,10 +1040,10 @@
       "team": "LAR",
       "age": 33.8,
       "values": {
-        "oneQBStandard": 4721,
-        "oneQBTep": 4721,
-        "superflexStandard": 4010,
-        "superflexTep": 4010
+        "oneQBStandard": 4704,
+        "oneQBTep": 4704,
+        "superflexStandard": 3987,
+        "superflexTep": 3987
       }
     },
     {
@@ -1052,10 +1052,10 @@
       "team": "DEN",
       "age": 27.9,
       "values": {
-        "oneQBStandard": 4647,
-        "oneQBTep": 4647,
-        "superflexStandard": 4006,
-        "superflexTep": 4006
+        "oneQBStandard": 4650,
+        "oneQBTep": 4650,
+        "superflexStandard": 4005,
+        "superflexTep": 4005
       }
     },
     {
@@ -1064,10 +1064,10 @@
       "team": "NOS",
       "age": 27,
       "values": {
-        "oneQBStandard": 4596,
-        "oneQBTep": 4596,
-        "superflexStandard": 5277,
-        "superflexTep": 5277
+        "oneQBStandard": 4593,
+        "oneQBTep": 4593,
+        "superflexStandard": 5273,
+        "superflexTep": 5273
       }
     },
     {
@@ -1076,10 +1076,10 @@
       "team": "SFO",
       "age": 33,
       "values": {
-        "oneQBStandard": 4592,
-        "oneQBTep": 5146,
-        "superflexStandard": 3933,
-        "superflexTep": 4426
+        "oneQBStandard": 4586,
+        "oneQBTep": 5140,
+        "superflexStandard": 3916,
+        "superflexTep": 4408
       }
     },
     {
@@ -1088,10 +1088,10 @@
       "team": "CAR",
       "age": 25.2,
       "values": {
-        "oneQBStandard": 4574,
-        "oneQBTep": 4574,
-        "superflexStandard": 5853,
-        "superflexTep": 5853
+        "oneQBStandard": 4579,
+        "oneQBTep": 4579,
+        "superflexStandard": 5869,
+        "superflexTep": 5869
       }
     },
     {
@@ -1100,10 +1100,10 @@
       "team": "FA",
       "age": 0,
       "values": {
-        "oneQBStandard": 4552,
-        "oneQBTep": 4552,
-        "superflexStandard": 4017,
-        "superflexTep": 4017
+        "oneQBStandard": 4549,
+        "oneQBTep": 4549,
+        "superflexStandard": 4028,
+        "superflexTep": 4028
       }
     },
     {
@@ -1112,10 +1112,10 @@
       "team": "HOU",
       "age": 24.2,
       "values": {
-        "oneQBStandard": 4534,
-        "oneQBTep": 4534,
-        "superflexStandard": 3783,
-        "superflexTep": 3783
+        "oneQBStandard": 4529,
+        "oneQBTep": 4529,
+        "superflexStandard": 3779,
+        "superflexTep": 3779
       }
     },
     {
@@ -1126,8 +1126,8 @@
       "values": {
         "oneQBStandard": 4526,
         "oneQBTep": 4526,
-        "superflexStandard": 5202,
-        "superflexTep": 5202
+        "superflexStandard": 5201,
+        "superflexTep": 5201
       }
     },
     {
@@ -1136,10 +1136,10 @@
       "team": "FA",
       "age": 0,
       "values": {
-        "oneQBStandard": 4482,
-        "oneQBTep": 4482,
-        "superflexStandard": 3891,
-        "superflexTep": 3891
+        "oneQBStandard": 4479,
+        "oneQBTep": 4479,
+        "superflexStandard": 3893,
+        "superflexTep": 3893
       }
     },
     {
@@ -1148,22 +1148,10 @@
       "team": "LVR",
       "age": 23,
       "values": {
-        "oneQBStandard": 4424,
-        "oneQBTep": 4424,
-        "superflexStandard": 5418,
-        "superflexTep": 5418
-      }
-    },
-    {
-      "name": "Jordan Love",
-      "position": "QB",
-      "team": "GBP",
-      "age": 28,
-      "values": {
-        "oneQBStandard": 4406,
-        "oneQBTep": 4406,
-        "superflexStandard": 5488,
-        "superflexTep": 5488
+        "oneQBStandard": 4421,
+        "oneQBTep": 4421,
+        "superflexStandard": 5402,
+        "superflexTep": 5402
       }
     },
     {
@@ -1172,10 +1160,22 @@
       "team": "BUF",
       "age": 27,
       "values": {
-        "oneQBStandard": 4403,
-        "oneQBTep": 4942,
-        "superflexStandard": 3624,
-        "superflexTep": 4090
+        "oneQBStandard": 4410,
+        "oneQBTep": 4950,
+        "superflexStandard": 3619,
+        "superflexTep": 4085
+      }
+    },
+    {
+      "name": "Jordan Love",
+      "position": "QB",
+      "team": "GBP",
+      "age": 28,
+      "values": {
+        "oneQBStandard": 4408,
+        "oneQBTep": 4408,
+        "superflexStandard": 5497,
+        "superflexTep": 5497
       }
     },
     {
@@ -1184,34 +1184,10 @@
       "team": "SFO",
       "age": 33.2,
       "values": {
-        "oneQBStandard": 4391,
-        "oneQBTep": 4391,
-        "superflexStandard": 3765,
-        "superflexTep": 3765
-      }
-    },
-    {
-      "name": "Zach Charbonnet",
-      "position": "RB",
-      "team": "SEA",
-      "age": 25.8,
-      "values": {
-        "oneQBStandard": 4268,
-        "oneQBTep": 4268,
-        "superflexStandard": 3380,
-        "superflexTep": 3380
-      }
-    },
-    {
-      "name": "Jalen Hurts",
-      "position": "QB",
-      "team": "PHI",
-      "age": 28.2,
-      "values": {
-        "oneQBStandard": 4267,
-        "oneQBTep": 4267,
-        "superflexStandard": 4570,
-        "superflexTep": 4570
+        "oneQBStandard": 4394,
+        "oneQBTep": 4394,
+        "superflexStandard": 3767,
+        "superflexTep": 3767
       }
     },
     {
@@ -1220,22 +1196,10 @@
       "team": "BUF",
       "age": 29.5,
       "values": {
-        "oneQBStandard": 4265,
-        "oneQBTep": 4265,
-        "superflexStandard": 3461,
-        "superflexTep": 3461
-      }
-    },
-    {
-      "name": "Travis Etienne",
-      "position": "RB",
-      "team": "NOS",
-      "age": 27.7,
-      "values": {
-        "oneQBStandard": 4246,
-        "oneQBTep": 4246,
-        "superflexStandard": 3387,
-        "superflexTep": 3387
+        "oneQBStandard": 4268,
+        "oneQBTep": 4268,
+        "superflexStandard": 3456,
+        "superflexTep": 3456
       }
     },
     {
@@ -1244,34 +1208,46 @@
       "team": "GBP",
       "age": 28.7,
       "values": {
-        "oneQBStandard": 4241,
-        "oneQBTep": 4241,
-        "superflexStandard": 3413,
-        "superflexTep": 3413
+        "oneQBStandard": 4262,
+        "oneQBTep": 4262,
+        "superflexStandard": 3417,
+        "superflexTep": 3417
       }
     },
     {
-      "name": "2027 Mid 2nd",
-      "position": "RDP",
-      "team": "FA",
-      "age": 0,
+      "name": "Zach Charbonnet",
+      "position": "RB",
+      "team": "SEA",
+      "age": 25.8,
       "values": {
-        "oneQBStandard": 4232,
-        "oneQBTep": 4232,
-        "superflexStandard": 3469,
-        "superflexTep": 3469
+        "oneQBStandard": 4259,
+        "oneQBTep": 4259,
+        "superflexStandard": 3371,
+        "superflexTep": 3371
       }
     },
     {
-      "name": "Jordan Addison",
-      "position": "WR",
-      "team": "MIN",
-      "age": 24.7,
+      "name": "Jalen Hurts",
+      "position": "QB",
+      "team": "PHI",
+      "age": 28.2,
       "values": {
-        "oneQBStandard": 4228,
-        "oneQBTep": 4228,
-        "superflexStandard": 3423,
-        "superflexTep": 3423
+        "oneQBStandard": 4247,
+        "oneQBTep": 4247,
+        "superflexStandard": 4541,
+        "superflexTep": 4541
+      }
+    },
+    {
+      "name": "Travis Etienne",
+      "position": "RB",
+      "team": "NOS",
+      "age": 27.7,
+      "values": {
+        "oneQBStandard": 4229,
+        "oneQBTep": 4229,
+        "superflexStandard": 3372,
+        "superflexTep": 3372
       }
     },
     {
@@ -1280,34 +1256,22 @@
       "team": "LAC",
       "age": 28.6,
       "values": {
-        "oneQBStandard": 4221,
-        "oneQBTep": 4221,
-        "superflexStandard": 4723,
-        "superflexTep": 4723
+        "oneQBStandard": 4227,
+        "oneQBTep": 4227,
+        "superflexStandard": 4720,
+        "superflexTep": 4720
       }
     },
     {
-      "name": "Blake Corum",
-      "position": "RB",
-      "team": "LAR",
-      "age": 25.9,
+      "name": "2027 Mid 2nd",
+      "position": "RDP",
+      "team": "FA",
+      "age": 0,
       "values": {
-        "oneQBStandard": 4212,
-        "oneQBTep": 4212,
-        "superflexStandard": 3324,
-        "superflexTep": 3324
-      }
-    },
-    {
-      "name": "Jared Goff",
-      "position": "QB",
-      "team": "DET",
-      "age": 32,
-      "values": {
-        "oneQBStandard": 4203,
-        "oneQBTep": 4203,
-        "superflexStandard": 5017,
-        "superflexTep": 5017
+        "oneQBStandard": 4223,
+        "oneQBTep": 4223,
+        "superflexStandard": 3472,
+        "superflexTep": 3472
       }
     },
     {
@@ -1316,10 +1280,46 @@
       "team": "SFO",
       "age": 23.8,
       "values": {
-        "oneQBStandard": 4203,
-        "oneQBTep": 4203,
-        "superflexStandard": 3437,
-        "superflexTep": 3437
+        "oneQBStandard": 4216,
+        "oneQBTep": 4216,
+        "superflexStandard": 3452,
+        "superflexTep": 3452
+      }
+    },
+    {
+      "name": "Blake Corum",
+      "position": "RB",
+      "team": "LAR",
+      "age": 25.9,
+      "values": {
+        "oneQBStandard": 4215,
+        "oneQBTep": 4215,
+        "superflexStandard": 3328,
+        "superflexTep": 3328
+      }
+    },
+    {
+      "name": "Jordan Addison",
+      "position": "WR",
+      "team": "MIN",
+      "age": 24.7,
+      "values": {
+        "oneQBStandard": 4213,
+        "oneQBTep": 4213,
+        "superflexStandard": 3408,
+        "superflexTep": 3408
+      }
+    },
+    {
+      "name": "Jared Goff",
+      "position": "QB",
+      "team": "DET",
+      "age": 32,
+      "values": {
+        "oneQBStandard": 4206,
+        "oneQBTep": 4206,
+        "superflexStandard": 5033,
+        "superflexTep": 5033
       }
     },
     {
@@ -1328,10 +1328,10 @@
       "team": "IND",
       "age": 25.2,
       "values": {
-        "oneQBStandard": 4164,
-        "oneQBTep": 4164,
-        "superflexStandard": 3331,
-        "superflexTep": 3331
+        "oneQBStandard": 4170,
+        "oneQBTep": 4170,
+        "superflexStandard": 3338,
+        "superflexTep": 3338
       }
     },
     {
@@ -1340,10 +1340,10 @@
       "team": "DEN",
       "age": 26.6,
       "values": {
-        "oneQBStandard": 4110,
-        "oneQBTep": 4110,
-        "superflexStandard": 4460,
-        "superflexTep": 4460
+        "oneQBStandard": 4107,
+        "oneQBTep": 4107,
+        "superflexStandard": 4450,
+        "superflexTep": 4450
       }
     },
     {
@@ -1354,8 +1354,8 @@
       "values": {
         "oneQBStandard": 4087,
         "oneQBTep": 4087,
-        "superflexStandard": 3271,
-        "superflexTep": 3271
+        "superflexStandard": 3272,
+        "superflexTep": 3272
       }
     },
     {
@@ -1366,8 +1366,8 @@
       "values": {
         "oneQBStandard": 4085,
         "oneQBTep": 4085,
-        "superflexStandard": 3356,
-        "superflexTep": 3356
+        "superflexStandard": 3344,
+        "superflexTep": 3344
       }
     },
     {
@@ -1376,10 +1376,10 @@
       "team": "WAS",
       "age": 22.3,
       "values": {
-        "oneQBStandard": 4068,
-        "oneQBTep": 4068,
-        "superflexStandard": 3243,
-        "superflexTep": 3243
+        "oneQBStandard": 4074,
+        "oneQBTep": 4074,
+        "superflexStandard": 3258,
+        "superflexTep": 3258
       }
     },
     {
@@ -1388,10 +1388,10 @@
       "team": "DEN",
       "age": 23.2,
       "values": {
-        "oneQBStandard": 4057,
-        "oneQBTep": 4057,
-        "superflexStandard": 3215,
-        "superflexTep": 3215
+        "oneQBStandard": 4051,
+        "oneQBTep": 4051,
+        "superflexStandard": 3205,
+        "superflexTep": 3205
       }
     },
     {
@@ -1400,8 +1400,8 @@
       "team": "DEN",
       "age": 25.7,
       "values": {
-        "oneQBStandard": 4045,
-        "oneQBTep": 4045,
+        "oneQBStandard": 4048,
+        "oneQBTep": 4048,
         "superflexStandard": 3296,
         "superflexTep": 3296
       }
@@ -1412,10 +1412,10 @@
       "team": "IND",
       "age": 26.5,
       "values": {
-        "oneQBStandard": 4041,
-        "oneQBTep": 4041,
-        "superflexStandard": 3264,
-        "superflexTep": 3264
+        "oneQBStandard": 4047,
+        "oneQBTep": 4047,
+        "superflexStandard": 3273,
+        "superflexTep": 3273
       }
     },
     {
@@ -1424,34 +1424,10 @@
       "team": "PIT",
       "age": 22.9,
       "values": {
-        "oneQBStandard": 4001,
-        "oneQBTep": 4001,
-        "superflexStandard": 3369,
-        "superflexTep": 3369
-      }
-    },
-    {
-      "name": "DK Metcalf",
-      "position": "WR",
-      "team": "PIT",
-      "age": 28.8,
-      "values": {
-        "oneQBStandard": 4001,
-        "oneQBTep": 4001,
-        "superflexStandard": 3236,
-        "superflexTep": 3236
-      }
-    },
-    {
-      "name": "Ollie Gordon II",
-      "position": "RB",
-      "team": "MIA",
-      "age": 22.8,
-      "values": {
-        "oneQBStandard": 3998,
-        "oneQBTep": 3998,
-        "superflexStandard": 3196,
-        "superflexTep": 3196
+        "oneQBStandard": 4018,
+        "oneQBTep": 4018,
+        "superflexStandard": 3394,
+        "superflexTep": 3394
       }
     },
     {
@@ -1460,10 +1436,34 @@
       "team": "NYJ",
       "age": 22.8,
       "values": {
-        "oneQBStandard": 3997,
-        "oneQBTep": 3997,
+        "oneQBStandard": 4009,
+        "oneQBTep": 4009,
         "superflexStandard": 3287,
         "superflexTep": 3287
+      }
+    },
+    {
+      "name": "Ollie Gordon II",
+      "position": "RB",
+      "team": "MIA",
+      "age": 22.8,
+      "values": {
+        "oneQBStandard": 4004,
+        "oneQBTep": 4004,
+        "superflexStandard": 3205,
+        "superflexTep": 3205
+      }
+    },
+    {
+      "name": "DK Metcalf",
+      "position": "WR",
+      "team": "PIT",
+      "age": 28.8,
+      "values": {
+        "oneQBStandard": 3989,
+        "oneQBTep": 3989,
+        "superflexStandard": 3227,
+        "superflexTep": 3227
       }
     },
     {
@@ -1472,10 +1472,10 @@
       "team": "NYJ",
       "age": 22.7,
       "values": {
-        "oneQBStandard": 3997,
-        "oneQBTep": 3997,
-        "superflexStandard": 3277,
-        "superflexTep": 3277
+        "oneQBStandard": 3988,
+        "oneQBTep": 3988,
+        "superflexStandard": 3272,
+        "superflexTep": 3272
       }
     },
     {
@@ -1484,10 +1484,10 @@
       "team": "HOU",
       "age": 25,
       "values": {
-        "oneQBStandard": 3973,
-        "oneQBTep": 3973,
-        "superflexStandard": 5222,
-        "superflexTep": 5222
+        "oneQBStandard": 3976,
+        "oneQBTep": 3976,
+        "superflexStandard": 5227,
+        "superflexTep": 5227
       }
     },
     {
@@ -1496,10 +1496,10 @@
       "team": "ATL",
       "age": 26,
       "values": {
-        "oneQBStandard": 3964,
-        "oneQBTep": 4473,
-        "superflexStandard": 3261,
-        "superflexTep": 3701
+        "oneQBStandard": 3962,
+        "oneQBTep": 4471,
+        "superflexStandard": 3252,
+        "superflexTep": 3692
       }
     },
     {
@@ -1508,10 +1508,10 @@
       "team": "FA",
       "age": 0,
       "values": {
-        "oneQBStandard": 3955,
-        "oneQBTep": 3955,
-        "superflexStandard": 3233,
-        "superflexTep": 3233
+        "oneQBStandard": 3949,
+        "oneQBTep": 3949,
+        "superflexStandard": 3224,
+        "superflexTep": 3224
       }
     },
     {
@@ -1520,10 +1520,10 @@
       "team": "WAS",
       "age": 31.1,
       "values": {
-        "oneQBStandard": 3951,
-        "oneQBTep": 3951,
-        "superflexStandard": 3151,
-        "superflexTep": 3151
+        "oneQBStandard": 3942,
+        "oneQBTep": 3942,
+        "superflexStandard": 3148,
+        "superflexTep": 3148
       }
     },
     {
@@ -1532,10 +1532,10 @@
       "team": "BAL",
       "age": 22.2,
       "values": {
-        "oneQBStandard": 3920,
-        "oneQBTep": 3920,
-        "superflexStandard": 3112,
-        "superflexTep": 3112
+        "oneQBStandard": 3914,
+        "oneQBTep": 3914,
+        "superflexStandard": 3109,
+        "superflexTep": 3109
       }
     },
     {
@@ -1544,10 +1544,10 @@
       "team": "JAC",
       "age": 24,
       "values": {
-        "oneQBStandard": 3906,
-        "oneQBTep": 3906,
-        "superflexStandard": 3146,
-        "superflexTep": 3146
+        "oneQBStandard": 3909,
+        "oneQBTep": 3909,
+        "superflexStandard": 3149,
+        "superflexTep": 3149
       }
     },
     {
@@ -1556,8 +1556,8 @@
       "team": "MIA",
       "age": 22.4,
       "values": {
-        "oneQBStandard": 3888,
-        "oneQBTep": 3888,
+        "oneQBStandard": 3891,
+        "oneQBTep": 3891,
         "superflexStandard": 3138,
         "superflexTep": 3138
       }
@@ -1568,10 +1568,10 @@
       "team": "FA",
       "age": 0,
       "values": {
-        "oneQBStandard": 3857,
-        "oneQBTep": 3857,
-        "superflexStandard": 3147,
-        "superflexTep": 3147
+        "oneQBStandard": 3856,
+        "oneQBTep": 3856,
+        "superflexStandard": 3141,
+        "superflexTep": 3141
       }
     },
     {
@@ -1582,32 +1582,8 @@
       "values": {
         "oneQBStandard": 3824,
         "oneQBTep": 3824,
-        "superflexStandard": 3093,
-        "superflexTep": 3093
-      }
-    },
-    {
-      "name": "Mike Washington Jr.",
-      "position": "RB",
-      "team": "LVR",
-      "age": 23.3,
-      "values": {
-        "oneQBStandard": 3804,
-        "oneQBTep": 3804,
-        "superflexStandard": 2999,
-        "superflexTep": 2999
-      }
-    },
-    {
-      "name": "Brenton Strange",
-      "position": "TE",
-      "team": "JAC",
-      "age": 25.8,
-      "values": {
-        "oneQBStandard": 3800,
-        "oneQBTep": 4297,
-        "superflexStandard": 3096,
-        "superflexTep": 3526
+        "superflexStandard": 3090,
+        "superflexTep": 3090
       }
     },
     {
@@ -1616,10 +1592,34 @@
       "team": "BUF",
       "age": 23.4,
       "values": {
-        "oneQBStandard": 3798,
-        "oneQBTep": 3798,
-        "superflexStandard": 3096,
-        "superflexTep": 3096
+        "oneQBStandard": 3807,
+        "oneQBTep": 3807,
+        "superflexStandard": 3108,
+        "superflexTep": 3108
+      }
+    },
+    {
+      "name": "Mike Washington Jr.",
+      "position": "RB",
+      "team": "LVR",
+      "age": 23.3,
+      "values": {
+        "oneQBStandard": 3806,
+        "oneQBTep": 3806,
+        "superflexStandard": 3014,
+        "superflexTep": 3014
+      }
+    },
+    {
+      "name": "Brenton Strange",
+      "position": "TE",
+      "team": "JAC",
+      "age": 25.8,
+      "values": {
+        "oneQBStandard": 3803,
+        "oneQBTep": 4301,
+        "superflexStandard": 3102,
+        "superflexTep": 3533
       }
     },
     {
@@ -1628,10 +1628,10 @@
       "team": "KCC",
       "age": 23.5,
       "values": {
-        "oneQBStandard": 3797,
-        "oneQBTep": 3797,
-        "superflexStandard": 3092,
-        "superflexTep": 3092
+        "oneQBStandard": 3800,
+        "oneQBTep": 3800,
+        "superflexStandard": 3098,
+        "superflexTep": 3098
       }
     },
     {
@@ -1640,10 +1640,10 @@
       "team": "KCC",
       "age": 23,
       "values": {
-        "oneQBStandard": 3796,
-        "oneQBTep": 3796,
-        "superflexStandard": 3040,
-        "superflexTep": 3040
+        "oneQBStandard": 3784,
+        "oneQBTep": 3784,
+        "superflexStandard": 3029,
+        "superflexTep": 3029
       }
     },
     {
@@ -1654,8 +1654,8 @@
       "values": {
         "oneQBStandard": 3781,
         "oneQBTep": 3781,
-        "superflexStandard": 3683,
-        "superflexTep": 3683
+        "superflexStandard": 3674,
+        "superflexTep": 3674
       }
     },
     {
@@ -1664,22 +1664,10 @@
       "team": "WAS",
       "age": 25.5,
       "values": {
-        "oneQBStandard": 3774,
-        "oneQBTep": 3774,
-        "superflexStandard": 3019,
-        "superflexTep": 3019
-      }
-    },
-    {
-      "name": "Juwan Johnson",
-      "position": "TE",
-      "team": "NOS",
-      "age": 30.1,
-      "values": {
-        "oneQBStandard": 3758,
-        "oneQBTep": 4254,
-        "superflexStandard": 3031,
-        "superflexTep": 3457
+        "oneQBStandard": 3770,
+        "oneQBTep": 3770,
+        "superflexStandard": 3016,
+        "superflexTep": 3016
       }
     },
     {
@@ -1689,9 +1677,21 @@
       "age": 23.6,
       "values": {
         "oneQBStandard": 3753,
-        "oneQBTep": 4249,
-        "superflexStandard": 3022,
-        "superflexTep": 3448
+        "oneQBTep": 4248,
+        "superflexStandard": 3019,
+        "superflexTep": 3444
+      }
+    },
+    {
+      "name": "Juwan Johnson",
+      "position": "TE",
+      "team": "NOS",
+      "age": 30.1,
+      "values": {
+        "oneQBStandard": 3752,
+        "oneQBTep": 4248,
+        "superflexStandard": 3028,
+        "superflexTep": 3454
       }
     },
     {
@@ -1702,8 +1702,8 @@
       "values": {
         "oneQBStandard": 3751,
         "oneQBTep": 3751,
-        "superflexStandard": 3007,
-        "superflexTep": 3007
+        "superflexStandard": 3004,
+        "superflexTep": 3004
       }
     },
     {
@@ -1714,20 +1714,8 @@
       "values": {
         "oneQBStandard": 3732,
         "oneQBTep": 3732,
-        "superflexStandard": 3010,
-        "superflexTep": 3010
-      }
-    },
-    {
-      "name": "Caleb Douglas",
-      "position": "WR",
-      "team": "MIA",
-      "age": 23.1,
-      "values": {
-        "oneQBStandard": 3724,
-        "oneQBTep": 3724,
-        "superflexStandard": 2987,
-        "superflexTep": 2987
+        "superflexStandard": 3012,
+        "superflexTep": 3012
       }
     },
     {
@@ -1736,10 +1724,22 @@
       "team": "SFO",
       "age": 25,
       "values": {
-        "oneQBStandard": 3723,
-        "oneQBTep": 3723,
+        "oneQBStandard": 3725,
+        "oneQBTep": 3725,
         "superflexStandard": 2974,
         "superflexTep": 2974
+      }
+    },
+    {
+      "name": "Caleb Douglas",
+      "position": "WR",
+      "team": "MIA",
+      "age": 23.1,
+      "values": {
+        "oneQBStandard": 3718,
+        "oneQBTep": 3718,
+        "superflexStandard": 2978,
+        "superflexTep": 2978
       }
     },
     {
@@ -1748,10 +1748,10 @@
       "team": "HOU",
       "age": 23.8,
       "values": {
-        "oneQBStandard": 3687,
-        "oneQBTep": 3687,
-        "superflexStandard": 2961,
-        "superflexTep": 2961
+        "oneQBStandard": 3693,
+        "oneQBTep": 3693,
+        "superflexStandard": 2962,
+        "superflexTep": 2962
       }
     },
     {
@@ -1760,10 +1760,22 @@
       "team": "NEP",
       "age": 26.5,
       "values": {
-        "oneQBStandard": 3664,
-        "oneQBTep": 3664,
-        "superflexStandard": 2950,
-        "superflexTep": 2950
+        "oneQBStandard": 3673,
+        "oneQBTep": 3673,
+        "superflexStandard": 2959,
+        "superflexTep": 2959
+      }
+    },
+    {
+      "name": "Wan'Dale Robinson",
+      "position": "WR",
+      "team": "TEN",
+      "age": 25.8,
+      "values": {
+        "oneQBStandard": 3670,
+        "oneQBTep": 3670,
+        "superflexStandard": 2932,
+        "superflexTep": 2932
       }
     },
     {
@@ -1774,20 +1786,8 @@
       "values": {
         "oneQBStandard": 3660,
         "oneQBTep": 3660,
-        "superflexStandard": 3624,
-        "superflexTep": 3624
-      }
-    },
-    {
-      "name": "Wan'Dale Robinson",
-      "position": "WR",
-      "team": "TEN",
-      "age": 25.8,
-      "values": {
-        "oneQBStandard": 3658,
-        "oneQBTep": 3658,
-        "superflexStandard": 2920,
-        "superflexTep": 2920
+        "superflexStandard": 3630,
+        "superflexTep": 3630
       }
     },
     {
@@ -1808,10 +1808,10 @@
       "team": "NYJ",
       "age": 24,
       "values": {
-        "oneQBStandard": 3644,
-        "oneQBTep": 3644,
-        "superflexStandard": 2927,
-        "superflexTep": 2927
+        "oneQBStandard": 3641,
+        "oneQBTep": 3641,
+        "superflexStandard": 2934,
+        "superflexTep": 2934
       }
     },
     {
@@ -1822,8 +1822,8 @@
       "values": {
         "oneQBStandard": 3590,
         "oneQBTep": 3590,
-        "superflexStandard": 3267,
-        "superflexTep": 3267
+        "superflexStandard": 3279,
+        "superflexTep": 3279
       }
     },
     {
@@ -1832,10 +1832,10 @@
       "team": "DAL",
       "age": 27.8,
       "values": {
-        "oneQBStandard": 3556,
-        "oneQBTep": 4038,
-        "superflexStandard": 2877,
-        "superflexTep": 3294
+        "oneQBStandard": 3554,
+        "oneQBTep": 4036,
+        "superflexStandard": 2878,
+        "superflexTep": 3295
       }
     },
     {
@@ -1844,34 +1844,10 @@
       "team": "FA",
       "age": 0,
       "values": {
-        "oneQBStandard": 3545,
-        "oneQBTep": 3545,
-        "superflexStandard": 2951,
-        "superflexTep": 2951
-      }
-    },
-    {
-      "name": "Travis Kelce",
-      "position": "TE",
-      "team": "KCC",
-      "age": 37,
-      "values": {
-        "oneQBStandard": 3543,
-        "oneQBTep": 4025,
-        "superflexStandard": 2826,
-        "superflexTep": 3241
-      }
-    },
-    {
-      "name": "J.K. Dobbins",
-      "position": "RB",
-      "team": "DEN",
-      "age": 27.8,
-      "values": {
-        "oneQBStandard": 3534,
-        "oneQBTep": 3534,
-        "superflexStandard": 2791,
-        "superflexTep": 2791
+        "oneQBStandard": 3542,
+        "oneQBTep": 3542,
+        "superflexStandard": 2945,
+        "superflexTep": 2945
       }
     },
     {
@@ -1880,10 +1856,34 @@
       "team": "BUF",
       "age": 26.7,
       "values": {
-        "oneQBStandard": 3524,
-        "oneQBTep": 3524,
-        "superflexStandard": 2848,
-        "superflexTep": 2848
+        "oneQBStandard": 3541,
+        "oneQBTep": 3541,
+        "superflexStandard": 2860,
+        "superflexTep": 2860
+      }
+    },
+    {
+      "name": "Travis Kelce",
+      "position": "TE",
+      "team": "KCC",
+      "age": 37,
+      "values": {
+        "oneQBStandard": 3537,
+        "oneQBTep": 4019,
+        "superflexStandard": 2817,
+        "superflexTep": 3232
+      }
+    },
+    {
+      "name": "J.K. Dobbins",
+      "position": "RB",
+      "team": "DEN",
+      "age": 27.8,
+      "values": {
+        "oneQBStandard": 3522,
+        "oneQBTep": 3522,
+        "superflexStandard": 2782,
+        "superflexTep": 2782
       }
     },
     {
@@ -1892,10 +1892,10 @@
       "team": "HOU",
       "age": 29.4,
       "values": {
-        "oneQBStandard": 3507,
-        "oneQBTep": 3507,
-        "superflexStandard": 2734,
-        "superflexTep": 2734
+        "oneQBStandard": 3497,
+        "oneQBTep": 3497,
+        "superflexStandard": 2722,
+        "superflexTep": 2722
       }
     },
     {
@@ -1904,34 +1904,10 @@
       "team": "PHI",
       "age": 25.3,
       "values": {
-        "oneQBStandard": 3506,
-        "oneQBTep": 3506,
-        "superflexStandard": 2825,
-        "superflexTep": 2825
-      }
-    },
-    {
-      "name": "Malik Washington",
-      "position": "WR",
-      "team": "MIA",
-      "age": 25.8,
-      "values": {
-        "oneQBStandard": 3476,
-        "oneQBTep": 3476,
-        "superflexStandard": 2855,
-        "superflexTep": 2855
-      }
-    },
-    {
-      "name": "Aaron Jones",
-      "position": "RB",
-      "team": "MIN",
-      "age": 31.9,
-      "values": {
-        "oneQBStandard": 3474,
-        "oneQBTep": 3474,
-        "superflexStandard": 2786,
-        "superflexTep": 2786
+        "oneQBStandard": 3496,
+        "oneQBTep": 3496,
+        "superflexStandard": 2819,
+        "superflexTep": 2819
       }
     },
     {
@@ -1940,10 +1916,34 @@
       "team": "MIN",
       "age": 29.2,
       "values": {
-        "oneQBStandard": 3473,
-        "oneQBTep": 3473,
-        "superflexStandard": 3355,
-        "superflexTep": 3355
+        "oneQBStandard": 3479,
+        "oneQBTep": 3479,
+        "superflexStandard": 3345,
+        "superflexTep": 3345
+      }
+    },
+    {
+      "name": "Malik Washington",
+      "position": "WR",
+      "team": "MIA",
+      "age": 25.8,
+      "values": {
+        "oneQBStandard": 3477,
+        "oneQBTep": 3477,
+        "superflexStandard": 2861,
+        "superflexTep": 2861
+      }
+    },
+    {
+      "name": "Aaron Jones",
+      "position": "RB",
+      "team": "MIN",
+      "age": 31.9,
+      "values": {
+        "oneQBStandard": 3471,
+        "oneQBTep": 3471,
+        "superflexStandard": 2786,
+        "superflexTep": 2786
       }
     },
     {
@@ -1952,10 +1952,10 @@
       "team": "FA",
       "age": 0,
       "values": {
-        "oneQBStandard": 3461,
-        "oneQBTep": 3461,
-        "superflexStandard": 2854,
-        "superflexTep": 2854
+        "oneQBStandard": 3464,
+        "oneQBTep": 3464,
+        "superflexStandard": 2851,
+        "superflexTep": 2851
       }
     },
     {
@@ -1966,8 +1966,8 @@
       "values": {
         "oneQBStandard": 3454,
         "oneQBTep": 3454,
-        "superflexStandard": 2817,
-        "superflexTep": 2817
+        "superflexStandard": 2808,
+        "superflexTep": 2808
       }
     },
     {
@@ -1976,10 +1976,10 @@
       "team": "CAR",
       "age": 23.2,
       "values": {
-        "oneQBStandard": 3437,
-        "oneQBTep": 3437,
-        "superflexStandard": 2760,
-        "superflexTep": 2760
+        "oneQBStandard": 3444,
+        "oneQBTep": 3444,
+        "superflexStandard": 2766,
+        "superflexTep": 2766
       }
     },
     {
@@ -1988,10 +1988,10 @@
       "team": "GBP",
       "age": 26.5,
       "values": {
-        "oneQBStandard": 3433,
-        "oneQBTep": 3433,
-        "superflexStandard": 2815,
-        "superflexTep": 2815
+        "oneQBStandard": 3436,
+        "oneQBTep": 3436,
+        "superflexStandard": 2821,
+        "superflexTep": 2821
       }
     },
     {
@@ -2000,10 +2000,10 @@
       "team": "PIT",
       "age": 25.3,
       "values": {
-        "oneQBStandard": 3421,
-        "oneQBTep": 3421,
-        "superflexStandard": 2873,
-        "superflexTep": 2873
+        "oneQBStandard": 3415,
+        "oneQBTep": 3415,
+        "superflexStandard": 2870,
+        "superflexTep": 2870
       }
     },
     {
@@ -2012,8 +2012,8 @@
       "team": "LAC",
       "age": 24.8,
       "values": {
-        "oneQBStandard": 3410,
-        "oneQBTep": 3410,
+        "oneQBStandard": 3413,
+        "oneQBTep": 3413,
         "superflexStandard": 2738,
         "superflexTep": 2738
       }
@@ -2024,10 +2024,10 @@
       "team": "MIN",
       "age": 27.4,
       "values": {
-        "oneQBStandard": 3396,
-        "oneQBTep": 3396,
-        "superflexStandard": 2787,
-        "superflexTep": 2787
+        "oneQBStandard": 3400,
+        "oneQBTep": 3400,
+        "superflexStandard": 2783,
+        "superflexTep": 2783
       }
     },
     {
@@ -2038,8 +2038,8 @@
       "values": {
         "oneQBStandard": 3389,
         "oneQBTep": 3389,
-        "superflexStandard": 2716,
-        "superflexTep": 2716
+        "superflexStandard": 2713,
+        "superflexTep": 2713
       }
     },
     {
@@ -2048,22 +2048,22 @@
       "team": "LAC",
       "age": 24.6,
       "values": {
-        "oneQBStandard": 3384,
-        "oneQBTep": 3384,
-        "superflexStandard": 2719,
-        "superflexTep": 2719
+        "oneQBStandard": 3375,
+        "oneQBTep": 3375,
+        "superflexStandard": 2716,
+        "superflexTep": 2716
       }
     },
     {
-      "name": "Ted Hurst",
+      "name": "Tre Tucker",
       "position": "WR",
-      "team": "TBB",
-      "age": 22.3,
+      "team": "LVR",
+      "age": 25.6,
       "values": {
-        "oneQBStandard": 3364,
-        "oneQBTep": 3364,
-        "superflexStandard": 2763,
-        "superflexTep": 2763
+        "oneQBStandard": 3363,
+        "oneQBTep": 3363,
+        "superflexStandard": 2715,
+        "superflexTep": 2715
       }
     },
     {
@@ -2079,15 +2079,15 @@
       }
     },
     {
-      "name": "Tre Tucker",
+      "name": "Ted Hurst",
       "position": "WR",
-      "team": "LVR",
-      "age": 25.6,
+      "team": "TBB",
+      "age": 22.3,
       "values": {
-        "oneQBStandard": 3360,
-        "oneQBTep": 3360,
-        "superflexStandard": 2714,
-        "superflexTep": 2714
+        "oneQBStandard": 3361,
+        "oneQBTep": 3361,
+        "superflexStandard": 2763,
+        "superflexTep": 2763
       }
     },
     {
@@ -2096,10 +2096,10 @@
       "team": "TEN",
       "age": 29.5,
       "values": {
-        "oneQBStandard": 3340,
-        "oneQBTep": 3340,
-        "superflexStandard": 2703,
-        "superflexTep": 2703
+        "oneQBStandard": 3346,
+        "oneQBTep": 3346,
+        "superflexStandard": 2706,
+        "superflexTep": 2706
       }
     },
     {
@@ -2108,22 +2108,10 @@
       "team": "JAC",
       "age": 29.9,
       "values": {
-        "oneQBStandard": 3337,
-        "oneQBTep": 3337,
-        "superflexStandard": 2687,
-        "superflexTep": 2687
-      }
-    },
-    {
-      "name": "Deebo Samuel",
-      "position": "WR",
-      "team": "SFO",
-      "age": 30.8,
-      "values": {
-        "oneQBStandard": 3336,
-        "oneQBTep": 3336,
-        "superflexStandard": 2641,
-        "superflexTep": 2641
+        "oneQBStandard": 3340,
+        "oneQBTep": 3340,
+        "superflexStandard": 2684,
+        "superflexTep": 2684
       }
     },
     {
@@ -2132,8 +2120,8 @@
       "team": "ATL",
       "age": 27.6,
       "values": {
-        "oneQBStandard": 3335,
-        "oneQBTep": 3335,
+        "oneQBStandard": 3330,
+        "oneQBTep": 3330,
         "superflexStandard": 2734,
         "superflexTep": 2734
       }
@@ -2144,22 +2132,22 @@
       "team": "LAR",
       "age": 23.8,
       "values": {
-        "oneQBStandard": 3334,
-        "oneQBTep": 3334,
-        "superflexStandard": 3321,
-        "superflexTep": 3321
+        "oneQBStandard": 3328,
+        "oneQBTep": 3328,
+        "superflexStandard": 3322,
+        "superflexTep": 3322
       }
     },
     {
-      "name": "Stefon Diggs",
+      "name": "Deebo Samuel",
       "position": "WR",
-      "team": "WAS",
-      "age": 32.9,
+      "team": "SFO",
+      "age": 30.8,
       "values": {
-        "oneQBStandard": 3322,
-        "oneQBTep": 3322,
-        "superflexStandard": 2667,
-        "superflexTep": 2667
+        "oneQBStandard": 3327,
+        "oneQBTep": 3327,
+        "superflexStandard": 2641,
+        "superflexTep": 2641
       }
     },
     {
@@ -2168,10 +2156,22 @@
       "team": "PHI",
       "age": 23.5,
       "values": {
+        "oneQBStandard": 3323,
+        "oneQBTep": 3795,
+        "superflexStandard": 2733,
+        "superflexTep": 3146
+      }
+    },
+    {
+      "name": "Stefon Diggs",
+      "position": "WR",
+      "team": "WAS",
+      "age": 32.9,
+      "values": {
         "oneQBStandard": 3316,
-        "oneQBTep": 3788,
-        "superflexStandard": 2724,
-        "superflexTep": 3137
+        "oneQBTep": 3316,
+        "superflexStandard": 2660,
+        "superflexTep": 2660
       }
     },
     {
@@ -2180,10 +2180,22 @@
       "team": "PHI",
       "age": 31.8,
       "values": {
-        "oneQBStandard": 3290,
-        "oneQBTep": 3760,
-        "superflexStandard": 2696,
-        "superflexTep": 3110
+        "oneQBStandard": 3296,
+        "oneQBTep": 3767,
+        "superflexStandard": 2702,
+        "superflexTep": 3116
+      }
+    },
+    {
+      "name": "Michael Mayer",
+      "position": "TE",
+      "team": "LVR",
+      "age": 25.3,
+      "values": {
+        "oneQBStandard": 3280,
+        "oneQBTep": 3750,
+        "superflexStandard": 2757,
+        "superflexTep": 3170
       }
     },
     {
@@ -2193,21 +2205,9 @@
       "age": 23.3,
       "values": {
         "oneQBStandard": 3278,
-        "oneQBTep": 3747,
-        "superflexStandard": 2710,
-        "superflexTep": 3124
-      }
-    },
-    {
-      "name": "Michael Mayer",
-      "position": "TE",
-      "team": "LVR",
-      "age": 25.3,
-      "values": {
-        "oneQBStandard": 3270,
-        "oneQBTep": 3739,
-        "superflexStandard": 2751,
-        "superflexTep": 3164
+        "oneQBTep": 3748,
+        "superflexStandard": 2707,
+        "superflexTep": 3120
       }
     },
     {
@@ -2216,10 +2216,10 @@
       "team": "LAC",
       "age": 25.1,
       "values": {
-        "oneQBStandard": 3252,
-        "oneQBTep": 3252,
-        "superflexStandard": 2592,
-        "superflexTep": 2592
+        "oneQBStandard": 3249,
+        "oneQBTep": 3249,
+        "superflexStandard": 2591,
+        "superflexTep": 2591
       }
     },
     {
@@ -2228,22 +2228,10 @@
       "team": "MIN",
       "age": 29.3,
       "values": {
-        "oneQBStandard": 3241,
-        "oneQBTep": 3708,
+        "oneQBStandard": 3238,
+        "oneQBTep": 3705,
         "superflexStandard": 2689,
-        "superflexTep": 3103
-      }
-    },
-    {
-      "name": "Ricky Pearsall",
-      "position": "WR",
-      "team": "SFO",
-      "age": 26.1,
-      "values": {
-        "oneQBStandard": 3218,
-        "oneQBTep": 3218,
-        "superflexStandard": 2698,
-        "superflexTep": 2698
+        "superflexTep": 3102
       }
     },
     {
@@ -2252,10 +2240,22 @@
       "team": "HOU",
       "age": 24.1,
       "values": {
-        "oneQBStandard": 3213,
-        "oneQBTep": 3213,
-        "superflexStandard": 2622,
-        "superflexTep": 2622
+        "oneQBStandard": 3222,
+        "oneQBTep": 3222,
+        "superflexStandard": 2634,
+        "superflexTep": 2634
+      }
+    },
+    {
+      "name": "Ricky Pearsall",
+      "position": "WR",
+      "team": "SFO",
+      "age": 26.1,
+      "values": {
+        "oneQBStandard": 3212,
+        "oneQBTep": 3212,
+        "superflexStandard": 2689,
+        "superflexTep": 2689
       }
     },
     {
@@ -2264,8 +2264,8 @@
       "team": "PIT",
       "age": 28.4,
       "values": {
-        "oneQBStandard": 3212,
-        "oneQBTep": 3212,
+        "oneQBStandard": 3209,
+        "oneQBTep": 3209,
         "superflexStandard": 2581,
         "superflexTep": 2581
       }
@@ -2276,10 +2276,10 @@
       "team": "FA",
       "age": 0,
       "values": {
-        "oneQBStandard": 3178,
-        "oneQBTep": 3178,
-        "superflexStandard": 2728,
-        "superflexTep": 2728
+        "oneQBStandard": 3172,
+        "oneQBTep": 3172,
+        "superflexStandard": 2737,
+        "superflexTep": 2737
       }
     },
     {
@@ -2290,8 +2290,8 @@
       "values": {
         "oneQBStandard": 3157,
         "oneQBTep": 3157,
-        "superflexStandard": 2690,
-        "superflexTep": 2690
+        "superflexStandard": 2681,
+        "superflexTep": 2681
       }
     },
     {
@@ -2302,8 +2302,8 @@
       "values": {
         "oneQBStandard": 3154,
         "oneQBTep": 3154,
-        "superflexStandard": 3743,
-        "superflexTep": 3743
+        "superflexStandard": 3746,
+        "superflexTep": 3746
       }
     },
     {
@@ -2312,10 +2312,10 @@
       "team": "PIT",
       "age": 28,
       "values": {
-        "oneQBStandard": 3144,
-        "oneQBTep": 3605,
-        "superflexStandard": 2667,
-        "superflexTep": 3081
+        "oneQBStandard": 3154,
+        "oneQBTep": 3615,
+        "superflexStandard": 2676,
+        "superflexTep": 3090
       }
     },
     {
@@ -2324,10 +2324,10 @@
       "team": "MIA",
       "age": 27.4,
       "values": {
-        "oneQBStandard": 3132,
-        "oneQBTep": 3132,
-        "superflexStandard": 3069,
-        "superflexTep": 3069
+        "oneQBStandard": 3134,
+        "oneQBTep": 3134,
+        "superflexStandard": 3055,
+        "superflexTep": 3055
       }
     },
     {
@@ -2336,10 +2336,10 @@
       "team": "NEP",
       "age": 22.7,
       "values": {
-        "oneQBStandard": 3122,
-        "oneQBTep": 3582,
-        "superflexStandard": 2635,
-        "superflexTep": 3046
+        "oneQBStandard": 3117,
+        "oneQBTep": 3576,
+        "superflexStandard": 2626,
+        "superflexTep": 3037
       }
     },
     {
@@ -2348,10 +2348,10 @@
       "team": "SEA",
       "age": 27.4,
       "values": {
-        "oneQBStandard": 3102,
-        "oneQBTep": 3102,
-        "superflexStandard": 2540,
-        "superflexTep": 2540
+        "oneQBStandard": 3099,
+        "oneQBTep": 3099,
+        "superflexStandard": 2537,
+        "superflexTep": 2537
       }
     },
     {
@@ -2360,10 +2360,10 @@
       "team": "ATL",
       "age": 22.6,
       "values": {
-        "oneQBStandard": 3085,
-        "oneQBTep": 3085,
-        "superflexStandard": 2578,
-        "superflexTep": 2578
+        "oneQBStandard": 3088,
+        "oneQBTep": 3088,
+        "superflexStandard": 2580,
+        "superflexTep": 2580
       }
     },
     {
@@ -2384,34 +2384,10 @@
       "team": "IND",
       "age": 29.4,
       "values": {
-        "oneQBStandard": 3065,
-        "oneQBTep": 3065,
-        "superflexStandard": 3255,
-        "superflexTep": 3255
-      }
-    },
-    {
-      "name": "Michael Pittman",
-      "position": "WR",
-      "team": "PIT",
-      "age": 29,
-      "values": {
-        "oneQBStandard": 3061,
-        "oneQBTep": 3061,
-        "superflexStandard": 2492,
-        "superflexTep": 2492
-      }
-    },
-    {
-      "name": "Isaac TeSlaa",
-      "position": "WR",
-      "team": "DET",
-      "age": 24.7,
-      "values": {
-        "oneQBStandard": 3057,
-        "oneQBTep": 3057,
-        "superflexStandard": 2499,
-        "superflexTep": 2499
+        "oneQBStandard": 3067,
+        "oneQBTep": 3067,
+        "superflexStandard": 3251,
+        "superflexTep": 3251
       }
     },
     {
@@ -2420,10 +2396,22 @@
       "team": "TEN",
       "age": 22.8,
       "values": {
-        "oneQBStandard": 3054,
-        "oneQBTep": 3054,
-        "superflexStandard": 2428,
-        "superflexTep": 2428
+        "oneQBStandard": 3060,
+        "oneQBTep": 3060,
+        "superflexStandard": 2431,
+        "superflexTep": 2431
+      }
+    },
+    {
+      "name": "Michael Pittman",
+      "position": "WR",
+      "team": "PIT",
+      "age": 29,
+      "values": {
+        "oneQBStandard": 3058,
+        "oneQBTep": 3058,
+        "superflexStandard": 2486,
+        "superflexTep": 2486
       }
     },
     {
@@ -2432,22 +2420,34 @@
       "team": "SEA",
       "age": 24.5,
       "values": {
-        "oneQBStandard": 3051,
-        "oneQBTep": 3508,
-        "superflexStandard": 2489,
-        "superflexTep": 2893
+        "oneQBStandard": 3057,
+        "oneQBTep": 3514,
+        "superflexStandard": 2492,
+        "superflexTep": 2895
       }
     },
     {
-      "name": "Tank Bigsby",
+      "name": "Isaac TeSlaa",
+      "position": "WR",
+      "team": "DET",
+      "age": 24.7,
+      "values": {
+        "oneQBStandard": 3048,
+        "oneQBTep": 3048,
+        "superflexStandard": 2491,
+        "superflexTep": 2491
+      }
+    },
+    {
+      "name": "Kimani Vidal",
       "position": "RB",
-      "team": "PHI",
+      "team": "LAC",
       "age": 25.1,
       "values": {
         "oneQBStandard": 3039,
         "oneQBTep": 3039,
-        "superflexStandard": 2438,
-        "superflexTep": 2438
+        "superflexStandard": 2508,
+        "superflexTep": 2508
       }
     },
     {
@@ -2458,20 +2458,20 @@
       "values": {
         "oneQBStandard": 3039,
         "oneQBTep": 3039,
-        "superflexStandard": 2427,
-        "superflexTep": 2427
+        "superflexStandard": 2417,
+        "superflexTep": 2417
       }
     },
     {
-      "name": "Kimani Vidal",
+      "name": "Tank Bigsby",
       "position": "RB",
-      "team": "LAC",
+      "team": "PHI",
       "age": 25.1,
       "values": {
-        "oneQBStandard": 3033,
-        "oneQBTep": 3033,
-        "superflexStandard": 2511,
-        "superflexTep": 2511
+        "oneQBStandard": 3036,
+        "oneQBTep": 3036,
+        "superflexStandard": 2429,
+        "superflexTep": 2429
       }
     },
     {
@@ -2480,10 +2480,10 @@
       "team": "BAL",
       "age": 31.1,
       "values": {
-        "oneQBStandard": 3024,
-        "oneQBTep": 3480,
-        "superflexStandard": 2427,
-        "superflexTep": 2830
+        "oneQBStandard": 3027,
+        "oneQBTep": 3483,
+        "superflexStandard": 2430,
+        "superflexTep": 2832
       }
     },
     {
@@ -2492,22 +2492,10 @@
       "team": "FA",
       "age": 0,
       "values": {
-        "oneQBStandard": 3014,
-        "oneQBTep": 3014,
-        "superflexStandard": 2605,
-        "superflexTep": 2605
-      }
-    },
-    {
-      "name": "Cyrus Allen",
-      "position": "WR",
-      "team": "KCC",
-      "age": 23.7,
-      "values": {
-        "oneQBStandard": 3009,
-        "oneQBTep": 3009,
-        "superflexStandard": 2418,
-        "superflexTep": 2418
+        "oneQBStandard": 3013,
+        "oneQBTep": 3013,
+        "superflexStandard": 2599,
+        "superflexTep": 2599
       }
     },
     {
@@ -2516,22 +2504,22 @@
       "team": "NOS",
       "age": 24.4,
       "values": {
-        "oneQBStandard": 3006,
-        "oneQBTep": 3006,
-        "superflexStandard": 2464,
-        "superflexTep": 2464
+        "oneQBStandard": 3012,
+        "oneQBTep": 3012,
+        "superflexStandard": 2473,
+        "superflexTep": 2473
       }
     },
     {
-      "name": "Rashid Shaheed",
+      "name": "Cyrus Allen",
       "position": "WR",
-      "team": "SEA",
-      "age": 28.1,
+      "team": "KCC",
+      "age": 23.7,
       "values": {
-        "oneQBStandard": 3000,
-        "oneQBTep": 3000,
-        "superflexStandard": 2437,
-        "superflexTep": 2437
+        "oneQBStandard": 3008,
+        "oneQBTep": 3008,
+        "superflexStandard": 2424,
+        "superflexTep": 2424
       }
     },
     {
@@ -2540,22 +2528,22 @@
       "team": "CLE",
       "age": 22.1,
       "values": {
-        "oneQBStandard": 2999,
-        "oneQBTep": 2999,
+        "oneQBStandard": 3005,
+        "oneQBTep": 3005,
         "superflexStandard": 2501,
         "superflexTep": 2501
       }
     },
     {
-      "name": "Tyjae Spears",
-      "position": "RB",
-      "team": "TEN",
-      "age": 25.3,
+      "name": "Rashid Shaheed",
+      "position": "WR",
+      "team": "SEA",
+      "age": 28.1,
       "values": {
-        "oneQBStandard": 2981,
-        "oneQBTep": 2981,
-        "superflexStandard": 2450,
-        "superflexTep": 2450
+        "oneQBStandard": 3003,
+        "oneQBTep": 3003,
+        "superflexStandard": 2443,
+        "superflexTep": 2443
       }
     },
     {
@@ -2564,10 +2552,10 @@
       "team": "WAS",
       "age": 27.8,
       "values": {
-        "oneQBStandard": 2980,
-        "oneQBTep": 2980,
-        "superflexStandard": 2396,
-        "superflexTep": 2396
+        "oneQBStandard": 2979,
+        "oneQBTep": 2979,
+        "superflexStandard": 2411,
+        "superflexTep": 2411
       }
     },
     {
@@ -2583,15 +2571,27 @@
       }
     },
     {
+      "name": "Tyjae Spears",
+      "position": "RB",
+      "team": "TEN",
+      "age": 25.3,
+      "values": {
+        "oneQBStandard": 2972,
+        "oneQBTep": 2972,
+        "superflexStandard": 2443,
+        "superflexTep": 2443
+      }
+    },
+    {
       "name": "Jalen McMillan",
       "position": "WR",
       "team": "TBB",
       "age": 24.9,
       "values": {
-        "oneQBStandard": 2968,
-        "oneQBTep": 2968,
-        "superflexStandard": 2463,
-        "superflexTep": 2463
+        "oneQBStandard": 2971,
+        "oneQBTep": 2971,
+        "superflexStandard": 2468,
+        "superflexTep": 2468
       }
     },
     {
@@ -2600,10 +2600,10 @@
       "team": "HOU",
       "age": 30.3,
       "values": {
-        "oneQBStandard": 2924,
-        "oneQBTep": 3375,
-        "superflexStandard": 2431,
-        "superflexTep": 2834
+        "oneQBStandard": 2921,
+        "oneQBTep": 3372,
+        "superflexStandard": 2425,
+        "superflexTep": 2828
       }
     },
     {
@@ -2612,10 +2612,10 @@
       "team": "GBP",
       "age": 25.8,
       "values": {
-        "oneQBStandard": 2922,
-        "oneQBTep": 2922,
-        "superflexStandard": 2246,
-        "superflexTep": 2246
+        "oneQBStandard": 2906,
+        "oneQBTep": 2906,
+        "superflexStandard": 2202,
+        "superflexTep": 2202
       }
     },
     {
@@ -2624,10 +2624,10 @@
       "team": "FA",
       "age": 0,
       "values": {
-        "oneQBStandard": 2876,
-        "oneQBTep": 2876,
-        "superflexStandard": 2490,
-        "superflexTep": 2490
+        "oneQBStandard": 2879,
+        "oneQBTep": 2879,
+        "superflexStandard": 2481,
+        "superflexTep": 2481
       }
     },
     {
@@ -2638,8 +2638,8 @@
       "values": {
         "oneQBStandard": 2876,
         "oneQBTep": 2876,
-        "superflexStandard": 2470,
-        "superflexTep": 2470
+        "superflexStandard": 2468,
+        "superflexTep": 2468
       }
     },
     {
@@ -2648,10 +2648,10 @@
       "team": "BAL",
       "age": 26.9,
       "values": {
-        "oneQBStandard": 2863,
-        "oneQBTep": 2863,
-        "superflexStandard": 2377,
-        "superflexTep": 2377
+        "oneQBStandard": 2839,
+        "oneQBTep": 2839,
+        "superflexStandard": 2368,
+        "superflexTep": 2368
       }
     },
     {
@@ -2660,10 +2660,10 @@
       "team": "HOU",
       "age": 27,
       "values": {
-        "oneQBStandard": 2826,
-        "oneQBTep": 2826,
-        "superflexStandard": 2293,
-        "superflexTep": 2293
+        "oneQBStandard": 2829,
+        "oneQBTep": 2829,
+        "superflexStandard": 2290,
+        "superflexTep": 2290
       }
     },
     {
@@ -2674,8 +2674,8 @@
       "values": {
         "oneQBStandard": 2807,
         "oneQBTep": 2807,
-        "superflexStandard": 2206,
-        "superflexTep": 2206
+        "superflexStandard": 2204,
+        "superflexTep": 2204
       }
     },
     {
@@ -2684,8 +2684,8 @@
       "team": "NEP",
       "age": 31.9,
       "values": {
-        "oneQBStandard": 2803,
-        "oneQBTep": 3245,
+        "oneQBStandard": 2806,
+        "oneQBTep": 3249,
         "superflexStandard": 2327,
         "superflexTep": 2724
       }
@@ -2696,8 +2696,8 @@
       "team": "HOU",
       "age": 24.4,
       "values": {
-        "oneQBStandard": 2800,
-        "oneQBTep": 2800,
+        "oneQBStandard": 2791,
+        "oneQBTep": 2791,
         "superflexStandard": 2298,
         "superflexTep": 2298
       }
@@ -2708,10 +2708,10 @@
       "team": "BAL",
       "age": 23.4,
       "values": {
-        "oneQBStandard": 2800,
-        "oneQBTep": 2800,
-        "superflexStandard": 2211,
-        "superflexTep": 2211
+        "oneQBStandard": 2785,
+        "oneQBTep": 2785,
+        "superflexStandard": 2190,
+        "superflexTep": 2190
       }
     },
     {
@@ -2720,10 +2720,10 @@
       "team": "NEP",
       "age": 25.9,
       "values": {
-        "oneQBStandard": 2741,
-        "oneQBTep": 2741,
-        "superflexStandard": 2248,
-        "superflexTep": 2248
+        "oneQBStandard": 2750,
+        "oneQBTep": 2750,
+        "superflexStandard": 2250,
+        "superflexTep": 2250
       }
     },
     {
@@ -2734,8 +2734,8 @@
       "values": {
         "oneQBStandard": 2729,
         "oneQBTep": 2729,
-        "superflexStandard": 2169,
-        "superflexTep": 2169
+        "superflexStandard": 2163,
+        "superflexTep": 2163
       }
     },
     {
@@ -2744,10 +2744,10 @@
       "team": "FA",
       "age": 0,
       "values": {
-        "oneQBStandard": 2718,
-        "oneQBTep": 2718,
-        "superflexStandard": 2290,
-        "superflexTep": 2290
+        "oneQBStandard": 2715,
+        "oneQBTep": 2715,
+        "superflexStandard": 2299,
+        "superflexTep": 2299
       }
     },
     {
@@ -2756,22 +2756,10 @@
       "team": "SEA",
       "age": 23.9,
       "values": {
-        "oneQBStandard": 2708,
-        "oneQBTep": 2708,
-        "superflexStandard": 2129,
-        "superflexTep": 2129
-      }
-    },
-    {
-      "name": "Jaylen Wright",
-      "position": "RB",
-      "team": "MIA",
-      "age": 23.6,
-      "values": {
-        "oneQBStandard": 2706,
-        "oneQBTep": 2706,
-        "superflexStandard": 2241,
-        "superflexTep": 2241
+        "oneQBStandard": 2711,
+        "oneQBTep": 2711,
+        "superflexStandard": 2138,
+        "superflexTep": 2138
       }
     },
     {
@@ -2787,13 +2775,25 @@
       }
     },
     {
+      "name": "Jaylen Wright",
+      "position": "RB",
+      "team": "MIA",
+      "age": 23.6,
+      "values": {
+        "oneQBStandard": 2704,
+        "oneQBTep": 2704,
+        "superflexStandard": 2223,
+        "superflexTep": 2223
+      }
+    },
+    {
       "name": "Ryan Flournoy",
       "position": "WR",
       "team": "DAL",
       "age": 27,
       "values": {
-        "oneQBStandard": 2699,
-        "oneQBTep": 2699,
+        "oneQBStandard": 2703,
+        "oneQBTep": 2703,
         "superflexStandard": 2164,
         "superflexTep": 2164
       }
@@ -2804,46 +2804,10 @@
       "team": "DEN",
       "age": 23.7,
       "values": {
-        "oneQBStandard": 2672,
-        "oneQBTep": 2672,
+        "oneQBStandard": 2678,
+        "oneQBTep": 2678,
         "superflexStandard": 2139,
         "superflexTep": 2139
-      }
-    },
-    {
-      "name": "Elic Ayomanor",
-      "position": "WR",
-      "team": "TEN",
-      "age": 23.4,
-      "values": {
-        "oneQBStandard": 2671,
-        "oneQBTep": 2671,
-        "superflexStandard": 2087,
-        "superflexTep": 2087
-      }
-    },
-    {
-      "name": "Alvin Kamara",
-      "position": "RB",
-      "team": "NOS",
-      "age": 31.2,
-      "values": {
-        "oneQBStandard": 2670,
-        "oneQBTep": 2670,
-        "superflexStandard": 2137,
-        "superflexTep": 2137
-      }
-    },
-    {
-      "name": "Kevin Coleman",
-      "position": "WR",
-      "team": "MIA",
-      "age": 23.1,
-      "values": {
-        "oneQBStandard": 2650,
-        "oneQBTep": 2650,
-        "superflexStandard": 2200,
-        "superflexTep": 2200
       }
     },
     {
@@ -2852,22 +2816,46 @@
       "team": "JAC",
       "age": 23.4,
       "values": {
-        "oneQBStandard": 2646,
-        "oneQBTep": 2646,
-        "superflexStandard": 2227,
-        "superflexTep": 2227
+        "oneQBStandard": 2675,
+        "oneQBTep": 2675,
+        "superflexStandard": 2251,
+        "superflexTep": 2251
       }
     },
     {
-      "name": "Tyquan Thornton",
-      "position": "WR",
-      "team": "KCC",
-      "age": 26.2,
+      "name": "Alvin Kamara",
+      "position": "RB",
+      "team": "NOS",
+      "age": 31.2,
       "values": {
-        "oneQBStandard": 2634,
-        "oneQBTep": 2634,
-        "superflexStandard": 2108,
-        "superflexTep": 2108
+        "oneQBStandard": 2667,
+        "oneQBTep": 2667,
+        "superflexStandard": 2146,
+        "superflexTep": 2146
+      }
+    },
+    {
+      "name": "Elic Ayomanor",
+      "position": "WR",
+      "team": "TEN",
+      "age": 23.4,
+      "values": {
+        "oneQBStandard": 2667,
+        "oneQBTep": 2667,
+        "superflexStandard": 2087,
+        "superflexTep": 2087
+      }
+    },
+    {
+      "name": "Kevin Coleman",
+      "position": "WR",
+      "team": "MIA",
+      "age": 23.1,
+      "values": {
+        "oneQBStandard": 2654,
+        "oneQBTep": 2654,
+        "superflexStandard": 2194,
+        "superflexTep": 2194
       }
     },
     {
@@ -2878,8 +2866,20 @@
       "values": {
         "oneQBStandard": 2633,
         "oneQBTep": 2633,
-        "superflexStandard": 2125,
-        "superflexTep": 2125
+        "superflexStandard": 2128,
+        "superflexTep": 2128
+      }
+    },
+    {
+      "name": "Tyquan Thornton",
+      "position": "WR",
+      "team": "KCC",
+      "age": 26.2,
+      "values": {
+        "oneQBStandard": 2633,
+        "oneQBTep": 2633,
+        "superflexStandard": 2108,
+        "superflexTep": 2108
       }
     },
     {
@@ -2888,10 +2888,10 @@
       "team": "PIT",
       "age": 25.2,
       "values": {
-        "oneQBStandard": 2617,
-        "oneQBTep": 3049,
-        "superflexStandard": 2162,
-        "superflexTep": 2551
+        "oneQBStandard": 2621,
+        "oneQBTep": 3054,
+        "superflexStandard": 2175,
+        "superflexTep": 2564
       }
     },
     {
@@ -2900,10 +2900,10 @@
       "team": "NYJ",
       "age": 22.4,
       "values": {
-        "oneQBStandard": 2615,
-        "oneQBTep": 3048,
-        "superflexStandard": 2146,
-        "superflexTep": 2535
+        "oneQBStandard": 2613,
+        "oneQBTep": 3045,
+        "superflexStandard": 2143,
+        "superflexTep": 2531
       }
     },
     {
@@ -2912,10 +2912,10 @@
       "team": "CAR",
       "age": 23,
       "values": {
-        "oneQBStandard": 2599,
-        "oneQBTep": 2599,
-        "superflexStandard": 2093,
-        "superflexTep": 2093
+        "oneQBStandard": 2596,
+        "oneQBTep": 2596,
+        "superflexStandard": 2096,
+        "superflexTep": 2096
       }
     },
     {
@@ -2924,22 +2924,10 @@
       "team": "FA",
       "age": 0,
       "values": {
-        "oneQBStandard": 2585,
-        "oneQBTep": 2585,
-        "superflexStandard": 2149,
-        "superflexTep": 2149
-      }
-    },
-    {
-      "name": "Cade Otton",
-      "position": "TE",
-      "team": "TBB",
-      "age": 27.5,
-      "values": {
-        "oneQBStandard": 2562,
-        "oneQBTep": 2991,
-        "superflexStandard": 2103,
-        "superflexTep": 2492
+        "oneQBStandard": 2582,
+        "oneQBTep": 2582,
+        "superflexStandard": 2138,
+        "superflexTep": 2138
       }
     },
     {
@@ -2948,22 +2936,22 @@
       "team": "MIN",
       "age": 23,
       "values": {
-        "oneQBStandard": 2549,
-        "oneQBTep": 2549,
-        "superflexStandard": 2067,
-        "superflexTep": 2067
+        "oneQBStandard": 2561,
+        "oneQBTep": 2561,
+        "superflexStandard": 2071,
+        "superflexTep": 2071
       }
     },
     {
-      "name": "Skyler Bell",
-      "position": "WR",
-      "team": "BUF",
-      "age": 24.3,
+      "name": "Cade Otton",
+      "position": "TE",
+      "team": "TBB",
+      "age": 27.5,
       "values": {
-        "oneQBStandard": 2539,
-        "oneQBTep": 2539,
-        "superflexStandard": 2023,
-        "superflexTep": 2023
+        "oneQBStandard": 2556,
+        "oneQBTep": 2985,
+        "superflexStandard": 2094,
+        "superflexTep": 2483
       }
     },
     {
@@ -2972,22 +2960,10 @@
       "team": "SEA",
       "age": 23.5,
       "values": {
-        "oneQBStandard": 2538,
-        "oneQBTep": 2966,
-        "superflexStandard": 1999,
-        "superflexTep": 2381
-      }
-    },
-    {
-      "name": "2029 Early 3rd",
-      "position": "RDP",
-      "team": "FA",
-      "age": 0,
-      "values": {
-        "oneQBStandard": 2533,
-        "oneQBTep": 2533,
-        "superflexStandard": 2139,
-        "superflexTep": 2139
+        "oneQBStandard": 2547,
+        "oneQBTep": 2975,
+        "superflexStandard": 2005,
+        "superflexTep": 2388
       }
     },
     {
@@ -2996,10 +2972,34 @@
       "team": "GBP",
       "age": 23.2,
       "values": {
-        "oneQBStandard": 2532,
-        "oneQBTep": 2532,
-        "superflexStandard": 1963,
-        "superflexTep": 1963
+        "oneQBStandard": 2534,
+        "oneQBTep": 2534,
+        "superflexStandard": 1966,
+        "superflexTep": 1966
+      }
+    },
+    {
+      "name": "Skyler Bell",
+      "position": "WR",
+      "team": "BUF",
+      "age": 24.3,
+      "values": {
+        "oneQBStandard": 2533,
+        "oneQBTep": 2533,
+        "superflexStandard": 2032,
+        "superflexTep": 2032
+      }
+    },
+    {
+      "name": "2029 Early 3rd",
+      "position": "RDP",
+      "team": "FA",
+      "age": 0,
+      "values": {
+        "oneQBStandard": 2527,
+        "oneQBTep": 2527,
+        "superflexStandard": 2132,
+        "superflexTep": 2132
       }
     },
     {
@@ -3008,10 +3008,10 @@
       "team": "TBB",
       "age": 25,
       "values": {
-        "oneQBStandard": 2511,
-        "oneQBTep": 2511,
-        "superflexStandard": 1914,
-        "superflexTep": 1914
+        "oneQBStandard": 2508,
+        "oneQBTep": 2508,
+        "superflexStandard": 1911,
+        "superflexTep": 1911
       }
     },
     {
@@ -3022,20 +3022,8 @@
       "values": {
         "oneQBStandard": 2489,
         "oneQBTep": 2914,
-        "superflexStandard": 1979,
-        "superflexTep": 2360
-      }
-    },
-    {
-      "name": "Tez Johnson",
-      "position": "WR",
-      "team": "TBB",
-      "age": 24.4,
-      "values": {
-        "oneQBStandard": 2488,
-        "oneQBTep": 2488,
-        "superflexStandard": 1993,
-        "superflexTep": 1993
+        "superflexStandard": 1983,
+        "superflexTep": 2364
       }
     },
     {
@@ -3044,22 +3032,22 @@
       "team": "MIA",
       "age": 23.8,
       "values": {
-        "oneQBStandard": 2488,
-        "oneQBTep": 2488,
-        "superflexStandard": 1889,
-        "superflexTep": 1889
+        "oneQBStandard": 2487,
+        "oneQBTep": 2487,
+        "superflexStandard": 1888,
+        "superflexTep": 1888
       }
     },
     {
-      "name": "Xavier Hutchinson",
+      "name": "Tez Johnson",
       "position": "WR",
-      "team": "HOU",
-      "age": 26.4,
+      "team": "TBB",
+      "age": 24.4,
       "values": {
-        "oneQBStandard": 2476,
-        "oneQBTep": 2476,
-        "superflexStandard": 1972,
-        "superflexTep": 1972
+        "oneQBStandard": 2485,
+        "oneQBTep": 2485,
+        "superflexStandard": 1978,
+        "superflexTep": 1978
       }
     },
     {
@@ -3068,10 +3056,10 @@
       "team": "PHI",
       "age": 24.1,
       "values": {
-        "oneQBStandard": 2470,
-        "oneQBTep": 2470,
-        "superflexStandard": 1912,
-        "superflexTep": 1912
+        "oneQBStandard": 2473,
+        "oneQBTep": 2473,
+        "superflexStandard": 1915,
+        "superflexTep": 1915
       }
     },
     {
@@ -3080,10 +3068,10 @@
       "team": "NOS",
       "age": 24.2,
       "values": {
-        "oneQBStandard": 2461,
-        "oneQBTep": 2461,
-        "superflexStandard": 1922,
-        "superflexTep": 1922
+        "oneQBStandard": 2467,
+        "oneQBTep": 2467,
+        "superflexStandard": 1925,
+        "superflexTep": 1925
       }
     },
     {
@@ -3092,10 +3080,22 @@
       "team": "PHI",
       "age": 24.9,
       "values": {
-        "oneQBStandard": 2454,
-        "oneQBTep": 2454,
-        "superflexStandard": 2134,
-        "superflexTep": 2134
+        "oneQBStandard": 2458,
+        "oneQBTep": 2458,
+        "superflexStandard": 2137,
+        "superflexTep": 2137
+      }
+    },
+    {
+      "name": "Xavier Hutchinson",
+      "position": "WR",
+      "team": "HOU",
+      "age": 26.4,
+      "values": {
+        "oneQBStandard": 2452,
+        "oneQBTep": 2452,
+        "superflexStandard": 1954,
+        "superflexTep": 1954
       }
     },
     {
@@ -3104,10 +3104,10 @@
       "team": "FA",
       "age": 0,
       "values": {
-        "oneQBStandard": 2453,
-        "oneQBTep": 2453,
-        "superflexStandard": 2037,
-        "superflexTep": 2037
+        "oneQBStandard": 2450,
+        "oneQBTep": 2450,
+        "superflexStandard": 2043,
+        "superflexTep": 2043
       }
     },
     {
@@ -3116,10 +3116,10 @@
       "team": "CLE",
       "age": 24.4,
       "values": {
-        "oneQBStandard": 2422,
-        "oneQBTep": 2422,
-        "superflexStandard": 1930,
-        "superflexTep": 1930
+        "oneQBStandard": 2428,
+        "oneQBTep": 2428,
+        "superflexStandard": 1933,
+        "superflexTep": 1933
       }
     },
     {
@@ -3128,10 +3128,10 @@
       "team": "LAR",
       "age": 27.8,
       "values": {
-        "oneQBStandard": 2410,
-        "oneQBTep": 2832,
-        "superflexStandard": 1976,
-        "superflexTep": 2357
+        "oneQBStandard": 2426,
+        "oneQBTep": 2849,
+        "superflexStandard": 1982,
+        "superflexTep": 2363
       }
     },
     {
@@ -3140,10 +3140,10 @@
       "team": "CIN",
       "age": 26.3,
       "values": {
-        "oneQBStandard": 2409,
-        "oneQBTep": 2409,
-        "superflexStandard": 1862,
-        "superflexTep": 1862
+        "oneQBStandard": 2412,
+        "oneQBTep": 2412,
+        "superflexStandard": 1868,
+        "superflexTep": 1868
       }
     },
     {
@@ -3152,10 +3152,10 @@
       "team": "IND",
       "age": 25,
       "values": {
-        "oneQBStandard": 2402,
-        "oneQBTep": 2402,
-        "superflexStandard": 1942,
-        "superflexTep": 1942
+        "oneQBStandard": 2387,
+        "oneQBTep": 2387,
+        "superflexStandard": 1927,
+        "superflexTep": 1927
       }
     },
     {
@@ -3164,10 +3164,10 @@
       "team": "CHI",
       "age": 22.7,
       "values": {
-        "oneQBStandard": 2383,
-        "oneQBTep": 2383,
-        "superflexStandard": 1911,
-        "superflexTep": 1911
+        "oneQBStandard": 2386,
+        "oneQBTep": 2386,
+        "superflexStandard": 1914,
+        "superflexTep": 1914
       }
     },
     {
@@ -3176,10 +3176,10 @@
       "team": "CIN",
       "age": 31,
       "values": {
-        "oneQBStandard": 2364,
-        "oneQBTep": 2783,
-        "superflexStandard": 1956,
-        "superflexTep": 2338
+        "oneQBStandard": 2368,
+        "oneQBTep": 2787,
+        "superflexStandard": 1962,
+        "superflexTep": 2343
       }
     },
     {
@@ -3188,22 +3188,10 @@
       "team": "WAS",
       "age": 24.5,
       "values": {
-        "oneQBStandard": 2361,
-        "oneQBTep": 2361,
-        "superflexStandard": 1904,
-        "superflexTep": 1904
-      }
-    },
-    {
-      "name": "Jordan James",
-      "position": "RB",
-      "team": "SFO",
-      "age": 22.6,
-      "values": {
-        "oneQBStandard": 2352,
-        "oneQBTep": 2352,
-        "superflexStandard": 1745,
-        "superflexTep": 1745
+        "oneQBStandard": 2367,
+        "oneQBTep": 2367,
+        "superflexStandard": 1907,
+        "superflexTep": 1907
       }
     },
     {
@@ -3219,27 +3207,27 @@
       }
     },
     {
+      "name": "Jordan James",
+      "position": "RB",
+      "team": "SFO",
+      "age": 22.6,
+      "values": {
+        "oneQBStandard": 2346,
+        "oneQBTep": 2346,
+        "superflexStandard": 1739,
+        "superflexTep": 1739
+      }
+    },
+    {
       "name": "Max Klare",
       "position": "TE",
       "team": "LAR",
       "age": 23.3,
       "values": {
-        "oneQBStandard": 2345,
-        "oneQBTep": 2764,
-        "superflexStandard": 1909,
-        "superflexTep": 2292
-      }
-    },
-    {
-      "name": "Oscar Delp",
-      "position": "TE",
-      "team": "NOS",
-      "age": 23.2,
-      "values": {
-        "oneQBStandard": 2337,
-        "oneQBTep": 2756,
-        "superflexStandard": 1874,
-        "superflexTep": 2256
+        "oneQBStandard": 2343,
+        "oneQBTep": 2762,
+        "superflexStandard": 1915,
+        "superflexTep": 2298
       }
     },
     {
@@ -3248,10 +3236,34 @@
       "team": "CLE",
       "age": 27.5,
       "values": {
-        "oneQBStandard": 2337,
-        "oneQBTep": 2337,
-        "superflexStandard": 1854,
-        "superflexTep": 1854
+        "oneQBStandard": 2340,
+        "oneQBTep": 2340,
+        "superflexStandard": 1857,
+        "superflexTep": 1857
+      }
+    },
+    {
+      "name": "Oscar Delp",
+      "position": "TE",
+      "team": "NOS",
+      "age": 23.2,
+      "values": {
+        "oneQBStandard": 2328,
+        "oneQBTep": 2746,
+        "superflexStandard": 1868,
+        "superflexTep": 2250
+      }
+    },
+    {
+      "name": "Ray Davis",
+      "position": "RB",
+      "team": "BUF",
+      "age": 26.9,
+      "values": {
+        "oneQBStandard": 2327,
+        "oneQBTep": 2327,
+        "superflexStandard": 1818,
+        "superflexTep": 1818
       }
     },
     {
@@ -3260,22 +3272,10 @@
       "team": "ARI",
       "age": 33.8,
       "values": {
-        "oneQBStandard": 2329,
-        "oneQBTep": 2329,
-        "superflexStandard": 2614,
-        "superflexTep": 2614
-      }
-    },
-    {
-      "name": "Jalen Nailor",
-      "position": "WR",
-      "team": "LVR",
-      "age": 27.6,
-      "values": {
         "oneQBStandard": 2326,
         "oneQBTep": 2326,
-        "superflexStandard": 1900,
-        "superflexTep": 1900
+        "superflexStandard": 2617,
+        "superflexTep": 2617
       }
     },
     {
@@ -3291,15 +3291,15 @@
       }
     },
     {
-      "name": "Ray Davis",
-      "position": "RB",
-      "team": "BUF",
-      "age": 26.9,
+      "name": "Jalen Nailor",
+      "position": "WR",
+      "team": "LVR",
+      "age": 27.6,
       "values": {
-        "oneQBStandard": 2324,
-        "oneQBTep": 2324,
-        "superflexStandard": 1812,
-        "superflexTep": 1812
+        "oneQBStandard": 2323,
+        "oneQBTep": 2323,
+        "superflexStandard": 1900,
+        "superflexTep": 1900
       }
     },
     {
@@ -3308,8 +3308,8 @@
       "team": "NYJ",
       "age": 24.6,
       "values": {
-        "oneQBStandard": 2322,
-        "oneQBTep": 2322,
+        "oneQBStandard": 2319,
+        "oneQBTep": 2319,
         "superflexStandard": 1802,
         "superflexTep": 1802
       }
@@ -3320,10 +3320,10 @@
       "team": "BAL",
       "age": 22.3,
       "values": {
-        "oneQBStandard": 2311,
-        "oneQBTep": 2311,
-        "superflexStandard": 1830,
-        "superflexTep": 1830
+        "oneQBStandard": 2314,
+        "oneQBTep": 2314,
+        "superflexStandard": 1836,
+        "superflexTep": 1836
       }
     },
     {
@@ -3332,10 +3332,10 @@
       "team": "TBB",
       "age": 24,
       "values": {
-        "oneQBStandard": 2304,
-        "oneQBTep": 2304,
-        "superflexStandard": 2491,
-        "superflexTep": 2491
+        "oneQBStandard": 2307,
+        "oneQBTep": 2307,
+        "superflexStandard": 2497,
+        "superflexTep": 2497
       }
     },
     {
@@ -3346,8 +3346,20 @@
       "values": {
         "oneQBStandard": 2298,
         "oneQBTep": 2298,
-        "superflexStandard": 1961,
-        "superflexTep": 1961
+        "superflexStandard": 1940,
+        "superflexTep": 1940
+      }
+    },
+    {
+      "name": "2029 Late 3rd",
+      "position": "RDP",
+      "team": "FA",
+      "age": 0,
+      "values": {
+        "oneQBStandard": 2287,
+        "oneQBTep": 2287,
+        "superflexStandard": 1950,
+        "superflexTep": 1950
       }
     },
     {
@@ -3363,15 +3375,15 @@
       }
     },
     {
-      "name": "2029 Late 3rd",
-      "position": "RDP",
-      "team": "FA",
-      "age": 0,
+      "name": "Jalen Royals",
+      "position": "WR",
+      "team": "KCC",
+      "age": 23.7,
       "values": {
-        "oneQBStandard": 2281,
-        "oneQBTep": 2281,
-        "superflexStandard": 1946,
-        "superflexTep": 1946
+        "oneQBStandard": 2274,
+        "oneQBTep": 2274,
+        "superflexStandard": 1849,
+        "superflexTep": 1849
       }
     },
     {
@@ -3380,10 +3392,10 @@
       "team": "DEN",
       "age": 24.6,
       "values": {
-        "oneQBStandard": 2278,
-        "oneQBTep": 2278,
-        "superflexStandard": 1848,
-        "superflexTep": 1848
+        "oneQBStandard": 2269,
+        "oneQBTep": 2269,
+        "superflexStandard": 1842,
+        "superflexTep": 1842
       }
     },
     {
@@ -3392,10 +3404,10 @@
       "team": "CAR",
       "age": 34.1,
       "values": {
-        "oneQBStandard": 2270,
-        "oneQBTep": 2688,
-        "superflexStandard": 1891,
-        "superflexTep": 2274
+        "oneQBStandard": 2264,
+        "oneQBTep": 2682,
+        "superflexStandard": 1888,
+        "superflexTep": 2271
       }
     },
     {
@@ -3404,22 +3416,10 @@
       "team": "TEN",
       "age": 24.8,
       "values": {
-        "oneQBStandard": 2266,
-        "oneQBTep": 2266,
-        "superflexStandard": 1835,
-        "superflexTep": 1835
-      }
-    },
-    {
-      "name": "Jalen Royals",
-      "position": "WR",
-      "team": "KCC",
-      "age": 23.7,
-      "values": {
-        "oneQBStandard": 2265,
-        "oneQBTep": 2265,
-        "superflexStandard": 1840,
-        "superflexTep": 1840
+        "oneQBStandard": 2260,
+        "oneQBTep": 2260,
+        "superflexStandard": 1829,
+        "superflexTep": 1829
       }
     },
     {
@@ -3428,10 +3428,10 @@
       "team": "JAC",
       "age": 23.6,
       "values": {
-        "oneQBStandard": 2236,
-        "oneQBTep": 2236,
-        "superflexStandard": 1953,
-        "superflexTep": 1953
+        "oneQBStandard": 2241,
+        "oneQBTep": 2241,
+        "superflexStandard": 1959,
+        "superflexTep": 1959
       }
     },
     {
@@ -3442,8 +3442,8 @@
       "values": {
         "oneQBStandard": 2228,
         "oneQBTep": 2644,
-        "superflexStandard": 1764,
-        "superflexTep": 2147
+        "superflexStandard": 1763,
+        "superflexTep": 2146
       }
     },
     {
@@ -3452,10 +3452,10 @@
       "team": "CHI",
       "age": 32.2,
       "values": {
-        "oneQBStandard": 2218,
-        "oneQBTep": 2218,
-        "superflexStandard": 1852,
-        "superflexTep": 1852
+        "oneQBStandard": 2224,
+        "oneQBTep": 2224,
+        "superflexStandard": 1858,
+        "superflexTep": 1858
       }
     },
     {
@@ -3466,20 +3466,8 @@
       "values": {
         "oneQBStandard": 2212,
         "oneQBTep": 2212,
-        "superflexStandard": 1914,
-        "superflexTep": 1914
-      }
-    },
-    {
-      "name": "Xavier Legette",
-      "position": "WR",
-      "team": "CAR",
-      "age": 25.7,
-      "values": {
-        "oneQBStandard": 2198,
-        "oneQBTep": 2198,
-        "superflexStandard": 1793,
-        "superflexTep": 1793
+        "superflexStandard": 1920,
+        "superflexTep": 1920
       }
     },
     {
@@ -3488,10 +3476,34 @@
       "team": "LAR",
       "age": 33.8,
       "values": {
+        "oneQBStandard": 2197,
+        "oneQBTep": 2612,
+        "superflexStandard": 1923,
+        "superflexTep": 2305
+      }
+    },
+    {
+      "name": "Greg Dulcich",
+      "position": "TE",
+      "team": "MIA",
+      "age": 26.6,
+      "values": {
         "oneQBStandard": 2192,
         "oneQBTep": 2607,
-        "superflexStandard": 1920,
-        "superflexTep": 2302
+        "superflexStandard": 1824,
+        "superflexTep": 2207
+      }
+    },
+    {
+      "name": "Xavier Legette",
+      "position": "WR",
+      "team": "CAR",
+      "age": 25.7,
+      "values": {
+        "oneQBStandard": 2192,
+        "oneQBTep": 2192,
+        "superflexStandard": 1784,
+        "superflexTep": 1784
       }
     },
     {
@@ -3502,20 +3514,8 @@
       "values": {
         "oneQBStandard": 2192,
         "oneQBTep": 2192,
-        "superflexStandard": 1781,
-        "superflexTep": 1781
-      }
-    },
-    {
-      "name": "Greg Dulcich",
-      "position": "TE",
-      "team": "MIA",
-      "age": 26.6,
-      "values": {
-        "oneQBStandard": 2185,
-        "oneQBTep": 2600,
-        "superflexStandard": 1821,
-        "superflexTep": 2205
+        "superflexStandard": 1778,
+        "superflexTep": 1778
       }
     },
     {
@@ -3526,8 +3526,8 @@
       "values": {
         "oneQBStandard": 2175,
         "oneQBTep": 2175,
-        "superflexStandard": 2188,
-        "superflexTep": 2188
+        "superflexStandard": 2192,
+        "superflexTep": 2192
       }
     },
     {
@@ -3536,10 +3536,10 @@
       "team": "MIN",
       "age": 29.3,
       "values": {
-        "oneQBStandard": 2157,
-        "oneQBTep": 2157,
-        "superflexStandard": 1653,
-        "superflexTep": 1653
+        "oneQBStandard": 2165,
+        "oneQBTep": 2165,
+        "superflexStandard": 1668,
+        "superflexTep": 1668
       }
     },
     {
@@ -3548,10 +3548,10 @@
       "team": "ARI",
       "age": 31.2,
       "values": {
-        "oneQBStandard": 2150,
-        "oneQBTep": 2150,
-        "superflexStandard": 1852,
-        "superflexTep": 1852
+        "oneQBStandard": 2151,
+        "oneQBTep": 2151,
+        "superflexStandard": 1849,
+        "superflexTep": 1849
       }
     },
     {
@@ -3563,7 +3563,7 @@
         "oneQBStandard": 2147,
         "oneQBTep": 2560,
         "superflexStandard": 1789,
-        "superflexTep": 2172
+        "superflexTep": 2171
       }
     },
     {
@@ -3572,22 +3572,22 @@
       "team": "ATL",
       "age": 26.6,
       "values": {
-        "oneQBStandard": 2139,
-        "oneQBTep": 2139,
-        "superflexStandard": 1721,
-        "superflexTep": 1721
+        "oneQBStandard": 2145,
+        "oneQBTep": 2145,
+        "superflexStandard": 1724,
+        "superflexTep": 1724
       }
     },
     {
-      "name": "LeQuint Allen",
+      "name": "Trevor Etienne",
       "position": "RB",
-      "team": "JAC",
-      "age": 22.2,
+      "team": "CAR",
+      "age": 22.3,
       "values": {
-        "oneQBStandard": 2135,
-        "oneQBTep": 2135,
-        "superflexStandard": 1665,
-        "superflexTep": 1665
+        "oneQBStandard": 2136,
+        "oneQBTep": 2136,
+        "superflexStandard": 1652,
+        "superflexTep": 1652
       }
     },
     {
@@ -3598,20 +3598,20 @@
       "values": {
         "oneQBStandard": 2132,
         "oneQBTep": 2132,
-        "superflexStandard": 1824,
-        "superflexTep": 1824
+        "superflexStandard": 1827,
+        "superflexTep": 1827
       }
     },
     {
-      "name": "Trevor Etienne",
+      "name": "LeQuint Allen",
       "position": "RB",
-      "team": "CAR",
-      "age": 22.3,
+      "team": "JAC",
+      "age": 22.2,
       "values": {
-        "oneQBStandard": 2131,
-        "oneQBTep": 2131,
-        "superflexStandard": 1652,
-        "superflexTep": 1652
+        "oneQBStandard": 2132,
+        "oneQBTep": 2132,
+        "superflexStandard": 1668,
+        "superflexTep": 1668
       }
     },
     {
@@ -3620,10 +3620,10 @@
       "team": "LVR",
       "age": 23.9,
       "values": {
-        "oneQBStandard": 2103,
-        "oneQBTep": 2103,
-        "superflexStandard": 1711,
-        "superflexTep": 1711
+        "oneQBStandard": 2100,
+        "oneQBTep": 2100,
+        "superflexStandard": 1705,
+        "superflexTep": 1705
       }
     },
     {
@@ -3632,10 +3632,10 @@
       "team": "NYG",
       "age": 26.9,
       "values": {
-        "oneQBStandard": 2093,
-        "oneQBTep": 2093,
-        "superflexStandard": 1707,
-        "superflexTep": 1707
+        "oneQBStandard": 2096,
+        "oneQBTep": 2096,
+        "superflexStandard": 1713,
+        "superflexTep": 1713
       }
     },
     {
@@ -3644,10 +3644,10 @@
       "team": "IND",
       "age": 34.5,
       "values": {
-        "oneQBStandard": 2091,
-        "oneQBTep": 2091,
-        "superflexStandard": 1691,
-        "superflexTep": 1691
+        "oneQBStandard": 2094,
+        "oneQBTep": 2094,
+        "superflexStandard": 1703,
+        "superflexTep": 1703
       }
     },
     {
@@ -3656,10 +3656,10 @@
       "team": "FA",
       "age": 0,
       "values": {
-        "oneQBStandard": 2075,
-        "oneQBTep": 2075,
-        "superflexStandard": 1792,
-        "superflexTep": 1792
+        "oneQBStandard": 2081,
+        "oneQBTep": 2081,
+        "superflexStandard": 1789,
+        "superflexTep": 1789
       }
     },
     {
@@ -3668,10 +3668,10 @@
       "team": "BUF",
       "age": 27.1,
       "values": {
-        "oneQBStandard": 2072,
-        "oneQBTep": 2072,
-        "superflexStandard": 1648,
-        "superflexTep": 1648
+        "oneQBStandard": 2075,
+        "oneQBTep": 2075,
+        "superflexStandard": 1647,
+        "superflexTep": 1647
       }
     },
     {
@@ -3682,8 +3682,8 @@
       "values": {
         "oneQBStandard": 2063,
         "oneQBTep": 2473,
-        "superflexStandard": 1778,
-        "superflexTep": 2161
+        "superflexStandard": 1781,
+        "superflexTep": 2164
       }
     },
     {
@@ -3694,8 +3694,8 @@
       "values": {
         "oneQBStandard": 2059,
         "oneQBTep": 2059,
-        "superflexStandard": 2668,
-        "superflexTep": 2668
+        "superflexStandard": 2677,
+        "superflexTep": 2677
       }
     },
     {
@@ -3704,10 +3704,10 @@
       "team": "ARI",
       "age": 24.9,
       "values": {
-        "oneQBStandard": 2023,
-        "oneQBTep": 2023,
-        "superflexStandard": 2774,
-        "superflexTep": 2774
+        "oneQBStandard": 2022,
+        "oneQBTep": 2022,
+        "superflexStandard": 2778,
+        "superflexTep": 2778
       }
     },
     {
@@ -3716,22 +3716,10 @@
       "team": "BAL",
       "age": 28.9,
       "values": {
-        "oneQBStandard": 2023,
-        "oneQBTep": 2023,
-        "superflexStandard": 1647,
-        "superflexTep": 1647
-      }
-    },
-    {
-      "name": "Brashard Smith",
-      "position": "RB",
-      "team": "KCC",
-      "age": 23.5,
-      "values": {
-        "oneQBStandard": 1975,
-        "oneQBTep": 1975,
-        "superflexStandard": 1561,
-        "superflexTep": 1561
+        "oneQBStandard": 2016,
+        "oneQBTep": 2016,
+        "superflexStandard": 1643,
+        "superflexTep": 1643
       }
     },
     {
@@ -3740,10 +3728,22 @@
       "team": "FA",
       "age": 0,
       "values": {
-        "oneQBStandard": 1973,
-        "oneQBTep": 1973,
-        "superflexStandard": 1657,
-        "superflexTep": 1657
+        "oneQBStandard": 1976,
+        "oneQBTep": 1976,
+        "superflexStandard": 1654,
+        "superflexTep": 1654
+      }
+    },
+    {
+      "name": "Brashard Smith",
+      "position": "RB",
+      "team": "KCC",
+      "age": 23.5,
+      "values": {
+        "oneQBStandard": 1972,
+        "oneQBTep": 1972,
+        "superflexStandard": 1557,
+        "superflexTep": 1557
       }
     },
     {
@@ -3752,10 +3752,22 @@
       "team": "NEP",
       "age": 25,
       "values": {
-        "oneQBStandard": 1953,
-        "oneQBTep": 1953,
-        "superflexStandard": 1689,
-        "superflexTep": 1689
+        "oneQBStandard": 1950,
+        "oneQBTep": 1950,
+        "superflexStandard": 1680,
+        "superflexTep": 1680
+      }
+    },
+    {
+      "name": "Roschon Johnson",
+      "position": "RB",
+      "team": "CHI",
+      "age": 25.7,
+      "values": {
+        "oneQBStandard": 1945,
+        "oneQBTep": 1945,
+        "superflexStandard": 1602,
+        "superflexTep": 1602
       }
     },
     {
@@ -3766,8 +3778,8 @@
       "values": {
         "oneQBStandard": 1944,
         "oneQBTep": 1944,
-        "superflexStandard": 2241,
-        "superflexTep": 2241
+        "superflexStandard": 2279,
+        "superflexTep": 2279
       }
     },
     {
@@ -3778,20 +3790,8 @@
       "values": {
         "oneQBStandard": 1941,
         "oneQBTep": 1941,
-        "superflexStandard": 1541,
-        "superflexTep": 1541
-      }
-    },
-    {
-      "name": "Roschon Johnson",
-      "position": "RB",
-      "team": "CHI",
-      "age": 25.7,
-      "values": {
-        "oneQBStandard": 1930,
-        "oneQBTep": 1930,
-        "superflexStandard": 1587,
-        "superflexTep": 1587
+        "superflexStandard": 1547,
+        "superflexTep": 1547
       }
     },
     {
@@ -3800,10 +3800,10 @@
       "team": "LAC",
       "age": 30.3,
       "values": {
-        "oneQBStandard": 1928,
-        "oneQBTep": 2329,
-        "superflexStandard": 1569,
-        "superflexTep": 1943
+        "oneQBStandard": 1922,
+        "oneQBTep": 2323,
+        "superflexStandard": 1564,
+        "superflexTep": 1937
       }
     },
     {
@@ -3814,20 +3814,8 @@
       "values": {
         "oneQBStandard": 1910,
         "oneQBTep": 1910,
-        "superflexStandard": 2259,
-        "superflexTep": 2259
-      }
-    },
-    {
-      "name": "Mack Hollins",
-      "position": "WR",
-      "team": "NEP",
-      "age": 33.1,
-      "values": {
-        "oneQBStandard": 1907,
-        "oneQBTep": 1907,
-        "superflexStandard": 1611,
-        "superflexTep": 1611
+        "superflexStandard": 2262,
+        "superflexTep": 2262
       }
     },
     {
@@ -3836,8 +3824,8 @@
       "team": "SEA",
       "age": 33.3,
       "values": {
-        "oneQBStandard": 1903,
-        "oneQBTep": 1903,
+        "oneQBStandard": 1906,
+        "oneQBTep": 1906,
         "superflexStandard": 1589,
         "superflexTep": 1589
       }
@@ -3855,39 +3843,15 @@
       }
     },
     {
-      "name": "Barion Brown",
+      "name": "Mack Hollins",
       "position": "WR",
-      "team": "NOS",
-      "age": 22.8,
+      "team": "NEP",
+      "age": 33.1,
       "values": {
-        "oneQBStandard": 1891,
-        "oneQBTep": 1891,
-        "superflexStandard": 1489,
-        "superflexTep": 1489
-      }
-    },
-    {
-      "name": "Brenen Thompson",
-      "position": "WR",
-      "team": "LAC",
-      "age": 23.2,
-      "values": {
-        "oneQBStandard": 1889,
-        "oneQBTep": 1889,
-        "superflexStandard": 1556,
-        "superflexTep": 1556
-      }
-    },
-    {
-      "name": "Eli Heidenreich",
-      "position": "RB",
-      "team": "PIT",
-      "age": 23.3,
-      "values": {
-        "oneQBStandard": 1888,
-        "oneQBTep": 1888,
-        "superflexStandard": 1555,
-        "superflexTep": 1555
+        "oneQBStandard": 1899,
+        "oneQBTep": 1899,
+        "superflexStandard": 1599,
+        "superflexTep": 1599
       }
     },
     {
@@ -3896,10 +3860,46 @@
       "team": "NYG",
       "age": 28.6,
       "values": {
-        "oneQBStandard": 1884,
-        "oneQBTep": 1884,
-        "superflexStandard": 1540,
-        "superflexTep": 1540
+        "oneQBStandard": 1888,
+        "oneQBTep": 1888,
+        "superflexStandard": 1537,
+        "superflexTep": 1537
+      }
+    },
+    {
+      "name": "Eli Heidenreich",
+      "position": "RB",
+      "team": "PIT",
+      "age": 23.3,
+      "values": {
+        "oneQBStandard": 1885,
+        "oneQBTep": 1885,
+        "superflexStandard": 1555,
+        "superflexTep": 1555
+      }
+    },
+    {
+      "name": "Barion Brown",
+      "position": "WR",
+      "team": "NOS",
+      "age": 22.8,
+      "values": {
+        "oneQBStandard": 1885,
+        "oneQBTep": 1885,
+        "superflexStandard": 1485,
+        "superflexTep": 1485
+      }
+    },
+    {
+      "name": "Brenen Thompson",
+      "position": "WR",
+      "team": "LAC",
+      "age": 23.2,
+      "values": {
+        "oneQBStandard": 1883,
+        "oneQBTep": 1883,
+        "superflexStandard": 1550,
+        "superflexTep": 1550
       }
     },
     {
@@ -3910,8 +3910,8 @@
       "values": {
         "oneQBStandard": 1872,
         "oneQBTep": 1872,
-        "superflexStandard": 1502,
-        "superflexTep": 1502
+        "superflexStandard": 1499,
+        "superflexTep": 1499
       }
     },
     {
@@ -3920,10 +3920,10 @@
       "team": "NYJ",
       "age": 36,
       "values": {
-        "oneQBStandard": 1867,
-        "oneQBTep": 1867,
-        "superflexStandard": 2443,
-        "superflexTep": 2443
+        "oneQBStandard": 1864,
+        "oneQBTep": 1864,
+        "superflexStandard": 2455,
+        "superflexTep": 2455
       }
     },
     {
@@ -3932,10 +3932,10 @@
       "team": "DET",
       "age": 27.6,
       "values": {
-        "oneQBStandard": 1860,
-        "oneQBTep": 1860,
-        "superflexStandard": 1503,
-        "superflexTep": 1503
+        "oneQBStandard": 1857,
+        "oneQBTep": 1857,
+        "superflexStandard": 1500,
+        "superflexTep": 1500
       }
     },
     {
@@ -3944,22 +3944,10 @@
       "team": "FA",
       "age": 0,
       "values": {
-        "oneQBStandard": 1858,
-        "oneQBTep": 1858,
-        "superflexStandard": 1593,
-        "superflexTep": 1593
-      }
-    },
-    {
-      "name": "Chris Brooks",
-      "position": "RB",
-      "team": "GBP",
-      "age": 26.8,
-      "values": {
-        "oneQBStandard": 1839,
-        "oneQBTep": 1839,
-        "superflexStandard": 1385,
-        "superflexTep": 1385
+        "oneQBStandard": 1855,
+        "oneQBTep": 1855,
+        "superflexStandard": 1590,
+        "superflexTep": 1590
       }
     },
     {
@@ -3970,20 +3958,20 @@
       "values": {
         "oneQBStandard": 1838,
         "oneQBTep": 1838,
-        "superflexStandard": 1465,
-        "superflexTep": 1465
+        "superflexStandard": 1462,
+        "superflexTep": 1462
       }
     },
     {
-      "name": "Devontez Walker",
-      "position": "WR",
-      "team": "BAL",
-      "age": 25.3,
+      "name": "Chris Brooks",
+      "position": "RB",
+      "team": "GBP",
+      "age": 26.8,
       "values": {
-        "oneQBStandard": 1821,
-        "oneQBTep": 1821,
-        "superflexStandard": 1495,
-        "superflexTep": 1495
+        "oneQBStandard": 1833,
+        "oneQBTep": 1833,
+        "superflexStandard": 1382,
+        "superflexTep": 1382
       }
     },
     {
@@ -3992,22 +3980,10 @@
       "team": "ARI",
       "age": 24.2,
       "values": {
-        "oneQBStandard": 1820,
-        "oneQBTep": 1820,
-        "superflexStandard": 1491,
-        "superflexTep": 1491
-      }
-    },
-    {
-      "name": "Jake Tonges",
-      "position": "TE",
-      "team": "SFO",
-      "age": 27.3,
-      "values": {
-        "oneQBStandard": 1811,
-        "oneQBTep": 2209,
-        "superflexStandard": 1471,
-        "superflexTep": 1842
+        "oneQBStandard": 1826,
+        "oneQBTep": 1826,
+        "superflexStandard": 1497,
+        "superflexTep": 1497
       }
     },
     {
@@ -4016,10 +3992,46 @@
       "team": "CAR",
       "age": 23.6,
       "values": {
+        "oneQBStandard": 1815,
+        "oneQBTep": 2213,
+        "superflexStandard": 1431,
+        "superflexTep": 1802
+      }
+    },
+    {
+      "name": "Devontez Walker",
+      "position": "WR",
+      "team": "BAL",
+      "age": 25.3,
+      "values": {
         "oneQBStandard": 1809,
-        "oneQBTep": 2207,
-        "superflexStandard": 1429,
-        "superflexTep": 1801
+        "oneQBTep": 1809,
+        "superflexStandard": 1486,
+        "superflexTep": 1486
+      }
+    },
+    {
+      "name": "Jake Tonges",
+      "position": "TE",
+      "team": "SFO",
+      "age": 27.3,
+      "values": {
+        "oneQBStandard": 1808,
+        "oneQBTep": 2206,
+        "superflexStandard": 1468,
+        "superflexTep": 1839
+      }
+    },
+    {
+      "name": "Andrei Iosivas",
+      "position": "WR",
+      "team": "CIN",
+      "age": 27,
+      "values": {
+        "oneQBStandard": 1807,
+        "oneQBTep": 1807,
+        "superflexStandard": 1435,
+        "superflexTep": 1435
       }
     },
     {
@@ -4030,20 +4042,8 @@
       "values": {
         "oneQBStandard": 1806,
         "oneQBTep": 2205,
-        "superflexStandard": 1608,
-        "superflexTep": 1984
-      }
-    },
-    {
-      "name": "Andrei Iosivas",
-      "position": "WR",
-      "team": "CIN",
-      "age": 27,
-      "values": {
-        "oneQBStandard": 1804,
-        "oneQBTep": 1804,
-        "superflexStandard": 1432,
-        "superflexTep": 1432
+        "superflexStandard": 1611,
+        "superflexTep": 1987
       }
     },
     {
@@ -4052,10 +4052,10 @@
       "team": "NYG",
       "age": 29,
       "values": {
-        "oneQBStandard": 1799,
-        "oneQBTep": 1799,
-        "superflexStandard": 1438,
-        "superflexTep": 1438
+        "oneQBStandard": 1793,
+        "oneQBTep": 1793,
+        "superflexStandard": 1429,
+        "superflexTep": 1429
       }
     },
     {
@@ -4064,10 +4064,10 @@
       "team": "NOS",
       "age": 28.9,
       "values": {
-        "oneQBStandard": 1787,
-        "oneQBTep": 2185,
-        "superflexStandard": 1442,
-        "superflexTep": 1812
+        "oneQBStandard": 1790,
+        "oneQBTep": 2188,
+        "superflexStandard": 1448,
+        "superflexTep": 1819
       }
     },
     {
@@ -4076,10 +4076,10 @@
       "team": "KCC",
       "age": 27.5,
       "values": {
-        "oneQBStandard": 1764,
-        "oneQBTep": 2160,
-        "superflexStandard": 1452,
-        "superflexTep": 1823
+        "oneQBStandard": 1767,
+        "oneQBTep": 2164,
+        "superflexStandard": 1455,
+        "superflexTep": 1826
       }
     },
     {
@@ -4090,20 +4090,8 @@
       "values": {
         "oneQBStandard": 1751,
         "oneQBTep": 1751,
-        "superflexStandard": 1404,
-        "superflexTep": 1404
-      }
-    },
-    {
-      "name": "Ty Johnson",
-      "position": "RB",
-      "team": "BUF",
-      "age": 29.1,
-      "values": {
-        "oneQBStandard": 1724,
-        "oneQBTep": 1724,
-        "superflexStandard": 1491,
-        "superflexTep": 1491
+        "superflexStandard": 1407,
+        "superflexTep": 1407
       }
     },
     {
@@ -4112,10 +4100,22 @@
       "team": "GBP",
       "age": 24.9,
       "values": {
-        "oneQBStandard": 1722,
-        "oneQBTep": 1722,
-        "superflexStandard": 1352,
-        "superflexTep": 1352
+        "oneQBStandard": 1728,
+        "oneQBTep": 1728,
+        "superflexStandard": 1361,
+        "superflexTep": 1361
+      }
+    },
+    {
+      "name": "Ty Johnson",
+      "position": "RB",
+      "team": "BUF",
+      "age": 29.1,
+      "values": {
+        "oneQBStandard": 1727,
+        "oneQBTep": 1727,
+        "superflexStandard": 1491,
+        "superflexTep": 1491
       }
     },
     {
@@ -4136,10 +4136,10 @@
       "team": "FA",
       "age": 32.6,
       "values": {
-        "oneQBStandard": 1715,
-        "oneQBTep": 1715,
-        "superflexStandard": 1465,
-        "superflexTep": 1465
+        "oneQBStandard": 1712,
+        "oneQBTep": 1712,
+        "superflexStandard": 1462,
+        "superflexTep": 1462
       }
     },
     {
@@ -4160,8 +4160,8 @@
       "team": "FA",
       "age": 0,
       "values": {
-        "oneQBStandard": 1702,
-        "oneQBTep": 1702,
+        "oneQBStandard": 1705,
+        "oneQBTep": 1705,
         "superflexStandard": 1366,
         "superflexTep": 1366
       }
@@ -4174,8 +4174,8 @@
       "values": {
         "oneQBStandard": 1699,
         "oneQBTep": 1699,
-        "superflexStandard": 1799,
-        "superflexTep": 1799
+        "superflexStandard": 1803,
+        "superflexTep": 1803
       }
     },
     {
@@ -4184,10 +4184,10 @@
       "team": "DAL",
       "age": 27.9,
       "values": {
-        "oneQBStandard": 1682,
-        "oneQBTep": 1682,
-        "superflexStandard": 1289,
-        "superflexTep": 1289
+        "oneQBStandard": 1679,
+        "oneQBTep": 1679,
+        "superflexStandard": 1286,
+        "superflexTep": 1286
       }
     },
     {
@@ -4196,8 +4196,8 @@
       "team": "WAS",
       "age": 24.4,
       "values": {
-        "oneQBStandard": 1682,
-        "oneQBTep": 2075,
+        "oneQBStandard": 1679,
+        "oneQBTep": 2072,
         "superflexStandard": 1260,
         "superflexTep": 1626
       }
@@ -4210,8 +4210,8 @@
       "values": {
         "oneQBStandard": 1674,
         "oneQBTep": 1674,
-        "superflexStandard": 1339,
-        "superflexTep": 1339
+        "superflexStandard": 1336,
+        "superflexTep": 1336
       }
     },
     {
@@ -4220,10 +4220,10 @@
       "team": "PHI",
       "age": 22.8,
       "values": {
-        "oneQBStandard": 1667,
-        "oneQBTep": 1667,
-        "superflexStandard": 1297,
-        "superflexTep": 1297
+        "oneQBStandard": 1670,
+        "oneQBTep": 1670,
+        "superflexStandard": 1303,
+        "superflexTep": 1303
       }
     },
     {
@@ -4232,8 +4232,8 @@
       "team": "IND",
       "age": 23.8,
       "values": {
-        "oneQBStandard": 1650,
-        "oneQBTep": 1650,
+        "oneQBStandard": 1647,
+        "oneQBTep": 1647,
         "superflexStandard": 1283,
         "superflexTep": 1283
       }
@@ -4244,8 +4244,8 @@
       "team": "LAR",
       "age": 27,
       "values": {
-        "oneQBStandard": 1648,
-        "oneQBTep": 1648,
+        "oneQBStandard": 1642,
+        "oneQBTep": 1642,
         "superflexStandard": 1257,
         "superflexTep": 1257
       }
@@ -4256,22 +4256,10 @@
       "team": "WAS",
       "age": 23.2,
       "values": {
-        "oneQBStandard": 1633,
-        "oneQBTep": 1633,
-        "superflexStandard": 1294,
-        "superflexTep": 1294
-      }
-    },
-    {
-      "name": "Jalen Tolbert",
-      "position": "WR",
-      "team": "MIA",
-      "age": 27.6,
-      "values": {
-        "oneQBStandard": 1633,
-        "oneQBTep": 1633,
-        "superflexStandard": 1249,
-        "superflexTep": 1249
+        "oneQBStandard": 1639,
+        "oneQBTep": 1639,
+        "superflexStandard": 1300,
+        "superflexTep": 1300
       }
     },
     {
@@ -4280,10 +4268,10 @@
       "team": "CLE",
       "age": 26.1,
       "values": {
-        "oneQBStandard": 1631,
-        "oneQBTep": 1631,
-        "superflexStandard": 1431,
-        "superflexTep": 1431
+        "oneQBStandard": 1634,
+        "oneQBTep": 1634,
+        "superflexStandard": 1428,
+        "superflexTep": 1428
       }
     },
     {
@@ -4294,20 +4282,20 @@
       "values": {
         "oneQBStandard": 1630,
         "oneQBTep": 1630,
-        "superflexStandard": 1432,
-        "superflexTep": 1432
+        "superflexStandard": 1438,
+        "superflexTep": 1438
       }
     },
     {
-      "name": "Tahj Brooks",
-      "position": "RB",
-      "team": "CIN",
-      "age": 24.4,
+      "name": "Jalen Tolbert",
+      "position": "WR",
+      "team": "MIA",
+      "age": 27.6,
       "values": {
-        "oneQBStandard": 1622,
-        "oneQBTep": 1622,
-        "superflexStandard": 1245,
-        "superflexTep": 1245
+        "oneQBStandard": 1630,
+        "oneQBTep": 1630,
+        "superflexStandard": 1249,
+        "superflexTep": 1249
       }
     },
     {
@@ -4317,21 +4305,21 @@
       "age": 26.4,
       "values": {
         "oneQBStandard": 1619,
-        "oneQBTep": 2011,
-        "superflexStandard": 1297,
-        "superflexTep": 1662
+        "oneQBTep": 2010,
+        "superflexStandard": 1303,
+        "superflexTep": 1668
       }
     },
     {
-      "name": "Luke Musgrave",
-      "position": "TE",
-      "team": "GBP",
-      "age": 26.1,
+      "name": "Tahj Brooks",
+      "position": "RB",
+      "team": "CIN",
+      "age": 24.4,
       "values": {
-        "oneQBStandard": 1607,
-        "oneQBTep": 1999,
-        "superflexStandard": 1315,
-        "superflexTep": 1680
+        "oneQBStandard": 1619,
+        "oneQBTep": 1619,
+        "superflexStandard": 1242,
+        "superflexTep": 1242
       }
     },
     {
@@ -4340,10 +4328,22 @@
       "team": "NYG",
       "age": 29.1,
       "values": {
-        "oneQBStandard": 1607,
-        "oneQBTep": 1607,
+        "oneQBStandard": 1613,
+        "oneQBTep": 1613,
         "superflexStandard": 1223,
         "superflexTep": 1223
+      }
+    },
+    {
+      "name": "Luke Musgrave",
+      "position": "TE",
+      "team": "GBP",
+      "age": 26.1,
+      "values": {
+        "oneQBStandard": 1610,
+        "oneQBTep": 2002,
+        "superflexStandard": 1318,
+        "superflexTep": 1684
       }
     },
     {
@@ -4352,10 +4352,10 @@
       "team": "LAR",
       "age": 26,
       "values": {
-        "oneQBStandard": 1601,
-        "oneQBTep": 1601,
-        "superflexStandard": 1278,
-        "superflexTep": 1278
+        "oneQBStandard": 1604,
+        "oneQBTep": 1604,
+        "superflexStandard": 1281,
+        "superflexTep": 1281
       }
     },
     {
@@ -4364,8 +4364,8 @@
       "team": "NOS",
       "age": 23.8,
       "values": {
-        "oneQBStandard": 1598,
-        "oneQBTep": 1598,
+        "oneQBStandard": 1604,
+        "oneQBTep": 1604,
         "superflexStandard": 1185,
         "superflexTep": 1185
       }
@@ -4378,8 +4378,20 @@
       "values": {
         "oneQBStandard": 1576,
         "oneQBTep": 1966,
-        "superflexStandard": 1266,
-        "superflexTep": 1633
+        "superflexStandard": 1263,
+        "superflexTep": 1629
+      }
+    },
+    {
+      "name": "Jordan Watkins",
+      "position": "WR",
+      "team": "SFO",
+      "age": 24.7,
+      "values": {
+        "oneQBStandard": 1572,
+        "oneQBTep": 1572,
+        "superflexStandard": 1230,
+        "superflexTep": 1230
       }
     },
     {
@@ -4390,32 +4402,8 @@
       "values": {
         "oneQBStandard": 1570,
         "oneQBTep": 1570,
-        "superflexStandard": 2182,
-        "superflexTep": 2182
-      }
-    },
-    {
-      "name": "Jordan Watkins",
-      "position": "WR",
-      "team": "SFO",
-      "age": 24.7,
-      "values": {
-        "oneQBStandard": 1569,
-        "oneQBTep": 1569,
-        "superflexStandard": 1230,
-        "superflexTep": 1230
-      }
-    },
-    {
-      "name": "Dyami Brown",
-      "position": "WR",
-      "team": "WAS",
-      "age": 27,
-      "values": {
-        "oneQBStandard": 1568,
-        "oneQBTep": 1568,
-        "superflexStandard": 1222,
-        "superflexTep": 1222
+        "superflexStandard": 2176,
+        "superflexTep": 2176
       }
     },
     {
@@ -4424,10 +4412,22 @@
       "team": "CHI",
       "age": 24.3,
       "values": {
-        "oneQBStandard": 1563,
-        "oneQBTep": 1563,
-        "superflexStandard": 1305,
-        "superflexTep": 1305
+        "oneQBStandard": 1560,
+        "oneQBTep": 1560,
+        "superflexStandard": 1302,
+        "superflexTep": 1302
+      }
+    },
+    {
+      "name": "Dyami Brown",
+      "position": "WR",
+      "team": "WAS",
+      "age": 27,
+      "values": {
+        "oneQBStandard": 1559,
+        "oneQBTep": 1559,
+        "superflexStandard": 1216,
+        "superflexTep": 1216
       }
     },
     {
@@ -4438,8 +4438,8 @@
       "values": {
         "oneQBStandard": 1558,
         "oneQBTep": 1558,
-        "superflexStandard": 1250,
-        "superflexTep": 1250
+        "superflexStandard": 1247,
+        "superflexTep": 1247
       }
     },
     {
@@ -4448,10 +4448,10 @@
       "team": "NYJ",
       "age": 23,
       "values": {
-        "oneQBStandard": 1554,
-        "oneQBTep": 1554,
-        "superflexStandard": 1866,
-        "superflexTep": 1866
+        "oneQBStandard": 1551,
+        "oneQBTep": 1551,
+        "superflexStandard": 1860,
+        "superflexTep": 1860
       }
     },
     {
@@ -4496,10 +4496,10 @@
       "team": "CLE",
       "age": 24.6,
       "values": {
-        "oneQBStandard": 1528,
-        "oneQBTep": 1528,
-        "superflexStandard": 1178,
-        "superflexTep": 1178
+        "oneQBStandard": 1524,
+        "oneQBTep": 1524,
+        "superflexStandard": 1175,
+        "superflexTep": 1175
       }
     },
     {
@@ -4508,22 +4508,10 @@
       "team": "CLE",
       "age": 23.1,
       "values": {
-        "oneQBStandard": 1517,
-        "oneQBTep": 1517,
-        "superflexStandard": 1227,
-        "superflexTep": 1227
-      }
-    },
-    {
-      "name": "Jameis Winston",
-      "position": "QB",
-      "team": "NYG",
-      "age": 32.8,
-      "values": {
-        "oneQBStandard": 1507,
-        "oneQBTep": 1507,
-        "superflexStandard": 2106,
-        "superflexTep": 2106
+        "oneQBStandard": 1520,
+        "oneQBTep": 1520,
+        "superflexStandard": 1230,
+        "superflexTep": 1230
       }
     },
     {
@@ -4539,15 +4527,27 @@
       }
     },
     {
-      "name": "Charlie Kolar",
-      "position": "TE",
-      "team": "LAC",
-      "age": 27.7,
+      "name": "Dameon Pierce",
+      "position": "RB",
+      "team": "PHI",
+      "age": 26.7,
       "values": {
-        "oneQBStandard": 1503,
-        "oneQBTep": 1893,
-        "superflexStandard": 1245,
-        "superflexTep": 1614
+        "oneQBStandard": 1505,
+        "oneQBTep": 1505,
+        "superflexStandard": 1326,
+        "superflexTep": 1326
+      }
+    },
+    {
+      "name": "Jameis Winston",
+      "position": "QB",
+      "team": "NYG",
+      "age": 32.8,
+      "values": {
+        "oneQBStandard": 1504,
+        "oneQBTep": 1504,
+        "superflexStandard": 2103,
+        "superflexTep": 2103
       }
     },
     {
@@ -4563,39 +4563,27 @@
       }
     },
     {
-      "name": "Dameon Pierce",
-      "position": "RB",
-      "team": "PHI",
-      "age": 26.7,
-      "values": {
-        "oneQBStandard": 1496,
-        "oneQBTep": 1496,
-        "superflexStandard": 1317,
-        "superflexTep": 1317
-      }
-    },
-    {
       "name": "Marlin Klein",
       "position": "TE",
       "team": "HOU",
       "age": 24.1,
       "values": {
-        "oneQBStandard": 1493,
-        "oneQBTep": 1883,
-        "superflexStandard": 1271,
-        "superflexTep": 1637
+        "oneQBStandard": 1499,
+        "oneQBTep": 1889,
+        "superflexStandard": 1268,
+        "superflexTep": 1634
       }
     },
     {
-      "name": "Tai Felton",
-      "position": "WR",
-      "team": "MIN",
-      "age": 23.6,
+      "name": "Charlie Kolar",
+      "position": "TE",
+      "team": "LAC",
+      "age": 27.7,
       "values": {
-        "oneQBStandard": 1490,
-        "oneQBTep": 1490,
-        "superflexStandard": 1196,
-        "superflexTep": 1196
+        "oneQBStandard": 1497,
+        "oneQBTep": 1888,
+        "superflexStandard": 1239,
+        "superflexTep": 1607
       }
     },
     {
@@ -4604,10 +4592,10 @@
       "team": "LAC",
       "age": 25,
       "values": {
-        "oneQBStandard": 1487,
-        "oneQBTep": 1487,
-        "superflexStandard": 1171,
-        "superflexTep": 1171
+        "oneQBStandard": 1489,
+        "oneQBTep": 1489,
+        "superflexStandard": 1174,
+        "superflexTep": 1174
       }
     },
     {
@@ -4623,15 +4611,27 @@
       }
     },
     {
+      "name": "Tai Felton",
+      "position": "WR",
+      "team": "MIN",
+      "age": 23.6,
+      "values": {
+        "oneQBStandard": 1484,
+        "oneQBTep": 1484,
+        "superflexStandard": 1193,
+        "superflexTep": 1193
+      }
+    },
+    {
       "name": "Jacob Cowing",
       "position": "WR",
       "team": "SFO",
       "age": 25.7,
       "values": {
-        "oneQBStandard": 1479,
-        "oneQBTep": 1479,
-        "superflexStandard": 1232,
-        "superflexTep": 1232
+        "oneQBStandard": 1482,
+        "oneQBTep": 1482,
+        "superflexStandard": 1231,
+        "superflexTep": 1231
       }
     },
     {
@@ -4640,8 +4640,8 @@
       "team": "CIN",
       "age": 26.1,
       "values": {
-        "oneQBStandard": 1460,
-        "oneQBTep": 1850,
+        "oneQBStandard": 1457,
+        "oneQBTep": 1846,
         "superflexStandard": 1175,
         "superflexTep": 1543
       }
@@ -4652,10 +4652,10 @@
       "team": "TBB",
       "age": 24.6,
       "values": {
-        "oneQBStandard": 1439,
-        "oneQBTep": 1439,
-        "superflexStandard": 1156,
-        "superflexTep": 1156
+        "oneQBStandard": 1442,
+        "oneQBTep": 1442,
+        "superflexStandard": 1159,
+        "superflexTep": 1159
       }
     },
     {
@@ -4664,10 +4664,10 @@
       "team": "NOS",
       "age": 26.5,
       "values": {
-        "oneQBStandard": 1421,
-        "oneQBTep": 1421,
-        "superflexStandard": 1134,
-        "superflexTep": 1134
+        "oneQBStandard": 1424,
+        "oneQBTep": 1424,
+        "superflexStandard": 1137,
+        "superflexTep": 1137
       }
     },
     {
@@ -4676,22 +4676,10 @@
       "team": "ARI",
       "age": 31.4,
       "values": {
-        "oneQBStandard": 1419,
-        "oneQBTep": 1419,
-        "superflexStandard": 1144,
-        "superflexTep": 1144
-      }
-    },
-    {
-      "name": "Trey Palmer",
-      "position": "WR",
-      "team": "NOS",
-      "age": 25.6,
-      "values": {
-        "oneQBStandard": 1402,
-        "oneQBTep": 1402,
-        "superflexStandard": 1133,
-        "superflexTep": 1133
+        "oneQBStandard": 1416,
+        "oneQBTep": 1416,
+        "superflexStandard": 1141,
+        "superflexTep": 1141
       }
     },
     {
@@ -4702,8 +4690,8 @@
       "values": {
         "oneQBStandard": 1401,
         "oneQBTep": 1401,
-        "superflexStandard": 1199,
-        "superflexTep": 1199
+        "superflexStandard": 1205,
+        "superflexTep": 1205
       }
     },
     {
@@ -4712,10 +4700,22 @@
       "team": "LAR",
       "age": 24.8,
       "values": {
-        "oneQBStandard": 1398,
-        "oneQBTep": 1398,
-        "superflexStandard": 1140,
-        "superflexTep": 1140
+        "oneQBStandard": 1401,
+        "oneQBTep": 1401,
+        "superflexStandard": 1143,
+        "superflexTep": 1143
+      }
+    },
+    {
+      "name": "Trey Palmer",
+      "position": "WR",
+      "team": "NOS",
+      "age": 25.6,
+      "values": {
+        "oneQBStandard": 1399,
+        "oneQBTep": 1399,
+        "superflexStandard": 1130,
+        "superflexTep": 1130
       }
     },
     {
@@ -4726,8 +4726,20 @@
       "values": {
         "oneQBStandard": 1366,
         "oneQBTep": 1366,
-        "superflexStandard": 2789,
-        "superflexTep": 2789
+        "superflexStandard": 2792,
+        "superflexTep": 2792
+      }
+    },
+    {
+      "name": "Jonathan Mingo",
+      "position": "WR",
+      "team": "DAL",
+      "age": 25.5,
+      "values": {
+        "oneQBStandard": 1353,
+        "oneQBTep": 1353,
+        "superflexStandard": 1050,
+        "superflexTep": 1050
       }
     },
     {
@@ -4760,34 +4772,10 @@
       "team": "PHI",
       "age": 26.6,
       "values": {
-        "oneQBStandard": 1348,
-        "oneQBTep": 1348,
+        "oneQBStandard": 1345,
+        "oneQBTep": 1345,
         "superflexStandard": 1410,
         "superflexTep": 1410
-      }
-    },
-    {
-      "name": "Jonathan Mingo",
-      "position": "WR",
-      "team": "DAL",
-      "age": 25.5,
-      "values": {
-        "oneQBStandard": 1347,
-        "oneQBTep": 1347,
-        "superflexStandard": 1047,
-        "superflexTep": 1047
-      }
-    },
-    {
-      "name": "Jimmy Horn",
-      "position": "WR",
-      "team": "CLE",
-      "age": 24.1,
-      "values": {
-        "oneQBStandard": 1343,
-        "oneQBTep": 1343,
-        "superflexStandard": 1060,
-        "superflexTep": 1060
       }
     },
     {
@@ -4803,6 +4791,18 @@
       }
     },
     {
+      "name": "Jimmy Horn",
+      "position": "WR",
+      "team": "CLE",
+      "age": 24.1,
+      "values": {
+        "oneQBStandard": 1340,
+        "oneQBTep": 1340,
+        "superflexStandard": 1057,
+        "superflexTep": 1057
+      }
+    },
+    {
       "name": "Calvin Ridley",
       "position": "WR",
       "team": "TEN",
@@ -4810,8 +4810,8 @@
       "values": {
         "oneQBStandard": 1333,
         "oneQBTep": 1333,
-        "superflexStandard": 1058,
-        "superflexTep": 1058
+        "superflexStandard": 1061,
+        "superflexTep": 1061
       }
     },
     {
@@ -4820,8 +4820,8 @@
       "team": "JAC",
       "age": 24.7,
       "values": {
-        "oneQBStandard": 1321,
-        "oneQBTep": 1321,
+        "oneQBStandard": 1324,
+        "oneQBTep": 1324,
         "superflexStandard": 1090,
         "superflexTep": 1090
       }
@@ -4834,8 +4834,8 @@
       "values": {
         "oneQBStandard": 1303,
         "oneQBTep": 1303,
-        "superflexStandard": 1089,
-        "superflexTep": 1089
+        "superflexStandard": 1092,
+        "superflexTep": 1092
       }
     },
     {
@@ -4846,8 +4846,20 @@
       "values": {
         "oneQBStandard": 1302,
         "oneQBTep": 1302,
-        "superflexStandard": 1047,
-        "superflexTep": 1047
+        "superflexStandard": 1044,
+        "superflexTep": 1044
+      }
+    },
+    {
+      "name": "Tyler Goodson",
+      "position": "RB",
+      "team": "DAL",
+      "age": 25.9,
+      "values": {
+        "oneQBStandard": 1301,
+        "oneQBTep": 1301,
+        "superflexStandard": 1124,
+        "superflexTep": 1124
       }
     },
     {
@@ -4858,8 +4870,20 @@
       "values": {
         "oneQBStandard": 1300,
         "oneQBTep": 1300,
-        "superflexStandard": 1058,
-        "superflexTep": 1058
+        "superflexStandard": 1064,
+        "superflexTep": 1064
+      }
+    },
+    {
+      "name": "Quinn Ewers",
+      "position": "QB",
+      "team": "JAC",
+      "age": 23.4,
+      "values": {
+        "oneQBStandard": 1299,
+        "oneQBTep": 1299,
+        "superflexStandard": 1275,
+        "superflexTep": 1275
       }
     },
     {
@@ -4871,31 +4895,7 @@
         "oneQBStandard": 1299,
         "oneQBTep": 1682,
         "superflexStandard": 1101,
-        "superflexTep": 1468
-      }
-    },
-    {
-      "name": "Tyler Goodson",
-      "position": "RB",
-      "team": "DAL",
-      "age": 25.9,
-      "values": {
-        "oneQBStandard": 1298,
-        "oneQBTep": 1298,
-        "superflexStandard": 1121,
-        "superflexTep": 1121
-      }
-    },
-    {
-      "name": "Quinn Ewers",
-      "position": "QB",
-      "team": "JAC",
-      "age": 23.4,
-      "values": {
-        "oneQBStandard": 1296,
-        "oneQBTep": 1296,
-        "superflexStandard": 1281,
-        "superflexTep": 1281
+        "superflexTep": 1467
       }
     },
     {
@@ -4904,10 +4904,10 @@
       "team": "SFO",
       "age": 32.1,
       "values": {
-        "oneQBStandard": 1292,
-        "oneQBTep": 1292,
-        "superflexStandard": 1135,
-        "superflexTep": 1135
+        "oneQBStandard": 1286,
+        "oneQBTep": 1286,
+        "superflexStandard": 1132,
+        "superflexTep": 1132
       }
     },
     {
@@ -4916,8 +4916,8 @@
       "team": "WAS",
       "age": 31.4,
       "values": {
-        "oneQBStandard": 1280,
-        "oneQBTep": 1280,
+        "oneQBStandard": 1283,
+        "oneQBTep": 1283,
         "superflexStandard": 1096,
         "superflexTep": 1096
       }
@@ -4940,10 +4940,10 @@
       "team": "DET",
       "age": 25.6,
       "values": {
-        "oneQBStandard": 1263,
-        "oneQBTep": 1263,
-        "superflexStandard": 1070,
-        "superflexTep": 1070
+        "oneQBStandard": 1257,
+        "oneQBTep": 1257,
+        "superflexStandard": 1067,
+        "superflexTep": 1067
       }
     },
     {
@@ -4952,10 +4952,10 @@
       "team": "ARI",
       "age": 26,
       "values": {
-        "oneQBStandard": 1263,
-        "oneQBTep": 1645,
-        "superflexStandard": 1024,
-        "superflexTep": 1391
+        "oneQBStandard": 1257,
+        "oneQBTep": 1639,
+        "superflexStandard": 1018,
+        "superflexTep": 1386
       }
     },
     {
@@ -4964,10 +4964,10 @@
       "team": "CIN",
       "age": 22.6,
       "values": {
-        "oneQBStandard": 1255,
-        "oneQBTep": 1638,
-        "superflexStandard": 1104,
-        "superflexTep": 1470
+        "oneQBStandard": 1249,
+        "oneQBTep": 1631,
+        "superflexStandard": 1098,
+        "superflexTep": 1465
       }
     },
     {
@@ -4976,10 +4976,10 @@
       "team": "TEN",
       "age": 26.1,
       "values": {
-        "oneQBStandard": 1250,
-        "oneQBTep": 1632,
-        "superflexStandard": 1051,
-        "superflexTep": 1419
+        "oneQBStandard": 1247,
+        "oneQBTep": 1630,
+        "superflexStandard": 1048,
+        "superflexTep": 1416
       }
     },
     {
@@ -4988,10 +4988,10 @@
       "team": "GBP",
       "age": 31.2,
       "values": {
-        "oneQBStandard": 1245,
-        "oneQBTep": 1628,
-        "superflexStandard": 1017,
-        "superflexTep": 1385
+        "oneQBStandard": 1247,
+        "oneQBTep": 1629,
+        "superflexStandard": 1020,
+        "superflexTep": 1388
       }
     },
     {
@@ -5002,8 +5002,8 @@
       "values": {
         "oneQBStandard": 1238,
         "oneQBTep": 1238,
-        "superflexStandard": 1019,
-        "superflexTep": 1019
+        "superflexStandard": 1022,
+        "superflexTep": 1022
       }
     },
     {
@@ -5012,10 +5012,10 @@
       "team": "PHI",
       "age": 35.9,
       "values": {
-        "oneQBStandard": 1232,
-        "oneQBTep": 1614,
-        "superflexStandard": 1017,
-        "superflexTep": 1385
+        "oneQBStandard": 1226,
+        "oneQBTep": 1608,
+        "superflexStandard": 1014,
+        "superflexTep": 1382
       }
     },
     {
@@ -5024,10 +5024,10 @@
       "team": "CHI",
       "age": 23.1,
       "values": {
-        "oneQBStandard": 1216,
-        "oneQBTep": 1597,
+        "oneQBStandard": 1218,
+        "oneQBTep": 1599,
         "superflexStandard": 1060,
-        "superflexTep": 1427
+        "superflexTep": 1428
       }
     },
     {
@@ -5048,10 +5048,10 @@
       "team": "PHI",
       "age": 26.6,
       "values": {
-        "oneQBStandard": 1192,
-        "oneQBTep": 1192,
-        "superflexStandard": 984,
-        "superflexTep": 984
+        "oneQBStandard": 1198,
+        "oneQBTep": 1198,
+        "superflexStandard": 990,
+        "superflexTep": 990
       }
     },
     {
@@ -5067,15 +5067,27 @@
       }
     },
     {
+      "name": "Michael Trigg",
+      "position": "TE",
+      "team": "DAL",
+      "age": 24.3,
+      "values": {
+        "oneQBStandard": 1186,
+        "oneQBTep": 1566,
+        "superflexStandard": 972,
+        "superflexTep": 1338
+      }
+    },
+    {
       "name": "Greg Dortch",
       "position": "WR",
       "team": "BUF",
       "age": 28.4,
       "values": {
-        "oneQBStandard": 1182,
-        "oneQBTep": 1182,
-        "superflexStandard": 980,
-        "superflexTep": 980
+        "oneQBStandard": 1176,
+        "oneQBTep": 1176,
+        "superflexStandard": 974,
+        "superflexTep": 974
       }
     },
     {
@@ -5084,22 +5096,10 @@
       "team": "CHI",
       "age": 26.4,
       "values": {
-        "oneQBStandard": 1181,
-        "oneQBTep": 1181,
-        "superflexStandard": 1767,
-        "superflexTep": 1767
-      }
-    },
-    {
-      "name": "Michael Trigg",
-      "position": "TE",
-      "team": "DAL",
-      "age": 24.3,
-      "values": {
-        "oneQBStandard": 1180,
-        "oneQBTep": 1560,
-        "superflexStandard": 972,
-        "superflexTep": 1338
+        "oneQBStandard": 1175,
+        "oneQBTep": 1175,
+        "superflexStandard": 1764,
+        "superflexTep": 1764
       }
     },
     {
@@ -5108,10 +5108,10 @@
       "team": "NYG",
       "age": 25.1,
       "values": {
-        "oneQBStandard": 1148,
-        "oneQBTep": 1148,
-        "superflexStandard": 947,
-        "superflexTep": 947
+        "oneQBStandard": 1151,
+        "oneQBTep": 1151,
+        "superflexStandard": 950,
+        "superflexTep": 950
       }
     },
     {
@@ -5120,10 +5120,10 @@
       "team": "MIA",
       "age": 23.7,
       "values": {
-        "oneQBStandard": 1135,
-        "oneQBTep": 1512,
-        "superflexStandard": 1006,
-        "superflexTep": 1374
+        "oneQBStandard": 1138,
+        "oneQBTep": 1515,
+        "superflexStandard": 1009,
+        "superflexTep": 1377
       }
     },
     {
@@ -5132,8 +5132,8 @@
       "team": "LAR",
       "age": 25.7,
       "values": {
-        "oneQBStandard": 1121,
-        "oneQBTep": 1497,
+        "oneQBStandard": 1124,
+        "oneQBTep": 1500,
         "superflexStandard": 928,
         "superflexTep": 1291
       }
@@ -5144,22 +5144,22 @@
       "team": "SFO",
       "age": 24.7,
       "values": {
-        "oneQBStandard": 1100,
-        "oneQBTep": 1100,
-        "superflexStandard": 950,
-        "superflexTep": 950
+        "oneQBStandard": 1097,
+        "oneQBTep": 1097,
+        "superflexStandard": 953,
+        "superflexTep": 953
       }
     },
     {
-      "name": "Marquise Brown",
+      "name": "Isaiah Williams",
       "position": "WR",
-      "team": "PHI",
-      "age": 29.4,
+      "team": "NYJ",
+      "age": 25.7,
       "values": {
-        "oneQBStandard": 1084,
-        "oneQBTep": 1084,
-        "superflexStandard": 884,
-        "superflexTep": 884
+        "oneQBStandard": 1085,
+        "oneQBTep": 1085,
+        "superflexStandard": 1087,
+        "superflexTep": 1087
       }
     },
     {
@@ -5170,32 +5170,20 @@
       "values": {
         "oneQBStandard": 1078,
         "oneQBTep": 1078,
-        "superflexStandard": 892,
-        "superflexTep": 892
+        "superflexStandard": 895,
+        "superflexTep": 895
       }
     },
     {
-      "name": "Isaiah Williams",
+      "name": "Marquise Brown",
       "position": "WR",
-      "team": "NYJ",
-      "age": 25.7,
+      "team": "PHI",
+      "age": 29.4,
       "values": {
-        "oneQBStandard": 1076,
-        "oneQBTep": 1076,
-        "superflexStandard": 1081,
-        "superflexTep": 1081
-      }
-    },
-    {
-      "name": "Xavier Restrepo",
-      "position": "WR",
-      "team": "TEN",
-      "age": 24.5,
-      "values": {
-        "oneQBStandard": 1060,
-        "oneQBTep": 1060,
-        "superflexStandard": 852,
-        "superflexTep": 852
+        "oneQBStandard": 1075,
+        "oneQBTep": 1075,
+        "superflexStandard": 884,
+        "superflexTep": 884
       }
     },
     {
@@ -5204,22 +5192,22 @@
       "team": "PHI",
       "age": 26.5,
       "values": {
-        "oneQBStandard": 1056,
-        "oneQBTep": 1056,
-        "superflexStandard": 2134,
-        "superflexTep": 2134
+        "oneQBStandard": 1071,
+        "oneQBTep": 1071,
+        "superflexStandard": 2137,
+        "superflexTep": 2137
       }
     },
     {
-      "name": "Darius Slayton",
+      "name": "Xavier Restrepo",
       "position": "WR",
-      "team": "FA",
-      "age": 29.8,
+      "team": "TEN",
+      "age": 24.5,
       "values": {
-        "oneQBStandard": 1045,
-        "oneQBTep": 1045,
-        "superflexStandard": 899,
-        "superflexTep": 899
+        "oneQBStandard": 1057,
+        "oneQBTep": 1057,
+        "superflexStandard": 855,
+        "superflexTep": 855
       }
     },
     {
@@ -5228,10 +5216,34 @@
       "team": "SEA",
       "age": 29.9,
       "values": {
-        "oneQBStandard": 1041,
-        "oneQBTep": 1041,
-        "superflexStandard": 1853,
-        "superflexTep": 1853
+        "oneQBStandard": 1045,
+        "oneQBTep": 1045,
+        "superflexStandard": 1849,
+        "superflexTep": 1849
+      }
+    },
+    {
+      "name": "Darius Slayton",
+      "position": "WR",
+      "team": "FA",
+      "age": 29.8,
+      "values": {
+        "oneQBStandard": 1030,
+        "oneQBTep": 1030,
+        "superflexStandard": 887,
+        "superflexTep": 887
+      }
+    },
+    {
+      "name": "Bam Knight",
+      "position": "RB",
+      "team": "ARI",
+      "age": 25.5,
+      "values": {
+        "oneQBStandard": 1027,
+        "oneQBTep": 1027,
+        "superflexStandard": 823,
+        "superflexTep": 823
       }
     },
     {
@@ -5242,20 +5254,8 @@
       "values": {
         "oneQBStandard": 1023,
         "oneQBTep": 1023,
-        "superflexStandard": 1257,
-        "superflexTep": 1257
-      }
-    },
-    {
-      "name": "Bam Knight",
-      "position": "RB",
-      "team": "ARI",
-      "age": 25.5,
-      "values": {
-        "oneQBStandard": 1021,
-        "oneQBTep": 1021,
-        "superflexStandard": 820,
-        "superflexTep": 820
+        "superflexStandard": 1260,
+        "superflexTep": 1260
       }
     },
     {
@@ -5276,10 +5276,10 @@
       "team": "JAC",
       "age": 23.7,
       "values": {
-        "oneQBStandard": 1007,
-        "oneQBTep": 1378,
-        "superflexStandard": 861,
-        "superflexTep": 1220
+        "oneQBStandard": 1013,
+        "oneQBTep": 1384,
+        "superflexStandard": 864,
+        "superflexTep": 1223
       }
     },
     {
@@ -5288,8 +5288,8 @@
       "team": "CAR",
       "age": 28.5,
       "values": {
-        "oneQBStandard": 998,
-        "oneQBTep": 998,
+        "oneQBStandard": 999,
+        "oneQBTep": 999,
         "superflexStandard": 864,
         "superflexTep": 864
       }
@@ -5300,10 +5300,10 @@
       "team": "MIN",
       "age": 33.8,
       "values": {
-        "oneQBStandard": 990,
-        "oneQBTep": 990,
-        "superflexStandard": 1267,
-        "superflexTep": 1267
+        "oneQBStandard": 987,
+        "oneQBTep": 987,
+        "superflexStandard": 1261,
+        "superflexTep": 1261
       }
     },
     {
@@ -5338,8 +5338,8 @@
       "values": {
         "oneQBStandard": 979,
         "oneQBTep": 979,
-        "superflexStandard": 839,
-        "superflexTep": 839
+        "superflexStandard": 842,
+        "superflexTep": 842
       }
     },
     {
@@ -5374,8 +5374,8 @@
       "values": {
         "oneQBStandard": 962,
         "oneQBTep": 962,
-        "superflexStandard": 790,
-        "superflexTep": 790
+        "superflexStandard": 793,
+        "superflexTep": 793
       }
     },
     {
@@ -5396,8 +5396,8 @@
       "team": "GBP",
       "age": 27.4,
       "values": {
-        "oneQBStandard": 945,
-        "oneQBTep": 945,
+        "oneQBStandard": 942,
+        "oneQBTep": 942,
         "superflexStandard": 832,
         "superflexTep": 832
       }
@@ -5432,10 +5432,10 @@
       "team": "LVR",
       "age": 26.8,
       "values": {
-        "oneQBStandard": 911,
-        "oneQBTep": 911,
-        "superflexStandard": 715,
-        "superflexTep": 715
+        "oneQBStandard": 914,
+        "oneQBTep": 914,
+        "superflexStandard": 714,
+        "superflexTep": 714
       }
     },
     {
@@ -5444,8 +5444,8 @@
       "team": "HOU",
       "age": 26.3,
       "values": {
-        "oneQBStandard": 910,
-        "oneQBTep": 1278,
+        "oneQBStandard": 913,
+        "oneQBTep": 1281,
         "superflexStandard": 699,
         "superflexTep": 1053
       }
@@ -5482,8 +5482,8 @@
       "values": {
         "oneQBStandard": 880,
         "oneQBTep": 880,
-        "superflexStandard": 1101,
-        "superflexTep": 1101
+        "superflexStandard": 1098,
+        "superflexTep": 1098
       }
     },
     {
@@ -5492,8 +5492,8 @@
       "team": "TEN",
       "age": 27.4,
       "values": {
-        "oneQBStandard": 859,
-        "oneQBTep": 859,
+        "oneQBStandard": 862,
+        "oneQBTep": 862,
         "superflexStandard": 683,
         "superflexTep": 683
       }
@@ -5518,8 +5518,8 @@
       "values": {
         "oneQBStandard": 841,
         "oneQBTep": 1205,
-        "superflexStandard": 803,
-        "superflexTep": 1161
+        "superflexStandard": 800,
+        "superflexTep": 1158
       }
     },
     {
@@ -5552,8 +5552,8 @@
       "team": "MIA",
       "age": 23.9,
       "values": {
-        "oneQBStandard": 795,
-        "oneQBTep": 795,
+        "oneQBStandard": 792,
+        "oneQBTep": 792,
         "superflexStandard": 673,
         "superflexTep": 673
       }
@@ -5564,10 +5564,10 @@
       "team": "ATL",
       "age": 28.5,
       "values": {
-        "oneQBStandard": 766,
-        "oneQBTep": 766,
-        "superflexStandard": 719,
-        "superflexTep": 719
+        "oneQBStandard": 764,
+        "oneQBTep": 764,
+        "superflexStandard": 716,
+        "superflexTep": 716
       }
     },
     {
@@ -5588,10 +5588,10 @@
       "team": "PHI",
       "age": 25.5,
       "values": {
-        "oneQBStandard": 752,
-        "oneQBTep": 752,
-        "superflexStandard": 506,
-        "superflexTep": 506
+        "oneQBStandard": 756,
+        "oneQBTep": 756,
+        "superflexStandard": 503,
+        "superflexTep": 503
       }
     },
     {
@@ -5614,8 +5614,8 @@
       "values": {
         "oneQBStandard": 710,
         "oneQBTep": 710,
-        "superflexStandard": 492,
-        "superflexTep": 492
+        "superflexStandard": 489,
+        "superflexTep": 489
       }
     },
     {
@@ -5643,18 +5643,6 @@
       }
     },
     {
-      "name": "Brandin Cooks",
-      "position": "WR",
-      "team": "SFO",
-      "age": 33.1,
-      "values": {
-        "oneQBStandard": 690,
-        "oneQBTep": 690,
-        "superflexStandard": 526,
-        "superflexTep": 526
-      }
-    },
-    {
       "name": "Tyrell Shavers",
       "position": "WR",
       "team": "BUF",
@@ -5667,6 +5655,18 @@
       }
     },
     {
+      "name": "Brandin Cooks",
+      "position": "WR",
+      "team": "SFO",
+      "age": 33.1,
+      "values": {
+        "oneQBStandard": 687,
+        "oneQBTep": 687,
+        "superflexStandard": 523,
+        "superflexTep": 523
+      }
+    },
+    {
       "name": "Lil'Jordan Humphrey",
       "position": "WR",
       "team": "DEN",
@@ -5674,8 +5674,8 @@
       "values": {
         "oneQBStandard": 681,
         "oneQBTep": 681,
-        "superflexStandard": 594,
-        "superflexTep": 594
+        "superflexStandard": 591,
+        "superflexTep": 591
       }
     },
     {
@@ -5684,10 +5684,10 @@
       "team": "NOS",
       "age": 27.1,
       "values": {
-        "oneQBStandard": 675,
-        "oneQBTep": 675,
-        "superflexStandard": 500,
-        "superflexTep": 500
+        "oneQBStandard": 681,
+        "oneQBTep": 681,
+        "superflexStandard": 506,
+        "superflexTep": 506
       }
     },
     {
@@ -5720,8 +5720,8 @@
       "team": "PIT",
       "age": 28.2,
       "values": {
-        "oneQBStandard": 630,
-        "oneQBTep": 630,
+        "oneQBStandard": 628,
+        "oneQBTep": 628,
         "superflexStandard": 497,
         "superflexTep": 497
       }
@@ -5732,10 +5732,10 @@
       "team": "PIT",
       "age": 28,
       "values": {
-        "oneQBStandard": 620,
-        "oneQBTep": 620,
-        "superflexStandard": 502,
-        "superflexTep": 502
+        "oneQBStandard": 614,
+        "oneQBTep": 614,
+        "superflexStandard": 499,
+        "superflexTep": 499
       }
     },
     {
@@ -5768,10 +5768,10 @@
       "team": "DAL",
       "age": 26.1,
       "values": {
-        "oneQBStandard": 580,
-        "oneQBTep": 580,
-        "superflexStandard": 804,
-        "superflexTep": 804
+        "oneQBStandard": 583,
+        "oneQBTep": 583,
+        "superflexStandard": 801,
+        "superflexTep": 801
       }
     },
     {
@@ -5782,8 +5782,8 @@
       "values": {
         "oneQBStandard": 563,
         "oneQBTep": 563,
-        "superflexStandard": 472,
-        "superflexTep": 472
+        "superflexStandard": 466,
+        "superflexTep": 466
       }
     },
     {
@@ -5804,22 +5804,10 @@
       "team": "ATL",
       "age": 32,
       "values": {
-        "oneQBStandard": 554,
-        "oneQBTep": 905,
+        "oneQBStandard": 551,
+        "oneQBTep": 903,
         "superflexStandard": 494,
         "superflexTep": 839
-      }
-    },
-    {
-      "name": "Elijah Mitchell",
-      "position": "RB",
-      "team": "FA",
-      "age": 28.5,
-      "values": {
-        "oneQBStandard": 545,
-        "oneQBTep": 545,
-        "superflexStandard": 450,
-        "superflexTep": 450
       }
     },
     {
@@ -5854,8 +5842,8 @@
       "values": {
         "oneQBStandard": 543,
         "oneQBTep": 543,
-        "superflexStandard": 450,
-        "superflexTep": 450
+        "superflexStandard": 453,
+        "superflexTep": 453
       }
     },
     {
@@ -5878,8 +5866,8 @@
       "values": {
         "oneQBStandard": 542,
         "oneQBTep": 542,
-        "superflexStandard": 464,
-        "superflexTep": 464
+        "superflexStandard": 470,
+        "superflexTep": 470
       }
     },
     {
@@ -5890,8 +5878,20 @@
       "values": {
         "oneQBStandard": 542,
         "oneQBTep": 542,
-        "superflexStandard": 456,
-        "superflexTep": 456
+        "superflexStandard": 459,
+        "superflexTep": 459
+      }
+    },
+    {
+      "name": "Kenny McIntosh",
+      "position": "RB",
+      "team": "FA",
+      "age": 26.6,
+      "values": {
+        "oneQBStandard": 534,
+        "oneQBTep": 534,
+        "superflexStandard": 450,
+        "superflexTep": 450
       }
     },
     {
@@ -5902,8 +5902,8 @@
       "values": {
         "oneQBStandard": 418,
         "oneQBTep": 418,
-        "superflexStandard": 698,
-        "superflexTep": 698
+        "superflexStandard": 695,
+        "superflexTep": 695
       }
     },
     {
@@ -5914,8 +5914,8 @@
       "values": {
         "oneQBStandard": 364,
         "oneQBTep": 364,
-        "superflexStandard": 1203,
-        "superflexTep": 1203
+        "superflexStandard": 1212,
+        "superflexTep": 1212
       }
     },
     {
@@ -5926,8 +5926,8 @@
       "values": {
         "oneQBStandard": 310,
         "oneQBTep": 310,
-        "superflexStandard": 986,
-        "superflexTep": 986
+        "superflexStandard": 983,
+        "superflexTep": 983
       }
     },
     {
@@ -5938,8 +5938,8 @@
       "values": {
         "oneQBStandard": 304,
         "oneQBTep": 304,
-        "superflexStandard": 2349,
-        "superflexTep": 2349
+        "superflexStandard": 2352,
+        "superflexTep": 2352
       }
     },
     {
@@ -5974,8 +5974,8 @@
       "values": {
         "oneQBStandard": 240,
         "oneQBTep": 240,
-        "superflexStandard": 692,
-        "superflexTep": 692
+        "superflexStandard": 698,
+        "superflexTep": 698
       }
     },
     {
@@ -5986,8 +5986,8 @@
       "values": {
         "oneQBStandard": 225,
         "oneQBTep": 225,
-        "superflexStandard": 1347,
-        "superflexTep": 1347
+        "superflexStandard": 1341,
+        "superflexTep": 1341
       }
     },
     {
@@ -5998,8 +5998,8 @@
       "values": {
         "oneQBStandard": 204,
         "oneQBTep": 204,
-        "superflexStandard": 564,
-        "superflexTep": 564
+        "superflexStandard": 561,
+        "superflexTep": 561
       }
     }
   ],
@@ -6012,8 +6012,8 @@
       "values": {
         "oneQBStandard": 9999,
         "oneQBTep": 9999,
-        "superflexStandard": 9997,
-        "superflexTep": 9997
+        "superflexStandard": 9999,
+        "superflexTep": 9999
       }
     },
     {
@@ -6034,10 +6034,10 @@
       "team": "ATL",
       "age": 24.7,
       "values": {
-        "oneQBStandard": 9960,
-        "oneQBTep": 9960,
-        "superflexStandard": 9999,
-        "superflexTep": 9999
+        "oneQBStandard": 9947,
+        "oneQBTep": 9947,
+        "superflexStandard": 9995,
+        "superflexTep": 9995
       }
     },
     {
@@ -6070,8 +6070,8 @@
       "team": "LAR",
       "age": 25.4,
       "values": {
-        "oneQBStandard": 8905,
-        "oneQBTep": 8905,
+        "oneQBStandard": 8849,
+        "oneQBTep": 8849,
         "superflexStandard": 8555,
         "superflexTep": 8555
       }
@@ -6082,10 +6082,10 @@
       "team": "CIN",
       "age": 26.6,
       "values": {
-        "oneQBStandard": 8371,
-        "oneQBTep": 8371,
-        "superflexStandard": 9571,
-        "superflexTep": 9571
+        "oneQBStandard": 8337,
+        "oneQBTep": 8337,
+        "superflexStandard": 9518,
+        "superflexTep": 9518
       }
     },
     {
@@ -6094,8 +6094,8 @@
       "team": "LVR",
       "age": 23.8,
       "values": {
-        "oneQBStandard": 8310,
-        "oneQBTep": 9196,
+        "oneQBStandard": 8328,
+        "oneQBTep": 9216,
         "superflexStandard": 8626,
         "superflexTep": 9543
       }
@@ -6298,8 +6298,8 @@
       "team": "JAC",
       "age": 24.6,
       "values": {
-        "oneQBStandard": 7390,
-        "oneQBTep": 7390,
+        "oneQBStandard": 7379,
+        "oneQBTep": 7379,
         "superflexStandard": 1886,
         "superflexTep": 1886
       }
@@ -6437,6 +6437,18 @@
       }
     },
     {
+      "name": "Jeremiyah Love",
+      "position": "RB",
+      "team": "ARI",
+      "age": 21.4,
+      "values": {
+        "oneQBStandard": 6813,
+        "oneQBTep": 6813,
+        "superflexStandard": 7617,
+        "superflexTep": 7617
+      }
+    },
+    {
       "name": "Caleb Williams",
       "position": "QB",
       "team": "CHI",
@@ -6458,18 +6470,6 @@
         "oneQBTep": 6801,
         "superflexStandard": 6159,
         "superflexTep": 6159
-      }
-    },
-    {
-      "name": "Jeremiyah Love",
-      "position": "RB",
-      "team": "ARI",
-      "age": 21.4,
-      "values": {
-        "oneQBStandard": 6748,
-        "oneQBTep": 6748,
-        "superflexStandard": 7617,
-        "superflexTep": 7617
       }
     },
     {
@@ -6497,18 +6497,6 @@
       }
     },
     {
-      "name": "Chuba Hubbard",
-      "position": "RB",
-      "team": "CAR",
-      "age": 27.4,
-      "values": {
-        "oneQBStandard": 6710,
-        "oneQBTep": 6710,
-        "superflexStandard": 5396,
-        "superflexTep": 5396
-      }
-    },
-    {
       "name": "Davante Adams",
       "position": "WR",
       "team": "LAR",
@@ -6530,6 +6518,18 @@
         "oneQBTep": 6661,
         "superflexStandard": 6657,
         "superflexTep": 6657
+      }
+    },
+    {
+      "name": "Chuba Hubbard",
+      "position": "RB",
+      "team": "CAR",
+      "age": 27.4,
+      "values": {
+        "oneQBStandard": 6656,
+        "oneQBTep": 6656,
+        "superflexStandard": 5396,
+        "superflexTep": 5396
       }
     },
     {
@@ -6713,18 +6713,6 @@
       }
     },
     {
-      "name": "Mike Evans",
-      "position": "WR",
-      "team": "SFO",
-      "age": 33.2,
-      "values": {
-        "oneQBStandard": 6165,
-        "oneQBTep": 6165,
-        "superflexStandard": 4966,
-        "superflexTep": 4966
-      }
-    },
-    {
       "name": "Bryce Young",
       "position": "QB",
       "team": "CAR",
@@ -6737,13 +6725,25 @@
       }
     },
     {
+      "name": "Mike Evans",
+      "position": "WR",
+      "team": "SFO",
+      "age": 33.2,
+      "values": {
+        "oneQBStandard": 6102,
+        "oneQBTep": 6102,
+        "superflexStandard": 4966,
+        "superflexTep": 4966
+      }
+    },
+    {
       "name": "Cam Skattebo",
       "position": "RB",
       "team": "NYG",
       "age": 24.7,
       "values": {
-        "oneQBStandard": 6023,
-        "oneQBTep": 6023,
+        "oneQBStandard": 6084,
+        "oneQBTep": 6084,
         "superflexStandard": 5672,
         "superflexTep": 5672
       }
@@ -6754,8 +6754,8 @@
       "team": "WAS",
       "age": 25.8,
       "values": {
-        "oneQBStandard": 5972,
-        "oneQBTep": 5972,
+        "oneQBStandard": 5975,
+        "oneQBTep": 5975,
         "superflexStandard": 7475,
         "superflexTep": 7475
       }
@@ -6900,8 +6900,8 @@
       "values": {
         "oneQBStandard": 5610,
         "oneQBTep": 5610,
-        "superflexStandard": 4962,
-        "superflexTep": 4962
+        "superflexStandard": 5021,
+        "superflexTep": 5021
       }
     },
     {
@@ -6917,27 +6917,27 @@
       }
     },
     {
-      "name": "Rhamondre Stevenson",
-      "position": "RB",
-      "team": "NEP",
-      "age": 28.6,
-      "values": {
-        "oneQBStandard": 5590,
-        "oneQBTep": 5590,
-        "superflexStandard": 4303,
-        "superflexTep": 4303
-      }
-    },
-    {
       "name": "Harold Fannin",
       "position": "TE",
       "team": "CLE",
       "age": 22.2,
       "values": {
         "oneQBStandard": 5538,
-        "oneQBTep": 6195,
+        "oneQBTep": 6194,
         "superflexStandard": 4559,
         "superflexTep": 5142
+      }
+    },
+    {
+      "name": "Rhamondre Stevenson",
+      "position": "RB",
+      "team": "NEP",
+      "age": 28.6,
+      "values": {
+        "oneQBStandard": 5528,
+        "oneQBTep": 5528,
+        "superflexStandard": 4303,
+        "superflexTep": 4303
       }
     },
     {
@@ -6946,8 +6946,8 @@
       "team": "PHI",
       "age": 28.2,
       "values": {
-        "oneQBStandard": 5519,
-        "oneQBTep": 5519,
+        "oneQBStandard": 5518,
+        "oneQBTep": 5518,
         "superflexStandard": 6982,
         "superflexTep": 6982
       }
@@ -6962,6 +6962,18 @@
         "oneQBTep": 5477,
         "superflexStandard": 6220,
         "superflexTep": 6220
+      }
+    },
+    {
+      "name": "Blake Corum",
+      "position": "RB",
+      "team": "LAR",
+      "age": 25.9,
+      "values": {
+        "oneQBStandard": 5426,
+        "oneQBTep": 5426,
+        "superflexStandard": 3767,
+        "superflexTep": 3767
       }
     },
     {
@@ -6986,18 +6998,6 @@
         "oneQBTep": 5374,
         "superflexStandard": 5220,
         "superflexTep": 5220
-      }
-    },
-    {
-      "name": "Blake Corum",
-      "position": "RB",
-      "team": "LAR",
-      "age": 25.9,
-      "values": {
-        "oneQBStandard": 5363,
-        "oneQBTep": 5363,
-        "superflexStandard": 3767,
-        "superflexTep": 3767
       }
     },
     {
@@ -7440,20 +7440,8 @@
       "values": {
         "oneQBStandard": 4670,
         "oneQBTep": 4670,
-        "superflexStandard": 4901,
-        "superflexTep": 4901
-      }
-    },
-    {
-      "name": "Denver Broncos",
-      "position": "DST",
-      "team": "DEN",
-      "age": -1,
-      "values": {
-        "oneQBStandard": 4661,
-        "oneQBTep": 4661,
-        "superflexStandard": 3567,
-        "superflexTep": 3567
+        "superflexStandard": 4840,
+        "superflexTep": 4840
       }
     },
     {
@@ -7478,6 +7466,18 @@
         "oneQBTep": 4631,
         "superflexStandard": 4453,
         "superflexTep": 4453
+      }
+    },
+    {
+      "name": "Denver Broncos",
+      "position": "DST",
+      "team": "DEN",
+      "age": -1,
+      "values": {
+        "oneQBStandard": 4627,
+        "oneQBTep": 4627,
+        "superflexStandard": 3567,
+        "superflexTep": 3567
       }
     },
     {
@@ -7920,8 +7920,8 @@
       "values": {
         "oneQBStandard": 4028,
         "oneQBTep": 4028,
-        "superflexStandard": 4806,
-        "superflexTep": 4806
+        "superflexStandard": 4809,
+        "superflexTep": 4809
       }
     },
     {
@@ -8129,18 +8129,6 @@
       }
     },
     {
-      "name": "San Francisco 49ers",
-      "position": "DST",
-      "team": "SFO",
-      "age": -1,
-      "values": {
-        "oneQBStandard": 3626,
-        "oneQBTep": 3626,
-        "superflexStandard": 2995,
-        "superflexTep": 2995
-      }
-    },
-    {
       "name": "Tre Harris",
       "position": "WR",
       "team": "LAC",
@@ -8186,6 +8174,18 @@
         "oneQBTep": 3563,
         "superflexStandard": 3390,
         "superflexTep": 3390
+      }
+    },
+    {
+      "name": "San Francisco 49ers",
+      "position": "DST",
+      "team": "SFO",
+      "age": -1,
+      "values": {
+        "oneQBStandard": 3553,
+        "oneQBTep": 3553,
+        "superflexStandard": 2995,
+        "superflexTep": 2995
       }
     },
     {
@@ -10169,6 +10169,18 @@
       }
     },
     {
+      "name": "Cincinnati Bengals",
+      "position": "DST",
+      "team": "CIN",
+      "age": -1,
+      "values": {
+        "oneQBStandard": 545,
+        "oneQBTep": 545,
+        "superflexStandard": 199,
+        "superflexTep": 199
+      }
+    },
+    {
       "name": "Atlanta Falcons",
       "position": "DST",
       "team": "ATL",
@@ -10190,18 +10202,6 @@
         "oneQBTep": 458,
         "superflexStandard": 239,
         "superflexTep": 239
-      }
-    },
-    {
-      "name": "Cincinnati Bengals",
-      "position": "DST",
-      "team": "CIN",
-      "age": -1,
-      "values": {
-        "oneQBStandard": 438,
-        "oneQBTep": 438,
-        "superflexStandard": 199,
-        "superflexTep": 199
       }
     },
     {
