@@ -9,6 +9,7 @@ import {
   GroupedStarter,
   liveGameRows,
   startersListGames,
+  withSides,
   LivePlayerLine,
   StarterEntry,
 } from "./my-starters";
@@ -191,6 +192,20 @@ test("liveGameRows lists your starters, the ones you face, and anyone in the gam
       ["Negative", "other"],
     ]
   );
+});
+
+test("withSides lists a player yours in one league and faced in another once, as both", () => {
+  const theirs = { ...grouped("Shared", 7), leagueIds: ["L2"], pointsByLeague: { L2: 6 } };
+  const rows = withSides([grouped("Shared", 7), grouped("Mine", 3)], [theirs, grouped("Theirs", 2)]);
+  assert.deepEqual(
+    rows.map((r) => [r.playerId, r.side, r.leagueIds, r.facedIn]),
+    [
+      ["Shared", "both", ["L1", "L2"], ["L2"]],
+      ["Mine", "mine", ["L1"], undefined],
+      ["Theirs", "opponent", ["L1"], undefined],
+    ]
+  );
+  assert.deepEqual(rows[0].pointsByLeague, { L1: 7, L2: 6 });
 });
 
 test("liveGameRows orders by projection alone before kickoff", () => {

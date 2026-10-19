@@ -39,6 +39,7 @@ const SCAN_MS = 700 * PACE;
 const SIDE_FLASH: Record<PlayerSide, string> = {
   mine: "var(--status-good)",
   opponent: "var(--status-critical)",
+  both: "var(--status-warning)",
   other: "var(--ink-muted)",
 };
 

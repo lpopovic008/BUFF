@@ -334,10 +334,10 @@ export function PointsGraph({
     <div ref={rootRef} className="flex h-full w-full min-w-0 flex-col bg-[var(--page)]">
       {/* Who, their game, and their total — and the way back to the map. */}
       <div className={`flex items-center gap-2 ${compact ? "px-1 py-0.5" : "px-2 py-1.5"}`}>
-        {/* Whose he is, by the color of his name: yours green, the ones you're facing red. */}
+        {/* Whose he is, by the color of his name: yours green, the ones you're facing red, both yellow. */}
         <span
           className={`min-w-0 truncate ${
-            player.side === "opponent" ? "font-semibold text-status-critical" : player.side === "other" ? "text-ink-primary" : "font-semibold text-status-good"
+            player.side === "opponent" ? "font-semibold text-status-critical" : player.side === "both" ? "font-semibold text-status-warning" : player.side === "other" ? "text-ink-primary" : "font-semibold text-status-good"
           } ${compact ? "text-xs" : "text-sm"}`}
         >
           {player.name}

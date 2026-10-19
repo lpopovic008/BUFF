@@ -22,10 +22,11 @@ function formatPoints(points: number): string {
   return points.toFixed(2);
 }
 
-// Whose player it is, by the color of their name: yours green, the ones you're facing red.
+// Whose player it is, by the color of their name: yours green, the ones you're facing red, both yellow.
 const SIDE_NAME_COLOR: Record<PlayerSide, string> = {
   mine: "font-semibold text-status-good",
   opponent: "font-semibold text-status-critical",
+  both: "font-semibold text-status-warning",
   other: "text-ink-primary",
 };
 
@@ -227,7 +228,7 @@ type Listing = Pick<GameStarters, "players" | "everyone">;
 function viewPlayers({ players, everyone }: Listing, view: number): GroupedStarter[] {
   const all = everyone ?? players;
   if (view <= 0) return [];
-  if (view === 1) return all.filter((p) => (p.side ?? "mine") === "mine");
+  if (view === 1) return all.filter((p) => (p.side ?? "mine") === "mine" || p.side === "both");
   if (view === 2) return all.filter((p) => (p.side ?? "mine") !== "other");
   return all;
 }
@@ -366,7 +367,9 @@ function GameLine({
     observer.observe(el);
     return () => observer.disconnect();
   }, [typedIn, leagueIds.length, player.name, player.position]);
-  const logoIds = crowded ? leagueIds.slice(0, 1) : leagueIds;
+  // Yours in one league and faced in another: every league, each boxed green (yours) or red (theirs).
+  const both = side === "both";
+  const logoIds = crowded && !both ? leagueIds.slice(0, 1) : leagueIds;
 
   return (
     <div
@@ -407,10 +410,16 @@ function GameLine({
           className={`flex shrink-0 flex-row-reverse items-center gap-0.5 transition-opacity duration-150 ${typedIn ? "" : "opacity-0"}`}
           aria-hidden
         >
-          {logoIds.map((id) => (
-            <LeagueMark key={id} league={legendByLeagueId.get(id)} className="h-3 w-3" />
-          ))}
-          {crowded ? <span className="text-[0.625rem] tabular-nums text-ink-muted">+{leagueIds.length - 1}</span> : null}
+          {logoIds.map((id) =>
+            both ? (
+              <span key={id} className={`flex border p-px ${player.facedIn?.includes(id) ? "border-status-critical" : "border-status-good"}`}>
+                <LeagueMark league={legendByLeagueId.get(id)} className="h-3 w-3" />
+              </span>
+            ) : (
+              <LeagueMark key={id} league={legendByLeagueId.get(id)} className="h-3 w-3" />
+            )
+          )}
+          {crowded && !both ? <span className="text-[0.625rem] tabular-nums text-ink-muted">+{leagueIds.length - 1}</span> : null}
         </span>
       </span>
       {phase === "live" ? (

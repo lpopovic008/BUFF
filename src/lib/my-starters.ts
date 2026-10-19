@@ -17,8 +17,8 @@ export interface StarterEntry {
   points: number | null;
 }
 
-/** Whose a player in a game's list is: one of your starters, one you're facing this week, or anyone else in the game. */
-export type PlayerSide = "mine" | "opponent" | "other";
+/** Whose a player in a game's list is: one of your starters, one you're facing this week, both (yours in one league, faced in another), or anyone else in the game. */
+export type PlayerSide = "mine" | "opponent" | "both" | "other";
 
 /** A starter deduped across leagues — one row per unique player, with every league they're started in. */
 export interface GroupedStarter {
@@ -32,6 +32,8 @@ export interface GroupedStarter {
   pointsByLeague: Record<string, number | null>;
   /** Whose player this is — your own when unset. */
   side?: PlayerSide;
+  /** On a "both" player, the leagues (among leagueIds) where it's an opponent starting him. */
+  facedIn?: string[];
   /** This week's projected points, shown until their game kicks off; null when Sleeper has none. */
   projected?: number | null;
 }
@@ -147,6 +149,23 @@ export const LIVE_PROJECTION_FLOOR = 6;
  * opponents'. Ordered by points scored, then by projection — before
  * kickoff, by projection alone.
  */
+/**
+ * Your players and the ones you face as one list, each player once: one
+ * that's yours in a league and an opponent's in another is "both", with
+ * every league involved in leagueIds and the opponents' in facedIn.
+ */
+export function withSides(mine: GroupedStarter[], opponent: GroupedStarter[]): GroupedStarter[] {
+  const faced = new Map(opponent.map((p) => [p.playerId, p]));
+  const rows = mine.map((p): GroupedStarter => {
+    const o = faced.get(p.playerId);
+    faced.delete(p.playerId);
+    const facedIn = o?.leagueIds.filter((id) => !p.leagueIds.includes(id)) ?? [];
+    if (!o || facedIn.length === 0) return { ...p, side: "mine" };
+    return { ...p, side: "both", leagueIds: [...p.leagueIds, ...facedIn], pointsByLeague: { ...o.pointsByLeague, ...p.pointsByLeague }, facedIn };
+  });
+  return [...rows, ...[...faced.values()].map((p): GroupedStarter => ({ ...p, side: "opponent" }))];
+}
+
 export function liveGameRows(
   game: NFLGame,
   mine: GroupedStarter[],
@@ -161,8 +180,7 @@ export function liveGameRows(
     seen.add(row.playerId);
     rows.push({ row, points: row.points ?? 0, projected: projected[row.playerId] ?? -Infinity });
   };
-  for (const p of mine) add({ ...p, side: "mine", projected: projected[p.playerId] ?? null });
-  for (const p of opponent) add({ ...p, side: "opponent", projected: projected[p.playerId] ?? null });
+  for (const p of withSides(mine, opponent)) add({ ...p, projected: projected[p.playerId] ?? null });
   for (const line of lines) {
     if (line.team !== game.homeTeam && line.team !== game.awayTeam) continue;
     if (line.points === 0 && (line.projected ?? 0) < LIVE_PROJECTION_FLOOR) continue;

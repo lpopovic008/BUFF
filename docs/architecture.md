@@ -373,7 +373,7 @@ until they're closed — as is the starters list's Team/VS/ALL bar, Team the
 first time. The bar lights whichever view every game in sight is showing,
 however they got there (the bar, or each tapped on to it); a game with none
 of yours counts as showing Team shut, and folded blocks don't count. The map stays mounted underneath, just hidden, so its view isn't
-lost. Picking a player never moves the page, so more can be picked; the graphs are up the page to scroll back to. Two sit side by side, three or four one to a corner, and each graph's player is named in his side's color (green yours, red the ones you face).
+lost. Picking a player never moves the page, so more can be picked; the graphs are up the page to scroll back to. Two sit side by side, three or four one to a corner, and each graph's player is named in his side's color (green yours, red the ones you face, yellow both).
 
 Each team's name in the league page's matchups has its projected total
 on a line already there, right over the score (the rank and record's on a phone) (`liveProjection`): Sleeper's pregame projection for each starter,
@@ -386,6 +386,10 @@ In the lineups, a starter who hasn't played yet shows a dash rather than
 projection and red behind it (`onPace`, `paceShare` — as their player graph
 reads it), and once it's over, green if they beat it and red if not
 (`LineTone`).
+
+A player who's yours in one league and an opponent's in another is listed
+once in a game's starters, his name yellow, with every league involved, each
+logo boxed green where he's yours and red where you face him (`withSides`).
 
 The league page always has a graph under the lineups and above the payout
 table, three quarters of the screen tall on a phone (`75svh`) and up to 70%

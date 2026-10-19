@@ -19,7 +19,7 @@ import { useWeekGames } from "@/hooks/useWeekGames";
 import { useLivePlayerLines } from "@/hooks/useLivePlayerLines";
 import { useLivePlayPoints } from "@/hooks/useLivePlayPoints";
 import { getLeagueSummary, lastFinishedWeek, LeagueSummary, teamStandings } from "@/lib/league-data";
-import { GameStarters, groupStartersByGame, GroupedStarter, startersListGames } from "@/lib/my-starters";
+import { GameStarters, groupStartersByGame, GroupedStarter, startersListGames, withSides } from "@/lib/my-starters";
 import { avatarUrl, getCurrentWeek, weighProjection } from "@/lib/sleeper";
 import { kickoffBlockLabel } from "@/lib/game-map";
 import { setHeaderWeek } from "@/lib/header-week";
@@ -343,16 +343,13 @@ export default function DashboardPage() {
   const byes = useMemo<ByeTeam[]>(() => {
     const playing = new Set(weekGames.flatMap((g) => [g.homeTeam, g.awayTeam]));
     const teams = NFL_TEAMS.filter((t) => !playing.has(t)).sort();
-    const benched = [
-      ...grouped.notPlaying.map((p) => ({ ...p, side: "mine" as const })),
-      ...groupedOpponent.notPlaying.map((p) => ({ ...p, side: "opponent" as const })),
-    ];
+    const benched = withSides(grouped.notPlaying, groupedOpponent.notPlaying);
     const out: ByeTeam[] = teams.map((team) => {
       const everyone = benched.filter((p) => p.team === team);
-      return { team, players: everyone.filter((p) => p.side === "mine"), everyone };
+      return { team, players: everyone.filter((p) => p.side !== "opponent"), everyone };
     });
     const teamless = benched.filter((p) => !p.team || !teams.includes(p.team));
-    if (teamless.length > 0) out.push({ team: null, players: teamless.filter((p) => p.side === "mine"), everyone: teamless });
+    if (teamless.length > 0) out.push({ team: null, players: teamless.filter((p) => p.side !== "opponent"), everyone: teamless });
     return out;
   }, [weekGames, grouped.notPlaying, groupedOpponent.notPlaying]);
 
