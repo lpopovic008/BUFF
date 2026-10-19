@@ -216,8 +216,12 @@ Dynasty/Fantasy (redraft) toggle, a 1QB/Superflex toggle (Superflex by
 default — most dynasty leagues run it), a Standard/TE Premium toggle, a
 multi-select position filter (click a position pill to drop it from the
 list, click again to bring it back — matches KTC's own filter UI), and
-search. Each value shows as a Madden-style two-digit grade, its thousands and
-hundreds places (9,999 reads 99; `valueGrade`), the full value on hover. All four format combinations (1QB standard, 1QB TEP, Superflex
+search. Each player is a Madden-style card (`PlayerCard`): their Sleeper photo
+in the middle (matched to KTC's name by position and name; a defense's logo, a
+draft pick's year and round, or else their team's logo faintly), team top left,
+position bottom left, and their value bottom right as a two-digit grade, its
+thousands and hundreds places (9,999 reads 99; `valueGrade`), the full value
+on hover — their name under the card. All four format combinations (1QB standard, 1QB TEP, Superflex
 standard, Superflex TEP) come from the same KTC fetch — each player record
 already carries all of them, so there's no extra request per toggle, just a
 different field read client-side. KeepTradeCut has no official public API, so

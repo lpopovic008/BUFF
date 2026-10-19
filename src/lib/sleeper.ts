@@ -394,6 +394,11 @@ export function playerHeadshotUrl(playerId: string): string {
   return `https://sleepercdn.com/content/nfl/players/thumb/${playerId}.jpg`;
 }
 
+/** The same photo at full size, for where it's drawn big (a player's card). */
+export function playerPhotoUrl(playerId: string): string {
+  return `https://sleepercdn.com/content/nfl/players/${playerId}.jpg`;
+}
+
 /**
  * The same headshot, routed through wsrv.nl's image proxy. Unlike Sleeper's
  * team-avatar CDN (which does send CORS headers), the player-photo path

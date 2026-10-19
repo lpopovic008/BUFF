@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { SearchIcon, CrownIcon, CalendarIcon, SuperflexIcon, OneQBIcon, PlusCircleIcon, DotIcon } from "@/components/ui/Icon";
 import { IconButton } from "@/components/ui/IconButton";
@@ -10,10 +10,12 @@ import { useConfig } from "@/hooks/useConfig";
 import { useMyLeagues } from "@/hooks/useMyLeagues";
 import { visibleLeagues } from "@/lib/localStore";
 import rawSnapshot from "@/data/player-values.json";
-import { LeagueFormat, PlayerValue, PlayerValuesSnapshot, TEPremium, valueFor, valueGrade } from "@/lib/player-values";
+import { LeagueFormat, PlayerValue, PlayerValuesSnapshot, TEPremium, valueFor } from "@/lib/player-values";
 import { TitleWithHistory } from "@/components/HistoryButtons";
 import { PlateCard } from "@/components/ui/PlateCard";
-import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
+import { PlayerCard } from "@/components/PlayerCard";
+import { loadPlayerIdIndex } from "@/lib/players";
+import { normalizeName } from "@/lib/name-match";
 import { formatRecord } from "@/lib/format";
 
 const snapshot = rawSnapshot as unknown as PlayerValuesSnapshot;
@@ -36,56 +38,26 @@ interface Row {
   rank: number;
 }
 
-function ValueTable({ rows, maxValue }: { rows: Row[]; maxValue: number }) {
+// KTC's positions as Sleeper names them, for finding a player's photo.
+const SLEEPER_POSITION: Record<string, string> = { PK: "K", DST: "DEF" };
+
+/** The players as Madden cards, a few to a row. */
+function ValueCards({ rows, idIndex }: { rows: Row[]; idIndex: Map<string, string> }) {
   if (rows.length === 0) {
     return <p className="py-8 text-center text-sm text-ink-secondary">No players match.</p>;
   }
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-grid text-left text-xs uppercase tracking-wide text-ink-muted">
-            <th className="py-2 pr-3 font-medium">Rank</th>
-            <th className="py-2 pr-3 font-medium">Player</th>
-            <th className="hidden py-2 pr-3 font-medium sm:table-cell">Pos</th>
-            <th className="hidden py-2 pr-3 text-right font-medium sm:table-cell">Age</th>
-            <th className="py-2 pr-3 font-medium">OVR</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(({ player: p, value, rank }) => (
-            <tr key={`${p.position}-${p.name}`} className="border-b border-grid last:border-0">
-              <td className="py-2 pr-3 tabular-nums text-ink-secondary">{rank}</td>
-              <td className="max-w-[7rem] py-2 pr-3 font-medium text-ink-primary sm:max-w-none">
-                <span className="block truncate">{p.name}</span>
-                <span className="block text-xs font-normal text-ink-muted sm:hidden">
-                  <span className={`font-semibold ${POSITION_TEXT_COLOR[p.position] ?? ""}`}>{p.position}</span>
-                  {p.team ? ` · ${p.team}` : ""}
-                </span>
-                {p.team ? <span className="ml-1.5 hidden text-xs font-normal text-ink-muted sm:inline">{p.team}</span> : null}
-              </td>
-              <td className={`hidden py-2 pr-3 font-semibold sm:table-cell ${POSITION_TEXT_COLOR[p.position] ?? "text-ink-secondary"}`}>{p.position}</td>
-              <td className="hidden py-2 pr-3 text-right tabular-nums text-ink-secondary sm:table-cell">
-                {p.age ?? "—"}
-              </td>
-              <td className="py-2 pr-3">
-                <div className="flex items-center gap-2">
-                  <div className="h-1.5 w-10 shrink-0 overflow-hidden bg-grid sm:w-24">
-                    <div
-                      className="h-full bg-ink-primary"
-                      style={{ width: `${Math.max(2, (value / maxValue) * 100)}%` }}
-                    />
-                  </div>
-                  <span className="w-[2ch] shrink-0 text-right font-semibold tabular-nums text-ink-primary" title={`${value} KTC`}>
-                    {valueGrade(value)}
-                  </span>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <ul className="grid grid-cols-3 gap-x-2 gap-y-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+      {rows.map(({ player, value, rank }) => (
+        <PlayerCard
+          key={`${player.position}-${player.name}`}
+          player={player}
+          value={value}
+          rank={rank}
+          playerId={idIndex.get(`${SLEEPER_POSITION[player.position] ?? player.position}-${normalizeName(player.name)}`) ?? null}
+        />
+      ))}
+    </ul>
   );
 }
 
@@ -121,10 +93,17 @@ export default function ValuesPage() {
     [fullList]
   );
 
-  const maxValue = useMemo(
-    () => Math.max(1, ...fullList.map((p) => valueFor(p, leagueFormat, tep))),
-    [fullList, leagueFormat, tep]
-  );
+  // Sleeper's ids for KTC's names, for their photos.
+  const [idIndex, setIdIndex] = useState<Map<string, string>>(() => new Map());
+  useEffect(() => {
+    let cancelled = false;
+    void loadPlayerIdIndex().then((idx) => {
+      if (!cancelled) setIdIndex(idx);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -267,7 +246,7 @@ export default function ValuesPage() {
                 ) : null}
               </div>
 
-              <ValueTable rows={rows.slice(0, 300)} maxValue={maxValue} />
+              <ValueCards rows={rows.slice(0, 300)} idIndex={idIndex} />
               {rows.length > 300 ? (
                 <p className="mt-3 text-xs text-ink-muted">Top 300 of {rows.length}</p>
               ) : null}
