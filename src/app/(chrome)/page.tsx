@@ -199,6 +199,8 @@ export default function DashboardPage() {
   };
   // From tablet width up, the Red Zone stretched to the column's whole height.
   const [redZoneFull, setRedZoneFull] = useState(false);
+  // The Red Zone with no plays is just its header, and the map takes the room it would have had.
+  const [redZoneEmpty, setRedZoneEmpty] = useState(false);
   const redZoneRef = useRef<HTMLDivElement>(null);
   const mapColumnRef = useRef<HTMLDivElement>(null);
   // Where the map's column (and the page) stood before the Red Zone was stretched — back to just that once it's not.
@@ -439,8 +441,9 @@ export default function DashboardPage() {
                       legend={legend}
                       // The countdown to the next kickoff, in the open space over the land.
                       overhead={<KickoffCountdown kickoffs={kickoffs} />}
-                      // From tablet width up, the column's height less the Red Zone's least (10rem, room for its side header), right under it.
-                      room={desktop ? "100vh - var(--header-h, 0px) - var(--ticker-h, 0px) - 2px - 10rem" : undefined}
+                      // From tablet width up, the column's height less the Red Zone's least (10rem, room for its side header), right under it —
+                      // or, with no plays, its header alone across the top (2rem).
+                      room={desktop ? `100vh - var(--header-h, 0px) - var(--ticker-h, 0px) - 2px - ${redZoneEmpty ? "2rem" : "10rem"}` : undefined}
                     />
                   </div>
                   {/* One graph in full; two side by side; three or four, one to a corner. */}
@@ -472,7 +475,7 @@ export default function DashboardPage() {
                 // On a phone, out to the screen's edges and right under the map (taking back the gap between the sections).
                 className={`animate-[rise_0.5s_ease-out_backwards] [animation-delay:120ms] max-md:-mx-4 max-md:-mt-6 md:flex md:flex-col ${
                   // Stretched (its ⇕ button), the whole column's height — the map above it, scrolled past.
-                  redZoneFull ? "md:h-full md:flex-none" : "md:min-h-40 md:flex-1"
+                  redZoneFull ? "md:h-full md:flex-none" : redZoneEmpty ? "md:flex-none" : "md:min-h-40 md:flex-1"
                 }`}
               >
                 <RedZone
@@ -487,6 +490,7 @@ export default function DashboardPage() {
                   spotlight={graphed.length > 0 ? spotlight : null}
                   hiddenGames={offMap}
                   full={{ on: redZoneFull, toggle: toggleRedZoneFull }}
+                  onEmptyChange={setRedZoneEmpty}
                 />
               </div>
             ) : null}

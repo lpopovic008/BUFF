@@ -400,6 +400,7 @@ export function RedZone({
   spotlight = null,
   full,
   hiddenGames = NO_GAMES,
+  onEmptyChange,
 }: {
   /** Your starters, grouped by the game they're playing in. */
   starters: GameStarters[];
@@ -421,6 +422,8 @@ export function RedZone({
   full?: { on: boolean; toggle: () => void };
   /** Games hidden in the starters list (their matchups swiped over), by id: none of their plays shown. */
   hiddenGames?: Set<string>;
+  /** Told whether it has no plays to show (just its header, then), so its room can go to the rest of the page. */
+  onEmptyChange?: (empty: boolean) => void;
 }) {
   const mode = useLiveMode();
   const [scope, setScope] = useState<RedZoneScope>("all");
@@ -569,12 +572,12 @@ export function RedZone({
     latestPlays.add(`${e.game.id}-${e.play.id}`);
   }
   const live = mode === "live";
-  const anyStarted =
-    scope === "all" ? weekGames.some((g) => g.state !== "pre") : followed.some((g) => g.game.state !== "pre" && g.players.length > 0);
-
   const stretched = phone ? boxHeight !== null : !!full?.on;
-  // With no game on, the header runs across the top instead of down the side.
-  const across = !live;
+  // With no game on, the header runs across the top instead of down the side — and with no plays, it's just
+  // the header, across the top, no room kept for them.
+  const empty = entries.length === 0 && feed.redZone.length === 0 && !pinned;
+  const across = !live || empty;
+  useEffect(() => onEmptyChange?.(empty), [empty, onEmptyChange]);
   return (
     // No box: while games are on, the header runs down the left side as narrow as it goes, the plays spread out
     // beside it to the next section or the screen's edge; otherwise it runs across the top, the plays under it.
@@ -640,68 +643,56 @@ export function RedZone({
         </div>
       </div>
 
-      <div className={`relative flex min-w-0 flex-1 flex-col gap-2 py-1 md:min-h-0 ${across ? "max-md:px-2" : "pl-1.5 max-md:pr-2"}`}>
-        {/* The play by a graph's cursor when it isn't among these plays, laid over the top of them (see spotlight). */}
-        {pinned ? (
-          <ol aria-label="The play by the graph's cursor" className="absolute left-1.5 right-0 top-1 z-20 bg-page shadow-md max-md:right-2">
-            <FeedRow key="pinned" entry={pinned} starterById={starterById} legendByLeagueId={legendByLeagueId} arrivedLive={false} index={0} spotlit />
-          </ol>
-        ) : null}
+      {empty ? (
+        feed.loading ? <p className="py-1 text-xs text-ink-muted max-md:px-2">Loading play-by-play…</p> : null
+      ) : (
+        <div className={`relative flex min-w-0 flex-1 flex-col gap-2 py-1 md:min-h-0 ${across ? "max-md:px-2" : "pl-1.5 max-md:pr-2"}`}>
+          {/* The play by a graph's cursor when it isn't among these plays, laid over the top of them (see spotlight). */}
+          {pinned ? (
+            <ol aria-label="The play by the graph's cursor" className="absolute left-1.5 right-0 top-1 z-20 bg-page shadow-md max-md:right-2">
+              <FeedRow key="pinned" entry={pinned} starterById={starterById} legendByLeagueId={legendByLeagueId} arrivedLive={false} index={0} spotlit />
+            </ol>
+          ) : null}
 
-        {feed.redZone.length > 0 ? (
-          <ul className="flex shrink-0 flex-col gap-1" aria-label="In the red zone now">
-            {feed.redZone.map((alert) => (
-              <RedZoneAlert key={alert.game.id} alert={alert} />
-            ))}
-          </ul>
-        ) : null}
+          {feed.redZone.length > 0 ? (
+            <ul className="flex shrink-0 flex-col gap-1" aria-label="In the red zone now">
+              {feed.redZone.map((alert) => (
+                <RedZoneAlert key={alert.game.id} alert={alert} />
+              ))}
+            </ul>
+          ) : null}
 
-        {entries.length > 0 ? (
-          <div className="relative md:min-h-0 md:flex-1">
-            <div
-              ref={boxRef}
-              className={`relative md:h-full md:overflow-y-auto md:overscroll-contain ${
-                // About one play tall: one with three people in it and three lines of description.
-                compactOnPhone ? "max-md:h-[var(--rz-user-h,12.25rem)] max-md:overflow-y-auto max-md:overscroll-contain" : ""
-              }`}
-              style={boxHeight !== null ? ({ "--rz-user-h": `${boxHeight}px` } as React.CSSProperties) : undefined}
-            >
-              <ol className="flex flex-col" aria-label={scope === "mine" ? "Plays your starters were part of" : scope === "vs" ? "Plays your starters or the ones you face were part of" : "Every play"} aria-live="polite">
-                {entries.slice(0, shown).map((entry, i) => (
-                  <FeedRow
-                    key={`${entry.game.id}-${entry.play.id}`}
-                    entry={entry}
-                    starterById={starterById}
-                    legendByLeagueId={legendByLeagueId}
-                    arrivedLive={settled}
-                    index={i}
-                    spotlit={i === spotIndex}
-                    latest={latestPlays.has(`${entry.game.id}-${entry.play.id}`)}
-                  />
-                ))}
-              </ol>
-              {/* The end of the plays shown: coming within a screen or so of it brings in the next ones. */}
-              {entries.length > shown ? <div ref={sentinelRef} className="h-px" aria-hidden /> : null}
+          {entries.length > 0 ? (
+            <div className="relative md:min-h-0 md:flex-1">
+              <div
+                ref={boxRef}
+                className={`relative md:h-full md:overflow-y-auto md:overscroll-contain ${
+                  // About one play tall: one with three people in it and three lines of description.
+                  compactOnPhone ? "max-md:h-[var(--rz-user-h,12.25rem)] max-md:overflow-y-auto max-md:overscroll-contain" : ""
+                }`}
+                style={boxHeight !== null ? ({ "--rz-user-h": `${boxHeight}px` } as React.CSSProperties) : undefined}
+              >
+                <ol className="flex flex-col" aria-label={scope === "mine" ? "Plays your starters were part of" : scope === "vs" ? "Plays your starters or the ones you face were part of" : "Every play"} aria-live="polite">
+                  {entries.slice(0, shown).map((entry, i) => (
+                    <FeedRow
+                      key={`${entry.game.id}-${entry.play.id}`}
+                      entry={entry}
+                      starterById={starterById}
+                      legendByLeagueId={legendByLeagueId}
+                      arrivedLive={settled}
+                      index={i}
+                      spotlit={i === spotIndex}
+                      latest={latestPlays.has(`${entry.game.id}-${entry.play.id}`)}
+                    />
+                  ))}
+                </ol>
+                {/* The end of the plays shown: coming within a screen or so of it brings in the next ones. */}
+                {entries.length > shown ? <div ref={sentinelRef} className="h-px" aria-hidden /> : null}
+              </div>
             </div>
-          </div>
-        ) : (
-          <p className="py-3 text-center text-xs text-ink-muted max-md:min-h-[12.25rem]">
-            {feed.loading
-              ? "Loading play-by-play…"
-              : !anyStarted
-                ? scope === "mine"
-                  ? "Plays your starters are part of land here as they happen, once their games kick off."
-                  : scope === "vs"
-                    ? "Plays your starters and the ones you face are part of land here as they happen, once their games kick off."
-                    : "Every play lands here as it happens, once the week's games kick off."
-                : scope === "mine"
-                  ? "No plays from your starters yet."
-                  : scope === "vs"
-                    ? "No plays from your starters or the ones you face yet."
-                    : "No plays yet."}
-          </p>
-        )}
-      </div>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }
