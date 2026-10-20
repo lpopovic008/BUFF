@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-20T17:36:11.629Z",
+  "updatedAt": "2026-10-20T23:00:05.147Z",
   "season": "2026",
   "throughWeek": 6,
   "players": [
@@ -1442,14 +1442,6 @@
       "ptsPpr": 4.5,
       "ptsHalfPpr": 3.5,
       "ptsStd": 2.5
-    },
-    {
-      "playerId": "12656",
-      "position": "RB",
-      "gamesPlayed": 1,
-      "ptsPpr": 0,
-      "ptsHalfPpr": 0,
-      "ptsStd": 0
     },
     {
       "playerId": "12658",
@@ -3220,14 +3212,6 @@
       "ptsStd": 2.4
     },
     {
-      "playerId": "6011",
-      "position": "QB",
-      "gamesPlayed": 1,
-      "ptsPpr": 0,
-      "ptsHalfPpr": 0,
-      "ptsStd": 0
-    },
-    {
       "playerId": "6012",
       "position": "RB",
       "gamesPlayed": 5,
@@ -4719,9 +4703,9 @@
       "playerId": "ARI",
       "position": "DEF",
       "gamesPlayed": 6,
-      "ptsPpr": 30,
-      "ptsHalfPpr": 30,
-      "ptsStd": 30
+      "ptsPpr": 31,
+      "ptsHalfPpr": 31,
+      "ptsStd": 31
     },
     {
       "playerId": "ATL",
@@ -4970,6 +4954,1776 @@
       "ptsPpr": 34,
       "ptsHalfPpr": 34,
       "ptsStd": 34
+    }
+  ],
+  "defense": [
+    {
+      "team": "ARI",
+      "position": "DEF",
+      "games": 6,
+      "ptsPpr": 35,
+      "ptsHalfPpr": 35,
+      "ptsStd": 35
+    },
+    {
+      "team": "ARI",
+      "position": "FB",
+      "games": 6,
+      "ptsPpr": 1.1,
+      "ptsHalfPpr": 0.6,
+      "ptsStd": 0.1
+    },
+    {
+      "team": "ARI",
+      "position": "K",
+      "games": 6,
+      "ptsPpr": 43,
+      "ptsHalfPpr": 43,
+      "ptsStd": 43
+    },
+    {
+      "team": "ARI",
+      "position": "QB",
+      "games": 6,
+      "ptsPpr": 132.76,
+      "ptsHalfPpr": 132.76,
+      "ptsStd": 132.76
+    },
+    {
+      "team": "ARI",
+      "position": "RB",
+      "games": 6,
+      "ptsPpr": 122.2,
+      "ptsHalfPpr": 113.7,
+      "ptsStd": 105.2
+    },
+    {
+      "team": "ARI",
+      "position": "TE",
+      "games": 6,
+      "ptsPpr": 114.7,
+      "ptsHalfPpr": 95.2,
+      "ptsStd": 75.7
+    },
+    {
+      "team": "ARI",
+      "position": "WR",
+      "games": 6,
+      "ptsPpr": 209.5,
+      "ptsHalfPpr": 181.5,
+      "ptsStd": 153.5
+    },
+    {
+      "team": "ATL",
+      "position": "DEF",
+      "games": 6,
+      "ptsPpr": 60,
+      "ptsHalfPpr": 60,
+      "ptsStd": 60
+    },
+    {
+      "team": "ATL",
+      "position": "K",
+      "games": 6,
+      "ptsPpr": 46,
+      "ptsHalfPpr": 46,
+      "ptsStd": 46
+    },
+    {
+      "team": "ATL",
+      "position": "QB",
+      "games": 6,
+      "ptsPpr": 112.18,
+      "ptsHalfPpr": 112.18,
+      "ptsStd": 112.18
+    },
+    {
+      "team": "ATL",
+      "position": "RB",
+      "games": 6,
+      "ptsPpr": 136.7,
+      "ptsHalfPpr": 120.7,
+      "ptsStd": 104.7
+    },
+    {
+      "team": "ATL",
+      "position": "TE",
+      "games": 6,
+      "ptsPpr": 93.7,
+      "ptsHalfPpr": 74.7,
+      "ptsStd": 55.7
+    },
+    {
+      "team": "ATL",
+      "position": "WR",
+      "games": 6,
+      "ptsPpr": 222,
+      "ptsHalfPpr": 177.5,
+      "ptsStd": 133
+    },
+    {
+      "team": "BAL",
+      "position": "DEF",
+      "games": 6,
+      "ptsPpr": 32,
+      "ptsHalfPpr": 32,
+      "ptsStd": 32
+    },
+    {
+      "team": "BAL",
+      "position": "FB",
+      "games": 6,
+      "ptsPpr": 0.2,
+      "ptsHalfPpr": 0.2,
+      "ptsStd": 0.2
+    },
+    {
+      "team": "BAL",
+      "position": "K",
+      "games": 6,
+      "ptsPpr": 52,
+      "ptsHalfPpr": 52,
+      "ptsStd": 52
+    },
+    {
+      "team": "BAL",
+      "position": "QB",
+      "games": 6,
+      "ptsPpr": 92.16,
+      "ptsHalfPpr": 92.16,
+      "ptsStd": 92.16
+    },
+    {
+      "team": "BAL",
+      "position": "RB",
+      "games": 6,
+      "ptsPpr": 111.2,
+      "ptsHalfPpr": 98.7,
+      "ptsStd": 86.2
+    },
+    {
+      "team": "BAL",
+      "position": "TE",
+      "games": 6,
+      "ptsPpr": 62.7,
+      "ptsHalfPpr": 51.2,
+      "ptsStd": 39.7
+    },
+    {
+      "team": "BAL",
+      "position": "WR",
+      "games": 6,
+      "ptsPpr": 204.6,
+      "ptsHalfPpr": 164.6,
+      "ptsStd": 124.6
+    },
+    {
+      "team": "BUF",
+      "position": "DEF",
+      "games": 6,
+      "ptsPpr": 25,
+      "ptsHalfPpr": 25,
+      "ptsStd": 25
+    },
+    {
+      "team": "BUF",
+      "position": "FB",
+      "games": 6,
+      "ptsPpr": 6.5,
+      "ptsHalfPpr": 5,
+      "ptsStd": 3.5
+    },
+    {
+      "team": "BUF",
+      "position": "K",
+      "games": 6,
+      "ptsPpr": 42,
+      "ptsHalfPpr": 42,
+      "ptsStd": 42
+    },
+    {
+      "team": "BUF",
+      "position": "QB",
+      "games": 6,
+      "ptsPpr": 133.98,
+      "ptsHalfPpr": 133.98,
+      "ptsStd": 133.98
+    },
+    {
+      "team": "BUF",
+      "position": "RB",
+      "games": 6,
+      "ptsPpr": 163.6,
+      "ptsHalfPpr": 147.1,
+      "ptsStd": 130.6
+    },
+    {
+      "team": "BUF",
+      "position": "TE",
+      "games": 6,
+      "ptsPpr": 91.5,
+      "ptsHalfPpr": 72,
+      "ptsStd": 52.5
+    },
+    {
+      "team": "BUF",
+      "position": "WR",
+      "games": 6,
+      "ptsPpr": 253.9,
+      "ptsHalfPpr": 212.9,
+      "ptsStd": 171.9
+    },
+    {
+      "team": "CAR",
+      "position": "DEF",
+      "games": 5,
+      "ptsPpr": 20,
+      "ptsHalfPpr": 20,
+      "ptsStd": 20
+    },
+    {
+      "team": "CAR",
+      "position": "FB",
+      "games": 5,
+      "ptsPpr": 0,
+      "ptsHalfPpr": 0,
+      "ptsStd": 0
+    },
+    {
+      "team": "CAR",
+      "position": "K",
+      "games": 5,
+      "ptsPpr": 44,
+      "ptsHalfPpr": 44,
+      "ptsStd": 44
+    },
+    {
+      "team": "CAR",
+      "position": "QB",
+      "games": 5,
+      "ptsPpr": 93,
+      "ptsHalfPpr": 93,
+      "ptsStd": 93
+    },
+    {
+      "team": "CAR",
+      "position": "RB",
+      "games": 5,
+      "ptsPpr": 128.4,
+      "ptsHalfPpr": 116.4,
+      "ptsStd": 104.4
+    },
+    {
+      "team": "CAR",
+      "position": "TE",
+      "games": 5,
+      "ptsPpr": 79.8,
+      "ptsHalfPpr": 65.8,
+      "ptsStd": 51.8
+    },
+    {
+      "team": "CAR",
+      "position": "WR",
+      "games": 5,
+      "ptsPpr": 146.8,
+      "ptsHalfPpr": 115.8,
+      "ptsStd": 84.8
+    },
+    {
+      "team": "CHI",
+      "position": "DEF",
+      "games": 6,
+      "ptsPpr": 52,
+      "ptsHalfPpr": 52,
+      "ptsStd": 52
+    },
+    {
+      "team": "CHI",
+      "position": "K",
+      "games": 6,
+      "ptsPpr": 26,
+      "ptsHalfPpr": 26,
+      "ptsStd": 26
+    },
+    {
+      "team": "CHI",
+      "position": "QB",
+      "games": 6,
+      "ptsPpr": 110.72,
+      "ptsHalfPpr": 110.72,
+      "ptsStd": 110.72
+    },
+    {
+      "team": "CHI",
+      "position": "RB",
+      "games": 6,
+      "ptsPpr": 102.1,
+      "ptsHalfPpr": 92.6,
+      "ptsStd": 83.1
+    },
+    {
+      "team": "CHI",
+      "position": "TE",
+      "games": 6,
+      "ptsPpr": 63.1,
+      "ptsHalfPpr": 51.1,
+      "ptsStd": 39.1
+    },
+    {
+      "team": "CHI",
+      "position": "WR",
+      "games": 6,
+      "ptsPpr": 188.9,
+      "ptsHalfPpr": 159.4,
+      "ptsStd": 129.9
+    },
+    {
+      "team": "CIN",
+      "position": "DB",
+      "games": 5,
+      "ptsPpr": 0,
+      "ptsHalfPpr": 0,
+      "ptsStd": 0
+    },
+    {
+      "team": "CIN",
+      "position": "DEF",
+      "games": 5,
+      "ptsPpr": 31,
+      "ptsHalfPpr": 31,
+      "ptsStd": 31
+    },
+    {
+      "team": "CIN",
+      "position": "K",
+      "games": 5,
+      "ptsPpr": 47,
+      "ptsHalfPpr": 47,
+      "ptsStd": 47
+    },
+    {
+      "team": "CIN",
+      "position": "QB",
+      "games": 5,
+      "ptsPpr": 86.3,
+      "ptsHalfPpr": 86.3,
+      "ptsStd": 86.3
+    },
+    {
+      "team": "CIN",
+      "position": "RB",
+      "games": 5,
+      "ptsPpr": 93.1,
+      "ptsHalfPpr": 83.1,
+      "ptsStd": 73.1
+    },
+    {
+      "team": "CIN",
+      "position": "TE",
+      "games": 5,
+      "ptsPpr": 83.2,
+      "ptsHalfPpr": 65.2,
+      "ptsStd": 47.2
+    },
+    {
+      "team": "CIN",
+      "position": "WR",
+      "games": 5,
+      "ptsPpr": 147.4,
+      "ptsHalfPpr": 122.9,
+      "ptsStd": 98.4
+    },
+    {
+      "team": "CLE",
+      "position": "DB",
+      "games": 6,
+      "ptsPpr": 2.1,
+      "ptsHalfPpr": 1.6,
+      "ptsStd": 1.1
+    },
+    {
+      "team": "CLE",
+      "position": "DEF",
+      "games": 6,
+      "ptsPpr": 55,
+      "ptsHalfPpr": 55,
+      "ptsStd": 55
+    },
+    {
+      "team": "CLE",
+      "position": "K",
+      "games": 6,
+      "ptsPpr": 56,
+      "ptsHalfPpr": 56,
+      "ptsStd": 56
+    },
+    {
+      "team": "CLE",
+      "position": "QB",
+      "games": 6,
+      "ptsPpr": 100.96,
+      "ptsHalfPpr": 100.96,
+      "ptsStd": 100.96
+    },
+    {
+      "team": "CLE",
+      "position": "RB",
+      "games": 6,
+      "ptsPpr": 96.9,
+      "ptsHalfPpr": 85.4,
+      "ptsStd": 73.9
+    },
+    {
+      "team": "CLE",
+      "position": "TE",
+      "games": 6,
+      "ptsPpr": 88.7,
+      "ptsHalfPpr": 71.2,
+      "ptsStd": 53.7
+    },
+    {
+      "team": "CLE",
+      "position": "WR",
+      "games": 6,
+      "ptsPpr": 200.7,
+      "ptsHalfPpr": 168.7,
+      "ptsStd": 136.7
+    },
+    {
+      "team": "DAL",
+      "position": "DEF",
+      "games": 6,
+      "ptsPpr": 27,
+      "ptsHalfPpr": 27,
+      "ptsStd": 27
+    },
+    {
+      "team": "DAL",
+      "position": "FB",
+      "games": 6,
+      "ptsPpr": 0,
+      "ptsHalfPpr": 0,
+      "ptsStd": 0
+    },
+    {
+      "team": "DAL",
+      "position": "K",
+      "games": 6,
+      "ptsPpr": 59,
+      "ptsHalfPpr": 59,
+      "ptsStd": 59
+    },
+    {
+      "team": "DAL",
+      "position": "QB",
+      "games": 6,
+      "ptsPpr": 128.7,
+      "ptsHalfPpr": 128.7,
+      "ptsStd": 128.7
+    },
+    {
+      "team": "DAL",
+      "position": "RB",
+      "games": 6,
+      "ptsPpr": 139.1,
+      "ptsHalfPpr": 128.1,
+      "ptsStd": 117.1
+    },
+    {
+      "team": "DAL",
+      "position": "TE",
+      "games": 6,
+      "ptsPpr": 76.8,
+      "ptsHalfPpr": 61.3,
+      "ptsStd": 45.8
+    },
+    {
+      "team": "DAL",
+      "position": "WR",
+      "games": 6,
+      "ptsPpr": 217.2,
+      "ptsHalfPpr": 181.7,
+      "ptsStd": 146.2
+    },
+    {
+      "team": "DEN",
+      "position": "DB",
+      "games": 6,
+      "ptsPpr": 0,
+      "ptsHalfPpr": 0,
+      "ptsStd": 0
+    },
+    {
+      "team": "DEN",
+      "position": "DEF",
+      "games": 6,
+      "ptsPpr": 33,
+      "ptsHalfPpr": 33,
+      "ptsStd": 33
+    },
+    {
+      "team": "DEN",
+      "position": "FB",
+      "games": 6,
+      "ptsPpr": 4.8,
+      "ptsHalfPpr": 3.8,
+      "ptsStd": 2.8
+    },
+    {
+      "team": "DEN",
+      "position": "K",
+      "games": 6,
+      "ptsPpr": 48,
+      "ptsHalfPpr": 48,
+      "ptsStd": 48
+    },
+    {
+      "team": "DEN",
+      "position": "QB",
+      "games": 6,
+      "ptsPpr": 96.6,
+      "ptsHalfPpr": 96.6,
+      "ptsStd": 96.6
+    },
+    {
+      "team": "DEN",
+      "position": "RB",
+      "games": 6,
+      "ptsPpr": 139.9,
+      "ptsHalfPpr": 127.9,
+      "ptsStd": 115.9
+    },
+    {
+      "team": "DEN",
+      "position": "TE",
+      "games": 6,
+      "ptsPpr": 79.9,
+      "ptsHalfPpr": 64.9,
+      "ptsStd": 49.9
+    },
+    {
+      "team": "DEN",
+      "position": "WR",
+      "games": 6,
+      "ptsPpr": 175.9,
+      "ptsHalfPpr": 142.9,
+      "ptsStd": 109.9
+    },
+    {
+      "team": "DET",
+      "position": "DEF",
+      "games": 5,
+      "ptsPpr": 11,
+      "ptsHalfPpr": 11,
+      "ptsStd": 11
+    },
+    {
+      "team": "DET",
+      "position": "K",
+      "games": 5,
+      "ptsPpr": 23,
+      "ptsHalfPpr": 23,
+      "ptsStd": 23
+    },
+    {
+      "team": "DET",
+      "position": "QB",
+      "games": 5,
+      "ptsPpr": 139.8,
+      "ptsHalfPpr": 139.3,
+      "ptsStd": 138.8
+    },
+    {
+      "team": "DET",
+      "position": "RB",
+      "games": 5,
+      "ptsPpr": 93.3,
+      "ptsHalfPpr": 83.8,
+      "ptsStd": 74.3
+    },
+    {
+      "team": "DET",
+      "position": "TE",
+      "games": 5,
+      "ptsPpr": 159.5,
+      "ptsHalfPpr": 134,
+      "ptsStd": 108.5
+    },
+    {
+      "team": "DET",
+      "position": "WR",
+      "games": 5,
+      "ptsPpr": 204.88,
+      "ptsHalfPpr": 167.88,
+      "ptsStd": 130.88
+    },
+    {
+      "team": "GB",
+      "position": "DEF",
+      "games": 6,
+      "ptsPpr": 40,
+      "ptsHalfPpr": 40,
+      "ptsStd": 40
+    },
+    {
+      "team": "GB",
+      "position": "FB",
+      "games": 6,
+      "ptsPpr": 3.9,
+      "ptsHalfPpr": 2.4,
+      "ptsStd": 0.9
+    },
+    {
+      "team": "GB",
+      "position": "K",
+      "games": 6,
+      "ptsPpr": 25,
+      "ptsHalfPpr": 25,
+      "ptsStd": 25
+    },
+    {
+      "team": "GB",
+      "position": "QB",
+      "games": 6,
+      "ptsPpr": 81.8,
+      "ptsHalfPpr": 81.8,
+      "ptsStd": 81.8
+    },
+    {
+      "team": "GB",
+      "position": "RB",
+      "games": 6,
+      "ptsPpr": 157,
+      "ptsHalfPpr": 145.5,
+      "ptsStd": 134
+    },
+    {
+      "team": "GB",
+      "position": "TE",
+      "games": 6,
+      "ptsPpr": 58.8,
+      "ptsHalfPpr": 45.8,
+      "ptsStd": 32.8
+    },
+    {
+      "team": "GB",
+      "position": "WR",
+      "games": 6,
+      "ptsPpr": 197.8,
+      "ptsHalfPpr": 155.8,
+      "ptsStd": 113.8
+    },
+    {
+      "team": "HOU",
+      "position": "DB",
+      "games": 6,
+      "ptsPpr": 15.9,
+      "ptsHalfPpr": 13.9,
+      "ptsStd": 11.9
+    },
+    {
+      "team": "HOU",
+      "position": "DEF",
+      "games": 6,
+      "ptsPpr": 27,
+      "ptsHalfPpr": 27,
+      "ptsStd": 27
+    },
+    {
+      "team": "HOU",
+      "position": "FB",
+      "games": 6,
+      "ptsPpr": 1.2,
+      "ptsHalfPpr": 0.7,
+      "ptsStd": 0.2
+    },
+    {
+      "team": "HOU",
+      "position": "K",
+      "games": 6,
+      "ptsPpr": 64,
+      "ptsHalfPpr": 64,
+      "ptsStd": 64
+    },
+    {
+      "team": "HOU",
+      "position": "QB",
+      "games": 6,
+      "ptsPpr": 113.18,
+      "ptsHalfPpr": 113.18,
+      "ptsStd": 113.18
+    },
+    {
+      "team": "HOU",
+      "position": "RB",
+      "games": 6,
+      "ptsPpr": 113.6,
+      "ptsHalfPpr": 100.1,
+      "ptsStd": 86.6
+    },
+    {
+      "team": "HOU",
+      "position": "TE",
+      "games": 6,
+      "ptsPpr": 63.3,
+      "ptsHalfPpr": 48.8,
+      "ptsStd": 34.3
+    },
+    {
+      "team": "HOU",
+      "position": "WR",
+      "games": 6,
+      "ptsPpr": 228.8,
+      "ptsHalfPpr": 187.8,
+      "ptsStd": 146.8
+    },
+    {
+      "team": "IND",
+      "position": "DEF",
+      "games": 6,
+      "ptsPpr": 50,
+      "ptsHalfPpr": 50,
+      "ptsStd": 50
+    },
+    {
+      "team": "IND",
+      "position": "K",
+      "games": 6,
+      "ptsPpr": 73,
+      "ptsHalfPpr": 73,
+      "ptsStd": 73
+    },
+    {
+      "team": "IND",
+      "position": "QB",
+      "games": 6,
+      "ptsPpr": 112.58,
+      "ptsHalfPpr": 112.58,
+      "ptsStd": 112.58
+    },
+    {
+      "team": "IND",
+      "position": "RB",
+      "games": 6,
+      "ptsPpr": 143.6,
+      "ptsHalfPpr": 132.1,
+      "ptsStd": 120.6
+    },
+    {
+      "team": "IND",
+      "position": "TE",
+      "games": 6,
+      "ptsPpr": 79.6,
+      "ptsHalfPpr": 65.1,
+      "ptsStd": 50.6
+    },
+    {
+      "team": "IND",
+      "position": "WR",
+      "games": 6,
+      "ptsPpr": 185,
+      "ptsHalfPpr": 153.5,
+      "ptsStd": 122
+    },
+    {
+      "team": "JAX",
+      "position": "DEF",
+      "games": 6,
+      "ptsPpr": 21,
+      "ptsHalfPpr": 21,
+      "ptsStd": 21
+    },
+    {
+      "team": "JAX",
+      "position": "FB",
+      "games": 6,
+      "ptsPpr": 1.2,
+      "ptsHalfPpr": 0.7,
+      "ptsStd": 0.2
+    },
+    {
+      "team": "JAX",
+      "position": "K",
+      "games": 6,
+      "ptsPpr": 41,
+      "ptsHalfPpr": 41,
+      "ptsStd": 41
+    },
+    {
+      "team": "JAX",
+      "position": "QB",
+      "games": 6,
+      "ptsPpr": 99.98,
+      "ptsHalfPpr": 99.98,
+      "ptsStd": 99.98
+    },
+    {
+      "team": "JAX",
+      "position": "RB",
+      "games": 6,
+      "ptsPpr": 103.7,
+      "ptsHalfPpr": 87.7,
+      "ptsStd": 71.7
+    },
+    {
+      "team": "JAX",
+      "position": "TE",
+      "games": 6,
+      "ptsPpr": 70.9,
+      "ptsHalfPpr": 58.4,
+      "ptsStd": 45.9
+    },
+    {
+      "team": "JAX",
+      "position": "WR",
+      "games": 6,
+      "ptsPpr": 228.24,
+      "ptsHalfPpr": 187.24,
+      "ptsStd": 146.24
+    },
+    {
+      "team": "KC",
+      "position": "DEF",
+      "games": 5,
+      "ptsPpr": 11,
+      "ptsHalfPpr": 11,
+      "ptsStd": 11
+    },
+    {
+      "team": "KC",
+      "position": "FB",
+      "games": 5,
+      "ptsPpr": 0,
+      "ptsHalfPpr": 0,
+      "ptsStd": 0
+    },
+    {
+      "team": "KC",
+      "position": "K",
+      "games": 5,
+      "ptsPpr": 44,
+      "ptsHalfPpr": 44,
+      "ptsStd": 44
+    },
+    {
+      "team": "KC",
+      "position": "QB",
+      "games": 5,
+      "ptsPpr": 63.2,
+      "ptsHalfPpr": 63.2,
+      "ptsStd": 63.2
+    },
+    {
+      "team": "KC",
+      "position": "RB",
+      "games": 5,
+      "ptsPpr": 95.2,
+      "ptsHalfPpr": 82.2,
+      "ptsStd": 69.2
+    },
+    {
+      "team": "KC",
+      "position": "TE",
+      "games": 5,
+      "ptsPpr": 99.9,
+      "ptsHalfPpr": 80.4,
+      "ptsStd": 60.9
+    },
+    {
+      "team": "KC",
+      "position": "WR",
+      "games": 5,
+      "ptsPpr": 103.9,
+      "ptsHalfPpr": 80.4,
+      "ptsStd": 56.9
+    },
+    {
+      "team": "LAC",
+      "position": "DEF",
+      "games": 6,
+      "ptsPpr": 75,
+      "ptsHalfPpr": 75,
+      "ptsStd": 75
+    },
+    {
+      "team": "LAC",
+      "position": "FB",
+      "games": 6,
+      "ptsPpr": 0.3,
+      "ptsHalfPpr": 0.3,
+      "ptsStd": 0.3
+    },
+    {
+      "team": "LAC",
+      "position": "K",
+      "games": 6,
+      "ptsPpr": 55,
+      "ptsHalfPpr": 55,
+      "ptsStd": 55
+    },
+    {
+      "team": "LAC",
+      "position": "QB",
+      "games": 6,
+      "ptsPpr": 90.88,
+      "ptsHalfPpr": 90.38,
+      "ptsStd": 89.88
+    },
+    {
+      "team": "LAC",
+      "position": "RB",
+      "games": 6,
+      "ptsPpr": 141,
+      "ptsHalfPpr": 129.5,
+      "ptsStd": 118
+    },
+    {
+      "team": "LAC",
+      "position": "TE",
+      "games": 6,
+      "ptsPpr": 66.5,
+      "ptsHalfPpr": 52.5,
+      "ptsStd": 38.5
+    },
+    {
+      "team": "LAC",
+      "position": "WR",
+      "games": 6,
+      "ptsPpr": 180.2,
+      "ptsHalfPpr": 149.2,
+      "ptsStd": 118.2
+    },
+    {
+      "team": "LAR",
+      "position": "DEF",
+      "games": 6,
+      "ptsPpr": 44,
+      "ptsHalfPpr": 44,
+      "ptsStd": 44
+    },
+    {
+      "team": "LAR",
+      "position": "FB",
+      "games": 6,
+      "ptsPpr": 0,
+      "ptsHalfPpr": 0,
+      "ptsStd": 0
+    },
+    {
+      "team": "LAR",
+      "position": "K",
+      "games": 6,
+      "ptsPpr": 60,
+      "ptsHalfPpr": 60,
+      "ptsStd": 60
+    },
+    {
+      "team": "LAR",
+      "position": "QB",
+      "games": 6,
+      "ptsPpr": 104.52,
+      "ptsHalfPpr": 104.52,
+      "ptsStd": 104.52
+    },
+    {
+      "team": "LAR",
+      "position": "RB",
+      "games": 6,
+      "ptsPpr": 117.9,
+      "ptsHalfPpr": 103.9,
+      "ptsStd": 89.9
+    },
+    {
+      "team": "LAR",
+      "position": "TE",
+      "games": 6,
+      "ptsPpr": 49.9,
+      "ptsHalfPpr": 37.9,
+      "ptsStd": 25.9
+    },
+    {
+      "team": "LAR",
+      "position": "WR",
+      "games": 6,
+      "ptsPpr": 161.7,
+      "ptsHalfPpr": 136.2,
+      "ptsStd": 110.7
+    },
+    {
+      "team": "LV",
+      "position": "DEF",
+      "games": 6,
+      "ptsPpr": 24,
+      "ptsHalfPpr": 24,
+      "ptsStd": 24
+    },
+    {
+      "team": "LV",
+      "position": "FB",
+      "games": 6,
+      "ptsPpr": 0,
+      "ptsHalfPpr": 0,
+      "ptsStd": 0
+    },
+    {
+      "team": "LV",
+      "position": "K",
+      "games": 6,
+      "ptsPpr": 42,
+      "ptsHalfPpr": 42,
+      "ptsStd": 42
+    },
+    {
+      "team": "LV",
+      "position": "QB",
+      "games": 6,
+      "ptsPpr": 127.14,
+      "ptsHalfPpr": 127.14,
+      "ptsStd": 127.14
+    },
+    {
+      "team": "LV",
+      "position": "RB",
+      "games": 6,
+      "ptsPpr": 142.4,
+      "ptsHalfPpr": 129.9,
+      "ptsStd": 117.4
+    },
+    {
+      "team": "LV",
+      "position": "TE",
+      "games": 6,
+      "ptsPpr": 106.3,
+      "ptsHalfPpr": 86.3,
+      "ptsStd": 66.3
+    },
+    {
+      "team": "LV",
+      "position": "WR",
+      "games": 6,
+      "ptsPpr": 195.5,
+      "ptsHalfPpr": 166.5,
+      "ptsStd": 137.5
+    },
+    {
+      "team": "MIA",
+      "position": "DEF",
+      "games": 5,
+      "ptsPpr": 52,
+      "ptsHalfPpr": 52,
+      "ptsStd": 52
+    },
+    {
+      "team": "MIA",
+      "position": "FB",
+      "games": 5,
+      "ptsPpr": 10.7,
+      "ptsHalfPpr": 9.7,
+      "ptsStd": 8.7
+    },
+    {
+      "team": "MIA",
+      "position": "K",
+      "games": 5,
+      "ptsPpr": 46,
+      "ptsHalfPpr": 46,
+      "ptsStd": 46
+    },
+    {
+      "team": "MIA",
+      "position": "QB",
+      "games": 5,
+      "ptsPpr": 97.1,
+      "ptsHalfPpr": 97.1,
+      "ptsStd": 97.1
+    },
+    {
+      "team": "MIA",
+      "position": "RB",
+      "games": 5,
+      "ptsPpr": 130.7,
+      "ptsHalfPpr": 119.2,
+      "ptsStd": 107.7
+    },
+    {
+      "team": "MIA",
+      "position": "TE",
+      "games": 5,
+      "ptsPpr": 99.1,
+      "ptsHalfPpr": 80.6,
+      "ptsStd": 62.1
+    },
+    {
+      "team": "MIA",
+      "position": "WR",
+      "games": 5,
+      "ptsPpr": 115.9,
+      "ptsHalfPpr": 91.4,
+      "ptsStd": 66.9
+    },
+    {
+      "team": "MIN",
+      "position": "DEF",
+      "games": 5,
+      "ptsPpr": 34,
+      "ptsHalfPpr": 34,
+      "ptsStd": 34
+    },
+    {
+      "team": "MIN",
+      "position": "K",
+      "games": 5,
+      "ptsPpr": 32,
+      "ptsHalfPpr": 32,
+      "ptsStd": 32
+    },
+    {
+      "team": "MIN",
+      "position": "QB",
+      "games": 5,
+      "ptsPpr": 47.88,
+      "ptsHalfPpr": 47.88,
+      "ptsStd": 47.88
+    },
+    {
+      "team": "MIN",
+      "position": "RB",
+      "games": 5,
+      "ptsPpr": 71.4,
+      "ptsHalfPpr": 63.4,
+      "ptsStd": 55.4
+    },
+    {
+      "team": "MIN",
+      "position": "TE",
+      "games": 5,
+      "ptsPpr": 38.1,
+      "ptsHalfPpr": 30.1,
+      "ptsStd": 22.1
+    },
+    {
+      "team": "MIN",
+      "position": "WR",
+      "games": 5,
+      "ptsPpr": 135.7,
+      "ptsHalfPpr": 110.2,
+      "ptsStd": 84.7
+    },
+    {
+      "team": "NE",
+      "position": "DB",
+      "games": 6,
+      "ptsPpr": 0,
+      "ptsHalfPpr": 0,
+      "ptsStd": 0
+    },
+    {
+      "team": "NE",
+      "position": "DEF",
+      "games": 6,
+      "ptsPpr": 52,
+      "ptsHalfPpr": 52,
+      "ptsStd": 52
+    },
+    {
+      "team": "NE",
+      "position": "K",
+      "games": 6,
+      "ptsPpr": 43,
+      "ptsHalfPpr": 43,
+      "ptsStd": 43
+    },
+    {
+      "team": "NE",
+      "position": "QB",
+      "games": 6,
+      "ptsPpr": 87.8,
+      "ptsHalfPpr": 87.8,
+      "ptsStd": 87.8
+    },
+    {
+      "team": "NE",
+      "position": "RB",
+      "games": 6,
+      "ptsPpr": 123.9,
+      "ptsHalfPpr": 110.4,
+      "ptsStd": 96.9
+    },
+    {
+      "team": "NE",
+      "position": "TE",
+      "games": 6,
+      "ptsPpr": 61.1,
+      "ptsHalfPpr": 46.6,
+      "ptsStd": 32.1
+    },
+    {
+      "team": "NE",
+      "position": "WR",
+      "games": 6,
+      "ptsPpr": 190.4,
+      "ptsHalfPpr": 154.9,
+      "ptsStd": 119.4
+    },
+    {
+      "team": "NO",
+      "position": "DEF",
+      "games": 6,
+      "ptsPpr": 48,
+      "ptsHalfPpr": 48,
+      "ptsStd": 48
+    },
+    {
+      "team": "NO",
+      "position": "FB",
+      "games": 6,
+      "ptsPpr": 0,
+      "ptsHalfPpr": 0,
+      "ptsStd": 0
+    },
+    {
+      "team": "NO",
+      "position": "K",
+      "games": 6,
+      "ptsPpr": 57,
+      "ptsHalfPpr": 57,
+      "ptsStd": 57
+    },
+    {
+      "team": "NO",
+      "position": "QB",
+      "games": 6,
+      "ptsPpr": 111.24,
+      "ptsHalfPpr": 111.24,
+      "ptsStd": 111.24
+    },
+    {
+      "team": "NO",
+      "position": "RB",
+      "games": 6,
+      "ptsPpr": 178.4,
+      "ptsHalfPpr": 166.4,
+      "ptsStd": 154.4
+    },
+    {
+      "team": "NO",
+      "position": "TE",
+      "games": 6,
+      "ptsPpr": 107.5,
+      "ptsHalfPpr": 86.5,
+      "ptsStd": 65.5
+    },
+    {
+      "team": "NO",
+      "position": "WR",
+      "games": 6,
+      "ptsPpr": 190.7,
+      "ptsHalfPpr": 157.2,
+      "ptsStd": 123.7
+    },
+    {
+      "team": "NYG",
+      "position": "DEF",
+      "games": 6,
+      "ptsPpr": 59,
+      "ptsHalfPpr": 59,
+      "ptsStd": 59
+    },
+    {
+      "team": "NYG",
+      "position": "FB",
+      "games": 6,
+      "ptsPpr": 0.7,
+      "ptsHalfPpr": 0.7,
+      "ptsStd": 0.7
+    },
+    {
+      "team": "NYG",
+      "position": "K",
+      "games": 6,
+      "ptsPpr": 32,
+      "ptsHalfPpr": 32,
+      "ptsStd": 32
+    },
+    {
+      "team": "NYG",
+      "position": "QB",
+      "games": 6,
+      "ptsPpr": 126.48,
+      "ptsHalfPpr": 126.48,
+      "ptsStd": 126.48
+    },
+    {
+      "team": "NYG",
+      "position": "RB",
+      "games": 6,
+      "ptsPpr": 129.7,
+      "ptsHalfPpr": 119.2,
+      "ptsStd": 108.7
+    },
+    {
+      "team": "NYG",
+      "position": "TE",
+      "games": 6,
+      "ptsPpr": 75.9,
+      "ptsHalfPpr": 58.4,
+      "ptsStd": 40.9
+    },
+    {
+      "team": "NYG",
+      "position": "WR",
+      "games": 6,
+      "ptsPpr": 186.4,
+      "ptsHalfPpr": 153.9,
+      "ptsStd": 121.4
+    },
+    {
+      "team": "NYJ",
+      "position": "DEF",
+      "games": 6,
+      "ptsPpr": 39,
+      "ptsHalfPpr": 39,
+      "ptsStd": 39
+    },
+    {
+      "team": "NYJ",
+      "position": "FB",
+      "games": 6,
+      "ptsPpr": 0,
+      "ptsHalfPpr": 0,
+      "ptsStd": 0
+    },
+    {
+      "team": "NYJ",
+      "position": "K",
+      "games": 6,
+      "ptsPpr": 44,
+      "ptsHalfPpr": 44,
+      "ptsStd": 44
+    },
+    {
+      "team": "NYJ",
+      "position": "QB",
+      "games": 6,
+      "ptsPpr": 90.68,
+      "ptsHalfPpr": 90.68,
+      "ptsStd": 90.68
+    },
+    {
+      "team": "NYJ",
+      "position": "RB",
+      "games": 6,
+      "ptsPpr": 131.6,
+      "ptsHalfPpr": 120.1,
+      "ptsStd": 108.6
+    },
+    {
+      "team": "NYJ",
+      "position": "TE",
+      "games": 6,
+      "ptsPpr": 59,
+      "ptsHalfPpr": 45,
+      "ptsStd": 31
+    },
+    {
+      "team": "NYJ",
+      "position": "WR",
+      "games": 6,
+      "ptsPpr": 181.2,
+      "ptsHalfPpr": 147.7,
+      "ptsStd": 114.2
+    },
+    {
+      "team": "PHI",
+      "position": "DB",
+      "games": 6,
+      "ptsPpr": 1.9,
+      "ptsHalfPpr": 1.4,
+      "ptsStd": 0.9
+    },
+    {
+      "team": "PHI",
+      "position": "DEF",
+      "games": 6,
+      "ptsPpr": 35,
+      "ptsHalfPpr": 35,
+      "ptsStd": 35
+    },
+    {
+      "team": "PHI",
+      "position": "K",
+      "games": 6,
+      "ptsPpr": 45,
+      "ptsHalfPpr": 45,
+      "ptsStd": 45
+    },
+    {
+      "team": "PHI",
+      "position": "QB",
+      "games": 6,
+      "ptsPpr": 116.42,
+      "ptsHalfPpr": 116.42,
+      "ptsStd": 116.42
+    },
+    {
+      "team": "PHI",
+      "position": "RB",
+      "games": 6,
+      "ptsPpr": 122.8,
+      "ptsHalfPpr": 111.3,
+      "ptsStd": 99.8
+    },
+    {
+      "team": "PHI",
+      "position": "TE",
+      "games": 6,
+      "ptsPpr": 70.1,
+      "ptsHalfPpr": 55.6,
+      "ptsStd": 41.1
+    },
+    {
+      "team": "PHI",
+      "position": "WR",
+      "games": 6,
+      "ptsPpr": 229.6,
+      "ptsHalfPpr": 190.6,
+      "ptsStd": 151.6
+    },
+    {
+      "team": "PIT",
+      "position": "DEF",
+      "games": 6,
+      "ptsPpr": 49,
+      "ptsHalfPpr": 49,
+      "ptsStd": 49
+    },
+    {
+      "team": "PIT",
+      "position": "FB",
+      "games": 6,
+      "ptsPpr": 0,
+      "ptsHalfPpr": 0,
+      "ptsStd": 0
+    },
+    {
+      "team": "PIT",
+      "position": "K",
+      "games": 6,
+      "ptsPpr": 77,
+      "ptsHalfPpr": 77,
+      "ptsStd": 77
+    },
+    {
+      "team": "PIT",
+      "position": "QB",
+      "games": 6,
+      "ptsPpr": 77.48,
+      "ptsHalfPpr": 76.98,
+      "ptsStd": 76.48
+    },
+    {
+      "team": "PIT",
+      "position": "RB",
+      "games": 6,
+      "ptsPpr": 122.7,
+      "ptsHalfPpr": 108.7,
+      "ptsStd": 94.7
+    },
+    {
+      "team": "PIT",
+      "position": "TE",
+      "games": 6,
+      "ptsPpr": 70.4,
+      "ptsHalfPpr": 57.9,
+      "ptsStd": 45.4
+    },
+    {
+      "team": "PIT",
+      "position": "WR",
+      "games": 6,
+      "ptsPpr": 171.8,
+      "ptsHalfPpr": 136.8,
+      "ptsStd": 101.8
+    },
+    {
+      "team": "SEA",
+      "position": "DEF",
+      "games": 6,
+      "ptsPpr": 63,
+      "ptsHalfPpr": 63,
+      "ptsStd": 63
+    },
+    {
+      "team": "SEA",
+      "position": "FB",
+      "games": 6,
+      "ptsPpr": 0,
+      "ptsHalfPpr": 0,
+      "ptsStd": 0
+    },
+    {
+      "team": "SEA",
+      "position": "K",
+      "games": 6,
+      "ptsPpr": 42,
+      "ptsHalfPpr": 42,
+      "ptsStd": 42
+    },
+    {
+      "team": "SEA",
+      "position": "QB",
+      "games": 6,
+      "ptsPpr": 73.94,
+      "ptsHalfPpr": 73.94,
+      "ptsStd": 73.94
+    },
+    {
+      "team": "SEA",
+      "position": "RB",
+      "games": 6,
+      "ptsPpr": 132.6,
+      "ptsHalfPpr": 116.6,
+      "ptsStd": 100.6
+    },
+    {
+      "team": "SEA",
+      "position": "TE",
+      "games": 6,
+      "ptsPpr": 54.5,
+      "ptsHalfPpr": 41.5,
+      "ptsStd": 28.5
+    },
+    {
+      "team": "SEA",
+      "position": "WR",
+      "games": 6,
+      "ptsPpr": 136.3,
+      "ptsHalfPpr": 108.3,
+      "ptsStd": 80.3
+    },
+    {
+      "team": "SF",
+      "position": "DEF",
+      "games": 6,
+      "ptsPpr": 12,
+      "ptsHalfPpr": 12,
+      "ptsStd": 12
+    },
+    {
+      "team": "SF",
+      "position": "FB",
+      "games": 6,
+      "ptsPpr": 0,
+      "ptsHalfPpr": 0,
+      "ptsStd": 0
+    },
+    {
+      "team": "SF",
+      "position": "K",
+      "games": 6,
+      "ptsPpr": 59,
+      "ptsHalfPpr": 59,
+      "ptsStd": 59
+    },
+    {
+      "team": "SF",
+      "position": "QB",
+      "games": 6,
+      "ptsPpr": 89.46,
+      "ptsHalfPpr": 89.46,
+      "ptsStd": 89.46
+    },
+    {
+      "team": "SF",
+      "position": "RB",
+      "games": 6,
+      "ptsPpr": 140.4,
+      "ptsHalfPpr": 118.9,
+      "ptsStd": 97.4
+    },
+    {
+      "team": "SF",
+      "position": "TE",
+      "games": 6,
+      "ptsPpr": 56.1,
+      "ptsHalfPpr": 40.1,
+      "ptsStd": 24.1
+    },
+    {
+      "team": "SF",
+      "position": "WR",
+      "games": 6,
+      "ptsPpr": 179.7,
+      "ptsHalfPpr": 146.7,
+      "ptsStd": 113.7
+    },
+    {
+      "team": "TB",
+      "position": "DEF",
+      "games": 6,
+      "ptsPpr": 65,
+      "ptsHalfPpr": 65,
+      "ptsStd": 65
+    },
+    {
+      "team": "TB",
+      "position": "FB",
+      "games": 6,
+      "ptsPpr": 0.5,
+      "ptsHalfPpr": 0.5,
+      "ptsStd": 0.5
+    },
+    {
+      "team": "TB",
+      "position": "K",
+      "games": 6,
+      "ptsPpr": 77,
+      "ptsHalfPpr": 77,
+      "ptsStd": 77
+    },
+    {
+      "team": "TB",
+      "position": "QB",
+      "games": 6,
+      "ptsPpr": 92.04,
+      "ptsHalfPpr": 92.04,
+      "ptsStd": 92.04
+    },
+    {
+      "team": "TB",
+      "position": "RB",
+      "games": 6,
+      "ptsPpr": 102,
+      "ptsHalfPpr": 86,
+      "ptsStd": 70
+    },
+    {
+      "team": "TB",
+      "position": "TE",
+      "games": 6,
+      "ptsPpr": 94,
+      "ptsHalfPpr": 76,
+      "ptsStd": 58
+    },
+    {
+      "team": "TB",
+      "position": "WR",
+      "games": 6,
+      "ptsPpr": 197.4,
+      "ptsHalfPpr": 159.9,
+      "ptsStd": 122.4
+    },
+    {
+      "team": "TEN",
+      "position": "DEF",
+      "games": 6,
+      "ptsPpr": 46,
+      "ptsHalfPpr": 46,
+      "ptsStd": 46
+    },
+    {
+      "team": "TEN",
+      "position": "FB",
+      "games": 6,
+      "ptsPpr": 0,
+      "ptsHalfPpr": 0,
+      "ptsStd": 0
+    },
+    {
+      "team": "TEN",
+      "position": "K",
+      "games": 6,
+      "ptsPpr": 67,
+      "ptsHalfPpr": 67,
+      "ptsStd": 67
+    },
+    {
+      "team": "TEN",
+      "position": "QB",
+      "games": 6,
+      "ptsPpr": 93.28,
+      "ptsHalfPpr": 93.28,
+      "ptsStd": 93.28
+    },
+    {
+      "team": "TEN",
+      "position": "RB",
+      "games": 6,
+      "ptsPpr": 119.8,
+      "ptsHalfPpr": 109.8,
+      "ptsStd": 99.8
+    },
+    {
+      "team": "TEN",
+      "position": "TE",
+      "games": 6,
+      "ptsPpr": 62.8,
+      "ptsHalfPpr": 49.3,
+      "ptsStd": 35.8
+    },
+    {
+      "team": "TEN",
+      "position": "WR",
+      "games": 6,
+      "ptsPpr": 215.3,
+      "ptsHalfPpr": 173.8,
+      "ptsStd": 132.3
+    },
+    {
+      "team": "WAS",
+      "position": "DEF",
+      "games": 6,
+      "ptsPpr": 30,
+      "ptsHalfPpr": 30,
+      "ptsStd": 30
+    },
+    {
+      "team": "WAS",
+      "position": "FB",
+      "games": 6,
+      "ptsPpr": 2.1,
+      "ptsHalfPpr": 1.6,
+      "ptsStd": 1.1
+    },
+    {
+      "team": "WAS",
+      "position": "K",
+      "games": 6,
+      "ptsPpr": 61,
+      "ptsHalfPpr": 61,
+      "ptsStd": 61
+    },
+    {
+      "team": "WAS",
+      "position": "QB",
+      "games": 6,
+      "ptsPpr": 136.36,
+      "ptsHalfPpr": 136.36,
+      "ptsStd": 136.36
+    },
+    {
+      "team": "WAS",
+      "position": "RB",
+      "games": 6,
+      "ptsPpr": 114.2,
+      "ptsHalfPpr": 99.7,
+      "ptsStd": 85.2
+    },
+    {
+      "team": "WAS",
+      "position": "TE",
+      "games": 6,
+      "ptsPpr": 129.1,
+      "ptsHalfPpr": 110.6,
+      "ptsStd": 92.1
+    },
+    {
+      "team": "WAS",
+      "position": "WR",
+      "games": 6,
+      "ptsPpr": 215.66,
+      "ptsHalfPpr": 176.66,
+      "ptsStd": 137.66
     }
   ]
 }
