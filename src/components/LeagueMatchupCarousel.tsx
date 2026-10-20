@@ -138,28 +138,24 @@ function SlotPhoto({ playerId }: { playerId: string }) {
 }
 
 /**
- * The player's name, and under it, from the outside in: their rank at their position by KTC value (dynasty in
+ * The player's name, and under it, from the outside in, each in a column lined up with every other row's: their rank at their position by KTC value (dynasty in
  * a dynasty league, redraft otherwise), by this season's points, their points a game this season, and who
  * they're playing (see OpponentNote).
  */
 function RankedName({ resolved, align }: { resolved: ResolvedSlot; align: "left" | "right" }) {
   const { player, valueRank, seasonRank, ppg } = resolved;
+  // Each in a column of its own width, kept even when it's empty, so every row's line up — the numbers set to
+  // the column's right edge.
   const pieces = [
-    valueRank ? (
-      <span key="value" className="text-series-4" title={`${player!.position}${valueRank} by trade value`}>
-        {valueRank}
-      </span>
-    ) : null,
-    seasonRank ? (
-      <span key="season" className="text-series-1" title={`${player!.position}${seasonRank} by points this season`}>
-        {seasonRank}
-      </span>
-    ) : null,
-    ppg !== null ? (
-      <span key="ppg" className="text-ink-muted" title="Points a game this season">
-        {ppg.toFixed(1)}
-      </span>
-    ) : null,
+    <span key="value" className="w-[3ch] shrink-0 text-right text-series-4" title={valueRank ? `${player!.position}${valueRank} by trade value` : undefined}>
+      {valueRank ?? ""}
+    </span>,
+    <span key="season" className="w-[3ch] shrink-0 text-right text-series-1" title={seasonRank ? `${player!.position}${seasonRank} by points this season` : undefined}>
+      {seasonRank ?? ""}
+    </span>,
+    <span key="ppg" className="w-[4ch] shrink-0 text-right text-ink-muted" title={ppg !== null ? "Points a game this season" : undefined}>
+      {ppg !== null ? ppg.toFixed(1) : ""}
+    </span>,
     <OpponentNote key="opponent" playerId={player!.playerId} />,
   ];
   return (

@@ -388,7 +388,8 @@ reads it), and once it's over, green if they beat it and red if not
 (`LineTone`); names and points are bold. Each starter has a second, smaller
 line, the two centered on their photo (a little bigger than the row, spilling
 into the gaps either side so no row grows). Under the name, from the outside
-in: their rank at their position by KTC value, in the standings-rank yellow
+in, each in a column of its own width lined up with every other row's (numbers
+to its right edge): their rank at their position by KTC value, in the standings-rank yellow
 (dynasty values in a dynasty league, redraft otherwise; superflex and TE
 premium as the league plays — `positionValueRanksById`); by this season's
 points, in blue (`seasonLinesById`); their points a game, in grey; and the
