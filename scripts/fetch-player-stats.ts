@@ -17,6 +17,10 @@
  * (games played) flag plus Sleeper's own pts_ppr/pts_half_ppr/pts_std
  * rollups — just "projections" swapped for "stats".
  *
+ * Alongside, what each defense has allowed each position: every entry carries
+ * the team the player faced (`opponent`), so each one's points are added to that
+ * defense's total against the player's position — for the lineups' matchup ranks.
+ *
  * Sums every completed week of the season (1 through the current week — a
  * player's still-in-progress or future week simply has no `gp`/points in
  * that week's entry, so it naturally doesn't contribute).
@@ -29,7 +33,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { getCurrentWeek, getNFLState } from "../src/lib/sleeper";
-import type { PlayerStatLine, PlayerStatsSnapshot } from "../src/lib/player-stats";
+import type { DefenseAllowedLine, PlayerStatLine, PlayerStatsSnapshot } from "../src/lib/player-stats";
 
 const DRY_RUN = process.argv.includes("--dry-run");
 const PROBE = process.argv.includes("--probe");
@@ -40,6 +44,8 @@ const POSITIONS = ["QB", "RB", "WR", "TE", "K", "DEF"];
 interface SleeperStatsEntry {
   player_id: string;
   player?: { position?: string | null } | null;
+  /** The team the player faced that week ("PHI"). */
+  opponent?: string | null;
   stats?: Record<string, number> | null;
 }
 
@@ -88,6 +94,11 @@ async function probe() {
   }
 }
 
+/** Two decimals, so floating-point sums don't churn the committed file. */
+function round(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
 async function main() {
   if (PROBE) {
     await probe();
@@ -100,6 +111,9 @@ async function main() {
   console.log(`Season ${season}, summing weeks 1 through ${currentWeek}.`);
 
   const byPlayer = new Map<string, PlayerStatLine>();
+  const allowed = new Map<string, DefenseAllowedLine>();
+  // Each defense's games, as the weeks it faced anyone.
+  const defenseWeeks = new Map<string, Set<number>>();
   let lastWeekWithData = 0;
 
   for (let week = 1; week <= currentWeek; week++) {
@@ -126,6 +140,19 @@ async function main() {
       existing.ptsHalfPpr += entry.stats.pts_half_ppr ?? 0;
       existing.ptsStd += entry.stats.pts_std ?? 0;
       byPlayer.set(entry.player_id, existing);
+
+      const defense = entry.opponent;
+      if (defense && position) {
+        const weeks = defenseWeeks.get(defense) ?? new Set<number>();
+        weeks.add(week);
+        defenseWeeks.set(defense, weeks);
+        const key = `${defense}-${position}`;
+        const line = allowed.get(key) ?? { team: defense, position, games: 0, ptsPpr: 0, ptsHalfPpr: 0, ptsStd: 0 };
+        line.ptsPpr += entry.stats.pts_ppr ?? 0;
+        line.ptsHalfPpr += entry.stats.pts_half_ppr ?? 0;
+        line.ptsStd += entry.stats.pts_std ?? 0;
+        allowed.set(key, line);
+      }
     }
     console.log(`  week ${week}: ${entries.length} entries fetched, ${weekHadData ? "had" : "no"} played games.`);
     if (weekHadData) lastWeekWithData = week;
@@ -136,9 +163,13 @@ async function main() {
     season,
     throughWeek: lastWeekWithData || null,
     players: [...byPlayer.values()].sort((a, b) => a.playerId.localeCompare(b.playerId)),
+    defense: [...allowed.values()]
+      .map((line) => ({ ...line, games: defenseWeeks.get(line.team)?.size ?? 0, ptsPpr: round(line.ptsPpr), ptsHalfPpr: round(line.ptsHalfPpr), ptsStd: round(line.ptsStd) }))
+      .sort((a, b) => a.team.localeCompare(b.team) || a.position.localeCompare(b.position)),
   };
 
   console.log(`\n${snapshot.players.length} players with at least one recorded game this season.`);
+  console.log(`${snapshot.defense?.length ?? 0} defense-by-position lines.`);
 
   if (DRY_RUN) {
     console.log("--dry-run: not writing file.");

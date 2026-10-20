@@ -385,7 +385,14 @@ In the lineups, a starter who hasn't played yet shows a dash rather than
 0.00; while their game's on, their points are green on pace for their
 projection and red behind it (`onPace`, `paceShare` — as their player graph
 reads it), and once it's over, green if they beat it and red if not
-(`LineTone`).
+(`LineTone`). Each starter has a second, smaller line, the two centered on
+their photo: under the name, the team they're playing, colored from red (that
+defense allows the position the fewest points a game, rank 1) through yellow
+to green (the most), its rank beside it — "BUF (15)", "BYE" on a bye; under
+the points, their projection (`LineNote`). The ranks come from the daily stats
+snapshot, which also totals what each defense has allowed each position
+(`defense` in `player-stats.json`, from the `opponent` on Sleeper's weekly
+stats; `defenseRanks`), under the league's reception scoring.
 
 A player who's yours in one league and an opponent's in another is listed
 once in a game's starters, his name yellow, with every league involved, each

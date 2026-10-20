@@ -17,6 +17,18 @@ export interface PlayerStatLine {
   ptsStd: number;
 }
 
+/** What a defense has given up to one position this season: the fantasy points of every player at it who's faced them. */
+export interface DefenseAllowedLine {
+  /** The defense's NFL team. */
+  team: string;
+  position: string;
+  /** Games the defense has played. */
+  games: number;
+  ptsPpr: number;
+  ptsHalfPpr: number;
+  ptsStd: number;
+}
+
 export interface PlayerStatsSnapshot {
   /** ISO timestamp of the last successful fetch, or null if never populated. */
   updatedAt: string | null;
@@ -24,6 +36,8 @@ export interface PlayerStatsSnapshot {
   /** Last week's stats folded into this snapshot, inclusive. */
   throughWeek: number | null;
   players: PlayerStatLine[];
+  /** What each defense has allowed each position — missing from a snapshot written before it was kept. */
+  defense?: DefenseAllowedLine[];
 }
 
 export const EMPTY_PLAYER_STATS: PlayerStatsSnapshot = {
@@ -41,4 +55,25 @@ export const EMPTY_PLAYER_STATS: PlayerStatsSnapshot = {
 export function seasonPointsFor(line: PlayerStatLine, scoringSettings?: Record<string, number>): number {
   const rec = scoringSettings?.rec ?? 1;
   return rec >= 1 ? line.ptsPpr : rec > 0 ? line.ptsHalfPpr : line.ptsStd;
+}
+
+/**
+ * Each defense's rank against each position, keyed `${team}-${position}`: by fantasy points allowed a game
+ * (under the league's `rec` setting, as seasonPointsFor), 1 the fewest — the toughest matchup — up to the most.
+ */
+export function defenseRanks(snapshot: PlayerStatsSnapshot, scoringSettings?: Record<string, number>): Map<string, number> {
+  const byPosition = new Map<string, { team: string; perGame: number }[]>();
+  for (const line of snapshot.defense ?? []) {
+    if (line.games <= 0) continue;
+    const perGame = seasonPointsFor({ ...line, playerId: line.team, gamesPlayed: line.games }, scoringSettings) / line.games;
+    const group = byPosition.get(line.position) ?? [];
+    group.push({ team: line.team, perGame });
+    byPosition.set(line.position, group);
+  }
+  const out = new Map<string, number>();
+  for (const [position, group] of byPosition) {
+    group.sort((a, b) => a.perGame - b.perGame);
+    group.forEach((d, i) => out.set(`${d.team}-${position}`, i + 1));
+  }
+  return out;
 }

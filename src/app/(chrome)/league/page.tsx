@@ -17,7 +17,9 @@ import { savePayoutPlan } from "@/lib/localStore";
 import { getCurrentWeek, getWeeklyPlayerLines, weighProjection } from "@/lib/sleeper";
 import { useWeekGames } from "@/hooks/useWeekGames";
 import { MatchupGraph, MatchupSide } from "@/components/MatchupGraph";
-import { LineTone } from "@/components/LeagueMatchupCarousel";
+import { LineNote, LineTone } from "@/components/LeagueMatchupCarousel";
+import rawStatsSnapshot from "@/data/player-stats.json";
+import { defenseRanks, PlayerStatsSnapshot } from "@/lib/player-stats";
 import { GAME_MS, useLiveNow } from "@/components/PointsGraph";
 import { useGamePlays } from "@/hooks/useRedZoneFeed";
 import { onPace, paceShare } from "@/lib/live-play-points";
@@ -204,6 +206,39 @@ function LeagueDetailContent() {
     }
     return out;
   }, [carousel, weekGames, projectionStats, scoring, playsByGame, now]);
+  // Each starter's second line: who they're playing, how that defense ranks against their position, and their projection.
+  const matchupRanks = useMemo(() => defenseRanks(rawStatsSnapshot as unknown as PlayerStatsSnapshot, scoring), [scoring]);
+  const lineNotes = useMemo(() => {
+    const out = new Map<string, LineNote>();
+    if (!carousel) return out;
+    const opponentOf = new Map(weekGames.flatMap((g) => [[g.homeTeam, g.awayTeam] as const, [g.awayTeam, g.homeTeam] as const]));
+    // How many defenses are ranked at each position, for the scale their colors run along.
+    const ranked = new Map<string, number>();
+    for (const key of matchupRanks.keys()) {
+      const position = key.slice(key.indexOf("-") + 1);
+      ranked.set(position, (ranked.get(position) ?? 0) + 1);
+    }
+    for (const game of carousel.games) {
+      for (const t of game.teams) {
+        for (const slot of t.slots) {
+          const p = slot.player;
+          if (!p) continue;
+          const opponent = p.team ? (opponentOf.get(p.team) ?? null) : null;
+          const stats = projectionStats?.[p.playerId];
+          const weighed = stats ? weighProjection(stats, scoring) : undefined;
+          out.set(p.playerId, {
+            opponent,
+            // Only once the week's games are in — before, nothing says who anyone's playing.
+            bye: weekGames.length > 0 && !opponent,
+            rank: opponent ? (matchupRanks.get(`${opponent}-${p.position}`) ?? null) : null,
+            of: ranked.get(p.position) ?? 0,
+            projected: typeof weighed === "number" ? weighed : null,
+          });
+        }
+      }
+    }
+    return out;
+  }, [carousel, weekGames, projectionStats, scoring, matchupRanks]);
   const graphed = useMemo(() => {
     const games = carousel?.games ?? [];
     const myRosterId = myRow?.rosterId ?? null;
@@ -287,6 +322,7 @@ function LeagueDetailContent() {
             onShowMatchup={(id) => setShownMatchupId({ week: shownWeek, id })}
             projected={projected}
             lineTones={lineTones}
+            lineNotes={lineNotes}
           />
         </div>
       ) : carousel ? (

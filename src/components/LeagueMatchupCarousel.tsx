@@ -18,14 +18,58 @@ export type LineTone = "pre" | "good" | "bad" | null;
 const EMPTY_TONES = new Map<string, LineTone>();
 const LineToneContext = createContext<Map<string, LineTone>>(EMPTY_TONES);
 
-/** A starter's points in the lineup: a dash before they've played; green on pace, red behind. */
+/**
+ * What a starter's second line says, by player id: the team they're playing this week (null not known yet, or
+ * on a bye), that defense's rank against their position (1 the fewest points allowed, of `of`), and their
+ * projected points.
+ */
+export interface LineNote {
+  opponent: string | null;
+  bye: boolean;
+  rank: number | null;
+  of: number;
+  projected: number | null;
+}
+const EMPTY_NOTES = new Map<string, LineNote>();
+const LineNoteContext = createContext<Map<string, LineNote>>(EMPTY_NOTES);
+
+/** A defense's rank as a color: red for the toughest (1), through yellow, to green for the easiest. */
+function matchupColor(rank: number, of: number): string {
+  const t = of > 1 ? (rank - 1) / (of - 1) : 0.5;
+  return t < 0.5
+    ? `color-mix(in oklab, var(--status-warning) ${Math.round(t * 200)}%, var(--status-critical))`
+    : `color-mix(in oklab, var(--status-good) ${Math.round((t - 0.5) * 200)}%, var(--status-warning))`;
+}
+
+/** A starter's points in the lineup: a dash before they've played; green on pace, red behind — their projection under them, small. */
 function SlotPoints({ resolved, align }: { resolved: ResolvedSlot; align: "left" | "right" }) {
   const tone = useContext(LineToneContext).get(resolved.player?.playerId ?? "");
+  const projected = useContext(LineNoteContext).get(resolved.player?.playerId ?? "")?.projected ?? null;
   const notYet = tone === "pre" && resolved.livePoints === 0;
   const color = tone === "good" ? "font-semibold text-status-good" : tone === "bad" ? "font-semibold text-status-critical" : "text-ink-secondary";
   return (
-    <span className={`tabular-nums ${align === "right" ? "text-right" : ""} ${ROW_TEXT} ${notYet ? "text-ink-muted" : color}`}>
-      {notYet ? "–" : formatPoints(resolved.livePoints)}
+    <span className={`flex flex-col tabular-nums ${align === "right" ? "items-end" : "items-start"}`}>
+      <span className={`${ROW_TEXT} leading-tight ${notYet ? "text-ink-muted" : color}`}>{notYet ? "–" : formatPoints(resolved.livePoints)}</span>
+      <span className={`${NOTE_TEXT} text-ink-muted`} title="Projected">
+        {projected !== null ? formatPoints(projected) : "\u00a0"}
+      </span>
+    </span>
+  );
+}
+
+/** Under a starter's name: the team they're playing, colored by how that defense ranks against their position, the rank beside it. */
+function OpponentNote({ playerId }: { playerId: string }) {
+  const note = useContext(LineNoteContext).get(playerId);
+  if (note?.bye) return <span className={`${NOTE_TEXT} text-ink-muted`}>BYE</span>;
+  if (!note?.opponent) return <span className={NOTE_TEXT}>{"\u00a0"}</span>;
+  return (
+    <span
+      className={`${NOTE_TEXT} whitespace-nowrap font-semibold tabular-nums`}
+      style={note.rank !== null ? { color: matchupColor(note.rank, note.of) } : undefined}
+      title={note.rank !== null ? `${note.opponent}'s defense: ${note.rank} of ${note.of} against the position (1 allows the fewest points)` : undefined}
+    >
+      {note.opponent}
+      {note.rank !== null ? ` (${note.rank})` : ""}
     </span>
   );
 }
@@ -63,6 +107,8 @@ const THEIR_ROW_COLS = "grid-cols-[1.75rem_minmax(0,1fr)_1.375rem] sm:grid-cols-
 // The middle column fits the widest slot label (FLEX) in bold, and no more; every slot box fills it.
 const SLOT_COLS = "grid-cols-[1fr_1.5rem_1fr] sm:grid-cols-[1fr_1.8rem_1fr]";
 const ROW_TEXT = "text-[0.6875rem] sm:text-[0.8125rem]";
+// A starter's second line, under their name and points: smaller, set tight, so the two lines take about the photo's height.
+const NOTE_TEXT = "text-[0.5625rem] leading-none sm:text-[0.625rem] sm:leading-none";
 
 /** "J. Allen" on a phone, "Josh Allen" from sm up. */
 function PlayerName({ name }: { name: string }) {
@@ -97,11 +143,15 @@ function RankedName({ resolved, align }: { resolved: ResolvedSlot; align: "left"
       {resolved.seasonRank ?? ""}
     </span>
   );
+  // The name over its matchup, the rank level with the name.
   return (
     <span className={`flex min-w-0 items-baseline gap-1 ${align === "right" ? "justify-end" : ""}`}>
       {align === "left" ? rank : null}
-      <span className={`truncate ${ROW_TEXT} font-medium text-ink-primary`}>
-        <PlayerName name={resolved.player!.name} />
+      <span className={`flex min-w-0 flex-col ${align === "right" ? "items-end" : "items-start"}`}>
+        <span className={`max-w-full truncate ${ROW_TEXT} font-medium leading-tight text-ink-primary`}>
+          <PlayerName name={resolved.player!.name} />
+        </span>
+        <OpponentNote playerId={resolved.player!.playerId} />
       </span>
       {align === "right" ? rank : null}
     </span>
@@ -469,6 +519,7 @@ export function LeagueMatchupCarousel({
   onShowMatchup,
   projected = null,
   lineTones,
+  lineNotes,
 }: {
   leagueId: string;
   games: ResolvedMatchupGame[];
@@ -485,6 +536,8 @@ export function LeagueMatchupCarousel({
   projected?: Map<number, number> | null;
   /** How each starter's points read (see LineTone), by player id. */
   lineTones?: Map<string, LineTone>;
+  /** Each starter's second line (see LineNote), by player id. */
+  lineNotes?: Map<string, LineNote>;
 }) {
   // The matchup shown large beside the list (tablet and up): yours until another is picked.
   const [pickedId, setPickedId] = useState<number | null>(null);
@@ -503,6 +556,7 @@ export function LeagueMatchupCarousel({
   return (
     <ProjectedContext.Provider value={projected}>
     <LineToneContext.Provider value={lineTones ?? EMPTY_TONES}>
+    <LineNoteContext.Provider value={lineNotes ?? EMPTY_NOTES}>
       {/* Phones: every matchup's header stacked; tap one for its lineup. */}
       <div className="md:hidden">
         <MatchupStack
@@ -554,6 +608,7 @@ export function LeagueMatchupCarousel({
         </ul>
         </div>
       </div>
+    </LineNoteContext.Provider>
     </LineToneContext.Provider>
     </ProjectedContext.Provider>
   );
