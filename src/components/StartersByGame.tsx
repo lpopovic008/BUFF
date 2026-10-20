@@ -352,14 +352,16 @@ function GameLine({
   const middle = useRef<HTMLSpanElement>(null);
   const nameRef = useRef<HTMLSpanElement>(null);
   const positionRef = useRef<HTMLSpanElement>(null);
+  const deltaRef = useRef<HTMLSpanElement>(null);
   const [crowded, setCrowded] = useState(false);
   useLayoutEffect(() => {
     const el = middle.current;
     if (!el || !typedIn || leagueIds.length < 2) return;
     const measure = () => {
       const logos = leagueIds.length * LINE_LOGO_PX + (leagueIds.length - 1) * LINE_LOGO_GAP_PX;
-      // The name at its full width, even while it's cut short, and a gap either side of the position.
-      const used = (nameRef.current?.scrollWidth ?? 0) + (positionRef.current?.offsetWidth ?? 0) + 3 * 4;
+      // The name at its full width, even while it's cut short, a gap either side of the position, and the +/- with its gap.
+      const delta = deltaRef.current ? deltaRef.current.offsetWidth + 4 : 0;
+      const used = (nameRef.current?.scrollWidth ?? 0) + (positionRef.current?.offsetWidth ?? 0) + 3 * 4 + delta;
       setCrowded(used + logos > el.clientWidth);
     };
     measure();
@@ -405,6 +407,21 @@ function GameLine({
           {position}
         </span>
         <span className="min-w-0 flex-1" />
+        {/* The play's +/- while the game's on, ahead of the leagues — so they keep to the right as in every other game. */}
+        {phase === "live" ? (
+          <span
+            ref={deltaRef}
+            className={`w-[3.8em] shrink-0 text-right tabular-nums ${
+              shownDelta !== null && motion.chip
+                ? `font-bold ${lit}`
+                : (shownDelta ?? action?.delta ?? 0) < 0
+                  ? "text-status-critical"
+                  : "text-status-good"
+            }`}
+          >
+            {shownDelta !== null ? `${shownDelta > 0 ? "+" : ""}${formatPoints(shownDelta)}` : delta}
+          </span>
+        ) : null}
         {/* The first league on the right, the rest building leftward — or, crowded, "+N" for them. */}
         <span
           className={`flex shrink-0 flex-row-reverse items-center gap-0.5 transition-opacity duration-150 ${typedIn ? "" : "opacity-0"}`}
@@ -422,19 +439,6 @@ function GameLine({
           {crowded && !both ? <span className="text-[0.625rem] tabular-nums text-ink-muted">+{leagueIds.length - 1}</span> : null}
         </span>
       </span>
-      {phase === "live" ? (
-        <span
-          className={`w-[3.8em] shrink-0 text-right tabular-nums ${
-            shownDelta !== null && motion.chip
-              ? `font-bold ${lit}`
-              : (shownDelta ?? action?.delta ?? 0) < 0
-                ? "text-status-critical"
-                : "text-status-good"
-          }`}
-        >
-          {shownDelta !== null ? `${shownDelta > 0 ? "+" : ""}${formatPoints(shownDelta)}` : delta}
-        </span>
-      ) : null}
       <span
         className={`w-[3.4em] shrink-0 text-right tabular-nums ${
           phase === "pre"
