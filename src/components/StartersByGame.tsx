@@ -9,7 +9,7 @@ import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import { nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import { LeagueLegendEntry, LeagueMark } from "./LeagueMark";
 import { GameRows, RowMotion } from "./GameRows";
-import { FieldSpot } from "./FieldSpot";
+import { FieldSpot, PossessionMark } from "./FieldSpot";
 import { Ordinals } from "./Ordinals";
 import { LastAction, onPace, paceShare } from "@/lib/live-play-points";
 import { GAME_MS } from "./PointsGraph";
@@ -128,6 +128,12 @@ function TeamLine({ game, side, shown = true }: { game: NFLGame; side: "away" | 
       <span className="flex w-[2.4em] shrink-0 justify-center text-[0.6875rem]">
         <TeamLogo team={team} visible={visible} />
       </span>
+      {/* While it's on, a football beside the team with the ball (the other's spot kept empty, so the two lines stay even). */}
+      {game.state === "in" ? (
+        <span className={`flex w-3 shrink-0 justify-center transition-opacity duration-150 ${visible ? "" : "opacity-0"}`}>
+          {game.live?.possession === team ? <PossessionMark /> : null}
+        </span>
+      ) : null}
       {/* Its record as of this game — counting it once it's final. */}
       {record ? (
         <span className={`shrink-0 text-xs tabular-nums text-ink-muted transition-opacity duration-150 ${visible ? "" : "opacity-0"}`}>
@@ -175,6 +181,7 @@ function BallSpot({ game }: { game: NFLGame }) {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center gap-1.5">
       <span className="w-[2.4em] shrink-0 text-[0.6875rem]" />
+      <span className="w-3 shrink-0" />
       {record ? <span className="invisible shrink-0 text-xs tabular-nums">{record}</span> : null}
       <span className="flex min-w-0 flex-1 justify-center">
         <FieldSpot yardsToEndzone={live.yardsToEndzone} homeOffense={live.possession === game.homeTeam} />

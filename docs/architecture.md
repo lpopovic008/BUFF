@@ -559,9 +559,11 @@ game is live it's a short box three plays tall under the map instead.
 Each play reads: the time of day it happened and the matchup's logos, with
 the snap across from them — the down and distance, where on the field the
 ball was ("BUF 35", outlined), and the quarter and clock. The field diagram
-(`FieldSpot`: a green line with ticks at the goal lines and the 50, and a
-slim triangle at the ball pointing the way the offense is going, its yard
-line above it) is in the starters list's live games instead.
+(`FieldSpot`: a line in the theme's ink across most of the room between the
+teams and the scores, a tick every ten yards — the goal lines and the 50
+taller — and a slim triangle at the ball pointing the way the offense is
+going, its yard line above it) is in the starters list's live games instead,
+with a little football (`PossessionMark`) beside the team with the ball.
 ESPN doesn't say which end of the stadium a team is attacking — teams switch
 ends every quarter — so the diagram keeps one layout all game: the home
 team's goal line on the left, the home team driving right, the visitors left.

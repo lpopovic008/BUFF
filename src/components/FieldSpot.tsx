@@ -1,43 +1,56 @@
-/** The field line's thickness. */
-const FIELD_LINE = 1.5;
+/** Every ten yards, goal line to goal line. */
+const TICKS = Array.from({ length: 11 }, (_, i) => i * 10);
 
 /**
- * Where the ball is in a live game, as a little diagram: the field a
- * green line with short green ticks at the two goal lines and the 50 — half
- * the line's height, so the yard line fits above them — and a slim triangle
- * at the ball, pointing the way the offense is going, its yard line centered
- * over it. ESPN doesn't say which end of the stadium a team is attacking
- * (teams switch ends every quarter), so the field is laid out the same way all
- * game: the home team's goal line on the left, the home team driving right
- * and the visitors left.
+ * Where the ball is in a live game, as a little diagram stretched across the
+ * room it's given: the field a line in the theme's ink (black, or white in dark
+ * mode) with a tick up from it every ten yards — the goal lines and the 50 a
+ * little taller — and a slim triangle on it at the ball, pointing the way the
+ * offense is going, its yard line centered over it. ESPN doesn't say which end
+ * of the stadium a team is attacking (teams switch ends every quarter), so the
+ * field is laid out the same way all game: the home team's goal line on the
+ * left, the home team driving right and the visitors left.
  */
 export function FieldSpot({ yardsToEndzone, homeOffense }: { yardsToEndzone: number; homeOffense: boolean }) {
-  const left = 2;
-  const right = 62;
-  const ground = 13.5;
   // How far the ball is from the home team's goal line, 0–100.
   const fromHomeGoal = homeOffense ? 100 - yardsToEndzone : yardsToEndzone;
-  const x = left + ((right - left) * fromHomeGoal) / 100;
   const yard = Math.min(yardsToEndzone, 100 - yardsToEndzone);
-  // A triangle longer than it is wide, centered on the ball, its tip toward the goal it's driving at.
-  const dir = homeOffense ? 1 : -1;
-  const half = 2.75;
-  const wide = 1.6;
   return (
-    <svg viewBox="0 0 64 15" className="h-auto w-16 min-w-0 max-w-full overflow-visible" aria-hidden>
+    <span className="relative block h-[1.125rem] w-[90%]" aria-hidden>
       {/* The ticks run down to the field line's bottom edge, flush with it. */}
-      {[left, (left + right) / 2, right].map((tx) => (
-        <line key={tx} x1={tx} y1={ground + FIELD_LINE / 2} x2={tx} y2={ground - 4.5} stroke="var(--color-status-good)" strokeWidth={1} />
+      {TICKS.map((t) => (
+        <span
+          key={t}
+          className={`absolute bottom-0 w-px -translate-x-1/2 bg-ink-primary ${t % 50 === 0 ? "h-[6px]" : "h-[4px]"}`}
+          style={{ left: `${t}%` }}
+        />
       ))}
-      <line x1={left} y1={ground} x2={right} y2={ground} stroke="var(--color-status-good)" strokeWidth={FIELD_LINE} />
-      <path
-        d={`M${x + dir * half},${ground} L${x - dir * half},${ground - wide} L${x - dir * half},${ground + wide} Z`}
-        fill="var(--color-ink-primary)"
-      />
+      <span className="absolute inset-x-0 bottom-0 h-[1.5px] bg-ink-primary" />
+      {/* A triangle longer than it is wide, centered on the ball, its tip toward the goal it's driving at. */}
+      <svg
+        viewBox="0 0 7 5"
+        className={`absolute bottom-[-1.75px] h-[5px] w-[7px] -translate-x-1/2 ${homeOffense ? "" : "-scale-x-100"}`}
+        style={{ left: `${fromHomeGoal}%` }}
+      >
+        <path d="M7,2.5 L0,0 L0,5 Z" fill="var(--color-ink-primary)" />
+      </svg>
       {/* Always centered over the ball, even at the goal line. */}
-      <text x={x} y={6.5} textAnchor="middle" fontSize={8} fontWeight={700} fill="var(--color-ink-primary)" className="tabular-nums">
+      <span
+        className="absolute top-0 -translate-x-1/2 text-[0.5rem] font-bold leading-none tabular-nums text-ink-primary"
+        style={{ left: `${fromHomeGoal}%` }}
+      >
         {yard}
-      </text>
+      </span>
+    </span>
+  );
+}
+
+/** A little football, beside the team with the ball. */
+export function PossessionMark() {
+  return (
+    <svg viewBox="0 0 12 7" className="h-[7px] w-3 shrink-0" aria-label="Has the ball">
+      <ellipse cx={6} cy={3.5} rx={6} ry={3.5} fill="var(--color-ink-primary)" />
+      <path d="M3.5,3.5 H8.5 M4.75,2.5 V4.5 M6,2.5 V4.5 M7.25,2.5 V4.5" stroke="var(--page)" strokeWidth={0.7} />
     </svg>
   );
 }
