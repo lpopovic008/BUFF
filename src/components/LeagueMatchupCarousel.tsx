@@ -33,12 +33,20 @@ export interface LineNote {
 const EMPTY_NOTES = new Map<string, LineNote>();
 const LineNoteContext = createContext<Map<string, LineNote>>(EMPTY_NOTES);
 
-/** A defense's rank as a color: red for the toughest (1), through yellow, to green for the easiest. */
+// A defense's rank's colors, toughest to easiest.
+const MATCHUP_STOPS = ["var(--status-critical)", "var(--status-serious)", "var(--status-warning)", "var(--status-good)"];
+
+/**
+ * A defense's rank as a color: red for the toughest (1), then orange, yellow, green for the easiest — each
+ * third of the way between two held close to one of them (eased), so a rank reads plainly as one of the four.
+ */
 function matchupColor(rank: number, of: number): string {
   const t = of > 1 ? (rank - 1) / (of - 1) : 0.5;
-  return t < 0.5
-    ? `color-mix(in oklab, var(--status-warning) ${Math.round(t * 200)}%, var(--status-critical))`
-    : `color-mix(in oklab, var(--status-good) ${Math.round((t - 0.5) * 200)}%, var(--status-warning))`;
+  const span = t * (MATCHUP_STOPS.length - 1);
+  const i = Math.min(MATCHUP_STOPS.length - 2, Math.floor(span));
+  const u = span - i;
+  const eased = u < 0.5 ? 4 * u ** 3 : 1 - (2 - 2 * u) ** 3 / 2;
+  return `color-mix(in oklab, ${MATCHUP_STOPS[i + 1]} ${Math.round(eased * 100)}%, ${MATCHUP_STOPS[i]})`;
 }
 
 /** A starter's points in the lineup: a dash before they've played; green on pace, red behind — their projection under them, small. */
@@ -46,10 +54,10 @@ function SlotPoints({ resolved, align }: { resolved: ResolvedSlot; align: "left"
   const tone = useContext(LineToneContext).get(resolved.player?.playerId ?? "");
   const projected = useContext(LineNoteContext).get(resolved.player?.playerId ?? "")?.projected ?? null;
   const notYet = tone === "pre" && resolved.livePoints === 0;
-  const color = tone === "good" ? "font-semibold text-status-good" : tone === "bad" ? "font-semibold text-status-critical" : "text-ink-secondary";
+  const color = tone === "good" ? "text-status-good" : tone === "bad" ? "text-status-critical" : "text-ink-secondary";
   return (
     <span className={`flex flex-col tabular-nums ${align === "right" ? "items-end" : "items-start"}`}>
-      <span className={`${ROW_TEXT} leading-tight ${notYet ? "text-ink-muted" : color}`}>{notYet ? "–" : formatPoints(resolved.livePoints)}</span>
+      <span className={`${ROW_TEXT} font-bold leading-tight ${notYet ? "text-ink-muted" : color}`}>{notYet ? "–" : formatPoints(resolved.livePoints)}</span>
       <span className={`${NOTE_TEXT} text-ink-muted`} title="Projected">
         {projected !== null ? formatPoints(projected) : "\u00a0"}
       </span>
@@ -57,14 +65,14 @@ function SlotPoints({ resolved, align }: { resolved: ResolvedSlot; align: "left"
   );
 }
 
-/** Under a starter's name: the team they're playing, colored by how that defense ranks against their position, the rank beside it. */
+/** The team a starter's playing, colored by how that defense ranks against their position, the rank beside it — or BYE. */
 function OpponentNote({ playerId }: { playerId: string }) {
   const note = useContext(LineNoteContext).get(playerId);
-  if (note?.bye) return <span className={`${NOTE_TEXT} text-ink-muted`}>BYE</span>;
-  if (!note?.opponent) return <span className={NOTE_TEXT}>{"\u00a0"}</span>;
+  if (note?.bye) return <span className="text-ink-muted">BYE</span>;
+  if (!note?.opponent) return null;
   return (
     <span
-      className={`${NOTE_TEXT} whitespace-nowrap font-semibold tabular-nums`}
+      className="whitespace-nowrap font-semibold"
       style={note.rank !== null ? { color: matchupColor(note.rank, note.of) } : undefined}
       title={note.rank !== null ? `${note.opponent}'s defense: ${note.rank} of ${note.of} against the position (1 allows the fewest points)` : undefined}
     >
@@ -109,9 +117,6 @@ const SLOT_COLS = "grid-cols-[1fr_1.5rem_1fr] sm:grid-cols-[1fr_1.8rem_1fr]";
 const ROW_TEXT = "text-[0.6875rem] sm:text-[0.8125rem]";
 // A starter's second line, under their name and points: smaller, set tight, so the two lines take about the photo's height.
 const NOTE_TEXT = "text-[0.5625rem] leading-none sm:text-[0.625rem] sm:leading-none";
-// A rank in a corner of a starter's photo, haloed in the page's color so it reads over the photo's edge.
-const PHOTO_RANK =
-  "absolute top-0 text-[0.5625rem] font-bold leading-none tabular-nums [text-shadow:0_0_2px_var(--page),0_0_2px_var(--page)] sm:text-[0.625rem]";
 
 /** "J. Allen" on a phone, "Josh Allen" from sm up. */
 function PlayerName({ name }: { name: string }) {
@@ -123,52 +128,49 @@ function PlayerName({ name }: { name: string }) {
   );
 }
 
-/**
- * A starter's photo, bigger than their row — spilling into the gaps above and below it, never making the row
- * taller — with their ranks at their position in its top corners, either side of their head: KTC value (dynasty
- * in a dynasty league, redraft otherwise) on the left, this season's points on the right.
- */
-function RankedPhoto({ resolved }: { resolved: ResolvedSlot }) {
-  const { player, valueRank, seasonRank } = resolved;
-  const position = player!.position;
+/** A starter's photo, bigger than their row — spilling into the gaps above and below it, never making the row taller. */
+function SlotPhoto({ playerId }: { playerId: string }) {
   return (
-    <span className="relative -my-1 flex justify-center">
-      <PlayerHeadshot playerId={player!.playerId} sizeClass="h-[1.875rem] w-[1.875rem] sm:h-[2.125rem] sm:w-[2.125rem]" />
-      {valueRank ? (
-        <span className={`${PHOTO_RANK} left-0 text-series-4`} title={`${position}${valueRank} by trade value`}>
-          {valueRank}
-        </span>
-      ) : null}
-      {seasonRank ? (
-        <span className={`${PHOTO_RANK} right-0 text-series-1`} title={`${position}${seasonRank} by points this season`}>
-          {seasonRank}
-        </span>
-      ) : null}
+    <span className="-my-1 flex justify-center">
+      <PlayerHeadshot playerId={playerId} sizeClass="h-[1.875rem] w-[1.875rem] sm:h-[2.125rem] sm:w-[2.125rem]" />
     </span>
   );
 }
 
 /**
- * The player's name over their matchup, their points a game this season beside the name on its inner side —
- * right of it for your team, left of it for theirs.
+ * The player's name, and under it, from the outside in: their rank at their position by KTC value (dynasty in
+ * a dynasty league, redraft otherwise), by this season's points, their points a game this season, and who
+ * they're playing (see OpponentNote).
  */
 function RankedName({ resolved, align }: { resolved: ResolvedSlot; align: "left" | "right" }) {
-  const ppg =
-    resolved.ppg !== null ? (
-      <span className={`shrink-0 ${NOTE_TEXT} tabular-nums text-ink-muted`} title="Points a game this season">
-        ({resolved.ppg.toFixed(1)})
+  const { player, valueRank, seasonRank, ppg } = resolved;
+  const pieces = [
+    valueRank ? (
+      <span key="value" className="text-series-4" title={`${player!.position}${valueRank} by trade value`}>
+        {valueRank}
       </span>
-    ) : null;
+    ) : null,
+    seasonRank ? (
+      <span key="season" className="text-series-1" title={`${player!.position}${seasonRank} by points this season`}>
+        {seasonRank}
+      </span>
+    ) : null,
+    ppg !== null ? (
+      <span key="ppg" className="text-ink-muted" title="Points a game this season">
+        {ppg.toFixed(1)}
+      </span>
+    ) : null,
+    <OpponentNote key="opponent" playerId={player!.playerId} />,
+  ];
   return (
     <span className={`flex min-w-0 flex-col ${align === "right" ? "items-end" : "items-start"}`}>
-      <span className="flex max-w-full items-baseline gap-1">
-        {align === "right" ? ppg : null}
-        <span className={`min-w-0 truncate ${ROW_TEXT} font-medium leading-tight text-ink-primary`}>
-          <PlayerName name={resolved.player!.name} />
-        </span>
-        {align === "left" ? ppg : null}
+      <span className={`max-w-full truncate ${ROW_TEXT} font-bold leading-tight text-ink-primary`}>
+        <PlayerName name={player!.name} />
       </span>
-      <OpponentNote playerId={resolved.player!.playerId} />
+      {/* Kept a line tall even with nothing on it. */}
+      <span className={`flex min-h-[1em] max-w-full gap-1 overflow-hidden whitespace-nowrap font-semibold tabular-nums ${NOTE_TEXT}`}>
+        {align === "right" ? pieces.reverse() : pieces}
+      </span>
     </span>
   );
 }
@@ -185,7 +187,7 @@ function MySlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
   }
   return (
     <div className={`grid ${MY_ROW_COLS} items-center gap-0.5 sm:gap-1`}>
-      <RankedPhoto resolved={resolved} />
+      <SlotPhoto playerId={resolved.player.playerId} />
       <RankedName resolved={resolved} align="left" />
       <SlotPoints resolved={resolved} align="right" />
     </div>
@@ -206,7 +208,7 @@ function TheirSlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
     <div className={`grid ${THEIR_ROW_COLS} items-center gap-0.5 sm:gap-1`}>
       <SlotPoints resolved={resolved} align="left" />
       <RankedName resolved={resolved} align="right" />
-      <RankedPhoto resolved={resolved} />
+      <SlotPhoto playerId={resolved.player.playerId} />
     </div>
   );
 }

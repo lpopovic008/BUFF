@@ -385,21 +385,21 @@ In the lineups, a starter who hasn't played yet shows a dash rather than
 0.00; while their game's on, their points are green on pace for their
 projection and red behind it (`onPace`, `paceShare` — as their player graph
 reads it), and once it's over, green if they beat it and red if not
-(`LineTone`). Each starter has a second, smaller line, the two centered on
-their photo: under the name, the team they're playing, colored from red (that
-defense allows the position the fewest points a game, rank 1) through yellow
-to green (the most), its rank beside it — "BUF (15)", "BYE" on a bye; under
-the points, their projection (`LineNote`). The ranks come from the daily stats
-snapshot, which also totals what each defense has allowed each position
-(`defense` in `player-stats.json`, from the `opponent` on Sleeper's weekly
-stats; `defenseRanks`), under the league's reception scoring.
-Each starter's photo is a little bigger than their row, spilling into the
-gaps either side so no row grows, with two ranks at their position in its top
-corners beside their head: KTC value on the left, in the standings-rank yellow
+(`LineTone`); names and points are bold. Each starter has a second, smaller
+line, the two centered on their photo (a little bigger than the row, spilling
+into the gaps either side so no row grows). Under the name, from the outside
+in: their rank at their position by KTC value, in the standings-rank yellow
 (dynasty values in a dynasty league, redraft otherwise; superflex and TE
-premium as the league plays — `positionValueRanksById`), and this season's
-points on the right, in blue (`seasonLinesById`). After the name, on its side
-toward the middle, their points a game this season, "(18.3)", in grey.
+premium as the league plays — `positionValueRanksById`); by this season's
+points, in blue (`seasonLinesById`); their points a game, in grey; and the
+team they're playing with that defense's rank against the position — "BUF
+(15)", "BYE" on a bye — in red (rank 1, the fewest points a game allowed),
+orange, yellow or green (the most), eased so each rank reads plainly as one of
+the four. Under the points, their projection (`LineNote`). The defense ranks
+come from the daily stats snapshot, which also totals what each defense has
+allowed each position (`defense` in `player-stats.json`, from the `opponent`
+on Sleeper's weekly stats; `defenseRanks`), under the league's reception
+scoring.
 
 A player who's yours in one league and an opponent's in another is listed
 once in a game's starters, his name yellow, with every league involved, each
