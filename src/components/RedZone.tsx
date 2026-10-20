@@ -573,29 +573,37 @@ export function RedZone({
     scope === "all" ? weekGames.some((g) => g.state !== "pre") : followed.some((g) => g.game.state !== "pre" && g.players.length > 0);
 
   const stretched = phone ? boxHeight !== null : !!full?.on;
+  // With no game on, the header runs across the top instead of down the side.
+  const across = !live;
   return (
-    // No box: the header runs down the left side as narrow as it goes, the plays spread out beside it to the
-    // next section or the screen's edge. From tablet width up it fills the room it's given; on a phone it's
-    // about one big play tall.
-    <div className="flex flex-row md:min-h-0 md:flex-1">
+    // No box: while games are on, the header runs down the left side as narrow as it goes, the plays spread out
+    // beside it to the next section or the screen's edge; otherwise it runs across the top, the plays under it.
+    // From tablet width up it fills the room it's given; on a phone it's about one big play tall.
+    <div className={`flex md:min-h-0 md:flex-1 ${across ? "flex-col" : "flex-row"}`}>
       <div
-        // Its contents sit inside it, never making the Red Zone taller; the games scroll should they outrun it.
+        // Down the side, its contents sit inside it, never making the Red Zone taller.
         ref={headRef}
         onPointerUp={onHeadTap}
-        className="relative w-7 shrink-0 touch-manipulation select-none border-r border-border"
+        className={`relative shrink-0 touch-manipulation select-none border-border ${across ? "border-b max-md:px-2" : "w-7 border-r"}`}
       >
-        <div className="absolute inset-0 flex flex-col items-center gap-1.5 px-0.5 py-1.5">
-          {/* The title down the top, ⇕ under it. */}
-          <div className="flex shrink-0 flex-col items-center gap-1">
-            <h2 className="flex flex-col items-center gap-1" aria-label="Red Zone">
+        <div className={across ? "flex items-center gap-2 py-1" : "absolute inset-0 flex flex-col items-center gap-1.5 px-0.5 py-1.5"}>
+          {/* The title, ⇕ after it (under it, down the side). */}
+          <div className={`flex shrink-0 items-center gap-1 ${across ? "flex-row" : "flex-col"}`}>
+            <h2 className={`flex items-center ${across ? "flex-row gap-1.5" : "flex-col gap-1"}`} aria-label="Red Zone">
               <span className="relative flex h-1.5 w-1.5 shrink-0" aria-hidden>
                 {live ? <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-status-critical opacity-60" /> : null}
                 <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${live ? "bg-status-critical" : "bg-ink-muted"}`} />
               </span>
-              {/* Each letter under the last, a little gap between the words. */}
-              <span className="flex flex-col items-center text-[0.5625rem] font-bold uppercase leading-none text-ink-primary" aria-hidden>
-                {"RED ZONE".split("").map((ch, i) => (ch === " " ? <span key={i} className="h-1" /> : <span key={i}>{ch}</span>))}
-              </span>
+              {across ? (
+                <span className="text-[0.6875rem] font-bold uppercase leading-none tracking-wide text-ink-primary" aria-hidden>
+                  Red Zone
+                </span>
+              ) : (
+                // Each letter under the last, a little gap between the words.
+                <span className="flex flex-col items-center text-[0.5625rem] font-bold uppercase leading-none text-ink-primary" aria-hidden>
+                  {"RED ZONE".split("").map((ch, i) => (ch === " " ? <span key={i} className="h-1" /> : <span key={i}>{ch}</span>))}
+                </span>
+              )}
             </h2>
             {/* ⇕: the box as tall as the screen (on a phone, fit under the header; wider, the map's whole column) — and back. */}
             <button
@@ -609,15 +617,19 @@ export function RedZone({
               <ExpandVerticalIcon inward={stretched} width={14} height={14} />
             </button>
           </div>
-          {/* Which plays, along the bottom. */}
-          <div className="mt-auto flex w-full shrink-0 flex-col border border-border text-[0.5625rem] font-semibold" role="group" aria-label="Which plays">
+          {/* Which plays, at the end. */}
+          <div
+            className={`flex shrink-0 border border-border font-semibold ${across ? "ml-auto flex-row text-[0.625rem]" : "mt-auto w-full flex-col text-[0.5625rem]"}`}
+            role="group"
+            aria-label="Which plays"
+          >
             {SCOPES.map((opt) => (
               <button
                 key={opt.value}
                 type="button"
                 aria-pressed={scope === opt.value}
                 onClick={() => pickScope(opt.value)}
-                className={`py-1 leading-tight transition-colors ${
+                className={`py-1 leading-tight transition-colors ${across ? "px-2" : ""} ${
                   scope === opt.value ? "bg-ink-primary text-surface-raised" : "text-ink-secondary hover:text-ink-primary"
                 }`}
               >
@@ -628,7 +640,7 @@ export function RedZone({
         </div>
       </div>
 
-      <div className="relative flex min-w-0 flex-1 flex-col gap-2 py-1 pl-1.5 max-md:pr-2 md:min-h-0">
+      <div className={`relative flex min-w-0 flex-1 flex-col gap-2 py-1 md:min-h-0 ${across ? "max-md:px-2" : "pl-1.5 max-md:pr-2"}`}>
         {/* The play by a graph's cursor when it isn't among these plays, laid over the top of them (see spotlight). */}
         {pinned ? (
           <ol aria-label="The play by the graph's cursor" className="absolute left-1.5 right-0 top-1 z-20 bg-page shadow-md max-md:right-2">
