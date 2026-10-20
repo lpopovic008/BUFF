@@ -474,6 +474,9 @@ export default function DashboardPage() {
                 ref={redZoneRef}
                 // On a phone, out to the screen's edges and right under the map (taking back the gap between the sections).
                 className={`animate-[rise_0.5s_ease-out_backwards] [animation-delay:120ms] max-md:-mx-4 max-md:-mt-6 md:flex md:flex-col ${
+                  // On a phone, gone altogether between weeks — no plays, and no game started to have any.
+                  redZoneEmpty && weekGames.every((g) => g.state === "pre") ? "max-md:hidden" : ""
+                } ${
                   // Stretched (its ⇕ button), the whole column's height — the map above it, scrolled past.
                   redZoneFull ? "md:h-full md:flex-none" : redZoneEmpty ? "md:flex-none" : "md:min-h-40 md:flex-1"
                 }`}

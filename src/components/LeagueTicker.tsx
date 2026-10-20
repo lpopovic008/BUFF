@@ -176,7 +176,7 @@ export interface MatchupRowTeam {
  * never cut short — the entry grows to fit them; in a fixed-width box
  * (`fitWidth`) a name too long for it ends in an ellipsis.
  */
-function TickerTeamRow({ team, fitWidth }: { team: MatchupRowTeam; fitWidth: boolean }) {
+function TickerTeamRow({ team, fitWidth, dense }: { team: MatchupRowTeam; fitWidth: boolean; dense: boolean }) {
   const { name, points, standing, mine = false, winning = false } = team;
   const { rank, record, streak } = standing ?? {};
   // A plain flex row, standing and score pushed apart: it sizes to its own content in every browser, so
@@ -184,7 +184,9 @@ function TickerTeamRow({ team, fitWidth }: { team: MatchupRowTeam; fitWidth: boo
   // through score — is one unbroken plate, like a map tag.
   return (
     <div
-      className={`flex items-center justify-between gap-4 ${winning ? "-mx-1.5 bg-[var(--map-tag)] px-1.5 text-[var(--map-tag-ink)]" : ""}`}
+      className={`flex items-center justify-between gap-4 ${dense ? "[&_span]:leading-tight" : ""} ${
+        winning ? "-mx-1.5 bg-[var(--map-tag)] px-1.5 text-[var(--map-tag-ink)]" : ""
+      }`}
     >
       <div className={`flex items-center gap-1.5 whitespace-nowrap ${fitWidth ? "min-w-0" : ""}`}>
         {/* The place as a bare number in a fixed two digits, right-aligned, so every team name starts at the same x. */}
@@ -218,13 +220,14 @@ function TickerTeamRow({ team, fitWidth }: { team: MatchupRowTeam; fitWidth: boo
 /**
  * A matchup's two teams, one row each, the scores lined up at the right edge — the body of a ticker
  * entry, and of the league page's matchup list. As wide as its widest row (the ticker), or, `fitWidth`,
- * as wide as its box, a name too long for it ending in an ellipsis.
+ * as wide as its box, a name too long for it ending in an ellipsis. `dense` (the ticker) sets the rows
+ * close, no space between them.
  */
-export function MatchupRows({ teams, fitWidth = false }: { teams: MatchupRowTeam[]; fitWidth?: boolean }) {
+export function MatchupRows({ teams, fitWidth = false, dense = false }: { teams: MatchupRowTeam[]; fitWidth?: boolean; dense?: boolean }) {
   return (
-    <div className={`flex flex-col gap-y-1 ${fitWidth ? "min-w-0" : ""}`}>
+    <div className={`flex flex-col ${dense ? "" : "gap-y-1"} ${fitWidth ? "min-w-0" : ""}`}>
       {teams.map((team, i) => (
-        <TickerTeamRow key={i} team={team} fitWidth={fitWidth} />
+        <TickerTeamRow key={i} team={team} fitWidth={fitWidth} dense={dense} />
       ))}
     </div>
   );
@@ -279,6 +282,7 @@ function TickerItem({
               winning: league.winner === "opponent",
             },
           ]}
+          dense
         />
       ) : (
         <div className="text-center text-xs text-ink-secondary">No matchup this week</div>

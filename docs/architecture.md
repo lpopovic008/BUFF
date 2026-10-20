@@ -495,7 +495,8 @@ line, ⇕ under them; and its Team/VS/All buttons stacked along the bottom —
 while a game's on. With none on it runs across the top instead, the plays
 under it: the dot, RED ZONE and ⇕ on the left, Team/VS/All on the right.
 With no plays to show it's that header alone, no room kept for plays — the
-map takes it (`onEmptyChange`).
+map takes it (`onEmptyChange`). On a phone, between weeks (no plays, and no game
+of the week started yet) it's gone altogether.
 A game hidden in the starters list (its matchup swiped over) shows none of
 its plays. It sits right under the map (or the graphs), no gap between. ⇕ stretches the box to the map's
 whole column (the map then above it, scrolled past) — on a phone, fits it

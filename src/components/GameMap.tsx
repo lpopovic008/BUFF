@@ -566,8 +566,10 @@ export function GameMap({
     const landTop = landTopShare(DEFAULT_SCENE) * (width / MAP_ASPECT);
     const openBottom = Math.min(landTop, ...free.map((l) => l.y - l.stem));
     const gap = OVERHEAD_GAP_REM * rootPx;
+    // On a phone the countdown sits right under the ticker, with no gap over it.
+    const gapOver = window.matchMedia("(max-width: 767px)").matches ? 0 : gap;
     // Where the frame's top is, from the map box's top: below it, the band above is cut off.
-    const frameTop = Math.floor(overheadPx > 0 ? openBottom - overheadPx - 2 * gap : openBottom - MIN_HEADROOM_REM * rootPx);
+    const frameTop = Math.floor(overheadPx > 0 ? openBottom - overheadPx - gap - gapOver : openBottom - MIN_HEADROOM_REM * rootPx);
     return { frameTop, overheadMiddle: openBottom - gap - overheadPx / 2, overLand: landTop - frameTop };
   }, [measure, tags, overheadPx]);
   const frameTop = opening?.frameTop ?? null;
