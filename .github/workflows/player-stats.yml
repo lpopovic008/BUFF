@@ -2,7 +2,7 @@ name: Update player stats
 
 # Daily during the season — season-long per-player point/games-played totals
 # don't change intra-week except as games are played, so a daily refresh
-# (plus on demand) keeps the lineup view's "Pos Rk" column current without
+# (plus on demand) keeps the lineups' season ranks, points a game and matchup ranks current without
 # hammering Sleeper's undocumented stats endpoint.
 on:
   schedule:

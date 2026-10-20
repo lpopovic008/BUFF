@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { positionBlendRankIndexFor, positionValueRankIndexFor, valuesByPlayerId } from "./matchup-players";
+import { positionValueRankIndexFor, positionValueRanksById, seasonLinesById, valuesByPlayerId } from "./matchup-players";
 import { PlayerValue, PlayerValuesSnapshot } from "./player-values";
 import { PlayerStatLine, PlayerStatsSnapshot } from "./player-stats";
 
@@ -41,41 +41,32 @@ function statsSnapshot(players: PlayerStatLine[]): PlayerStatsSnapshot {
   return { updatedAt: null, season: "2025", throughWeek: 2, players };
 }
 
-test("positionBlendRankIndexFor blends season points and points per game within position, skipping players who haven't played", () => {
-  const snapshot = statsSnapshot([
-    statLine("101", "WR", 4, 80), // most points, 20/game: (1 + 0.95) / 2
-    statLine("102", "WR", 4, 60), // 15/game: (0.75 + 0.71) / 2
-    statLine("103", "WR", 2, 42), // missed two games but 21/game: (0.525 + 1) / 2 — ahead of 102
-    statLine("104", "WR", 0, 0), // hasn't played — excluded
-    statLine("105", "RB", 2, 20), // own group, ranks #1 among RBs
-  ]);
-  const idx = positionBlendRankIndexFor(snapshot);
-  assert.equal(idx.get("101"), 1);
-  assert.equal(idx.get("103"), 2);
-  assert.equal(idx.get("102"), 3);
-  assert.equal(idx.has("104"), false);
-  assert.equal(idx.get("105"), 1);
+test("seasonLinesById ranks by season points within position, with points a game, skipping players who haven't played", () => {
+  const lines = seasonLinesById(
+    statsSnapshot([
+      statLine("101", "WR", 4, 80),
+      statLine("102", "WR", 2, 60),
+      statLine("104", "WR", 0, 0),
+      statLine("105", "RB", 2, 20),
+    ])
+  );
+  assert.deepEqual(lines.get("101"), { rank: 1, ppg: 20 });
+  assert.deepEqual(lines.get("102"), { rank: 2, ppg: 30 });
+  assert.equal(lines.has("104"), false);
+  assert.deepEqual(lines.get("105"), { rank: 1, ppg: 10 });
 });
 
-test("positionBlendRankIndexFor weighs in dynasty value as a third part, except at positions with no values", () => {
-  const snapshot = statsSnapshot([
-    statLine("201", "RB", 4, 80),
-    statLine("202", "RB", 4, 70), // a bit behind on points, far ahead on value
-    statLine("301", "K", 4, 40),
-    statLine("302", "K", 4, 36),
+test("positionValueRanksById ranks KTC values within position, keyed by Sleeper id, kickers by Sleeper's K", () => {
+  const snapshot = valuesSnapshot([value("Ja'Marr Chase", "WR", 9500), value("Justin Jefferson", "WR", 9000), value("Brandon Aubrey", "PK", 900)]);
+  const ids = new Map([
+    ["WR-jamarr chase", "7564"],
+    ["WR-justin jefferson", "6794"],
+    ["K-brandon aubrey", "11533"],
   ]);
-  const values = new Map([
-    ["201", 2000],
-    ["202", 9000],
-  ]);
-  const idx = positionBlendRankIndexFor(snapshot, undefined, values);
-  assert.equal(idx.get("202"), 1);
-  assert.equal(idx.get("201"), 2);
-  // No kicker has a value, so kickers rank on points alone.
-  assert.equal(idx.get("301"), 1);
-  assert.equal(idx.get("302"), 2);
-  // Without values the RBs go back to points order.
-  assert.equal(positionBlendRankIndexFor(snapshot).get("201"), 1);
+  const ranks = positionValueRanksById(snapshot, { listType: "dynasty", format: "oneQB", tep: "standard" }, ids);
+  assert.equal(ranks.get("7564"), 1);
+  assert.equal(ranks.get("6794"), 2);
+  assert.equal(ranks.get("11533"), 1);
 });
 
 test("valuesByPlayerId matches KTC names to Sleeper ids by position and name", () => {

@@ -393,6 +393,13 @@ the points, their projection (`LineNote`). The ranks come from the daily stats
 snapshot, which also totals what each defense has allowed each position
 (`defense` in `player-stats.json`, from the `opponent` on Sleeper's weekly
 stats; `defenseRanks`), under the league's reception scoring.
+Each starter's photo is a little bigger than their row, spilling into the
+gaps either side so no row grows, with two ranks at their position in its top
+corners beside their head: KTC value on the left, in the standings-rank yellow
+(dynasty values in a dynasty league, redraft otherwise; superflex and TE
+premium as the league plays — `positionValueRanksById`), and this season's
+points on the right, in blue (`seasonLinesById`). After the name, on its side
+toward the middle, their points a game this season, "(18.3)", in grey.
 
 A player who's yours in one league and an opponent's in another is listed
 once in a game's starters, his name yellow, with every league involved, each

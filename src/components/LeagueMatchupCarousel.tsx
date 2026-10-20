@@ -102,13 +102,16 @@ function slotLabel(slot: string): string {
 // columns widen and show the full name. All rem, so it scales with the fluid
 // root. Mirrored left-to-right for the "their" side, which reads
 // right-to-left (points nearest the middle, headshot on the outside).
-const MY_ROW_COLS = "grid-cols-[1.375rem_minmax(0,1fr)_1.75rem] sm:grid-cols-[1.375rem_minmax(0,1fr)_2.5rem]";
-const THEIR_ROW_COLS = "grid-cols-[1.75rem_minmax(0,1fr)_1.375rem] sm:grid-cols-[2.5rem_minmax(0,1fr)_1.375rem]";
+const MY_ROW_COLS = "grid-cols-[1.875rem_minmax(0,1fr)_1.75rem] sm:grid-cols-[2.125rem_minmax(0,1fr)_2.5rem]";
+const THEIR_ROW_COLS = "grid-cols-[1.75rem_minmax(0,1fr)_1.875rem] sm:grid-cols-[2.5rem_minmax(0,1fr)_2.125rem]";
 // The middle column fits the widest slot label (FLEX) in bold, and no more; every slot box fills it.
 const SLOT_COLS = "grid-cols-[1fr_1.5rem_1fr] sm:grid-cols-[1fr_1.8rem_1fr]";
 const ROW_TEXT = "text-[0.6875rem] sm:text-[0.8125rem]";
 // A starter's second line, under their name and points: smaller, set tight, so the two lines take about the photo's height.
 const NOTE_TEXT = "text-[0.5625rem] leading-none sm:text-[0.625rem] sm:leading-none";
+// A rank in a corner of a starter's photo, haloed in the page's color so it reads over the photo's edge.
+const PHOTO_RANK =
+  "absolute top-0 text-[0.5625rem] font-bold leading-none tabular-nums [text-shadow:0_0_2px_var(--page),0_0_2px_var(--page)] sm:text-[0.625rem]";
 
 /** "J. Allen" on a phone, "Josh Allen" from sm up. */
 function PlayerName({ name }: { name: string }) {
@@ -121,39 +124,51 @@ function PlayerName({ name }: { name: string }) {
 }
 
 /**
- * The player's name with their rank at their position (12 for the 12th-best
- * WR; see positionBlendRankIndexFor) on its outer side — left of the name for your team, right of
- * it for theirs — styled like the standings rank beside team names.
+ * A starter's photo, bigger than their row — spilling into the gaps above and below it, never making the row
+ * taller — with their ranks at their position in its top corners, either side of their head: KTC value (dynasty
+ * in a dynasty league, redraft otherwise) on the left, this season's points on the right.
  */
-function RankedName({ resolved, align }: { resolved: ResolvedSlot; align: "left" | "right" }) {
-  // Always the same width — room for three digits, kept even when there's no
-  // rank — so every name in the column starts (or, on their side, ends) on
-  // the same line. The number sits against the name.
-  const rank = (
-    <span
-      className={`w-[3ch] shrink-0 text-[0.625rem] font-medium tabular-nums text-series-4 sm:text-xs ${
-        align === "left" ? "text-right" : "text-left"
-      }`}
-      title={
-        resolved.seasonRank
-          ? `${resolved.player?.position ?? ""}${resolved.seasonRank} — season points, points per game and dynasty value (in dynasty leagues), blended`
-          : undefined
-      }
-    >
-      {resolved.seasonRank ?? ""}
+function RankedPhoto({ resolved }: { resolved: ResolvedSlot }) {
+  const { player, valueRank, seasonRank } = resolved;
+  const position = player!.position;
+  return (
+    <span className="relative -my-1 flex justify-center">
+      <PlayerHeadshot playerId={player!.playerId} sizeClass="h-[1.875rem] w-[1.875rem] sm:h-[2.125rem] sm:w-[2.125rem]" />
+      {valueRank ? (
+        <span className={`${PHOTO_RANK} left-0 text-series-4`} title={`${position}${valueRank} by trade value`}>
+          {valueRank}
+        </span>
+      ) : null}
+      {seasonRank ? (
+        <span className={`${PHOTO_RANK} right-0 text-series-1`} title={`${position}${seasonRank} by points this season`}>
+          {seasonRank}
+        </span>
+      ) : null}
     </span>
   );
-  // The name over its matchup, the rank level with the name.
+}
+
+/**
+ * The player's name over their matchup, their points a game this season beside the name on its inner side —
+ * right of it for your team, left of it for theirs.
+ */
+function RankedName({ resolved, align }: { resolved: ResolvedSlot; align: "left" | "right" }) {
+  const ppg =
+    resolved.ppg !== null ? (
+      <span className={`shrink-0 ${NOTE_TEXT} tabular-nums text-ink-muted`} title="Points a game this season">
+        ({resolved.ppg.toFixed(1)})
+      </span>
+    ) : null;
   return (
-    <span className={`flex min-w-0 items-baseline gap-1 ${align === "right" ? "justify-end" : ""}`}>
-      {align === "left" ? rank : null}
-      <span className={`flex min-w-0 flex-col ${align === "right" ? "items-end" : "items-start"}`}>
-        <span className={`max-w-full truncate ${ROW_TEXT} font-medium leading-tight text-ink-primary`}>
+    <span className={`flex min-w-0 flex-col ${align === "right" ? "items-end" : "items-start"}`}>
+      <span className="flex max-w-full items-baseline gap-1">
+        {align === "right" ? ppg : null}
+        <span className={`min-w-0 truncate ${ROW_TEXT} font-medium leading-tight text-ink-primary`}>
           <PlayerName name={resolved.player!.name} />
         </span>
-        <OpponentNote playerId={resolved.player!.playerId} />
+        {align === "left" ? ppg : null}
       </span>
-      {align === "right" ? rank : null}
+      <OpponentNote playerId={resolved.player!.playerId} />
     </span>
   );
 }
@@ -170,7 +185,7 @@ function MySlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
   }
   return (
     <div className={`grid ${MY_ROW_COLS} items-center gap-0.5 sm:gap-1`}>
-      <PlayerHeadshot playerId={resolved.player.playerId} size={22} />
+      <RankedPhoto resolved={resolved} />
       <RankedName resolved={resolved} align="left" />
       <SlotPoints resolved={resolved} align="right" />
     </div>
@@ -191,7 +206,7 @@ function TheirSlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
     <div className={`grid ${THEIR_ROW_COLS} items-center gap-0.5 sm:gap-1`}>
       <SlotPoints resolved={resolved} align="left" />
       <RankedName resolved={resolved} align="right" />
-      <PlayerHeadshot playerId={resolved.player.playerId} size={22} />
+      <RankedPhoto resolved={resolved} />
     </div>
   );
 }

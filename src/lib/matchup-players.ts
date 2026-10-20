@@ -137,46 +137,50 @@ export function valuesByPlayerId(
   return out;
 }
 
+// KTC's positions as Sleeper names them.
+const SLEEPER_POSITION: Record<string, string> = { PK: "K" };
+
 /**
- * The lineup view's position rank (1 = best RB, say): this season's points,
- * points per game — so a missed game costs less — and, in a dynasty league,
- * dynasty value, each scaled against the position's leader (1 for the top
- * scorer, 0.5 for half as many) and averaged with equal weight. A position
- * KTC doesn't value (K, DEF) blends the first two alone; a player KTC doesn't
- * list counts as no value. Keyed by Sleeper player id; players who haven't
- * played yet aren't ranked.
+ * Each player's rank at their position by KTC value under a league's metric (1 the most valuable), keyed by
+ * Sleeper id — matched by position and name as `valuesByPlayerId` does. Players KTC doesn't list aren't ranked.
  */
-export function positionBlendRankIndexFor(
-  snapshot: PlayerStatsSnapshot,
-  scoringSettings?: Record<string, number>,
-  dynastyValues?: Map<string, number>
+export function positionValueRanksById(
+  snapshot: PlayerValuesSnapshot,
+  metric: ValueMetric,
+  idIndex: Map<string, string>
 ): Map<string, number> {
-  const byPosition = new Map<string, typeof snapshot.players>();
+  const list = metric.listType === "dynasty" ? snapshot.dynasty : snapshot.fantasy;
+  const byPosition = new Map<string, typeof list>();
+  for (const p of list) byPosition.set(p.position, [...(byPosition.get(p.position) ?? []), p]);
+  const out = new Map<string, number>();
+  for (const [position, group] of byPosition) {
+    group.sort((a, b) => valueFor(b, metric.format, metric.tep) - valueFor(a, metric.format, metric.tep));
+    group.forEach((p, i) => {
+      const id = idIndex.get(`${SLEEPER_POSITION[position] ?? position}-${normalizeName(p.name)}`);
+      if (id && !out.has(id)) out.set(id, i + 1);
+    });
+  }
+  return out;
+}
+
+/**
+ * Each player's season so far under a league's scoring, keyed by Sleeper id: their rank at their position by
+ * points (1 the most), and their points a game. Players who haven't played aren't in it.
+ */
+export function seasonLinesById(
+  snapshot: PlayerStatsSnapshot,
+  scoringSettings?: Record<string, number>
+): Map<string, { rank: number; ppg: number }> {
+  const byPosition = new Map<string, { id: string; points: number; ppg: number }[]>();
   for (const line of snapshot.players) {
     if (line.gamesPlayed <= 0) continue;
-    const group = byPosition.get(line.position);
-    if (group) group.push(line);
-    else byPosition.set(line.position, [line]);
+    const points = seasonPointsFor(line, scoringSettings);
+    byPosition.set(line.position, [...(byPosition.get(line.position) ?? []), { id: line.playerId, points, ppg: points / line.gamesPlayed }]);
   }
-
-  const idx = new Map<string, number>();
+  const out = new Map<string, { rank: number; ppg: number }>();
   for (const group of byPosition.values()) {
-    const rows = group.map((line) => {
-      const points = seasonPointsFor(line, scoringSettings);
-      return { id: line.playerId, points, ppg: points / line.gamesPlayed, value: dynastyValues?.get(line.playerId) ?? 0 };
-    });
-    const top = (pick: (r: (typeof rows)[number]) => number) => Math.max(0, ...rows.map(pick));
-    const topPoints = top((r) => r.points);
-    const topPpg = top((r) => r.ppg);
-    const topValue = top((r) => r.value);
-    const share = (n: number, max: number) => (max > 0 ? Math.max(0, n) / max : 0);
-    const scored = rows.map((r) => {
-      const parts = [share(r.points, topPoints), share(r.ppg, topPpg)];
-      if (topValue > 0) parts.push(share(r.value, topValue));
-      return { ...r, score: parts.reduce((a, b) => a + b, 0) / parts.length };
-    });
-    scored.sort((a, b) => b.score - a.score || b.points - a.points);
-    scored.forEach((r, i) => idx.set(r.id, i + 1));
+    group.sort((a, b) => b.points - a.points);
+    group.forEach((r, i) => out.set(r.id, { rank: i + 1, ppg: r.ppg }));
   }
-  return idx;
+  return out;
 }
