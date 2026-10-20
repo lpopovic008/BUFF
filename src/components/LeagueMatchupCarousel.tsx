@@ -82,6 +82,21 @@ function OpponentNote({ playerId }: { playerId: string }) {
   );
 }
 
+/** Whether the league's a dynasty league, for what the starters' value ranks are by. */
+const DynastyContext = createContext(false);
+
+/** What the numbers on each starter's second line are, under the lineup's middle — each in its own color. */
+function LineLegend() {
+  const dynasty = useContext(DynastyContext);
+  return (
+    <p className={`flex flex-wrap justify-center gap-x-2 gap-y-0.5 font-semibold ${NOTE_TEXT}`}>
+      <span className="text-series-4">{dynasty ? "Dynasty" : "Redraft"} rank</span>
+      <span className="text-series-1">Season rank</span>
+      <span className="text-ink-muted">Points a game</span>
+    </p>
+  );
+}
+
 /** Each team's live projected total, by roster (see liveProjection) — none until the projections load. */
 const ProjectedContext = createContext<Map<number, number> | null>(null);
 
@@ -314,6 +329,7 @@ function MatchupLineup({ game, myRosterId }: { game: ResolvedMatchupGame; myRost
       {mine.slots.map((slot, i) => (
         <SlotRow key={i} slot={slot.slot} my={slot} their={other?.slots[i]} />
       ))}
+      <LineLegend />
     </div>
   );
 }
@@ -533,6 +549,7 @@ export function LeagueMatchupCarousel({
   projected = null,
   lineTones,
   lineNotes,
+  dynasty = false,
 }: {
   leagueId: string;
   games: ResolvedMatchupGame[];
@@ -551,6 +568,8 @@ export function LeagueMatchupCarousel({
   lineTones?: Map<string, LineTone>;
   /** Each starter's second line (see LineNote), by player id. */
   lineNotes?: Map<string, LineNote>;
+  /** A dynasty league (see DynastyContext). */
+  dynasty?: boolean;
 }) {
   // The matchup shown large beside the list (tablet and up): yours until another is picked.
   const [pickedId, setPickedId] = useState<number | null>(null);
@@ -570,6 +589,7 @@ export function LeagueMatchupCarousel({
     <ProjectedContext.Provider value={projected}>
     <LineToneContext.Provider value={lineTones ?? EMPTY_TONES}>
     <LineNoteContext.Provider value={lineNotes ?? EMPTY_NOTES}>
+    <DynastyContext.Provider value={dynasty}>
       {/* Phones: every matchup's header stacked; tap one for its lineup. */}
       <div className="md:hidden">
         <MatchupStack
@@ -621,6 +641,7 @@ export function LeagueMatchupCarousel({
         </ul>
         </div>
       </div>
+    </DynastyContext.Provider>
     </LineNoteContext.Provider>
     </LineToneContext.Provider>
     </ProjectedContext.Provider>

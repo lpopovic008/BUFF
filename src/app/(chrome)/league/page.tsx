@@ -323,6 +323,7 @@ function LeagueDetailContent() {
             projected={projected}
             lineTones={lineTones}
             lineNotes={lineNotes}
+            dynasty={carousel.dynasty}
           />
         </div>
       ) : carousel ? (

@@ -37,7 +37,7 @@ function CardFace({ player, playerId }: { player: PlayerValue; playerId: string 
         loading="lazy"
         draggable={false}
         onError={() => setTries((n) => n + 1)}
-        className="aspect-square w-[78%] object-cover"
+        className="aspect-square w-[78%] object-cover object-top"
       />
     );
   }

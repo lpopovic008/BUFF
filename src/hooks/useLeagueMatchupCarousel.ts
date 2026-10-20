@@ -41,6 +41,8 @@ export interface ResolvedMatchupGame {
 
 export interface LeagueMatchupCarouselData {
   games: ResolvedMatchupGame[];
+  /** A dynasty league — its starters' value ranks are by dynasty values, else redraft. */
+  dynasty: boolean;
 }
 
 /** Every matchup for a league's week, full starting lineups resolved to names, reloaded on every live-clock tick so points update live during games. */
@@ -107,7 +109,7 @@ export function useLeagueMatchupCarousel(leagueId: string | null, week: number |
         })),
       }));
       if (!cancelled) {
-        setData({ games: withNames });
+        setData({ games: withNames, dynasty: isDynastyLeague(league) });
       }
     }
 

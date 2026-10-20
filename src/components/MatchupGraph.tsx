@@ -280,6 +280,51 @@ export function MatchupGraph({
     if (!el || !plot) return;
     setCursor({ at: timeAt(e.clientX - el.getBoundingClientRect().left) });
   };
+  // A press on the graph, as on the player graphs: with the cursor up, a tap (no drag) takes it away; a drag
+  // moves it. A mouse just hovering moves it too — but not straight back after a tap took it away, until it
+  // leaves and returns.
+  const press = useRef<{ x: number; y: number; clearing: boolean; moved: boolean } | null>(null);
+  const hoverOff = useRef(false);
+  const plotHandlers = {
+    onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => {
+      hoverOff.current = false;
+      press.current = { x: e.clientX, y: e.clientY, clearing: cursor !== null, moved: false };
+      if (cursor === null) follow(e);
+    },
+    onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => {
+      const p = press.current;
+      if (p) {
+        if (!p.moved && Math.hypot(e.clientX - p.x, e.clientY - p.y) < 6) return;
+        p.moved = true;
+        follow(e);
+      } else if (e.pointerType === "mouse" && !hoverOff.current) follow(e);
+    },
+    onPointerUp: () => {
+      const p = press.current;
+      press.current = null;
+      if (p?.clearing && !p.moved) {
+        setCursor(null);
+        hoverOff.current = true;
+      }
+    },
+    onPointerCancel: () => {
+      press.current = null;
+    },
+    onPointerLeave: (e: React.PointerEvent<HTMLDivElement>) => {
+      if (e.pointerType === "mouse") hoverOff.current = false;
+    },
+  };
+  // Anywhere off the graph takes the cursor away too.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const cursorUp = cursor !== null;
+  useEffect(() => {
+    if (!cursorUp) return;
+    const off = (e: PointerEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) setCursor(null);
+    };
+    document.addEventListener("pointerdown", off, true);
+    return () => document.removeEventListener("pointerdown", off, true);
+  }, [cursorUp]);
   const cursorAt = cursor?.at ?? null;
   // Each team's total at the cursor's time — shown by the team's name, a dot where the cursor crosses each
   // line. At or past the lines' end, the totals as they stand.
@@ -309,14 +354,14 @@ export function MatchupGraph({
   );
 
   return (
-    <div className="flex h-full w-full min-w-0 flex-col">
+    <div ref={rootRef} className="flex h-full w-full min-w-0 flex-col">
       {/* The two teams and their totals — at the cursor's moment while it's on the lines. */}
       <div className="flex items-center justify-between gap-3 px-2 py-1.5">
         {team(mine, true, cursorTotals?.mine ?? mine.points)}
         {theirs ? team(theirs, false, cursorTotals?.theirs ?? theirs.points) : null}
       </div>
 
-      <div ref={plotRef} className="relative min-h-[8rem] flex-1 touch-pan-y select-none" onPointerMove={follow} onPointerDown={follow}>
+      <div ref={plotRef} className="relative min-h-[8rem] flex-1 touch-pan-y select-none" {...plotHandlers}>
         {plot && size && start !== null && end !== null ? (
           <svg width={size.width} height={size.height} className="absolute inset-0 overflow-visible" role="img" aria-label="Both teams' points over the week">
             {/* Green between the lines wherever you lead, red wherever you trail. */}
