@@ -164,6 +164,25 @@ async function main() {
       `  ${league}: ${mine.length} trades — median gap plain ${pct(score(mine, plain).median)}, at the overall fit ${pct(score(mine, (t) => tradeValues(t.a, t.b, best.m, best.w, best.q)).median)}, fitted on the other league alone (picks ×${own.m}, ${own.w}·(v/T)^${own.q}) ${pct(score(mine, (t) => tradeValues(t.a, t.b, own.m, own.w, own.q)).median)}`
     );
   }
+  // Other ways an additional piece's share could follow its value, picks at the fitted multiplier.
+  const shapes: { name: string; grid: [number, number][]; share: (v: number, x: number, y: number) => number }[] = [
+    { name: "x·(v/9999)^y — its value on KTC's scale", grid: range(0, 3, 0.05).flatMap((x) => range(0, 3, 0.25).map((y): [number, number] => [x, y])), share: (v, x, y) => x * (v / 9999) ** y },
+    { name: "0 under a cut-off of y, x above it", grid: range(0, 1, 0.05).flatMap((x) => range(0, 6000, 250).map((y): [number, number] => [x, y])), share: (v, x, y) => (v < y ? 0 : x) },
+  ];
+  for (const shape of shapes) {
+    let fitBest = { x: 0, y: 0, mse: Infinity, median: 0 };
+    for (const [x, y] of shape.grid) {
+      const sc = score(trades, (t) => {
+        const scale = (ps: Piece[]) => ps.map((p) => ({ ...p, v: p.pick ? p.v * best.m : p.v }));
+        const [sa, sb] = [scale(t.a), scale(t.b)];
+        const [xa, xb] = additional(sa, sb);
+        const value = (all: Piece[], extra: Piece[]) => all.reduce((s2, p) => s2 + p.v, 0) - extra.reduce((s2, p) => s2 + p.v * (1 - Math.min(1, shape.share(p.v, x, y))), 0);
+        return [value(sa, xa), value(sb, xb)];
+      });
+      if (sc.mse < fitBest.mse) fitBest = { x, y, ...sc };
+    }
+    console.log(`additional pieces at ${shape.name}: best x = ${fitBest.x}, y = ${fitBest.y} — mean sq. log gap ${fitBest.mse.toFixed(4)}, median gap ${pct(fitBest.median)}`);
+  }
   console.log("\nSome trades — plain totals, then trade values:");
   for (const t of trades.slice(0, 24)) {
     const [pa, pb] = plain(t);
