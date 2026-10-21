@@ -215,17 +215,24 @@ how long before its draft it was (`pickTrends`), and read at how long before
 its own draft the pick was (the league's draft date, or May 1). Estimates are
 marked "≈".
 
-Getting fewer, bigger pieces costs more than the plain sum: in a two-team
-trade the side doing so gets an **Added value** line. The rule was fitted to
-the commissioner's two dynasty leagues (`scripts/fit-trade-adjustment.ts`, run
-on demand by `.github/workflows/fit-trade-adjustment.yml`: 106 two-team
-trades, valued as they were made, trades undone soon after left out): a side's
-**trade value is its best piece in full plus 18% of everything else**
-(`tradeValue`), which brought the median gap between the sides from 34% to
-13.5% (both leagues alike). The added value is enough for the plain totals to
-compare as the trade values do — *the other side's total × (this side's trade
-value ÷ the other's) − this side's total* (`addedValue`) — and only the side
-packing more value per piece gets it; a one-for-one gets none. Totals, the
+Getting fewer, bigger pieces costs more than the plain sum, so a two-team
+trade gives one side an **Added value** line. The rule was fitted to the
+commissioner's two dynasty leagues (`scripts/fit-trade-adjustment.ts`, run on
+demand by `.github/workflows/fit-trade-adjustment.yml`: 106 two-team trades,
+valued as they were made, trades undone soon after left out), and brought the
+median gap between the sides from 34% to about 11%, alike in both leagues:
+
+- the pieces are paired across the trade — players with players, picks with
+  picks, biggest with biggest, then what's left of one kind with what's left
+  of the other — and paired pieces count in full;
+- the side with more pieces' extra ones (its additional pieces) count for
+  only **0.8 × (value ÷ 9,999)** of their value — the better the piece, the
+  more of it counts (a 5,000 piece about 40%, a 1,000 piece about 8%);
+- picks count for **90%** of their KTC value.
+
+Each side's trade value falls short of its plain total by what its picks and
+additional pieces don't count for; the side falling short by less gets the
+difference as its added value (`tradeValues`, `addedValues`). Totals, the
 chart and who's ahead all count it. The side whose haul
 is worth the most now has its team on the plate; yours is underlined.
 

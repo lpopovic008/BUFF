@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { addedValue, analyzeTrades, DraftResult, pickTrends, TradeSeason, tradeValue } from "./trades";
+import { addedValues, analyzeTrades, DraftResult, PICK_WEIGHT, PIECE_SHARE, pickTrends, TradeSeason, tradeValues } from "./trades";
 import { DAY_MS, ValueHistory, ValueSeries } from "./value-history";
 import { SleeperTransaction } from "./sleeper";
 
@@ -109,20 +109,36 @@ test("analyzeTrades finds a pick in whichever of its season's drafts has it, pas
   assert.equal(t.sides[0].got[0].became?.name, "Rookie Wideout");
 });
 
-test("tradeValue counts a side's best piece in full and the rest at 18%", () => {
-  assert.equal(tradeValue([8000]), 8000);
-  assert.ok(Math.abs(tradeValue([5000, 3000, 2000]) - (5000 + 0.18 * 5000)) < 1e-9);
+test("tradeValues pairs pieces across the trade and counts the additional ones by how good they are", () => {
+  // Ja'Marr Chase for two firsts and two players: Chase pairs with the better player; the rest are additional.
+  const chase = [{ v: 8898, pick: false }];
+  const haul = [
+    { v: 5906, pick: true },
+    { v: 4691, pick: true },
+    { v: 3256, pick: false },
+    { v: 3383, pick: false },
+  ];
+  const [ea, eb] = tradeValues(chase, haul);
+  assert.equal(ea, 8898);
+  const extra = (v: number) => v * ((PIECE_SHARE * v) / 9999);
+  assert.ok(Math.abs(eb - (3383 + extra(5906 * PICK_WEIGHT) + extra(4691 * PICK_WEIGHT) + extra(3256))) < 1e-6);
 });
 
-test("addedValue gives the side getting fewer, bigger pieces enough to compare as the trade values do", () => {
-  // Ja'Marr Chase for two firsts and two players.
-  const chase = [8898];
-  const haul = [5906, 4691, 3256, 3383];
-  const added = addedValue(chase, haul);
-  const total = haul.reduce((t, v) => t + v, 0);
-  assert.ok(Math.abs((8898 + added) / total - tradeValue(chase) / tradeValue(haul)) < 1e-9);
-  assert.ok(added > 10000 && added < 11000);
-  // The side spreading its value gets none, and nor does a one-for-one.
-  assert.equal(addedValue(haul, chase), 0);
-  assert.equal(addedValue([5000], [4000]), 0);
+test("addedValues gives the side falling short of its plain total by less the difference", () => {
+  const chase = [{ v: 8898, pick: false }];
+  const haul = [
+    { v: 5906, pick: true },
+    { v: 4691, pick: true },
+    { v: 3256, pick: false },
+    { v: 3383, pick: false },
+  ];
+  const [added, none] = addedValues(chase, haul);
+  const [ea, eb] = tradeValues(chase, haul);
+  assert.equal(none, 0);
+  assert.ok(Math.abs(8898 + added - 17236 - (ea - eb)) < 1e-6);
+  // A player for a player: nothing either way. A player for a pick: the pick's side counts it at PICK_WEIGHT.
+  assert.deepEqual(addedValues([{ v: 5000, pick: false }], [{ v: 4000, pick: false }]), [0, 0]);
+  const [p, q] = addedValues([{ v: 5000, pick: false }], [{ v: 5000, pick: true }]);
+  assert.ok(Math.abs(p - 5000 * (1 - PICK_WEIGHT)) < 1e-6);
+  assert.equal(q, 0);
 });

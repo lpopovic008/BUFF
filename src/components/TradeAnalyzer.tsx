@@ -11,7 +11,7 @@ import { shownGrade, valueGrade } from "@/lib/player-values";
 const SIDE_COLORS = ["var(--ink-primary)", "var(--series-1)", "var(--series-2)", "var(--series-5)"];
 
 const ADDED =
-  "What getting fewer, bigger pieces is worth: in these leagues' trades, a side's best piece counts in full and everything else about 18% — this evens the plain totals out to match";
+  "As these leagues trade: pieces pair off player for player and pick for pick and count in full; the side with more pieces' extra ones count for only 0.8 × (value ÷ 9,999) of their value — the better the piece, the more of it counts — and picks count for 90% of their value. This is what evens the plain totals out to match";
 
 const ESTIMATED = "KTC had no value for this pick then, so it's read off its round's trend — picks gain value steadily as their draft nears";
 
