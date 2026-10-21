@@ -12,15 +12,17 @@ export function PlayerHeadshot({ playerId, size = 40, sizeClass }: { playerId: s
     return <span className={`shrink-0 bg-page ${sizeClass ?? ""}`} style={sized.style} aria-hidden />;
   }
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={playerHeadshotUrl(playerId)}
-      alt=""
-      loading="lazy"
-      onError={() => setFailed(true)}
-      // Square, the photo's top kept — a cropped photo loses the body below the head, never the face.
-      className={`shrink-0 bg-page object-cover object-top ${sizeClass ?? ""}`}
-      style={sized.style}
-    />
+    // Square, zoomed in on the face: the photo half again as big, held to its top middle — where Sleeper's
+    // head-and-shoulders shots have the face — so what's cut is shoulders and background, never the face.
+    <span className={`relative shrink-0 overflow-hidden bg-page ${sizeClass ?? ""}`} style={sized.style}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={playerHeadshotUrl(playerId)}
+        alt=""
+        loading="lazy"
+        onError={() => setFailed(true)}
+        className="absolute inset-0 h-full w-full origin-[50%_18%] scale-150 object-cover object-top"
+      />
+    </span>
   );
 }
