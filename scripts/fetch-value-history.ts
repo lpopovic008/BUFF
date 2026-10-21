@@ -86,6 +86,12 @@ async function probe() {
         if (k >= 0) console.log(`    ${key}: ${obj.slice(k, k + 300)} … ${obj.slice(Math.max(k, obj.indexOf("]", k) - 120), obj.indexOf("]", k) + 1)}`);
       }
     }
+    for (const name of ["playerSuperflex", "playerOneQB"]) {
+      const k = page.indexOf(`var ${name}`);
+      console.log(`  ${name}: ${k >= 0 ? page.slice(k, k + 700) : "none"}`);
+      const ov = page.indexOf("overallValue", k);
+      if (ov >= 0) console.log(`  …overallValue: ${page.slice(ov, ov + 400)}`);
+    }
     const dv = page.search(/\{"d":"\d{4}-\d\d-\d\d","v":/);
     console.log(`  first {"d","v"}: ${dv >= 0 ? page.slice(Math.max(0, dv - 120), dv + 200) : "none"}`);
   }
