@@ -93,7 +93,7 @@ function LineLegend() {
     <p className={`flex flex-wrap justify-center gap-x-2 gap-y-0.5 font-semibold ${NOTE_TEXT}`}>
       <span className="text-series-4">{dynasty ? "Dynasty" : "Redraft"} rank</span>
       <span className="text-series-1">Season rank</span>
-      <span className="text-ink-muted">Points a game</span>
+      <span className="text-ink-muted">Points per game</span>
     </p>
   );
 }
@@ -169,7 +169,7 @@ function RankedName({ resolved, align }: { resolved: ResolvedSlot; align: "left"
     <span key="season" className="w-[3ch] shrink-0 text-center text-series-1" title={seasonRank ? `${player!.position}${seasonRank} by points this season` : undefined}>
       {seasonRank ?? ""}
     </span>,
-    <span key="ppg" className="w-[4ch] shrink-0 text-center text-ink-muted" title={ppg !== null ? "Points a game this season" : undefined}>
+    <span key="ppg" className="w-[4ch] shrink-0 text-center text-ink-muted" title={ppg !== null ? "Points per game this season" : undefined}>
       {ppg !== null ? ppg.toFixed(1) : ""}
     </span>,
     <OpponentNote key="opponent" playerId={player!.playerId} />,
@@ -252,7 +252,7 @@ const BENCH_SORTS: { id: string; label: (dynasty: boolean) => string; key: (s: R
   { id: "projected", label: () => "Projected", key: (_, note) => note?.projected ?? null },
   // Easiest first: the defense allowing the position the most (the highest rank).
   { id: "matchup", label: () => "Matchup", key: (_, note) => (note?.rank != null && note.of > 0 ? note.rank : null) },
-  { id: "ppg", label: () => "Points a game", key: (s) => s.ppg },
+  { id: "ppg", label: () => "Points per game", key: (s) => s.ppg },
   { id: "points", label: () => "Points", key: (s) => s.livePoints },
   { id: "season", label: () => "Season rank", key: (s) => (s.seasonRank === null ? null : -s.seasonRank) },
   { id: "value", label: (dynasty) => `${dynasty ? "Dynasty" : "Redraft"} rank`, key: (s) => (s.valueRank === null ? null : -s.valueRank) },
