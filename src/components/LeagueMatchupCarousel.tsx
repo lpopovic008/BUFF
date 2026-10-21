@@ -243,33 +243,10 @@ type MatchupTeam = ResolvedMatchupGame["teams"][number];
 const NO_POSITIONS: string[] = [];
 const PositionsContext = createContext<string[]>(NO_POSITIONS);
 
-/** A bench player: their name, and under it their points (as a starter's read — see SlotPoints) and projection. */
-function BenchPlayer({ resolved }: { resolved: ResolvedSlot }) {
-  const id = resolved.player!.playerId;
-  const tone = useContext(LineToneContext).get(id);
-  const projected = useContext(LineNoteContext).get(id)?.projected ?? null;
-  const notYet = tone === "pre" && resolved.livePoints === 0;
-  const color = notYet ? "text-ink-muted" : tone === "good" ? "text-status-good" : tone === "bad" ? "text-status-critical" : "text-ink-secondary";
-  return (
-    <span className="flex min-w-0 flex-col items-center">
-      <span className={`max-w-full truncate ${ROW_TEXT} font-bold leading-tight text-ink-primary`}>
-        <PlayerName name={resolved.player!.name} />
-      </span>
-      <span className={`flex gap-1 font-semibold tabular-nums ${NOTE_TEXT}`}>
-        <span className={color}>{notYet ? "–" : formatPoints(resolved.livePoints)}</span>
-        {projected !== null ? (
-          <span className="text-ink-muted" title="Projected">
-            {formatPoints(projected)}
-          </span>
-        ) : null}
-      </span>
-    </span>
-  );
-}
-
 /**
- * Your bench, under your lineup: a column for each position the league can start (and any other a bench player
- * plays), each with its players by this week's projection, most first.
+ * Your bench, under your lineup: a row for each position the league can start (and any other a bench player
+ * plays), its players side by side to swipe through — most projected this week on the left — each laid out as
+ * a starter is, every number alike.
  */
 function Bench({ bench }: { bench: ResolvedSlot[] }) {
   const leaguePositions = useContext(PositionsContext);
@@ -278,29 +255,34 @@ function Bench({ bench }: { bench: ResolvedSlot[] }) {
   const positions = [...new Set([...leaguePositions, ...bench.map((s) => s.player!.position)])];
   const projected = (s: ResolvedSlot) => notes.get(s.player!.playerId)?.projected ?? -Infinity;
   return (
-    <div className="flex flex-col gap-1.5 border-t border-border pt-2.5">
+    <div className="flex flex-col gap-2.5 border-t border-border pt-2.5">
       <p className="text-[0.625rem] font-bold uppercase tracking-wide text-ink-muted sm:text-[0.6875rem]">Bench</p>
-      <div className="grid gap-x-1.5 sm:gap-x-3" style={{ gridTemplateColumns: `repeat(${positions.length}, minmax(0, 1fr))` }}>
-        {positions.map((position) => {
-          const players = bench.filter((s) => s.player!.position === position).sort((a, b) => projected(b) - projected(a));
-          return (
-            <div key={position} className="flex min-w-0 flex-col gap-2">
-              <span className="border border-current py-px text-center text-[0.625rem] font-bold uppercase leading-tight text-ink-primary sm:text-[0.6875rem]">
-                {position}
-              </span>
-              {players.length === 0 ? (
-                <span className={`text-center text-ink-muted ${NOTE_TEXT}`}>–</span>
-              ) : (
-                players.map((s) => <BenchPlayer key={s.player!.playerId} resolved={s} />)
-              )}
-            </div>
-          );
-        })}
-      </div>
+      {positions.map((position) => {
+        const players = bench.filter((s) => s.player!.position === position).sort((a, b) => projected(b) - projected(a));
+        return (
+          // The label's column and gap match a lineup row's middle, so each player, at half the strip, is a lineup side's width.
+          <div key={position} className="grid grid-cols-[1.5rem_minmax(0,1fr)] items-center gap-2 sm:grid-cols-[1.8rem_minmax(0,1fr)] sm:gap-4">
+            <span className="border border-current py-px text-center text-[0.625rem] font-bold uppercase leading-tight text-ink-primary sm:text-[0.6875rem]">
+              {position}
+            </span>
+            {players.length === 0 ? (
+              <span className={`text-ink-muted ${ROW_TEXT}`}>–</span>
+            ) : (
+              // Room above and below for the photos, which spill past their rows; no scrollbar, it's swiped.
+              <div className="-my-1 flex snap-x snap-mandatory gap-3 overflow-x-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {players.map((s) => (
+                  <div key={s.player!.playerId} className="shrink-0 basis-1/2 snap-start">
+                    <MySlotPlayer resolved={s} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
-
 
 /**
  * The matchup's header, laid on the lineup's own grid: each team's line
