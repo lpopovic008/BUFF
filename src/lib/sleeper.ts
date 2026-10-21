@@ -127,6 +127,36 @@ export interface SleeperTransaction {
   adds: Record<string, number> | null;
   drops: Record<string, number> | null;
   waiver_budget?: { sender: number; receiver: number; amount: number }[];
+  /** A trade's draft picks: `roster_id` the team whose pick it originally was, `owner_id` the team getting it. */
+  draft_picks?: SleeperTradedPick[];
+}
+
+export interface SleeperTradedPick {
+  season: string;
+  round: number;
+  roster_id: number;
+  previous_owner_id: number;
+  owner_id: number;
+}
+
+export interface SleeperDraft {
+  draft_id: string;
+  season: string;
+  status: string;
+  type: string;
+  start_time: number | null;
+  /** Each draft column ("1", "2"…) to the roster whose picks it holds — whosever pick it originally was. */
+  slot_to_roster_id?: Record<string, number> | null;
+  settings?: { rounds?: number; [key: string]: unknown };
+}
+
+export interface SleeperDraftPick {
+  round: number;
+  pick_no: number;
+  draft_slot: number;
+  /** The team that made it. */
+  roster_id: number | null;
+  player_id: string;
 }
 
 export interface SleeperBracketMatch {
@@ -199,6 +229,18 @@ export async function getTransactions(
     60
   );
   return txns ?? [];
+}
+
+export async function getLeagueDrafts(leagueId: string): Promise<SleeperDraft[]> {
+  return (await sleeperFetch<SleeperDraft[]>(`/league/${leagueId}/drafts`, 3600)) ?? [];
+}
+
+export async function getDraft(draftId: string): Promise<SleeperDraft | null> {
+  return sleeperFetch<SleeperDraft>(`/draft/${draftId}`, 3600);
+}
+
+export async function getDraftPicks(draftId: string): Promise<SleeperDraftPick[]> {
+  return (await sleeperFetch<SleeperDraftPick[]>(`/draft/${draftId}/picks`, 3600)) ?? [];
 }
 
 export async function getWinnersBracket(leagueId: string): Promise<SleeperBracketMatch[]> {

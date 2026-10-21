@@ -198,18 +198,24 @@ site root (no `/<repo-name>` prefix; that's only added for the GitHub Pages buil
 history is one click from inside each league, so a separate nav entry was
 redundant.
 
-Above everything else, a **My Teams** card: pick a league from the dropdown
-and swipe (or use the arrows) through every team's full roster and KTC
-value, starting on your own — same view as clicking a team name anywhere
-else in the app (`/team?league=...&roster=...`). Values are scored to match
-how that specific league actually plays rather than one fixed metric:
-dynasty leagues get dynasty values, redraft/keeper get fantasy values, and
-1QB vs. Superflex is read straight from the league's roster slots
-(`isDynastyLeague`/`leagueQBFormat` in `src/lib/sleeper.ts`) — a QB in a
-Superflex dynasty league and a QB in a 1QB redraft league are worth very
-different things, and this is where "what are my assets actually worth"
-lives, without digging through the full player list below to find your own
-guys.
+Beside the player list, **All players** and each of your leagues: pick a
+league and the list gives way to its **trade analyzer** — every trade in it,
+all seasons (following `previous_league_id`), newest first. Each side's haul is
+weighed in KTC dynasty values (superflex or 1QB, as the league plays), shown as
+grades: what each piece was worth when traded and now, the side's totals and
+their change, and a small chart of each side's haul week by week since. A draft
+pick is KTC's "{season} Mid {round}" until its draft, then whoever it became
+(from the league's rookie draft); a pick KTC no longer lists (its draft's done)
+is weighed at what it became, its first value, marked "≈". The side whose haul
+is worth the most now has its team on the plate; yours is underlined.
+
+The values over time come from `scripts/fetch-value-history.ts`
+(`.github/workflows/value-history.yml`, daily): every KTC player page carries
+that player's whole history, a value a day, so a one-off `--full` run gathered
+everyone's (back to 2020) and daily runs only fetch new players' pages and add
+each week's values from the rankings page. It's published as
+`public/data/value-history.json` (a value a week, superflex and 1QB), fetched
+only when a league's trades are looked at.
 
 Below that, the full keep/trade/cut trade values from KeepTradeCut, with a
 Dynasty/Fantasy (redraft) toggle, a 1QB/Superflex toggle (Superflex by

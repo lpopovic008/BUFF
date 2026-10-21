@@ -1,0 +1,163 @@
+"use client";
+
+import { PlateCard } from "@/components/ui/PlateCard";
+import { useLeagueTrades } from "@/hooks/useLeagueTrades";
+import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
+import { AnalyzedTrade, TradeAsset, TradeSide } from "@/lib/trades";
+import { shownGrade, valueGrade } from "@/lib/player-values";
+
+// Each side's color — its swatch by the team's name and its line on the chart.
+const SIDE_COLORS = ["var(--ink-primary)", "var(--series-1)", "var(--series-2)", "var(--series-5)"];
+
+/** A value as the values page shows it: its whole grade (9,999 reads 99). */
+function grade(value: number): number {
+  return shownGrade(valueGrade(value));
+}
+
+/** "+6" green, "−4" red, "0" grey — a change in whole grades. */
+function Change({ from, to }: { from: number; to: number }) {
+  const delta = grade(to) - grade(from);
+  return (
+    <span className={`tabular-nums ${delta > 0 ? "text-status-good" : delta < 0 ? "text-status-critical" : "text-ink-muted"}`}>
+      {delta > 0 ? "+" : delta < 0 ? "−" : ""}
+      {Math.abs(delta)}
+    </span>
+  );
+}
+
+/** One thing a side got: its name and position, then what it was worth when traded and what it's worth now. */
+function AssetRow({ asset }: { asset: TradeAsset }) {
+  const position = asset.position === "PICK" ? null : asset.position;
+  return (
+    <li className="flex items-baseline gap-2 text-xs">
+      <span className="min-w-0 flex-1">
+        <span className="flex min-w-0 items-baseline gap-1">
+          <span className="truncate font-semibold text-ink-primary">{asset.label}</span>
+          {position ? <span className={`shrink-0 text-[0.625rem] font-semibold ${POSITION_TEXT_COLOR[position] ?? "text-ink-muted"}`}>{position}</span> : null}
+          {asset.pickOf ? <span className="min-w-0 truncate text-[0.625rem] text-ink-muted">({asset.pickOf})</span> : null}
+        </span>
+        {asset.became ? (
+          <span className="flex min-w-0 items-baseline gap-1 text-[0.625rem] text-ink-muted">
+            <span className="truncate">→ {asset.became.name}</span>
+            {asset.became.position ? <span className={`shrink-0 font-semibold ${POSITION_TEXT_COLOR[asset.became.position] ?? ""}`}>{asset.became.position}</span> : null}
+          </span>
+        ) : null}
+      </span>
+      <span
+        className="w-[3ch] shrink-0 text-right tabular-nums text-ink-muted"
+        title={asset.thenStandIn ? "No value from when it was traded — this is what the pick became, at its first value" : "When traded"}
+      >
+        {asset.then !== null ? `${asset.thenStandIn ? "≈" : ""}${grade(asset.then)}` : "–"}
+      </span>
+      <span className="text-ink-muted">→</span>
+      <span className="w-[2ch] shrink-0 text-right font-bold tabular-nums text-ink-primary" title="Now">
+        {asset.now !== null ? grade(asset.now) : "–"}
+      </span>
+    </li>
+  );
+}
+
+/** A side of a trade: its team (yours underlined; whoever's haul is worth the most now on the plate), what it got, and its totals. */
+function SideColumn({ side, color, ahead }: { side: TradeSide; color: string; ahead: boolean }) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1.5">
+      <div className="flex items-center gap-1.5 text-xs">
+        <span className="h-2 w-2 shrink-0" style={{ background: color }} aria-hidden />
+        <span
+          className={`min-w-0 truncate font-bold ${ahead ? "bg-[var(--map-tag)] px-1 text-[var(--map-tag-ink)]" : "text-ink-primary"} ${
+            side.mine ? "underline decoration-2 underline-offset-2" : ""
+          }`}
+          title={ahead ? `${side.team} — worth the most now` : side.team}
+        >
+          {side.team}
+        </span>
+      </div>
+      <ul className="flex flex-col gap-1">
+        {side.got.map((asset, i) => (
+          <AssetRow key={i} asset={asset} />
+        ))}
+        {side.faab > 0 ? <li className="text-xs text-ink-muted">${side.faab} FAAB</li> : null}
+        {side.got.length === 0 && side.faab === 0 ? <li className="text-xs text-ink-muted">Nothing</li> : null}
+      </ul>
+      <div className="mt-auto flex items-baseline justify-end gap-2 border-t border-border pt-1 text-xs">
+        <span className="text-ink-muted">Total</span>
+        <span className="tabular-nums text-ink-muted">{grade(side.then)}</span>
+        <span className="text-ink-muted">→</span>
+        <span className="font-bold tabular-nums text-ink-primary">{grade(side.now)}</span>
+        <Change from={side.then} to={side.now} />
+      </div>
+    </div>
+  );
+}
+
+/** Each side's haul, week by week from the trade to now, a line in its color. */
+function TradePath({ sides }: { sides: TradeSide[] }) {
+  const first = sides[0]?.path[0]?.day;
+  const last = sides[0]?.path[sides[0].path.length - 1]?.day;
+  const top = Math.max(1, ...sides.flatMap((s) => s.path.map((p) => p.value)));
+  if (first === undefined || last === undefined || last <= first) return null;
+  const x = (day: number) => ((day - first) / (last - first)) * 100;
+  const y = (value: number) => 38 - (value / top) * 36;
+  return (
+    <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="h-12 w-full" role="img" aria-label="Each side's value from the trade to now">
+      <line x1={0} x2={100} y1={38} y2={38} stroke="var(--border)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+      {sides.map((s, i) => (
+        <polyline
+          key={s.rosterId}
+          points={s.path.map((p) => `${x(p.day)},${y(p.value)}`).join(" ")}
+          fill="none"
+          stroke={SIDE_COLORS[i % SIDE_COLORS.length]}
+          strokeWidth={1.5}
+          vectorEffect="non-scaling-stroke"
+        />
+      ))}
+    </svg>
+  );
+}
+
+function TradeCard({ trade }: { trade: AnalyzedTrade }) {
+  const leader = trade.sides.reduce((best, s) => (s.now > best.now ? s : best), trade.sides[0]);
+  const date = new Date(trade.at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return (
+    <li className="flex flex-col gap-2 border border-border p-2">
+      <div className="flex items-baseline justify-between text-[0.6875rem] font-semibold uppercase tracking-wide text-ink-muted">
+        <span>{date}</span>
+        <span className="font-normal normal-case">then → now</span>
+      </div>
+      <div className={`grid gap-3 ${trade.sides.length > 2 ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+        {trade.sides.map((side, i) => (
+          <SideColumn key={side.rosterId} side={side} color={SIDE_COLORS[i % SIDE_COLORS.length]} ahead={side === leader && side.now > 0} />
+        ))}
+      </div>
+      <TradePath sides={trade.sides} />
+    </li>
+  );
+}
+
+/**
+ * Every trade in a league, all its seasons, newest first: what each side got, what it was worth when traded
+ * and now — in KTC dynasty values (superflex or 1QB, as the league plays), shown as the values page's grades —
+ * and each side's haul from the trade to now on a little chart.
+ */
+export function TradeAnalyzer({ leagueId, leagueName, sleeperUserId }: { leagueId: string; leagueName: string; sleeperUserId: string | null }) {
+  const data = useLeagueTrades(leagueId, sleeperUserId);
+  return (
+    <PlateCard
+      title={leagueName}
+      aside={data ? <span className="tabular-nums">{data.trades.length} trades</span> : null}
+      bodyClassName="p-2 sm:p-3"
+    >
+      {!data ? (
+        <p className="py-4 text-center text-sm text-ink-secondary">Loading trades…</p>
+      ) : data.trades.length === 0 ? (
+        <p className="py-4 text-center text-sm text-ink-secondary">No trades yet.</p>
+      ) : (
+        <ol className="flex flex-col gap-3">
+          {data.trades.map((trade) => (
+            <TradeCard key={trade.id} trade={trade} />
+          ))}
+        </ol>
+      )}
+    </PlateCard>
+  );
+}

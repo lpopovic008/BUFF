@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { SearchIcon, CrownIcon, CalendarIcon, SuperflexIcon, OneQBIcon, PlusCircleIcon, DotIcon } from "@/components/ui/Icon";
 import { IconButton } from "@/components/ui/IconButton";
-import { LeagueRosterPanel } from "@/components/LeagueRosterPanel";
+import { TradeAnalyzer } from "@/components/TradeAnalyzer";
 import { PickButton } from "@/components/ui/PickButton";
 import { useConfig } from "@/hooks/useConfig";
 import { useMyLeagues } from "@/hooks/useMyLeagues";
@@ -139,7 +139,7 @@ export default function ValuesPage() {
       <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-[minmax(0,7fr)_minmax(16rem,3fr)]">
         <div className="order-2 min-w-0 md:order-1">
           {picked ? (
-            <LeagueRosterPanel
+            <TradeAnalyzer
               key={picked.leagueId}
               leagueId={picked.leagueId}
               leagueName={picked.leagueName}
