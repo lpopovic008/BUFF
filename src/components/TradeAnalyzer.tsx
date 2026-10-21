@@ -9,6 +9,8 @@ import { shownGrade, valueGrade } from "@/lib/player-values";
 // Each side's color — its swatch by the team's name and its line on the chart.
 const SIDE_COLORS = ["var(--ink-primary)", "var(--series-1)", "var(--series-2)", "var(--series-5)"];
 
+const ESTIMATED = "KTC had no value for this pick then, so it's read off its round's trend — picks gain value steadily as their draft nears";
+
 /** A value as the values page shows it: its whole grade (9,999 reads 99). */
 function grade(value: number): number {
   return shownGrade(valueGrade(value));
@@ -45,13 +47,13 @@ function AssetRow({ asset }: { asset: TradeAsset }) {
       </span>
       <span
         className="w-[3ch] shrink-0 text-right tabular-nums text-ink-muted"
-        title={asset.thenStandIn ? "No value from when it was traded — this is what the pick became, at its first value" : "When traded"}
+        title={asset.thenEstimated ? `When traded — estimated: ${ESTIMATED}` : "When traded"}
       >
-        {asset.then !== null ? `${asset.thenStandIn ? "≈" : ""}${grade(asset.then)}` : "–"}
+        {asset.then !== null ? `${asset.thenEstimated ? "≈" : ""}${grade(asset.then)}` : "–"}
       </span>
       <span className="text-ink-muted">→</span>
-      <span className="w-[2ch] shrink-0 text-right font-bold tabular-nums text-ink-primary" title="Now">
-        {asset.now !== null ? grade(asset.now) : "–"}
+      <span className="w-[3ch] shrink-0 text-right font-bold tabular-nums text-ink-primary" title={asset.nowEstimated ? `Now — estimated: ${ESTIMATED}` : "Now"}>
+        {asset.now !== null ? `${asset.nowEstimated ? "≈" : ""}${grade(asset.now)}` : "–"}
       </span>
     </li>
   );

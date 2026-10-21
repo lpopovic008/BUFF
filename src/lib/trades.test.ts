@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { analyzeTrades, DraftResult, TradeSeason } from "./trades";
+import { analyzeTrades, DraftResult, pickTrends, TradeSeason } from "./trades";
 import { DAY_MS, ValueHistory, ValueSeries } from "./value-history";
 import { SleeperTransaction } from "./sleeper";
 
@@ -61,7 +61,40 @@ test("analyzeTrades stands in what a pick became when there's no value from when
   const [t] = analyzeTrades(seasons, drafts, noPickHistory, bySleeperId, players, true, 1021 * DAY_MS);
   const [pick] = t.sides[0].got;
   assert.equal(pick.then, 6000);
-  assert.equal(pick.thenStandIn, true);
+  assert.equal(pick.thenEstimated, true);
   // Held at the stand-in until the draft, rather than reading as nothing.
   assert.deepEqual(t.sides[0].path.map((p) => p.value), [6000, 6000, 6500]);
+});
+
+// Mid firsts of 2030: 3000 two years before the draft, 4000 a year before, 5000 at it.
+const draft2030 = Math.floor(Date.UTC(2030, 4, 1) / DAY_MS);
+const trendHistory: ValueHistory = {
+  updatedAt: null,
+  from: draft2030 - 2 * 365,
+  step: 365,
+  players: { m: { n: "2030 Mid 1st", p: "RDP", t: null, sf: [3000, 4000, 5000], q: [3000, 4000, 5000] } },
+};
+
+test("pickTrends fits each round's value against years before its draft", () => {
+  const trend = pickTrends(trendHistory, true).get(1)!;
+  assert.ok(Math.abs(trend.a - 5000) < 10);
+  assert.ok(Math.abs(trend.b + 1000) < 10);
+});
+
+test("analyzeTrades estimates a pick KTC had no value for from its round's trend", () => {
+  const draft2031 = Math.floor(Date.UTC(2031, 4, 1) / DAY_MS);
+  const pickTrade: SleeperTransaction = {
+    ...trade,
+    created: (draft2031 - 365) * DAY_MS,
+    adds: null,
+    waiver_budget: [],
+    draft_picks: [{ season: "2031", round: 1, roster_id: 2, previous_owner_id: 2, owner_id: 1 }],
+  };
+  const [t] = analyzeTrades([{ ...seasons[0], trades: [pickTrade] }], new Map(), trendHistory, new Map(), new Map(), true, (draft2031 - 100) * DAY_MS);
+  const [pick] = t.sides[0].got;
+  // A year before its draft: about 4000 — and, 100 days before, more.
+  assert.ok(Math.abs(pick.then! - 4000) < 10);
+  assert.equal(pick.thenEstimated, true);
+  assert.ok(pick.now! > pick.then!);
+  assert.equal(pick.nowEstimated, true);
 });

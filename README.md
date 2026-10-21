@@ -205,8 +205,13 @@ weighed in KTC dynasty values (superflex or 1QB, as the league plays), shown as
 grades: what each piece was worth when traded and now, the side's totals and
 their change, and a small chart of each side's haul week by week since. A draft
 pick is KTC's "{season} Mid {round}" until its draft, then whoever it became
-(from the league's rookie draft); a pick KTC no longer lists (its draft's done)
-is weighed at what it became, its first value, marked "≈". The side whose haul
+(from the league's rookie draft). Where KTC has no value for a pick on a day
+(a pick from a draft that's done, which KTC no longer lists), it's estimated
+from its round's trend — picks gain value steadily as their draft nears, so a
+line is fitted through every value KTC has given that round's mid pick against
+how long before its draft it was (`pickTrends`), and read at how long before
+its own draft the pick was (the league's draft date, or May 1). Estimates are
+marked "≈". The side whose haul
 is worth the most now has its team on the plate; yours is underlined.
 
 The values over time come from `scripts/fetch-value-history.ts`

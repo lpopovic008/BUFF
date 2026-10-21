@@ -34,11 +34,55 @@ export interface TradeAsset {
   /** Value when the trade was made — null with nothing to go by. */
   then: number | null;
   /**
-   * `then` stood in for: a pick KTC no longer lists (its draft's done) weighed at what it became, the
-   * drafted player's first value.
+   * `then` estimated: a pick KTC had no value for on the day, read off its round's trend (see pickTrends) — or,
+   * with none, what it became, the drafted player's first value.
    */
-  thenStandIn: boolean;
+  thenEstimated: boolean;
   now: number | null;
+  /** `now` read off its round's trend — a pick KTC doesn't list. */
+  nowEstimated: boolean;
+}
+
+/** A round's pick value against time: `a + b × years before the draft`. */
+export interface PickTrend {
+  a: number;
+  b: number;
+}
+
+const YEAR_DAYS = 365.25;
+
+/** The day a season's rookie draft is taken to be when it isn't known: May 1. */
+function assumedDraftDay(season: string): number {
+  return dayOf(Date.UTC(Number(season), 4, 1));
+}
+
+/**
+ * Each round's trend — picks gain value steadily as their draft comes closer — fitted (least squares) through
+ * every value KTC has given that round's mid pick, any season, against how long before the draft it was.
+ */
+export function pickTrends(history: ValueHistory, superflex: boolean): Map<number, PickTrend> {
+  const points = new Map<number, [number, number][]>();
+  for (const s of Object.values(history.players)) {
+    const m = /^(\d{4}) Mid (\d+)/.exec(s.n);
+    if (s.p !== "RDP" || !m) continue;
+    const round = Number(m[2]);
+    const draft = assumedDraftDay(m[1]);
+    (superflex ? s.sf : s.q).forEach((v, i) => {
+      const before = (draft - gridDay(history, i)) / YEAR_DAYS;
+      if (v != null && before >= 0) points.set(round, [...(points.get(round) ?? []), [before, v]]);
+    });
+  }
+  const out = new Map<number, PickTrend>();
+  for (const [round, xy] of points) {
+    if (xy.length < 2) continue;
+    const n = xy.length;
+    const mx = xy.reduce((t, [x]) => t + x, 0) / n;
+    const my = xy.reduce((t, [, y]) => t + y, 0) / n;
+    const sxx = xy.reduce((t, [x]) => t + (x - mx) ** 2, 0);
+    const b = sxx > 0 ? xy.reduce((t, [x, y]) => t + (x - mx) * (y - my), 0) / sxx : 0;
+    out.set(round, { a: my - b * mx, b });
+  }
+  return out;
 }
 
 export interface TradeSide {
@@ -87,6 +131,7 @@ export function analyzeTrades(
   now = Date.now()
 ): AnalyzedTrade[] {
   const today = dayOf(now);
+  const trends = pickTrends(history, superflex);
   const pickSeries = new Map<string, ValueSeries>();
   for (const s of Object.values(history.players)) if (s.p === "RDP") pickSeries.set(s.n, s);
   const on = (series: ValueSeries | undefined, day: number) => (series ? valueOn(history, series, superflex, day) : null);
@@ -108,7 +153,7 @@ export function analyzeTrades(
         const info = players.get(playerId);
         add(
           rosterId,
-          { label: info?.name ?? series?.n ?? `Player ${playerId}`, position: info?.position ?? series?.p ?? null, then: on(series, day), thenStandIn: false, now: on(series, today) },
+          { label: info?.name ?? series?.n ?? `Player ${playerId}`, position: info?.position ?? series?.p ?? null, then: on(series, day), thenEstimated: false, now: on(series, today), nowEstimated: false },
           (d) => on(series, d)
         );
       }
@@ -117,13 +162,17 @@ export function analyzeTrades(
         const draft = drafts.get(pick.season);
         const drafted = draft?.players.get(`${pick.round}-${pick.roster_id}`);
         const player = drafted ? bySleeperId.get(drafted) : undefined;
-        const draftDay = draft ? dayOf(draft.at) : null;
+        const draftDay = draft ? dayOf(draft.at) : assumedDraftDay(pick.season);
+        // Before its draft and with no value from KTC that day: its round's trend, that long before the draft.
+        const trend = trends.get(pick.round);
+        const estimate = (d: number) => (trend && d < draftDay ? Math.max(0, Math.round(trend.a + (trend.b * (draftDay - d)) / YEAR_DAYS)) : null);
         // A pick until its draft, then whoever it became.
-        const pickOn = (d: number) => (draftDay !== null && d >= draftDay && drafted ? on(player, d) : on(series, d));
+        const known = (d: number) => (d >= draftDay ? (drafted ? on(player, d) : null) : on(series, d));
+        const pickOn = (d: number) => known(d) ?? estimate(d);
         const thenValue = pickOn(day);
+        // No trend for its round: what it became, held until it has a value of its own.
         const standIn = thenValue === null && player ? first(player) : null;
-        // With no value for the pick itself, its stand-in held until what it became has one.
-        const valueOnDay = (d: number) => pickOn(d) ?? (draftDay === null || d < draftDay ? standIn : null);
+        const valueOnDay = (d: number) => pickOn(d) ?? (d < draftDay ? standIn : null);
         const info = drafted ? players.get(drafted) : undefined;
         add(
           pick.owner_id,
@@ -133,8 +182,9 @@ export function analyzeTrades(
             pickOf: pick.roster_id !== pick.previous_owner_id ? teamNames.get(pick.roster_id) : undefined,
             became: drafted ? { name: info?.name ?? player?.n ?? `Player ${drafted}`, position: info?.position ?? player?.p ?? null } : undefined,
             then: thenValue ?? standIn,
-            thenStandIn: thenValue === null && standIn !== null,
+            thenEstimated: known(day) === null && (thenValue ?? standIn) !== null,
             now: pickOn(today),
+            nowEstimated: known(today) === null && pickOn(today) !== null,
           },
           valueOnDay
         );
