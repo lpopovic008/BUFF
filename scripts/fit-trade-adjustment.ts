@@ -1,6 +1,9 @@
 /**
  * Read-only study: how much more a side has to give when it trades several smaller pieces for fewer bigger
- * ones. Every two-team trade in the commissioner's dynasty leagues, valued as it was made (see
+ * ones. Pieces are paired up across the trade — players with players, picks with picks, biggest with
+ * biggest, what's left of one kind then with what's left of the other — and the pieces left over on the side
+ * with more (its additional pieces) count for only part of their value, more the closer each is to the
+ * trade's best piece; picks can count for more or less than KTC has them. Every two-team trade in the commissioner's dynasty leagues, valued as it was made (see
  * src/lib/league-trades.ts), is taken as roughly fair to the people who made it; each candidate formula's
  * setting is the one that best balances them. Trades undone soon after (the same pieces back between the
  * same teams), trades with FAAB in them, and trades with a piece KTC has no value for are left out.
@@ -44,19 +47,33 @@ function undone(trades: AnalyzedTrade[]): Set<string> {
   return out;
 }
 
-type Model = { name: string; param: string; values: number[]; effective: (vs: number[], x: number) => number };
-const MODELS: Model[] = [
-  { name: "power: Σ 9999·(v/9999)^p", param: "p", values: range(1, 4, 0.05), effective: (vs, p) => vs.reduce((t, v) => t + 9999 * (v / 9999) ** p, 0) },
-  {
-    name: "diminishing: pieces biggest first, the i-th weighed d^(i−1)",
-    param: "d",
-    values: range(0, 1, 0.01),
-    effective: (vs, d) => [...vs].sort((a, b) => b - a).reduce((t, v, i) => t + v * d ** i, 0),
-  },
-  { name: "top piece: Σv + k·max(v)", param: "k", values: range(0, 8, 0.05), effective: (vs, k) => vs.reduce((t, v) => t + v, 0) + k * Math.max(...vs) },
-];
-// Weighed against the trade's best piece: each piece v counts v·(v/T)^q, T the best piece on either side.
-const relative = (q: number) => (vs: number[], top: number) => vs.reduce((t, v) => t + v * (v / top) ** q, 0);
+interface Piece {
+  v: number;
+  pick: boolean;
+}
+
+/** The additional pieces on each side: what's left once pieces are paired across the trade (see the top). */
+export function additional(a: Piece[], b: Piece[]): [Piece[], Piece[]] {
+  const desc = (ps: Piece[]) => [...ps].sort((x, y) => y.v - x.v);
+  const pairOff = (x: Piece[], y: Piece[]): [Piece[], Piece[]] => {
+    const n = Math.min(x.length, y.length);
+    return [x.slice(n), y.slice(n)];
+  };
+  const [ap, bp] = pairOff(desc(a.filter((p) => !p.pick)), desc(b.filter((p) => !p.pick)));
+  const [ak, bk] = pairOff(desc(a.filter((p) => p.pick)), desc(b.filter((p) => p.pick)));
+  return pairOff(desc([...ap, ...ak]), desc([...bp, ...bk]));
+}
+
+/** A side's trade value: picks at m× KTC; each additional piece at a·(v/T)^q of its value (at most all of it), T the trade's best piece. */
+function tradeValues(a: Piece[], b: Piece[], m: number, w: number, q: number): [number, number] {
+  const scale = (ps: Piece[]) => ps.map((p) => ({ ...p, v: p.pick ? p.v * m : p.v }));
+  const [sa, sb] = [scale(a), scale(b)];
+  const top = Math.max(...sa.map((p) => p.v), ...sb.map((p) => p.v));
+  const [xa, xb] = additional(sa, sb);
+  const value = (all: Piece[], extra: Piece[]) =>
+    all.reduce((t, p) => t + p.v, 0) - extra.reduce((t, p) => t + p.v * (1 - Math.min(1, w * (p.v / top) ** q)), 0);
+  return [value(sa, xa), value(sb, xb)];
+}
 
 function range(from: number, to: number, step: number): number[] {
   const out: number[] = [];
@@ -64,113 +81,95 @@ function range(from: number, to: number, step: number): number[] {
   return out;
 }
 
+interface Fitted {
+  league: string;
+  date: string;
+  a: Piece[];
+  b: Piece[];
+  labels: string;
+}
+
+/** How unbalanced the trades read under a valuation: mean squared log ratio of the sides, and the median gap. */
+function score(trades: Fitted[], values: (t: Fitted) => [number, number]) {
+  const logs = trades.map((t) => {
+    const [x, y] = values(t);
+    return Math.log(x / y);
+  });
+  const mse = logs.reduce((t, l) => t + l * l, 0) / logs.length;
+  const gaps = logs.map((l) => Math.exp(Math.abs(l)) - 1).sort((x, y) => x - y);
+  return { mse, median: gaps[Math.floor(gaps.length / 2)] };
+}
+
+const plain = (t: Fitted): [number, number] => [t.a.reduce((s, p) => s + p.v, 0), t.b.reduce((s, p) => s + p.v, 0)];
+const topPlus18 = (t: Fitted): [number, number] =>
+  [t.a, t.b].map((ps) => {
+    const vs = ps.map((p) => p.v);
+    const top = Math.max(...vs);
+    return top + 0.18 * (vs.reduce((s, v) => s + v, 0) - top);
+  }) as [number, number];
+
+/** The settings that best balance some trades. */
+function fit(trades: Fitted[]) {
+  let best = { m: 1, w: 1, q: 0, mse: Infinity, median: 0 };
+  for (const m of range(0.6, 1.6, 0.05))
+    for (const w of range(0, 1.5, 0.05))
+      for (const q of range(0, 3, 0.25)) {
+        const s = score(trades, (t) => tradeValues(t.a, t.b, m, w, q));
+        if (s.mse < best.mse) best = { m, w, q, ...s };
+      }
+  return best;
+}
+
+const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
+
 async function main() {
   const history = JSON.parse(await fs.readFile(path.join(process.cwd(), "public", "data", "value-history.json"), "utf8")) as ValueHistory;
   const user = await getUserByUsername(COMMISH_SLEEPER_USERNAME);
   if (!user) throw new Error("no such user");
-  const pairs: { league: string; date: string; a: number[]; b: number[]; labels: string }[] = [];
+  const trades: Fitted[] = [];
   for (const league of await getUserLeagues(user.user_id, defaultSeason())) {
     if (league.settings.type !== 2) continue;
     const data = await loadLeagueTrades(league.league_id, user.user_id, history);
     if (!data) continue;
     const skip = undone(data.trades);
-    let kept = 0;
     const dropped = { undone: 0, teams: 0, faab: 0, unvalued: 0 };
+    let kept = 0;
     for (const t of data.trades) {
-      if (skip.has(t.id)) {
-        dropped.undone++;
-        continue;
+      if (skip.has(t.id)) dropped.undone++;
+      else if (t.sides.length !== 2) dropped.teams++;
+      else if (t.sides.some((s) => s.faab > 0)) dropped.faab++;
+      else if (t.sides.some((s) => s.got.length === 0 || s.got.some((g) => g.then === null || g.then <= 0))) dropped.unvalued++;
+      else {
+        kept++;
+        const [a, b] = t.sides.map((s) => s.got.map((g) => ({ v: g.then!, pick: g.position === "PICK" })));
+        trades.push({ league: league.name, date: new Date(t.at).toISOString().slice(0, 10), a, b, labels: t.sides.map((s) => s.got.map((g) => g.label).join(" + ")).join("  for  ") });
       }
-      if (t.sides.length !== 2) {
-        dropped.teams++;
-        continue;
-      }
-      if (t.sides.some((s) => s.faab > 0)) {
-        dropped.faab++;
-        continue;
-      }
-      const values = t.sides.map((s) => s.got.map((g) => g.then));
-      if (values.some((vs) => vs.length === 0 || vs.some((v) => v === null || v <= 0))) {
-        dropped.unvalued++;
-        continue;
-      }
-      kept++;
-      pairs.push({
-        league: league.name,
-        date: new Date(t.at).toISOString().slice(0, 10),
-        a: values[0] as number[],
-        b: values[1] as number[],
-        labels: t.sides.map((s) => s.got.map((g) => g.label).join(" + ")).join("  for  "),
-      });
     }
     console.log(`${league.name}: ${data.trades.length} trades — ${kept} kept; left out ${JSON.stringify(dropped)}`);
-    if (skip.size) console.log(`  undone pairs: ${data.trades.filter((t) => skip.has(t.id)).map((t) => `${new Date(t.at).toISOString().slice(0, 10)} ${t.sides.map((s) => s.got.map((g) => g.label).join("+")).join(" ⇄ ")}`).join(" | ")}`);
   }
-  console.log(`\n${pairs.length} trades to fit.`);
-  // How unbalanced the trades read: mean squared log ratio of the two sides, and the median gap as a share.
-  const score = (eff: (vs: number[]) => number) => {
-    const logs = pairs.map((p) => Math.log(eff(p.a) / eff(p.b)));
-    const mse = logs.reduce((t, l) => t + l * l, 0) / logs.length;
-    const gaps = logs.map((l) => Math.abs(Math.exp(Math.abs(l)) - 1)).sort((x, y) => x - y);
-    return { mse, median: gaps[Math.floor(gaps.length / 2)] };
-  };
-  const raw = score((vs) => vs.reduce((t, v) => t + v, 0));
-  console.log(`plain sums: mean sq. log gap ${raw.mse.toFixed(4)}, median gap ${(raw.median * 100).toFixed(1)}%`);
-  for (const m of MODELS) {
-    let best = { x: m.values[0], mse: Infinity, median: 0 };
-    for (const x of m.values) {
-      const s = score((vs) => m.effective(vs, x));
-      if (s.mse < best.mse) best = { x, ...s };
-    }
-    console.log(`${m.name}: best ${m.param} = ${best.x} — mean sq. log gap ${best.mse.toFixed(4)}, median gap ${(best.median * 100).toFixed(1)}%`);
+  const leagues = [...new Set(trades.map((t) => t.league))];
+  console.log(`\n${trades.length} trades to fit.`);
+  for (const [name, f] of [["plain sums", plain], ["best piece + 18% of the rest", topPlus18]] as const) {
+    const s = score(trades, f);
+    console.log(`${name}: mean sq. log gap ${s.mse.toFixed(4)}, median gap ${pct(s.median)}`);
   }
-  {
-    // Two settings: the i-th piece (biggest first) counts a + (1 − a)·d^(i−1) of its value — never below a.
-    const weigh = (vs: number[], a: number, d: number) => [...vs].sort((x, y) => y - x).reduce((t, v, i) => t + v * (a + (1 - a) * d ** i), 0);
-    let best = { a: 0, d: 0, mse: Infinity, median: 0 };
-    for (const a of range(0, 1, 0.02)) {
-      for (const d of range(0, 1, 0.02)) {
-        const logs = pairs.map((p) => Math.log(weigh(p.a, a, d) / weigh(p.b, a, d)));
-        const mse = logs.reduce((t, l) => t + l * l, 0) / logs.length;
-        if (mse < best.mse) {
-          const gaps = logs.map((l) => Math.exp(Math.abs(l)) - 1).sort((x, y) => x - y);
-          best = { a, d, mse, median: gaps[Math.floor(gaps.length / 2)] };
-        }
-      }
-    }
-    console.log(`floor + diminishing: the i-th piece counts a + (1−a)·d^(i−1): best a = ${best.a}, d = ${best.d} — mean sq. log gap ${best.mse.toFixed(4)}, median gap ${(best.median * 100).toFixed(1)}%`);
-    console.log(`  weights, biggest piece first: ${[0, 1, 2, 3, 4, 5].map((i) => (best.a + (1 - best.a) * best.d ** i).toFixed(2)).join(", ")}`);
-    // Each league on its own, at these settings — does it hold in both?
-    for (const league of [...new Set(pairs.map((p) => p.league))]) {
-      const mine = pairs.filter((p) => p.league === league);
-      const gapsAt = (f: (vs: number[]) => number) =>
-        mine.map((p) => Math.exp(Math.abs(Math.log(f(p.a) / f(p.b)))) - 1).sort((x, y) => x - y)[Math.floor(mine.length / 2)];
-      console.log(`  ${league}: ${mine.length} trades, median gap plain ${(gapsAt((vs) => vs.reduce((t, v) => t + v, 0)) * 100).toFixed(1)}% → weighed ${(gapsAt((vs) => weigh(vs, best.a, best.d)) * 100).toFixed(1)}%`);
-    }
+  const best = fit(trades);
+  console.log(`paired, additional pieces weighed: picks ×${best.m}, each additional piece at ${best.w}·(v/T)^${best.q} — mean sq. log gap ${best.mse.toFixed(4)}, median gap ${pct(best.median)}`);
+  console.log(`  an additional piece's share, by its value as a share of the best piece: ${[0.2, 0.4, 0.6, 0.8, 1].map((r) => `${r * 100}% → ${pct(Math.min(1, best.w * r ** best.q))}`).join(", ")}`);
+  for (const league of leagues) {
+    const mine = trades.filter((t) => t.league === league);
+    const others = trades.filter((t) => t.league !== league);
+    const own = fit(others);
+    console.log(
+      `  ${league}: ${mine.length} trades — median gap plain ${pct(score(mine, plain).median)}, at the overall fit ${pct(score(mine, (t) => tradeValues(t.a, t.b, best.m, best.w, best.q)).median)}, fitted on the other league alone (picks ×${own.m}, ${own.w}·(v/T)^${own.q}) ${pct(score(mine, (t) => tradeValues(t.a, t.b, own.m, own.w, own.q)).median)}`
+    );
   }
-  {
-    let best = { q: 0, mse: Infinity, median: 0 };
-    for (const q of range(0, 4, 0.05)) {
-      const logs = pairs.map((p) => {
-        const top = Math.max(...p.a, ...p.b);
-        return Math.log(relative(q)(p.a, top) / relative(q)(p.b, top));
-      });
-      const mse = logs.reduce((t, l) => t + l * l, 0) / logs.length;
-      const gaps = logs.map((l) => Math.exp(Math.abs(l)) - 1).sort((x, y) => x - y);
-      if (mse < best.mse) best = { q, mse, median: gaps[Math.floor(gaps.length / 2)] };
-    }
-    console.log(`relative: Σ v·(v/T)^q, T the trade's best piece: best q = ${best.q} — mean sq. log gap ${best.mse.toFixed(4)}, median gap ${(best.median * 100).toFixed(1)}%`);
+  console.log("\nSome trades — plain totals, then trade values:");
+  for (const t of trades.slice(0, 24)) {
+    const [pa, pb] = plain(t);
+    const [ea, eb] = tradeValues(t.a, t.b, best.m, best.w, best.q);
+    console.log(`  ${t.date} ${Math.round(pa)} vs ${Math.round(pb)} → ${Math.round(ea)} vs ${Math.round(eb)}   ${t.labels.slice(0, 110)}`);
   }
-  // Uneven trades by piece count — where a premium would show.
-  const uneven = pairs.filter((p) => p.a.length !== p.b.length);
-  console.log(`\n${uneven.length} trades with more pieces on one side. Side with fewer pieces, its plain total as a share of the other's:`);
-  const shares = uneven.map((p) => {
-    const [few, many] = p.a.length < p.b.length ? [p.a, p.b] : [p.b, p.a];
-    return few.reduce((t, v) => t + v, 0) / many.reduce((t, v) => t + v, 0);
-  });
-  shares.sort((x, y) => x - y);
-  console.log(`  median ${(shares[Math.floor(shares.length / 2)] * 100).toFixed(0)}%, quartiles ${(shares[Math.floor(shares.length / 4)] * 100).toFixed(0)}%–${(shares[Math.floor((shares.length * 3) / 4)] * 100).toFixed(0)}%`);
-  for (const p of pairs.slice(0, 40)) console.log(`  ${p.date} ${p.league.slice(0, 12)}: [${p.a.join(", ")}] vs [${p.b.join(", ")}]  ${p.labels.slice(0, 120)}`);
 }
 
 main().catch((err) => {
