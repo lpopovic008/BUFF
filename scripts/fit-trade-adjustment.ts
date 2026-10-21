@@ -50,7 +50,7 @@ const MODELS: Model[] = [
   {
     name: "diminishing: pieces biggest first, the i-th weighed d^(i−1)",
     param: "d",
-    values: range(0.3, 1, 0.01),
+    values: range(0, 1, 0.01),
     effective: (vs, d) => [...vs].sort((a, b) => b - a).reduce((t, v, i) => t + v * d ** i, 0),
   },
   { name: "top piece: Σv + k·max(v)", param: "k", values: range(0, 8, 0.05), effective: (vs, k) => vs.reduce((t, v) => t + v, 0) + k * Math.max(...vs) },
@@ -123,6 +123,30 @@ async function main() {
       if (s.mse < best.mse) best = { x, ...s };
     }
     console.log(`${m.name}: best ${m.param} = ${best.x} — mean sq. log gap ${best.mse.toFixed(4)}, median gap ${(best.median * 100).toFixed(1)}%`);
+  }
+  {
+    // Two settings: the i-th piece (biggest first) counts a + (1 − a)·d^(i−1) of its value — never below a.
+    const weigh = (vs: number[], a: number, d: number) => [...vs].sort((x, y) => y - x).reduce((t, v, i) => t + v * (a + (1 - a) * d ** i), 0);
+    let best = { a: 0, d: 0, mse: Infinity, median: 0 };
+    for (const a of range(0, 1, 0.02)) {
+      for (const d of range(0, 1, 0.02)) {
+        const logs = pairs.map((p) => Math.log(weigh(p.a, a, d) / weigh(p.b, a, d)));
+        const mse = logs.reduce((t, l) => t + l * l, 0) / logs.length;
+        if (mse < best.mse) {
+          const gaps = logs.map((l) => Math.exp(Math.abs(l)) - 1).sort((x, y) => x - y);
+          best = { a, d, mse, median: gaps[Math.floor(gaps.length / 2)] };
+        }
+      }
+    }
+    console.log(`floor + diminishing: the i-th piece counts a + (1−a)·d^(i−1): best a = ${best.a}, d = ${best.d} — mean sq. log gap ${best.mse.toFixed(4)}, median gap ${(best.median * 100).toFixed(1)}%`);
+    console.log(`  weights, biggest piece first: ${[0, 1, 2, 3, 4, 5].map((i) => (best.a + (1 - best.a) * best.d ** i).toFixed(2)).join(", ")}`);
+    // Each league on its own, at these settings — does it hold in both?
+    for (const league of [...new Set(pairs.map((p) => p.league))]) {
+      const mine = pairs.filter((p) => p.league === league);
+      const gapsAt = (f: (vs: number[]) => number) =>
+        mine.map((p) => Math.exp(Math.abs(Math.log(f(p.a) / f(p.b)))) - 1).sort((x, y) => x - y)[Math.floor(mine.length / 2)];
+      console.log(`  ${league}: ${mine.length} trades, median gap plain ${(gapsAt((vs) => vs.reduce((t, v) => t + v, 0)) * 100).toFixed(1)}% → weighed ${(gapsAt((vs) => weigh(vs, best.a, best.d)) * 100).toFixed(1)}%`);
+    }
   }
   {
     let best = { q: 0, mse: Infinity, median: 0 };
