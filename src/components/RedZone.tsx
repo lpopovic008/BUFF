@@ -117,13 +117,13 @@ function PlayerLine({
   return (
     <li className="flex items-center gap-2">
       {defense && line.team ? (
-        <span className="flex h-[1.125rem] w-[1.125rem] shrink-0 items-center justify-center bg-page">
+        <span className="flex h-[1.125rem] w-[1.125rem] shrink-0 items-center justify-center rounded-full bg-page">
           <TeamLogo team={line.team} side={13} />
         </span>
       ) : line.playerId ? (
         <PlayerHeadshot playerId={line.playerId} size={18} />
       ) : (
-        <span className="h-[1.125rem] w-[1.125rem] shrink-0 border border-border bg-page" aria-hidden />
+        <span className="h-[1.125rem] w-[1.125rem] shrink-0 rounded-full border border-border bg-page" aria-hidden />
       )}
       <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-1.5">
         {line.position ? (
@@ -362,7 +362,7 @@ function RedZoneAlert({ alert }: { alert: RedZoneNow }) {
       </span>
       <span className="flex shrink-0 -space-x-2">
         {alert.players.slice(0, 4).map((p) => (
-          <span key={p.playerId} className="ring-2 ring-surface-raised">
+          <span key={p.playerId} className="rounded-full ring-2 ring-surface-raised">
             <PlayerHeadshot playerId={p.playerId} size={24} />
           </span>
         ))}
