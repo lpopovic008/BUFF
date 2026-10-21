@@ -216,25 +216,22 @@ its own draft the pick was (the league's draft date, or May 1). Estimates are
 marked "≈".
 
 Getting fewer, bigger pieces costs more than the plain sum, so a two-team
-trade gives one side an **Added value** line. The rule was fitted to the
-commissioner's two dynasty leagues (`scripts/fit-trade-adjustment.ts`, run on
-demand by `.github/workflows/fit-trade-adjustment.yml`: 106 two-team trades,
-valued as they were made, trades undone soon after left out), and brought the
-median gap between the sides from 34% to about 11%, alike in both leagues:
+trade can give one side an **Added value** line — KeepTradeCut's trade
+calculator's "Value Adjustment", worked out as its own code does it
+(`addedValues`, checked against the calculator's figures in
+`src/lib/trades.test.ts`):
 
-- the pieces are paired across the trade — players with players, picks with
-  picks, biggest with biggest, then what's left of one kind with what's left
-  of the other — and paired pieces count in full;
-- the side with more pieces' extra ones (its additional pieces) count for
-  only **0.8 × (value ÷ 9,999)** of their value — the better the piece, the
-  more of it counts (a 5,000 piece about 40%, a 1,000 piece about 8%);
-- picks count for **90%** of their KTC value.
+- each piece counts for **v × (0.1·(v ÷ 10,099)^1.4 + 0.7·(v ÷ (1.05 × top))^1.25 + 0.2)**,
+  `top` being the trade's best piece — so the best pieces count for far more
+  than the rest;
+- the side whose pieces add up to more that way is ahead by the value of a
+  player who'd count for the difference (`evenValue`), and the added value goes
+  to whichever side needs it for the plain totals to say the same;
+- there's none for one piece for one, or when it's under 3.3% of the two
+  totals together — as on KTC.
 
-Each side's trade value falls short of its plain total by what its picks and
-additional pieces don't count for; the side falling short by less gets the
-difference as its added value (`tradeValues`, `addedValues`). Totals, the
-chart and who's ahead all count it. The side whose haul
-is worth the most now has its team on the plate; yours is underlined.
+Totals, the chart and who's ahead all count it. The side whose haul is worth
+the most now has its team on the plate; yours is underlined.
 
 The values over time come from `scripts/fetch-value-history.ts`
 (`.github/workflows/value-history.yml`, daily): every KTC player page carries

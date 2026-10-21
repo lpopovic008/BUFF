@@ -110,57 +110,47 @@ export interface TradeSide {
   path: { day: number; value: number }[];
 }
 
-/** One piece of a side's haul, for weighing a trade: its value, and whether it's still a pick. */
-export interface Piece {
-  v: number;
-  pick: boolean;
-}
-
 /*
- * How a trade's two sides compare — fitted to the commissioner's two dynasty leagues' trades
- * (scripts/fit-trade-adjustment.ts, Oct 2026: 106 two-team trades valued as they were made, ones undone soon
- * after left out), which brought the median gap between the sides from 34% to about 11%, alike in both
- * leagues: pieces are paired across the trade — players with players, picks with picks, biggest with biggest,
- * then what's left of one kind with what's left of the other — and count in full; the side with more pieces'
- * extra ones (its additional pieces) count for only PIECE_SHARE × (value ÷ 9,999) of their value, so the
- * better an additional piece, the more of it counts; and picks count for PICK_WEIGHT of what KTC has them at.
+ * How a trade's two sides compare — KeepTradeCut's trade calculator's "Value Adjustment", as its code works it
+ * out: each piece counts for processed(v) = v × (0.1·(v ÷ 10,099)^1.4 + 0.7·(v ÷ (1.05 × top))^1.25 + 0.2),
+ * where top is the trade's best piece, so the best pieces count for far more than the rest. The side whose
+ * processed pieces add up to more is ahead by the value of a player whose processed value is the difference
+ * (evenValue), and the added value goes to whichever side needs it for the plain totals to say the same.
  */
-export const PICK_WEIGHT = 0.9;
-export const PIECE_SHARE = 0.8;
+const KTC_TOP = 10099;
 
-/** Each side's additional pieces: what's left once the pieces are paired across the trade. */
-export function additionalPieces(a: Piece[], b: Piece[]): [Piece[], Piece[]] {
-  const desc = (ps: Piece[]) => [...ps].sort((x, y) => y.v - x.v);
-  const pairOff = (x: Piece[], y: Piece[]): [Piece[], Piece[]] => {
-    const n = Math.min(x.length, y.length);
-    return [x.slice(n), y.slice(n)];
-  };
-  const [ap, bp] = pairOff(desc(a.filter((p) => !p.pick)), desc(b.filter((p) => !p.pick)));
-  const [ak, bk] = pairOff(desc(a.filter((p) => p.pick)), desc(b.filter((p) => p.pick)));
-  return pairOff(desc([...ap, ...ak]), desc([...bp, ...bk]));
+/** A piece's value as KTC weighs it in a trade whose best piece is `top`. */
+export function processedValue(v: number, top: number): number {
+  return (0.1 * Math.pow(v / KTC_TOP, 1.4) + 0.7 * Math.pow(v / (1.05 * top), 1.25) + 0.2) * v;
 }
 
-/** What each side's haul counts for in the trade, as the leagues trade (see the top). */
-export function tradeValues(a: Piece[], b: Piece[]): [number, number] {
-  const weigh = (ps: Piece[]) => ps.map((p) => ({ ...p, v: p.pick ? p.v * PICK_WEIGHT : p.v }));
-  const [wa, wb] = [weigh(a), weigh(b)];
-  const [xa, xb] = additionalPieces(wa, wb);
-  const value = (all: Piece[], extra: Piece[]) =>
-    all.reduce((t, p) => t + p.v, 0) - extra.reduce((t, p) => t + p.v * (1 - Math.min(1, (PIECE_SHARE * p.v) / 9999)), 0);
-  return [value(wa, xa), value(wb, xb)];
+/** The value of a player whose processed value is `diff` — what one side is ahead by (KTC's solveForX, by Newton). */
+export function evenValue(diff: number, top: number): number {
+  let x = 5 * diff;
+  for (let i = 0; i < 20; i++) {
+    const slope = (0.24 * Math.pow(x, 1.4)) / Math.pow(KTC_TOP, 1.4) + (1.575 * Math.pow(x, 1.25)) / (Math.pow(1.05, 1.25) * Math.pow(top, 1.25)) + 0.2;
+    const next = x - (processedValue(x, top) - diff) / slope;
+    if (Math.abs(next - x) < 1e-8) return Math.round(next);
+    x = next;
+  }
+  return Math.round(x);
 }
 
 /**
- * The value each side is due on top of its plain total so the totals compare as the trade values do: each
- * side's trade value falls short of its plain total by what its picks and additional pieces don't count for,
- * and the side falling short by less gets the difference — the other side its own 0.
+ * The value each side is due on top of its plain total, as KTC's trade calculator gives it — one side's, the
+ * other's 0. None for one piece for one, or when it's under 3.3% of the two totals together (KTC doesn't show it).
  */
-export function addedValues(a: Piece[], b: Piece[]): [number, number] {
-  const total = (ps: Piece[]) => ps.reduce((t, p) => t + p.v, 0);
-  if (a.length === 0 || b.length === 0) return [0, 0];
-  const [ea, eb] = tradeValues(a, b);
-  const gap = ea - total(a) - (eb - total(b));
-  return gap > 0 ? [gap, 0] : [0, gap < 0 ? -gap : 0];
+export function addedValues(a: number[], b: number[]): [number, number] {
+  const top = Math.max(0, ...a, ...b);
+  if (a.length + b.length <= 2 || top <= 0) return [0, 0];
+  const sum = (vs: number[], f: (v: number) => number) => vs.reduce((t, v) => t + f(v), 0);
+  const [ra, rb] = [sum(a, (v) => processedValue(v, top)), sum(b, (v) => processedValue(v, top))];
+  const [ta, tb] = [sum(a, (v) => v), sum(b, (v) => v)];
+  // The side ahead by processed value is ahead by `even` once added value's in: lead is what it needs on top.
+  const even = evenValue(Math.abs(ra - rb), top);
+  const lead = ra >= rb ? even - (ta - tb) : -(even - (tb - ta));
+  if (!Number.isFinite(lead) || Math.abs(lead) < 0.033 * (ta + tb)) return [0, 0];
+  return lead > 0 ? [lead, 0] : [0, -lead];
 }
 
 export interface AnalyzedTrade {
@@ -216,9 +206,9 @@ export function analyzeTrades(
       if (t.type !== "trade" || t.status !== "complete") continue;
       const day = dayOf(t.created);
       // Each asset: how it's shown, and its value on a day.
-      const assets = new Map<number, { asset: TradeAsset; on: (d: number) => number | null; pickOn: (d: number) => boolean }[]>();
-      const add = (rosterId: number, asset: TradeAsset, valueOnDay: (d: number) => number | null, pickOn: (d: number) => boolean = () => false) => {
-        assets.set(rosterId, [...(assets.get(rosterId) ?? []), { asset, on: valueOnDay, pickOn }]);
+      const assets = new Map<number, { asset: TradeAsset; on: (d: number) => number | null }[]>();
+      const add = (rosterId: number, asset: TradeAsset, valueOnDay: (d: number) => number | null) => {
+        assets.set(rosterId, [...(assets.get(rosterId) ?? []), { asset, on: valueOnDay }]);
       };
       for (const [playerId, rosterId] of Object.entries(t.adds ?? {})) {
         const series = bySleeperId.get(playerId);
@@ -269,9 +259,7 @@ export function analyzeTrades(
             now: pickOn(today),
             nowEstimated: known(today) === null && pickOn(today) !== null,
           },
-          valueOnDay,
-          // Still a pick until its draft.
-          (d) => d < draftDay || !drafted
+          valueOnDay
         );
       }
       const faab = new Map<number, number>();
@@ -282,14 +270,14 @@ export function analyzeTrades(
       for (let i = Math.max(0, Math.ceil((day - history.from) / history.step)); gridDay(history, i) < today; i++) days.push(gridDay(history, i));
       days.push(today);
 
-      // Each side's pieces on a day: their values, and whether each is still a pick.
-      const piecesOf = (rosterId: number, d: number, value: (a: { asset: TradeAsset; on: (d: number) => number | null }) => number | null) =>
-        (assets.get(rosterId) ?? []).map((a) => ({ v: value(a) ?? 0, pick: a.pickOn(d) }));
+      // Each side's pieces' values.
+      const piecesOf = (rosterId: number, value: (a: { asset: TradeAsset; on: (d: number) => number | null }) => number | null) =>
+        (assets.get(rosterId) ?? []).map((a) => value(a) ?? 0);
       // A two-team trade's added value for one side (see addedValues); none in a trade among three or more.
-      const added = (rosterId: number, d: number, value: (a: { asset: TradeAsset; on: (d: number) => number | null }) => number | null) => {
+      const added = (rosterId: number, value: (a: { asset: TradeAsset; on: (d: number) => number | null }) => number | null) => {
         if (t.roster_ids.length !== 2) return 0;
         const other = t.roster_ids.find((r) => r !== rosterId)!;
-        return addedValues(piecesOf(rosterId, d, value), piecesOf(other, d, value))[0];
+        return addedValues(piecesOf(rosterId, value), piecesOf(other, value))[0];
       };
       const sides: TradeSide[] = t.roster_ids.map((rosterId) => {
         const got = assets.get(rosterId) ?? [];
@@ -302,9 +290,9 @@ export function analyzeTrades(
           faab: faab.get(rosterId) ?? 0,
           then: sum((a) => a.asset.then),
           now: sum((a) => a.asset.now),
-          addedThen: added(rosterId, day, (a) => a.asset.then),
-          addedNow: added(rosterId, today, (a) => a.asset.now),
-          path: days.map((d) => ({ day: d, value: sum((a) => a.on(d)) + added(rosterId, d, (a) => a.on(d)) })),
+          addedThen: added(rosterId, (a) => a.asset.then),
+          addedNow: added(rosterId, (a) => a.asset.now),
+          path: days.map((d) => ({ day: d, value: sum((a) => a.on(d)) + added(rosterId, (a) => a.on(d)) })),
         };
       });
       out.push({ id: t.transaction_id, at: t.created, season, sides });

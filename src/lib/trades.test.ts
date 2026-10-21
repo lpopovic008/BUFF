@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { addedValues, analyzeTrades, DraftResult, PICK_WEIGHT, PIECE_SHARE, pickTrends, TradeSeason, tradeValues } from "./trades";
+import { addedValues, analyzeTrades, DraftResult, evenValue, pickTrends, processedValue, TradeSeason } from "./trades";
 import { DAY_MS, ValueHistory, ValueSeries } from "./value-history";
 import { SleeperTransaction } from "./sleeper";
 
@@ -109,36 +109,39 @@ test("analyzeTrades finds a pick in whichever of its season's drafts has it, pas
   assert.equal(t.sides[0].got[0].became?.name, "Rookie Wideout");
 });
 
-test("tradeValues pairs pieces across the trade and counts the additional ones by how good they are", () => {
-  // Ja'Marr Chase for two firsts and two players: Chase pairs with the better player; the rest are additional.
-  const chase = [{ v: 8898, pick: false }];
-  const haul = [
-    { v: 5906, pick: true },
-    { v: 4691, pick: true },
-    { v: 3256, pick: false },
-    { v: 3383, pick: false },
-  ];
-  const [ea, eb] = tradeValues(chase, haul);
-  assert.equal(ea, 8898);
-  const extra = (v: number) => v * ((PIECE_SHARE * v) / 9999);
-  assert.ok(Math.abs(eb - (3383 + extra(5906 * PICK_WEIGHT) + extra(4691 * PICK_WEIGHT) + extra(3256))) < 1e-6);
+// KTC's trade calculator (superflex, Oct 2026): each side's pieces, the Value Adjustment it showed and to whom,
+// and the player value it said would even the trade. Gibbs 9998, Allen 9983, Mahomes 6302, Pickens 5676,
+// 2027 Mid 1st 5584, Etienne 3284, Pierce 3278, 2028 Mid 2nd 3158, Coleman 3147, 2029 Mid 2nd 2931.
+const ktc: { a: number[]; b: number[]; added: [number, number]; even?: number }[] = [
+  { a: [9998, 3147], b: [5676, 5584, 3284, 3278, 3158, 2931], added: [9332, 0] },
+  { a: [9983, 5584], b: [6302], added: [0, 0], even: 9565 },
+  { a: [9998], b: [5676], added: [0, 0], even: 8116 },
+  { a: [9998], b: [9983], added: [0, 0] },
+  { a: [9998], b: [5676, 3284], added: [6193, 0], even: 7232 },
+  { a: [9998], b: [5676, 5584], added: [6911, 0], even: 5650 },
+  { a: [9998], b: [3284, 3278, 3158], added: [7517, 0], even: 7795 },
+  { a: [9998], b: [5676, 5584, 3284, 3278], added: [10016, 0], even: 2194 },
+  { a: [9998], b: [5584, 3158, 2931], added: [8211, 0], even: 6536 },
+  { a: [5676], b: [3278, 3284], added: [3836, 0] },
+  { a: [3278, 2931], b: [3284], added: [0, 0], even: 2924 },
+  { a: [9998, 3147], b: [5676, 5584], added: [4806, 0], even: 6692 },
+];
+
+test("addedValues matches KTC's trade calculator's value adjustment", () => {
+  for (const { a, b, added } of ktc) {
+    const [x, y] = addedValues(a, b);
+    // To within KTC's rounding of each piece.
+    assert.ok(Math.abs(x - added[0]) <= 3 && Math.abs(y - added[1]) <= 3, `${a} for ${b}: ${x}, ${y} — KTC ${added}`);
+  }
+  // The same trade the other way round.
+  assert.deepEqual(addedValues([5676, 3284], [9998]), addedValues([9998], [5676, 3284]).reverse());
 });
 
-test("addedValues gives the side falling short of its plain total by less the difference", () => {
-  const chase = [{ v: 8898, pick: false }];
-  const haul = [
-    { v: 5906, pick: true },
-    { v: 4691, pick: true },
-    { v: 3256, pick: false },
-    { v: 3383, pick: false },
-  ];
-  const [added, none] = addedValues(chase, haul);
-  const [ea, eb] = tradeValues(chase, haul);
-  assert.equal(none, 0);
-  assert.ok(Math.abs(8898 + added - 17236 - (ea - eb)) < 1e-6);
-  // A player for a player: nothing either way. A player for a pick: the pick's side counts it at PICK_WEIGHT.
-  assert.deepEqual(addedValues([{ v: 5000, pick: false }], [{ v: 4000, pick: false }]), [0, 0]);
-  const [p, q] = addedValues([{ v: 5000, pick: false }], [{ v: 5000, pick: true }]);
-  assert.ok(Math.abs(p - 5000 * (1 - PICK_WEIGHT)) < 1e-6);
-  assert.equal(q, 0);
+test("evenValue is the player KTC says would even the trade", () => {
+  for (const { a, b, even } of ktc) {
+    if (even === undefined) continue;
+    const top = Math.max(...a, ...b);
+    const raw = (vs: number[]) => vs.reduce((t, v) => t + processedValue(v, top), 0);
+    assert.equal(evenValue(Math.abs(raw(a) - raw(b)), top), even, `${a} for ${b}`);
+  }
 });
