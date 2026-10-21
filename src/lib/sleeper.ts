@@ -92,6 +92,9 @@ export interface SleeperRoster {
   league_id: string;
   players?: string[] | null;
   starters?: string[] | null;
+  /** On injured reserve, and on the taxi squad — off the bench. */
+  reserve?: string[] | null;
+  taxi?: string[] | null;
   settings: SleeperRosterSettings;
   /** Sleeper's running tallies: `streak` like "3W"/"2L", `record` the season's results oldest first ("WLWWL"). Absent before a team's first result. */
   metadata?: { streak?: string | null; record?: string | null; [key: string]: unknown } | null;

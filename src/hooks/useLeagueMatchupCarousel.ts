@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getLeague, getLeagueRosters, getLeagueUsers, getMatchups, isDynastyLeague, leagueQBFormat } from "@/lib/sleeper";
-import { buildLeagueMatchups } from "@/lib/league-data";
+import { buildLeagueMatchups, lineupPositions } from "@/lib/league-data";
 import { loadPlayerIdIndex, resolvePlayers, ResolvedPlayer } from "@/lib/players";
 import { positionValueRanksById, seasonLinesById } from "@/lib/matchup-players";
 import { PlayerStatsSnapshot } from "@/lib/player-stats";
@@ -32,6 +32,8 @@ export interface ResolvedMatchupTeam {
   teamName: string;
   points: number;
   slots: ResolvedSlot[];
+  /** Its bench, slot "BN" each. */
+  bench: ResolvedSlot[];
 }
 
 export interface ResolvedMatchupGame {
@@ -43,6 +45,8 @@ export interface LeagueMatchupCarouselData {
   games: ResolvedMatchupGame[];
   /** A dynasty league — its starters' value ranks are by dynasty values, else redraft. */
   dynasty: boolean;
+  /** Every position the league's lineups can start (see lineupPositions) — the bench's columns. */
+  positions: string[];
 }
 
 /** Every matchup for a league's week, full starting lineups resolved to names, reloaded on every live-clock tick so points update live during games. */
@@ -70,7 +74,7 @@ export function useLeagueMatchupCarousel(leagueId: string | null, week: number |
 
       const raw = buildLeagueMatchups(league, matchups, rosters, users);
       const allIds = raw.flatMap((g) =>
-        g.teams.flatMap((t) => t.slots.map((s) => s.playerId).filter((pid): pid is string => pid !== null))
+        g.teams.flatMap((t) => [...t.slots.map((s) => s.playerId).filter((pid): pid is string => pid !== null), ...t.bench])
       );
       const [resolved, idIndex] = await Promise.all([resolvePlayers(allIds), loadPlayerIdIndex()]);
       if (cancelled) return;
@@ -88,28 +92,30 @@ export function useLeagueMatchupCarousel(leagueId: string | null, week: number |
       );
       const seasonLines = seasonLinesById(statsSnapshot, league.scoring_settings);
 
+      const resolveSlot = (slot: string, playerId: string | null, playersPoints: Record<string, number>): ResolvedSlot => {
+        const player = playerId ? (byId.get(playerId) ?? null) : null;
+        const season = player ? seasonLines.get(player.playerId) : undefined;
+        return {
+          slot,
+          player,
+          livePoints: playerId ? (playersPoints[playerId] ?? 0) : 0,
+          valueRank: player ? (valueRanks.get(player.playerId) ?? null) : null,
+          seasonRank: season?.rank ?? null,
+          ppg: season?.ppg ?? null,
+        };
+      };
       const withNames: ResolvedMatchupGame[] = raw.map((g) => ({
         matchupId: g.matchupId,
         teams: g.teams.map((t) => ({
           rosterId: t.rosterId,
           teamName: t.teamName,
           points: t.points,
-          slots: t.slots.map((s) => {
-            const player = s.playerId ? (byId.get(s.playerId) ?? null) : null;
-            const season = player ? seasonLines.get(player.playerId) : undefined;
-            return {
-              slot: s.slot,
-              player,
-              livePoints: s.playerId ? (t.playersPoints[s.playerId] ?? 0) : 0,
-              valueRank: player ? (valueRanks.get(player.playerId) ?? null) : null,
-              seasonRank: season?.rank ?? null,
-              ppg: season?.ppg ?? null,
-            };
-          }),
+          slots: t.slots.map((s) => resolveSlot(s.slot, s.playerId, t.playersPoints)),
+          bench: t.bench.map((id) => resolveSlot("BN", id, t.playersPoints)).filter((s) => s.player),
         })),
       }));
       if (!cancelled) {
-        setData({ games: withNames, dynasty: isDynastyLeague(league) });
+        setData({ games: withNames, dynasty: isDynastyLeague(league), positions: lineupPositions(league.roster_positions) });
       }
     }
 

@@ -417,11 +417,36 @@ export function buildLineupSlots(
   }));
 }
 
+// The positions a lineup's flex slots take, by Sleeper's slot code.
+const FLEX_POSITIONS: Record<string, string[]> = {
+  FLEX: ["RB", "WR", "TE"],
+  SUPER_FLEX: ["QB", "RB", "WR", "TE"],
+  REC_FLEX: ["WR", "TE"],
+  WRRB_FLEX: ["RB", "WR"],
+  IDP_FLEX: ["DL", "LB", "DB"],
+};
+const POSITION_ORDER = ["QB", "RB", "WR", "TE", "K", "DEF", "DL", "LB", "DB"];
+
+/** Every position a league's lineup can start, in the usual order (QB, RB, WR, TE, K, DEF, then IDP). */
+export function lineupPositions(rosterPositions: string[] | undefined): string[] {
+  const found = new Set((rosterPositions ?? []).filter((p) => !BENCH_SLOTS.has(p)).flatMap((p) => FLEX_POSITIONS[p] ?? [p]));
+  const rank = (p: string) => (POSITION_ORDER.includes(p) ? POSITION_ORDER.indexOf(p) : POSITION_ORDER.length);
+  return [...found].sort((a, b) => rank(a) - rank(b));
+}
+
+/** A team's bench for a week: everyone on its matchup's roster who isn't starting, on injured reserve or on the taxi squad. */
+export function benchIds(matchup: SleeperMatchup, roster: SleeperRoster | undefined): string[] {
+  const off = new Set([...(matchup.starters ?? []), ...(roster?.reserve ?? []), ...(roster?.taxi ?? [])]);
+  return (matchup.players ?? []).filter((id) => id && id !== "0" && !off.has(id));
+}
+
 export interface LeagueMatchupTeam {
   rosterId: number;
   teamName: string;
   points: number;
   slots: LineupSlot[];
+  /** Its bench's player ids (see benchIds). */
+  bench: string[];
   playersPoints: Record<string, number>;
 }
 
@@ -458,6 +483,7 @@ export function buildLeagueMatchups(
       teamName: teamName(m.roster_id),
       points: m.points,
       slots: buildLineupSlots(league.roster_positions, m.starters),
+      bench: benchIds(m, rostersById.get(m.roster_id)),
       playersPoints: m.players_points ?? {},
     })),
   }));

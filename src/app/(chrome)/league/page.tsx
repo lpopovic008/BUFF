@@ -188,7 +188,7 @@ function LeagueDetailContent() {
     const gameOf = new Map(weekGames.flatMap((g) => [[g.homeTeam, g] as const, [g.awayTeam, g] as const]));
     for (const game of carousel.games) {
       for (const t of game.teams) {
-        for (const slot of t.slots) {
+        for (const slot of [...t.slots, ...t.bench]) {
           const p = slot.player;
           if (!p) continue;
           const nfl = p.team ? gameOf.get(p.team) : undefined;
@@ -220,7 +220,7 @@ function LeagueDetailContent() {
     }
     for (const game of carousel.games) {
       for (const t of game.teams) {
-        for (const slot of t.slots) {
+        for (const slot of [...t.slots, ...t.bench]) {
           const p = slot.player;
           if (!p) continue;
           const opponent = p.team ? (opponentOf.get(p.team) ?? null) : null;
@@ -324,6 +324,7 @@ function LeagueDetailContent() {
             lineTones={lineTones}
             lineNotes={lineNotes}
             dynasty={carousel.dynasty}
+            positions={carousel.positions}
           />
         </div>
       ) : carousel ? (

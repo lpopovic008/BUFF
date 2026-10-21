@@ -2,10 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   aggregateCareerStats,
+  benchIds,
   extendStreak,
   finalPlacements,
   lastFinishedWeek,
   LeagueSummary,
+  lineupPositions,
   pointsRanks,
   resultsAsTheyStand,
   rosterStreak,
@@ -297,4 +299,17 @@ test("as it stands, the week being played goes on the records, ranks and streaks
   );
   assert.equal(playoffs.standings, summary.standings);
   assert.equal(playoffs.provisional, undefined);
+});
+
+test("lineupPositions is every position a lineup can start, flex slots opened up, in the usual order", () => {
+  assert.deepEqual(lineupPositions(["QB", "RB", "RB", "WR", "WR", "TE", "FLEX", "SUPER_FLEX", "BN", "BN", "IR", "TAXI"]), ["QB", "RB", "WR", "TE"]);
+  assert.deepEqual(lineupPositions(["DEF", "K", "WRRB_FLEX", "QB", "IDP_FLEX", "BN"]), ["QB", "RB", "WR", "K", "DEF", "DL", "LB", "DB"]);
+  assert.deepEqual(lineupPositions(undefined), []);
+});
+
+test("benchIds is the roster less its starters, injured reserve and taxi squad", () => {
+  const matchup: SleeperMatchup = { roster_id: 1, matchup_id: 1, points: 0, players: ["a", "b", "c", "d", "e", "0"], starters: ["a", "0"] };
+  const roster = { roster_id: 1, reserve: ["c"], taxi: ["d"] } as SleeperRoster;
+  assert.deepEqual(benchIds(matchup, roster), ["b", "e"]);
+  assert.deepEqual(benchIds({ ...matchup, players: null }, roster), []);
 });

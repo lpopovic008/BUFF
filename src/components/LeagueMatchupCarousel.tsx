@@ -239,6 +239,68 @@ function SlotRow({ slot, my, their }: { slot: string; my: ResolvedSlot; their: R
 
 type MatchupTeam = ResolvedMatchupGame["teams"][number];
 
+/** Every position the league's lineups can start — the bench's columns. */
+const NO_POSITIONS: string[] = [];
+const PositionsContext = createContext<string[]>(NO_POSITIONS);
+
+/** A bench player: their name, and under it their points (as a starter's read — see SlotPoints) and projection. */
+function BenchPlayer({ resolved }: { resolved: ResolvedSlot }) {
+  const id = resolved.player!.playerId;
+  const tone = useContext(LineToneContext).get(id);
+  const projected = useContext(LineNoteContext).get(id)?.projected ?? null;
+  const notYet = tone === "pre" && resolved.livePoints === 0;
+  const color = notYet ? "text-ink-muted" : tone === "good" ? "text-status-good" : tone === "bad" ? "text-status-critical" : "text-ink-secondary";
+  return (
+    <span className="flex min-w-0 flex-col items-center">
+      <span className={`max-w-full truncate ${ROW_TEXT} font-bold leading-tight text-ink-primary`}>
+        <PlayerName name={resolved.player!.name} />
+      </span>
+      <span className={`flex gap-1 font-semibold tabular-nums ${NOTE_TEXT}`}>
+        <span className={color}>{notYet ? "–" : formatPoints(resolved.livePoints)}</span>
+        {projected !== null ? (
+          <span className="text-ink-muted" title="Projected">
+            {formatPoints(projected)}
+          </span>
+        ) : null}
+      </span>
+    </span>
+  );
+}
+
+/**
+ * Your bench, under your lineup: a column for each position the league can start (and any other a bench player
+ * plays), each with its players by this week's projection, most first.
+ */
+function Bench({ bench }: { bench: ResolvedSlot[] }) {
+  const leaguePositions = useContext(PositionsContext);
+  const notes = useContext(LineNoteContext);
+  if (bench.length === 0) return null;
+  const positions = [...new Set([...leaguePositions, ...bench.map((s) => s.player!.position)])];
+  const projected = (s: ResolvedSlot) => notes.get(s.player!.playerId)?.projected ?? -Infinity;
+  return (
+    <div className="flex flex-col gap-1.5 border-t border-border pt-2.5">
+      <p className="text-[0.625rem] font-bold uppercase tracking-wide text-ink-muted sm:text-[0.6875rem]">Bench</p>
+      <div className="grid gap-x-1.5 sm:gap-x-3" style={{ gridTemplateColumns: `repeat(${positions.length}, minmax(0, 1fr))` }}>
+        {positions.map((position) => {
+          const players = bench.filter((s) => s.player!.position === position).sort((a, b) => projected(b) - projected(a));
+          return (
+            <div key={position} className="flex min-w-0 flex-col gap-2">
+              <span className="border border-current py-px text-center text-[0.625rem] font-bold uppercase leading-tight text-ink-primary sm:text-[0.6875rem]">
+                {position}
+              </span>
+              {players.length === 0 ? (
+                <span className={`text-center text-ink-muted ${NOTE_TEXT}`}>–</span>
+              ) : (
+                players.map((s) => <BenchPlayer key={s.player!.playerId} resolved={s} />)
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 
 /**
  * The matchup's header, laid on the lineup's own grid: each team's line
@@ -321,7 +383,7 @@ function MatchupHeader({
   );
 }
 
-/** A matchup's lineups, slot by slot: yours (or the first team's) on the left. */
+/** A matchup's lineups, slot by slot: yours (or the first team's) on the left — and when it's yours, your bench under them. */
 function MatchupLineup({ game, myRosterId }: { game: ResolvedMatchupGame; myRosterId: number | null }) {
   const [mine, other] = sides(game, myRosterId);
   return (
@@ -330,6 +392,7 @@ function MatchupLineup({ game, myRosterId }: { game: ResolvedMatchupGame; myRost
         <SlotRow key={i} slot={slot.slot} my={slot} their={other?.slots[i]} />
       ))}
       <LineLegend />
+      {mine.rosterId === myRosterId ? <Bench bench={mine.bench} /> : null}
     </div>
   );
 }
@@ -550,6 +613,7 @@ export function LeagueMatchupCarousel({
   lineTones,
   lineNotes,
   dynasty = false,
+  positions = NO_POSITIONS,
 }: {
   leagueId: string;
   games: ResolvedMatchupGame[];
@@ -570,6 +634,8 @@ export function LeagueMatchupCarousel({
   lineNotes?: Map<string, LineNote>;
   /** A dynasty league (see DynastyContext). */
   dynasty?: boolean;
+  /** Every position the league's lineups can start (see PositionsContext). */
+  positions?: string[];
 }) {
   // The matchup shown large beside the list (tablet and up): yours until another is picked.
   const [pickedId, setPickedId] = useState<number | null>(null);
@@ -590,6 +656,7 @@ export function LeagueMatchupCarousel({
     <LineToneContext.Provider value={lineTones ?? EMPTY_TONES}>
     <LineNoteContext.Provider value={lineNotes ?? EMPTY_NOTES}>
     <DynastyContext.Provider value={dynasty}>
+    <PositionsContext.Provider value={positions}>
       {/* Phones: every matchup's header stacked; tap one for its lineup. */}
       <div className="md:hidden">
         <MatchupStack
@@ -641,6 +708,7 @@ export function LeagueMatchupCarousel({
         </ul>
         </div>
       </div>
+    </PositionsContext.Provider>
     </DynastyContext.Provider>
     </LineNoteContext.Provider>
     </LineToneContext.Provider>
