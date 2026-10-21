@@ -18,7 +18,8 @@ import { ValueHistory } from "../src/lib/value-history";
 
 const DAY = 86_400_000;
 
-const key = (a: { label: string; pickOf?: string }) => `${a.label}|${a.pickOf ?? ""}`;
+// A piece by its name — a pick's "whose" tag changes as it changes hands, so it's left out.
+const key = (a: { label: string }) => a.label;
 
 /** Trades undone soon after: the same two teams swapping the same pieces straight back. */
 function undone(trades: AnalyzedTrade[]): Set<string> {
@@ -52,8 +53,10 @@ const MODELS: Model[] = [
     values: range(0.3, 1, 0.01),
     effective: (vs, d) => [...vs].sort((a, b) => b - a).reduce((t, v, i) => t + v * d ** i, 0),
   },
-  { name: "top piece: Σv + k·max(v)", param: "k", values: range(0, 2, 0.02), effective: (vs, k) => vs.reduce((t, v) => t + v, 0) + k * Math.max(...vs) },
+  { name: "top piece: Σv + k·max(v)", param: "k", values: range(0, 8, 0.05), effective: (vs, k) => vs.reduce((t, v) => t + v, 0) + k * Math.max(...vs) },
 ];
+// Weighed against the trade's best piece: each piece v counts v·(v/T)^q, T the best piece on either side.
+const relative = (q: number) => (vs: number[], top: number) => vs.reduce((t, v) => t + v * (v / top) ** q, 0);
 
 function range(from: number, to: number, step: number): number[] {
   const out: number[] = [];
@@ -120,6 +123,19 @@ async function main() {
       if (s.mse < best.mse) best = { x, ...s };
     }
     console.log(`${m.name}: best ${m.param} = ${best.x} — mean sq. log gap ${best.mse.toFixed(4)}, median gap ${(best.median * 100).toFixed(1)}%`);
+  }
+  {
+    let best = { q: 0, mse: Infinity, median: 0 };
+    for (const q of range(0, 4, 0.05)) {
+      const logs = pairs.map((p) => {
+        const top = Math.max(...p.a, ...p.b);
+        return Math.log(relative(q)(p.a, top) / relative(q)(p.b, top));
+      });
+      const mse = logs.reduce((t, l) => t + l * l, 0) / logs.length;
+      const gaps = logs.map((l) => Math.exp(Math.abs(l)) - 1).sort((x, y) => x - y);
+      if (mse < best.mse) best = { q, mse, median: gaps[Math.floor(gaps.length / 2)] };
+    }
+    console.log(`relative: Σ v·(v/T)^q, T the trade's best piece: best q = ${best.q} — mean sq. log gap ${best.mse.toFixed(4)}, median gap ${(best.median * 100).toFixed(1)}%`);
   }
   // Uneven trades by piece count — where a premium would show.
   const uneven = pairs.filter((p) => p.a.length !== p.b.length);
