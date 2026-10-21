@@ -159,16 +159,16 @@ function SlotPhoto({ playerId }: { playerId: string }) {
  */
 function RankedName({ resolved, align }: { resolved: ResolvedSlot; align: "left" | "right" }) {
   const { player, valueRank, seasonRank, ppg } = resolved;
-  // Each in a column of its own width, kept even when it's empty, so every row's line up — the numbers set to
-  // the column's right edge.
+  // Each in a column of its own width, kept even when it's empty, so every row's line up — the numbers centered in
+  // the column.
   const pieces = [
-    <span key="value" className="w-[3ch] shrink-0 text-right text-series-4" title={valueRank ? `${player!.position}${valueRank} by trade value` : undefined}>
+    <span key="value" className="w-[3ch] shrink-0 text-center text-series-4" title={valueRank ? `${player!.position}${valueRank} by trade value` : undefined}>
       {valueRank ?? ""}
     </span>,
-    <span key="season" className="w-[3ch] shrink-0 text-right text-series-1" title={seasonRank ? `${player!.position}${seasonRank} by points this season` : undefined}>
+    <span key="season" className="w-[3ch] shrink-0 text-center text-series-1" title={seasonRank ? `${player!.position}${seasonRank} by points this season` : undefined}>
       {seasonRank ?? ""}
     </span>,
-    <span key="ppg" className="w-[4ch] shrink-0 text-right text-ink-muted" title={ppg !== null ? "Points a game this season" : undefined}>
+    <span key="ppg" className="w-[4ch] shrink-0 text-center text-ink-muted" title={ppg !== null ? "Points a game this season" : undefined}>
       {ppg !== null ? ppg.toFixed(1) : ""}
     </span>,
     <OpponentNote key="opponent" playerId={player!.playerId} />,
