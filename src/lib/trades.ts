@@ -29,8 +29,15 @@ export interface TradeAsset {
   position: string | null;
   /** A pick's original team, when it isn't the team trading it away. */
   pickOf?: string;
-  /** Who a pick became, once it's been drafted. */
-  became?: { name: string; position: string | null };
+  /**
+   * Who a pick became, once it's been drafted: their value when drafted (their first from the draft on) and
+   * now — null where KTC doesn't list them.
+   */
+  became?: { name: string; position: string | null; drafted: number | null; now: number | null };
+  /** A drafted pick's own value at its draft — what it was worth when it was used. */
+  atDraft?: number | null;
+  /** `atDraft` read off its round's trend. */
+  atDraftEstimated?: boolean;
   /** Value when the trade was made — null with nothing to go by. */
   then: number | null;
   /**
@@ -137,6 +144,13 @@ export function analyzeTrades(
   const on = (series: ValueSeries | undefined, day: number) => (series ? valueOn(history, series, superflex, day) : null);
   // A series' first value, for a pick weighed at what it became.
   const first = (series: ValueSeries | undefined) => (series ? ((superflex ? series.sf : series.q).find((v) => v != null) ?? null) : null);
+  // A series' first value on or after a day — a drafted player's value as a rookie.
+  const firstFrom = (series: ValueSeries | undefined, day: number) => {
+    if (!series) return null;
+    const values = superflex ? series.sf : series.q;
+    for (let i = Math.max(0, Math.ceil((day - history.from) / history.step)); i < values.length; i++) if (values[i] != null) return values[i];
+    return null;
+  };
 
   const out: AnalyzedTrade[] = [];
   for (const { season, teamNames, myRosterId, trades } of seasons) {
@@ -180,7 +194,16 @@ export function analyzeTrades(
             label: `${pick.season} ${ordinal(pick.round)}`,
             position: "PICK",
             pickOf: pick.roster_id !== pick.previous_owner_id ? teamNames.get(pick.roster_id) : undefined,
-            became: drafted ? { name: info?.name ?? player?.n ?? `Player ${drafted}`, position: info?.position ?? player?.p ?? null } : undefined,
+            became: drafted
+              ? {
+                  name: info?.name ?? player?.n ?? `Player ${drafted}`,
+                  position: info?.position ?? player?.p ?? null,
+                  drafted: firstFrom(player, draftDay),
+                  now: on(player, today),
+                }
+              : undefined,
+            atDraft: drafted ? pickOn(draftDay - 1) : undefined,
+            atDraftEstimated: drafted ? known(draftDay - 1) === null : undefined,
             then: thenValue ?? standIn,
             thenEstimated: known(day) === null && (thenValue ?? standIn) !== null,
             now: pickOn(today),

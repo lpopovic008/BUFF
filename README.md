@@ -205,7 +205,9 @@ weighed in KTC dynasty values (superflex or 1QB, as the league plays), shown as
 grades: what each piece was worth when traded and now, the side's totals and
 their change, and a small chart of each side's haul week by week since. A draft
 pick is KTC's "{season} Mid {round}" until its draft, then whoever it became
-(from the league's rookie draft). Where KTC has no value for a pick on a day
+(from the league's rookie draft): a drafted pick's line reads what it was
+worth when traded and when it was used, and under it, the player drafted with
+it, their value from the draft to now. Where KTC has no value for a pick on a day
 (a pick from a draft that's done, which KTC no longer lists), it's estimated
 from its round's trend — picks gain value steadily as their draft nears, so a
 line is fitted through every value KTC has given that round's mid pick against

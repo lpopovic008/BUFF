@@ -1,5 +1,6 @@
 "use client";
 
+import { ReactNode } from "react";
 import { PlateCard } from "@/components/ui/PlateCard";
 import { useLeagueTrades } from "@/hooks/useLeagueTrades";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
@@ -27,34 +28,67 @@ function Change({ from, to }: { from: number; to: number }) {
   );
 }
 
-/** One thing a side got: its name and position, then what it was worth when traded and what it's worth now. */
+/** A value, "≈" before it when it's estimated, "–" with none. */
+function Shown({ value, estimated = false }: { value: number | null; estimated?: boolean }) {
+  return <>{value !== null ? `${estimated ? "≈" : ""}${grade(value)}` : "–"}</>;
+}
+
+/** A row's two values: from (muted) → to (bold), in columns lined up row to row. */
+function Values({ from, to, fromTitle, toTitle, small = false }: { from: ReactNode; to: ReactNode; fromTitle: string; toTitle: string; small?: boolean }) {
+  return (
+    <>
+      <span className="w-[3ch] shrink-0 text-right tabular-nums text-ink-muted" title={fromTitle}>
+        {from}
+      </span>
+      <span className="text-ink-muted">→</span>
+      <span className={`w-[3ch] shrink-0 text-right tabular-nums ${small ? "text-ink-secondary" : "font-bold text-ink-primary"}`} title={toTitle}>
+        {to}
+      </span>
+    </>
+  );
+}
+
+/**
+ * One thing a side got: its name and position, then what it was worth when traded and what it's worth now — a
+ * drafted pick, what it was worth when it was used, with the player it became under it, their value from the
+ * draft to now.
+ */
 function AssetRow({ asset }: { asset: TradeAsset }) {
   const position = asset.position === "PICK" ? null : asset.position;
+  const became = asset.became;
   return (
-    <li className="flex items-baseline gap-2 text-xs">
-      <span className="min-w-0 flex-1">
-        <span className="flex min-w-0 items-baseline gap-1">
+    <li className="flex flex-col gap-0.5 text-xs">
+      <span className="flex items-baseline gap-2">
+        <span className="flex min-w-0 flex-1 items-baseline gap-1">
           <span className="truncate font-semibold text-ink-primary">{asset.label}</span>
           {position ? <span className={`shrink-0 text-[0.625rem] font-semibold ${POSITION_TEXT_COLOR[position] ?? "text-ink-muted"}`}>{position}</span> : null}
           {asset.pickOf ? <span className="min-w-0 truncate text-[0.625rem] text-ink-muted">({asset.pickOf})</span> : null}
         </span>
-        {asset.became ? (
-          <span className="flex min-w-0 items-baseline gap-1 text-[0.625rem] text-ink-muted">
-            <span className="truncate">→ {asset.became.name}</span>
-            {asset.became.position ? <span className={`shrink-0 font-semibold ${POSITION_TEXT_COLOR[asset.became.position] ?? ""}`}>{asset.became.position}</span> : null}
+        <Values
+          from={<Shown value={asset.then} estimated={asset.thenEstimated} />}
+          fromTitle={asset.thenEstimated ? `When traded — estimated: ${ESTIMATED}` : "When traded"}
+          to={became ? <Shown value={asset.atDraft ?? null} estimated={asset.atDraftEstimated} /> : <Shown value={asset.now} estimated={asset.nowEstimated} />}
+          toTitle={
+            became
+              ? asset.atDraftEstimated
+                ? `At its draft — estimated: ${ESTIMATED}`
+                : "At its draft"
+              : asset.nowEstimated
+                ? `Now — estimated: ${ESTIMATED}`
+                : "Now"
+          }
+        />
+      </span>
+      {became ? (
+        <span className="flex items-baseline gap-2 pl-2 text-[0.6875rem]">
+          <span className="flex min-w-0 flex-1 items-baseline gap-1">
+            <span className="text-ink-muted">↳</span>
+            <span className="truncate font-semibold text-ink-primary">{became.name}</span>
+            {became.position ? <span className={`shrink-0 text-[0.625rem] font-semibold ${POSITION_TEXT_COLOR[became.position] ?? ""}`}>{became.position}</span> : null}
           </span>
-        ) : null}
-      </span>
-      <span
-        className="w-[3ch] shrink-0 text-right tabular-nums text-ink-muted"
-        title={asset.thenEstimated ? `When traded — estimated: ${ESTIMATED}` : "When traded"}
-      >
-        {asset.then !== null ? `${asset.thenEstimated ? "≈" : ""}${grade(asset.then)}` : "–"}
-      </span>
-      <span className="text-ink-muted">→</span>
-      <span className="w-[3ch] shrink-0 text-right font-bold tabular-nums text-ink-primary" title={asset.nowEstimated ? `Now — estimated: ${ESTIMATED}` : "Now"}>
-        {asset.now !== null ? `${asset.nowEstimated ? "≈" : ""}${grade(asset.now)}` : "–"}
-      </span>
+          <Values from={<Shown value={became.drafted} />} fromTitle="When drafted" to={<Shown value={became.now} />} toTitle="Now" />
+        </span>
+      ) : null}
     </li>
   );
 }

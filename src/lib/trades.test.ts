@@ -49,6 +49,10 @@ test("analyzeTrades weighs each side's haul when traded and now, a pick as whoev
   assert.equal(alpha.faab, 15);
   // Alpha got the pick: worth 5000 then (the week the trade's in), now the rookie it became.
   assert.deepEqual(alpha.got.map((a) => [a.label, a.then, a.now, a.became?.name]), [["2025 1st", 5000, 6500, "Rookie Wideout"]]);
+  // The pick at its draft (its last value before it, 5100), and the rookie from the draft (6000) to now.
+  assert.equal(alpha.got[0].atDraft, 5100);
+  assert.equal(alpha.got[0].atDraftEstimated, false);
+  assert.deepEqual([alpha.got[0].became?.drafted, alpha.got[0].became?.now], [6000, 6500]);
   assert.deepEqual(beta.got.map((a) => [a.label, a.then, a.now]), [["Star Back", 8000, 8600]]);
   assert.equal(beta.then, 8000);
   assert.equal(beta.now, 8600);
