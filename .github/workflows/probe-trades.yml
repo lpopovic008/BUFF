@@ -1,0 +1,20 @@
+name: Probe trades
+
+# Diagnostic, read-only, on demand: how the trade analyzer resolves traded picks (see scripts/probe-trades.ts).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsx scripts/probe-trades.ts
