@@ -399,8 +399,8 @@ orange, yellow or green (the most), eased so each rank reads plainly as one of
 the four. Under the points, their projection (`LineNote`). Under the lineup's
 middle, a legend for the three numbers in their colors ("Dynasty rank" or
 "Redraft rank", "Season rank", "Points a game"; `LineLegend`). The lineups' photos
-are square, the round one's size, showing the biggest square that fits inside
-it (`PlayerHeadshot`'s `square`); photos elsewhere stay round. The defense ranks
+are the biggest square that fits inside the round photo, cut from it at the
+same scale (`PlayerHeadshot`'s `square`); photos elsewhere stay round. The defense ranks
 come from the daily stats snapshot, which also totals what each defense has
 allowed each position (`defense` in `player-stats.json`, from the `opponent`
 on Sleeper's weekly stats; `defenseRanks`), under the league's reception
