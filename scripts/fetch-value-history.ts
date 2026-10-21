@@ -1,11 +1,35 @@
 /**
- * KeepTradeCut values over time, for the values page's trade analyzer — what
- * every player and draft pick in a trade was worth then, and since.
+ * KeepTradeCut's dynasty values over time, for the values page's trade
+ * analyzer: written to public/data/value-history.json (see
+ * src/lib/value-history.ts), a value a week for every player and future draft
+ * pick on KTC's dynasty rankings, in both superflex and 1QB.
  *
- *   npx tsx scripts/fetch-value-history.ts --probe    # print a player page's shape, write nothing
+ * Each KTC player page carries that player's whole value history (a JSON
+ * block, `#pd-superflex` / `#pd-oneqb`, whose `overallValue` is a value a day,
+ * `{"d":"240831","v":5768}`) — but the pages are ~4MB apiece, so the full
+ * fetch is a one-off (--full). After that a run only fetches the pages of
+ * players and picks it hasn't got yet, and adds each week's value from the
+ * rankings page alone. Anyone who drops off the rankings — a pick once it's
+ * been drafted, a retired player — keeps the history already gathered.
+ *
+ * On failure it prints why and exits non-zero without touching the file.
+ *
+ *   npx tsx scripts/fetch-value-history.ts            # new players' histories, this week's values
+ *   npx tsx scripts/fetch-value-history.ts --full     # every page again
+ *   npx tsx scripts/fetch-value-history.ts --dry-run  # change nothing
  */
 
-const PROBE = process.argv.includes("--probe");
+import { promises as fs } from "node:fs";
+import path from "node:path";
+import { dayOf, ValueHistory, ValueSeries } from "../src/lib/value-history";
+
+const FULL = process.argv.includes("--full");
+const DRY_RUN = process.argv.includes("--dry-run");
+const OUT_PATH = path.join(process.cwd(), "public", "data", "value-history.json");
+const STEP = 7;
+/** Player pages fetched at once, and the pause after each — gentle on KTC. */
+const CONCURRENCY = 4;
+const PAUSE_MS = 250;
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36";
 
 async function fetchHtml(url: string): Promise<string> {
@@ -14,7 +38,7 @@ async function fetchHtml(url: string): Promise<string> {
   return res.text();
 }
 
-/** The `[...]` starting at `open`, brackets balanced outside of strings. */
+/** The `[...]` or `{...}` starting at `open`, brackets balanced outside of strings. */
 function balanced(text: string, open: number, pair: "[]" | "{}"): string | null {
   let depth = 0;
   let quote: string | null = null;
@@ -32,9 +56,19 @@ function balanced(text: string, open: number, pair: "[]" | "{}"): string | null 
   return null;
 }
 
-/** The page's full player table: the largest array of player records in any of its scripts (it's a bare JSON array, not a named variable). */
-function largestPlayerArray(html: string): Record<string, unknown>[] {
-  let best: Record<string, unknown>[] = [];
+interface RankedPlayer {
+  playerID: number;
+  playerName: string;
+  slug: string;
+  position: string;
+  team: string | null;
+  oneQBValues?: { value?: number };
+  superflexValues?: { value?: number };
+}
+
+/** The rankings page's full player table: the largest array of player records in any of its scripts (a bare JSON array, not a named variable). */
+function largestPlayerArray(html: string): RankedPlayer[] {
+  let best: RankedPlayer[] = [];
   for (const [, body] of html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)) {
     let quote: string | null = null;
     for (let i = 0; i < body.length; i++) {
@@ -61,62 +95,112 @@ function largestPlayerArray(html: string): Record<string, unknown>[] {
   return best;
 }
 
-async function probe() {
-  const html = await fetchHtml("https://keeptradecut.com/dynasty-rankings");
-  const players = largestPlayerArray(html);
-  console.log(`player table: ${players.length} entries`);
-  const first = players[0];
-  console.log(`a player's keys: ${Object.keys(first ?? {}).join(", ")}`);
-  console.log(`a player (values cut): ${JSON.stringify(first).slice(0, 900)}`);
-  const pick = players.find((p) => p.position === "RDP");
-  console.log(`a pick (values cut): ${JSON.stringify(pick).slice(0, 600)}`);
-  for (const p of [first, pick]) {
-    const slug = p?.slug as string | undefined;
-    if (!slug) continue;
-    const url = `https://keeptradecut.com/dynasty-rankings/players/${slug}`;
-    console.log(`\nFetching ${url}`);
-    const page = await fetchHtml(url);
-    console.log(`  ${page.length} chars; script vars: ${[...new Set([...page.matchAll(/var\s+(\w+)\s*=/g)].map((m) => m[1]))].join(", ")}`);
-    for (const m of page.matchAll(/var\s+(\w+)\s*=\s*\{/g)) {
-      const obj = balanced(page, m.index! + m[0].length - 1, "{}");
-      if (!obj) continue;
-      console.log(`  var ${m[1]} (${obj.length} chars): ${obj.slice(0, 400)}`);
-      for (const key of ["overallValue", "valueHistory", "history"]) {
-        const k = obj.indexOf(`"${key}"`);
-        if (k >= 0) console.log(`    ${key}: ${obj.slice(k, k + 300)} … ${obj.slice(Math.max(k, obj.indexOf("]", k) - 120), obj.indexOf("]", k) + 1)}`);
-      }
-    }
-    for (const [, id, body] of page.matchAll(/<script[^>]*id="(pd-[\w-]+)"[^>]*>([\s\S]*?)<\/script>/g)) {
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(body);
-      } catch {
-        console.log(`  #${id}: not JSON (${body.length} chars)`);
-        continue;
-      }
-      if (Array.isArray(parsed)) {
-        console.log(`  #${id}: array of ${parsed.length}`);
-        continue;
-      }
-      console.log(`  #${id}: keys ${Object.keys(parsed as object).join(", ")}`);
-      // Every array in it longer than a few entries — where a history would be.
-      const walk = (node: unknown, path: string) => {
-        if (Array.isArray(node)) {
-          if (node.length > 3) console.log(`    ${path}: ${node.length} × ${JSON.stringify(node[0]).slice(0, 120)} … last ${JSON.stringify(node[node.length - 1]).slice(0, 120)}`);
-          return;
-        }
-        if (node && typeof node === "object") for (const [k, v] of Object.entries(node)) walk(v, `${path}.${k}`);
-      };
-      walk(parsed, id);
-    }
-    const dv = page.search(/\{"d":"\d{4}-\d\d-\d\d","v":/);
-    console.log(`  first {"d","v"}: ${dv >= 0 ? page.slice(Math.max(0, dv - 120), dv + 200) : "none"}`);
+/** "240831" — KTC's date — as days since 1970. */
+function ktcDay(d: string): number {
+  return dayOf(Date.UTC(2000 + Number(d.slice(0, 2)), Number(d.slice(2, 4)) - 1, Number(d.slice(4, 6))));
+}
+
+/** A player page's value a day in one format, as [day, value], oldest first — from its `#pd-…` data block. */
+function pageHistory(page: string, id: "pd-superflex" | "pd-oneqb"): [number, number][] {
+  const m = new RegExp(`<script[^>]*id="${id}"[^>]*>([\\s\\S]*?)<\\/script>`).exec(page);
+  if (!m) return [];
+  const data = JSON.parse(m[1]) as { overallValue?: { d: string; v: number }[] };
+  return (data.overallValue ?? []).map((p): [number, number] => [ktcDay(p.d), p.v]).sort((a, b) => a[0] - b[0]);
+}
+
+/** A day-by-day history put on the grid: at each point, the latest value at or before it — null before the first. */
+function onGrid(points: [number, number][], from: number, count: number): (number | null)[] {
+  const out: (number | null)[] = [];
+  let j = -1;
+  for (let i = 0; i < count; i++) {
+    const day = from + i * STEP;
+    while (j + 1 < points.length && points[j + 1][0] <= day) j++;
+    out.push(j >= 0 ? points[j][1] : null);
+  }
+  return out;
+}
+
+async function loadExisting(): Promise<ValueHistory | null> {
+  try {
+    return JSON.parse(await fs.readFile(OUT_PATH, "utf8")) as ValueHistory;
+  } catch {
+    return null;
   }
 }
 
-if (PROBE) {
-  probe().catch((err) => {
-    console.error("Probe failed:", err instanceof Error ? err.message : err);
-    process.exitCode = 1;
-  });
+async function main() {
+  console.log("Fetching the dynasty rankings…");
+  const ranked = largestPlayerArray(await fetchHtml("https://keeptradecut.com/dynasty-rankings"));
+  if (ranked.length < 100) throw new Error(`only ${ranked.length} players in the rankings table — the page has likely changed`);
+  console.log(`  ${ranked.length} players and picks.`);
+
+  const existing = FULL ? null : await loadExisting();
+  const today = dayOf(Date.now());
+  const toFetch = ranked.filter((p) => !existing?.players[String(p.playerID)]);
+  console.log(`${toFetch.length} player pages to fetch${FULL ? " (--full)" : ""}.`);
+
+  // Each page's whole history, both formats.
+  const fetched = new Map<string, { sf: [number, number][]; q: [number, number][] }>();
+  let next = 0;
+  let failed = 0;
+  const worker = async () => {
+    while (next < toFetch.length) {
+      const p = toFetch[next++];
+      try {
+        const page = await fetchHtml(`https://keeptradecut.com/dynasty-rankings/players/${p.slug}`);
+        fetched.set(String(p.playerID), { sf: pageHistory(page, "pd-superflex"), q: pageHistory(page, "pd-oneqb") });
+      } catch (err) {
+        failed++;
+        console.log(`  ${p.playerName}: ${err instanceof Error ? err.message : err}`);
+      }
+      if (fetched.size % 50 === 0) console.log(`  ${fetched.size} of ${toFetch.length}…`);
+      await new Promise((r) => setTimeout(r, PAUSE_MS));
+    }
+  };
+  await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+  if (failed > toFetch.length / 4) throw new Error(`${failed} of ${toFetch.length} player pages failed`);
+
+  // The grid: from the earliest day anyone's history reaches (kept on the existing grid's weeks), through today.
+  const earliest = Math.min(today, ...[...fetched.values()].flatMap((h) => [h.sf[0]?.[0] ?? today, h.q[0]?.[0] ?? today]));
+  let from = existing?.from ?? earliest;
+  if (existing && earliest < from) from -= Math.ceil((from - earliest) / STEP) * STEP;
+  const count = Math.floor((today - from) / STEP) + 1;
+  const shift = existing ? (existing.from - from) / STEP : 0;
+
+  const players: Record<string, ValueSeries> = {};
+  // Everyone already gathered, moved onto the grid and carried through today.
+  for (const [id, s] of Object.entries(existing?.players ?? {})) {
+    const pad = (values: (number | null)[]) => [...Array<null>(shift).fill(null), ...values, ...Array<null>(Math.max(0, count - shift - values.length)).fill(null)].slice(0, count);
+    players[id] = { ...s, sf: pad(s.sf), q: pad(s.q) };
+  }
+  for (const [id, h] of fetched) {
+    const p = ranked.find((r) => String(r.playerID) === id)!;
+    players[id] = { n: p.playerName, p: p.position, t: p.team && p.team !== "FA" ? p.team : null, sf: onGrid(h.sf, from, count), q: onGrid(h.q, from, count) };
+  }
+  // This week's point, for anyone still ranked who hasn't got one yet — from the rankings page alone.
+  for (const p of ranked) {
+    const s = players[String(p.playerID)];
+    if (!s) continue;
+    s.n = p.playerName;
+    s.t = p.team && p.team !== "FA" ? p.team : null;
+    if (s.sf[count - 1] == null && p.superflexValues?.value) s.sf[count - 1] = p.superflexValues.value;
+    if (s.q[count - 1] == null && p.oneQBValues?.value) s.q[count - 1] = p.oneQBValues.value;
+  }
+
+  const history: ValueHistory = { updatedAt: new Date().toISOString(), from, step: STEP, players };
+  const firstDate = new Date(from * 86_400_000).toISOString().slice(0, 10);
+  console.log(`${Object.keys(players).length} players and picks, ${count} weekly points from ${firstDate}.`);
+  if (DRY_RUN) {
+    console.log("--dry-run: not writing the file.");
+    return;
+  }
+  await fs.mkdir(path.dirname(OUT_PATH), { recursive: true });
+  await fs.writeFile(OUT_PATH, JSON.stringify(history) + "\n");
+  console.log(`Wrote ${path.relative(process.cwd(), OUT_PATH)}.`);
 }
+
+main().catch((err) => {
+  console.error("Value history fetch failed:", err instanceof Error ? err.message : err);
+  console.error("Leaving public/data/value-history.json untouched.");
+  process.exitCode = 1;
+});
