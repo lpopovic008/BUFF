@@ -32,16 +32,39 @@ function balanced(text: string, open: number, pair: "[]" | "{}"): string | null 
   return null;
 }
 
+/** The page's full player table: the largest array of player records in any of its scripts (it's a bare JSON array, not a named variable). */
+function largestPlayerArray(html: string): Record<string, unknown>[] {
+  let best: Record<string, unknown>[] = [];
+  for (const [, body] of html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)) {
+    let quote: string | null = null;
+    for (let i = 0; i < body.length; i++) {
+      const ch = body[i];
+      if (quote) {
+        if (ch === "\\") i++;
+        else if (ch === quote) quote = null;
+        continue;
+      }
+      if (ch === '"' || ch === "'") quote = ch;
+      else if (ch === "[") {
+        const text = balanced(body, i, "[]");
+        if (!text) continue;
+        i += text.length - 1;
+        try {
+          const parsed = JSON.parse(text);
+          if (Array.isArray(parsed) && parsed.length > best.length && typeof parsed[0]?.playerName === "string") best = parsed;
+        } catch {
+          // not JSON — keep looking
+        }
+      }
+    }
+  }
+  return best;
+}
+
 async function probe() {
   const html = await fetchHtml("https://keeptradecut.com/dynasty-rankings");
-  const at = [...html.matchAll(/var\s+playersArray\s*=\s*\[/g)].map((m) => m.index! + m[0].length - 1);
-  let players: Record<string, unknown>[] = [];
-  for (const i of at) {
-    const text = balanced(html, i, "[]");
-    const parsed = text ? (JSON.parse(text) as Record<string, unknown>[]) : [];
-    if (parsed.length > players.length) players = parsed;
-  }
-  console.log(`playersArray: ${players.length} entries`);
+  const players = largestPlayerArray(html);
+  console.log(`player table: ${players.length} entries`);
   const first = players[0];
   console.log(`a player's keys: ${Object.keys(first ?? {}).join(", ")}`);
   console.log(`a player (values cut): ${JSON.stringify(first).slice(0, 900)}`);
