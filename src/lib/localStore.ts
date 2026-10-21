@@ -398,7 +398,7 @@ const HOME_VIEW_KEY = "commish:home-view";
 /**
  * How the home page was last left on this browser: the players whose graphs
  * were up (for the week they're from), the starters list's view and the
- * games hidden from the map and the Red Zone. Like the
+ * games hidden from the map and the Red Zone, and the league page's bench sort. Like the
  * sync state, it describes this browser — never synced, and writing it never
  * fires onLocalWrite.
  */
@@ -408,6 +408,8 @@ export interface HomeView {
   startersView?: number;
   /** The games hidden from the map and the Red Zone (their matchups swiped over), for the week they're from. */
   hiddenGames?: { week: number; ids: string[] };
+  /** How the league page's bench is sorted (see BENCH_SORTS). */
+  benchSort?: string;
 }
 
 export function getHomeView(): HomeView {

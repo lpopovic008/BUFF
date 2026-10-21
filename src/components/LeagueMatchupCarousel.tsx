@@ -9,6 +9,7 @@ import { TeamStanding } from "@/lib/league-data";
 import { MatchupRows } from "@/components/LeagueTicker";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { abbreviateFirstName, formatPoints } from "@/lib/format";
+import { getHomeView, saveHomeView } from "@/lib/localStore";
 
 /**
  * How a starter's points read, by player id: "pre" before they've played (a dash), "good" on pace for
@@ -244,39 +245,104 @@ const NO_POSITIONS: string[] = [];
 const PositionsContext = createContext<string[]>(NO_POSITIONS);
 
 /**
+ * The bench's sorts: each a label and how to order two players (best first), given their second line's note.
+ * Players with nothing to sort by go last.
+ */
+const BENCH_SORTS: { id: string; label: (dynasty: boolean) => string; key: (s: ResolvedSlot, note: LineNote | undefined) => number | null }[] = [
+  { id: "projected", label: () => "Projected", key: (_, note) => note?.projected ?? null },
+  // Easiest first: the defense allowing the position the most (the highest rank).
+  { id: "matchup", label: () => "Matchup", key: (_, note) => (note?.rank != null && note.of > 0 ? note.rank : null) },
+  { id: "ppg", label: () => "Points a game", key: (s) => s.ppg },
+  { id: "points", label: () => "Points", key: (s) => s.livePoints },
+  { id: "season", label: () => "Season rank", key: (s) => (s.seasonRank === null ? null : -s.seasonRank) },
+  { id: "value", label: (dynasty) => `${dynasty ? "Dynasty" : "Redraft"} rank`, key: (s) => (s.valueRank === null ? null : -s.valueRank) },
+];
+
+/** The fewest bench players a row fits across, and the narrowest one can be (rem) for its numbers to show whole — as many fit as can. */
+const BENCH_FIT = { phone: { least: 2, min: 9 }, wide: { least: 2, min: 12.5 } };
+
+/**
  * Your bench, under your lineup: a row for each position the league can start (and any other a bench player
- * plays), its players side by side to swipe through — most projected this week on the left — each laid out as
- * a starter is, every number alike.
+ * plays), its players side by side to swipe through, sorted as picked (most projected first unless another's
+ * chosen), each laid out as a starter is, every number alike. Every player in a row shows whole: two across on a
+ * phone, three or as many more as fit wider.
  */
 function Bench({ bench }: { bench: ResolvedSlot[] }) {
   const leaguePositions = useContext(PositionsContext);
   const notes = useContext(LineNoteContext);
-  if (bench.length === 0) return null;
+  const dynasty = useContext(DynastyContext);
+  const [sortId, setSortId] = useState(() => getHomeView().benchSort ?? "projected");
+  const sort = BENCH_SORTS.find((s) => s.id === sortId) ?? BENCH_SORTS[0];
+  // Each player's width, so a whole number of them fill the row exactly — measured off the first row.
+  const stripRef = useRef<HTMLDivElement>(null);
+  const [cardWidth, setCardWidth] = useState<number | null>(null);
+  const hasBench = bench.length > 0;
+  useEffect(() => {
+    const el = stripRef.current;
+    if (!el) return;
+    const fit = () => {
+      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+      const gap = parseFloat(getComputedStyle(el).columnGap) || 0;
+      const { least, min } = window.matchMedia("(min-width: 640px)").matches ? BENCH_FIT.wide : BENCH_FIT.phone;
+      const n = Math.max(least, Math.floor((el.clientWidth + gap) / (min * rem + gap)));
+      setCardWidth(Math.floor((el.clientWidth - (n - 1) * gap) / n));
+    };
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasBench]);
+  if (!hasBench) return null;
   const positions = [...new Set([...leaguePositions, ...bench.map((s) => s.player!.position)])];
-  const projected = (s: ResolvedSlot) => notes.get(s.player!.playerId)?.projected ?? -Infinity;
+  const keyOf = (s: ResolvedSlot) => sort.key(s, notes.get(s.player!.playerId)) ?? -Infinity;
+  const pick = (id: string) => {
+    setSortId(id);
+    saveHomeView({ benchSort: id });
+  };
   return (
     <div className="flex flex-col gap-2.5 border-t border-border pt-2.5">
-      <p className="text-[0.625rem] font-bold uppercase tracking-wide text-ink-muted sm:text-[0.6875rem]">Bench</p>
-      {positions.map((position) => {
-        const players = bench.filter((s) => s.player!.position === position).sort((a, b) => projected(b) - projected(a));
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[0.625rem] font-bold uppercase tracking-wide text-ink-muted sm:text-[0.6875rem]">Bench</p>
+        <label className="flex items-center gap-1 text-[0.625rem] font-bold uppercase tracking-wide text-ink-muted sm:text-[0.6875rem]">
+          Sort
+          <select
+            value={sort.id}
+            onChange={(e) => pick(e.target.value)}
+            className="border border-ink-primary bg-page px-1 py-px font-bold uppercase text-ink-primary"
+          >
+            {BENCH_SORTS.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.label(dynasty)}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      {positions.map((position, row) => {
+        const players = bench.filter((s) => s.player!.position === position).sort((a, b) => keyOf(b) - keyOf(a));
         return (
-          // The label's column and gap match a lineup row's middle, so each player, at half the strip, is a lineup side's width.
-          <div key={position} className="grid grid-cols-[1.5rem_minmax(0,1fr)] items-center gap-2 sm:grid-cols-[1.8rem_minmax(0,1fr)] sm:gap-4">
-            <span className="border border-current py-px text-center text-[0.625rem] font-bold uppercase leading-tight text-ink-primary sm:text-[0.6875rem]">
+          // On a phone the position sits over its row, so two players fit across whole; wider, beside it.
+          <div key={position} className="flex flex-col gap-1 sm:grid sm:grid-cols-[1.8rem_minmax(0,1fr)] sm:items-center sm:gap-4">
+            <span className="w-[1.5rem] border border-current py-px text-center text-[0.625rem] font-bold uppercase leading-tight text-ink-primary sm:w-auto sm:text-[0.6875rem]">
               {position}
             </span>
-            {players.length === 0 ? (
-              <span className={`text-ink-muted ${ROW_TEXT}`}>–</span>
-            ) : (
-              // Room above and below for the photos, which spill past their rows; no scrollbar, it's swiped.
-              <div className="-my-1 flex snap-x snap-mandatory gap-3 overflow-x-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {players.map((s) => (
-                  <div key={s.player!.playerId} className="shrink-0 basis-1/2 snap-start">
-                    <MySlotPlayer resolved={s} />
-                  </div>
-                ))}
-              </div>
-            )}
+            {/* Room above and below for the photos, which spill past their rows; no scrollbar, it's swiped — the
+                last player snapping to the end, so the row swipes all the way to them. */}
+            <div
+              ref={row === 0 ? stripRef : undefined}
+              className="-my-1 flex snap-x snap-mandatory gap-2 overflow-x-auto py-1 [scrollbar-width:none] sm:gap-4 [&::-webkit-scrollbar]:hidden"
+            >
+              {players.length === 0 ? <span className={`text-ink-muted ${ROW_TEXT}`}>–</span> : null}
+              {players.map((s, i) => (
+                <div
+                  key={s.player!.playerId}
+                  className={`shrink-0 ${i === players.length - 1 ? "snap-end" : "snap-start"} ${cardWidth === null ? "basis-1/2 sm:basis-1/3" : ""}`}
+                  style={cardWidth === null ? undefined : { width: cardWidth }}
+                >
+                  <MySlotPlayer resolved={s} />
+                </div>
+              ))}
+            </div>
           </div>
         );
       })}
