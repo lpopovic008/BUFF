@@ -1,0 +1,20 @@
+name: Probe KTC adjustment
+
+# Diagnostic, read-only, on demand: print KTC trade calculator's value adjustment code (see scripts/probe-ktc-adjustment.ts).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsx scripts/probe-ktc-adjustment.ts
