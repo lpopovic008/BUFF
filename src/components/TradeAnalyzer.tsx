@@ -10,6 +10,9 @@ import { shownGrade, valueGrade } from "@/lib/player-values";
 // Each side's color — its swatch by the team's name and its line on the chart.
 const SIDE_COLORS = ["var(--ink-primary)", "var(--series-1)", "var(--series-2)", "var(--series-5)"];
 
+const ADDED =
+  "What getting fewer, bigger pieces is worth: in these leagues' trades, a side's best piece counts in full and everything else about 18% — this evens the plain totals out to match";
+
 const ESTIMATED = "KTC had no value for this pick then, so it's read off its round's trend — picks gain value steadily as their draft nears";
 
 /** A value as the values page shows it: its whole grade (9,999 reads 99). */
@@ -114,13 +117,19 @@ function SideColumn({ side, color, ahead }: { side: TradeSide; color: string; ah
         ))}
         {side.faab > 0 ? <li className="text-xs text-ink-muted">${side.faab} FAAB</li> : null}
         {side.got.length === 0 && side.faab === 0 ? <li className="text-xs text-ink-muted">Nothing</li> : null}
+        {side.addedThen > 0 || side.addedNow > 0 ? (
+          <li className="flex items-baseline gap-2 text-xs" title={ADDED}>
+            <span className="min-w-0 flex-1 truncate italic text-ink-secondary">Added value</span>
+            <Values from={grade(side.addedThen)} fromTitle="When traded" to={grade(side.addedNow)} toTitle="Now" small />
+          </li>
+        ) : null}
       </ul>
       <div className="mt-auto flex items-baseline justify-end gap-2 border-t border-border pt-1 text-xs">
         <span className="text-ink-muted">Total</span>
-        <span className="tabular-nums text-ink-muted">{grade(side.then)}</span>
+        <span className="tabular-nums text-ink-muted">{grade(side.then + side.addedThen)}</span>
         <span className="text-ink-muted">→</span>
-        <span className="font-bold tabular-nums text-ink-primary">{grade(side.now)}</span>
-        <Change from={side.then} to={side.now} />
+        <span className="font-bold tabular-nums text-ink-primary">{grade(side.now + side.addedNow)}</span>
+        <Change from={side.then + side.addedThen} to={side.now + side.addedNow} />
       </div>
     </div>
   );
@@ -152,7 +161,8 @@ function TradePath({ sides }: { sides: TradeSide[] }) {
 }
 
 function TradeCard({ trade }: { trade: AnalyzedTrade }) {
-  const leader = trade.sides.reduce((best, s) => (s.now > best.now ? s : best), trade.sides[0]);
+  const worth = (s: TradeSide) => s.now + s.addedNow;
+  const leader = trade.sides.reduce((best, s) => (worth(s) > worth(best) ? s : best), trade.sides[0]);
   const date = new Date(trade.at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   return (
     <li className="flex flex-col gap-2 border border-border p-2">

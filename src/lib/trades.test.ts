@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { analyzeTrades, DraftResult, pickTrends, TradeSeason } from "./trades";
+import { addedValue, analyzeTrades, DraftResult, pickTrends, TradeSeason, tradeValue } from "./trades";
 import { DAY_MS, ValueHistory, ValueSeries } from "./value-history";
 import { SleeperTransaction } from "./sleeper";
 
@@ -107,4 +107,22 @@ test("analyzeTrades finds a pick in whichever of its season's drafts has it, pas
   const withEmpty = new Map<string, DraftResult[]>([["2025", [{ at: 1018 * DAY_MS, players: new Map() }, ...drafts.get("2025")!]]]);
   const [t] = analyzeTrades(seasons, withEmpty, history, bySleeperId, players, true, 1021 * DAY_MS);
   assert.equal(t.sides[0].got[0].became?.name, "Rookie Wideout");
+});
+
+test("tradeValue counts a side's best piece in full and the rest at 18%", () => {
+  assert.equal(tradeValue([8000]), 8000);
+  assert.ok(Math.abs(tradeValue([5000, 3000, 2000]) - (5000 + 0.18 * 5000)) < 1e-9);
+});
+
+test("addedValue gives the side getting fewer, bigger pieces enough to compare as the trade values do", () => {
+  // Ja'Marr Chase for two firsts and two players.
+  const chase = [8898];
+  const haul = [5906, 4691, 3256, 3383];
+  const added = addedValue(chase, haul);
+  const total = haul.reduce((t, v) => t + v, 0);
+  assert.ok(Math.abs((8898 + added) / total - tradeValue(chase) / tradeValue(haul)) < 1e-9);
+  assert.ok(added > 10000 && added < 11000);
+  // The side spreading its value gets none, and nor does a one-for-one.
+  assert.equal(addedValue(haul, chase), 0);
+  assert.equal(addedValue([5000], [4000]), 0);
 });

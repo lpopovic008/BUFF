@@ -100,10 +100,41 @@ export interface TradeSide {
   got: TradeAsset[];
   /** FAAB dollars received. */
   faab: number;
+  /** What it got, added up, when traded and now — before any added value. */
   then: number;
   now: number;
-  /** The haul's value at each week since the trade, its last point now. */
+  /** The consolidation premium it's due (see addedValue), when traded and now — 0 for the side spreading its value. */
+  addedThen: number;
+  addedNow: number;
+  /** The haul's value, added value and all, at each week since the trade, its last point now. */
   path: { day: number; value: number }[];
+}
+
+/**
+ * How much the pieces past a side's best count toward its trade value — fitted to the commissioner's two
+ * dynasty leagues' trades (scripts/fit-trade-adjustment.ts, Oct 2026: 106 two-team trades, ones undone soon
+ * after left out): the value that best balances them is the best piece in full and every other at 18%, which
+ * brought the median gap between the sides from 34% to 13.5%.
+ */
+export const OTHER_PIECES_WEIGHT = 0.18;
+
+/** A side's trade value: its best piece in full, everything else at OTHER_PIECES_WEIGHT. */
+export function tradeValue(values: number[]): number {
+  const top = Math.max(0, ...values);
+  const total = values.reduce((t, v) => t + v, 0);
+  return top + OTHER_PIECES_WEIGHT * (total - top);
+}
+
+/**
+ * The value a side is due for getting fewer, bigger pieces: enough that the two sides' plain totals compare
+ * as their trade values do — the other side's total × (this side's trade value ÷ the other's), less this
+ * side's total. Only the side packing more value per piece gets any; a one-for-one gets none.
+ */
+export function addedValue(mine: number[], theirs: number[]): number {
+  const total = (vs: number[]) => vs.reduce((t, v) => t + v, 0);
+  const [rMine, rTheirs, eMine, eTheirs] = [total(mine), total(theirs), tradeValue(mine), tradeValue(theirs)];
+  if (rMine <= 0 || rTheirs <= 0 || eTheirs <= 0 || eMine / rMine <= eTheirs / rTheirs) return 0;
+  return (rTheirs * eMine) / eTheirs - rMine;
 }
 
 export interface AnalyzedTrade {
@@ -223,6 +254,14 @@ export function analyzeTrades(
       for (let i = Math.max(0, Math.ceil((day - history.from) / history.step)); gridDay(history, i) < today; i++) days.push(gridDay(history, i));
       days.push(today);
 
+      // Each side's pieces' values, by when: then, now, and each week between.
+      const valuesOf = (rosterId: number, pick: (a: { asset: TradeAsset; on: (d: number) => number | null }) => number | null) =>
+        (assets.get(rosterId) ?? []).map((a) => pick(a) ?? 0);
+      // A two-team trade's added value for one side (see addedValue); none in a trade among three or more.
+      const added = (rosterId: number, pick: (a: { asset: TradeAsset; on: (d: number) => number | null }) => number | null) => {
+        const other = t.roster_ids.length === 2 ? t.roster_ids.find((r) => r !== rosterId) : undefined;
+        return other === undefined ? 0 : addedValue(valuesOf(rosterId, pick), valuesOf(other, pick));
+      };
       const sides: TradeSide[] = t.roster_ids.map((rosterId) => {
         const got = assets.get(rosterId) ?? [];
         const sum = (pick: (a: (typeof got)[number]) => number | null) => got.reduce((total, a) => total + (pick(a) ?? 0), 0);
@@ -234,7 +273,9 @@ export function analyzeTrades(
           faab: faab.get(rosterId) ?? 0,
           then: sum((a) => a.asset.then),
           now: sum((a) => a.asset.now),
-          path: days.map((d) => ({ day: d, value: sum((a) => a.on(d)) })),
+          addedThen: added(rosterId, (a) => a.asset.then),
+          addedNow: added(rosterId, (a) => a.asset.now),
+          path: days.map((d) => ({ day: d, value: sum((a) => a.on(d)) + added(rosterId, (a) => a.on(d)) })),
         };
       });
       out.push({ id: t.transaction_id, at: t.created, season, sides });
