@@ -230,7 +230,9 @@ calculator's "Value Adjustment", worked out as its own code does it
 - there's none for one piece for one, or when it's under 3.3% of the two
   totals together — as on KTC.
 
-Totals, the chart and who's ahead all count it. The side whose haul is worth
+It's worked out once, on the values when the trade was made, and held from
+then on — so the trade starts out about even, and the totals since show how
+lopsided it's become. Totals, the chart and who's ahead all count it. The side whose haul is worth
 the most now has its team on the plate; yours is underlined.
 
 The values over time come from `scripts/fetch-value-history.ts`

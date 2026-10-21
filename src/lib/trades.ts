@@ -103,9 +103,8 @@ export interface TradeSide {
   /** What it got, added up, when traded and now — before any added value. */
   then: number;
   now: number;
-  /** The value it's due on top of its plain total (see addedValues), when traded and now — 0 for the other side. */
-  addedThen: number;
-  addedNow: number;
+  /** The value it was due on top of its plain total when traded (see addedValues), held from then on — 0 for the other side. */
+  added: number;
   /** The haul's value, added value and all, at each week since the trade, its last point now. */
   path: { day: number; value: number }[];
 }
@@ -273,14 +272,16 @@ export function analyzeTrades(
       // Each side's pieces' values.
       const piecesOf = (rosterId: number, value: (a: { asset: TradeAsset; on: (d: number) => number | null }) => number | null) =>
         (assets.get(rosterId) ?? []).map((a) => value(a) ?? 0);
-      // A two-team trade's added value for one side (see addedValues); none in a trade among three or more.
-      const added = (rosterId: number, value: (a: { asset: TradeAsset; on: (d: number) => number | null }) => number | null) => {
+      // A two-team trade's added value for one side as it was traded (see addedValues), held from then on so the
+      // trade's lopsidedness since shows; none in a trade among three or more.
+      const added = (rosterId: number) => {
         if (t.roster_ids.length !== 2) return 0;
         const other = t.roster_ids.find((r) => r !== rosterId)!;
-        return addedValues(piecesOf(rosterId, value), piecesOf(other, value))[0];
+        return addedValues(piecesOf(rosterId, (a) => a.asset.then), piecesOf(other, (a) => a.asset.then))[0];
       };
       const sides: TradeSide[] = t.roster_ids.map((rosterId) => {
         const got = assets.get(rosterId) ?? [];
+        const extra = added(rosterId);
         const sum = (pick: (a: (typeof got)[number]) => number | null) => got.reduce((total, a) => total + (pick(a) ?? 0), 0);
         return {
           rosterId,
@@ -290,9 +291,8 @@ export function analyzeTrades(
           faab: faab.get(rosterId) ?? 0,
           then: sum((a) => a.asset.then),
           now: sum((a) => a.asset.now),
-          addedThen: added(rosterId, (a) => a.asset.then),
-          addedNow: added(rosterId, (a) => a.asset.now),
-          path: days.map((d) => ({ day: d, value: sum((a) => a.on(d)) + added(rosterId, (a) => a.on(d)) })),
+          added: extra,
+          path: days.map((d) => ({ day: d, value: sum((a) => a.on(d)) + extra })),
         };
       });
       out.push({ id: t.transaction_id, at: t.created, season, sides });

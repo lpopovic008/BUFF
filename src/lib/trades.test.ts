@@ -13,15 +13,18 @@ const history: ValueHistory = {
     "1": { n: "Star Back", p: "RB", t: "DET", sf: [8000, 8200, 8400, 8600], q: [7000, 7100, 7200, 7300] },
     "2": { n: "2025 Mid 1st", p: "RDP", t: null, sf: [5000, 5100, null, null], q: [4000, 4000, null, null] },
     "3": { n: "Rookie Wideout", p: "WR", t: "KCC", sf: [null, null, 6000, 6500], q: [null, null, 5000, 5200] },
+    "4": { n: "Depth End", p: "TE", t: "NYJ", sf: [3000, 2500, 2000, 1000], q: [2000, 1500, 1000, 500] },
   },
 };
 const bySleeperId = new Map<string, ValueSeries>([
   ["s1", history.players["1"]],
   ["s3", history.players["3"]],
+  ["s4", history.players["4"]],
 ]);
 const players = new Map([
   ["s1", { name: "Star Back", position: "RB" }],
   ["s3", { name: "Rookie Wideout", position: "WR" }],
+  ["s4", { name: "Depth End", position: "TE" }],
 ]);
 
 const trade: SleeperTransaction = {
@@ -83,6 +86,18 @@ test("pickTrends fits each round's value against years before its draft", () => 
   const trend = pickTrends(trendHistory, true).get(1)!;
   assert.ok(Math.abs(trend.a - 5000) < 10);
   assert.ok(Math.abs(trend.b + 1000) < 10);
+});
+
+test("analyzeTrades holds a side's added value at what it was when traded", () => {
+  // Star Back for the first and Depth End: Alpha, getting the one better piece, is due added value.
+  const twoForOne: SleeperTransaction = { ...trade, adds: { s1: 1, s4: 2 }, drops: { s1: 2, s4: 1 }, draft_picks: [{ ...trade.draft_picks![0], owner_id: 2, previous_owner_id: 1 }], waiver_budget: [] };
+  const [t] = analyzeTrades([{ ...seasons[0], trades: [twoForOne] }], drafts, history, bySleeperId, players, true, 1021 * DAY_MS);
+  const [alpha, beta] = t.sides;
+  assert.deepEqual([alpha.then, beta.then], [8000, 8000]);
+  assert.deepEqual([alpha.added, beta.added], addedValues([8000], [5000, 3000]));
+  assert.ok(alpha.added > 0);
+  // Every week since, the haul plus that same added value — however the pieces' values have moved.
+  assert.deepEqual(alpha.path.map((p) => p.value), [8200 + alpha.added, 8400 + alpha.added, 8600 + alpha.added]);
 });
 
 test("analyzeTrades estimates a pick KTC had no value for from its round's trend", () => {

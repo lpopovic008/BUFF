@@ -11,7 +11,7 @@ import { shownGrade, valueGrade } from "@/lib/player-values";
 const SIDE_COLORS = ["var(--ink-primary)", "var(--series-1)", "var(--series-2)", "var(--series-5)"];
 
 const ADDED =
-  "KTC's trade calculator's value adjustment: fewer, better pieces are worth more than the plain sum. Each piece counts for more the closer it is to the trade's best, the side ahead that way is ahead by a player worth the difference, and this evens the plain totals out to match";
+  "KTC's trade calculator's value adjustment: fewer, better pieces are worth more than the plain sum. Each piece counts for more the closer it is to the trade's best, the side ahead that way is ahead by a player worth the difference, and this evens the plain totals out to match. It's held at its value when traded, so the totals since show how lopsided the trade has become";
 
 const ESTIMATED = "KTC had no value for this pick then, so it's read off its round's trend — picks gain value steadily as their draft nears";
 
@@ -117,19 +117,19 @@ function SideColumn({ side, color, ahead }: { side: TradeSide; color: string; ah
         ))}
         {side.faab > 0 ? <li className="text-xs text-ink-muted">${side.faab} FAAB</li> : null}
         {side.got.length === 0 && side.faab === 0 ? <li className="text-xs text-ink-muted">Nothing</li> : null}
-        {side.addedThen > 0 || side.addedNow > 0 ? (
+        {side.added > 0 ? (
           <li className="flex items-baseline gap-2 text-xs" title={ADDED}>
             <span className="min-w-0 flex-1 truncate italic text-ink-secondary">Added value</span>
-            <Values from={grade(side.addedThen)} fromTitle="When traded" to={grade(side.addedNow)} toTitle="Now" small />
+            <Values from={grade(side.added)} fromTitle="When traded" to={grade(side.added)} toTitle="Held at its value when traded" small />
           </li>
         ) : null}
       </ul>
       <div className="mt-auto flex items-baseline justify-end gap-2 border-t border-border pt-1 text-xs">
         <span className="text-ink-muted">Total</span>
-        <span className="tabular-nums text-ink-muted">{grade(side.then + side.addedThen)}</span>
+        <span className="tabular-nums text-ink-muted">{grade(side.then + side.added)}</span>
         <span className="text-ink-muted">→</span>
-        <span className="font-bold tabular-nums text-ink-primary">{grade(side.now + side.addedNow)}</span>
-        <Change from={side.then + side.addedThen} to={side.now + side.addedNow} />
+        <span className="font-bold tabular-nums text-ink-primary">{grade(side.now + side.added)}</span>
+        <Change from={side.then + side.added} to={side.now + side.added} />
       </div>
     </div>
   );
@@ -161,7 +161,7 @@ function TradePath({ sides }: { sides: TradeSide[] }) {
 }
 
 function TradeCard({ trade }: { trade: AnalyzedTrade }) {
-  const worth = (s: TradeSide) => s.now + s.addedNow;
+  const worth = (s: TradeSide) => s.now + s.added;
   const leader = trade.sides.reduce((best, s) => (worth(s) > worth(best) ? s : best), trade.sides[0]);
   const date = new Date(trade.at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   return (
