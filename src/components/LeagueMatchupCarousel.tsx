@@ -143,11 +143,11 @@ function PlayerName({ name }: { name: string }) {
   );
 }
 
-/** A starter's photo, bigger than their row — spilling into the gaps above and below it, never making the row taller. */
+/** A starter's photo, square (see PlayerHeadshot), bigger than their row — spilling into the gaps above and below it, never making the row taller. */
 function SlotPhoto({ playerId }: { playerId: string }) {
   return (
     <span className="-my-1 flex justify-center">
-      <PlayerHeadshot playerId={playerId} sizeClass="h-[1.875rem] w-[1.875rem] sm:h-[2.125rem] sm:w-[2.125rem]" />
+      <PlayerHeadshot playerId={playerId} sizeClass="h-[1.875rem] w-[1.875rem] sm:h-[2.125rem] sm:w-[2.125rem]" square />
     </span>
   );
 }
