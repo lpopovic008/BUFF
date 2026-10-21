@@ -86,11 +86,28 @@ async function probe() {
         if (k >= 0) console.log(`    ${key}: ${obj.slice(k, k + 300)} … ${obj.slice(Math.max(k, obj.indexOf("]", k) - 120), obj.indexOf("]", k) + 1)}`);
       }
     }
-    for (const name of ["playerSuperflex", "playerOneQB"]) {
-      const k = page.indexOf(`var ${name}`);
-      console.log(`  ${name}: ${k >= 0 ? page.slice(k, k + 700) : "none"}`);
-      const ov = page.indexOf("overallValue", k);
-      if (ov >= 0) console.log(`  …overallValue: ${page.slice(ov, ov + 400)}`);
+    for (const [, id, body] of page.matchAll(/<script[^>]*id="(pd-[\w-]+)"[^>]*>([\s\S]*?)<\/script>/g)) {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(body);
+      } catch {
+        console.log(`  #${id}: not JSON (${body.length} chars)`);
+        continue;
+      }
+      if (Array.isArray(parsed)) {
+        console.log(`  #${id}: array of ${parsed.length}`);
+        continue;
+      }
+      console.log(`  #${id}: keys ${Object.keys(parsed as object).join(", ")}`);
+      // Every array in it longer than a few entries — where a history would be.
+      const walk = (node: unknown, path: string) => {
+        if (Array.isArray(node)) {
+          if (node.length > 3) console.log(`    ${path}: ${node.length} × ${JSON.stringify(node[0]).slice(0, 120)} … last ${JSON.stringify(node[node.length - 1]).slice(0, 120)}`);
+          return;
+        }
+        if (node && typeof node === "object") for (const [k, v] of Object.entries(node)) walk(v, `${path}.${k}`);
+      };
+      walk(parsed, id);
     }
     const dv = page.search(/\{"d":"\d{4}-\d\d-\d\d","v":/);
     console.log(`  first {"d","v"}: ${dv >= 0 ? page.slice(Math.max(0, dv - 120), dv + 200) : "none"}`);
