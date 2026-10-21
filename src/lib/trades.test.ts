@@ -39,7 +39,7 @@ const trade: SleeperTransaction = {
 };
 const seasons: TradeSeason[] = [{ season: "2025", teamNames: new Map([[1, "Alpha"], [2, "Beta"]]), myRosterId: 1, trades: [trade] }];
 // The 2025 draft on day 1014: team 2's first became the rookie.
-const drafts = new Map<string, DraftResult>([["2025", { at: 1014 * DAY_MS, players: new Map([["1-2", "s3"]]) }]]);
+const drafts = new Map<string, DraftResult[]>([["2025", [{ at: 1014 * DAY_MS, players: new Map([["1-2", "s3"]]) }]]]);
 
 test("analyzeTrades weighs each side's haul when traded and now, a pick as whoever it became", () => {
   const [t] = analyzeTrades(seasons, drafts, history, bySleeperId, players, true, 1021 * DAY_MS);
@@ -101,4 +101,10 @@ test("analyzeTrades estimates a pick KTC had no value for from its round's trend
   assert.equal(pick.thenEstimated, true);
   assert.ok(pick.now! > pick.then!);
   assert.equal(pick.nowEstimated, true);
+});
+
+test("analyzeTrades finds a pick in whichever of its season's drafts has it, past an empty one", () => {
+  const withEmpty = new Map<string, DraftResult[]>([["2025", [{ at: 1018 * DAY_MS, players: new Map() }, ...drafts.get("2025")!]]]);
+  const [t] = analyzeTrades(seasons, withEmpty, history, bySleeperId, players, true, 1021 * DAY_MS);
+  assert.equal(t.sides[0].got[0].became?.name, "Rookie Wideout");
 });

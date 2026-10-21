@@ -15,7 +15,7 @@ export interface TradeSeason {
   trades: SleeperTransaction[];
 }
 
-/** A season's rookie draft: when it was, and the player each team's pick in each round became. */
+/** One of a season's drafts: when it was, and the player each team's pick in each round became. */
 export interface DraftResult {
   /** When it started (ms). */
   at: number;
@@ -130,7 +130,8 @@ function ordinal(n: number): string {
  */
 export function analyzeTrades(
   seasons: TradeSeason[],
-  drafts: Map<string, DraftResult>,
+  /** Each season's drafts, newest first: a pick's is the newest that has it (a startup and a rookie draft can share a season; an empty one can sit beside the real one). */
+  drafts: Map<string, DraftResult[]>,
   history: ValueHistory,
   bySleeperId: Map<string, ValueSeries>,
   players: PlayerInfo,
@@ -173,8 +174,10 @@ export function analyzeTrades(
       }
       for (const pick of t.draft_picks ?? []) {
         const series = pickSeries.get(`${pick.season} Mid ${ordinal(pick.round)}`);
-        const draft = drafts.get(pick.season);
-        const drafted = draft?.players.get(`${pick.round}-${pick.roster_id}`);
+        const key = `${pick.round}-${pick.roster_id}`;
+        const seasonDrafts = drafts.get(pick.season) ?? [];
+        const draft = seasonDrafts.find((d) => d.players.has(key)) ?? seasonDrafts[0];
+        const drafted = draft?.players.get(key);
         const player = drafted ? bySleeperId.get(drafted) : undefined;
         const draftDay = draft ? dayOf(draft.at) : assumedDraftDay(pick.season);
         // Before its draft and with no value from KTC that day: its round's trend, that long before the draft.

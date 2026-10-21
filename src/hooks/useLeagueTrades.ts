@@ -29,17 +29,11 @@ export function loadValueHistory(): Promise<ValueHistory | null> {
   return historyLoad;
 }
 
-/** Each season's rookie draft (its latest by start, where there's more than one — a startup draft is first), by season. */
-async function loadDrafts(leagueIds: string[]): Promise<Map<string, DraftResult>> {
+/** Each season's finished drafts, newest first — a startup and a rookie draft can share a season, and an empty one can sit beside the real one. */
+async function loadDrafts(leagueIds: string[]): Promise<Map<string, DraftResult[]>> {
   const drafts = (await Promise.all(leagueIds.map(getLeagueDrafts))).flat().filter((d) => d.status === "complete");
-  const latest = new Map<string, (typeof drafts)[number]>();
-  for (const d of drafts) {
-    const seen = latest.get(d.season);
-    if (!seen || (d.start_time ?? 0) > (seen.start_time ?? 0)) latest.set(d.season, d);
-  }
-  const out = new Map<string, DraftResult>();
-  await Promise.all(
-    [...latest.values()].map(async (d) => {
+  const results = await Promise.all(
+    drafts.map(async (d) => {
       const [full, picks] = await Promise.all([getDraft(d.draft_id), getDraftPicks(d.draft_id)]);
       const slotRoster = full?.slot_to_roster_id ?? d.slot_to_roster_id ?? {};
       const players = new Map<string, string>();
@@ -47,9 +41,12 @@ async function loadDrafts(leagueIds: string[]): Promise<Map<string, DraftResult>
         const original = slotRoster[String(p.draft_slot)];
         if (original != null && p.player_id) players.set(`${p.round}-${original}`, p.player_id);
       }
-      out.set(d.season, { at: d.start_time ?? 0, players });
+      return { season: d.season, result: { at: d.start_time ?? 0, players } };
     })
   );
+  const out = new Map<string, DraftResult[]>();
+  for (const { season, result } of results) out.set(season, [...(out.get(season) ?? []), result]);
+  for (const list of out.values()) list.sort((a, b) => b.at - a.at);
   return out;
 }
 
@@ -94,7 +91,7 @@ export function useLeagueTrades(leagueId: string, myUserId: string | null): Leag
       // Sleeper's details for everyone traded or drafted with a traded pick.
       const ids = new Set<string>();
       for (const s of seasons) for (const t of s.trades) for (const id of Object.keys(t.adds ?? {})) ids.add(id);
-      for (const d of drafts.values()) for (const id of d.players.values()) ids.add(id);
+      for (const list of drafts.values()) for (const d of list) for (const id of d.players.values()) ids.add(id);
       const resolved = await resolvePlayers([...ids]);
       if (cancelled) return;
       const players = new Map(resolved.map((p) => [p.playerId, { name: p.name, position: p.position }]));
