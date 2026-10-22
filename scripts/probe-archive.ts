@@ -70,27 +70,11 @@ function largestPlayerArray(html: string): any[] {
 }
 
 async function main() {
-  // Pick pages: KTC's own page for each pick carries its whole value history.
-  const cdx = await get(
-    "https://web.archive.org/cdx/search/cdx?url=keeptradecut.com/dynasty-rankings/players/20*&output=json&fl=timestamp,original&filter=statuscode:200&from=2019"
-  );
-  const rows = (cdx ? (JSON.parse(cdx) as string[][]) : []).slice(1);
-  const pages = new Map<string, string[]>();
-  for (const [ts, original] of rows) {
-    const slug = original.replace(/^.*\/players\//, "").replace(/[?#].*$/, "");
-    if (!/^20\d\d-/.test(slug)) continue;
-    pages.set(slug, [...(pages.get(slug) ?? []), ts]);
-  }
-  console.log(`${rows.length} captures, ${pages.size} pick pages:`);
-  for (const [slug, ts] of [...pages].sort()) console.log(`  ${slug}: ${ts.length} (${ts[0].slice(0, 8)} … ${ts[ts.length - 1].slice(0, 8)})`);
-
-  // One pick page from before its draft: how far back does its history go?
-  const pick = [...pages].find(([slug]) => /^2026-(mid-1st|pick-1-0[5-8])/.test(slug)) ?? [...pages].find(([slug]) => /^2026-/.test(slug)) ?? [...pages][0];
-  if (pick) {
-    const [slug, stamps] = pick;
-    const ts = stamps[stamps.length - 1];
-    const html = await get(`https://web.archive.org/web/${ts}id_/https://keeptradecut.com/dynasty-rankings/players/${slug}`);
-    console.log(`\n${slug} @ ${ts}: ${html.length} chars`);
+  // KTC's own pages for picks long drafted (their slugs from the archive's captures): still served, history and all?
+  for (const slug of ["2026-mid-1st-1528", "2026-mid-2nd-1531", "2025-mid-1st-1362", "2024-mid-1st-1294", "2023-mid-1st-1096", "2022-mid-1st-953"]) {
+    const res = await fetch(`https://keeptradecut.com/dynasty-rankings/players/${slug}`, { headers: { "User-Agent": UA } }).catch(() => null);
+    const html = res?.ok ? await res.text() : "";
+    console.log(`\n${slug}: ${res?.status ?? "failed"} ${res?.url ?? ""}, ${html.length} chars`);
     for (const id of ["pd-superflex", "pd-oneqb"]) {
       const m = new RegExp(`<script[^>]*id="${id}"[^>]*>([\\s\\S]*?)<\\/script>`).exec(html);
       if (!m) {
@@ -98,18 +82,9 @@ async function main() {
         continue;
       }
       const values = (JSON.parse(m[1]) as { overallValue?: { d: string; v: number }[] }).overallValue ?? [];
-      console.log(`  #${id}: ${values.length} days, ${values[0]?.d} … ${values[values.length - 1]?.d}; e.g. ${values.filter((_, i) => i % 60 === 0).map((p) => `${p.d}:${p.v}`).join(" ")}`);
+      console.log(`  #${id}: ${values.length} days, ${values[0]?.d} … ${values[values.length - 1]?.d}; ${values.filter((_, i) => i % 45 === 0).map((p) => `${p.d}:${p.v}`).join(" ")}`);
     }
-  }
-
-  // And a rankings capture from January 2026: does its table read?
-  const ranked = await get("https://web.archive.org/cdx/search/cdx?url=keeptradecut.com/dynasty-rankings&output=json&fl=timestamp&filter=statuscode:200&from=202601&to=202602");
-  const ts = (ranked ? (JSON.parse(ranked) as string[][]) : []).slice(1)[0]?.[0];
-  if (ts) {
-    const html = await get(`https://web.archive.org/web/${ts}id_/https://keeptradecut.com/dynasty-rankings`);
-    const players = largestPlayerArray(html);
-    const picks = players.filter((p) => p.position === "RDP");
-    console.log(`\nrankings @ ${ts}: ${players.length} players, ${picks.length} picks: ${picks.slice(0, 40).map((p) => `${p.playerName}=${p.superflexValues?.value ?? "?"}`).join(", ")}`);
+    await new Promise((r) => setTimeout(r, 1500));
   }
 }
 
