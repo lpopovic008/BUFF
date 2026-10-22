@@ -204,7 +204,7 @@ all seasons (following `previous_league_id`), newest first. Each side's haul is
 weighed in KTC dynasty values (superflex or 1QB, as the league plays), shown as
 grades. Each side fills its box with a chart of its pieces week by week since
 the trade, on one scale for the whole trade (its lowest value to its highest, so the sides compare): a line per
-piece in its own color (dashed, with a ≈, where estimated), its name inside
+piece in its own color, its name inside
 the chart by the line's start, what it was worth when traded at the line's
 left end and what it's worth now at its right. Under the chart, big, the
 side's totals then and now and their change — each piece added up at its
@@ -220,7 +220,7 @@ as the 2027 1st in February 2025, or failing that the 2028 1st in February
 it's estimated from its round's trend: a line fitted through every value KTC
 has given that round's mid pick against how long before its draft it was
 (`pickTrends`), read at how long before its own draft the pick was (the
-league's draft date, or May 1). Either way it's marked "≈".
+league's draft date, or May 1). Shown as any other value, no mark.
 
 Getting fewer, bigger pieces costs more than the plain sum, so a two-team
 trade can give one side an **Added value** line — KeepTradeCut's trade

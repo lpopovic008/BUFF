@@ -17,9 +17,6 @@ const COUNTED = "outline outline-1 outline-offset-1 outline-current";
 const ADDED =
   "KTC's trade calculator's value adjustment: fewer, better pieces are worth more than the plain sum. Each piece counts for more the closer it is to the trade's best, the side ahead that way is ahead by a player worth the difference, and this evens the plain totals out to match. It's held at its value when traded, so the totals since show how lopsided the trade has become";
 
-const ESTIMATED =
-  "KTC no longer has this pick's values, so it's read off a later year's same pick at the same time before its draft (a 2026 1st in February 2024 as a 2027 1st in February 2025) — or, with none that far back, its round's trend";
-
 /** A value as the values page shows it: its whole grade (9,999 reads 99). */
 function grade(value: number): number {
   return shownGrade(valueGrade(value));
@@ -36,9 +33,9 @@ function Change({ from, to }: { from: number; to: number }) {
   );
 }
 
-/** A value, "≈" before it when it's estimated, "–" with none. */
-function Shown({ value, estimated = false }: { value: number | null; estimated?: boolean }) {
-  return <>{value !== null ? `${estimated ? "≈" : ""}${grade(value)}` : "–"}</>;
+/** A value as its grade, "–" with none. */
+function Shown({ value }: { value: number | null }) {
+  return <>{value !== null ? grade(value) : "–"}</>;
 }
 
 /** The days a trade's charts run over and the values they span — the trade's lowest to its highest — shared by its sides, so they compare. */
@@ -69,7 +66,7 @@ const HALO = { textShadow: "0 0 3px var(--surface-raised), 0 0 3px var(--surface
 
 /**
  * A side's pieces' values week by week from the trade to now, filling its box: a line each in its own color (a
- * pick's running on into whoever it became), dashed with a ≈ where estimated, on the trade's scale (see
+ * pick's running on into whoever it became), on the trade's scale (see
  * ChartScale). Each line's value when traded sits at its left end, its value now at its right, and its
  * name inside the chart by its start — a drafted pick's player by its end. A drafted pick's two numbers are what
  * the totals count, outlined.
@@ -85,15 +82,14 @@ function SideChart({ assets, scale }: { assets: TradeAsset[]; scale: ChartScale 
     const known = asset.path.filter((p) => p.value !== null);
     const start = asset.then ?? known[0]?.value ?? null;
     const end = asset.now ?? known[known.length - 1]?.value ?? null;
-    // Runs alike — solid or estimated — broken where there's no value.
-    const runs: { estimated: boolean; points: { day: number; value: number }[] }[] = [];
+    // Its line, broken where there's no value.
+    const runs: { points: { day: number; value: number }[] }[] = [];
     for (let k = 1; k < asset.path.length; k++) {
       const [a, b] = [asset.path[k - 1], asset.path[k]];
       if (a.value === null || b.value === null) continue;
-      const estimated = a.estimated || b.estimated;
       const run = runs[runs.length - 1];
-      if (run && run.estimated === estimated && run.points[run.points.length - 1].day === a.day) run.points.push({ day: b.day, value: b.value });
-      else runs.push({ estimated, points: [{ day: a.day, value: a.value }, { day: b.day, value: b.value }] });
+      if (run && run.points[run.points.length - 1].day === a.day) run.points.push({ day: b.day, value: b.value });
+      else runs.push({ points: [{ day: a.day, value: a.value }, { day: b.day, value: b.value }] });
     }
     return { asset, color, start, end, runs };
   });
@@ -111,9 +107,9 @@ function SideChart({ assets, scale }: { assets: TradeAsset[]; scale: ChartScale 
               key={i}
               className={`${label} right-0 text-ink-muted ${l.asset.became ? COUNTED : ""}`}
               style={{ top: `${lefts[i]}%` }}
-              title={l.asset.thenEstimated ? `When traded — estimated: ${ESTIMATED}` : "When traded"}
+              title="When traded"
             >
-              <Shown value={l.start} estimated={l.asset.thenEstimated} />
+              <Shown value={l.start} />
             </span>
           )
         )}
@@ -128,30 +124,11 @@ function SideChart({ assets, scale }: { assets: TradeAsset[]; scale: ChartScale 
                 fill="none"
                 stroke={l.color}
                 strokeWidth={1.5}
-                strokeDasharray={run.estimated ? "3 2" : undefined}
                 vectorEffect="non-scaling-stroke"
               />
             ))
           )}
         </svg>
-        {/* A ≈ over the middle of each estimated stretch. */}
-        {lines.flatMap((l, i) =>
-          l.runs
-            .filter((run) => run.estimated)
-            .map((run, k) => {
-              const mid = run.points[Math.floor((run.points.length - 1) / 2)];
-              return (
-                <span
-                  key={`${i}-${k}`}
-                  className="pointer-events-none absolute -translate-x-1/2 -translate-y-full text-[0.625rem] font-bold leading-none"
-                  style={{ left: `${x(mid.day)}%`, top: `${y(mid.value)}%`, color: l.color }}
-                  aria-hidden
-                >
-                  ≈
-                </span>
-              );
-            })
-        )}
         {/* Each piece's name by its line's start; a drafted pick's player's by its end. */}
         {lines.map((l, i) => {
           const position = l.asset.position === "PICK" ? null : l.asset.position;
@@ -187,9 +164,9 @@ function SideChart({ assets, scale }: { assets: TradeAsset[]; scale: ChartScale 
               key={i}
               className={`${label} left-0 font-bold text-ink-primary ${l.asset.became ? COUNTED : ""}`}
               style={{ top: `${rights[i]}%` }}
-              title={l.asset.nowEstimated ? `Now — estimated: ${ESTIMATED}` : "Now"}
+              title="Now"
             >
-              <Shown value={l.end} estimated={l.asset.nowEstimated} />
+              <Shown value={l.end} />
             </span>
           )
         )}
