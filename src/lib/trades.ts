@@ -158,6 +158,36 @@ export interface AnalyzedTrade {
   at: number;
   season: string;
   sides: TradeSide[];
+  /** How far apart the sides are now (see tradeGap). */
+  gap: TradeGap;
+  /** The farthest apart they've been, any week since the trade or now, and on what day. */
+  widest: TradeGap & { day: number };
+}
+
+/** How far apart a trade's sides are: the best haul less the worst, added value and all, and whose is the best. */
+export interface TradeGap {
+  gap: number;
+  /** The roster ahead — null when they're level. */
+  ahead: number | null;
+}
+
+/** The gap between a trade's sides at their paths' `i`th point (see TradeSide.path). */
+export function tradeGap(sides: TradeSide[], i: number): TradeGap {
+  const values = sides.map((s) => s.path[i]?.value ?? 0);
+  const top = Math.max(...values);
+  const gap = top - Math.min(...values);
+  return { gap, ahead: gap > 0 ? sides[values.indexOf(top)].rosterId : null };
+}
+
+/** A trade's gap now (its paths' last point) and its widest, earliest first on a tie. */
+export function tradeGaps(sides: TradeSide[]): { gap: TradeGap; widest: TradeGap & { day: number } } {
+  const points = sides[0]?.path.length ?? 0;
+  let widest = { gap: 0, ahead: null as number | null, day: sides[0]?.path[0]?.day ?? 0 };
+  for (let i = 0; i < points; i++) {
+    const g = tradeGap(sides, i);
+    if (g.gap > widest.gap) widest = { ...g, day: sides[0].path[i].day };
+  }
+  return { gap: tradeGap(sides, points - 1), widest };
 }
 
 /** Sleeper's details for a player id: name and position. */
@@ -295,7 +325,7 @@ export function analyzeTrades(
           path: days.map((d) => ({ day: d, value: sum((a) => a.on(d)) + extra })),
         };
       });
-      out.push({ id: t.transaction_id, at: t.created, season, sides });
+      out.push({ id: t.transaction_id, at: t.created, season, sides, ...tradeGaps(sides) });
     }
   }
   return out.sort((a, b) => b.at - a.at);

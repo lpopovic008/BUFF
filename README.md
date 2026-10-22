@@ -234,6 +234,9 @@ It's worked out once, on the values when the trade was made, and held from
 then on — so the trade starts out about even, and the totals since show how
 lopsided it's become. Totals, the chart and who's ahead all count it. The side whose haul is worth
 the most now has its team on the plate; yours is underlined.
+Down each trade's left side, two big numbers in the color of the side ahead:
+how far apart the sides are now, and the farthest apart they've ever been
+(any week since the trade), with that week's date under it (`tradeGaps`).
 
 The values over time come from `scripts/fetch-value-history.ts`
 (`.github/workflows/value-history.yml`, daily): every KTC player page carries

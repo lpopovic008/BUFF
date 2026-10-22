@@ -4,7 +4,8 @@ import { ReactNode } from "react";
 import { PlateCard } from "@/components/ui/PlateCard";
 import { useLeagueTrades } from "@/hooks/useLeagueTrades";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
-import { AnalyzedTrade, TradeAsset, TradeSide } from "@/lib/trades";
+import { AnalyzedTrade, TradeAsset, TradeGap, TradeSide } from "@/lib/trades";
+import { DAY_MS } from "@/lib/value-history";
 import { shownGrade, valueGrade } from "@/lib/player-values";
 
 // Each side's color — its swatch by the team's name and its line on the chart.
@@ -160,22 +161,50 @@ function TradePath({ sides }: { sides: TradeSide[] }) {
   );
 }
 
+/** One of a trade's two big numbers: how far apart its sides are, in grades, in the color of the side ahead. */
+function GapNumber({ label, title, value, color, children }: { label: string; title: string; value: TradeGap; color: string; children?: ReactNode }) {
+  return (
+    <div className="flex flex-col items-center" title={title}>
+      <span className="text-[0.625rem] font-semibold uppercase tracking-wide text-ink-muted">{label}</span>
+      <span className="text-3xl font-bold leading-none tabular-nums" style={{ color: value.ahead === null ? "var(--ink-muted)" : color }}>
+        {grade(value.gap)}
+      </span>
+      {children}
+    </div>
+  );
+}
+
 function TradeCard({ trade }: { trade: AnalyzedTrade }) {
   const worth = (s: TradeSide) => s.now + s.added;
   const leader = trade.sides.reduce((best, s) => (worth(s) > worth(best) ? s : best), trade.sides[0]);
   const date = new Date(trade.at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  const colorOf = (rosterId: number | null) => SIDE_COLORS[Math.max(0, trade.sides.findIndex((s) => s.rosterId === rosterId)) % SIDE_COLORS.length];
+  const widestOn = new Date(trade.widest.day * DAY_MS);
   return (
-    <li className="flex flex-col gap-2 border border-border p-2">
-      <div className="flex items-baseline justify-between text-[0.6875rem] font-semibold uppercase tracking-wide text-ink-muted">
-        <span>{date}</span>
-        <span className="font-normal normal-case">then → now</span>
+    <li className="grid grid-cols-[auto_minmax(0,1fr)] gap-2 border border-border p-2 sm:gap-3">
+      {/* On the left, the gap between the sides now, and the widest it's been with when. */}
+      <div className="flex min-w-[3.25rem] flex-col items-center gap-3 border-r border-border pr-2 sm:pr-3">
+        <GapNumber label="Now" title="How far apart the sides are now" value={trade.gap} color={colorOf(trade.gap.ahead)} />
+        <GapNumber label="Max" title="The farthest apart the sides have been" value={trade.widest} color={colorOf(trade.widest.ahead)}>
+          <span className="mt-0.5 text-center text-[0.625rem] leading-tight text-ink-muted">
+            {widestOn.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}
+            <br />
+            {widestOn.getUTCFullYear()}
+          </span>
+        </GapNumber>
       </div>
-      <div className={`grid gap-3 ${trade.sides.length > 2 ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
-        {trade.sides.map((side, i) => (
-          <SideColumn key={side.rosterId} side={side} color={SIDE_COLORS[i % SIDE_COLORS.length]} ahead={side === leader && side.now > 0} />
-        ))}
+      <div className="flex min-w-0 flex-col gap-2">
+        <div className="flex items-baseline justify-between text-[0.6875rem] font-semibold uppercase tracking-wide text-ink-muted">
+          <span>{date}</span>
+          <span className="font-normal normal-case">then → now</span>
+        </div>
+        <div className={`grid gap-3 ${trade.sides.length > 2 ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+          {trade.sides.map((side, i) => (
+            <SideColumn key={side.rosterId} side={side} color={SIDE_COLORS[i % SIDE_COLORS.length]} ahead={side === leader && side.now > 0} />
+          ))}
+        </div>
+        <TradePath sides={trade.sides} />
       </div>
-      <TradePath sides={trade.sides} />
     </li>
   );
 }

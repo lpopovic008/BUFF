@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { addedValues, analyzeTrades, DraftResult, evenValue, pickTrends, processedValue, TradeSeason } from "./trades";
+import { addedValues, analyzeTrades, DraftResult, evenValue, pickTrends, processedValue, TradeSeason, tradeGaps, TradeSide } from "./trades";
 import { DAY_MS, ValueHistory, ValueSeries } from "./value-history";
 import { SleeperTransaction } from "./sleeper";
 
@@ -159,4 +159,14 @@ test("evenValue is the player KTC says would even the trade", () => {
     const raw = (vs: number[]) => vs.reduce((t, v) => t + processedValue(v, top), 0);
     assert.equal(evenValue(Math.abs(raw(a) - raw(b)), top), even, `${a} for ${b}`);
   }
+});
+
+test("tradeGaps is how far apart the sides are now, and the farthest they've been and when", () => {
+  const side = (rosterId: number, values: number[]) =>
+    ({ rosterId, path: values.map((value, i) => ({ day: 1000 + 7 * i, value })) }) as TradeSide;
+  const { gap, widest } = tradeGaps([side(1, [5000, 7000, 6000, 5200]), side(2, [5000, 4000, 6500, 6000])]);
+  assert.deepEqual(gap, { gap: 800, ahead: 2 });
+  assert.deepEqual(widest, { gap: 3000, ahead: 1, day: 1007 });
+  // Level all along: no gap, nobody ahead.
+  assert.deepEqual(tradeGaps([side(1, [10, 10]), side(2, [10, 10])]), { gap: { gap: 0, ahead: null }, widest: { gap: 0, ahead: null, day: 1000 } });
 });
