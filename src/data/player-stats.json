@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-21T17:43:29.785Z",
+  "updatedAt": "2026-10-22T17:42:11.082Z",
   "season": "2026",
   "throughWeek": 6,
   "players": [
@@ -978,6 +978,14 @@
       "ptsPpr": 1.4,
       "ptsHalfPpr": 0.9,
       "ptsStd": 0.4
+    },
+    {
+      "playerId": "12460",
+      "position": "WR",
+      "gamesPlayed": 1,
+      "ptsPpr": 0,
+      "ptsHalfPpr": 0,
+      "ptsStd": 0
     },
     {
       "playerId": "12467",
@@ -2246,6 +2254,14 @@
     {
       "playerId": "13621",
       "position": "WR",
+      "gamesPlayed": 1,
+      "ptsPpr": 0,
+      "ptsHalfPpr": 0,
+      "ptsStd": 0
+    },
+    {
+      "playerId": "13712",
+      "position": "TE",
       "gamesPlayed": 1,
       "ptsPpr": 0,
       "ptsHalfPpr": 0,
@@ -4498,6 +4514,14 @@
       "ptsPpr": 24.599999999999998,
       "ptsHalfPpr": 21.099999999999998,
       "ptsStd": 17.6
+    },
+    {
+      "playerId": "9227",
+      "position": "RB",
+      "gamesPlayed": 1,
+      "ptsPpr": 0,
+      "ptsHalfPpr": 0,
+      "ptsStd": 0
     },
     {
       "playerId": "9228",
