@@ -203,7 +203,7 @@ league and the list gives way to its **trade analyzer** — every trade in it,
 all seasons (following `previous_league_id`), newest first. Each side's haul is
 weighed in KTC dynasty values (superflex or 1QB, as the league plays), shown as
 grades. Each side fills its box with a chart of its pieces week by week since
-the trade, scaled from the side's lowest value to its highest: a line per
+the trade, on one scale for the whole trade (its lowest value to its highest, so the sides compare): a line per
 piece in its own color (dashed, with a ≈, where estimated), its name inside
 the chart by the line's start, what it was worth when traded at the line's
 left end and what it's worth now at its right. Under the chart, big, the
