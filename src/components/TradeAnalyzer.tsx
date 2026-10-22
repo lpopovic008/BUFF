@@ -79,40 +79,29 @@ function SideChart({ assets, scale }: { assets: TradeAsset[]; scale: ChartScale 
   const x = (day: number) => (last > first ? ((day - first) / (last - first)) * 100 : 0);
   const lines = assets.map((asset, i) => {
     const color = ASSET_COLORS[i % ASSET_COLORS.length];
-    const known = asset.path.filter((p) => p.value !== null);
-    const start = asset.then ?? known[0]?.value ?? null;
-    const end = asset.now ?? known[known.length - 1]?.value ?? null;
-    // Its line, broken where there's no value.
-    const runs: { points: { day: number; value: number }[] }[] = [];
-    for (let k = 1; k < asset.path.length; k++) {
-      const [a, b] = [asset.path[k - 1], asset.path[k]];
-      if (a.value === null || b.value === null) continue;
-      const run = runs[runs.length - 1];
-      if (run && run.points[run.points.length - 1].day === a.day) run.points.push({ day: b.day, value: b.value });
-      else runs.push({ points: [{ day: a.day, value: a.value }, { day: b.day, value: b.value }] });
-    }
-    return { asset, color, start, end, runs };
+    // Its line, unbroken: where it has no value (a player KTC no longer lists, one who's stopped playing), 0 — as
+    // the totals count it — its number a "–".
+    const points = asset.path.map((p) => ({ day: p.day, value: p.value ?? 0 }));
+    return { asset, color, start: asset.then, end: asset.now, runs: points.length > 1 ? [{ points }] : [] };
   });
-  const lefts = spread(lines.map((l) => (l.start === null ? 50 : y(l.start))));
-  const rights = spread(lines.map((l) => (l.end === null ? 50 : y(l.end))));
-  if (!lines.some((l) => l.runs.length > 0 || l.start !== null)) return null;
+  const lefts = spread(lines.map((l) => y(l.start ?? 0)));
+  const rights = spread(lines.map((l) => y(l.end ?? 0)));
+  if (lines.length === 0) return null;
   const label = "absolute -translate-y-1/2 whitespace-nowrap text-xs leading-none tabular-nums";
   return (
     <div className="grid h-44 grid-cols-[2.25rem_minmax(0,1fr)_2.25rem] gap-1" role="img" aria-label="Each piece's value from the trade to now">
       {/* Then, at each line's left end. */}
       <div className="relative">
-        {lines.map((l, i) =>
-          l.start === null ? null : (
-            <span
-              key={i}
-              className={`${label} right-0 text-ink-muted ${l.asset.became ? COUNTED : ""}`}
-              style={{ top: `${lefts[i]}%` }}
-              title="When traded"
-            >
-              <Shown value={l.start} />
-            </span>
-          )
-        )}
+        {lines.map((l, i) => (
+          <span
+            key={i}
+            className={`${label} right-0 text-ink-muted ${l.asset.became ? COUNTED : ""}`}
+            style={{ top: `${lefts[i]}%` }}
+            title={l.start === null ? "No value when traded" : "When traded"}
+          >
+            <Shown value={l.start} />
+          </span>
+        ))}
       </div>
       <div className="relative border-x border-border">
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 h-full w-full" aria-hidden>
@@ -158,18 +147,16 @@ function SideChart({ assets, scale }: { assets: TradeAsset[]; scale: ChartScale 
       </div>
       {/* Now, at each line's right end. */}
       <div className="relative">
-        {lines.map((l, i) =>
-          l.end === null ? null : (
-            <span
-              key={i}
-              className={`${label} left-0 font-bold text-ink-primary ${l.asset.became ? COUNTED : ""}`}
-              style={{ top: `${rights[i]}%` }}
-              title="Now"
-            >
-              <Shown value={l.end} />
-            </span>
-          )
-        )}
+        {lines.map((l, i) => (
+          <span
+            key={i}
+            className={`${label} left-0 font-bold text-ink-primary ${l.asset.became ? COUNTED : ""}`}
+            style={{ top: `${rights[i]}%` }}
+            title={l.end === null ? "No value now" : "Now"}
+          >
+            <Shown value={l.end} />
+          </span>
+        ))}
       </div>
     </div>
   );
@@ -237,7 +224,8 @@ function TradeCard({ trade }: { trade: AnalyzedTrade }) {
   const widestOn = new Date(trade.widest.day * DAY_MS);
   const days = trade.sides[0]?.path.map((p) => p.day) ?? [];
   // One value scale for every side's chart — the trade's lowest value to its highest — so they compare.
-  const values = trade.sides.flatMap((side) => side.got.flatMap((a) => a.path.map((p) => p.value).filter((v): v is number => v !== null)));
+  // A piece with no value on a day sits at 0 (see SideChart), so the scale reaches down to it then.
+  const values = trade.sides.flatMap((side) => side.got.flatMap((a) => [...a.path.map((p) => p.value ?? 0), a.then ?? 0, a.now ?? 0]));
   const scale: ChartScale = { first: days[0] ?? 0, last: days[days.length - 1] ?? 0, lo: Math.min(...values), hi: Math.max(...values) };
   return (
     <li className="grid grid-cols-[auto_minmax(0,1fr)] gap-2 border border-border p-2 sm:gap-3">
