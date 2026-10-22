@@ -213,12 +213,14 @@ until its draft, then whoever it became (from the league's rookie draft): its
 line runs on into that player, named by its end, and its two numbers — the
 pick when traded, the player now, what the totals count — are outlined.
 Where KTC has no value for a pick on a day (a pick from a draft that's done,
-which KTC no longer lists), it's estimated
-from its round's trend — picks gain value steadily as their draft nears, so a
-line is fitted through every value KTC has given that round's mid pick against
-how long before its draft it was (`pickTrends`), and read at how long before
-its own draft the pick was (the league's draft date, or May 1). Estimates are
-marked "≈".
+which KTC no longer lists, history and all), it's read off a later year's same
+pick at the same time before its draft — a 2026 1st in February 2024 is read
+as the 2027 1st in February 2025, or failing that the 2028 1st in February
+2026 — the nearest year KTC has a value for then. With none that far back,
+it's estimated from its round's trend: a line fitted through every value KTC
+has given that round's mid pick against how long before its draft it was
+(`pickTrends`), read at how long before its own draft the pick was (the
+league's draft date, or May 1). Either way it's marked "≈".
 
 Getting fewer, bigger pieces costs more than the plain sum, so a two-team
 trade can give one side an **Added value** line — KeepTradeCut's trade

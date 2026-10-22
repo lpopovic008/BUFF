@@ -17,7 +17,8 @@ const COUNTED = "outline outline-1 outline-offset-1 outline-current";
 const ADDED =
   "KTC's trade calculator's value adjustment: fewer, better pieces are worth more than the plain sum. Each piece counts for more the closer it is to the trade's best, the side ahead that way is ahead by a player worth the difference, and this evens the plain totals out to match. It's held at its value when traded, so the totals since show how lopsided the trade has become";
 
-const ESTIMATED = "KTC had no value for this pick then, so it's read off its round's trend — picks gain value steadily as their draft nears";
+const ESTIMATED =
+  "KTC no longer has this pick's values, so it's read off a later year's same pick at the same time before its draft (a 2026 1st in February 2024 as a 2027 1st in February 2025) — or, with none that far back, its round's trend";
 
 /** A value as the values page shows it: its whole grade (9,999 reads 99). */
 function grade(value: number): number {

@@ -4,7 +4,7 @@
 // trade analyzer. Pure: the fetching lives in hooks/useLeagueTrades.ts.
 
 import { SleeperTransaction } from "./sleeper";
-import { dayOf, gridDay, ValueHistory, ValueSeries, valueOn } from "./value-history";
+import { DAY_MS, dayOf, gridDay, ValueHistory, ValueSeries, valueOn } from "./value-history";
 
 /** One season's trades, with each team's name that season. */
 export interface TradeSeason {
@@ -62,6 +62,15 @@ export interface PickTrend {
 }
 
 const YEAR_DAYS = 365.25;
+/** How many years on a pick KTC has no value for looks for the same pick in a later year (see analyzeTrades). */
+const LATER_YEARS = 5;
+
+/** The same date `years` later, as a day. */
+function yearsOn(day: number, years: number): number {
+  const date = new Date(day * DAY_MS);
+  date.setUTCFullYear(date.getUTCFullYear() + years);
+  return dayOf(date.getTime());
+}
 
 /** The day a season's rookie draft is taken to be when it isn't known: May 1. */
 function assumedDraftDay(season: string): number {
@@ -327,9 +336,21 @@ export function analyzeTrades(
         const drafted = draft?.players.get(key);
         const player = drafted ? bySleeperId.get(drafted) : undefined;
         const draftDay = draft ? dayOf(draft.at) : assumedDraftDay(pick.season);
-        // Before its draft and with no value from KTC that day: its round's trend, that long before the draft.
+        // Before its draft and with no value from KTC that day (KTC drops a pick once it's drafted, history and all):
+        // a later year's same pick as long before its own draft — a 2026 1st in February 2024 reads as a 2028 1st
+        // read in February 2026 — the nearest year KTC has a value for then; or, with none, its round's trend.
         const trend = trends.get(pick.round);
-        const estimate = (d: number) => (trend && d < draftDay ? Math.max(0, Math.round(trend.a + (trend.b * (draftDay - d)) / YEAR_DAYS)) : null);
+        const later = (d: number) => {
+          for (let k = 1; k <= LATER_YEARS; k++) {
+            const shifted = yearsOn(d, k);
+            if (shifted > today) break;
+            const value = on(pickSeries.get(`${Number(pick.season) + k} Mid ${ordinal(pick.round)}`), shifted);
+            if (value !== null) return value;
+          }
+          return null;
+        };
+        const estimate = (d: number) =>
+          d >= draftDay ? null : (later(d) ?? (trend ? Math.max(0, Math.round(trend.a + (trend.b * (draftDay - d)) / YEAR_DAYS)) : null));
         // A pick until its draft, then whoever it became.
         const known = (d: number) => (d >= draftDay ? (drafted ? on(player, d) : null) : on(series, d));
         const pickOn = (d: number) => known(d) ?? estimate(d);

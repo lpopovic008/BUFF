@@ -220,3 +220,31 @@ test("a side's totals add up each piece at its whole grade, as shown", () => {
   // The piece itself keeps its exact values.
   assert.deepEqual(alpha.got[0].path.map((p) => p.value), [8199, 8401, 8699]);
 });
+
+test("analyzeTrades reads a pick KTC no longer lists off a later year's same pick, as long before its draft", () => {
+  const day = (y: number, m: number, d: number) => Math.floor(Date.UTC(y, m - 1, d) / DAY_MS);
+  const from = day(2024, 1, 1);
+  const today = day(2026, 10, 21);
+  const count = Math.floor((today - from) / 7) + 1;
+  // KTC's 2027 1st from June 2025 on, its 2028 1st from January 2026 on; the 2026 1st, drafted, gone.
+  const since = (start: number, value: number) => Array.from({ length: count }, (_, i) => (from + 7 * i >= start ? value : null));
+  const picks: ValueHistory = {
+    updatedAt: null,
+    from,
+    step: 7,
+    players: {
+      a: { n: "2027 Mid 1st", p: "RDP", t: null, sf: since(day(2025, 6, 1), 6000), q: since(day(2025, 6, 1), 6000) },
+      b: { n: "2028 Mid 1st", p: "RDP", t: null, sf: since(day(2026, 1, 1), 5000), q: since(day(2026, 1, 1), 5000) },
+    },
+  };
+  // A 2026 1st traded in February 2024.
+  const pickTrade: SleeperTransaction = { ...trade, created: day(2024, 2, 15) * DAY_MS, adds: null, waiver_budget: [], draft_picks: [{ season: "2026", round: 1, roster_id: 2, previous_owner_id: 2, owner_id: 1 }] };
+  const [t] = analyzeTrades([{ ...seasons[0], trades: [pickTrade] }], new Map(), picks, new Map(), new Map(), true, today * DAY_MS);
+  const [pick] = t.sides[0].got;
+  // February 2024: the 2027 1st had no value a year on (February 2025), so the 2028 1st's in February 2026.
+  assert.equal(pick.then, 5000);
+  assert.equal(pick.thenEstimated, true);
+  // From the summer of 2024 on, the 2027 1st's a year on.
+  const summer = pick.path.find((p) => p.day >= day(2024, 7, 1))!;
+  assert.deepEqual([summer.value, summer.estimated], [6000, true]);
+});
