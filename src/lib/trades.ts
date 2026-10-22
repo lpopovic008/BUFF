@@ -349,10 +349,24 @@ export function analyzeTrades(
           }
           return null;
         };
-        const estimate = (d: number) =>
-          d >= draftDay ? null : (later(d) ?? (trend ? Math.max(0, Math.round(trend.a + (trend.b * (draftDay - d)) / YEAR_DAYS)) : null));
-        // A pick until its draft, then whoever it became.
-        const known = (d: number) => (d >= draftDay ? (drafted ? on(player, d) : null) : on(series, d));
+        // Its own KTC values, from the first to the last — held from the last (once KTC has dropped it) to its draft.
+        const own = series ? (superflex ? series.sf : series.q) : [];
+        const firstAt = own.findIndex((v) => v != null);
+        const lastAt = own.findLastIndex((v) => v != null);
+        const ownOn = (d: number) => {
+          if (firstAt < 0 || d < gridDay(history, firstAt)) return null;
+          return d > gridDay(history, lastAt) ? own[lastAt] : on(series, d);
+        };
+        // Before its own values begin: read off a later year's pick or the trend, scaled to meet its first value, so
+        // the line runs on unbroken.
+        const readOff = (d: number) => later(d) ?? (trend ? Math.max(0, trend.a + (trend.b * (draftDay - d)) / YEAR_DAYS) : null);
+        const meet = firstAt >= 0 ? own[firstAt]! / (readOff(gridDay(history, firstAt)) || own[firstAt]!) : 1;
+        const estimate = (d: number) => {
+          const value = d >= draftDay ? null : readOff(d);
+          return value === null ? null : Math.round(value * meet);
+        };
+        // A pick until its draft, steady, then whoever it became.
+        const known = (d: number) => (d >= draftDay ? (drafted ? on(player, d) : null) : ownOn(d));
         const pickOn = (d: number) => known(d) ?? estimate(d);
         const thenValue = pickOn(day);
         // No trend for its round: what it became, held until it has a value of its own.

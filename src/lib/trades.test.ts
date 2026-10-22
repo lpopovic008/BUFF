@@ -248,3 +248,33 @@ test("analyzeTrades reads a pick KTC no longer lists off a later year's same pic
   const summer = pick.path.find((p) => p.day >= day(2024, 7, 1))!;
   assert.deepEqual([summer.value, summer.estimated], [6000, true]);
 });
+
+test("analyzeTrades holds a pick at its last value until the league's draft, then turns into whoever it became", () => {
+  const day = (y: number, m: number, d: number) => Math.floor(Date.UTC(y, m - 1, d) / DAY_MS);
+  const from = day(2026, 1, 1);
+  const today = day(2026, 10, 21);
+  const count = Math.floor((today - from) / 7) + 1;
+  const between = (start: number, end: number, value: (i: number) => number) =>
+    Array.from({ length: count }, (_, i) => (from + 7 * i >= start && from + 7 * i <= end ? value(i) : null));
+  const picks: ValueHistory = {
+    updatedAt: null,
+    from,
+    step: 7,
+    players: {
+      // KTC's 2026 1st through its NFL draft at the start of May; the 2027 1st, worth more, all along.
+      own: { n: "2026 Mid 1st", p: "RDP", t: null, sf: between(from, day(2026, 5, 1), (i) => 4800 - 10 * i), q: between(from, day(2026, 5, 1), () => 4000) },
+      next: { n: "2027 Mid 1st", p: "RDP", t: null, sf: between(from, today, () => 5600), q: between(from, today, () => 4600) },
+      rookie: { n: "Rookie Back", p: "RB", t: "NYJ", sf: between(day(2026, 4, 25), today, () => 6200), q: between(day(2026, 4, 25), today, () => 5200) },
+    },
+  };
+  const pickTrade: SleeperTransaction = { ...trade, created: day(2026, 2, 1) * DAY_MS, adds: null, waiver_budget: [], draft_picks: [{ season: "2026", round: 1, roster_id: 2, previous_owner_id: 2, owner_id: 1 }] };
+  // The league's rookie draft in August.
+  const august = new Map<string, DraftResult[]>([["2026", [{ at: day(2026, 8, 15) * DAY_MS, players: new Map([["1-2", "r"]]) }]]]);
+  const [t] = analyzeTrades([{ ...seasons[0], trades: [pickTrade] }], august, picks, new Map([["r", picks.players.rookie]]), new Map([["r", { name: "Rookie Back", position: "RB" }]]), true, today * DAY_MS);
+  const path = t.sides[0].got[0].path;
+  const last = picks.players.own.sf.findLast((v) => v !== null)!;
+  // May to the league's draft: held at the pick's last value, not read off the pricier 2027 1st.
+  for (const p of path.filter((p) => p.day > day(2026, 5, 1) && p.day < day(2026, 8, 15))) assert.equal(p.value, last);
+  // From the draft on, the player.
+  for (const p of path.filter((p) => p.day >= day(2026, 8, 15))) assert.equal(p.value, 6200);
+});
