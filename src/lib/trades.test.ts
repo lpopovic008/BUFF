@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { addedValues, AnalyzedTrade, analyzeTrades, DraftResult, evenValue, filterTrades, MY_TRADES, pickTrends, processedValue, TradeSeason, tradeGaps, TradeSide } from "./trades";
-import { DAY_MS, ValueHistory, ValueSeries } from "./value-history";
+import { addedValues, AnalyzedTrade, analyzeTrades, DraftResult, evenValue, filterTrades, MY_TRADES, nflDraftDay, pickTrends, processedValue, TradeSeason, tradeGaps, TradeSide } from "./trades";
+import { DAY_MS, ValueHistory, ValueSeries, valueOn } from "./value-history";
 import { SleeperTransaction } from "./sleeper";
 
 // A grid of four weekly points from day 1000.
@@ -249,7 +249,12 @@ test("analyzeTrades reads a pick KTC no longer lists off a later year's same pic
   assert.deepEqual([summer.value, summer.estimated], [6000, true]);
 });
 
-test("analyzeTrades holds a pick at its last value until the league's draft, then turns into whoever it became", () => {
+test("nflDraftDay is the last day of each April's NFL draft", () => {
+  const day = (y: number, m: number, d: number) => Math.floor(Date.UTC(y, m - 1, d) / DAY_MS);
+  assert.deepEqual(["2023", "2024", "2025", "2026"].map(nflDraftDay), [day(2023, 4, 29), day(2024, 4, 27), day(2025, 4, 26), day(2026, 4, 25)]);
+});
+
+test("analyzeTrades turns a drafted pick into whoever it became at the NFL draft, ahead of a later league draft", () => {
   const day = (y: number, m: number, d: number) => Math.floor(Date.UTC(y, m - 1, d) / DAY_MS);
   const from = day(2026, 1, 1);
   const today = day(2026, 10, 21);
@@ -272,9 +277,9 @@ test("analyzeTrades holds a pick at its last value until the league's draft, the
   const august = new Map<string, DraftResult[]>([["2026", [{ at: day(2026, 8, 15) * DAY_MS, players: new Map([["1-2", "r"]]) }]]]);
   const [t] = analyzeTrades([{ ...seasons[0], trades: [pickTrade] }], august, picks, new Map([["r", picks.players.rookie]]), new Map([["r", { name: "Rookie Back", position: "RB" }]]), true, today * DAY_MS);
   const path = t.sides[0].got[0].path;
-  const last = picks.players.own.sf.findLast((v) => v !== null)!;
-  // May to the league's draft: held at the pick's last value, not read off the pricier 2027 1st.
-  for (const p of path.filter((p) => p.day > day(2026, 5, 1) && p.day < day(2026, 8, 15))) assert.equal(p.value, last);
-  // From the draft on, the player.
-  for (const p of path.filter((p) => p.day >= day(2026, 8, 15))) assert.equal(p.value, 6200);
+  // The 2026 NFL draft ran April 23 to 25: the pick, its own values, up to then; the player from then on — no
+  // stretch read off the pricier 2027 1st.
+  assert.equal(nflDraftDay("2026"), day(2026, 4, 25));
+  for (const p of path.filter((p) => p.day < day(2026, 4, 25))) assert.equal(p.value, valueOn(picks, picks.players.own, true, p.day));
+  for (const p of path.filter((p) => p.day >= day(2026, 4, 25))) assert.equal(p.value, 6200);
 });

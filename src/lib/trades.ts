@@ -72,6 +72,13 @@ function yearsOn(day: number, years: number): number {
   return dayOf(date.getTime());
 }
 
+/** The last day of a season's NFL draft: the Saturday after April's fourth Thursday (it opens that Thursday). */
+export function nflDraftDay(season: string): number {
+  const april1 = new Date(Date.UTC(Number(season), 3, 1));
+  const firstThursday = 1 + ((4 - april1.getUTCDay() + 7) % 7);
+  return dayOf(Date.UTC(Number(season), 3, firstThursday + 21 + 2));
+}
+
 /** The day a season's rookie draft is taken to be when it isn't known: May 1. */
 function assumedDraftDay(season: string): number {
   return dayOf(Date.UTC(Number(season), 4, 1));
@@ -336,6 +343,9 @@ export function analyzeTrades(
         const drafted = draft?.players.get(key);
         const player = drafted ? bySleeperId.get(drafted) : undefined;
         const draftDay = draft ? dayOf(draft.at) : assumedDraftDay(pick.season);
+        // A drafted pick turns into whoever it became once the NFL has drafted them — before the league's own draft
+        // when that's later, as KTC moves on from the pick to the rookies then.
+        const becomes = drafted ? Math.min(draftDay, nflDraftDay(pick.season)) : draftDay;
         // Before its draft and with no value from KTC that day (KTC drops a pick once it's drafted, history and all):
         // a later year's same pick as long before its own draft — a 2026 1st in February 2024 reads as a 2028 1st
         // read in February 2026 — the nearest year KTC has a value for then; or, with none, its round's trend.
@@ -362,16 +372,16 @@ export function analyzeTrades(
         const readOff = (d: number) => later(d) ?? (trend ? Math.max(0, trend.a + (trend.b * (draftDay - d)) / YEAR_DAYS) : null);
         const meet = firstAt >= 0 ? own[firstAt]! / (readOff(gridDay(history, firstAt)) || own[firstAt]!) : 1;
         const estimate = (d: number) => {
-          const value = d >= draftDay ? null : readOff(d);
+          const value = d >= becomes ? null : readOff(d);
           return value === null ? null : Math.round(value * meet);
         };
-        // A pick until its draft, steady, then whoever it became.
-        const known = (d: number) => (d >= draftDay ? (drafted ? on(player, d) : null) : ownOn(d));
+        // A pick until it becomes a player, steady, then whoever it became.
+        const known = (d: number) => (d >= becomes ? (drafted ? on(player, d) : null) : ownOn(d));
         const pickOn = (d: number) => known(d) ?? estimate(d);
         const thenValue = pickOn(day);
         // No trend for its round: what it became, held until it has a value of its own.
         const standIn = thenValue === null && player ? first(player) : null;
-        const valueOnDay = (d: number) => pickOn(d) ?? (d < draftDay ? standIn : null);
+        const valueOnDay = (d: number) => pickOn(d) ?? (d < becomes ? standIn : null);
         const info = drafted ? players.get(drafted) : undefined;
         add(
           pick.owner_id,
@@ -383,12 +393,12 @@ export function analyzeTrades(
               ? {
                   name: info?.name ?? player?.n ?? `Player ${drafted}`,
                   position: info?.position ?? player?.p ?? null,
-                  drafted: firstFrom(player, draftDay),
+                  drafted: firstFrom(player, becomes),
                   now: on(player, today),
                 }
               : undefined,
-            atDraft: drafted ? pickOn(draftDay - 1) : undefined,
-            atDraftEstimated: drafted ? known(draftDay - 1) === null : undefined,
+            atDraft: drafted ? pickOn(becomes - 1) : undefined,
+            atDraftEstimated: drafted ? known(becomes - 1) === null : undefined,
             then: thenValue ?? standIn,
             thenEstimated: known(day) === null && (thenValue ?? standIn) !== null,
             now: pickOn(today),

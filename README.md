@@ -209,8 +209,9 @@ the chart by the line's start, what it was worth when traded at the line's
 left end and what it's worth now at its right. Under the chart, big, the
 side's totals then and now and their change — each piece added up at its
 whole grade, just as shown. A draft pick is KTC's "{season} Mid {round}"
-until its draft, then whoever it became (from the league's rookie draft): its
-line runs on into that player, named by its end, and its two numbers — the
+until the NFL draft (the last day of it — or the league's own draft, if
+that's sooner), then whoever it became (from the league's rookie draft), one
+jump: its line runs on into that player, named by its end, and its two numbers — the
 pick when traded, the player now, what the totals count — are outlined.
 KTC drops a pick's page, history and all, once it's drafted, so picks drafted
 before the app kept values come from `src/data/archived-pick-values.json`:
