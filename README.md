@@ -202,16 +202,18 @@ Beside the player list, **All players** and each of your leagues: pick a
 league and the list gives way to its **trade analyzer** — every trade in it,
 all seasons (following `previous_league_id`), newest first. Each side's haul is
 weighed in KTC dynasty values (superflex or 1QB, as the league plays), shown as
-grades: what each piece was worth when traded and now, the side's totals and
-their change — each piece added up at its whole grade, just as shown — and
-under each side a small chart of each of its pieces week by week since, a line
-in the color of the square by its name (dashed, with a ≈, where estimated). A
-draft pick is KTC's "{season} Mid {round}" until its draft, then whoever it
-became (from the league's rookie draft): a drafted pick's line reads what it
-was worth when traded and when it was used, and under it, the player drafted
-with it, their value from the draft to now — the two numbers the totals count
-(the pick when traded, the player now) outlined. Where KTC has no value for a pick on a day
-(a pick from a draft that's done, which KTC no longer lists), it's estimated
+grades. Each side fills its box with a chart of its pieces week by week since
+the trade, scaled from the side's lowest value to its highest: a line per
+piece in its own color (dashed, with a ≈, where estimated), its name inside
+the chart by the line's start, what it was worth when traded at the line's
+left end and what it's worth now at its right. Under the chart, big, the
+side's totals then and now and their change — each piece added up at its
+whole grade, just as shown. A draft pick is KTC's "{season} Mid {round}"
+until its draft, then whoever it became (from the league's rookie draft): its
+line runs on into that player, named by its end, and its two numbers — the
+pick when traded, the player now, what the totals count — are outlined.
+Where KTC has no value for a pick on a day (a pick from a draft that's done,
+which KTC no longer lists), it's estimated
 from its round's trend — picks gain value steadily as their draft nears, so a
 line is fitted through every value KTC has given that round's mid pick against
 how long before its draft it was (`pickTrends`), and read at how long before
