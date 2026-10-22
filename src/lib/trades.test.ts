@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { addedValues, AnalyzedTrade, analyzeTrades, DraftResult, evenValue, filterTrades, MY_TRADES, nflDraftDay, pickTrends, processedValue, TradeSeason, tradeGaps, TradeSide } from "./trades";
+import { addedValues, AnalyzedTrade, analyzeTrades, DraftResult, evenValue, filterTrades, nflDraftDay, pickTrends, processedValue, TradeSeason, tradeGaps, TradeSide } from "./trades";
 import { DAY_MS, ValueHistory, ValueSeries, valueOn } from "./value-history";
 import { SleeperTransaction } from "./sleeper";
 
@@ -198,7 +198,7 @@ test("filterTrades finds trades by season and team slot, in the order picked", (
   const ids = (f: Partial<Parameters<typeof filterTrades>[1]>) => filterTrades(trades, { ...all, ...f }).map((t) => t.id);
   assert.deepEqual(ids({}), ["b", "c", "a"]);
   assert.deepEqual(ids({ season: "2025" }), ["b", "c"]);
-  assert.deepEqual(ids({ team: MY_TRADES }), ["c", "a"]);
+  assert.deepEqual(ids({ team: 1 }), ["c", "a"]);
   assert.deepEqual(ids({ team: 2 }), ["b", "a"]);
   // Whatever the slot was called at the time.
   assert.deepEqual(ids({ team: 3 }), ["b", "c"]);

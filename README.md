@@ -249,10 +249,9 @@ Down each trade's left side, under its date, three big numbers in the color
 of the side ahead (`tradeGaps`): how far apart the sides were when the trade
 was made, the farthest apart they've ever been (any week since — the biggest
 of the three, that week's date under it), and how far apart they are now.
-Above the trades, filters find them (`filterTrades`): a season; a team, or
-just yours — by team slot (Sleeper's roster id), every slot in the league
-listed by its latest name, so a slot's trades from when it went by another
-name come up too; and an order — newest, oldest, biggest gap now, biggest gap
+Above the trades, filters find them (`filterTrades`): a season; a team — by
+team slot (Sleeper's roster id), every slot in the league listed by its latest
+name, so a slot's trades from when it went by another name come up too; and an order — newest, oldest, biggest gap now, biggest gap
 ever, closest now, biggest trade (both sides' value when made) or most pieces.
 
 The values over time come from `scripts/fetch-value-history.ts`

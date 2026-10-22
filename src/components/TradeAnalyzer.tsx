@@ -3,7 +3,7 @@
 import { ReactNode, useMemo, useState } from "react";
 import { PlateCard } from "@/components/ui/PlateCard";
 import { useLeagueTrades } from "@/hooks/useLeagueTrades";
-import { AnalyzedTrade, filterTrades, MY_TRADES, TRADE_SORTS, TradeAsset, TradeFilter, TradeGap, TradeSide, TradeSort } from "@/lib/trades";
+import { AnalyzedTrade, filterTrades, TRADE_SORTS, TradeAsset, TradeFilter, TradeGap, TradeSide, TradeSort } from "@/lib/trades";
 import { DAY_MS } from "@/lib/value-history";
 import { shownGrade, valueGrade } from "@/lib/player-values";
 
@@ -274,7 +274,7 @@ function TradeCard({ trade }: { trade: AnalyzedTrade }) {
 
 const FIELD = "min-w-0 border border-border bg-page px-2 py-1 text-xs text-ink-primary outline-none focus:border-ink-primary";
 
-/** Finding trades: a season, a team slot (by its latest name) or just yours, and the order they're in. */
+/** Finding trades: a season, a team slot (by its latest name), and the order they're in. */
 function TradeFilters({
   trades,
   teams,
@@ -287,8 +287,6 @@ function TradeFilters({
   onChange: (next: TradeFilter) => void;
 }) {
   const seasons = useMemo(() => [...new Set(trades.map((t) => t.season))].sort().reverse(), [trades]);
-  const mine = trades.some((t) => t.sides.some((s) => s.mine));
-  const team = (value: string): TradeFilter["team"] => (value === "" ? null : value === MY_TRADES ? MY_TRADES : Number(value));
   return (
     <div className="flex flex-wrap gap-2">
       <select aria-label="Season" value={filter.season ?? ""} onChange={(e) => onChange({ ...filter, season: e.target.value || null })} className={FIELD}>
@@ -299,9 +297,8 @@ function TradeFilters({
           </option>
         ))}
       </select>
-      <select aria-label="Team" value={filter.team ?? ""} onChange={(e) => onChange({ ...filter, team: team(e.target.value) })} className={`${FIELD} max-w-[12rem]`}>
+      <select aria-label="Team" value={filter.team ?? ""} onChange={(e) => onChange({ ...filter, team: e.target.value === "" ? null : Number(e.target.value) })} className={`${FIELD} max-w-[12rem]`}>
         <option value="">All teams</option>
-        {mine ? <option value={MY_TRADES}>My trades</option> : null}
         {teams.map((t) => (
           <option key={t.rosterId} value={t.rosterId}>
             {t.name}

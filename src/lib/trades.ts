@@ -228,14 +228,11 @@ export const TRADE_SORTS = [
 ] as const;
 export type TradeSort = (typeof TRADE_SORTS)[number]["id"];
 
-/** The team filter's choice for your own trades. */
-export const MY_TRADES = "mine";
-
 export interface TradeFilter {
   /** A season, or null for all. */
   season: string | null;
-  /** A team slot (roster id — the same slot season to season, whoever's had it), MY_TRADES for yours, or null for every team's. */
-  team: number | typeof MY_TRADES | null;
+  /** A team slot (roster id — the same slot season to season, whoever's had it), or null for every team's. */
+  team: number | null;
   sort: TradeSort;
 }
 
@@ -254,7 +251,7 @@ export function filterTrades(trades: AnalyzedTrade[], filter: TradeFilter): Anal
   };
   return trades
     .filter((t) => filter.season === null || t.season === filter.season)
-    .filter((t) => filter.team === null || t.sides.some((s) => (filter.team === MY_TRADES ? s.mine : s.rosterId === filter.team)))
+    .filter((t) => filter.team === null || t.sides.some((s) => s.rosterId === filter.team))
     // Best first; newest first among equals.
     .sort((a, b) => key[filter.sort](b) - key[filter.sort](a) || b.at - a.at);
 }
