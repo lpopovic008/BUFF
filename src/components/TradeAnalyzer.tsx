@@ -8,8 +8,12 @@ import { AnalyzedTrade, filterTrades, MY_TRADES, TRADE_SORTS, TradeAsset, TradeF
 import { DAY_MS } from "@/lib/value-history";
 import { shownGrade, valueGrade } from "@/lib/player-values";
 
-// Each side's color — its swatch by the team's name and its line on the chart.
+// Each side's color — its swatch by the team's name, and its big numbers when it's ahead.
 const SIDE_COLORS = ["var(--ink-primary)", "var(--series-1)", "var(--series-2)", "var(--series-5)"];
+// Each piece's color in its side's list and chart, in order.
+const ASSET_COLORS = ["var(--series-1)", "var(--series-2)", "var(--series-3)", "var(--series-4)", "var(--series-5)", "var(--series-7)", "var(--series-6)", "var(--series-8)"];
+// Outlines the number a total counts, where a drafted pick shows more than one.
+const COUNTED = "outline outline-1 outline-offset-1 outline-current";
 
 const ADDED =
   "KTC's trade calculator's value adjustment: fewer, better pieces are worth more than the plain sum. Each piece counts for more the closer it is to the trade's best, the side ahead that way is ahead by a player worth the difference, and this evens the plain totals out to match. It's held at its value when traded, so the totals since show how lopsided the trade has become";
@@ -38,14 +42,32 @@ function Shown({ value, estimated = false }: { value: number | null; estimated?:
 }
 
 /** A row's two values: from (muted) → to (bold), in columns lined up row to row. */
-function Values({ from, to, fromTitle, toTitle, small = false }: { from: ReactNode; to: ReactNode; fromTitle: string; toTitle: string; small?: boolean }) {
+function Values({
+  from,
+  to,
+  fromTitle,
+  toTitle,
+  small = false,
+  counted,
+}: {
+  from: ReactNode;
+  to: ReactNode;
+  fromTitle: string;
+  toTitle: string;
+  small?: boolean;
+  /** Which of the two the totals count, outlined (see COUNTED). */
+  counted?: "from" | "to";
+}) {
   return (
     <>
-      <span className="w-[3ch] shrink-0 text-right tabular-nums text-ink-muted" title={fromTitle}>
+      <span className={`w-[3ch] shrink-0 text-right tabular-nums text-ink-muted ${counted === "from" ? COUNTED : ""}`} title={fromTitle}>
         {from}
       </span>
       <span className="text-ink-muted">→</span>
-      <span className={`w-[3ch] shrink-0 text-right tabular-nums ${small ? "text-ink-secondary" : "font-bold text-ink-primary"}`} title={toTitle}>
+      <span
+        className={`w-[3ch] shrink-0 text-right tabular-nums ${small ? "text-ink-secondary" : "font-bold text-ink-primary"} ${counted === "to" ? COUNTED : ""}`}
+        title={toTitle}
+      >
         {to}
       </span>
     </>
@@ -57,18 +79,22 @@ function Values({ from, to, fromTitle, toTitle, small = false }: { from: ReactNo
  * drafted pick, what it was worth when it was used, with the player it became under it, their value from the
  * draft to now.
  */
-function AssetRow({ asset }: { asset: TradeAsset }) {
+function AssetRow({ asset, color }: { asset: TradeAsset; color: string }) {
   const position = asset.position === "PICK" ? null : asset.position;
   const became = asset.became;
   return (
     <li className="flex flex-col gap-0.5 text-xs">
       <span className="flex items-baseline gap-2">
         <span className="flex min-w-0 flex-1 items-baseline gap-1">
+          {/* Its line's color on the side's chart. */}
+          <span className="h-1.5 w-1.5 shrink-0 self-center" style={{ background: color }} aria-hidden />
           <span className="truncate font-semibold text-ink-primary">{asset.label}</span>
           {position ? <span className={`shrink-0 text-[0.625rem] font-semibold ${POSITION_TEXT_COLOR[position] ?? "text-ink-muted"}`}>{position}</span> : null}
           {asset.pickOf ? <span className="min-w-0 truncate text-[0.625rem] text-ink-muted">({asset.pickOf})</span> : null}
         </span>
         <Values
+          // A drafted pick counts at its value when traded, and as whoever it became now — both outlined.
+          counted={became ? "from" : undefined}
           from={<Shown value={asset.then} estimated={asset.thenEstimated} />}
           fromTitle={asset.thenEstimated ? `When traded — estimated: ${ESTIMATED}` : "When traded"}
           to={became ? <Shown value={asset.atDraft ?? null} estimated={asset.atDraftEstimated} /> : <Shown value={asset.now} estimated={asset.nowEstimated} />}
@@ -90,15 +116,81 @@ function AssetRow({ asset }: { asset: TradeAsset }) {
             <span className="truncate font-semibold text-ink-primary">{became.name}</span>
             {became.position ? <span className={`shrink-0 text-[0.625rem] font-semibold ${POSITION_TEXT_COLOR[became.position] ?? ""}`}>{became.position}</span> : null}
           </span>
-          <Values from={<Shown value={became.drafted} />} fromTitle="When drafted" to={<Shown value={became.now} />} toTitle="Now" />
+          <Values from={<Shown value={became.drafted} />} fromTitle="When drafted" to={<Shown value={became.now} />} toTitle="Now" counted="to" />
         </span>
       ) : null}
     </li>
   );
 }
 
-/** A side of a trade: its team (yours underlined; whoever's haul is worth the most now on the plate), what it got, and its totals. */
-function SideColumn({ side, color, ahead }: { side: TradeSide; color: string; ahead: boolean }) {
+/** The days a trade's charts run over, and the value at their top — shared by its sides, so they compare. */
+interface ChartScale {
+  first: number;
+  last: number;
+  top: number;
+}
+
+/**
+ * A side's pieces' values week by week from the trade to now, a line each in its color (a pick's running on
+ * into whoever it became) — dashed, with a ≈, where it's estimated.
+ */
+function AssetChart({ assets, scale }: { assets: TradeAsset[]; scale: ChartScale }) {
+  const { first, last, top } = scale;
+  if (last <= first) return null;
+  const x = (day: number) => ((day - first) / (last - first)) * 100;
+  const y = (value: number) => 38 - (value / top) * 36;
+  // Each piece's line in runs alike — solid or estimated — broken where there's no value.
+  const runs = assets.flatMap((asset, i) => {
+    const color = ASSET_COLORS[i % ASSET_COLORS.length];
+    const out: { color: string; estimated: boolean; points: { day: number; value: number }[] }[] = [];
+    for (let k = 1; k < asset.path.length; k++) {
+      const [a, b] = [asset.path[k - 1], asset.path[k]];
+      if (a.value === null || b.value === null) continue;
+      const estimated = a.estimated || b.estimated;
+      const run = out[out.length - 1];
+      if (run && run.estimated === estimated && run.points[run.points.length - 1].day === a.day) run.points.push({ day: b.day, value: b.value });
+      else out.push({ color, estimated, points: [{ day: a.day, value: a.value }, { day: b.day, value: b.value }] });
+    }
+    return out;
+  });
+  return (
+    <div className="relative">
+      <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="h-14 w-full" role="img" aria-label="Each piece's value from the trade to now">
+        <line x1={0} x2={100} y1={38} y2={38} stroke="var(--border)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+        {runs.map((run, i) => (
+          <polyline
+            key={i}
+            points={run.points.map((p) => `${x(p.day)},${y(p.value)}`).join(" ")}
+            fill="none"
+            stroke={run.color}
+            strokeWidth={1.5}
+            strokeDasharray={run.estimated ? "3 2" : undefined}
+            vectorEffect="non-scaling-stroke"
+          />
+        ))}
+      </svg>
+      {/* A ≈ over the middle of each estimated stretch. */}
+      {runs
+        .filter((run) => run.estimated)
+        .map((run, i) => {
+          const mid = run.points[Math.floor((run.points.length - 1) / 2)];
+          return (
+            <span
+              key={i}
+              className="pointer-events-none absolute -translate-x-1/2 -translate-y-full text-[0.625rem] font-bold leading-none"
+              style={{ left: `${x(mid.day)}%`, top: `${(y(mid.value) / 40) * 100}%`, color: run.color }}
+              aria-hidden
+            >
+              ≈
+            </span>
+          );
+        })}
+    </div>
+  );
+}
+
+/** A side of a trade: its team (yours underlined; whoever's haul is worth the most now on the plate), what it got, its totals, and its pieces' chart. */
+function SideColumn({ side, color, ahead, scale }: { side: TradeSide; color: string; ahead: boolean; scale: ChartScale }) {
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
       <div className="flex items-center gap-1.5 text-xs">
@@ -114,7 +206,7 @@ function SideColumn({ side, color, ahead }: { side: TradeSide; color: string; ah
       </div>
       <ul className="flex flex-col gap-1">
         {side.got.map((asset, i) => (
-          <AssetRow key={i} asset={asset} />
+          <AssetRow key={i} asset={asset} color={ASSET_COLORS[i % ASSET_COLORS.length]} />
         ))}
         {side.faab > 0 ? <li className="text-xs text-ink-muted">${side.faab} FAAB</li> : null}
         {side.got.length === 0 && side.faab === 0 ? <li className="text-xs text-ink-muted">Nothing</li> : null}
@@ -125,6 +217,7 @@ function SideColumn({ side, color, ahead }: { side: TradeSide; color: string; ah
           </li>
         ) : null}
       </ul>
+      {/* Each piece at its whole grade, added up — just what's on screen. */}
       <div className="mt-auto flex items-baseline justify-end gap-2 border-t border-border pt-1 text-xs">
         <span className="text-ink-muted">Total</span>
         <span className="tabular-nums text-ink-muted">{grade(side.then + side.added)}</span>
@@ -132,32 +225,8 @@ function SideColumn({ side, color, ahead }: { side: TradeSide; color: string; ah
         <span className="font-bold tabular-nums text-ink-primary">{grade(side.now + side.added)}</span>
         <Change from={side.then + side.added} to={side.now + side.added} />
       </div>
+      <AssetChart assets={side.got} scale={scale} />
     </div>
-  );
-}
-
-/** Each side's haul, week by week from the trade to now, a line in its color. */
-function TradePath({ sides }: { sides: TradeSide[] }) {
-  const first = sides[0]?.path[0]?.day;
-  const last = sides[0]?.path[sides[0].path.length - 1]?.day;
-  const top = Math.max(1, ...sides.flatMap((s) => s.path.map((p) => p.value)));
-  if (first === undefined || last === undefined || last <= first) return null;
-  const x = (day: number) => ((day - first) / (last - first)) * 100;
-  const y = (value: number) => 38 - (value / top) * 36;
-  return (
-    <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="h-12 w-full" role="img" aria-label="Each side's value from the trade to now">
-      <line x1={0} x2={100} y1={38} y2={38} stroke="var(--border)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
-      {sides.map((s, i) => (
-        <polyline
-          key={s.rosterId}
-          points={s.path.map((p) => `${x(p.day)},${y(p.value)}`).join(" ")}
-          fill="none"
-          stroke={SIDE_COLORS[i % SIDE_COLORS.length]}
-          strokeWidth={1.5}
-          vectorEffect="non-scaling-stroke"
-        />
-      ))}
-    </svg>
   );
 }
 
@@ -180,6 +249,12 @@ function TradeCard({ trade }: { trade: AnalyzedTrade }) {
   const date = new Date(trade.at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   const colorOf = (rosterId: number | null) => SIDE_COLORS[Math.max(0, trade.sides.findIndex((s) => s.rosterId === rosterId)) % SIDE_COLORS.length];
   const widestOn = new Date(trade.widest.day * DAY_MS);
+  const days = trade.sides[0]?.path.map((p) => p.day) ?? [];
+  const scale: ChartScale = {
+    first: days[0] ?? 0,
+    last: days[days.length - 1] ?? 0,
+    top: Math.max(1, ...trade.sides.flatMap((side) => side.got.flatMap((a) => a.path.map((p) => p.value ?? 0)))),
+  };
   return (
     <li className="grid grid-cols-[auto_minmax(0,1fr)] gap-2 border border-border p-2 sm:gap-3">
       {/* On the left, the gap between the sides now, and the widest it's been with when. */}
@@ -200,10 +275,9 @@ function TradeCard({ trade }: { trade: AnalyzedTrade }) {
         </div>
         <div className={`grid gap-3 ${trade.sides.length > 2 ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
           {trade.sides.map((side, i) => (
-            <SideColumn key={side.rosterId} side={side} color={SIDE_COLORS[i % SIDE_COLORS.length]} ahead={side === leader && side.now > 0} />
+            <SideColumn key={side.rosterId} side={side} color={SIDE_COLORS[i % SIDE_COLORS.length]} ahead={side === leader && side.now > 0} scale={scale} />
           ))}
         </div>
-        <TradePath sides={trade.sides} />
       </div>
     </li>
   );

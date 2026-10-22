@@ -59,8 +59,10 @@ test("analyzeTrades weighs each side's haul when traded and now, a pick as whoev
   assert.deepEqual(beta.got.map((a) => [a.label, a.then, a.now]), [["Star Back", 8000, 8600]]);
   assert.equal(beta.then, 8000);
   assert.equal(beta.now, 8600);
-  // Week by week from the trade: the pick, then the rookie from the draft on.
+  // Week by week from the trade: the pick, then the rookie from the draft on — the side's, and the pick's own.
   assert.deepEqual(alpha.path.map((p) => p.value), [5100, 6000, 6500]);
+  assert.deepEqual(alpha.got[0].path.map((p) => [p.value, p.estimated]), [[5100, false], [6000, false], [6500, false]]);
+  assert.deepEqual(beta.got[0].path.map((p) => p.value), [8200, 8400, 8600]);
 });
 
 test("analyzeTrades stands in what a pick became when there's no value from when it was traded", () => {
@@ -94,7 +96,7 @@ test("analyzeTrades holds a side's added value at what it was when traded", () =
   const [t] = analyzeTrades([{ ...seasons[0], trades: [twoForOne] }], drafts, history, bySleeperId, players, true, 1021 * DAY_MS);
   const [alpha, beta] = t.sides;
   assert.deepEqual([alpha.then, beta.then], [8000, 8000]);
-  assert.deepEqual([alpha.added, beta.added], addedValues([8000], [5000, 3000]));
+  assert.deepEqual([alpha.added, beta.added], addedValues([8000], [5000, 3000]).map((v) => Math.floor(v / 100) * 100));
   assert.ok(alpha.added > 0);
   // Every week since, the haul plus that same added value — however the pieces' values have moved.
   assert.deepEqual(alpha.path.map((p) => p.value), [8200 + alpha.added, 8400 + alpha.added, 8600 + alpha.added]);
@@ -116,6 +118,8 @@ test("analyzeTrades estimates a pick KTC had no value for from its round's trend
   assert.equal(pick.thenEstimated, true);
   assert.ok(pick.now! > pick.then!);
   assert.equal(pick.nowEstimated, true);
+  // Estimated all the way along its path.
+  assert.ok(pick.path.length > 1 && pick.path.every((p) => p.estimated && p.value !== null));
 });
 
 test("analyzeTrades finds a pick in whichever of its season's drafts has it, past an empty one", () => {
@@ -172,7 +176,7 @@ test("tradeGaps is how far apart the sides are now, and the farthest they've bee
 });
 
 test("filterTrades finds trades by player, pick, who a pick became, season and team, in the order picked", () => {
-  const asset = (label: string, became?: string) => ({ label, position: null, became: became ? { name: became, position: null, drafted: null, now: null } : undefined, then: null, thenEstimated: false, now: null, nowEstimated: false });
+  const asset = (label: string, became?: string) => ({ label, position: null, became: became ? { name: became, position: null, drafted: null, now: null } : undefined, then: null, thenEstimated: false, now: null, nowEstimated: false, path: [] });
   const trade = (id: string, at: number, season: string, gap: number, widest: number, sides: [string, boolean, string[]][]) =>
     ({
       id,
@@ -202,4 +206,17 @@ test("filterTrades finds trades by player, pick, who a pick became, season and t
   assert.deepEqual(ids({ sort: "closest" }), ["c", "a", "b"]);
   assert.deepEqual(ids({ sort: "oldest" }), ["a", "c", "b"]);
   assert.deepEqual(ids({ sort: "pieces" }), ["a", "b", "c"]);
+});
+
+test("a side's totals add up each piece at its whole grade, as shown", () => {
+  const odd: ValueHistory = { ...history, players: { ...history.players, "1": { ...history.players["1"], sf: [8050, 8199, 8401, 8699] } } };
+  const twoForOne: SleeperTransaction = { ...trade, adds: { s1: 1, s4: 2 }, drops: { s1: 2, s4: 1 }, draft_picks: [{ ...trade.draft_picks![0], owner_id: 2, previous_owner_id: 1 }], waiver_budget: [] };
+  const bySleeper = new Map(bySleeperId).set("s1", odd.players["1"]);
+  const [t] = analyzeTrades([{ ...seasons[0], trades: [twoForOne] }], drafts, odd, bySleeper, players, true, 1021 * DAY_MS);
+  const [alpha] = t.sides;
+  assert.deepEqual([alpha.then, alpha.now], [8000, 8600]);
+  assert.equal(alpha.added % 100, 0);
+  assert.deepEqual(alpha.path.map((p) => p.value - alpha.added), [8100, 8400, 8600]);
+  // The piece itself keeps its exact values.
+  assert.deepEqual(alpha.got[0].path.map((p) => p.value), [8199, 8401, 8699]);
 });

@@ -48,6 +48,11 @@ export interface TradeAsset {
   now: number | null;
   /** `now` read off its round's trend — a pick KTC doesn't list. */
   nowEstimated: boolean;
+  /**
+   * Its value each week from the trade to now (the trade's side's path's days) — a pick's, then from its draft
+   * on whoever it became — null where there's nothing to go by, and whether each is estimated (see `then`).
+   */
+  path: { day: number; value: number | null; estimated: boolean }[];
 }
 
 /** A round's pick value against time: `a + b × years before the draft`. */
@@ -100,7 +105,10 @@ export interface TradeSide {
   got: TradeAsset[];
   /** FAAB dollars received. */
   faab: number;
-  /** What it got, added up, when traded and now — before any added value. */
+  /**
+   * What it got, added up, when traded and now — before any added value. Each piece counts at its whole grade
+   * (to the hundred below, as it's shown), so the totals add up to what's on screen; so do `added` and `path`.
+   */
   then: number;
   now: number;
   /** The value it was due on top of its plain total when traded (see addedValues), held from then on — 0 for the other side. */
@@ -248,6 +256,11 @@ export function filterTrades(trades: AnalyzedTrade[], filter: TradeFilter): Anal
     .sort((a, b) => key[filter.sort](b) - key[filter.sort](a) || b.at - a.at);
 }
 
+/** A value at its whole grade, as the trade analyzer shows and adds it up: to the hundred below. */
+export function wholeGrade(value: number): number {
+  return Math.floor(value / 100) * 100;
+}
+
 /** Sleeper's details for a player id: name and position. */
 export type PlayerInfo = Map<string, { name: string; position: string | null }>;
 
@@ -292,17 +305,17 @@ export function analyzeTrades(
     for (const t of trades) {
       if (t.type !== "trade" || t.status !== "complete") continue;
       const day = dayOf(t.created);
-      // Each asset: how it's shown, and its value on a day.
-      const assets = new Map<number, { asset: TradeAsset; on: (d: number) => number | null }[]>();
-      const add = (rosterId: number, asset: TradeAsset, valueOnDay: (d: number) => number | null) => {
-        assets.set(rosterId, [...(assets.get(rosterId) ?? []), { asset, on: valueOnDay }]);
+      // Each asset: how it's shown, its value on a day, and whether that's estimated.
+      const assets = new Map<number, { asset: TradeAsset; on: (d: number) => number | null; estimated: (d: number) => boolean }[]>();
+      const add = (rosterId: number, asset: TradeAsset, valueOnDay: (d: number) => number | null, estimated: (d: number) => boolean = () => false) => {
+        assets.set(rosterId, [...(assets.get(rosterId) ?? []), { asset, on: valueOnDay, estimated }]);
       };
       for (const [playerId, rosterId] of Object.entries(t.adds ?? {})) {
         const series = bySleeperId.get(playerId);
         const info = players.get(playerId);
         add(
           rosterId,
-          { label: info?.name ?? series?.n ?? `Player ${playerId}`, position: info?.position ?? series?.p ?? null, then: on(series, day), thenEstimated: false, now: on(series, today), nowEstimated: false },
+          { label: info?.name ?? series?.n ?? `Player ${playerId}`, position: info?.position ?? series?.p ?? null, then: on(series, day), thenEstimated: false, now: on(series, today), nowEstimated: false, path: [] },
           (d) => on(series, d)
         );
       }
@@ -345,8 +358,10 @@ export function analyzeTrades(
             thenEstimated: known(day) === null && (thenValue ?? standIn) !== null,
             now: pickOn(today),
             nowEstimated: known(today) === null && pickOn(today) !== null,
+            path: [],
           },
-          valueOnDay
+          valueOnDay,
+          (d) => known(d) === null && valueOnDay(d) !== null
         );
       }
       const faab = new Map<number, number>();
@@ -356,6 +371,7 @@ export function analyzeTrades(
       const days: number[] = [];
       for (let i = Math.max(0, Math.ceil((day - history.from) / history.step)); gridDay(history, i) < today; i++) days.push(gridDay(history, i));
       days.push(today);
+      for (const entries of assets.values()) for (const a of entries) a.asset.path = days.map((d) => ({ day: d, value: a.on(d), estimated: a.estimated(d) }));
 
       // Each side's pieces' values.
       const piecesOf = (rosterId: number, value: (a: { asset: TradeAsset; on: (d: number) => number | null }) => number | null) =>
@@ -369,8 +385,8 @@ export function analyzeTrades(
       };
       const sides: TradeSide[] = t.roster_ids.map((rosterId) => {
         const got = assets.get(rosterId) ?? [];
-        const extra = added(rosterId);
-        const sum = (pick: (a: (typeof got)[number]) => number | null) => got.reduce((total, a) => total + (pick(a) ?? 0), 0);
+        const extra = wholeGrade(added(rosterId));
+        const sum = (pick: (a: (typeof got)[number]) => number | null) => got.reduce((total, a) => total + wholeGrade(pick(a) ?? 0), 0);
         return {
           rosterId,
           team: teamNames.get(rosterId) ?? `Team ${rosterId}`,
