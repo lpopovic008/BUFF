@@ -72,3 +72,36 @@ export function withCurrentValues(history: ValueHistory, snapshot: PlayerValuesS
   }
   return { ...history, players };
 }
+
+/** Values for picks KTC no longer lists, read by hand: by pick name ("2026 Mid 1st"), a value by date ("2026-02-01"). */
+export type ArchivedPickValues = Record<string, Record<string, number>>;
+
+/**
+ * The history with picks it hasn't got added from values read by hand (src/data/archived-pick-values.json, superflex
+ * only): a series for each, the value at each grid point drawn straight between the two dates around it — from the
+ * first date to the pick's draft (May 1 of its year, or the last date if later), nothing either side.
+ */
+export function withArchivedPicks(history: ValueHistory, superflex: ArchivedPickValues): ValueHistory {
+  const have = new Set(Object.values(history.players).map((s) => s.n));
+  const length = Math.max(0, ...Object.values(history.players).map((s) => s.sf.length));
+  const players = { ...history.players };
+  for (const [name, byDate] of Object.entries(superflex)) {
+    if (have.has(name)) continue;
+    const points = Object.entries(byDate)
+      .map(([date, value]): [number, number] => [dayOf(Date.parse(`${date}T00:00:00Z`)), value])
+      .sort((a, b) => a[0] - b[0]);
+    if (points.length === 0) continue;
+    const end = Math.max(dayOf(Date.UTC(Number(name.slice(0, 4)), 4, 1)), points[points.length - 1][0]);
+    const at = (day: number): number | null => {
+      if (day < points[0][0] || day > end) return null;
+      const next = points.findIndex(([d]) => d >= day);
+      if (next === -1) return points[points.length - 1][1];
+      if (points[next][0] === day || next === 0) return points[next][1];
+      const [[d0, v0], [d1, v1]] = [points[next - 1], points[next]];
+      return Math.round(v0 + ((v1 - v0) * (day - d0)) / (d1 - d0));
+    };
+    const sf = Array.from({ length }, (_, i) => at(gridDay(history, i)));
+    players[`archived:${name}`] = { n: name, p: "RDP", t: null, sf, q: sf.map(() => null) };
+  }
+  return { ...history, players };
+}

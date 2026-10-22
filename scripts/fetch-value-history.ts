@@ -110,8 +110,8 @@ async function main() {
   if (ranked.length < 100) throw new Error(`only ${ranked.length} players in the rankings table — the page has likely changed`);
   console.log(`  ${ranked.length} players and picks.`);
 
-  // Everything gathered is kept, even with --full, which only fetches every ranked page again — picks long
-  // drafted, backfilled from the Internet Archive (see backfill-pick-history.ts), are on no rankings page.
+  // Everything gathered is kept, even with --full, which only fetches every ranked page again — a pick, once
+  // drafted, is on no rankings page and its own page is gone.
   const existing = await loadExisting();
   const today = dayOf(Date.now());
   const toFetch = FULL ? ranked : ranked.filter((p) => !existing?.players[String(p.playerID)]);

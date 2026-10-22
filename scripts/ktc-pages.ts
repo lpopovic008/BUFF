@@ -1,4 +1,4 @@
-// Reading KTC's player pages, for scripts/fetch-value-history.ts and scripts/backfill-pick-history.ts.
+// Reading KTC's player pages, for scripts/fetch-value-history.ts.
 
 import { dayOf } from "../src/lib/value-history";
 
@@ -15,19 +15,14 @@ export function pageHistory(page: string, id: "pd-superflex" | "pd-oneqb"): [num
   return (data.overallValue ?? []).map((p): [number, number] => [ktcDay(p.d), p.v]).sort((a, b) => a[0] - b[0]);
 }
 
-/**
- * A day-by-day history put on a grid of `count` points `step` days apart from `from`: at each point, the latest
- * value at or before it — null before the first, and with `ends`, null again a step past the last (a page no
- * longer kept up: a drafted pick's).
- */
-export function onGrid(points: [number, number][], from: number, count: number, step: number, ends = false): (number | null)[] {
+/** A day-by-day history put on a grid of `count` points `step` days apart from `from`: at each point, the latest value at or before it — null before the first. */
+export function onGrid(points: [number, number][], from: number, count: number, step: number): (number | null)[] {
   const out: (number | null)[] = [];
-  const last = points[points.length - 1]?.[0] ?? -Infinity;
   let j = -1;
   for (let i = 0; i < count; i++) {
     const day = from + i * step;
     while (j + 1 < points.length && points[j + 1][0] <= day) j++;
-    out.push(j >= 0 && !(ends && day > last + step) ? points[j][1] : null);
+    out.push(j >= 0 ? points[j][1] : null);
   }
   return out;
 }
