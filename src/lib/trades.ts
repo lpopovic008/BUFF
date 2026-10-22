@@ -190,6 +190,64 @@ export function tradeGaps(sides: TradeSide[]): { gap: TradeGap; widest: TradeGap
   return { gap: tradeGap(sides, points - 1), widest };
 }
 
+/** The ways the trade analyzer's trades can be ordered. */
+export const TRADE_SORTS = [
+  { id: "newest", label: "Newest" },
+  { id: "oldest", label: "Oldest" },
+  { id: "gap", label: "Biggest gap now" },
+  { id: "widest", label: "Biggest gap ever" },
+  { id: "closest", label: "Closest now" },
+  { id: "size", label: "Biggest trade" },
+  { id: "pieces", label: "Most pieces" },
+] as const;
+export type TradeSort = (typeof TRADE_SORTS)[number]["id"];
+
+/** The team filter's choice for your own trades. */
+export const MY_TRADES = "\u0000mine";
+
+export interface TradeFilter {
+  /** Words that must each turn up somewhere in the trade: a player, a pick ("2026 1st"), who a pick became, a team. */
+  query: string;
+  /** A season, or null for all. */
+  season: string | null;
+  /** A team's name, MY_TRADES for yours, or null for every team's. */
+  team: string | null;
+  sort: TradeSort;
+}
+
+/** Lower case, accents and punctuation gone, so "Ja'Marr" finds "jamarr". */
+function plain(text: string): string {
+  return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9 ]/g, "");
+}
+
+/** The trades that match a filter, in its order. */
+export function filterTrades(trades: AnalyzedTrade[], filter: TradeFilter): AnalyzedTrade[] {
+  const words = plain(filter.query).split(" ").filter(Boolean);
+  const haystack = (t: AnalyzedTrade) =>
+    plain(t.sides.flatMap((s) => [s.team, ...s.got.flatMap((a) => [a.label, a.pickOf ?? "", a.became?.name ?? ""])]).join(" "));
+  const size = (t: AnalyzedTrade) => t.sides.reduce((total, s) => total + s.then + s.added, 0);
+  const pieces = (t: AnalyzedTrade) => t.sides.reduce((total, s) => total + s.got.length, 0);
+  const key: Record<TradeSort, (t: AnalyzedTrade) => number> = {
+    newest: (t) => t.at,
+    oldest: (t) => -t.at,
+    gap: (t) => t.gap.gap,
+    widest: (t) => t.widest.gap,
+    closest: (t) => -t.gap.gap,
+    size,
+    pieces,
+  };
+  return trades
+    .filter((t) => filter.season === null || t.season === filter.season)
+    .filter((t) => filter.team === null || t.sides.some((s) => (filter.team === MY_TRADES ? s.mine : s.team === filter.team)))
+    .filter((t) => {
+      if (words.length === 0) return true;
+      const text = haystack(t);
+      return words.every((w) => text.includes(w));
+    })
+    // Best first; newest first among equals.
+    .sort((a, b) => key[filter.sort](b) - key[filter.sort](a) || b.at - a.at);
+}
+
 /** Sleeper's details for a player id: name and position. */
 export type PlayerInfo = Map<string, { name: string; position: string | null }>;
 
