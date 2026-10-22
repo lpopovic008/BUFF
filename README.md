@@ -245,9 +245,10 @@ It's worked out once, on the values when the trade was made, and held from
 then on — so the trade starts out about even, and the totals since show how
 lopsided it's become. Totals, the chart and who's ahead all count it. The side whose haul is worth
 the most now has its team on the plate; yours is underlined.
-Down each trade's left side, two big numbers in the color of the side ahead:
-how far apart the sides are now, and the farthest apart they've ever been
-(any week since the trade), with that week's date under it (`tradeGaps`).
+Down each trade's left side, under its date, three big numbers in the color
+of the side ahead (`tradeGaps`): how far apart the sides were when the trade
+was made, the farthest apart they've ever been (any week since — the biggest
+of the three, that week's date under it), and how far apart they are now.
 Above the trades, filters find them (`filterTrades`): a season; a team, or
 just yours — by team slot (Sleeper's roster id), every slot in the league
 listed by its latest name, so a slot's trades from when it went by another

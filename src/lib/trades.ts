@@ -182,7 +182,9 @@ export interface AnalyzedTrade {
   at: number;
   season: string;
   sides: TradeSide[];
-  /** How far apart the sides are now (see tradeGap). */
+  /** How far apart the sides were when the trade was made (see tradeGap). */
+  then: TradeGap;
+  /** How far apart the sides are now. */
   gap: TradeGap;
   /** The farthest apart they've been, any week since the trade or now, and on what day. */
   widest: TradeGap & { day: number };
@@ -203,15 +205,15 @@ export function tradeGap(sides: TradeSide[], i: number): TradeGap {
   return { gap, ahead: gap > 0 ? sides[values.indexOf(top)].rosterId : null };
 }
 
-/** A trade's gap now (its paths' last point) and its widest, earliest first on a tie. */
-export function tradeGaps(sides: TradeSide[]): { gap: TradeGap; widest: TradeGap & { day: number } } {
+/** A trade's gap when made (its paths' first point), now (their last) and at its widest, earliest first on a tie. */
+export function tradeGaps(sides: TradeSide[]): { then: TradeGap; gap: TradeGap; widest: TradeGap & { day: number } } {
   const points = sides[0]?.path.length ?? 0;
   let widest = { gap: 0, ahead: null as number | null, day: sides[0]?.path[0]?.day ?? 0 };
   for (let i = 0; i < points; i++) {
     const g = tradeGap(sides, i);
     if (g.gap > widest.gap) widest = { ...g, day: sides[0].path[i].day };
   }
-  return { gap: tradeGap(sides, points - 1), widest };
+  return { then: tradeGap(sides, 0), gap: tradeGap(sides, points - 1), widest };
 }
 
 /** The ways the trade analyzer's trades can be ordered. */

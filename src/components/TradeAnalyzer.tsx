@@ -204,11 +204,26 @@ function SideColumn({ side, color, ahead, scale }: { side: TradeSide; color: str
 }
 
 /** One of a trade's two big numbers: how far apart its sides are, in grades, in the color of the side ahead. */
-function GapNumber({ label, title, value, color, children }: { label: string; title: string; value: TradeGap; color: string; children?: ReactNode }) {
+function GapNumber({
+  label,
+  title,
+  value,
+  color,
+  big = false,
+  children,
+}: {
+  label: string;
+  title: string;
+  value: TradeGap;
+  color: string;
+  /** The one to read first (the widest), bigger than the rest. */
+  big?: boolean;
+  children?: ReactNode;
+}) {
   return (
     <div className="flex flex-col items-center" title={title}>
       <span className="text-[0.625rem] font-semibold uppercase tracking-wide text-ink-muted">{label}</span>
-      <span className="text-3xl font-bold leading-none tabular-nums" style={{ color: value.ahead === null ? "var(--ink-muted)" : color }}>
+      <span className={`${big ? "text-4xl" : "text-2xl"} font-bold leading-none tabular-nums`} style={{ color: value.ahead === null ? "var(--ink-muted)" : color }}>
         {grade(value.gap)}
       </span>
       {children}
@@ -229,7 +244,7 @@ function TradeCard({ trade }: { trade: AnalyzedTrade }) {
   const scale: ChartScale = { first: days[0] ?? 0, last: days[days.length - 1] ?? 0, lo: Math.min(...values), hi: Math.max(...values) };
   return (
     <li className="grid grid-cols-[auto_minmax(0,1fr)] gap-2 border border-border p-2 sm:gap-3">
-      {/* On the left, when the trade was made; under it, the gap between the sides now, and the widest it's been with when. */}
+      {/* On the left, when the trade was made; under it, the gap between the sides then, at its widest (with when) and now. */}
       <div className="flex min-w-[3.25rem] flex-col items-center gap-3 border-r border-border pr-2 sm:pr-3">
         <span className="text-center text-[0.6875rem] font-semibold uppercase leading-tight tracking-wide text-ink-secondary" title="When the trade was made">
           {madeOn.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
@@ -237,14 +252,15 @@ function TradeCard({ trade }: { trade: AnalyzedTrade }) {
           {madeOn.getFullYear()}
         </span>
         <div className="flex flex-1 flex-col items-center justify-center gap-3">
-          <GapNumber label="Now" title="How far apart the sides are now" value={trade.gap} color={colorOf(trade.gap.ahead)} />
-          <GapNumber label="Max" title="The farthest apart the sides have been" value={trade.widest} color={colorOf(trade.widest.ahead)}>
+          <GapNumber label="Then" title="How far apart the sides were when the trade was made" value={trade.then} color={colorOf(trade.then.ahead)} />
+          <GapNumber label="Max" title="The farthest apart the sides have been" value={trade.widest} color={colorOf(trade.widest.ahead)} big>
             <span className="mt-0.5 text-center text-[0.625rem] leading-tight text-ink-muted">
               {widestOn.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}
               <br />
               {widestOn.getUTCFullYear()}
             </span>
           </GapNumber>
+          <GapNumber label="Now" title="How far apart the sides are now" value={trade.gap} color={colorOf(trade.gap.ahead)} />
         </div>
       </div>
       <div className={`grid min-w-0 gap-3 ${trade.sides.length > 2 ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>

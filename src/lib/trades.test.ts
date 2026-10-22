@@ -168,11 +168,12 @@ test("evenValue is the player KTC says would even the trade", () => {
 test("tradeGaps is how far apart the sides are now, and the farthest they've been and when", () => {
   const side = (rosterId: number, values: number[]) =>
     ({ rosterId, path: values.map((value, i) => ({ day: 1000 + 7 * i, value })) }) as TradeSide;
-  const { gap, widest } = tradeGaps([side(1, [5000, 7000, 6000, 5200]), side(2, [5000, 4000, 6500, 6000])]);
+  const { then, gap, widest } = tradeGaps([side(1, [5000, 7000, 6000, 5200]), side(2, [5000, 4000, 6500, 6000])]);
+  assert.deepEqual(then, { gap: 0, ahead: null });
   assert.deepEqual(gap, { gap: 800, ahead: 2 });
   assert.deepEqual(widest, { gap: 3000, ahead: 1, day: 1007 });
   // Level all along: no gap, nobody ahead.
-  assert.deepEqual(tradeGaps([side(1, [10, 10]), side(2, [10, 10])]), { gap: { gap: 0, ahead: null }, widest: { gap: 0, ahead: null, day: 1000 } });
+  assert.deepEqual(tradeGaps([side(1, [10, 10]), side(2, [10, 10])]), { then: { gap: 0, ahead: null }, gap: { gap: 0, ahead: null }, widest: { gap: 0, ahead: null, day: 1000 } });
 });
 
 test("filterTrades finds trades by season and team slot, in the order picked", () => {
@@ -183,6 +184,7 @@ test("filterTrades finds trades by season and team slot, in the order picked", (
       at,
       season,
       sides: sides.map(([rosterId, team, mine, got]) => ({ rosterId, team, mine, got: got.map((g) => (g.includes(">") ? asset(g.split(">")[0], g.split(">")[1]) : asset(g))), faab: 0, then: 1000 * got.length, now: 0, added: 0, path: [] })),
+      then: { gap: 0, ahead: null },
       gap: { gap, ahead: 1 },
       widest: { gap: widest, ahead: 1, day: 0 },
     }) as AnalyzedTrade;
