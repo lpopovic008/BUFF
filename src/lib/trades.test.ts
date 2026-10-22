@@ -175,32 +175,31 @@ test("tradeGaps is how far apart the sides are now, and the farthest they've bee
   assert.deepEqual(tradeGaps([side(1, [10, 10]), side(2, [10, 10])]), { gap: { gap: 0, ahead: null }, widest: { gap: 0, ahead: null, day: 1000 } });
 });
 
-test("filterTrades finds trades by player, pick, who a pick became, season and team, in the order picked", () => {
+test("filterTrades finds trades by season and team slot, in the order picked", () => {
   const asset = (label: string, became?: string) => ({ label, position: null, became: became ? { name: became, position: null, drafted: null, now: null } : undefined, then: null, thenEstimated: false, now: null, nowEstimated: false, path: [] });
-  const trade = (id: string, at: number, season: string, gap: number, widest: number, sides: [string, boolean, string[]][]) =>
+  const trade = (id: string, at: number, season: string, gap: number, widest: number, sides: [number, string, boolean, string[]][]) =>
     ({
       id,
       at,
       season,
-      sides: sides.map(([team, mine, got], i) => ({ rosterId: i + 1, team, mine, got: got.map((g) => (g.includes(">") ? asset(g.split(">")[0], g.split(">")[1]) : asset(g))), faab: 0, then: 1000 * got.length, now: 0, added: 0, path: [] })),
+      sides: sides.map(([rosterId, team, mine, got]) => ({ rosterId, team, mine, got: got.map((g) => (g.includes(">") ? asset(g.split(">")[0], g.split(">")[1]) : asset(g))), faab: 0, then: 1000 * got.length, now: 0, added: 0, path: [] })),
       gap: { gap, ahead: 1 },
       widest: { gap: widest, ahead: 1, day: 0 },
     }) as AnalyzedTrade;
   const trades = [
-    trade("a", 1, "2024", 500, 3000, [["Alpha", true, ["Ja'Marr Chase"]], ["Beta", false, ["2025 1st>Jahmyr Gibbs", "Travis Kelce"]]]),
-    trade("b", 3, "2025", 2000, 2500, [["Gamma", false, ["Josh Allen"]], ["Beta", false, ["Patrick Mahomes"]]]),
-    trade("c", 2, "2025", 100, 900, [["Alpha", true, ["2026 1st"]], ["Gamma", false, ["CeeDee Lamb"]]]),
+    trade("a", 1, "2024", 500, 3000, [[1, "Alpha", true, ["Ja'Marr Chase"]], [2, "Beta", false, ["2025 1st>Jahmyr Gibbs", "Travis Kelce"]]]),
+    trade("b", 3, "2025", 2000, 2500, [[3, "Gamma", false, ["Josh Allen"]], [2, "Beta", false, ["Patrick Mahomes"]]]),
+    // Slot 3 under the name it had that season.
+    trade("c", 2, "2025", 100, 900, [[1, "Alpha", true, ["2026 1st"]], [3, "Old Gamma", false, ["CeeDee Lamb"]]]),
   ];
-  const all = { query: "", season: null, team: null, sort: "newest" } as const;
+  const all = { season: null, team: null, sort: "newest" } as const;
   const ids = (f: Partial<Parameters<typeof filterTrades>[1]>) => filterTrades(trades, { ...all, ...f }).map((t) => t.id);
   assert.deepEqual(ids({}), ["b", "c", "a"]);
-  assert.deepEqual(ids({ query: "jamarr" }), ["a"]);
-  assert.deepEqual(ids({ query: "gibbs" }), ["a"]);
-  assert.deepEqual(ids({ query: "1st" }), ["c", "a"]);
-  assert.deepEqual(ids({ query: "2026 1st" }), ["c"]);
   assert.deepEqual(ids({ season: "2025" }), ["b", "c"]);
   assert.deepEqual(ids({ team: MY_TRADES }), ["c", "a"]);
-  assert.deepEqual(ids({ team: "Beta" }), ["b", "a"]);
+  assert.deepEqual(ids({ team: 2 }), ["b", "a"]);
+  // Whatever the slot was called at the time.
+  assert.deepEqual(ids({ team: 3 }), ["b", "c"]);
   assert.deepEqual(ids({ sort: "gap" }), ["b", "a", "c"]);
   assert.deepEqual(ids({ sort: "widest" }), ["a", "b", "c"]);
   assert.deepEqual(ids({ sort: "closest" }), ["c", "a", "b"]);

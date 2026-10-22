@@ -43,6 +43,8 @@ async function loadDrafts(leagueIds: string[]): Promise<Map<string, DraftResult[
 
 export interface LeagueTrades {
   trades: AnalyzedTrade[];
+  /** Every team slot (roster id), by its latest name — the current season's. */
+  teams: { rosterId: number; name: string }[];
   /** Weighed in superflex values (else 1QB). */
   superflex: boolean;
 }
@@ -86,5 +88,6 @@ export async function loadLeagueTrades(leagueId: string, myUserId: string | null
     if (id) bySleeperId.set(id, series);
   }
   const superflex = leagueQBFormat(chain[0]) === "superflex";
-  return { trades: analyzeTrades(seasons, drafts, history, bySleeperId, players, superflex), superflex };
+  const teams = [...(seasons[0]?.teamNames ?? new Map<number, string>())].map(([rosterId, name]) => ({ rosterId, name })).sort((a, b) => a.rosterId - b.rosterId);
+  return { trades: analyzeTrades(seasons, drafts, history, bySleeperId, players, superflex), teams, superflex };
 }

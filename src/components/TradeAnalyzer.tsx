@@ -270,21 +270,23 @@ function TradeCard({ trade }: { trade: AnalyzedTrade }) {
 
 const FIELD = "min-w-0 border border-border bg-page px-2 py-1 text-xs text-ink-primary outline-none focus:border-ink-primary";
 
-/** Finding trades: by a player, pick or team typed in, a season, a team, and the order they're in. */
-function TradeFilters({ trades, filter, onChange }: { trades: AnalyzedTrade[]; filter: TradeFilter; onChange: (next: TradeFilter) => void }) {
+/** Finding trades: a season, a team slot (by its latest name) or just yours, and the order they're in. */
+function TradeFilters({
+  trades,
+  teams,
+  filter,
+  onChange,
+}: {
+  trades: AnalyzedTrade[];
+  teams: { rosterId: number; name: string }[];
+  filter: TradeFilter;
+  onChange: (next: TradeFilter) => void;
+}) {
   const seasons = useMemo(() => [...new Set(trades.map((t) => t.season))].sort().reverse(), [trades]);
-  const teams = useMemo(() => [...new Set(trades.flatMap((t) => t.sides.map((s) => s.team)))].sort((a, b) => a.localeCompare(b)), [trades]);
   const mine = trades.some((t) => t.sides.some((s) => s.mine));
+  const team = (value: string): TradeFilter["team"] => (value === "" ? null : value === MY_TRADES ? MY_TRADES : Number(value));
   return (
     <div className="flex flex-wrap gap-2">
-      <input
-        type="search"
-        value={filter.query}
-        onChange={(e) => onChange({ ...filter, query: e.target.value })}
-        placeholder="Player, pick or team"
-        aria-label="Find a player, pick or team"
-        className={`${FIELD} flex-[1_1_12rem]`}
-      />
       <select aria-label="Season" value={filter.season ?? ""} onChange={(e) => onChange({ ...filter, season: e.target.value || null })} className={FIELD}>
         <option value="">All seasons</option>
         {seasons.map((s) => (
@@ -293,12 +295,12 @@ function TradeFilters({ trades, filter, onChange }: { trades: AnalyzedTrade[]; f
           </option>
         ))}
       </select>
-      <select aria-label="Team" value={filter.team ?? ""} onChange={(e) => onChange({ ...filter, team: e.target.value || null })} className={`${FIELD} max-w-[12rem]`}>
+      <select aria-label="Team" value={filter.team ?? ""} onChange={(e) => onChange({ ...filter, team: team(e.target.value) })} className={`${FIELD} max-w-[12rem]`}>
         <option value="">All teams</option>
         {mine ? <option value={MY_TRADES}>My trades</option> : null}
         {teams.map((t) => (
-          <option key={t} value={t}>
-            {t}
+          <option key={t.rosterId} value={t.rosterId}>
+            {t.name}
           </option>
         ))}
       </select>
@@ -313,19 +315,19 @@ function TradeFilters({ trades, filter, onChange }: { trades: AnalyzedTrade[]; f
   );
 }
 
-const NO_FILTER: TradeFilter = { query: "", season: null, team: null, sort: "newest" };
+const NO_FILTER: TradeFilter = { season: null, team: null, sort: "newest" };
 
 /**
  * Every trade in a league, all its seasons, newest first: what each side got, what it was worth when traded
  * and now — in KTC dynasty values (superflex or 1QB, as the league plays), shown as the values page's grades —
- * and each side's haul from the trade to now on a little chart. Filters above find a player's, a season's or a
- * team's, and reorder them.
+ * and each side's haul from the trade to now on a little chart. Filters above find a season's or a team's, and
+ * reorder them.
  */
 export function TradeAnalyzer({ leagueId, leagueName, sleeperUserId }: { leagueId: string; leagueName: string; sleeperUserId: string | null }) {
   const data = useLeagueTrades(leagueId, sleeperUserId);
   const [filter, setFilter] = useState<TradeFilter>(NO_FILTER);
   const shown = useMemo(() => (data ? filterTrades(data.trades, filter) : []), [data, filter]);
-  const filtered = filter.query.trim() !== "" || filter.season !== null || filter.team !== null;
+  const filtered = filter.season !== null || filter.team !== null;
   return (
     <PlateCard
       title={leagueName}
@@ -338,7 +340,7 @@ export function TradeAnalyzer({ leagueId, leagueName, sleeperUserId }: { leagueI
         <p className="py-4 text-center text-sm text-ink-secondary">No trades yet.</p>
       ) : (
         <div className="flex flex-col gap-3">
-          <TradeFilters trades={data.trades} filter={filter} onChange={setFilter} />
+          <TradeFilters trades={data.trades} teams={data.teams} filter={filter} onChange={setFilter} />
           {shown.length === 0 ? (
             <p className="py-4 text-center text-sm text-ink-secondary">No trades match.</p>
           ) : (

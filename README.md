@@ -248,10 +248,11 @@ the most now has its team on the plate; yours is underlined.
 Down each trade's left side, two big numbers in the color of the side ahead:
 how far apart the sides are now, and the farthest apart they've ever been
 (any week since the trade), with that week's date under it (`tradeGaps`).
-Above the trades, filters find them (`filterTrades`): a search for a player,
-a pick ("2026 1st"), who a pick became or a team; a season; a team, or just
-yours; and an order — newest, oldest, biggest gap now, biggest gap ever,
-closest now, biggest trade (both sides' value when made) or most pieces.
+Above the trades, filters find them (`filterTrades`): a season; a team, or
+just yours — by team slot (Sleeper's roster id), every slot in the league
+listed by its latest name, so a slot's trades from when it went by another
+name come up too; and an order — newest, oldest, biggest gap now, biggest gap
+ever, closest now, biggest trade (both sides' value when made) or most pieces.
 
 The values over time come from `scripts/fetch-value-history.ts`
 (`.github/workflows/value-history.yml`, daily): every KTC player page carries
