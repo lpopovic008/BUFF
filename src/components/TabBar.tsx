@@ -5,6 +5,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ClipboardIcon, HomeIcon, StandingsIcon, TrendIcon, UserIcon } from "@/components/ui/Icon";
 
+/** The app's pages, in order, and whether each is the one at `pathname` — the phone's tab bar and the header's tabs alike. */
+export function appPages(pathname: string) {
+  const at = (path: string) => pathname === path || pathname.startsWith(`${path}/`);
+  return [
+    { href: "/settings", label: "Profile & settings", icon: UserIcon, active: at("/settings") },
+    { href: "/league", label: "Leagues", icon: StandingsIcon, active: at("/league") || at("/team") },
+    { href: "/", label: "Home", icon: HomeIcon, active: pathname === "/" },
+    { href: "/values", label: "Values", icon: TrendIcon, active: at("/values") },
+    { href: "/draft", label: "Draft", icon: ClipboardIcon, active: at("/draft") },
+  ];
+}
+
 const tabClass = (active: boolean) =>
   `flex h-full items-center justify-center transition-colors ${
     active ? "bg-[var(--map-tag)] text-[var(--map-tag-ink)]" : "text-ink-secondary hover:text-ink-primary active:scale-90"
@@ -12,7 +24,7 @@ const tabClass = (active: boolean) =>
 
 /**
  * On a phone, the app's pages along the bottom of the screen: Profile & settings,
- * Leagues, Home, Values and Draft — the header's menu is left to wider screens.
+ * Leagues, Home, Values and Draft — wider, the header has them (see NavBar).
  * It publishes its height as --tabbar-h, so the page leaves room for it under its end.
  */
 export function TabBar() {
@@ -33,14 +45,7 @@ export function TabBar() {
     };
   }, []);
 
-  const at = (path: string) => pathname === path || pathname.startsWith(`${path}/`);
-  const tabs = [
-    { href: "/settings", label: "Profile & settings", icon: UserIcon, active: at("/settings") },
-    { href: "/league", label: "Leagues", icon: StandingsIcon, active: at("/league") || at("/team") },
-    { href: "/", label: "Home", icon: HomeIcon, active: pathname === "/" },
-    { href: "/values", label: "Values", icon: TrendIcon, active: at("/values") },
-    { href: "/draft", label: "Draft", icon: ClipboardIcon, active: at("/draft") },
-  ];
+  const tabs = appPages(pathname);
   return (
     <nav
       ref={ref}

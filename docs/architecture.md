@@ -466,7 +466,10 @@ then re-read each tick.
 
 **Tab bar** (`TabBar.tsx`, phones only): along the bottom of the screen,
 Profile & settings, Leagues, Home, Values and Draft, the page you're on lit
-like a map tag; the header's own menu button is left to wider screens.
+like a map tag. From tablet width up the header has the same pages instead
+(`NavBar.tsx`, `appPages`): Leagues, Home, Values and Draft as text tabs
+beside the wordmark, the one you're on lit the same way, and Profile &
+settings as an icon by your record — so the header grows no taller.
 Leagues opens the league page without a league: every league you show under
 its own header plate, lit like a map tag, with your matchup this week under
 it (`MyLeagues`); either opens the league. The recap opened without a league

@@ -1,20 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useNFLState } from "@/hooks/useNFLState";
 import { useCombinedRecord } from "@/hooks/useCombinedRecord";
-import { MenuIcon } from "@/components/ui/Icon";
+import { appPages } from "@/components/TabBar";
 import { useHeaderWeek } from "@/lib/header-week";
 import { WeekPicker, weekLabel } from "@/components/WeekPicker";
-
-/** The menu's pages, from tablet width up (on a phone, the tab bar along the bottom has them). */
-const NAV_LINKS = [
-  { href: "/", label: "Dashboard" },
-  { href: "/values", label: "Values" },
-  { href: "/draft", label: "Draft" },
-  { href: "/settings", label: "Settings" },
-];
 
 // The header's square buttons, styled like the map's own controls.
 const HEADER_BUTTON =
@@ -30,29 +23,9 @@ export function NavBar() {
   const record = useCombinedRecord();
   // A page showing a week of its own (the league page) makes the header's week its picker.
   const pickable = useHeaderWeek();
-  const [open, setOpen] = useState(false);
   const ref = useRef<HTMLElement>(null);
-  const menuButton = useRef<HTMLButtonElement>(null);
-  const menu = useRef<HTMLElement>(null);
-
-  // An open menu closes on any click or tap outside it (or Escape), not only on picking a page.
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (e: PointerEvent) => {
-      const target = e.target as Node;
-      if (menu.current?.contains(target) || menuButton.current?.contains(target)) return;
-      setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
+  // From tablet width up, the app's pages: Profile as an icon by your record, the rest as text tabs by the wordmark.
+  const [profile, ...tabs] = appPages(usePathname());
 
   useEffect(() => {
     const el = ref.current;
@@ -68,15 +41,31 @@ export function NavBar() {
     // Padded down by the safe area, so on a phone its background fills the strip around the camera and
     // its contents start just under it — and no lower: a little less padding of its own on a phone.
     <header ref={ref} className="sticky top-0 z-50 border-b border-border bg-page/95 pt-[env(safe-area-inset-top)] backdrop-blur">
-      <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 py-2 sm:gap-3 sm:px-6 sm:py-3 md:px-1">
-        {/* The wordmark — a map tag. (Back and forward sit just under the header: see HistoryButtons.) */}
-        <div className="flex items-center gap-2 justify-self-start sm:gap-3">
+      {/* The week centered — unless one side's too wide for that (the page tabs beside a long week, on a tablet), then just clear of it. */}
+      <div className="relative grid grid-cols-[minmax(max-content,1fr)_auto_minmax(max-content,1fr)] items-center gap-2 px-4 py-2 sm:gap-3 sm:px-6 sm:py-3 md:px-1">
+        {/* The wordmark — a map tag — and from tablet width up the pages as text tabs, the one you're on lit like
+            the wordmark. (Back and forward sit just under the header: see HistoryButtons.) */}
+        <div className="flex min-w-0 items-center gap-2 justify-self-start sm:gap-3 lg:gap-5">
           <Link
             href="/"
-            className="bg-[var(--map-tag)] px-1.5 text-sm font-bold leading-relaxed text-[var(--map-tag-ink)] sm:px-2 sm:text-lg"
+            className="shrink-0 bg-[var(--map-tag)] px-1.5 text-sm font-bold leading-relaxed text-[var(--map-tag-ink)] sm:px-2 sm:text-lg"
           >
             COMMI$H
           </Link>
+          <nav aria-label="Pages" className="flex items-center gap-1 max-md:hidden lg:gap-2">
+            {tabs.map((tab) => (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                aria-current={tab.active ? "page" : undefined}
+                className={`px-1.5 py-0.5 text-xs font-bold uppercase tracking-wide transition-colors lg:text-sm ${
+                  tab.active ? "bg-[var(--map-tag)] text-[var(--map-tag-ink)]" : "text-ink-secondary hover:text-ink-primary"
+                }`}
+              >
+                {tab.label}
+              </Link>
+            ))}
+          </nav>
         </div>
 
         {phase.loaded && phase.label ? (
@@ -98,36 +87,17 @@ export function NavBar() {
         <div className="flex items-center justify-self-end gap-2 sm:gap-4">
           {/* Your record across the leagues you show (those hidden in Settings left out). */}
           {record ? <span className="text-sm font-bold tabular-nums tracking-wide text-ink-primary sm:text-lg">{record}</span> : null}
-          <button
-            ref={menuButton}
-            type="button"
-            aria-label="Menu"
-            title="Menu"
-            aria-expanded={open}
-            onClick={() => setOpen((v) => !v)}
-            // On a phone the menu is in the tab bar along the bottom (see TabBar).
-            className={`${HEADER_BUTTON} max-md:hidden`}
+          <Link
+            href={profile.href}
+            aria-label={profile.label}
+            title={profile.label}
+            aria-current={profile.active ? "page" : undefined}
+            // On a phone it's in the tab bar along the bottom (see TabBar).
+            className={`${HEADER_BUTTON} max-md:hidden ${profile.active ? "border-[var(--map-tag)] bg-[var(--map-tag)] text-[var(--map-tag-ink)] hover:text-[var(--map-tag-ink)]" : ""}`}
           >
-            <MenuIcon />
-          </button>
+            <profile.icon width={18} height={18} />
+          </Link>
         </div>
-        {open ? (
-          <nav
-            ref={menu}
-            className="absolute right-4 top-full z-20 mt-1 flex w-40 flex-col overflow-hidden border border-grid bg-page shadow-md animate-[dropdown_0.15s_ease-out] sm:right-6 md:right-1"
-          >
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setOpen(false)}
-                className="px-4 py-2.5 text-sm font-semibold uppercase tracking-wide text-ink-secondary transition-colors hover:bg-[var(--map-tag)] hover:text-[var(--map-tag-ink)]"
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
-        ) : null}
       </div>
     </header>
   );
