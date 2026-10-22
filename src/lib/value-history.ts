@@ -28,6 +28,8 @@ export interface ValueHistory {
   players: Record<string, ValueSeries>;
 }
 
+import { PlayerValuesSnapshot } from "./player-values";
+
 export const DAY_MS = 86_400_000;
 
 /** A time as whole days since 1970-01-01 (UTC). */
@@ -45,4 +47,28 @@ export function valueOn(history: ValueHistory, series: ValueSeries, superflex: b
 /** The day of a grid point. */
 export function gridDay(history: ValueHistory, i: number): number {
   return history.from + i * history.step;
+}
+
+/**
+ * The history brought up to today with the values page's own current values (player-values.json, fetched more
+ * often than the history's weekly points), so a trade's "now" reads what the values list does: every series
+ * carried on to today's grid point, which takes the current value wherever the snapshot has it (matched by name
+ * and position — both from KTC).
+ */
+export function withCurrentValues(history: ValueHistory, snapshot: PlayerValuesSnapshot, today: number): ValueHistory {
+  const at = Math.floor((today - history.from) / history.step);
+  if (at < 0) return history;
+  const current = new Map(snapshot.dynasty.map((p) => [`${p.name}|${p.position}`, p.values]));
+  const bring = (values: (number | null)[], value: number | undefined) => {
+    const out = values.slice(0, at + 1);
+    while (out.length <= at) out.push(out.length > 0 ? out[out.length - 1] : null);
+    if (value) out[at] = value;
+    return out;
+  };
+  const players: Record<string, ValueSeries> = {};
+  for (const [id, series] of Object.entries(history.players)) {
+    const now = current.get(`${series.n}|${series.p}`);
+    players[id] = { ...series, sf: bring(series.sf, now?.superflexStandard), q: bring(series.q, now?.oneQBStandard) };
+  }
+  return { ...history, players };
 }

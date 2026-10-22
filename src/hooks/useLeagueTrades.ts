@@ -2,14 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { LeagueTrades, loadLeagueTrades } from "@/lib/league-trades";
-import { ValueHistory } from "@/lib/value-history";
+import { dayOf, ValueHistory, withCurrentValues } from "@/lib/value-history";
+import { PlayerValuesSnapshot } from "@/lib/player-values";
+import rawValuesSnapshot from "@/data/player-values.json";
 
 let historyLoad: Promise<ValueHistory | null> | null = null;
 
-/** KTC's values over time (see lib/value-history.ts), fetched once — a static file of its own, only wanted here. */
+/**
+ * KTC's values over time (see lib/value-history.ts), fetched once — a static file of its own, only wanted here —
+ * brought up to today with the values list's own current values, so a trade's "now" matches the list.
+ */
 export function loadValueHistory(): Promise<ValueHistory | null> {
   historyLoad ??= fetch(`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/data/value-history.json`)
     .then((res) => (res.ok ? (res.json() as Promise<ValueHistory>) : null))
+    .then((history) => (history ? withCurrentValues(history, rawValuesSnapshot as unknown as PlayerValuesSnapshot, dayOf(Date.now())) : null))
     .catch(() => null);
   return historyLoad;
 }

@@ -8,8 +8,8 @@
  * block, `#pd-superflex` / `#pd-oneqb`, whose `overallValue` is a value a day,
  * `{"d":"240831","v":5768}`) — but the pages are ~4MB apiece, so the full
  * fetch is a one-off (--full). After that a run only fetches the pages of
- * players and picks it hasn't got yet, and adds each week's value from the
- * rankings page alone. Anyone who drops off the rankings — a pick once it's
+ * players and picks it hasn't got yet, and sets the week's value from the
+ * rankings page alone — today's, each run. Anyone who drops off the rankings — a pick once it's
  * been drafted, a retired player — keeps the history already gathered.
  *
  * On failure it prints why and exits non-zero without touching the file.
@@ -177,14 +177,14 @@ async function main() {
     const p = ranked.find((r) => String(r.playerID) === id)!;
     players[id] = { n: p.playerName, p: p.position, t: p.team && p.team !== "FA" ? p.team : null, sf: onGrid(h.sf, from, count), q: onGrid(h.q, from, count) };
   }
-  // This week's point, for anyone still ranked who hasn't got one yet — from the rankings page alone.
+  // This week's point, for anyone still ranked: today's value from the rankings page, so it's never older than the run.
   for (const p of ranked) {
     const s = players[String(p.playerID)];
     if (!s) continue;
     s.n = p.playerName;
     s.t = p.team && p.team !== "FA" ? p.team : null;
-    if (s.sf[count - 1] == null && p.superflexValues?.value) s.sf[count - 1] = p.superflexValues.value;
-    if (s.q[count - 1] == null && p.oneQBValues?.value) s.q[count - 1] = p.oneQBValues.value;
+    if (p.superflexValues?.value) s.sf[count - 1] = p.superflexValues.value;
+    if (p.oneQBValues?.value) s.q[count - 1] = p.oneQBValues.value;
   }
 
   const history: ValueHistory = { updatedAt: new Date().toISOString(), from, step: STEP, players };
