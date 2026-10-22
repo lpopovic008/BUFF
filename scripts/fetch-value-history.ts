@@ -22,6 +22,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { dayOf, ValueHistory, ValueSeries } from "../src/lib/value-history";
+import { onGrid, pageHistory } from "./ktc-pages";
 
 const FULL = process.argv.includes("--full");
 const DRY_RUN = process.argv.includes("--dry-run");
@@ -95,31 +96,6 @@ function largestPlayerArray(html: string): RankedPlayer[] {
   return best;
 }
 
-/** "240831" — KTC's date — as days since 1970. */
-function ktcDay(d: string): number {
-  return dayOf(Date.UTC(2000 + Number(d.slice(0, 2)), Number(d.slice(2, 4)) - 1, Number(d.slice(4, 6))));
-}
-
-/** A player page's value a day in one format, as [day, value], oldest first — from its `#pd-…` data block. */
-function pageHistory(page: string, id: "pd-superflex" | "pd-oneqb"): [number, number][] {
-  const m = new RegExp(`<script[^>]*id="${id}"[^>]*>([\\s\\S]*?)<\\/script>`).exec(page);
-  if (!m) return [];
-  const data = JSON.parse(m[1]) as { overallValue?: { d: string; v: number }[] };
-  return (data.overallValue ?? []).map((p): [number, number] => [ktcDay(p.d), p.v]).sort((a, b) => a[0] - b[0]);
-}
-
-/** A day-by-day history put on the grid: at each point, the latest value at or before it — null before the first. */
-function onGrid(points: [number, number][], from: number, count: number): (number | null)[] {
-  const out: (number | null)[] = [];
-  let j = -1;
-  for (let i = 0; i < count; i++) {
-    const day = from + i * STEP;
-    while (j + 1 < points.length && points[j + 1][0] <= day) j++;
-    out.push(j >= 0 ? points[j][1] : null);
-  }
-  return out;
-}
-
 async function loadExisting(): Promise<ValueHistory | null> {
   try {
     return JSON.parse(await fs.readFile(OUT_PATH, "utf8")) as ValueHistory;
@@ -134,9 +110,11 @@ async function main() {
   if (ranked.length < 100) throw new Error(`only ${ranked.length} players in the rankings table — the page has likely changed`);
   console.log(`  ${ranked.length} players and picks.`);
 
-  const existing = FULL ? null : await loadExisting();
+  // Everything gathered is kept, even with --full, which only fetches every ranked page again — picks long
+  // drafted, backfilled from the Internet Archive (see backfill-pick-history.ts), are on no rankings page.
+  const existing = await loadExisting();
   const today = dayOf(Date.now());
-  const toFetch = ranked.filter((p) => !existing?.players[String(p.playerID)]);
+  const toFetch = FULL ? ranked : ranked.filter((p) => !existing?.players[String(p.playerID)]);
   console.log(`${toFetch.length} player pages to fetch${FULL ? " (--full)" : ""}.`);
 
   // Each page's whole history, both formats.
@@ -175,7 +153,7 @@ async function main() {
   }
   for (const [id, h] of fetched) {
     const p = ranked.find((r) => String(r.playerID) === id)!;
-    players[id] = { n: p.playerName, p: p.position, t: p.team && p.team !== "FA" ? p.team : null, sf: onGrid(h.sf, from, count), q: onGrid(h.q, from, count) };
+    players[id] = { n: p.playerName, p: p.position, t: p.team && p.team !== "FA" ? p.team : null, sf: onGrid(h.sf, from, count, STEP), q: onGrid(h.q, from, count, STEP) };
   }
   // This week's point, for anyone still ranked: today's value from the rankings page, so it's never older than the run.
   for (const p of ranked) {
