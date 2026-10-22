@@ -35,6 +35,8 @@ export interface MappedGame {
   starters: MappedStarter[];
   /** Your current-week opponents' starters in this game, across every tracked league — the preview card's right column. */
   opponentStarters: MappedStarter[];
+  /** How many players its ring and stem count: as many as its box in the starters list shows (Team, VS or ALL) — yours and your opponents' when unset. */
+  count?: number;
 }
 
 // The state lines' width in screen px — a hairline at any zoom, so zooming
@@ -81,19 +83,19 @@ const MAX_STEM_REM = 4;
 const RING_SEGMENTS = 32;
 const RING_STROKE_PX = 1.25;
 
-/** A game site's ring radius in flat map units: the more starters in the game — yours and your opponents' together — the wider. */
+/** A game site's ring radius in flat map units: the more players it counts (see starterCount), the wider. */
 function ringRadius(starterCount: number): number {
   return starterCount === 0 ? 2.8 : Math.min(3.6 + starterCount * 0.9, 16);
 }
 
-/** A game's stem in rem: the more starters in it (both sides), the taller — the ring's count, read upward. */
+/** A game's stem in rem: the more players it counts, the taller — the ring's count, read upward. */
 function stemRem(starterCount: number): number {
   return Math.min(STEM_REM + starterCount * STEM_REM_PER_STARTER, MAX_STEM_REM);
 }
 
-/** Every starter in a game, yours and your opponents'. */
+/** The players a game's ring and stem count: as many as its starters-list box shows, else yours and your opponents'. */
 function starterCount(entry: MappedGame): number {
-  return entry.starters.length + entry.opponentStarters.length;
+  return entry.count ?? entry.starters.length + entry.opponentStarters.length;
 }
 
 /** A ring on the slab's top face around a flat-map point, projected — it tilts, turns and zooms with the map. */

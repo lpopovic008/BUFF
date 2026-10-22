@@ -232,7 +232,7 @@ type Listing = Pick<GameStarters, "players" | "everyone">;
  * players; 2, VS — yours and the ones you're facing; 3, ALL — everyone worth
  * watching (see liveGameRows).
  */
-function viewPlayers({ players, everyone }: Listing, view: number): GroupedStarter[] {
+export function viewPlayers({ players, everyone }: Listing, view: number): GroupedStarter[] {
   const all = everyone ?? players;
   if (view <= 0) return [];
   if (view === 1) return all.filter((p) => (p.side ?? "mine") === "mine" || p.side === "both");
@@ -1014,6 +1014,7 @@ export function StartersByGame({
   onToggleMap,
   selectedPlayers,
   onSelectPlayer,
+  onViewsChange,
 }: {
   games: GameStarters[];
   /** The teams on their bye this week, with any starters on them — listed last, under their own header. */
@@ -1034,6 +1035,8 @@ export function StartersByGame({
   selectedPlayers: { playerId: string; gameId: string }[];
   /** Puts a player's graph up (up to four), or — theirs already up — takes it down. */
   onSelectPlayer: (playerId: string, gameId: string) => void;
+  /** Told each box's view (see viewPlayers) whenever one changes, by id — shut when missing — so the map can count the same players. */
+  onViewsChange?: (views: Map<string, number>) => void;
 }) {
   const legendByLeagueId = new Map(legend.map((l) => [l.leagueId, l]));
   // Every box — each game, then each bye — with what it can list.
@@ -1063,6 +1066,7 @@ export function StartersByGame({
     const added = boxes.filter((box) => !known.has(box.id));
     if (barView && added.length > 0) setViews((prev) => new Map([...prev, ...openTo(barView, added)]));
   }
+  useEffect(() => onViewsChange?.(views), [views, onViewsChange]);
   const closeTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   useEffect(() => {
     const timers = closeTimers.current;

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { GameMap, MappedGame } from "@/components/GameMap";
 import { LeagueTicker, TickerLeague } from "@/components/LeagueTicker";
-import { ByeTeam, LeagueLegendEntry, StartersByGame } from "@/components/StartersByGame";
+import { ByeTeam, LeagueLegendEntry, StartersByGame, viewPlayers } from "@/components/StartersByGame";
 import { NFL_TEAMS } from "@/lib/nfl-logos";
 import { PointsGraphGrid } from "@/components/PointsGraph";
 import { KickoffCountdown } from "@/components/KickoffCountdown";
@@ -355,7 +355,12 @@ export default function DashboardPage() {
     return out;
   }, [weekGames, grouped.notPlaying, groupedOpponent.notPlaying]);
 
+  // Each starters-list box's view (Team, VS, ALL — or shut), so each game's ring and stem on the map count who
+  // its box shows; and those counts, kept as a string so the map only redraws when one changes.
+  const [listViews, setListViews] = useState<Map<string, number> | null>(null);
+  const shownCounts = listViews ? listedGames.map((g) => `${g.game.id}:${viewPlayers(g, listViews.get(g.game.id) ?? 0).length}`).join(",") : null;
   const mappedGames = useMemo<MappedGame[]>(() => {
+    const counts = shownCounts === null ? null : new Map(shownCounts.split(",").filter(Boolean).map((e) => [e.slice(0, e.lastIndexOf(":")), Number(e.slice(e.lastIndexOf(":") + 1))]));
     const startersByGameId = new Map(grouped.games.map((g) => [g.game.id, g.players]));
     const opponentStartersByGameId = new Map(groupedOpponent.games.map((g) => [g.game.id, g.players]));
     const toMappedStarters = (players: GroupedStarter[]) =>
@@ -364,8 +369,9 @@ export default function DashboardPage() {
       game,
       starters: toMappedStarters(startersByGameId.get(game.id) ?? []),
       opponentStarters: toMappedStarters(opponentStartersByGameId.get(game.id) ?? []),
+      count: counts ? (counts.get(game.id) ?? 0) : undefined,
     }));
-  }, [weekGames, grouped.games, groupedOpponent.games]);
+  }, [weekGames, grouped.games, groupedOpponent.games, shownCounts]);
 
   if (!loaded || leagues === null) {
     return (
@@ -525,6 +531,7 @@ export default function DashboardPage() {
               onToggleMap={toggleMap}
               selectedPlayers={graphFor}
               onSelectPlayer={pickGraph}
+              onViewsChange={setListViews}
             />
           )}
         </div>
