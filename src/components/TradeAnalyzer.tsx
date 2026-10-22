@@ -191,24 +191,26 @@ function SideColumn({ side, color, ahead, scale }: { side: TradeSide; color: str
         </span>
       </div>
       {side.got.length > 0 ? <SideChart assets={side.got} scale={scale} /> : null}
-      <div className="flex flex-wrap justify-between gap-x-3 text-xs">
-        {side.faab > 0 ? <span className="text-ink-muted">${side.faab} FAAB</span> : null}
-        {side.got.length === 0 && side.faab === 0 ? <span className="text-ink-muted">Nothing</span> : null}
-        {side.added > 0 ? (
-          <span className="ml-auto italic text-ink-secondary" title={ADDED}>
-            Added value <span className="not-italic tabular-nums">{grade(side.added)}</span>
+      {/* Each piece at its whole grade, added up — just what's on screen — and in the room to its left, any FAAB and added value. */}
+      <div className="mt-auto flex flex-wrap items-end justify-between gap-x-3 border-t border-border pt-1">
+        <div className="flex min-w-0 flex-col pb-1 text-xs">
+          {side.faab > 0 ? <span className="text-ink-muted">${side.faab} FAAB</span> : null}
+          {side.got.length === 0 && side.faab === 0 ? <span className="text-ink-muted">Nothing</span> : null}
+          {side.added > 0 ? (
+            <span className="italic text-ink-secondary" title={ADDED}>
+              Added value <span className="not-italic tabular-nums">{grade(side.added)}</span>
+            </span>
+          ) : null}
+        </div>
+        <div className="ml-auto flex shrink-0 items-baseline gap-2">
+          <span className="text-xs text-ink-muted">Total</span>
+          <span className="text-lg tabular-nums text-ink-muted">{grade(side.then + side.added)}</span>
+          <span className="text-ink-muted">→</span>
+          <span className="text-2xl font-bold tabular-nums text-ink-primary">{grade(side.now + side.added)}</span>
+          <span className="text-lg">
+            <Change from={side.then + side.added} to={side.now + side.added} />
           </span>
-        ) : null}
-      </div>
-      {/* Each piece at its whole grade, added up — just what's on screen. */}
-      <div className="mt-auto flex items-baseline justify-end gap-2 border-t border-border pt-1">
-        <span className="text-xs text-ink-muted">Total</span>
-        <span className="text-lg tabular-nums text-ink-muted">{grade(side.then + side.added)}</span>
-        <span className="text-ink-muted">→</span>
-        <span className="text-2xl font-bold tabular-nums text-ink-primary">{grade(side.now + side.added)}</span>
-        <span className="text-lg">
-          <Change from={side.then + side.added} to={side.now + side.added} />
-        </span>
+        </div>
       </div>
     </div>
   );
