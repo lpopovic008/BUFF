@@ -7,8 +7,10 @@
 
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36";
 
+// The archive throttles hard: a pause before every request, a long one after a 429.
 async function get(url: string): Promise<string> {
-  for (let attempt = 0; attempt < 4; attempt++) {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    await new Promise((r) => setTimeout(r, attempt === 0 ? 8000 : 60000 * attempt));
     try {
       const res = await fetch(url, { headers: { "User-Agent": UA } });
       if (res.ok) return await res.text();
@@ -16,7 +18,6 @@ async function get(url: string): Promise<string> {
     } catch (err) {
       console.log(`  ${url} → ${err instanceof Error ? err.message : err}`);
     }
-    await new Promise((r) => setTimeout(r, 3000 * (attempt + 1)));
   }
   return "";
 }
@@ -69,41 +70,46 @@ function largestPlayerArray(html: string): any[] {
 }
 
 async function main() {
+  // Pick pages: KTC's own page for each pick carries its whole value history.
   const cdx = await get(
-    "https://web.archive.org/cdx/search/cdx?url=keeptradecut.com/dynasty-rankings*&output=json&fl=timestamp,original,statuscode&filter=statuscode:200&from=2019"
+    "https://web.archive.org/cdx/search/cdx?url=keeptradecut.com/dynasty-rankings/players/20*&output=json&fl=timestamp,original&filter=statuscode:200&from=2019"
   );
   const rows = (cdx ? (JSON.parse(cdx) as string[][]) : []).slice(1);
-  console.log(`${rows.length} captures of keeptradecut.com/dynasty-rankings*`);
-  const originals = new Map<string, number>();
-  for (const [, original] of rows) originals.set(original, (originals.get(original) ?? 0) + 1);
-  console.log("Most captured URLs:");
-  for (const [u, n] of [...originals].sort((a, b) => b[1] - a[1]).slice(0, 15)) console.log(`  ${n}  ${u}`);
-  const main = rows.filter(([, o]) => /keeptradecut\.com(:80)?\/dynasty-rankings\/?(\?.*)?$/.test(o));
-  const byMonth = new Map<string, number>();
-  for (const [ts] of main) byMonth.set(ts.slice(0, 6), (byMonth.get(ts.slice(0, 6)) ?? 0) + 1);
-  console.log("Rankings page captures by month:");
-  console.log([...byMonth].map(([m, n]) => `${m.slice(0, 4)}-${m.slice(4)}:${n}`).join("  "));
+  const pages = new Map<string, string[]>();
+  for (const [ts, original] of rows) {
+    const slug = original.replace(/^.*\/players\//, "").replace(/[?#].*$/, "");
+    if (!/^20\d\d-/.test(slug)) continue;
+    pages.set(slug, [...(pages.get(slug) ?? []), ts]);
+  }
+  console.log(`${rows.length} captures, ${pages.size} pick pages:`);
+  for (const [slug, ts] of [...pages].sort()) console.log(`  ${slug}: ${ts.length} (${ts[0].slice(0, 8)} … ${ts[ts.length - 1].slice(0, 8)})`);
 
-  // A few captures across the years: does the table read, and what are the picks called?
-  const want = ["2021", "2023", "202402", "202502", "202601", "202602", "202604"];
-  for (const prefix of want) {
-    const row = main.find(([ts]) => ts.startsWith(prefix));
-    if (!row) {
-      console.log(`\n${prefix}: no capture`);
-      continue;
+  // One pick page from before its draft: how far back does its history go?
+  const pick = [...pages].find(([slug]) => /^2026-(mid-1st|pick-1-0[5-8])/.test(slug)) ?? [...pages].find(([slug]) => /^2026-/.test(slug)) ?? [...pages][0];
+  if (pick) {
+    const [slug, stamps] = pick;
+    const ts = stamps[stamps.length - 1];
+    const html = await get(`https://web.archive.org/web/${ts}id_/https://keeptradecut.com/dynasty-rankings/players/${slug}`);
+    console.log(`\n${slug} @ ${ts}: ${html.length} chars`);
+    for (const id of ["pd-superflex", "pd-oneqb"]) {
+      const m = new RegExp(`<script[^>]*id="${id}"[^>]*>([\\s\\S]*?)<\\/script>`).exec(html);
+      if (!m) {
+        console.log(`  no #${id}`);
+        continue;
+      }
+      const values = (JSON.parse(m[1]) as { overallValue?: { d: string; v: number }[] }).overallValue ?? [];
+      console.log(`  #${id}: ${values.length} days, ${values[0]?.d} … ${values[values.length - 1]?.d}; e.g. ${values.filter((_, i) => i % 60 === 0).map((p) => `${p.d}:${p.v}`).join(" ")}`);
     }
-    const [ts, original] = row;
-    const html = await get(`https://web.archive.org/web/${ts}id_/${original}`);
+  }
+
+  // And a rankings capture from January 2026: does its table read?
+  const ranked = await get("https://web.archive.org/cdx/search/cdx?url=keeptradecut.com/dynasty-rankings&output=json&fl=timestamp&filter=statuscode:200&from=202601&to=202602");
+  const ts = (ranked ? (JSON.parse(ranked) as string[][]) : []).slice(1)[0]?.[0];
+  if (ts) {
+    const html = await get(`https://web.archive.org/web/${ts}id_/https://keeptradecut.com/dynasty-rankings`);
     const players = largestPlayerArray(html);
-    console.log(`\n${ts} ${original}: ${html.length} chars, ${players.length} players`);
-    if (players.length === 0) {
-      const at = html.search(/playersArray|superflexValues|oneQBValues/);
-      console.log(`  no table; first hint at ${at}: ${at >= 0 ? html.slice(Math.max(0, at - 200), at + 300).replace(/\s+/g, " ") : "none"}`);
-      continue;
-    }
-    console.log(`  keys: ${Object.keys(players[0]).join(", ")}`);
     const picks = players.filter((p) => p.position === "RDP");
-    console.log(`  ${picks.length} picks: ${picks.map((p) => `${p.playerName}=${p.superflexValues?.value ?? p.value ?? "?"}/${p.oneQBValues?.value ?? "?"}`).join(", ")}`);
+    console.log(`\nrankings @ ${ts}: ${players.length} players, ${picks.length} picks: ${picks.slice(0, 40).map((p) => `${p.playerName}=${p.superflexValues?.value ?? "?"}`).join(", ")}`);
   }
 }
 
