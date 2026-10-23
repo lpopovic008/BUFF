@@ -16,7 +16,7 @@ import { loadPlayerIdIndex, resolvePlayers } from "./players";
 import { normalizeName } from "./name-match";
 import { analyzeTrades, AnalyzedTrade, DraftResult, TradeSeason } from "./trades";
 import { dayOf, ValueHistory, ValueSeries, valueOn } from "./value-history";
-import { isPick, pickId, RosterEvent, rosterTimeline, settlePicks, TimelineColumn } from "./roster-timeline";
+import { isPick, pickId, RosterEvent, rosterTimeline, settlePicks, TimelineColumn, tradedOnly } from "./roster-timeline";
 import { SleeperTransaction } from "./sleeper";
 import { ordinal } from "./format";
 
@@ -183,12 +183,13 @@ export async function loadLeagueTrades(leagueId: string, myUserId: string | null
     ),
     loadPlayerIdIndex(),
   ]);
-  // Every team's players and draft picks over time, from today's rosters (and the picks they hold) back.
+  // Every team's players and draft picks over time, from today's rosters (and the picks they hold) back — only
+  // those ever traded.
   const { events, held } = settlePicks(withPicks(seasons, picks, drafts, rounds, rookieRounds));
   const current = new Map(seasons[0]?.rosters ?? []);
   for (const [rosterId, ids] of held) current.set(rosterId, [...(current.get(rosterId) ?? []), ...ids]);
-  const timeline = rosterTimeline(current, events, Date.now());
-  // Sleeper's details for everyone traded, drafted with a traded pick, or on a roster at any point.
+  const timeline = tradedOnly(rosterTimeline(current, events, Date.now()), events, becomes);
+  // Sleeper's details for everyone traded, drafted with a traded pick, or in the timeline.
   const ids = new Set<string>();
   for (const s of seasons) for (const t of s.trades) for (const id of Object.keys(t.adds ?? {})) ids.add(id);
   for (const list of drafts.values()) for (const d of list) for (const id of d.players.values()) ids.add(id);

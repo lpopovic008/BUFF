@@ -79,3 +79,13 @@ export function settlePicks(events: RosterEvent[]): { events: RosterEvent[]; hel
   for (const [id, rosterId] of holder) held.set(rosterId, [...(held.get(rosterId) ?? []), id]);
   return { events: settled, held };
 }
+
+/**
+ * The columns with only who's ever been traded — a player or a pick in any trade, whenever — and the players
+ * traded picks became, so a traded pick's line runs on into its player.
+ */
+export function tradedOnly(columns: TimelineColumn[], events: RosterEvent[], becomes: Map<string, string>): TimelineColumn[] {
+  const traded = new Set(events.filter((e) => e.tradeId).flatMap((e) => e.adds.map(([id]) => id)));
+  for (const id of [...traded]) if (becomes.has(id)) traded.add(becomes.get(id)!);
+  return columns.map((c) => ({ ...c, rosters: new Map([...c.rosters].map(([rosterId, ids]) => [rosterId, ids.filter((id) => traded.has(id))])) }));
+}

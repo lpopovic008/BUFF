@@ -49,7 +49,7 @@ function columnLabel(column: TimelineColumn): string {
 }
 
 /**
- * Every team's players as a timeline of dots: a column for each trade, as the league stood just after it, spaced by
+ * Every team's traded players and picks as a timeline of dots: a column for each trade, as the league stood just after it, spaced by
  * the time between them (see gapFor); each team's players down it single file in their own band (by position,
  * then KTC value) — the bands back to back, every other one shaded — a dot each in its position's color, and its
  * draft picks under them as rings (by season, then round); and between columns, a line from each player or pick to
@@ -82,7 +82,8 @@ export function RosterTimeline({
   const layout = useMemo(() => {
     const ids = teams.map((t) => t.rosterId);
     for (const column of columns) for (const id of column.rosters.keys()) if (!ids.includes(id)) ids.push(id);
-    const rows = ids.map((id) => Math.max(1, ...columns.map((c) => c.rosters.get(id)?.length ?? 0)));
+    // Two rows at least, so its name fits beside it.
+    const rows = ids.map((id) => Math.max(2, ...columns.map((c) => c.rosters.get(id)?.length ?? 0)));
     const totalRows = rows.reduce((t, r) => t + r, 0);
     const room = typeof window === "undefined" ? 700 : Math.min(900, Math.max(360, window.innerHeight * 0.72));
     const pitch = Math.min(PITCH.max, Math.max(PITCH.min, (room - HEADER_PX) / totalRows));

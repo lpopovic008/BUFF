@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { pickId, rosterTimeline, settlePicks } from "./roster-timeline";
+import { pickId, rosterTimeline, settlePicks, tradedOnly } from "./roster-timeline";
 
 const sorted = (m: Map<number, string[]>) => Object.fromEntries([...m].map(([id, ps]) => [id, [...ps].sort()]));
 
@@ -60,4 +60,19 @@ test("settlePicks plays picks forward to today's holders, and drops them from wh
   const columns = rosterTimeline(new Map([[1, ["r", p1]], [2, ["x"]]]), events, 100);
   assert.deepEqual(sorted(columns[0].rosters), { 1: [p1, "x"], 2: [p2] });
   assert.deepEqual(sorted(columns[1].rosters), { 1: [p1, p2], 2: ["x"] });
+});
+
+test("tradedOnly keeps whoever's ever been traded, and the players traded picks became", () => {
+  const pick = pickId(2026, 1, 2);
+  const events = [
+    { at: 10, tradeId: "t1", adds: [[pick, 1], ["x", 2]], drops: [[pick, 2], ["x", 1]] },
+    { at: 20, tradeId: null, adds: [["r", 1]], drops: [[pick, 1]] },
+  ] satisfies Parameters<typeof tradedOnly>[1];
+  const columns = rosterTimeline(new Map([[1, ["a", "r"]], [2, ["b", "x"]]]), events, 100);
+  const kept = tradedOnly(columns, events, new Map([[pick, "r"]]));
+  assert.deepEqual(kept.map((c) => sorted(c.rosters)), [
+    { 1: ["x"], 2: [pick] },
+    { 1: [pick], 2: ["x"] },
+    { 1: ["r"], 2: ["x"] },
+  ]);
 });
