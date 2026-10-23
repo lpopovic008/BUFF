@@ -394,9 +394,11 @@ to its right edge): their rank at their position by KTC value, in the standings-
 premium as the league plays — `positionValueRanksById`); by this season's
 points, in blue (`seasonLinesById`); their points a game, in grey; and the
 team they're playing with that defense's rank against the position — "BUF
-(15)", "BYE" on a bye — in red (rank 1, the fewest points a game allowed),
-orange, yellow or green (the most), eased so each rank reads plainly as one of
-the four. Under the points, their projection (`LineNote`). Under the lineup's
+(15)", "BYE" on a bye — in red, yellow or green by how many points a game it
+allows the position, not its rank (`defenseRanks`): on a scale from the
+position's 10th percentile to its 90th, the stingiest third red, the middle
+yellow, the most generous green, so defenses that allow about as many group
+together and a gap between them shows. Under the points, their projection (`LineNote`). Under the lineup's
 middle, a legend for the three numbers in their colors ("Dynasty rank" or
 "Redraft rank", "Season rank", "Points a game"; `LineLegend`). The lineups' photos
 are the biggest square that fits inside the round photo, cut from it at the

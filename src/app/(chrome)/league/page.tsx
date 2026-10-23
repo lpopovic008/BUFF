@@ -212,12 +212,6 @@ function LeagueDetailContent() {
     const out = new Map<string, LineNote>();
     if (!carousel) return out;
     const opponentOf = new Map(weekGames.flatMap((g) => [[g.homeTeam, g.awayTeam] as const, [g.awayTeam, g.homeTeam] as const]));
-    // How many defenses are ranked at each position, for the scale their colors run along.
-    const ranked = new Map<string, number>();
-    for (const key of matchupRanks.keys()) {
-      const position = key.slice(key.indexOf("-") + 1);
-      ranked.set(position, (ranked.get(position) ?? 0) + 1);
-    }
     for (const game of carousel.games) {
       for (const t of game.teams) {
         for (const slot of [...t.slots, ...t.bench]) {
@@ -226,12 +220,13 @@ function LeagueDetailContent() {
           const opponent = p.team ? (opponentOf.get(p.team) ?? null) : null;
           const stats = projectionStats?.[p.playerId];
           const weighed = stats ? weighProjection(stats, scoring) : undefined;
+          const defense = opponent ? matchupRanks.get(`${opponent}-${p.position}`) : undefined;
           out.set(p.playerId, {
             opponent,
             // Only once the week's games are in — before, nothing says who anyone's playing.
             bye: weekGames.length > 0 && !opponent,
-            rank: opponent ? (matchupRanks.get(`${opponent}-${p.position}`) ?? null) : null,
-            of: ranked.get(p.position) ?? 0,
+            rank: defense?.rank ?? null,
+            share: defense?.share ?? null,
             projected: typeof weighed === "number" ? weighed : null,
           });
         }

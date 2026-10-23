@@ -57,11 +57,23 @@ export function seasonPointsFor(line: PlayerStatLine, scoringSettings?: Record<s
   return rec >= 1 ? line.ptsPpr : rec > 0 ? line.ptsHalfPpr : line.ptsStd;
 }
 
+/** The share of defenses at each end past a scale's ends (see defenseRanks). */
+const EDGE = 0.1;
+
+/** How a defense fares against a position: its rank, the points a game it allows, and where that sits from stingy to generous (0 to 1, see defenseRanks). */
+export interface DefenseRank {
+  rank: number;
+  perGame: number;
+  share: number;
+}
+
 /**
- * Each defense's rank against each position, keyed `${team}-${position}`: by fantasy points allowed a game
- * (under the league's `rec` setting, as seasonPointsFor), 1 the fewest — the toughest matchup — up to the most.
+ * Each defense against each position, keyed `${team}-${position}`, by fantasy points allowed a game (under the
+ * league's `rec` setting, as seasonPointsFor): its rank, 1 the fewest — the toughest matchup — up to the most; and
+ * how many it allows on a scale from stingy (0) to generous (1) — by the points themselves, not the rank, so
+ * defenses that allow about as many sit together and a gap between them shows.
  */
-export function defenseRanks(snapshot: PlayerStatsSnapshot, scoringSettings?: Record<string, number>): Map<string, number> {
+export function defenseRanks(snapshot: PlayerStatsSnapshot, scoringSettings?: Record<string, number>): Map<string, DefenseRank> {
   const byPosition = new Map<string, { team: string; perGame: number }[]>();
   for (const line of snapshot.defense ?? []) {
     if (line.games <= 0) continue;
@@ -70,10 +82,20 @@ export function defenseRanks(snapshot: PlayerStatsSnapshot, scoringSettings?: Re
     group.push({ team: line.team, perGame });
     byPosition.set(line.position, group);
   }
-  const out = new Map<string, number>();
+  const out = new Map<string, DefenseRank>();
   for (const [position, group] of byPosition) {
     group.sort((a, b) => a.perGame - b.perGame);
-    group.forEach((d, i) => out.set(`${d.team}-${position}`, i + 1));
+    // The scale runs from the 10th percentile to the 90th, so one defense far out on its own (a whole season of
+    // tight ends torching one team) sits at the end of it without squeezing every other together.
+    const at = (q: number) => {
+      const i = q * (group.length - 1);
+      const [lo, hi] = [Math.floor(i), Math.ceil(i)];
+      return group[lo].perGame + (group[hi].perGame - group[lo].perGame) * (i - lo);
+    };
+    const [low, high] = [at(EDGE), at(1 - EDGE)];
+    group.forEach((d, i) =>
+      out.set(`${d.team}-${position}`, { rank: i + 1, perGame: d.perGame, share: high > low ? Math.min(1, Math.max(0, (d.perGame - low) / (high - low))) : 0.5 })
+    );
   }
   return out;
 }

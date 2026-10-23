@@ -21,33 +21,29 @@ const LineToneContext = createContext<Map<string, LineTone>>(EMPTY_TONES);
 
 /**
  * What a starter's second line says, by player id: the team they're playing this week (null not known yet, or
- * on a bye), that defense's rank against their position (1 the fewest points allowed, of `of`), and their
- * projected points.
+ * on a bye), that defense's rank against their position (1 the fewest points allowed) and how many it allows as a
+ * share of the way from the position's stingiest defense to its most generous (0 to 1), and their projected points.
  */
 export interface LineNote {
   opponent: string | null;
   bye: boolean;
   rank: number | null;
-  of: number;
+  share: number | null;
   projected: number | null;
 }
 const EMPTY_NOTES = new Map<string, LineNote>();
 const LineNoteContext = createContext<Map<string, LineNote>>(EMPTY_NOTES);
 
-// A defense's rank's colors, toughest to easiest.
-const MATCHUP_STOPS = ["var(--status-critical)", "var(--status-serious)", "var(--status-warning)", "var(--status-good)"];
+// A defense's colors, toughest to easiest.
+const MATCHUP_STOPS = ["var(--status-critical)", "var(--status-warning)", "var(--status-good)"];
 
 /**
- * A defense's rank as a color: red for the toughest (1), then orange, yellow, green for the easiest — each
- * third of the way between two held close to one of them (eased), so a rank reads plainly as one of the four.
+ * A defense as a color by how many points it allows — not its rank, so defenses that allow about as many land
+ * together and a gap between them shows: the stingiest third of the scale red, the middle yellow, the most
+ * generous green.
  */
-function matchupColor(rank: number, of: number): string {
-  const t = of > 1 ? (rank - 1) / (of - 1) : 0.5;
-  const span = t * (MATCHUP_STOPS.length - 1);
-  const i = Math.min(MATCHUP_STOPS.length - 2, Math.floor(span));
-  const u = span - i;
-  const eased = u < 0.5 ? 4 * u ** 3 : 1 - (2 - 2 * u) ** 3 / 2;
-  return `color-mix(in oklab, ${MATCHUP_STOPS[i + 1]} ${Math.round(eased * 100)}%, ${MATCHUP_STOPS[i]})`;
+function matchupColor(share: number): string {
+  return MATCHUP_STOPS[Math.min(MATCHUP_STOPS.length - 1, Math.floor(share * MATCHUP_STOPS.length))];
 }
 
 /** A starter's points in the lineup: a dash before they've played; green on pace, red behind — their projection under them, small. */
@@ -74,8 +70,8 @@ function OpponentNote({ playerId }: { playerId: string }) {
   return (
     <span
       className="whitespace-nowrap font-semibold"
-      style={note.rank !== null ? { color: matchupColor(note.rank, note.of) } : undefined}
-      title={note.rank !== null ? `${note.opponent}'s defense: ${note.rank} of ${note.of} against the position (1 allows the fewest points)` : undefined}
+      style={note.share !== null ? { color: matchupColor(note.share) } : undefined}
+      title={note.rank !== null ? `${note.opponent}'s defense: ${note.rank} against the position (1 allows the fewest points)` : undefined}
     >
       {note.opponent}
       {note.rank !== null ? ` (${note.rank})` : ""}
@@ -250,8 +246,8 @@ const PositionsContext = createContext<string[]>(NO_POSITIONS);
  */
 const BENCH_SORTS: { id: string; label: (dynasty: boolean) => string; key: (s: ResolvedSlot, note: LineNote | undefined) => number | null }[] = [
   { id: "projected", label: () => "Projected", key: (_, note) => note?.projected ?? null },
-  // Easiest first: the defense allowing the position the most (the highest rank).
-  { id: "matchup", label: () => "Matchup", key: (_, note) => (note?.rank != null && note.of > 0 ? note.rank : null) },
+  // Easiest first: the defense allowing the position the most.
+  { id: "matchup", label: () => "Matchup", key: (_, note) => note?.share ?? null },
   { id: "ppg", label: () => "Points per game", key: (s) => s.ppg },
   { id: "points", label: () => "Points", key: (s) => s.livePoints },
   { id: "season", label: () => "Season rank", key: (s) => (s.seasonRank === null ? null : -s.seasonRank) },
