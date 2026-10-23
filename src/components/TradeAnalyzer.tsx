@@ -5,6 +5,7 @@ import { PlateCard } from "@/components/ui/PlateCard";
 import { useLeagueTrades } from "@/hooks/useLeagueTrades";
 import { AnalyzedTrade, filterTrades, TRADE_SORTS, TradeAsset, TradeFilter, TradeGap, TradeSide, TradeSort } from "@/lib/trades";
 import { DAY_MS } from "@/lib/value-history";
+import { RosterTimeline } from "@/components/RosterTimeline";
 import { shownGrade, valueGrade } from "@/lib/player-values";
 
 // Each side's color — its swatch by the team's name, and its big numbers when it's ahead.
@@ -330,6 +331,19 @@ export function TradeAnalyzer({ leagueId, leagueName, sleeperUserId }: { leagueI
   const shown = useMemo(() => (data ? filterTrades(data.trades, filter) : []), [data, filter]);
   const filtered = filter.season !== null || filter.team !== null;
   return (
+    <div className="flex flex-col gap-3">
+    {/* Every team's players over time, a column of dots after each trade. */}
+    {data && data.timeline.length > 1 ? (
+      <PlateCard title="Rosters over time" aside={<span className="tabular-nums">{data.timeline.length} moments</span>} bodyClassName="p-0">
+        <RosterTimeline
+          timeline={data.timeline}
+          people={data.people}
+          teams={data.teams}
+          trades={data.trades}
+          renderTrade={(trade) => <TradeCard trade={trade} />}
+        />
+      </PlateCard>
+    ) : null}
     <PlateCard
       title={leagueName}
       aside={data ? <span className="tabular-nums">{filtered ? `${shown.length} of ${data.trades.length}` : data.trades.length} trades</span> : null}
@@ -354,5 +368,6 @@ export function TradeAnalyzer({ leagueId, leagueName, sleeperUserId }: { leagueI
         </div>
       )}
     </PlateCard>
+    </div>
   );
 }
