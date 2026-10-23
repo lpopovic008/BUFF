@@ -247,7 +247,7 @@ interface FeedRowProps {
   index: number;
   /** The play by a player graph's cursor: lit up. */
   spotlit?: boolean;
-  /** Its game's latest play: its matchup lit like a map tag. */
+  /** Its game's latest play: "Latest" after its matchup, lit like a map tag. */
   latest?: boolean;
 }
 
@@ -291,15 +291,17 @@ const FeedRow = memo(function FeedRow({ entry, starterById, legendByLeagueId, ar
       <span className="flex items-center justify-between gap-2 text-[0.6875rem] leading-none">
         <span className="flex min-w-0 items-center gap-1.5 whitespace-nowrap">
           {time ? <span className="tabular-nums text-ink-muted">{time}</span> : null}
-          {/* The matchup — lit like a map tag on its game's latest play. */}
-          <span
-            className={`flex items-center gap-1 ${latest ? "bg-[var(--map-tag)] px-1 py-0.5" : ""}`}
-            title={latest ? `${game.awayTeam} @ ${game.homeTeam} — its latest play` : `${game.awayTeam} @ ${game.homeTeam}`}
-          >
+          {/* The matchup — and on its game's latest play, "Latest" after it, lit like a map tag. */}
+          <span className="flex items-center gap-1" title={`${game.awayTeam} @ ${game.homeTeam}`}>
             <TeamLogo team={game.awayTeam} side={14} />
-            <span className={latest ? "text-[var(--map-tag-ink)]" : "text-ink-muted"}>@</span>
+            <span className="text-ink-muted">@</span>
             <TeamLogo team={game.homeTeam} side={14} />
           </span>
+          {latest ? (
+            <span className="bg-[var(--map-tag)] px-1 py-0.5 font-bold uppercase tracking-wide text-[var(--map-tag-ink)]" title="This game's latest play">
+              Latest
+            </span>
+          ) : null}
         </span>
         {/* The snap: down and distance, where on the field, then when. */}
         <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap tabular-nums text-ink-muted">
@@ -563,7 +565,7 @@ export function RedZone({
 
   const legendByLeagueId = useMemo(() => new Map(legend.map((l) => [l.leagueId, l])), [legend]);
   const entries = feed.entries;
-  // Each game's latest play (the plays run newest first), its matchup lit.
+  // Each game's latest play (the plays run newest first), marked "Latest".
   const latestPlays = new Set<string>();
   const gamesSeen = new Set<string>();
   for (const e of entries) {
