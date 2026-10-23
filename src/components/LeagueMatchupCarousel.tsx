@@ -38,12 +38,14 @@ const LineNoteContext = createContext<Map<string, LineNote>>(EMPTY_NOTES);
 const MATCHUP_STOPS = ["var(--status-critical)", "var(--status-warning)", "var(--status-good)"];
 
 /**
- * A defense as a color by how many points it allows — not its rank, so defenses that allow about as many land
- * together and a gap between them shows: the stingiest third of the scale red, the middle yellow, the most
- * generous green.
+ * A defense as a color by how many points it allows — not its rank, so defenses that allow about as many look
+ * alike and a gap between them shows: a straight gradient from red for the stingiest through yellow to green for
+ * the most generous.
  */
 function matchupColor(share: number): string {
-  return MATCHUP_STOPS[Math.min(MATCHUP_STOPS.length - 1, Math.floor(share * MATCHUP_STOPS.length))];
+  const span = Math.min(1, Math.max(0, share)) * (MATCHUP_STOPS.length - 1);
+  const i = Math.min(MATCHUP_STOPS.length - 2, Math.floor(span));
+  return `color-mix(in oklab, ${MATCHUP_STOPS[i + 1]} ${Math.round((span - i) * 100)}%, ${MATCHUP_STOPS[i]})`;
 }
 
 /** A starter's points in the lineup: a dash before they've played; green on pace, red behind — their projection under them, small. */

@@ -396,9 +396,9 @@ points, in blue (`seasonLinesById`); their points a game, in grey; and the
 team they're playing with that defense's rank against the position — "BUF
 (15)", "BYE" on a bye — in red, yellow or green by how many points a game it
 allows the position, not its rank (`defenseRanks`): on a scale from the
-position's 10th percentile to its 90th, the stingiest third red, the middle
-yellow, the most generous green, so defenses that allow about as many group
-together and a gap between them shows. Under the points, their projection (`LineNote`). Under the lineup's
+position's 10th percentile to its 90th, a straight gradient from red (the
+stingiest) through yellow to green (the most generous), so defenses that allow
+about as many look alike and a gap between them shows. Under the points, their projection (`LineNote`). Under the lineup's
 middle, a legend for the three numbers in their colors ("Dynasty rank" or
 "Redraft rank", "Season rank", "Points a game"; `LineLegend`). The lineups' photos
 are the biggest square that fits inside the round photo, cut from it at the
