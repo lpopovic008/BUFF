@@ -16,16 +16,18 @@ export function FieldSpot({ yardsToEndzone, homeOffense }: { yardsToEndzone: num
   const fromHomeGoal = homeOffense ? 100 - yardsToEndzone : yardsToEndzone;
   const yard = Math.min(yardsToEndzone, 100 - yardsToEndzone);
   return (
-    <span className="relative block h-[1.125rem] w-[90%]" aria-hidden>
-      {/* The ticks run down to the field line's bottom edge, flush with it. */}
+    // Twice the height the line and the number over it need, the field line across its middle — so set in a team's
+    // line, the field runs through that line's middle, the number rising over it.
+    <span className="relative block h-[2.25rem] w-[90%]" aria-hidden>
+      {/* The ticks run up from the field line. */}
       {TICKS.map((t) => (
         <span
           key={t}
-          className={`absolute bottom-0 w-px -translate-x-1/2 bg-ink-primary ${t % 50 === 0 ? "h-[6px]" : "h-[4px]"}`}
+          className={`absolute bottom-1/2 w-px -translate-x-1/2 bg-ink-primary ${t % 50 === 0 ? "h-[6px]" : "h-[4px]"}`}
           style={{ left: `${t}%` }}
         />
       ))}
-      <span className="absolute inset-x-0 bottom-0 h-[1.5px] bg-ink-primary" />
+      <span className="absolute inset-x-0 bottom-1/2 h-[1.5px] translate-y-1/2 bg-ink-primary" />
       {/* Centered over the ball — even at the goal line — with a triangle longer than it is wide beside it, on the
           side it points: toward the goal the offense is driving at. */}
       <span
