@@ -128,16 +128,16 @@ function TeamLine({ game, side, shown = true }: { game: NFLGame; side: "away" | 
       <span className="flex w-[2.4em] shrink-0 justify-center text-[0.6875rem]">
         <TeamLogo team={team} visible={visible} />
       </span>
-      {/* While it's on, a football beside the team with the ball (the other's spot kept empty, so the two lines stay even). */}
-      {game.state === "in" ? (
-        <span className={`flex w-3 shrink-0 justify-center transition-opacity duration-150 ${visible ? "" : "opacity-0"}`}>
-          {game.live?.possession === team ? <PossessionMark /> : null}
-        </span>
-      ) : null}
       {/* Its record as of this game — counting it once it's final. */}
       {record ? (
         <span className={`shrink-0 text-xs tabular-nums text-ink-muted transition-opacity duration-150 ${visible ? "" : "opacity-0"}`}>
           {record}
+        </span>
+      ) : null}
+      {/* While it's on, a football after the record of the team with the ball. */}
+      {game.state === "in" && game.live?.possession === team ? (
+        <span className={`flex w-3 shrink-0 justify-center transition-opacity duration-150 ${visible ? "" : "opacity-0"}`}>
+          <PossessionMark />
         </span>
       ) : null}
       <span className="min-w-0 flex-1" />
@@ -170,19 +170,20 @@ function StatusColumn({ game, text }: { game: NFLGame; text: string }) {
 }
 
 /**
- * Where the ball is while a game's on (see FieldSpot), across both team lines
- * in the open space between the teams and the scores — laid over them in
- * columns as wide as theirs, so it's centered in that space.
+ * Where the ball is while a game's on (see FieldSpot), on the home team's line
+ * in the open space between the team and the score — laid over it in columns
+ * as wide as its own, so it's centered in that space.
  */
 function BallSpot({ game }: { game: NFLGame }) {
   const live = game.state === "in" ? game.live : null;
   if (!live?.possession || live.yardsToEndzone === undefined) return null;
   const record = [game.awayRecord ?? "", game.homeRecord ?? ""].sort((a, b) => b.length - a.length)[0];
   return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center gap-1.5">
+    <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 flex h-[1.375rem] items-center gap-1.5">
       <span className="w-[2.4em] shrink-0 text-[0.6875rem]" />
-      <span className="w-3 shrink-0" />
       {record ? <span className="invisible shrink-0 text-xs tabular-nums">{record}</span> : null}
+      {/* Room for the football after the record. */}
+      <span className="w-3 shrink-0" />
       <span className="flex min-w-0 flex-1 justify-center">
         <FieldSpot yardsToEndzone={live.yardsToEndzone} homeOffense={live.possession === game.homeTeam} />
       </span>
@@ -376,9 +377,26 @@ function GameLine({
     observer.observe(el);
     return () => observer.disconnect();
   }, [typedIn, leagueIds.length, player.name, player.position]);
-  // Yours in one league and faced in another: every league, each boxed green (yours) or red (theirs).
+  // Yours in one league and faced in another: every league, each boxed green (yours) or red (theirs). While the
+  // game's on (the +/- to its right), or crowded, just the first league's and "+N" for the rest.
   const both = side === "both";
-  const logoIds = crowded && !both ? leagueIds.slice(0, 1) : leagueIds;
+  const one = phase === "live" || (crowded && !both);
+  const logoIds = one ? leagueIds.slice(0, 1) : leagueIds;
+  const marks = (
+    // Every league: the first on the right, the rest building leftward. Just the first: it, then "+N".
+    <span className={`flex shrink-0 ${one ? "" : "flex-row-reverse"} items-center gap-0.5 transition-opacity duration-150 ${typedIn ? "" : "opacity-0"}`} aria-hidden>
+      {logoIds.map((id) =>
+        both ? (
+          <span key={id} className={`flex border p-px ${player.facedIn?.includes(id) ? "border-status-critical" : "border-status-good"}`}>
+            <LeagueMark league={legendByLeagueId.get(id)} className="h-3 w-3" />
+          </span>
+        ) : (
+          <LeagueMark key={id} league={legendByLeagueId.get(id)} className="h-3 w-3" />
+        )
+      )}
+      {one && leagueIds.length > 1 ? <span className="text-[0.625rem] tabular-nums text-ink-muted">+{leagueIds.length - 1}</span> : null}
+    </span>
+  );
 
   return (
     <div
@@ -414,7 +432,8 @@ function GameLine({
           {position}
         </span>
         <span className="min-w-0 flex-1" />
-        {/* The play's +/- while the game's on, ahead of the leagues — so they keep to the right as in every other game. */}
+        {/* While the game's on, the leagues ahead of the play's +/-, clear of it; otherwise on the right. */}
+        {phase === "live" ? marks : null}
         {phase === "live" ? (
           <span
             ref={deltaRef}
@@ -429,22 +448,7 @@ function GameLine({
             {shownDelta !== null ? `${shownDelta > 0 ? "+" : ""}${formatPoints(shownDelta)}` : delta}
           </span>
         ) : null}
-        {/* The first league on the right, the rest building leftward — or, crowded, "+N" for them. */}
-        <span
-          className={`flex shrink-0 flex-row-reverse items-center gap-0.5 transition-opacity duration-150 ${typedIn ? "" : "opacity-0"}`}
-          aria-hidden
-        >
-          {logoIds.map((id) =>
-            both ? (
-              <span key={id} className={`flex border p-px ${player.facedIn?.includes(id) ? "border-status-critical" : "border-status-good"}`}>
-                <LeagueMark league={legendByLeagueId.get(id)} className="h-3 w-3" />
-              </span>
-            ) : (
-              <LeagueMark key={id} league={legendByLeagueId.get(id)} className="h-3 w-3" />
-            )
-          )}
-          {crowded && !both ? <span className="text-[0.625rem] tabular-nums text-ink-muted">+{leagueIds.length - 1}</span> : null}
-        </span>
+        {phase === "live" ? null : marks}
       </span>
       <span
         className={`w-[3.4em] shrink-0 text-right tabular-nums ${
