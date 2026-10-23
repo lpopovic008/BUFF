@@ -134,10 +134,29 @@ export default function ValuesPage() {
         <h1 className="text-2xl font-semibold text-ink-primary">Values</h1>
       </TitleWithHistory>
 
-      {/* The pick on the left (70%), All players and each of your teams listed on the right (30%,
-          never narrower than 16rem). On a phone the list comes first, the pick under it. */}
-      <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-[minmax(0,7fr)_minmax(16rem,3fr)]">
-        <div className="order-2 min-w-0 md:order-1">
+      {/* All players and each of your teams across the top, the pick under them at the page's full width. */}
+      <div className="flex flex-col gap-3">
+        <ul className="grid grid-cols-2 gap-2 sm:grid-cols-[repeat(auto-fill,minmax(13rem,1fr))]" aria-label="All players and each of your teams">
+          <li>
+            <PickButton
+              active={picked === null}
+              onClick={() => setPickedId(ALL_PLAYERS)}
+              title="All players"
+              note={valuesLabel}
+            />
+          </li>
+          {(myLeagues ?? []).map((l) => (
+            <li key={l.leagueId}>
+              <PickButton
+                active={picked?.leagueId === l.leagueId}
+                onClick={() => setPickedId(l.leagueId)}
+                title={l.leagueName}
+                note={formatRecord(l.wins, l.losses, l.ties)}
+              />
+            </li>
+          ))}
+        </ul>
+        <div className="min-w-0">
           {picked ? (
             <TradeAnalyzer
               key={picked.leagueId}
@@ -255,26 +274,6 @@ export default function ValuesPage() {
             </PlateCard>
           )}
         </div>
-        <ul className="order-1 flex flex-col gap-2 md:order-2" aria-label="All players and each of your teams">
-          <li>
-            <PickButton
-              active={picked === null}
-              onClick={() => setPickedId(ALL_PLAYERS)}
-              title="All players"
-              note={valuesLabel}
-            />
-          </li>
-          {(myLeagues ?? []).map((l) => (
-            <li key={l.leagueId}>
-              <PickButton
-                active={picked?.leagueId === l.leagueId}
-                onClick={() => setPickedId(l.leagueId)}
-                title={l.leagueName}
-                note={formatRecord(l.wins, l.losses, l.ties)}
-              />
-            </li>
-          ))}
-        </ul>
       </div>
     </div>
   );

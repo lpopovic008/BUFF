@@ -333,8 +333,8 @@ export function TradeAnalyzer({ leagueId, leagueName, sleeperUserId }: { leagueI
   return (
     <div className="flex flex-col gap-3">
     {/* Every team's players over time, a column of dots after each trade. */}
-    {data && data.timeline.length > 1 ? (
-      <PlateCard title="Rosters over time" aside={<span className="tabular-nums">{data.timeline.length} moments</span>} bodyClassName="p-0">
+    {data && data.timeline.some((c) => c.kind === "trade") ? (
+      <PlateCard title="Rosters over time" bodyClassName="p-0">
         <RosterTimeline
           timeline={data.timeline}
           people={data.people}
