@@ -170,14 +170,15 @@ function StatusColumn({ game, text }: { game: NFLGame; text: string }) {
 }
 
 /**
- * Where the ball is while a game's on (see FieldSpot), on the home team's line
- * in the open space between the team and the score — laid over it in columns
- * as wide as its own, so it's centered in that space.
+ * Where the ball is while a game's on (see FieldSpot), on the home team's line,
+ * centered between the football (after the wider record) and the scores' digits
+ * — laid over the line in columns as wide as those, so it splits the difference.
  */
 function BallSpot({ game }: { game: NFLGame }) {
   const live = game.state === "in" ? game.live : null;
   if (!live?.possession || live.yardsToEndzone === undefined) return null;
   const record = [game.awayRecord ?? "", game.homeRecord ?? ""].sort((a, b) => b.length - a.length)[0];
+  const score = [String(game.awayScore), String(game.homeScore)].sort((a, b) => b.length - a.length)[0];
   return (
     <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 flex h-[1.375rem] items-center gap-1.5">
       <span className="w-[2.4em] shrink-0 text-[0.6875rem]" />
@@ -187,7 +188,8 @@ function BallSpot({ game }: { game: NFLGame }) {
       <span className="flex min-w-0 flex-1 justify-center">
         <FieldSpot yardsToEndzone={live.yardsToEndzone} homeOffense={live.possession === game.homeTeam} />
       </span>
-      <span className="w-[2.4em] shrink-0 text-[0.9375rem]" />
+      {/* The wider score's digits, right-aligned in the score's column as on the team lines. */}
+      <span className="invisible shrink-0 text-[0.9375rem] font-bold tabular-nums">{score}</span>
       <span className="invisible">
         <StatusColumn game={game} text="" />
       </span>
