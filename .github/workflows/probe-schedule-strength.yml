@@ -1,0 +1,20 @@
+name: Probe schedule strength
+
+# Diagnostic, read-only, on demand: points allowed against how good the players faced were (see scripts/probe-schedule-strength.ts).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsx scripts/probe-schedule-strength.ts
