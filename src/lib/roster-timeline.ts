@@ -19,6 +19,8 @@ export interface TimelineColumn {
   tradeId: string | null;
   kind: "start" | "trade" | "now";
   rosters: Map<number, string[]>;
+  /** The trade's own move: who went where (a trade's column only). */
+  move?: RosterEvent;
 }
 
 const snapshot = (state: Map<number, Set<string>>) => new Map([...state].map(([rosterId, players]) => [rosterId, [...players]]));
@@ -37,7 +39,7 @@ export function rosterTimeline(current: Map<number, string[]>, events: RosterEve
   for (const event of newestFirst) {
     if (tradesLeft === 0) break;
     // Just after a trade, the rosters are as they stand now that every later move is undone.
-    if (event.tradeId) columns.push({ at: event.at, tradeId: event.tradeId, kind: "trade", rosters: snapshot(state) });
+    if (event.tradeId) columns.push({ at: event.at, tradeId: event.tradeId, kind: "trade", rosters: snapshot(state), move: event });
     for (const [player, rosterId] of event.adds) state.get(rosterId)?.delete(player);
     for (const [player, rosterId] of event.drops) {
       if (!state.has(rosterId)) state.set(rosterId, new Set());
@@ -78,14 +80,4 @@ export function settlePicks(events: RosterEvent[]): { events: RosterEvent[]; hel
   const held = new Map<number, string[]>();
   for (const [id, rosterId] of holder) held.set(rosterId, [...(held.get(rosterId) ?? []), id]);
   return { events: settled, held };
-}
-
-/**
- * The columns with only who's ever been traded — a player or a pick in any trade, whenever — and the players
- * traded picks became, so a traded pick's line runs on into its player.
- */
-export function tradedOnly(columns: TimelineColumn[], events: RosterEvent[], becomes: Map<string, string>): TimelineColumn[] {
-  const traded = new Set(events.filter((e) => e.tradeId).flatMap((e) => e.adds.map(([id]) => id)));
-  for (const id of [...traded]) if (becomes.has(id)) traded.add(becomes.get(id)!);
-  return columns.map((c) => ({ ...c, rosters: new Map([...c.rosters].map(([rosterId, ids]) => [rosterId, ids.filter((id) => traded.has(id))])) }));
 }

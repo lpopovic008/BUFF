@@ -4,58 +4,49 @@ import { ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, us
 import { TimelineColumn } from "@/lib/roster-timeline";
 import { PICK, TimelinePlayer } from "@/lib/league-trades";
 import { AnalyzedTrade } from "@/lib/trades";
+import { playerHeadshotUrl } from "@/lib/sleeper";
 
-// Each position's dot on the dark panel; anyone else's a pale grey.
+// Each position's color on the dark panel; anyone else's a pale grey, a draft pick's white.
 const POSITION_DOT: Record<string, string> = { QB: "#f2545f", RB: "#2fcf7a", WR: "#3d9cf0", TE: "#f0b429", K: "#b38cf0", DEF: "#9aa3b2" };
 const OTHER_DOT = "#cfcfcf";
-// A draft pick's a ring, under the team's players.
 const PICK_RING = "#e8e8e8";
 const POSITION_ORDER = ["QB", "RB", "WR", "TE", "K", "DEF"];
 const colorOf = (p: TimelinePlayer | undefined) => (p?.position === PICK ? PICK_RING : (POSITION_DOT[p?.position ?? ""] ?? OTHER_DOT));
 const PANEL = "#0b0b0b";
-// The date row over the columns, the narrowest and widest a dot's row is, and the teams' names' room on the left.
+// The date row over the moments, each team's row, each player's room along it, a trading team's player's photo
+// and anyone else's dot; and the teams' names' room on the left.
 const HEADER_PX = 24;
-const PITCH = { min: 2, max: 6 };
+const ROW = 22;
+const SLOT = 18;
+const FACE = 16;
+const DOT = 2.4;
 const LABEL_PX = 74;
-// The room between two trades' columns, by the days between them: never less than GAP.min, and more the longer —
+// The room between two trades' moments, by the days between them: never less than GAP.min, and more the longer —
 // but by the log of it, so a long lull doesn't stretch the timeline out and trades days apart don't pile up.
-const GAP = { min: 22, perDoubling: 15 };
+const GAP = { min: 40, perDoubling: 18 };
 const gapFor = (days: number) => GAP.min + GAP.perDoubling * Math.log2(1 + Math.max(0, days));
-
-/** A dot in a color — or a ring — drawn once and stamped: far quicker than drawing each of hundreds of dots. */
-function dotSprite(color: string, radius: number, dpr: number, ring: boolean): HTMLCanvasElement {
-  const size = Math.ceil(radius * 2 * dpr) + 2;
-  const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = size;
-  const ctx = canvas.getContext("2d")!;
-  ctx.beginPath();
-  if (ring) {
-    const width = Math.max(1, radius * 0.45) * dpr;
-    ctx.arc(size / 2, size / 2, radius * dpr - width / 2, 0, Math.PI * 2);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = width;
-    ctx.stroke();
-  } else {
-    ctx.arc(size / 2, size / 2, radius * dpr, 0, Math.PI * 2);
-    ctx.fillStyle = color;
-    ctx.fill();
-  }
-  return canvas;
-}
 
 function columnLabel(column: TimelineColumn): string {
   const d = new Date(column.at);
   return `${d.getMonth() + 1}/${d.getDate()}/${String(d.getFullYear()).slice(2)}`;
 }
 
+/** One trade's moment: every team's row of players just after it — the two (or more) trading teams' with gaps
+ * where those they gave up stood — and an arrow for each who moved, from their gap to their new spot. */
+interface Moment {
+  column: TimelineColumn;
+  rows: Map<number, { id: string; gone: boolean }[]>;
+  trading: Set<number>;
+  moves: { id: string; from: [rosterId: number, slot: number]; to: [rosterId: number, slot: number] }[];
+  width: number;
+}
+
 /**
- * Every team's traded players and picks as a timeline of dots: a column for each trade, as the league stood just after it, spaced by
- * the time between them (see gapFor); each team's players down it single file in their own band (by position,
- * then KTC value) — the bands back to back, every other one shaded — a dot each in its position's color, and its
- * draft picks under them as rings (by season, then round); and between columns, a line from each player or pick to
- * where they are next — faint for one staying put, in their color for one who moved, and from a pick that's been
- * used to the player it became. Scroll it sideways; the column at the focus line
- * (the middle on a phone, three quarters across wider) is picked, and the trade that made it shows under it.
+ * Every team's roster as a timeline: a moment for each trade, the league just after it, spaced by the time between
+ * them (see gapFor). In each, every team is a row of its players (by position, then KTC value, its draft picks
+ * last) — a small dot each in its position's color — but the teams in the trade show each player's photo, ringed in
+ * that color, and an arrow from where each player they swapped stood to where he went. Scroll it sideways; the
+ * moment in the middle is picked, and its trade shows under it.
  */
 export function RosterTimeline({
   timeline,
@@ -70,69 +61,120 @@ export function RosterTimeline({
   trades: AnalyzedTrade[];
   renderTrade: (trade: AnalyzedTrade) => ReactNode;
 }) {
-  // A column for each trade.
-  const columns = useMemo(() => timeline.filter((c) => c.kind === "trade"), [timeline]);
   const scroller = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
-  const [view, setView] = useState<{ width: number; height: number } | null>(null);
-  const [picked, setPicked] = useState(columns.length - 1);
+  const [view, setView] = useState<{ width: number } | null>(null);
   const [hover, setHover] = useState<{ x: number; y: number; text: string } | null>(null);
 
-  // Each team's band: as many rows as its most players at any point, from the top down in roster order.
-  const layout = useMemo(() => {
+  // The teams down the side, in roster order (and any only the timeline knows).
+  const rowsOf = useMemo(() => {
     const ids = teams.map((t) => t.rosterId);
-    for (const column of columns) for (const id of column.rosters.keys()) if (!ids.includes(id)) ids.push(id);
-    // Two rows at least, so its name fits beside it.
-    const rows = ids.map((id) => Math.max(2, ...columns.map((c) => c.rosters.get(id)?.length ?? 0)));
-    const totalRows = rows.reduce((t, r) => t + r, 0);
-    const room = typeof window === "undefined" ? 700 : Math.min(900, Math.max(360, window.innerHeight * 0.72));
-    const pitch = Math.min(PITCH.max, Math.max(PITCH.min, (room - HEADER_PX) / totalRows));
-    const bands: { rosterId: number; name: string; top: number; rows: number }[] = [];
-    let y = HEADER_PX;
-    for (let i = 0; i < ids.length; i++) {
-      bands.push({ rosterId: ids[i], name: teams.find((t) => t.rosterId === ids[i])?.name ?? `Team ${ids[i]}`, top: y, rows: rows[i] });
-      y += rows[i] * pitch;
-    }
-    return { bands, pitch, height: Math.ceil(y + 2) };
-  }, [columns, teams]);
+    for (const column of timeline) for (const id of column.rosters.keys()) if (!ids.includes(id)) ids.push(id);
+    return ids.map((rosterId, i) => ({ rosterId, name: teams.find((t) => t.rosterId === rosterId)?.name ?? `Team ${rosterId}`, y: HEADER_PX + (i + 0.5) * ROW }));
+  }, [timeline, teams]);
+  const height = HEADER_PX + rowsOf.length * ROW + 4;
 
-  // Each column's x from the first, by the days since the one before.
-  const xs = useMemo(() => {
-    const out = [0];
-    for (let i = 1; i < columns.length; i++) out.push(out[i - 1] + gapFor((columns[i].at - columns[i - 1].at) / 86_400_000));
-    return out;
-  }, [columns]);
-
-  // Each column's players, ordered down each band, and where each one's dot sits.
-  const placed = useMemo(() => {
+  const moments = useMemo((): Moment[] => {
     const rank = (id: string) => {
       const p = people.get(id);
       const at = p?.position === PICK ? POSITION_ORDER.length + 1 : POSITION_ORDER.indexOf(p?.position ?? "");
       return [at < 0 ? POSITION_ORDER.length : at, -(p?.value ?? 0)];
     };
-    return columns.map((column) => {
-      const spots = new Map<string, { y: number; rosterId: number }>();
-      for (const band of layout.bands) {
-        const players = [...(column.rosters.get(band.rosterId) ?? [])].sort((a, b) => {
-          const [ra, rb] = [rank(a), rank(b)];
-          return ra[0] - rb[0] || ra[1] - rb[1] || a.localeCompare(b, undefined, { numeric: true });
+    const order = (a: string, b: string) => {
+      const [ra, rb] = [rank(a), rank(b)];
+      return ra[0] - rb[0] || ra[1] - rb[1] || a.localeCompare(b, undefined, { numeric: true });
+    };
+    return timeline
+      .filter((c) => c.kind === "trade" && c.move)
+      .map((column) => {
+        const move = column.move!;
+        const trading = new Set([...move.adds, ...move.drops].map(([, rosterId]) => rosterId));
+        const rows = new Map<number, { id: string; gone: boolean }[]>();
+        for (const { rosterId } of rowsOf) {
+          const now = column.rosters.get(rosterId) ?? [];
+          const gone = trading.has(rosterId) ? move.drops.filter(([id, from]) => from === rosterId && !now.includes(id)).map(([id]) => id) : [];
+          rows.set(
+            rosterId,
+            [...now, ...gone].sort(order).map((id) => ({ id, gone: gone.includes(id) }))
+          );
+        }
+        const slotOf = (rosterId: number, id: string, gone: boolean) => rows.get(rosterId)?.findIndex((s) => s.id === id && s.gone === gone) ?? -1;
+        const moves = move.adds.flatMap(([id, to]) => {
+          const from = move.drops.find(([d]) => d === id)?.[1];
+          if (from == null) return [];
+          const [a, b] = [slotOf(from, id, true), slotOf(to, id, false)];
+          return a < 0 || b < 0 ? [] : [{ id, from: [from, a] as [number, number], to: [to, b] as [number, number] }];
         });
-        players.forEach((id, i) => spots.set(id, { y: band.top + (i + 0.5) * layout.pitch, rosterId: band.rosterId }));
-      }
-      return spots;
-    });
-  }, [columns, people, layout]);
+        const width = Math.max(1, ...[...rows.values()].map((r) => r.length)) * SLOT;
+        return { column, rows, trading, moves, width };
+      });
+  }, [timeline, people, rowsOf]);
 
-  // Where the picked column sits across the panel: the middle on a phone, three quarters across wider — so at now,
-  // most of the panel shows the past. Column i's x in the scrolled content, with room either side so the first and
-  // last columns can reach that line.
-  const focus = (view?.width ?? 0) >= 768 ? 0.75 : 0.5;
-  const padding = (view?.width ?? 0) * focus;
-  const xOf = useCallback((i: number) => padding + xs[i], [padding, xs]);
-  // The column nearest a point in the scrolled content.
+  // Each moment's left edge from the first's, by its width and the days since the one before.
+  const xs = useMemo(() => {
+    const out = [0];
+    for (let i = 1; i < moments.length; i++)
+      out.push(out[i - 1] + moments[i - 1].width + gapFor((moments[i].column.at - moments[i - 1].column.at) / 86_400_000));
+    return out;
+  }, [moments]);
+
+  // The picked moment is the one in the middle; room either side so the first and last can get there.
+  const last = moments.length - 1;
+  const padLeft = Math.max(LABEL_PX, (view?.width ?? 0) / 2 - (moments[0]?.width ?? 0) / 2);
+  const padRight = Math.max(16, (view?.width ?? 0) / 2 - (moments[last]?.width ?? 0) / 2);
+  const contentWidth = last < 0 ? 0 : padLeft + xs[last] + moments[last].width + padRight;
+  const leftOf = useCallback((i: number) => padLeft + xs[i], [padLeft, xs]);
   const nearest = useCallback(
-    (cx: number) => xs.reduce((best, x, i) => (Math.abs(padding + x - cx) < Math.abs(padding + xs[best] - cx) ? i : best), 0),
-    [xs, padding]
+    (cx: number) => {
+      let best = 0;
+      for (let i = 0; i < moments.length; i++) {
+        const d = Math.abs(leftOf(i) + moments[i].width / 2 - cx);
+        if (d < Math.abs(leftOf(best) + moments[best].width / 2 - cx)) best = i;
+      }
+      return best;
+    },
+    [moments, leftOf]
+  );
+  const [picked, setPicked] = useState(Math.max(0, moments.length - 1));
+
+  // Photos, each loaded once and cut into a ringed circle; drawn once they're in (a plain dot till then, or
+  // for good if there's none).
+  const faces = useRef(new Map<string, HTMLCanvasElement | null>());
+  const [loaded, setLoaded] = useState(0);
+  const redraw = useRef(0);
+  const face = useCallback(
+    (id: string, color: string, dpr: number) => {
+      const key = `${id}|${dpr}`;
+      if (faces.current.has(key)) return faces.current.get(key)!;
+      faces.current.set(key, null);
+      const img = new Image();
+      img.onload = () => {
+        const size = Math.ceil(FACE * dpr);
+        const sprite = document.createElement("canvas");
+        sprite.width = sprite.height = size;
+        const ctx = sprite.getContext("2d")!;
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.fillStyle = "#1c1c1c";
+        ctx.fillRect(0, 0, size, size);
+        // Sleeper's headshots are wider than tall: the middle of it, filling the circle.
+        const scale = size / Math.min(img.width, img.height);
+        ctx.drawImage(img, (size - img.width * scale) / 2, (size - img.height * scale) / 2, img.width * scale, img.height * scale);
+        ctx.lineWidth = 1.6 * dpr;
+        ctx.strokeStyle = color;
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, size / 2 - 0.8 * dpr, 0, Math.PI * 2);
+        ctx.stroke();
+        faces.current.set(key, sprite);
+        // One redraw for however many came in together.
+        cancelAnimationFrame(redraw.current);
+        redraw.current = requestAnimationFrame(() => setLoaded((n) => n + 1));
+      };
+      img.src = playerHeadshotUrl(id);
+      return null;
+    },
+    []
   );
 
   const draw = useCallback(() => {
@@ -143,117 +185,148 @@ export function RosterTimeline({
     const ctx = el.getContext("2d")!;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = PANEL;
-    ctx.fillRect(0, 0, view.width, layout.height);
-    const left = box.scrollLeft;
-    const x = (i: number) => xOf(i) - left;
-    // Just the columns in sight, and one either side for the lines running off the edges.
-    let from = 0;
-    while (from < columns.length - 1 && x(from + 1) < 0) from++;
-    let to = columns.length - 1;
-    while (to > 0 && x(to - 1) > view.width) to--;
+    ctx.fillRect(0, 0, view.width, height);
     const font = getComputedStyle(document.body).fontFamily;
+    const left = box.scrollLeft;
+    const rowY = new Map(rowsOf.map((r) => [r.rosterId, r.y]));
 
-    // Every other team's band shaded, so the teams read apart with no gap between them.
+    // Every other team's row shaded.
     ctx.fillStyle = "rgba(255,255,255,0.045)";
-    layout.bands.forEach((band, i) => {
-      if (i % 2 === 1) ctx.fillRect(0, band.top, view.width, band.rows * layout.pitch);
+    rowsOf.forEach((r, i) => {
+      if (i % 2 === 1) ctx.fillRect(0, r.y - ROW / 2, view.width, ROW);
     });
-    // The picked column, lit faintly behind.
-    ctx.fillStyle = "rgba(255,255,255,0.08)";
-    ctx.fillRect(x(picked) - 5, 0, 10, layout.height);
 
-    // The lines between columns: the faint ones first, then the moves over them.
-    const radius = Math.max(0.8, layout.pitch * 0.34);
-    ctx.lineCap = "round";
-    for (const moved of [false, true]) {
-      for (let i = from; i < to; i++) {
-        const [a, b] = [placed[i], placed[i + 1]];
-        const [x1, x2] = [x(i), x(i + 1)];
-        for (const [id, s] of a) {
-          // A pick that's gone by the next column runs to the player it became.
-          const became = b.has(id) ? undefined : people.get(id)?.becomes;
-          const t = b.get(id) ?? (became ? b.get(became) : undefined);
-          if (!t || (became != null || t.rosterId !== s.rosterId) !== moved) continue;
-          ctx.beginPath();
-          ctx.moveTo(x1, s.y);
-          ctx.bezierCurveTo((x1 + x2) / 2, s.y, (x1 + x2) / 2, t.y, x2, t.y);
-          if (moved) {
-            ctx.strokeStyle = colorOf(people.get(became ?? id));
-            ctx.lineWidth = 1.1;
-          } else {
-            ctx.strokeStyle = "rgba(255,255,255,0.08)";
-            ctx.lineWidth = 0.6;
-          }
-          ctx.stroke();
-        }
+    moments.forEach((m, i) => {
+      const x0 = leftOf(i) - left;
+      if (x0 > view.width || x0 + m.width < 0) return;
+      const x = (slot: number) => x0 + (slot + 0.5) * SLOT;
+      // The picked moment, lit faintly behind.
+      if (i === picked) {
+        ctx.fillStyle = "rgba(255,255,255,0.06)";
+        ctx.fillRect(x0 - 4, HEADER_PX - 2, m.width + 8, height - HEADER_PX);
       }
-    }
-
-    // The dots.
-    const sprites = new Map<string, HTMLCanvasElement>();
-    const sprite = (p: TimelinePlayer | undefined) => {
-      const color = colorOf(p);
-      if (!sprites.has(color)) sprites.set(color, dotSprite(color, radius, dpr, p?.position === PICK));
-      return sprites.get(color)!;
-    };
-    const size = (Math.ceil(radius * 2 * dpr) + 2) / dpr;
-    for (let i = from; i <= to; i++) {
-      for (const [id, s] of placed[i]) ctx.drawImage(sprite(people.get(id)), x(i) - size / 2, s.y - size / 2, size, size);
-    }
-
-    // Each column's date over it where there's room, the picked one's always and bright.
-    ctx.font = `600 10px ${font}`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    const pickedLabel = { x: x(picked), w: ctx.measureText(columnLabel(columns[picked])).width };
-    let clear = -Infinity;
-    for (let i = from; i <= to; i++) {
-      const text = columnLabel(columns[i]);
-      const w = ctx.measureText(text).width;
-      const overPicked = i !== picked && Math.abs(x(i) - pickedLabel.x) < (w + pickedLabel.w) / 2 + 6;
-      if (i !== picked && (x(i) - w / 2 < clear || overPicked)) continue;
+      // Its date over it.
+      ctx.font = `600 10px ${font}`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
       ctx.fillStyle = i === picked ? "#ffffff" : "rgba(255,255,255,0.45)";
-      ctx.fillText(text, x(i), HEADER_PX / 2);
-      if (i !== picked) clear = x(i) + w / 2 + 6;
-    }
+      ctx.fillText(columnLabel(m.column), x0 + m.width / 2, HEADER_PX / 2);
 
-    // The teams' names, held at the left edge over a fade.
+      for (const [rosterId, slots] of m.rows) {
+        const y = rowY.get(rosterId)!;
+        const trading = m.trading.has(rosterId);
+        slots.forEach((s, k) => {
+          const p = people.get(s.id);
+          const color = colorOf(p);
+          const cx = x(k);
+          if (s.gone) {
+            // Where one they gave up stood.
+            ctx.setLineDash([2, 2]);
+            ctx.strokeStyle = "rgba(255,255,255,0.35)";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(cx, y, FACE / 2 - 1, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+          } else if (!trading) {
+            ctx.beginPath();
+            ctx.arc(cx, y, DOT, 0, Math.PI * 2);
+            if (p?.position === PICK) {
+              ctx.strokeStyle = color;
+              ctx.lineWidth = 1;
+              ctx.stroke();
+            } else {
+              ctx.fillStyle = color;
+              ctx.fill();
+            }
+          } else if (p?.position === PICK) {
+            // A pick: a ring with its round in it.
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.6;
+            ctx.beginPath();
+            ctx.arc(cx, y, FACE / 2 - 0.8, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.font = `700 7px ${font}`;
+            ctx.fillStyle = color;
+            ctx.fillText(`R${s.id.slice(5).split("-")[1]}`, cx, y + 0.5);
+          } else {
+            const sprite = face(s.id, color, dpr);
+            if (sprite) ctx.drawImage(sprite, cx - FACE / 2, y - FACE / 2, FACE, FACE);
+            else {
+              ctx.fillStyle = `${color}55`;
+              ctx.strokeStyle = color;
+              ctx.lineWidth = 1.6;
+              ctx.beginPath();
+              ctx.arc(cx, y, FACE / 2 - 0.8, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.stroke();
+            }
+          }
+        });
+      }
+
+      // The trade's arrows: from each one's gap, bowed out to the side, to his new spot.
+      for (const mv of m.moves) {
+        const color = colorOf(people.get(mv.id));
+        const [x1, y1, x2, y2] = [x(mv.from[1]), rowY.get(mv.from[0])!, x(mv.to[1]), rowY.get(mv.to[0])!];
+        const bow = Math.min(36, Math.abs(y2 - y1) * 0.35) * (y2 > y1 ? -1 : 1);
+        const [qx, qy] = [(x1 + x2) / 2 + bow, (y1 + y2) / 2];
+        // Ends at the photo's edge, its head pointing along the curve.
+        const angle = Math.atan2(y2 - qy, x2 - qx);
+        const [ex, ey] = [x2 - Math.cos(angle) * (FACE / 2 + 1), y2 - Math.sin(angle) * (FACE / 2 + 1)];
+        ctx.strokeStyle = ctx.fillStyle = color;
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1 + Math.sign(y2 - y1) * (FACE / 2));
+        ctx.quadraticCurveTo(qx, qy, ex, ey);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(ex, ey);
+        ctx.lineTo(ex - Math.cos(angle - 0.45) * 5, ey - Math.sin(angle - 0.45) * 5);
+        ctx.lineTo(ex - Math.cos(angle + 0.45) * 5, ey - Math.sin(angle + 0.45) * 5);
+        ctx.closePath();
+        ctx.fill();
+      }
+    });
+
+    // The teams' names, held at the left edge over a fade — the picked trade's bright.
     const fade = ctx.createLinearGradient(0, 0, LABEL_PX, 0);
     fade.addColorStop(0, PANEL);
     fade.addColorStop(0.75, `${PANEL}e6`);
     fade.addColorStop(1, `${PANEL}00`);
     ctx.fillStyle = fade;
-    ctx.fillRect(0, 0, LABEL_PX, layout.height);
+    ctx.fillRect(0, 0, LABEL_PX, height);
     ctx.font = `600 9px ${font}`;
     ctx.textAlign = "left";
-    ctx.textBaseline = "top";
-    ctx.fillStyle = "rgba(255,255,255,0.75)";
-    for (const band of layout.bands) {
-      let name = band.name;
+    ctx.textBaseline = "middle";
+    for (const r of rowsOf) {
+      let name = r.name;
       while (name.length > 3 && ctx.measureText(name).width > LABEL_PX - 12) name = name.slice(0, -1);
-      ctx.fillText(name === band.name ? name : `${name.trimEnd()}…`, 6, band.top);
+      ctx.fillStyle = moments[picked]?.trading.has(r.rosterId) ? "#ffffff" : "rgba(255,255,255,0.55)";
+      ctx.fillText(name === r.name ? name : `${name.trimEnd()}…`, 6, r.y);
     }
-  }, [view, layout, columns, placed, people, picked, xOf]);
+  }, [view, height, rowsOf, moments, leftOf, picked, people, face]);
 
   // The panel's width; the canvas sized to it (for the screen's pixels), redrawn on every scroll.
   useLayoutEffect(() => {
     const box = scroller.current;
     if (!box) return;
-    const measure = () => setView({ width: box.clientWidth, height: layout.height });
+    const measure = () => setView({ width: box.clientWidth });
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(box);
     return () => observer.disconnect();
-  }, [layout.height]);
+  }, []);
   useLayoutEffect(() => {
     const el = canvas.current;
     if (!el || !view) return;
     const dpr = window.devicePixelRatio || 1;
     el.width = Math.round(view.width * dpr);
-    el.height = Math.round(view.height * dpr);
+    el.height = Math.round(height * dpr);
     draw();
-  }, [view, draw]);
-  // Opens at now, the newest column in the middle.
+    // And again as photos come in.
+  }, [view, height, draw, loaded]);
+  // Opens at the newest trade.
   const opened = useRef(false);
   useEffect(() => {
     const box = scroller.current;
@@ -268,7 +341,7 @@ export function RosterTimeline({
     frame.current = requestAnimationFrame(() => {
       const box = scroller.current;
       if (!box) return;
-      const next = nearest(box.scrollLeft + box.clientWidth * focus);
+      const next = nearest(box.scrollLeft + box.clientWidth / 2);
       if (next !== picked) setPicked(next);
       else draw();
       setHover(null);
@@ -276,36 +349,33 @@ export function RosterTimeline({
   };
   useEffect(() => () => cancelAnimationFrame(frame.current), []);
 
-  // Pointing at a dot names its player; a tap on a column brings it to the middle.
-  const at = (e: React.PointerEvent) => {
+  // Pointing at a player names him; a tap on a moment brings it to the middle.
+  const at = (e: React.PointerEvent | React.MouseEvent) => {
     const box = scroller.current!;
     const rect = box.getBoundingClientRect();
     const cx = e.clientX - rect.left + box.scrollLeft;
     const cy = e.clientY - rect.top;
-    if (columns.length === 0) return null;
+    if (moments.length === 0) return null;
     const i = nearest(cx);
-    let best: { id: string; d: number } | null = null;
-    for (const [id, s] of placed[i]) {
-      const d = Math.abs(s.y - cy);
-      if (!best || d < best.d) best = { id, d };
-    }
-    return { i, x: e.clientX - rect.left, y: cy, id: best && best.d <= Math.max(4, layout.pitch) && Math.abs(cx - xOf(i)) < 10 ? best.id : null };
+    const row = rowsOf.find((r) => Math.abs(r.y - cy) <= ROW / 2);
+    const slot = Math.floor((cx - leftOf(i)) / SLOT);
+    const s = row ? moments[i].rows.get(row.rosterId)?.[slot] : undefined;
+    return { i, x: e.clientX - rect.left, y: row?.y ?? cy, id: s && !s.gone ? s.id : null, team: row?.name };
   };
   const onPointerMove = (e: React.PointerEvent) => {
     const hit = at(e);
     if (!hit?.id) return setHover(null);
     const p = people.get(hit.id);
-    const team = layout.bands.find((b) => b.rosterId === placed[hit.i].get(hit.id!)?.rosterId)?.name;
     const position = p?.position && p.position !== PICK ? ` ${p.position}` : "";
-    setHover({ x: hit.x, y: hit.y, text: `${p?.name ?? hit.id}${position}${team ? ` · ${team}` : ""}` });
+    setHover({ x: hit.x, y: hit.y - FACE / 2, text: `${p?.name ?? hit.id}${position}${hit.team ? ` · ${hit.team}` : ""}` });
   };
   const onClick = (e: React.MouseEvent) => {
-    const hit = at(e as unknown as React.PointerEvent);
+    const hit = at(e);
     if (!hit) return;
-    scroller.current?.scrollTo({ left: xOf(hit.i) - (view?.width ?? 0) * focus, behavior: "smooth" });
+    scroller.current?.scrollTo({ left: leftOf(hit.i) + moments[hit.i].width / 2 - (view?.width ?? 0) / 2, behavior: "smooth" });
   };
 
-  const column = columns[picked];
+  const column = moments[picked]?.column;
   const trade = column?.tradeId ? trades.find((t) => t.id === column.tradeId) : undefined;
   return (
     <div className="flex flex-col gap-3">
@@ -318,10 +388,10 @@ export function RosterTimeline({
         className="relative overflow-x-auto overflow-y-hidden overscroll-x-contain [scrollbar-width:thin]"
         style={{ background: PANEL }}
         role="img"
-        aria-label="Every team's players and draft picks over time, a column of dots after each trade"
+        aria-label="Every team's roster at each trade, the players traded drawn moving"
       >
-        <div style={{ width: (view?.width ?? 0) + (xs[xs.length - 1] ?? 0), height: layout.height }}>
-          <canvas ref={canvas} className="sticky left-0 block" style={{ width: view?.width ?? 0, height: layout.height }} />
+        <div style={{ width: contentWidth, height }}>
+          <canvas ref={canvas} className="sticky left-0 block" style={{ width: view?.width ?? 0, height }} />
         </div>
         {hover ? (
           <span
@@ -332,12 +402,8 @@ export function RosterTimeline({
           </span>
         ) : null}
       </div>
-      {/* The trade that made the picked column. */}
-      {trade ? (
-        <ol>{renderTrade(trade)}</ol>
-      ) : (
-        null
-      )}
+      {/* The trade the picked moment shows. */}
+      {trade ? <ol>{renderTrade(trade)}</ol> : null}
     </div>
   );
 }
