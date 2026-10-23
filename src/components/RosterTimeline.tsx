@@ -2,13 +2,16 @@
 
 import { ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { TimelineColumn } from "@/lib/roster-timeline";
-import { TimelinePlayer } from "@/lib/league-trades";
+import { PICK, TimelinePlayer } from "@/lib/league-trades";
 import { AnalyzedTrade } from "@/lib/trades";
 
 // Each position's dot on the dark panel; anyone else's a pale grey.
 const POSITION_DOT: Record<string, string> = { QB: "#f2545f", RB: "#2fcf7a", WR: "#3d9cf0", TE: "#f0b429", K: "#b38cf0", DEF: "#9aa3b2" };
 const OTHER_DOT = "#cfcfcf";
+// A draft pick's a ring, under the team's players.
+const PICK_RING = "#e8e8e8";
 const POSITION_ORDER = ["QB", "RB", "WR", "TE", "K", "DEF"];
+const colorOf = (p: TimelinePlayer | undefined) => (p?.position === PICK ? PICK_RING : (POSITION_DOT[p?.position ?? ""] ?? OTHER_DOT));
 const PANEL = "#0b0b0b";
 // The date row over the columns, the narrowest and widest a dot's row is, and the teams' names' room on the left.
 const HEADER_PX = 24;
@@ -19,16 +22,24 @@ const LABEL_PX = 74;
 const GAP = { min: 22, perDoubling: 15 };
 const gapFor = (days: number) => GAP.min + GAP.perDoubling * Math.log2(1 + Math.max(0, days));
 
-/** A dot in a color, drawn once and stamped — far quicker than drawing each of hundreds of dots. */
-function dotSprite(color: string, radius: number, dpr: number): HTMLCanvasElement {
+/** A dot in a color — or a ring — drawn once and stamped: far quicker than drawing each of hundreds of dots. */
+function dotSprite(color: string, radius: number, dpr: number, ring: boolean): HTMLCanvasElement {
   const size = Math.ceil(radius * 2 * dpr) + 2;
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d")!;
-  ctx.fillStyle = color;
   ctx.beginPath();
-  ctx.arc(size / 2, size / 2, radius * dpr, 0, Math.PI * 2);
-  ctx.fill();
+  if (ring) {
+    const width = Math.max(1, radius * 0.45) * dpr;
+    ctx.arc(size / 2, size / 2, radius * dpr - width / 2, 0, Math.PI * 2);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.stroke();
+  } else {
+    ctx.arc(size / 2, size / 2, radius * dpr, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+  }
   return canvas;
 }
 
@@ -40,9 +51,10 @@ function columnLabel(column: TimelineColumn): string {
 /**
  * Every team's players as a timeline of dots: a column for each trade, as the league stood just after it, spaced by
  * the time between them (see gapFor); each team's players down it single file in their own band (by position,
- * then KTC value) — the bands back to back, every other one shaded — a dot each in its position's color; and
- * between columns, a line from each player to where they are next — faint for one staying put, in their color
- * for one who moved. Scroll it sideways; the column at the focus line
+ * then KTC value) — the bands back to back, every other one shaded — a dot each in its position's color, and its
+ * draft picks under them as rings (by season, then round); and between columns, a line from each player or pick to
+ * where they are next — faint for one staying put, in their color for one who moved, and from a pick that's been
+ * used to the player it became. Scroll it sideways; the column at the focus line
  * (the middle on a phone, three quarters across wider) is picked, and the trade that made it shows under it.
  */
 export function RosterTimeline({
@@ -94,7 +106,7 @@ export function RosterTimeline({
   const placed = useMemo(() => {
     const rank = (id: string) => {
       const p = people.get(id);
-      const at = POSITION_ORDER.indexOf(p?.position ?? "");
+      const at = p?.position === PICK ? POSITION_ORDER.length + 1 : POSITION_ORDER.indexOf(p?.position ?? "");
       return [at < 0 ? POSITION_ORDER.length : at, -(p?.value ?? 0)];
     };
     return columns.map((column) => {
@@ -102,7 +114,7 @@ export function RosterTimeline({
       for (const band of layout.bands) {
         const players = [...(column.rosters.get(band.rosterId) ?? [])].sort((a, b) => {
           const [ra, rb] = [rank(a), rank(b)];
-          return ra[0] - rb[0] || ra[1] - rb[1] || a.localeCompare(b);
+          return ra[0] - rb[0] || ra[1] - rb[1] || a.localeCompare(b, undefined, { numeric: true });
         });
         players.forEach((id, i) => spots.set(id, { y: band.top + (i + 0.5) * layout.pitch, rosterId: band.rosterId }));
       }
@@ -157,13 +169,15 @@ export function RosterTimeline({
         const [a, b] = [placed[i], placed[i + 1]];
         const [x1, x2] = [x(i), x(i + 1)];
         for (const [id, s] of a) {
-          const t = b.get(id);
-          if (!t || (t.rosterId !== s.rosterId) !== moved) continue;
+          // A pick that's gone by the next column runs to the player it became.
+          const became = b.has(id) ? undefined : people.get(id)?.becomes;
+          const t = b.get(id) ?? (became ? b.get(became) : undefined);
+          if (!t || (became != null || t.rosterId !== s.rosterId) !== moved) continue;
           ctx.beginPath();
           ctx.moveTo(x1, s.y);
           ctx.bezierCurveTo((x1 + x2) / 2, s.y, (x1 + x2) / 2, t.y, x2, t.y);
           if (moved) {
-            ctx.strokeStyle = POSITION_DOT[people.get(id)?.position ?? ""] ?? OTHER_DOT;
+            ctx.strokeStyle = colorOf(people.get(became ?? id));
             ctx.lineWidth = 1.1;
           } else {
             ctx.strokeStyle = "rgba(255,255,255,0.08)";
@@ -176,16 +190,14 @@ export function RosterTimeline({
 
     // The dots.
     const sprites = new Map<string, HTMLCanvasElement>();
-    const sprite = (color: string) => {
-      if (!sprites.has(color)) sprites.set(color, dotSprite(color, radius, dpr));
+    const sprite = (p: TimelinePlayer | undefined) => {
+      const color = colorOf(p);
+      if (!sprites.has(color)) sprites.set(color, dotSprite(color, radius, dpr, p?.position === PICK));
       return sprites.get(color)!;
     };
     const size = (Math.ceil(radius * 2 * dpr) + 2) / dpr;
     for (let i = from; i <= to; i++) {
-      for (const [id, s] of placed[i]) {
-        const color = POSITION_DOT[people.get(id)?.position ?? ""] ?? OTHER_DOT;
-        ctx.drawImage(sprite(color), x(i) - size / 2, s.y - size / 2, size, size);
-      }
+      for (const [id, s] of placed[i]) ctx.drawImage(sprite(people.get(id)), x(i) - size / 2, s.y - size / 2, size, size);
     }
 
     // Each column's date over it where there's room, the picked one's always and bright.
@@ -283,7 +295,8 @@ export function RosterTimeline({
     if (!hit?.id) return setHover(null);
     const p = people.get(hit.id);
     const team = layout.bands.find((b) => b.rosterId === placed[hit.i].get(hit.id!)?.rosterId)?.name;
-    setHover({ x: hit.x, y: hit.y, text: `${p?.name ?? hit.id}${p?.position ? ` ${p.position}` : ""}${team ? ` · ${team}` : ""}` });
+    const position = p?.position && p.position !== PICK ? ` ${p.position}` : "";
+    setHover({ x: hit.x, y: hit.y, text: `${p?.name ?? hit.id}${position}${team ? ` · ${team}` : ""}` });
   };
   const onClick = (e: React.MouseEvent) => {
     const hit = at(e as unknown as React.PointerEvent);
@@ -304,7 +317,7 @@ export function RosterTimeline({
         className="relative overflow-x-auto overflow-y-hidden overscroll-x-contain [scrollbar-width:thin]"
         style={{ background: PANEL }}
         role="img"
-        aria-label="Every team's players over time, a column of dots after each trade"
+        aria-label="Every team's players and draft picks over time, a column of dots after each trade"
       >
         <div style={{ width: (view?.width ?? 0) + (xs[xs.length - 1] ?? 0), height: layout.height }}>
           <canvas ref={canvas} className="sticky left-0 block" style={{ width: view?.width ?? 0, height: layout.height }} />

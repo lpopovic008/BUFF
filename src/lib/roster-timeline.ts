@@ -52,3 +52,30 @@ export function rosterTimeline(current: Map<number, string[]>, events: RosterEve
   if (beforeLast?.kind === "trade" && same(last.rosters, beforeLast.rosters)) columns.pop();
   return columns;
 }
+
+/** A draft pick's id among the players: its draft's season, its round, and the team it first belonged to. */
+export const pickId = (season: string | number, round: number, originalRosterId: number) => `pick:${season}-${round}-${originalRosterId}`;
+export const isPick = (id: string) => id.startsWith("pick:");
+
+/**
+ * Plays every move forward to settle who holds each draft pick: a pick leaves whoever really holds it — each drop
+ * of a pick is pointed there, or left out when no one does — and the holdings at the end are today's.
+ */
+export function settlePicks(events: RosterEvent[]): { events: RosterEvent[]; held: Map<number, string[]> } {
+  const holder = new Map<string, number>();
+  const settled = [...events]
+    .sort((a, b) => a.at - b.at)
+    .map((event) => {
+      const drops = event.drops.flatMap(([id, rosterId]): [string, number][] => {
+        if (!isPick(id)) return [[id, rosterId]];
+        const from = holder.get(id);
+        holder.delete(id);
+        return from == null ? [] : [[id, from]];
+      });
+      for (const [id, rosterId] of event.adds) if (isPick(id)) holder.set(id, rosterId);
+      return { ...event, drops };
+    });
+  const held = new Map<number, string[]>();
+  for (const [id, rosterId] of holder) held.set(rosterId, [...(held.get(rosterId) ?? []), id]);
+  return { events: settled, held };
+}

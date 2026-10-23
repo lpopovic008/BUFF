@@ -45,6 +45,8 @@ export interface SleeperLeagueSettings {
   leg?: number;
   /** 0 = redraft, 1 = keeper, 2 = dynasty. */
   type?: number;
+  /** A draft's rounds — the next one's, so a dynasty league's rookie draft's once its startup is done. */
+  draft_rounds?: number;
   [key: string]: unknown;
 }
 

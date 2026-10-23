@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { rosterTimeline } from "./roster-timeline";
+import { pickId, rosterTimeline, settlePicks } from "./roster-timeline";
 
 const sorted = (m: Map<number, string[]>) => Object.fromEntries([...m].map(([id, ps]) => [id, [...ps].sort()]));
 
@@ -42,4 +42,22 @@ test("rosterTimeline leaves out now when nothing's changed since the last trade,
   const trade = { at: 5, tradeId: "t", adds: [["a", 1], ["b", 2]] as [string, number][], drops: [["a", 2], ["b", 1]] as [string, number][] };
   assert.deepEqual(rosterTimeline(current, [trade], 9).map((c) => c.kind), ["start", "trade"]);
   assert.deepEqual(rosterTimeline(current, [], 9).map((c) => c.kind), ["now"]);
+});
+
+test("settlePicks plays picks forward to today's holders, and drops them from whoever really held them", () => {
+  const [p1, p2] = [pickId(2026, 1, 1), pickId(2026, 1, 2)];
+  const { events, held } = settlePicks([
+    // Each team gets its 2026 1st.
+    { at: 0, tradeId: null, adds: [[p1, 1], [p2, 2]], drops: [] },
+    // Team 2 trades its 1st to team 1 — though Sleeper says it came from team 3.
+    { at: 10, tradeId: "t1", adds: [[p2, 1], ["x", 2]], drops: [[p2, 3], ["x", 1]] },
+    // Team 1 uses team 2's pick on r.
+    { at: 20, tradeId: null, adds: [["r", 1]], drops: [[p2, 1]] },
+  ]);
+  assert.deepEqual(events[1].drops, [[p2, 2], ["x", 1]]);
+  assert.deepEqual(sorted(held), { 1: [p1] });
+  // From today back: before the draft team 1 held both 1sts, and before the trade each its own.
+  const columns = rosterTimeline(new Map([[1, ["r", p1]], [2, ["x"]]]), events, 100);
+  assert.deepEqual(sorted(columns[0].rosters), { 1: [p1, "x"], 2: [p2] });
+  assert.deepEqual(sorted(columns[1].rosters), { 1: [p1, p2], 2: ["x"] });
 });
