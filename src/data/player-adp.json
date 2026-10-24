@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-23T17:50:36.912Z",
+  "updatedAt": "2026-10-24T16:32:27.627Z",
   "source": "yafsb",
   "dynastyOneQB": [
     {
@@ -93,7 +93,7 @@
       "adp": 14.6
     },
     {
-      "name": "James Cook",
+      "name": "James Cook III",
       "position": "RB",
       "team": "BUF",
       "adp": 15.5
@@ -135,7 +135,7 @@
       "adp": 22.2
     },
     {
-      "name": "Kenneth Walker",
+      "name": "Kenneth Walker III",
       "position": "RB",
       "team": "KC",
       "adp": 24.1
@@ -291,7 +291,7 @@
       "adp": 46.4
     },
     {
-      "name": "Luther Burden",
+      "name": "Luther Burden III",
       "position": "WR",
       "team": "CHI",
       "adp": 48.6
@@ -327,7 +327,7 @@
       "adp": 53.3
     },
     {
-      "name": "Travis Etienne",
+      "name": "Travis Etienne Jr.",
       "position": "RB",
       "team": "NO",
       "adp": 54.5
@@ -351,7 +351,7 @@
       "adp": 61.1
     },
     {
-      "name": "Marvin Harrison",
+      "name": "Marvin Harrison Jr.",
       "position": "WR",
       "team": "HOU",
       "adp": 61.7
@@ -369,7 +369,7 @@
       "adp": 62.4
     },
     {
-      "name": "Harold Fannin",
+      "name": "Harold Fannin Jr.",
       "position": "TE",
       "team": "CLE",
       "adp": 62.6
@@ -387,7 +387,7 @@
       "adp": 64.7
     },
     {
-      "name": "Brian Thomas",
+      "name": "Brian Thomas Jr.",
       "position": "WR",
       "team": "JAX",
       "adp": 65.9
@@ -399,7 +399,7 @@
       "adp": 66.2
     },
     {
-      "name": "KC Concepcion",
+      "name": "KC Concepcion Jr.",
       "position": "WR",
       "team": "CLE",
       "adp": 67.8
@@ -417,7 +417,7 @@
       "adp": 69.3
     },
     {
-      "name": "Kyle Pitts",
+      "name": "Kyle Pitts Sr.",
       "position": "TE",
       "team": "ATL",
       "adp": 69.5
@@ -603,7 +603,7 @@
       "adp": 101.2
     },
     {
-      "name": "Omar Cooper",
+      "name": "Omar Cooper Jr.",
       "position": "WR",
       "team": "NYJ",
       "adp": 101.2
@@ -669,7 +669,7 @@
       "adp": 107.3
     },
     {
-      "name": "Michael Pittman",
+      "name": "Michael Pittman Jr.",
       "position": "WR",
       "team": "PIT",
       "adp": 111.5
@@ -741,7 +741,7 @@
       "adp": 124
     },
     {
-      "name": "Chris Godwin",
+      "name": "Chris Godwin Jr.",
       "position": "WR",
       "team": "TB",
       "adp": 126
@@ -765,7 +765,7 @@
       "adp": 127.7
     },
     {
-      "name": "Mike Washington",
+      "name": "Mike Washington Jr.",
       "position": "RB",
       "team": "LV",
       "adp": 128.8
@@ -909,13 +909,13 @@
       "adp": 151.9
     },
     {
-      "name": "Tyrone Tracy",
+      "name": "Tyrone Tracy Jr.",
       "position": "RB",
       "team": "NYG",
       "adp": 152.5
     },
     {
-      "name": "Aaron Jones",
+      "name": "Aaron Jones Sr.",
       "position": "RB",
       "team": "MIN",
       "adp": 154.2
@@ -939,7 +939,7 @@
       "adp": 156.1
     },
     {
-      "name": "Deebo Samuel",
+      "name": "Deebo Samuel Sr.",
       "position": "WR",
       "team": "SF",
       "adp": 156.8
@@ -951,7 +951,7 @@
       "adp": 156.9
     },
     {
-      "name": "Chris Rodriguez",
+      "name": "Chris Rodriguez Jr.",
       "position": "RB",
       "team": "JAX",
       "adp": 157.3
@@ -1137,13 +1137,13 @@
       "adp": 188.8
     },
     {
-      "name": "Ted Hurst",
+      "name": "Ted Hurst III",
       "position": "WR",
       "team": "TB",
       "adp": 188.9
     },
     {
-      "name": "Brian Robinson",
+      "name": "Brian Robinson Jr.",
       "position": "RB",
       "team": "ATL",
       "adp": 190.4
@@ -1347,13 +1347,7 @@
       "adp": 219.3
     },
     {
-      "name": "Najee Harris",
-      "position": "RB",
-      "team": "NYG",
-      "adp": 219.3
-    },
-    {
-      "name": "Ollie Gordon",
+      "name": "Ollie Gordon II",
       "position": "RB",
       "team": "MIA",
       "adp": 223.3
@@ -1371,7 +1365,7 @@
       "adp": 225.6
     },
     {
-      "name": "Chris Brazzell",
+      "name": "Chris Brazzell II",
       "position": "WR",
       "team": "CAR",
       "adp": 226.1
@@ -1389,7 +1383,7 @@
       "adp": 227.7
     },
     {
-      "name": "Odell Beckham",
+      "name": "Odell Beckham Jr.",
       "position": "WR",
       "team": "MIN",
       "adp": 228.6
@@ -1539,7 +1533,7 @@
       "adp": 238.6
     },
     {
-      "name": "Michael Penix",
+      "name": "Michael Penix Jr.",
       "position": "QB",
       "team": "ATL",
       "adp": 238.7
@@ -1605,7 +1599,7 @@
       "adp": 243.1
     },
     {
-      "name": "Kevin Coleman",
+      "name": "Kevin Coleman Jr.",
       "position": "WR",
       "team": "MIA",
       "adp": 244.1
@@ -1653,7 +1647,7 @@
       "adp": 246.3
     },
     {
-      "name": "Marvin Mims",
+      "name": "Marvin Mims Jr.",
       "position": "WR",
       "team": "DEN",
       "adp": 246.7
@@ -1725,7 +1719,7 @@
       "adp": 250.7
     },
     {
-      "name": "LeQuint Allen",
+      "name": "LeQuint Allen Jr.",
       "position": "RB",
       "team": "JAX",
       "adp": 250.9
@@ -1773,7 +1767,7 @@
       "adp": 259.6
     },
     {
-      "name": "Dont'e Thornton",
+      "name": "Dont'e Thornton Jr.",
       "position": "WR",
       "team": "LV",
       "adp": 260
@@ -1887,7 +1881,7 @@
       "adp": 274.1
     },
     {
-      "name": "Efton Chism",
+      "name": "Efton Chism III",
       "position": "WR",
       "team": "NE",
       "adp": 277.2
@@ -2045,7 +2039,7 @@
       "adp": 25.7
     },
     {
-      "name": "James Cook",
+      "name": "James Cook III",
       "position": "RB",
       "team": "BUF",
       "adp": 26.6
@@ -2117,7 +2111,7 @@
       "adp": 37.9
     },
     {
-      "name": "Kenneth Walker",
+      "name": "Kenneth Walker III",
       "position": "RB",
       "team": "KC",
       "adp": 37.9
@@ -2201,7 +2195,7 @@
       "adp": 50.6
     },
     {
-      "name": "Luther Burden",
+      "name": "Luther Burden III",
       "position": "WR",
       "team": "CHI",
       "adp": 52
@@ -2261,7 +2255,7 @@
       "adp": 58.3
     },
     {
-      "name": "Harold Fannin",
+      "name": "Harold Fannin Jr.",
       "position": "TE",
       "team": "CLE",
       "adp": 60.8
@@ -2309,13 +2303,13 @@
       "adp": 67.5
     },
     {
-      "name": "Travis Etienne",
+      "name": "Travis Etienne Jr.",
       "position": "RB",
       "team": "NO",
       "adp": 68.3
     },
     {
-      "name": "Marvin Harrison",
+      "name": "Marvin Harrison Jr.",
       "position": "WR",
       "team": "HOU",
       "adp": 69.1
@@ -2339,13 +2333,13 @@
       "adp": 72.2
     },
     {
-      "name": "Kyle Pitts",
+      "name": "Kyle Pitts Sr.",
       "position": "TE",
       "team": "ATL",
       "adp": 73.5
     },
     {
-      "name": "Brian Thomas",
+      "name": "Brian Thomas Jr.",
       "position": "WR",
       "team": "JAX",
       "adp": 74
@@ -2387,7 +2381,7 @@
       "adp": 79.6
     },
     {
-      "name": "KC Concepcion",
+      "name": "KC Concepcion Jr.",
       "position": "WR",
       "team": "CLE",
       "adp": 80
@@ -2621,7 +2615,7 @@
       "adp": 116.9
     },
     {
-      "name": "Omar Cooper",
+      "name": "Omar Cooper Jr.",
       "position": "WR",
       "team": "NYJ",
       "adp": 117.8
@@ -2663,7 +2657,7 @@
       "adp": 124.6
     },
     {
-      "name": "Michael Pittman",
+      "name": "Michael Pittman Jr.",
       "position": "WR",
       "team": "PIT",
       "adp": 125.3
@@ -2729,7 +2723,7 @@
       "adp": 137.2
     },
     {
-      "name": "Chris Godwin",
+      "name": "Chris Godwin Jr.",
       "position": "WR",
       "team": "TB",
       "adp": 137.5
@@ -2753,7 +2747,7 @@
       "adp": 140.2
     },
     {
-      "name": "Mike Washington",
+      "name": "Mike Washington Jr.",
       "position": "RB",
       "team": "LV",
       "adp": 142.9
@@ -2885,13 +2879,13 @@
       "adp": 166.3
     },
     {
-      "name": "Deebo Samuel",
+      "name": "Deebo Samuel Sr.",
       "position": "WR",
       "team": "SF",
       "adp": 166.7
     },
     {
-      "name": "Chris Rodriguez",
+      "name": "Chris Rodriguez Jr.",
       "position": "RB",
       "team": "JAX",
       "adp": 166.9
@@ -2915,7 +2909,7 @@
       "adp": 169.1
     },
     {
-      "name": "Tyrone Tracy",
+      "name": "Tyrone Tracy Jr.",
       "position": "RB",
       "team": "NYG",
       "adp": 169.6
@@ -2969,7 +2963,7 @@
       "adp": 174.8
     },
     {
-      "name": "Aaron Jones",
+      "name": "Aaron Jones Sr.",
       "position": "RB",
       "team": "MIN",
       "adp": 177.4
@@ -2993,7 +2987,7 @@
       "adp": 180.4
     },
     {
-      "name": "Ted Hurst",
+      "name": "Ted Hurst III",
       "position": "WR",
       "team": "TB",
       "adp": 181.3
@@ -3023,7 +3017,7 @@
       "adp": 185.2
     },
     {
-      "name": "Michael Penix",
+      "name": "Michael Penix Jr.",
       "position": "QB",
       "team": "ATL",
       "adp": 186.4
@@ -3131,7 +3125,7 @@
       "adp": 201.8
     },
     {
-      "name": "Brian Robinson",
+      "name": "Brian Robinson Jr.",
       "position": "RB",
       "team": "ATL",
       "adp": 202.8
@@ -3293,7 +3287,7 @@
       "adp": 227.8
     },
     {
-      "name": "Ollie Gordon",
+      "name": "Ollie Gordon II",
       "position": "RB",
       "team": "MIA",
       "adp": 228.7
@@ -3311,7 +3305,7 @@
       "adp": 229.5
     },
     {
-      "name": "Chris Brazzell",
+      "name": "Chris Brazzell II",
       "position": "WR",
       "team": "CAR",
       "adp": 229.5
@@ -3371,12 +3365,6 @@
       "adp": 242.9
     },
     {
-      "name": "Najee Harris",
-      "position": "RB",
-      "team": "NYG",
-      "adp": 243.6
-    },
-    {
       "name": "Bryce Lance",
       "position": "WR",
       "team": "NO",
@@ -3395,7 +3383,7 @@
       "adp": 246.1
     },
     {
-      "name": "Anthony Richardson",
+      "name": "Anthony Richardson Sr.",
       "position": "QB",
       "team": "IND",
       "adp": 247.1
@@ -3443,7 +3431,7 @@
       "adp": 251
     },
     {
-      "name": "Kevin Coleman",
+      "name": "Kevin Coleman Jr.",
       "position": "WR",
       "team": "MIA",
       "adp": 251
@@ -3515,7 +3503,7 @@
       "adp": 258.1
     },
     {
-      "name": "Odell Beckham",
+      "name": "Odell Beckham Jr.",
       "position": "WR",
       "team": "MIN",
       "adp": 258.7
@@ -3635,7 +3623,7 @@
       "adp": 268.2
     },
     {
-      "name": "LeQuint Allen",
+      "name": "LeQuint Allen Jr.",
       "position": "RB",
       "team": "JAX",
       "adp": 268.7
@@ -3745,7 +3733,7 @@
     {
       "name": "Joe Milton",
       "position": "QB",
-      "team": "DAL",
+      "team": "PHI",
       "adp": 278.6
     },
     {
@@ -3797,7 +3785,7 @@
       "adp": 281.2
     },
     {
-      "name": "John Metchie",
+      "name": "John Metchie III",
       "position": "WR",
       "team": "CAR",
       "adp": 282.9
@@ -3839,13 +3827,13 @@
       "adp": 288.7
     },
     {
-      "name": "Dont'e Thornton",
+      "name": "Dont'e Thornton Jr.",
       "position": "WR",
       "team": "LV",
       "adp": 288.8
     },
     {
-      "name": "Marvin Mims",
+      "name": "Marvin Mims Jr.",
       "position": "WR",
       "team": "DEN",
       "adp": 291.2
@@ -3863,7 +3851,7 @@
       "adp": 291.5
     },
     {
-      "name": "Vinny Anthony",
+      "name": "Vinny Anthony II",
       "position": "WR",
       "team": "ATL",
       "adp": 291.8
@@ -3959,7 +3947,7 @@
       "adp": 301.6
     },
     {
-      "name": "Robert Henry",
+      "name": "Robert Henry Jr.",
       "position": "RB",
       "team": "SEA",
       "adp": 301.7
@@ -4001,7 +3989,7 @@
       "adp": 305.8
     },
     {
-      "name": "Erick All",
+      "name": "Erick All Jr.",
       "position": "TE",
       "team": "CIN",
       "adp": 306.5
@@ -4177,7 +4165,7 @@
       "adp": 7.9
     },
     {
-      "name": "James Cook",
+      "name": "James Cook III",
       "position": "RB",
       "team": "BUF",
       "adp": 8.7
@@ -4225,7 +4213,7 @@
       "adp": 17.4
     },
     {
-      "name": "Kenneth Walker",
+      "name": "Kenneth Walker III",
       "position": "RB",
       "team": "KC",
       "adp": 17.4
@@ -4345,7 +4333,7 @@
       "adp": 39
     },
     {
-      "name": "Travis Etienne",
+      "name": "Travis Etienne Jr.",
       "position": "RB",
       "team": "NO",
       "adp": 39.5
@@ -4441,7 +4429,7 @@
       "adp": 54
     },
     {
-      "name": "Luther Burden",
+      "name": "Luther Burden III",
       "position": "WR",
       "team": "CHI",
       "adp": 55.3
@@ -4549,19 +4537,19 @@
       "adp": 71
     },
     {
-      "name": "Kyle Pitts",
+      "name": "Kyle Pitts Sr.",
       "position": "TE",
       "team": "ATL",
       "adp": 71.8
     },
     {
-      "name": "Brian Thomas",
+      "name": "Brian Thomas Jr.",
       "position": "WR",
       "team": "JAX",
       "adp": 74.3
     },
     {
-      "name": "Marvin Harrison",
+      "name": "Marvin Harrison Jr.",
       "position": "WR",
       "team": "HOU",
       "adp": 74.8
@@ -4573,7 +4561,7 @@
       "adp": 76.5
     },
     {
-      "name": "Harold Fannin",
+      "name": "Harold Fannin Jr.",
       "position": "TE",
       "team": "CLE",
       "adp": 77.2
@@ -4645,7 +4633,7 @@
       "adp": 86.6
     },
     {
-      "name": "Chris Godwin",
+      "name": "Chris Godwin Jr.",
       "position": "WR",
       "team": "TB",
       "adp": 87.6
@@ -4735,7 +4723,7 @@
       "adp": 101.9
     },
     {
-      "name": "Michael Pittman",
+      "name": "Michael Pittman Jr.",
       "position": "WR",
       "team": "PIT",
       "adp": 102.9
@@ -4807,7 +4795,7 @@
       "adp": 110.9
     },
     {
-      "name": "KC Concepcion",
+      "name": "KC Concepcion Jr.",
       "position": "WR",
       "team": "CLE",
       "adp": 112.3
@@ -4819,7 +4807,7 @@
       "adp": 119.1
     },
     {
-      "name": "Aaron Jones",
+      "name": "Aaron Jones Sr.",
       "position": "RB",
       "team": "MIN",
       "adp": 119.2
@@ -4867,7 +4855,7 @@
       "adp": 125
     },
     {
-      "name": "Deebo Samuel",
+      "name": "Deebo Samuel Sr.",
       "position": "WR",
       "team": "SF",
       "adp": 126.2
@@ -4909,7 +4897,7 @@
       "adp": 128.6
     },
     {
-      "name": "Mike Washington",
+      "name": "Mike Washington Jr.",
       "position": "RB",
       "team": "LV",
       "adp": 129.1
@@ -4927,7 +4915,7 @@
       "adp": 132.2
     },
     {
-      "name": "Chris Rodriguez",
+      "name": "Chris Rodriguez Jr.",
       "position": "RB",
       "team": "JAX",
       "adp": 132.8
@@ -5119,7 +5107,7 @@
       "adp": 159.7
     },
     {
-      "name": "Brian Robinson",
+      "name": "Brian Robinson Jr.",
       "position": "RB",
       "team": "ATL",
       "adp": 159.9
@@ -5209,7 +5197,7 @@
       "adp": 163.2
     },
     {
-      "name": "Tyrone Tracy",
+      "name": "Tyrone Tracy Jr.",
       "position": "RB",
       "team": "NYG",
       "adp": 163.4
@@ -5287,7 +5275,7 @@
       "adp": 168
     },
     {
-      "name": "Omar Cooper",
+      "name": "Omar Cooper Jr.",
       "position": "WR",
       "team": "NYJ",
       "adp": 168.1
@@ -5345,12 +5333,6 @@
       "position": "WR",
       "team": "MIA",
       "adp": 170.3
-    },
-    {
-      "name": "Najee Harris",
-      "position": "RB",
-      "team": "NYG",
-      "adp": 170.7
     },
     {
       "name": "Will Reichard",
@@ -5565,7 +5547,7 @@
       "adp": 10.3
     },
     {
-      "name": "James Cook",
+      "name": "James Cook III",
       "position": "RB",
       "team": "BUF",
       "adp": 12.4
@@ -5613,7 +5595,7 @@
       "adp": 22.7
     },
     {
-      "name": "Kenneth Walker",
+      "name": "Kenneth Walker III",
       "position": "RB",
       "team": "KC",
       "adp": 23.1
@@ -5811,7 +5793,7 @@
       "adp": 51.7
     },
     {
-      "name": "Travis Etienne",
+      "name": "Travis Etienne Jr.",
       "position": "RB",
       "team": "NO",
       "adp": 53.2
@@ -5901,7 +5883,7 @@
       "adp": 67.5
     },
     {
-      "name": "Luther Burden",
+      "name": "Luther Burden III",
       "position": "WR",
       "team": "CHI",
       "adp": 69.7
@@ -5997,7 +5979,7 @@
       "adp": 83.5
     },
     {
-      "name": "Harold Fannin",
+      "name": "Harold Fannin Jr.",
       "position": "TE",
       "team": "CLE",
       "adp": 83.6
@@ -6009,7 +5991,7 @@
       "adp": 85.3
     },
     {
-      "name": "Kyle Pitts",
+      "name": "Kyle Pitts Sr.",
       "position": "TE",
       "team": "ATL",
       "adp": 85.5
@@ -6033,13 +6015,13 @@
       "adp": 89
     },
     {
-      "name": "Marvin Harrison",
+      "name": "Marvin Harrison Jr.",
       "position": "WR",
       "team": "HOU",
       "adp": 89.8
     },
     {
-      "name": "Brian Thomas",
+      "name": "Brian Thomas Jr.",
       "position": "WR",
       "team": "JAX",
       "adp": 91.6
@@ -6105,7 +6087,7 @@
       "adp": 101.2
     },
     {
-      "name": "Chris Godwin",
+      "name": "Chris Godwin Jr.",
       "position": "WR",
       "team": "TB",
       "adp": 101.7
@@ -6219,7 +6201,7 @@
       "adp": 120.8
     },
     {
-      "name": "Michael Pittman",
+      "name": "Michael Pittman Jr.",
       "position": "WR",
       "team": "PIT",
       "adp": 120.9
@@ -6273,7 +6255,7 @@
       "adp": 125.6
     },
     {
-      "name": "KC Concepcion",
+      "name": "KC Concepcion Jr.",
       "position": "WR",
       "team": "CLE",
       "adp": 126.5
@@ -6315,7 +6297,7 @@
       "adp": 135.3
     },
     {
-      "name": "Aaron Jones",
+      "name": "Aaron Jones Sr.",
       "position": "RB",
       "team": "MIN",
       "adp": 137.4
@@ -6351,7 +6333,7 @@
       "adp": 141.2
     },
     {
-      "name": "Deebo Samuel",
+      "name": "Deebo Samuel Sr.",
       "position": "WR",
       "team": "SF",
       "adp": 141.6
@@ -6381,7 +6363,7 @@
       "adp": 143.7
     },
     {
-      "name": "Mike Washington",
+      "name": "Mike Washington Jr.",
       "position": "RB",
       "team": "LV",
       "adp": 144.7
@@ -6405,7 +6387,7 @@
       "adp": 147.9
     },
     {
-      "name": "Chris Rodriguez",
+      "name": "Chris Rodriguez Jr.",
       "position": "RB",
       "team": "JAX",
       "adp": 149.2
@@ -6543,7 +6525,7 @@
       "adp": 167.5
     },
     {
-      "name": "Brian Robinson",
+      "name": "Brian Robinson Jr.",
       "position": "RB",
       "team": "ATL",
       "adp": 167.6
@@ -6645,13 +6627,13 @@
       "adp": 174.6
     },
     {
-      "name": "Tyrone Tracy",
+      "name": "Tyrone Tracy Jr.",
       "position": "RB",
       "team": "NYG",
       "adp": 174.7
     },
     {
-      "name": "Michael Penix",
+      "name": "Michael Penix Jr.",
       "position": "QB",
       "team": "ATL",
       "adp": 175
@@ -6771,7 +6753,7 @@
       "adp": 181.9
     },
     {
-      "name": "Omar Cooper",
+      "name": "Omar Cooper Jr.",
       "position": "WR",
       "team": "NYJ",
       "adp": 182.1
@@ -6811,12 +6793,6 @@
       "position": "WR",
       "team": "PHI",
       "adp": 184.2
-    },
-    {
-      "name": "Najee Harris",
-      "position": "RB",
-      "team": "NYG",
-      "adp": 184.3
     },
     {
       "name": "Dylan Sampson",
@@ -7041,7 +7017,7 @@
       "adp": 202.4
     },
     {
-      "name": "Ted Hurst",
+      "name": "Ted Hurst III",
       "position": "WR",
       "team": "TB",
       "adp": 202.6
@@ -7083,7 +7059,7 @@
       "adp": 214
     },
     {
-      "name": "Odell Beckham",
+      "name": "Odell Beckham Jr.",
       "position": "WR",
       "team": "MIN",
       "adp": 218.2
