@@ -320,6 +320,8 @@ function LeagueDetailContent() {
             lineNotes={lineNotes}
             dynasty={carousel.dynasty}
             positions={carousel.positions}
+            season={season}
+            scoring={scoring}
           />
         </div>
       ) : carousel ? (

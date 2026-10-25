@@ -13,6 +13,13 @@ interface PlayerRecord {
   position?: string;
   team?: string | null;
   active?: boolean;
+  age?: number | null;
+  years_exp?: number | null;
+  college?: string | null;
+  number?: number | string | null;
+  /** Inches, as a string ("74"). */
+  height?: string | null;
+  weight?: string | null;
 }
 
 let cache: Record<string, PlayerRecord> | null = null;
@@ -33,6 +40,30 @@ async function loadPlayers(): Promise<Record<string, PlayerRecord> | null> {
       });
   }
   return inflight;
+}
+
+/** Who a player is beyond his name: age, years in the league, college, jersey number, height (inches) and weight. */
+export interface PlayerBio {
+  age: number | null;
+  yearsExp: number | null;
+  college: string | null;
+  number: string | null;
+  height: number | null;
+  weight: number | null;
+}
+
+export async function getPlayerBio(playerId: string): Promise<PlayerBio | null> {
+  const record = (await loadPlayers())?.[playerId];
+  if (!record) return null;
+  const num = (v: unknown) => (v == null || v === "" || Number.isNaN(Number(v)) ? null : Number(v));
+  return {
+    age: num(record.age),
+    yearsExp: num(record.years_exp),
+    college: record.college || null,
+    number: record.number == null || record.number === "" ? null : String(record.number),
+    height: num(record.height),
+    weight: num(record.weight),
+  };
 }
 
 /** Resolves player ids to display names, e.g. "Bijan Robinson (RB)". Falls back to the raw id. */

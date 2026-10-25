@@ -10,6 +10,8 @@ import { MatchupRows } from "@/components/LeagueTicker";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { abbreviateFirstName, formatPoints } from "@/lib/format";
 import { getHomeView, saveHomeView } from "@/lib/localStore";
+import { ResolvedPlayer } from "@/lib/players";
+import { PlayerCareer } from "@/components/PlayerCareer";
 
 /**
  * How a starter's points read, by player id: "pre" before they've played (a dash), "good" on pace for
@@ -33,6 +35,20 @@ export interface LineNote {
 }
 const EMPTY_NOTES = new Map<string, LineNote>();
 const LineNoteContext = createContext<Map<string, LineNote>>(EMPTY_NOTES);
+
+/** Opens a player's career card (see PlayerCareer) — null where there's none to open. */
+const PlayerCardContext = createContext<((player: ResolvedPlayer) => void) | null>(null);
+
+/** A player's photo or name, opening his career card when tapped. */
+function OpensCareer({ player, className = "", children }: { player: ResolvedPlayer; className?: string; children: React.ReactNode }) {
+  const open = useContext(PlayerCardContext);
+  if (!open) return <>{children}</>;
+  return (
+    <button type="button" onClick={() => open(player)} title={`${player.name}'s career`} className={`cursor-pointer text-inherit ${className}`}>
+      {children}
+    </button>
+  );
+}
 
 // A defense's colors, toughest to easiest.
 const MATCHUP_STOPS = ["var(--status-critical)", "var(--status-warning)", "var(--status-good)"];
@@ -174,9 +190,9 @@ function RankedName({ resolved, align }: { resolved: ResolvedSlot; align: "left"
   ];
   return (
     <span className={`flex min-w-0 flex-col ${align === "right" ? "items-end" : "items-start"}`}>
-      <span className={`max-w-full truncate ${ROW_TEXT} font-bold leading-tight text-ink-primary`}>
+      <OpensCareer player={player!} className={`block max-w-full truncate ${ROW_TEXT} font-bold leading-tight text-ink-primary hover:underline ${align === "right" ? "text-right" : "text-left"}`}>
         <PlayerName name={player!.name} />
-      </span>
+      </OpensCareer>
       {/* Kept a line tall even with nothing on it. */}
       <span className={`flex min-h-[1em] max-w-full gap-1 overflow-hidden whitespace-nowrap font-semibold tabular-nums ${NOTE_TEXT}`}>
         {align === "right" ? pieces.reverse() : pieces}
@@ -197,7 +213,9 @@ function MySlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
   }
   return (
     <div className={`grid ${MY_ROW_COLS} items-center gap-0.5 sm:gap-1`}>
-      <SlotPhoto playerId={resolved.player.playerId} />
+      <OpensCareer player={resolved.player}>
+        <SlotPhoto playerId={resolved.player.playerId} />
+      </OpensCareer>
       <RankedName resolved={resolved} align="left" />
       <SlotPoints resolved={resolved} align="right" />
     </div>
@@ -218,7 +236,9 @@ function TheirSlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
     <div className={`grid ${THEIR_ROW_COLS} items-center gap-0.5 sm:gap-1`}>
       <SlotPoints resolved={resolved} align="left" />
       <RankedName resolved={resolved} align="right" />
-      <SlotPhoto playerId={resolved.player.playerId} />
+      <OpensCareer player={resolved.player}>
+        <SlotPhoto playerId={resolved.player.playerId} />
+      </OpensCareer>
     </div>
   );
 }
@@ -660,6 +680,8 @@ export function LeagueMatchupCarousel({
   lineNotes,
   dynasty = false,
   positions = NO_POSITIONS,
+  season = null,
+  scoring,
 }: {
   leagueId: string;
   games: ResolvedMatchupGame[];
@@ -682,7 +704,12 @@ export function LeagueMatchupCarousel({
   dynasty?: boolean;
   /** Every position the league's lineups can start (see PositionsContext). */
   positions?: string[];
+  /** The league's season and scoring, for a player's career card (see PlayerCareer) — none opens without a season. */
+  season?: string | null;
+  scoring?: Record<string, number>;
 }) {
+  // The player whose career card is open.
+  const [card, setCard] = useState<ResolvedPlayer | null>(null);
   // The matchup shown large beside the list (tablet and up): yours until another is picked.
   const [pickedId, setPickedId] = useState<number | null>(null);
   const allTimeOfficial = useAllTimeHeadToHead(leagueId);
@@ -703,6 +730,8 @@ export function LeagueMatchupCarousel({
     <LineNoteContext.Provider value={lineNotes ?? EMPTY_NOTES}>
     <DynastyContext.Provider value={dynasty}>
     <PositionsContext.Provider value={positions}>
+    <PlayerCardContext.Provider value={season ? setCard : null}>
+      {card && season ? <PlayerCareer player={card} season={Number(season)} scoring={scoring} onClose={() => setCard(null)} /> : null}
       {/* Phones: every matchup's header stacked; tap one for its lineup. */}
       <div className="md:hidden">
         <MatchupStack
@@ -754,6 +783,7 @@ export function LeagueMatchupCarousel({
         </ul>
         </div>
       </div>
+    </PlayerCardContext.Provider>
     </PositionsContext.Provider>
     </DynastyContext.Provider>
     </LineNoteContext.Provider>
