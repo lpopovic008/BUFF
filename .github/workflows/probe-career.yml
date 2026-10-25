@@ -1,0 +1,15 @@
+name: probe-career
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          for q in "season=2024&grouping=season" "season=2024&grouping=week" "season=2024" "grouping=season"; do
+            echo "== $q"
+            curl -s "https://api.sleeper.app/stats/nfl/player/4046?season_type=regular&$q" | head -c 1500; echo
+          done
+          echo "== players entry"
+          curl -s https://api.sleeper.app/v1/players/nfl | jq -c '.["4046"] | {years_exp, rookie_year, birth_date, college, metadata, status, team, height, weight, age, number, depth_chart_position}'
+          echo "== DEF"
+          curl -s "https://api.sleeper.app/stats/nfl/player/KC?season_type=regular&season=2024&grouping=season" | head -c 600; echo
