@@ -1,0 +1,14 @@
+name: probe-career
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          u="https://api.sleeper.app/stats/nfl/player"
+          echo "== keys 2024"; curl -s "$u/4046?season_type=regular&season=2024&grouping=season" | jq -c 'del(.stats) | del(.player.metadata)'
+          echo "== 2016 (before rookie)"; curl -s "$u/4046?season_type=regular&season=2016&grouping=season" | head -c 300; echo
+          echo "== 2026 current"; curl -s "$u/4046?season_type=regular&season=2026&grouping=season" | jq -c '{team, stats: (.stats | {gp, pts_ppr, pos_rank_ppr})}'
+          echo "== traded WR 2022 Davante (2133)"; curl -s "$u/2133?season_type=regular&season=2022&grouping=season" | jq -c '{team, s: (.stats | {gp, rec, rec_tgt, rec_yd})}'
+          echo "== K 2024 (Butker 4195)"; curl -s "$u/4195?season_type=regular&season=2024&grouping=season" | jq -c '.stats | with_entries(select(.key | test("^(fg|xp)")))'
+          echo "== DEF keys"; curl -s "$u/KC?season_type=regular&season=2024&grouping=season" | jq -c '.stats | {sack, int, fum_rec, def_td, pts_allow, gp, pts_ppr, pos_rank_ppr}'
