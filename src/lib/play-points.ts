@@ -165,6 +165,9 @@ export function statsForPlay(play: GamePlay, player: FeedCandidate): PlayStats {
     bonusStats(stats, "rush", yards, offenseTd, firstDown(play, yards, offenseTd));
   }
 
+  // Sacked: the passer, dropped before he threw.
+  if (new RegExp(`^${name} sacked`).test(main.trim())) add(stats, "pass_sack");
+
   // Losing the ball: whoever ESPN names fumbling, or else whoever had it — the
   // receiver on a catch, otherwise the runner or the sacked passer.
   if (play.turnover && /FUMBLES/.test(main)) {

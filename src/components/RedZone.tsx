@@ -13,7 +13,8 @@ import { GameStarters, GroupedStarter } from "@/lib/my-starters";
 import { gameClock, NFLGame } from "@/lib/nfl-schedule";
 import { formatPlayPoints } from "@/lib/play-points";
 import { yardLineLabel } from "@/lib/play-by-play";
-import { PlayLine, statLine } from "@/lib/play-lines";
+import { playAction, PlayLine, statLine } from "@/lib/play-lines";
+import { useFullPlays } from "@/hooks/useFullPlays";
 import { nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 
@@ -104,8 +105,11 @@ function PlayerLine({
   starter,
   legendByLeagueId,
   at,
+  action,
 }: {
   line: PlayLine;
+  /** What he did on the play, said beside his name (simple descriptions) — none in full. */
+  action?: string;
   /** Set when they're one of your starters. */
   starter: GroupedStarter | undefined;
   legendByLeagueId: Map<string, LeagueLegendEntry>;
@@ -134,6 +138,7 @@ function PlayerLine({
         <span data-rz-name className="min-w-0 break-words text-[0.8125rem] font-bold text-ink-primary max-md:leading-tight">
           {line.name}
         </span>
+        {action ? <span className="text-[0.75rem] font-semibold text-ink-secondary">{action}</span> : null}
         {starter && starter.leagueIds.length > 0 ? (
           <span className="flex shrink-0 items-center gap-0.5 self-center">
             {starter.leagueIds.map((id) => (
@@ -265,6 +270,12 @@ const FeedRow = memo(function FeedRow({ entry, starterById, legendByLeagueId, ar
   const [slot] = useState(index);
   const { play, players, lines, game } = entry;
   const hasPoints = lines.some((l) => !!l.delta);
+  // Simple descriptions (unless switched to full): each player's line says what he did, and ESPN's description is
+  // left out — kept when no one's line can say anything (a penalty, a punt).
+  const full = useFullPlays();
+  const acted = full ? [] : lines.filter((l) => playAction(l.did));
+  const simple = acted.length > 0;
+  const shown = simple ? lines.filter((l) => playAction(l.did) || l.delta) : hasPoints ? lines : [];
   const good = play.scoring || (play.turnover && players.length > 0 && players.every((p) => p.position === "DEF"));
   const time = clockTime(play.at);
   const defense = play.offense ? ([game.homeTeam, game.awayTeam].find((t) => t !== play.offense) ?? null) : null;
@@ -323,29 +334,33 @@ const FeedRow = memo(function FeedRow({ entry, starterById, legendByLeagueId, ar
           <span>{whenLabel(entry)}</span>
         </span>
       </span>
-      {/* The people in it, only when the play put points on the board for someone — a play worth nothing is just its line and description. */}
-      {hasPoints ? (
+      {/* The people in it: with simple descriptions, whoever did something; in full, everyone when the play put points
+          on the board for someone, and no one otherwise — a play worth nothing being its line and description. */}
+      {shown.length > 0 ? (
         <ul className="flex flex-col gap-0.5">
-          {lines.map((line) => (
+          {shown.map((line) => (
             <PlayerLine
               key={line.key}
               line={line}
               starter={line.playerId ? starterById.get(line.playerId) : undefined}
               legendByLeagueId={legendByLeagueId}
               at={play.at ?? 0}
+              action={simple ? playAction(line.did) : undefined}
             />
           ))}
         </ul>
       ) : null}
       {/* What happened, led by the team with the ball. */}
-      <span className="break-words text-[0.75rem] leading-snug text-ink-secondary">
-        {play.offense ? (
-          <span className="mr-1.5 inline-flex translate-y-[0.15em] align-baseline">
-            <TeamLogo team={play.offense} side={14} />
-          </span>
-        ) : null}
-        {play.text}
-      </span>
+      {simple ? null : (
+        <span className="break-words text-[0.75rem] leading-snug text-ink-secondary">
+          {play.offense ? (
+            <span className="mr-1.5 inline-flex translate-y-[0.15em] align-baseline">
+              <TeamLogo team={play.offense} side={14} />
+            </span>
+          ) : null}
+          {play.text}
+        </span>
+      )}
     </li>
   );
 }, sameRow);

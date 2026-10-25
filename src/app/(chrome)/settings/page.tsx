@@ -13,6 +13,7 @@ import { ExternalLeaguesSection } from "./ExternalLeaguesSection";
 import { GoogleDocsSection } from "./GoogleDocsSection";
 import { AccountSection } from "./AccountSection";
 import { AppearanceSection } from "./AppearanceSection";
+import { RedZoneSection } from "./RedZoneSection";
 import { ScoresSection } from "./ScoresSection";
 import { TitleWithHistory } from "@/components/HistoryButtons";
 import { PlateCard } from "@/components/ui/PlateCard";
@@ -172,6 +173,10 @@ export default function SettingsPage() {
 
           <Section title="Scores">
             <ScoresSection />
+          </Section>
+
+          <Section title="Red Zone">
+            <RedZoneSection />
           </Section>
 
           <Section title="Google Docs">

@@ -31,6 +31,8 @@ export interface PlayLine {
   total: number | null;
   /** Their game's stats through this play (null alongside a null delta) — a defense's with the points it had allowed by then. */
   stats: PlayStats | null;
+  /** What they did on this play alone (null alongside a null delta) — see playAction. */
+  did: PlayStats | null;
 }
 
 const SUFFIXES = new Set(["jr", "jr.", "sr", "sr.", "ii", "iii", "iv", "v"]);
@@ -119,6 +121,7 @@ export function linesForPlays(
         delta: playStats ? pprPoints(playStats) : null,
         total: stats ? pprPoints(stats) : null,
         stats,
+        did: playStats,
       });
     }
     if (defense) {
@@ -137,6 +140,7 @@ export function linesForPlays(
           delta,
           total: pprPoints(stats),
           stats: allowed === undefined ? stats : { ...stats, pts_allow: allowed },
+          did: playStats,
         });
       }
     }
@@ -146,6 +150,33 @@ export function linesForPlays(
 }
 
 const n = (stats: Record<string, number>, key: string) => Math.round(stats[key] ?? 0);
+
+/**
+ * What someone did on one play, in a few words — "-1 yard rush", "28 yard TD catch", "incomplete pass",
+ * "45 yard FG", a defense's "sack" — for the Red Zone's simple descriptions. Empty when they did nothing to count.
+ */
+export function playAction(did: Record<string, number> | null): string {
+  if (!did) return "";
+  const yards = (key: string, what: string, td: string) => `${n(did, key)} yard ${n(did, td) > 0 ? "TD " : ""}${what}`;
+  return [
+    n(did, "pass_att") > 0 ? (n(did, "pass_int") > 0 ? "interception thrown" : n(did, "pass_cmp") > 0 ? yards("pass_yd", "pass", "pass_td") : "incomplete pass") : "",
+    n(did, "pass_sack") > 0 ? "sacked" : "",
+    n(did, "rush_att") > 0 ? yards("rush_yd", "rush", "rush_td") : "",
+    n(did, "rec") > 0 ? yards("rec_yd", "catch", "rec_td") : n(did, "rec_tgt") > 0 ? "incomplete target" : "",
+    n(did, "fum_lost") > 0 ? "fumble lost" : "",
+    n(did, "pass_2pt") + n(did, "rush_2pt") + n(did, "rec_2pt") > 0 ? "2-pt conversion" : "",
+    n(did, "fga") > 0 ? (n(did, "fgm") > 0 ? `${n(did, "fgm_yds")} yard FG` : "missed FG") : "",
+    n(did, "xpa") > 0 ? (n(did, "xpm") > 0 ? "extra point" : "missed extra point") : "",
+    n(did, "sack") > 0 ? "sack" : "",
+    n(did, "int") > 0 ? "interception" : "",
+    n(did, "fum_rec") > 0 ? "fumble recovery" : "",
+    n(did, "def_td") > 0 ? "TD" : "",
+    n(did, "safe") > 0 ? "safety" : "",
+    n(did, "blk_kick") > 0 ? "blocked kick" : "",
+  ]
+    .filter(Boolean)
+    .join(", ");
+}
 
 /**
  * A player's game in a few words: "18/26 214 YDS 2 TD" for a passer,

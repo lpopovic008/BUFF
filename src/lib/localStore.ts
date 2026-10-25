@@ -65,6 +65,11 @@ export interface AppConfig {
    * table — rather than waiting for Sleeper to make it official.
    */
   asItStands?: boolean;
+  /**
+   * The Red Zone's plays in full: ESPN's whole description under each. Off (the default), each player's line says
+   * what he did instead ("-1 yard rush") and the description's left out.
+   */
+  fullPlays?: boolean;
 }
 
 const DEFAULT_CONFIG: AppConfig = {
@@ -146,6 +151,13 @@ export function removeExternalLeague(id: string): AppConfig {
 /** Turns "as it stands" on or off (see AppConfig.asItStands). */
 export function setAsItStands(on: boolean): AppConfig {
   const config = { ...getConfig(), asItStands: on };
+  saveConfig(config);
+  return config;
+}
+
+/** The Red Zone's plays in full or simple (see AppConfig.fullPlays). */
+export function setFullPlays(on: boolean): AppConfig {
+  const config = { ...getConfig(), fullPlays: on };
   saveConfig(config);
   return config;
 }

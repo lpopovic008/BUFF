@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { GamePlay } from "./play-by-play";
-import { findPlayer, labelNames, LinePlayer, linesForPlays, statLine } from "./play-lines";
+import { findPlayer, labelNames, LinePlayer, linesForPlays, playAction, statLine } from "./play-lines";
 
 function play(over: Partial<GamePlay>): GamePlay {
   return {
@@ -170,4 +170,32 @@ test("a defense's stat line counts its takeaways and the points allowed so far",
   // A play without a score keeps the last one known.
   assert.equal(statLine("DEF", def("b").stats!), "1 SCK · 1 INT · 3 PA");
   assert.equal(def("b").total, 3);
+});
+
+test("playAction says what someone did on the play", () => {
+  const plays = [
+    play({ id: "a", sequence: 1, type: "Rush", text: "J.Allen kneels to MIA 26 for -1 yards." }),
+    play({ id: "b", sequence: 2, type: "Pass Incompletion", text: "J.Allen pass incomplete deep right to D.Kincaid." }),
+    play({ id: "c", sequence: 3, type: "Sack", text: "J.Allen sacked at BUF 30 for -7 yards (Z.Sieler)." }),
+    play({
+      id: "d",
+      sequence: 4,
+      type: "Passing Touchdown",
+      scoring: true,
+      text: "J.Allen pass deep middle to D.Kincaid for 28 yards, TOUCHDOWN. T.Bass extra point is GOOD.",
+      score: { home: 7, away: 0 },
+    }),
+  ];
+  const lines = linesForPlays(plays, ["BUF", "MIA"], pool);
+  const did = (id: string, name: string) => playAction(lines.get(id)!.find((l) => l.name === name)!.did);
+  assert.equal(did("a", "Josh Allen"), "-1 yard rush");
+  assert.equal(did("b", "Josh Allen"), "incomplete pass");
+  assert.equal(did("b", "Dalton Kincaid"), "incomplete target");
+  assert.equal(did("c", "Josh Allen"), "sacked");
+  assert.equal(did("d", "Josh Allen"), "28 yard TD pass");
+  assert.equal(did("d", "Dalton Kincaid"), "28 yard TD catch");
+  assert.equal(did("d", "Tyler Bass"), "extra point");
+  assert.equal(playAction(null), "");
+  assert.equal(playAction({ fga: 1, fgm: 1, fgm_yds: 45 }), "45 yard FG");
+  assert.equal(playAction({ sack: 1 }), "sack");
 });
