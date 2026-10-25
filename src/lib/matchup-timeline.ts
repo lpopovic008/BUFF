@@ -23,6 +23,19 @@ export function gameWindows(games: Span[]): Span[] {
   return out;
 }
 
+/** How long Sleeper gets to count a play before its total disagreeing with the plays' is taken as real. */
+export const SLEEPER_LAG_MS = 10 * 60_000;
+
+/**
+ * Whether a player's Sleeper total really disagrees with their plays — not just Sleeper yet to count the latest:
+ * it's none of the totals their plays have run through since the last one Sleeper's had time to count.
+ */
+export function sleeperDiffers(steps: PointsStep[], sleeper: number, now: number): boolean {
+  const counted = steps.filter((s) => s.at <= now - SLEEPER_LAG_MS);
+  const totals = [counted[counted.length - 1]?.total ?? 0, ...steps.filter((s) => s.at > now - SLEEPER_LAG_MS).map((s) => s.total)];
+  return !totals.some((t) => Math.abs(t - sleeper) < 0.05);
+}
+
 /** One starter's part in their team's line. */
 export interface StarterTimeline {
   playerId: string;

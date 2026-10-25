@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { gameWindows, leadPieces, liveProjection, teamPace, teamTimeline } from "./matchup-timeline";
+import { gameWindows, leadPieces, liveProjection, SLEEPER_LAG_MS, sleeperDiffers, teamPace, teamTimeline } from "./matchup-timeline";
 
 test("gameWindows merges overlapping games into the week's windows", () => {
   assert.deepEqual(
@@ -67,4 +67,22 @@ test("liveProjection counts projections until a starter's game is over, then the
     ]),
     40.9
   );
+});
+
+test("sleeperDiffers waits for Sleeper to count the latest plays before calling its total different", () => {
+  const MIN = 60_000;
+  const at = (minute: number, total: number) => ({ playId: String(minute), at: minute * MIN, period: 1, clock: "", text: "", delta: 0, total });
+  // 6 points at minute 0, 2.5 more (8.5) at minute 30.
+  const steps = [at(0, 6), at(30, 8.5)];
+  const now = 30 * MIN + SLEEPER_LAG_MS / 2;
+  // Sleeper still at 6, or already at 8.5: just catching up.
+  assert.equal(sleeperDiffers(steps, 6, now), false);
+  assert.equal(sleeperDiffers(steps, 8.5, now), false);
+  // Neither: different for real.
+  assert.equal(sleeperDiffers(steps, 7, now), true);
+  // Still at 6 well after the second play: different for real.
+  assert.equal(sleeperDiffers(steps, 6, 30 * MIN + SLEEPER_LAG_MS), true);
+  // No plays: anything but 0 is.
+  assert.equal(sleeperDiffers([], 0, now), false);
+  assert.equal(sleeperDiffers([], 1, now), true);
 });

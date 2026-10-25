@@ -5,7 +5,7 @@ import { GameStarters, GroupedStarter } from "@/lib/my-starters";
 import { NFLGame } from "@/lib/nfl-schedule";
 import { cleanPlayText } from "@/lib/play-by-play";
 import { pointsTimeline } from "@/lib/live-play-points";
-import { gameWindows, leadPieces, Span, StarterPace, StarterTimeline, teamPace, teamTimeline, TeamStep } from "@/lib/matchup-timeline";
+import { gameWindows, leadPieces, sleeperDiffers, Span, StarterPace, StarterTimeline, teamPace, teamTimeline, TeamStep } from "@/lib/matchup-timeline";
 import { useGamePlays, withScoreboardPlay } from "@/hooks/useRedZoneFeed";
 import { kickoffBlockLabel } from "@/lib/game-map";
 import { clock, GAME_MS, niceStep, quarterName, useLiveNow, useSize } from "./PointsGraph";
@@ -96,7 +96,9 @@ export function MatchupGraph({
   }, [sides, gameOf]);
   const playsByGame = useGamePlays(followed);
   const live = weekGames.some((g) => g.state === "in");
-  const now = useLiveNow(live);
+  // The clock, ticking once a game's begun — though lines only run to now while one's on.
+  const clockNow = useLiveNow(weekGames.some((g) => g.state !== "pre"));
+  const now = live ? clockNow : null;
 
   // Each team's line, its pace, and the windows the week's games take up.
   const model = useMemo(() => {
@@ -125,12 +127,14 @@ export function MatchupGraph({
         const rest = Math.round((s.points - fromPlays) * 100) / 100;
         // What Sleeper has that no play accounts for comes in at the end of their game (or now, while it's on).
         const restAt = game.state === "post" ? span.to : Math.max(lastPlayAt, Math.min(now ?? lastPlayAt, span.to));
-        timelines.push({ playerId: s.playerId, name: s.name, steps, makeUp: Math.abs(rest) >= 0.05 ? { at: restAt, delta: rest } : null });
+        // Only once Sleeper's had time to count their plays and still disagrees (see sleeperDiffers).
+        const differs = Math.abs(rest) >= 0.05 && sleeperDiffers(steps, s.points, clockNow ?? 0);
+        timelines.push({ playerId: s.playerId, name: s.name, steps, makeUp: differs ? { at: restAt, delta: rest } : null });
       }
       return { steps: teamTimeline(timelines), paces };
     });
     return { lines, windows: gameWindows(spans), blockStarts: [...blockStarts.values()] };
-  }, [sides, gameOf, playsByGame, now, scoring]);
+  }, [sides, gameOf, playsByGame, now, clockNow, scoring]);
 
   const plotRef = useRef<HTMLDivElement>(null);
   const size = useSize(plotRef);

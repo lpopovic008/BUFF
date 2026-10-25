@@ -5,6 +5,7 @@ import { GroupedStarter } from "@/lib/my-starters";
 import { NFLGame } from "@/lib/nfl-schedule";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import { halftimeSpan, pacePieces, periodStarts, pointsTimeline } from "@/lib/live-play-points";
+import { sleeperDiffers } from "@/lib/matchup-timeline";
 import { useGamePlays, withScoreboardPlay } from "@/hooks/useRedZoneFeed";
 
 // Room around the plot for its labels, in px.
@@ -125,7 +126,9 @@ export function PointsGraph({
   const halftime = useMemo(() => halftimeSpan(plays), [plays]);
   const etchId = `etch-${useId().replace(/:/g, "")}`;
   const live = game.state === "in";
-  const now = useLiveNow(live);
+  // The clock, ticking once the game's begun — though the line only runs to now while it's on.
+  const clockNow = useLiveNow(game.state !== "pre");
+  const now = live ? clockNow : null;
 
   const plotRef = useRef<HTMLDivElement>(null);
   const size = useSize(plotRef);
@@ -134,10 +137,11 @@ export function PointsGraph({
   const [cursor, setCursor] = useState<{ at: number; playId?: string } | null>(null);
   const cursorAt = cursor?.at ?? null;
 
-  // Their total in the row — the league's number — which the line ends on.
+  // Their total in the row — the league's number — which the line ends on, once Sleeper's had time to count the
+  // plays and still disagrees (see sleeperDiffers); till then the plays have it.
   const final = game.state === "pre" ? null : player.points;
   const playTotal = steps.length > 0 ? steps[steps.length - 1].total : 0;
-  const makeUp = final !== null && Math.abs(final - playTotal) >= 0.05 ? final : null;
+  const makeUp = final !== null && Math.abs(final - playTotal) >= 0.05 && sleeperDiffers(steps, final, clockNow ?? 0) ? final : null;
   const projected = player.projected != null && player.projected > 0 ? player.projected : null;
 
   // The time it spans: kickoff (or its first play) to the final whistle — or,
