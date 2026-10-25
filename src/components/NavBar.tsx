@@ -9,6 +9,9 @@ import { appPages } from "@/components/TabBar";
 import { useHeaderWeek } from "@/lib/header-week";
 import { WeekPicker, weekLabel } from "@/components/WeekPicker";
 
+// The app's icon, from wherever the site's served (see next.config.ts's basePath).
+const LOGO = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/icons/icon-192.png`;
+
 // The header's square buttons, styled like the map's own controls.
 const HEADER_BUTTON =
   "flex h-7 w-7 shrink-0 items-center justify-center border border-grid bg-page text-ink-secondary transition-colors hover:text-ink-primary active:scale-90 disabled:opacity-30 disabled:hover:text-ink-secondary sm:h-9 sm:w-9";
@@ -43,14 +46,12 @@ export function NavBar() {
     <header ref={ref} className="sticky top-0 z-50 border-b border-border bg-page/95 pt-[env(safe-area-inset-top)] backdrop-blur">
       {/* The week centered — unless one side's too wide for that (the page tabs beside a long week, on a tablet), then just clear of it. */}
       <div className="relative grid grid-cols-[minmax(max-content,1fr)_auto_minmax(max-content,1fr)] items-center gap-2 px-4 py-2 sm:gap-3 sm:px-6 sm:py-3 md:px-1">
-        {/* The wordmark — a map tag — and from tablet width up the pages as text tabs, the one you're on lit like
-            the wordmark. (Back and forward sit just under the header: see HistoryButtons.) */}
+        {/* The app's icon, home — and from tablet width up the pages as text tabs, the one you're on lit like a map
+            tag. (Back and forward sit just under the header: see HistoryButtons.) */}
         <div className="flex min-w-0 items-center gap-2 justify-self-start sm:gap-3 lg:gap-5">
-          <Link
-            href="/"
-            className="shrink-0 bg-[var(--map-tag)] px-1.5 text-sm font-bold leading-relaxed text-[var(--map-tag-ink)] sm:px-2 sm:text-lg"
-          >
-            COMMI$H
+          <Link href="/" aria-label="Commi$h — home" title="Commi$h" className="shrink-0 transition-transform active:scale-90">
+            {/* eslint-disable-next-line @next/next/no-img-element -- a static PNG on a static export */}
+            <img src={LOGO} alt="" width={36} height={36} className="block h-7 w-7 sm:h-9 sm:w-9" />
           </Link>
           <nav aria-label="Pages" className="flex items-center gap-1 max-md:hidden lg:gap-2">
             {tabs.map((tab) => (
