@@ -9,8 +9,25 @@ import { appPages } from "@/components/TabBar";
 import { useHeaderWeek } from "@/lib/header-week";
 import { WeekPicker, weekLabel } from "@/components/WeekPicker";
 
-// The app's icon, from wherever the site's served (see next.config.ts's basePath).
-const LOGO = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/icons/icon-192.png`;
+/** The app's walkie-talkie on its own, no tile — flat, in the text's color, its speaker grille cut through. */
+function Logo({ className }: { className?: string }) {
+  return (
+    <svg viewBox="26 12 41 76" className={className} fill="currentColor" aria-hidden>
+      <defs>
+        <mask id="logo-grille">
+          <rect x="26" y="12" width="41" height="76" fill="white" />
+          {[49, 58, 67].map((y) => (
+            <rect key={y} x="39" y={y} width="20" height="5" rx="2.5" fill="black" />
+          ))}
+        </mask>
+      </defs>
+      <rect x="39" y="12" width="7" height="26" rx="3.5" />
+      <rect x="54" y="25" width="6" height="12" rx="3" />
+      <rect x="26" y="47" width="6" height="17" rx="3" />
+      <rect x="31" y="33" width="36" height="55" rx="8" mask="url(#logo-grille)" />
+    </svg>
+  );
+}
 
 // The header's square buttons, styled like the map's own controls.
 const HEADER_BUTTON =
@@ -49,9 +66,8 @@ export function NavBar() {
         {/* The app's icon, home — and from tablet width up the pages as text tabs, the one you're on lit like a map
             tag. (Back and forward sit just under the header: see HistoryButtons.) */}
         <div className="flex min-w-0 items-center gap-2 justify-self-start sm:gap-3 lg:gap-5">
-          <Link href="/" aria-label="Commi$h — home" title="Commi$h" className="shrink-0 transition-transform active:scale-90">
-            {/* eslint-disable-next-line @next/next/no-img-element -- a static PNG on a static export */}
-            <img src={LOGO} alt="" width={36} height={36} className="block h-7 w-7 sm:h-9 sm:w-9" />
+          <Link href="/" aria-label="Commi$h — home" title="Commi$h" className="shrink-0 text-ink-primary transition-transform active:scale-90 md:ml-2">
+            <Logo className="block h-7 sm:h-9" />
           </Link>
           <nav aria-label="Pages" className="flex items-center gap-1 max-md:hidden lg:gap-2">
             {tabs.map((tab) => (
