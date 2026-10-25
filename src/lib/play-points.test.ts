@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { FeedCandidate, GamePlay } from "./play-by-play";
-import { formatPlayPoints, pprPointsForPlay } from "./play-points";
+import { formatPlayPoints, pprPointsForPlay, statsForPlay } from "./play-points";
 
 function play(text: string, over: Partial<GamePlay> = {}): GamePlay {
   return { id: "1", gameId: "g", sequence: 1, text, type: "", period: 1, clock: "", offense: "BUF", scoring: false, turnover: false, yards: 0, redZone: false, downDistance: null, at: null, ...over };
@@ -93,4 +93,11 @@ test("a lineman reporting in as eligible, and a direct snap, aren't the runner",
   assert.equal(pprPointsForPlay(p, who("RJ Harvey", "RB", "DEN")), 6.1);
   assert.equal(pprPointsForPlay(p, who("Alex Palczewski", "OL", "DEN")), 0);
   assert.equal(pprPointsForPlay(p, who("Wil Lutz", "K", "DEN")), 1);
+});
+
+test("statsForPlay counts a target on a catch, an incompletion or a pick", () => {
+  assert.equal(statsForPlay(play("J.Allen pass short right to K.Coleman to BUF 40 for 8 yards."), coleman).rec_tgt, 1);
+  assert.equal(statsForPlay(play("J.Allen pass incomplete deep left to K.Coleman (J.Ramsey)."), coleman).rec_tgt, 1);
+  assert.equal(statsForPlay(play("J.Allen pass deep right intended for K.Coleman INTERCEPTED by J.Ramsey at MIA 30.", { turnover: true }), coleman).rec_tgt, 1);
+  assert.equal(statsForPlay(play("J.Allen pass incomplete deep left to K.Coleman (J.Ramsey)."), allen).rec_tgt, undefined);
 });

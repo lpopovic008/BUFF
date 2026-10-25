@@ -269,6 +269,8 @@ const FeedRow = memo(function FeedRow({ entry, starterById, legendByLeagueId, ar
   const time = clockTime(play.at);
   const defense = play.offense ? ([game.homeTeam, game.awayTeam].find((t) => t !== play.offense) ?? null) : null;
   const spot = yardLineLabel(play, defense);
+  // The game's score once the play was over — ESPN's, or for its latest play the scoreboard's.
+  const score = play.score ?? (latest && game.state !== "pre" ? { home: game.homeScore, away: game.awayScore } : null);
   return (
     // Tapping a play (on desktop) replays its points being applied in the starters list.
     <li
@@ -291,10 +293,12 @@ const FeedRow = memo(function FeedRow({ entry, starterById, legendByLeagueId, ar
       <span className="flex items-center justify-between gap-2 text-[0.6875rem] leading-none">
         <span className="flex min-w-0 items-center gap-1.5 whitespace-nowrap">
           {time ? <span className="tabular-nums text-ink-muted">{time}</span> : null}
-          {/* The matchup — and on its game's latest play, "Latest" after it, lit like a map tag. */}
+          {/* The matchup and its score after the play — and on its game's latest play, "Latest" after it, lit like a map tag. */}
           <span className="flex items-center gap-1" title={`${game.awayTeam} @ ${game.homeTeam}`}>
             <TeamLogo team={game.awayTeam} side={14} />
+            {score ? <span className="font-semibold tabular-nums text-ink-primary">{score.away}</span> : null}
             <span className="text-ink-muted">@</span>
+            {score ? <span className="font-semibold tabular-nums text-ink-primary">{score.home}</span> : null}
             <TeamLogo team={game.homeTeam} side={14} />
           </span>
           {latest ? (

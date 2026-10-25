@@ -142,6 +142,9 @@ export function statsForPlay(play: GamePlay, player: FeedCandidate): PlayStats {
     }
   }
 
+  // Targets: thrown to, caught or not — or picked off on the way.
+  if (new RegExp(`pass(?: incomplete)?(?: (?:short|deep))?(?: (?:left|middle|right))? (?:to|intended for) ${name}`).test(main)) add(stats, "rec_tgt");
+
   // Catching.
   const catchMatch = new RegExp(`pass(?: (?:short|deep))?(?: (?:left|middle|right))? to ${name}`).exec(main);
   if (catchMatch) {

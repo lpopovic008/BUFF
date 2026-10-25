@@ -149,7 +149,7 @@ const n = (stats: Record<string, number>, key: string) => Math.round(stats[key] 
 
 /**
  * A player's game in a few words: "18/26 214 YDS 2 TD" for a passer,
- * "9 CAR 41 YDS" for a runner, "5 REC 63 YDS 1 TD" for a catcher — whichever
+ * "9 CAR 41 YDS" for a runner, "5/7 REC 63 YDS 1 TD" for a catcher — whichever
  * they've done, their main job first — "FG 2/2 XP 3/3" for a kicker, sacks
  * and takeaways for a defense. Empty when they've done nothing yet.
  */
@@ -178,7 +178,9 @@ export function statLine(position: string, stats: Record<string, number> | undef
       ? `${n(stats, "pass_cmp")}/${n(stats, "pass_att")} ${n(stats, "pass_yd")} YDS${td("pass_td")}${n(stats, "pass_int") > 0 ? ` ${n(stats, "pass_int")} INT` : ""}`
       : "";
   const rush = n(stats, "rush_att") > 0 ? `${n(stats, "rush_att")} CAR ${n(stats, "rush_yd")} YDS${td("rush_td")}` : "";
-  const rec = n(stats, "rec") > 0 ? `${n(stats, "rec")} REC ${n(stats, "rec_yd")} YDS${td("rec_td")}` : "";
+  // Catches out of targets, "4/6 REC", where the targets are known.
+  const catches = n(stats, "rec_tgt") > 0 ? `${n(stats, "rec")}/${n(stats, "rec_tgt")}` : `${n(stats, "rec")}`;
+  const rec = n(stats, "rec") > 0 || n(stats, "rec_tgt") > 0 ? `${catches} REC ${n(stats, "rec_yd")} YDS${td("rec_td")}` : "";
   const order = position === "QB" ? [pass, rush, rec] : position === "RB" ? [rush, rec, pass] : [rec, rush, pass];
   return [...order, ...kicks].filter(Boolean).join(" · ");
 }

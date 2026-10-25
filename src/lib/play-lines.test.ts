@@ -103,6 +103,8 @@ test("linesForPlays keeps ESPN's name for someone it can't match", () => {
 test("statLine leads with the player's main job", () => {
   assert.equal(statLine("QB", { pass_cmp: 18, pass_att: 26, pass_yd: 214, pass_td: 2, rush_att: 4, rush_yd: 22 }), "18/26 214 YDS 2 TD · 4 CAR 22 YDS");
   assert.equal(statLine("WR", { rec: 5, rec_yd: 63, rec_td: 1, rush_att: 1, rush_yd: 7 }), "5 REC 63 YDS 1 TD · 1 CAR 7 YDS");
+  assert.equal(statLine("WR", { rec_tgt: 6, rec: 4, rec_yd: 52 }), "4/6 REC 52 YDS");
+  assert.equal(statLine("TE", { rec_tgt: 2 }), "0/2 REC 0 YDS");
   assert.equal(statLine("RB", { rush_att: 9, rush_yd: 41, rec: 2, rec_yd: 11 }), "9 CAR 41 YDS · 2 REC 11 YDS");
   assert.equal(statLine("K", { fgm: 2, fga: 2, xpm: 3, xpa: 3 }), "FG 2/2 · XP 3/3");
   assert.equal(statLine("DEF", { sack: 3, int: 1, pts_allow: 17 }), "3 SCK · 1 INT · 17 PA");
@@ -142,8 +144,9 @@ test("each line's stat line is the game as it stood after that play", () => {
   assert.equal(statLine("QB", line("b", "Josh Allen").stats!), "1/2 8 YDS");
   assert.equal(statLine("QB", line("c", "Josh Allen").stats!), "1/2 8 YDS · 1 CAR 21 YDS");
   assert.equal(statLine("QB", line("d", "Josh Allen").stats!), "2/3 36 YDS 1 TD · 1 CAR 21 YDS");
-  assert.equal(statLine("TE", line("a", "Dalton Kincaid").stats!), "1 REC 8 YDS");
-  assert.equal(statLine("TE", line("d", "Dalton Kincaid").stats!), "2 REC 36 YDS 1 TD");
+  assert.equal(statLine("TE", line("a", "Dalton Kincaid").stats!), "1/1 REC 8 YDS");
+  assert.equal(statLine("WR", line("b", "K.Coleman").stats!), "0/1 REC 0 YDS");
+  assert.equal(statLine("TE", line("d", "Dalton Kincaid").stats!), "2/2 REC 36 YDS 1 TD");
   assert.equal(statLine("K", line("d", "Tyler Bass").stats!), "XP 1/1");
   // Points still add up the same way.
   assert.equal(line("d", "Josh Allen").total, 0.32 + 2.1 + 5.12);
