@@ -54,3 +54,14 @@ export function tradeRosters(column: TimelineColumn): TradeRoster[] {
     return { rosterId, before: [...after.filter((id) => !added.has(id)), ...dropped.filter((id) => !after.includes(id))], after };
   });
 }
+
+/**
+ * How far along one continuous line, across every year, each trade sits (in time order, in pixels): the first at 0,
+ * each after it `gap.min` on from the one before plus `gap.perDoubling` for every doubling of the days between —
+ * so no two are ever closer than `gap.min`, trades days apart still get room, and a long lull doesn't run on.
+ */
+export function trackOffsets(ats: number[], gap: { min: number; perDoubling: number }): number[] {
+  const out = [0];
+  for (let i = 1; i < ats.length; i++) out.push(out[i - 1] + gap.min + gap.perDoubling * Math.log2(1 + Math.max(0, (ats[i] - ats[i - 1]) / DAY_MS)));
+  return out;
+}

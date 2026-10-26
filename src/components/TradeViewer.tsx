@@ -1,10 +1,10 @@
 "use client";
 
-import { CSSProperties, ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { CSSProperties, ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { TimelineColumn } from "@/lib/roster-timeline";
 import { PICK, TimelinePlayer } from "@/lib/league-trades";
 import { AnalyzedTrade } from "@/lib/trades";
-import { timelineSpots, TradeRoster, tradeRosters } from "@/lib/trade-viewer";
+import { timelineSpots, trackOffsets, TradeRoster, tradeRosters } from "@/lib/trade-viewer";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { POSITION_COLOR_VAR, POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import { shownGrade, valueGrade } from "@/lib/player-values";
@@ -43,14 +43,37 @@ const SORTS: { id: string; label: string; order: (people: Map<string, TimelinePl
   },
 ];
 
+// On a phone the timeline is one strip across every year (see TrackStrip): the room between two trades — never less
+// than a dot and a bit, more by the log of the days between (see trackOffsets) — and its ends' room.
+const PHONE = "(max-width: 767px)";
+const TRACK_GAP_PX = { min: 22, perDoubling: 8 };
+const TRACK_PAD_PX = 28;
+// The fewest pixels between two dates shown under the strip.
+const DATE_ROOM_PX = 46;
+
+/** Whether the screen's a phone's width — followed as it changes. */
+function usePhone(): boolean {
+  return useSyncExternalStore(
+    (onChange) => {
+      const query = window.matchMedia(PHONE);
+      query.addEventListener("change", onChange);
+      return () => query.removeEventListener("change", onChange);
+    },
+    () => window.matchMedia(PHONE).matches,
+    () => false
+  );
+}
+
 const dateLabel = (at: number, year = true) =>
   new Date(at).toLocaleDateString("en-US", year ? { month: "short", day: "numeric", year: "numeric" } : { month: "short", day: "numeric" });
 
 /**
  * The league's trades, one at a time: along the top, a timeline a year wide — each year's trades spaced by the time
- * between them (by its log: trades days apart get room, long lulls don't take over), its first and last at the ends, swiped (or scrolled) sideways from year to year; under it, the
- * trading teams' rosters as they stood, the pieces that changed hands sliding from one to the other; and beside
- * them, the trade's card. Picking a trade on the timeline, or stepping with the arrows, moves them all.
+ * between them (by its log: trades days apart get room, long lulls don't take over), its first and last at the ends,
+ * swiped (or scrolled) sideways from year to year — on a phone, one strip across every year instead (see
+ * TrackStrip); under it, the trading teams' rosters as they stood, the pieces that changed hands sliding from one
+ * to the other; and beside them, the trade's card. Picking a trade on the timeline, or stepping with the arrows,
+ * moves them all.
  */
 export function TradeViewer({
   timeline,
@@ -92,6 +115,8 @@ export function TradeViewer({
   // A swipe across the timeline, or a sideways scroll on it, turns to the next year or the last.
   const swipe = useRef<number | null>(null);
   const wheel = useRef({ sum: 0, at: 0 });
+  const phone = usePhone();
+  const offsets = useMemo(() => trackOffsets(columns.map((c) => c.at), TRACK_GAP_PX), [columns]);
 
   if (!column) return null;
   return (
@@ -108,6 +133,14 @@ export function TradeViewer({
         <button type="button" onClick={() => step(-1)} disabled={picked === 0} aria-label="Earlier trade" className={STEP}>
           ‹
         </button>
+        {phone ? (
+          <TrackStrip
+            trades={columns.map((c, i) => ({ i, at: c.at, year: spots[i].year, x: offsets[i], rosters: tradeRosters(c).map((r) => r.rosterId) }))}
+            picked={picked}
+            onPick={pick}
+            teamName={teamName}
+          />
+        ) : (
         <div
           className="min-w-0 flex-1 touch-pan-y overflow-hidden"
           onPointerDown={(e) => (swipe.current = e.clientX)}
@@ -144,6 +177,7 @@ export function TradeViewer({
             ))}
           </div>
         </div>
+        )}
         <button type="button" onClick={() => step(1)} disabled={picked === columns.length - 1} aria-label="Later trade" className={STEP}>
           ›
         </button>
@@ -199,6 +233,112 @@ export function TradeViewer({
 
 const STEP =
   "flex h-8 w-8 shrink-0 items-center justify-center border border-border text-lg font-bold text-ink-secondary transition-colors hover:border-ink-primary hover:text-ink-primary active:scale-90 disabled:opacity-30 disabled:hover:border-border disabled:hover:text-ink-secondary";
+
+/**
+ * Every trade on one strip, scrolled sideways straight through the years: each spaced from the one before by the log
+ * of the time between (see trackOffsets), so none ever sit on each other and several are in sight at once; the year as it changes under
+ * the strip's middle over it, a mark where each year starts, dates under the dots where there's room, and the
+ * picked trade lit with its date and teams over it — brought to the middle when it's picked.
+ */
+function TrackStrip({
+  trades,
+  picked,
+  onPick,
+  teamName,
+}: {
+  trades: { i: number; at: number; year: number; x: number; rosters: number[] }[];
+  picked: number;
+  onPick: (i: number) => void;
+  teamName: (rosterId: number) => string;
+}) {
+  const box = useRef<HTMLDivElement>(null);
+  const xOf = (t: { x: number }) => TRACK_PAD_PX + t.x;
+  const width = (trades.length ? xOf(trades[trades.length - 1]) : 0) + TRACK_PAD_PX;
+  // The year under the strip's middle.
+  const [year, setYear] = useState(trades[picked]?.year);
+  const yearAtMiddle = () => {
+    const el = box.current;
+    if (!el || trades.length === 0) return;
+    const middle = el.scrollLeft + el.clientWidth / 2;
+    const near = trades.reduce((best, t) => (Math.abs(xOf(t) - middle) < Math.abs(xOf(best) - middle) ? t : best), trades[0]);
+    setYear(near.year);
+  };
+  // The picked trade to the middle: straight there at first, glided to after.
+  const placed = useRef(false);
+  const pickedX = trades[picked] ? xOf(trades[picked]) : null;
+  useLayoutEffect(() => {
+    const el = box.current;
+    if (!el || pickedX == null) return;
+    el.scrollTo({ left: pickedX - el.clientWidth / 2, behavior: placed.current ? "smooth" : "instant" });
+    placed.current = true;
+  }, [pickedX]);
+  // Dates under the dots, left to right, wherever the last one shown leaves room.
+  const dated = new Set<number>();
+  let last = -Infinity;
+  for (const t of trades) {
+    if (xOf(t) - last >= DATE_ROOM_PX) {
+      dated.add(t.i);
+      last = xOf(t);
+    }
+  }
+  const lit = trades[picked];
+  return (
+    <div className="flex min-w-0 flex-1 flex-col">
+      <span className="text-xs font-extrabold tabular-nums text-ink-primary" aria-live="polite">
+        {year}
+      </span>
+      <div ref={box} onScroll={yearAtMiddle} className="min-w-0 overflow-x-auto overscroll-x-contain [scrollbar-width:none]">
+        <div className="relative h-[4.25rem]" style={{ width }}>
+          <span className="absolute inset-x-0 top-[2.5rem] h-px bg-border" />
+          {/* Where each year begins: midway between its first trade and the last before it. */}
+          {trades.map((t, n) =>
+            n > 0 && t.year !== trades[n - 1].year ? (
+              <span
+                key={`y${t.year}`}
+                className="absolute top-[1.625rem] h-[1.75rem] border-l border-dashed border-ink-muted"
+                style={{ left: (xOf(trades[n - 1]) + xOf(t)) / 2 }}
+              />
+            ) : null
+          )}
+          {trades.map((t) => {
+            const on = t.i === picked;
+            return (
+              <button
+                key={t.i}
+                type="button"
+                onClick={() => onPick(t.i)}
+                aria-label={`${dateLabel(t.at)}: ${t.rosters.map(teamName).join(" and ")}`}
+                aria-current={on || undefined}
+                className="absolute top-[2.5rem] flex h-7 w-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center"
+                style={{ left: xOf(t) }}
+              >
+                <span className={`block border-2 border-ink-primary ${on ? "h-3.5 w-3.5 bg-ink-primary" : "h-2.5 w-2.5 bg-surface-raised"}`} />
+              </button>
+            );
+          })}
+          {trades.map((t) =>
+            dated.has(t.i) ? (
+              <span key={`d${t.i}`} className="absolute top-[3.25rem] -translate-x-1/2 whitespace-nowrap text-[0.625rem] tabular-nums text-ink-muted" style={{ left: xOf(t) }}>
+                {dateLabel(t.at, false)}
+              </span>
+            ) : null
+          )}
+          {lit ? (
+            <span
+              className="pointer-events-none absolute top-[0.375rem] max-w-[16rem] truncate bg-[var(--map-tag)] px-1.5 py-px text-[0.6875rem] font-bold uppercase text-[var(--map-tag-ink)]"
+              style={{
+                left: xOf(lit),
+                transform: `translateX(${xOf(lit) < 120 ? "-0.625rem" : xOf(lit) > width - 120 ? "calc(-100% + 0.625rem)" : "-50%"})`,
+              }}
+            >
+              {dateLabel(lit.at, false)} · {lit.rosters.map(teamName).join(" ⇄ ")}
+            </span>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /**
  * One year's trades along a line the page's width, its first at the left end and its last at the right, each at

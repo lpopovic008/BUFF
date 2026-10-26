@@ -204,7 +204,10 @@ the page's full width. The trade timeline (`TradeViewer`) shows the trades one
 at a time. Along the top, a year at a time, each year's trades are spaced by
 the log of the time between them, so trades days apart get room and long lulls
 don't take over, its first and last at the ends (`timelineSpots`); a
-swipe, a sideways scroll or the year arrows turn to another year. Under it, the
+swipe, a sideways scroll or the year arrows turn to another year. On a phone
+it's one strip instead, scrolled straight through the years with the year over
+it changing as it goes, the trades spaced by the same log of time but never
+closer than a dot's room (`trackOffsets`), so several are in sight at once. Under it, the
 trading teams' whole rosters (players and draft picks), sortable by position,
 value or name, play the trade: the pieces that changed hands slide across to
 their new roster, leaving a dashed gap and a line to where they landed

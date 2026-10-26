@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { timelineSpots, tradeRosters } from "./trade-viewer";
+import { timelineSpots, trackOffsets, tradeRosters } from "./trade-viewer";
 
 test("timelineSpots spaces each year's trades by the log of the time between, its first and last at the ends", () => {
   const at = (y: number, m: number, d: number) => new Date(y, m, d).getTime();
@@ -38,4 +38,14 @@ test("tradeRosters undoes the trade from the rosters just after it", () => {
     { rosterId: 1, before: ["a", "x"], after: ["a", "d"] },
     { rosterId: 2, before: ["b", "d"], after: ["b", "x"] },
   ]);
+});
+
+test("trackOffsets runs on across the years, no two trades closer than the smallest gap", () => {
+  const day = 86_400_000;
+  const offsets = trackOffsets([0, 0, 10 * day, 400 * day], { min: 22, perDoubling: 8 });
+  assert.equal(offsets[0], 0);
+  assert.equal(offsets[1], 22);
+  // Ten days, then over a year: the longer gap bigger, but nowhere near 40 times.
+  const [short, long] = [offsets[2] - offsets[1], offsets[3] - offsets[2]];
+  assert.ok(long > short && long < 2 * short);
 });
