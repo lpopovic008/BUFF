@@ -101,3 +101,9 @@ test("statsForPlay counts a target on a catch, an incompletion or a pick", () =>
   assert.equal(statsForPlay(play("J.Allen pass deep right intended for K.Coleman INTERCEPTED by J.Ramsey at MIA 30.", { turnover: true }), coleman).rec_tgt, 1);
   assert.equal(statsForPlay(play("J.Allen pass incomplete deep left to K.Coleman (J.Ramsey)."), allen).rec_tgt, undefined);
 });
+
+test("linemen reporting in as eligible aren't credited with the play", () => {
+  const text = "L.Borom and B.Miller reported in as eligible. J.Bates 22 yard field goal is GOOD, Center-H.Hatten, Holder-J.Fox.";
+  assert.deepEqual(statsForPlay(play(text), who("Larry Borom", "OL")), {});
+  assert.equal(statsForPlay(play(text), who("Jake Bates", "K")).fgm, 1);
+});

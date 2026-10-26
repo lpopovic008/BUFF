@@ -188,6 +188,15 @@ test("playAction drops every pre-snap note ESPN opens a line with, however it wo
     "J.Allen pass short left to D.Kincaid for 5 yards ."
   );
   assert.equal(playAction("Direct snap to A.St. Brown. A.St. Brown left end for 4 yards."), "A.St. Brown left end for 4 yards.");
+  // Two or more linemen at once.
+  assert.equal(
+    playAction("L.Borom and B.Miller reported in as eligible. J.Bates 22 yard field goal is GOOD, Center-H.Hatten, Holder-J.Fox."),
+    "J.Bates 22 yard field goal is GOOD, Center-H.Hatten, Holder-J.Fox."
+  );
+  assert.equal(
+    playAction("L.Borom, B.Miller and T.Smith report in as eligible receivers. D.Montgomery up the middle for 2 yards."),
+    "D.Montgomery up the middle for 2 yards."
+  );
   // A play with none is left as it is.
   assert.equal(playAction("J.Cook right guard for 3 yards, TOUCHDOWN."), "J.Cook right guard for 3 yards, TOUCHDOWN.");
 });

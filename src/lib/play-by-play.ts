@@ -57,10 +57,12 @@ export function downAndDistance(down: number, distance: number, yardsToEndzone: 
 /** Drops the formation note ESPN opens a play with: "(Shotgun) ", "(No Huddle, Shotgun) ". */
 // ESPN's shorthand for a player, as it names them in a play line: "J.Allen", "Jos.Allen", "A.St. Brown".
 const SHORT_NAME = String.raw`[A-Z][A-Za-z']{0,3}\.\s?(?:St\.\s)?[A-Z][A-Za-z'-]+`;
-// The notes ESPN can open a play's line with before the play itself — a lineman reporting in as an eligible
-// receiver, the snap going straight to a runner — each its own sentence: "A.Palczewski reported in as
+// One or more of them: "L.Borom", "L.Borom and B.Miller", "L.Borom, B.Miller and T.Smith".
+const SHORT_NAMES = String.raw`${SHORT_NAME}(?:(?:,\s*(?:and\s+)?|\s+and\s+)${SHORT_NAME})*`;
+// The notes ESPN can open a play's line with before the play itself — linemen reporting in as eligible
+// receivers, the snap going straight to a runner — each its own sentence: "A.Palczewski reported in as
 // eligible. Direct snap to R.Harvey. R.Harvey right tackle for 1 yard, TOUCHDOWN."
-const PRE_SNAP = new RegExp(String.raw`^(?:\s*(?:${SHORT_NAME} report(?:s|ed) in as (?:an )?eligible(?: receiver)?|Direct snap to ${SHORT_NAME})\.)+\s*`, "i");
+const PRE_SNAP = new RegExp(String.raw`^(?:\s*(?:${SHORT_NAMES} report(?:s|ed)? in as (?:an )?eligible(?: receivers?)?|Direct snap to ${SHORT_NAME})\.)+\s*`, "i");
 
 /**
  * A play's line from where the play itself starts: the formation notes ("(Shotgun)") and tacklers in
