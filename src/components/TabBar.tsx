@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ClipboardIcon, HomeIcon, StandingsIcon, TrendIcon, UserIcon } from "@/components/ui/Icon";
+import { HomeIcon, StandingsIcon, SwapIcon, TrendIcon, UserIcon } from "@/components/ui/Icon";
 
 /** The app's pages, in order, and whether each is the one at `pathname` — the phone's tab bar and the header's tabs alike. */
 export function appPages(pathname: string) {
@@ -13,7 +13,7 @@ export function appPages(pathname: string) {
     { href: "/league", label: "Leagues", icon: StandingsIcon, active: at("/league") || at("/team") },
     { href: "/", label: "Home", icon: HomeIcon, active: pathname === "/" },
     { href: "/values", label: "Values", icon: TrendIcon, active: at("/values") },
-    { href: "/draft", label: "Draft", icon: ClipboardIcon, active: at("/draft") },
+    { href: "/monitor", label: "Trade Monitor", icon: SwapIcon, active: at("/monitor") },
   ];
 }
 
@@ -24,7 +24,7 @@ const tabClass = (active: boolean) =>
 
 /**
  * On a phone, the app's pages along the bottom of the screen: Profile & settings,
- * Leagues, Home, Values and Draft — wider, the header has them (see NavBar).
+ * Leagues, Home, Values and the Trade Monitor — wider, the header has them (see NavBar).
  * It publishes its height as --tabbar-h, so the page leaves room for it under its end.
  */
 export function TabBar() {
@@ -50,8 +50,9 @@ export function TabBar() {
     <nav
       ref={ref}
       aria-label="Pages"
-      // Flush with the screen's bottom edge — no room left under the buttons.
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-page/95 backdrop-blur [transform:translateZ(0)] md:hidden"
+      // Its background down to the screen's bottom edge, its buttons kept clear of the phone's home indicator (the
+      // safe area under them, none on a phone without one).
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-page/95 pb-[env(safe-area-inset-bottom)] backdrop-blur [transform:translateZ(0)] md:hidden"
     >
       <div className="grid h-16 grid-cols-5">
         {tabs.map(({ href, label, icon: Icon, active }) => (

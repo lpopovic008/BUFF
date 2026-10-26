@@ -308,6 +308,31 @@ scraping strategies in order (a known `playersArray` literal, a Next.js
 records" walk) and, on failure, leaves the existing file untouched rather than
 committing anything — see the script's comments for the fallback chain.
 
+## Trade Monitor
+
+**Trade Monitor** (`/monitor`, in the nav where Draft was — the draft room is
+still at `/draft`, just not linked) reads one of your leagues for trading, from
+its Sleeper rosters and standings, KTC's values (as the league plays: dynasty
+or redraft, 1QB or superflex, TE premium), KTC's value history and this
+season's stats (`trade-monitor.ts`, loaded by `useTradeMonitor`):
+
+- **Playoff picture** — every team against the playoff line: in, on the bubble
+  (within a game either way), out, or clinched / eliminated with the games
+  left, and so likely buying, selling or either.
+- **Positional needs** — each team's starters (and one for depth, flex spots
+  shared out) at QB, RB, WR and TE by value, ranked and against the league's
+  middle; the bottom third a need, the top third a surplus — and your best
+  trade partners, those with what you need who need what you have.
+- **Think about selling** — your players past or a year off their position's
+  age cliff (QB 33, RB 26, WR 29, TE 30), falling in value over three months,
+  or scoring well under their value (a role shrinking).
+- **Targets** — young stars on other rosters (young for the position and
+  already among its best by value) and breakout candidates (young, worth
+  something, and rising in value or outscoring it), those at your needs first,
+  each with its owner's playoff standing.
+
+Tapping a player opens his career card.
+
 ## Getting started
 
 Nothing to set up: the Sleeper username is baked into the build

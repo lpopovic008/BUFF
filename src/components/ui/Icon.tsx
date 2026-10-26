@@ -349,3 +349,15 @@ export function ClipboardIcon(props: IconProps) {
     </svg>
   );
 }
+
+/** Two arrows passing each other — trades. */
+export function SwapIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M3.5 7h12" />
+      <path d="M12.5 4l3 3-3 3" />
+      <path d="M16.5 13h-12" />
+      <path d="M7.5 10l-3 3 3 3" />
+    </svg>
+  );
+}

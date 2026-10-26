@@ -141,6 +141,29 @@ export function valuesByPlayerId(
 const SLEEPER_POSITION: Record<string, string> = { PK: "K" };
 
 /**
+ * Each player's KTC value as a league plays (see ValueMetric), keyed by Sleeper id: the value, its rank at their
+ * position (1 the best) and their age as KTC has it. Players KTC doesn't list aren't in it.
+ */
+export function positionValuesById(
+  snapshot: PlayerValuesSnapshot,
+  metric: ValueMetric,
+  idIndex: Map<string, string>
+): Map<string, { value: number; rank: number; age: number | null }> {
+  const list = metric.listType === "dynasty" ? snapshot.dynasty : snapshot.fantasy;
+  const byPosition = new Map<string, typeof list>();
+  for (const p of list) byPosition.set(p.position, [...(byPosition.get(p.position) ?? []), p]);
+  const out = new Map<string, { value: number; rank: number; age: number | null }>();
+  for (const [position, group] of byPosition) {
+    group.sort((a, b) => valueFor(b, metric.format, metric.tep) - valueFor(a, metric.format, metric.tep));
+    group.forEach((p, i) => {
+      const id = idIndex.get(`${SLEEPER_POSITION[position] ?? position}-${normalizeName(p.name)}`);
+      if (id && !out.has(id)) out.set(id, { value: valueFor(p, metric.format, metric.tep), rank: i + 1, age: p.age });
+    });
+  }
+  return out;
+}
+
+/**
  * Each player's rank at their position by KTC value under a league's metric (1 the most valuable), keyed by
  * Sleeper id — matched by position and name as `valuesByPlayerId` does. Players KTC doesn't list aren't ranked.
  */
