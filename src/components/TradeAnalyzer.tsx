@@ -5,7 +5,7 @@ import { PlateCard } from "@/components/ui/PlateCard";
 import { useLeagueTrades } from "@/hooks/useLeagueTrades";
 import { AnalyzedTrade, filterTrades, TRADE_SORTS, TradeAsset, TradeFilter, TradeGap, TradeSide, TradeSort } from "@/lib/trades";
 import { DAY_MS } from "@/lib/value-history";
-import { RosterTimeline } from "@/components/RosterTimeline";
+import { TradeViewer } from "@/components/TradeViewer";
 import { shownGrade, valueGrade } from "@/lib/player-values";
 
 // Each side's color — its swatch by the team's name, and its big numbers when it's ahead.
@@ -244,7 +244,7 @@ function TradeCard({ trade }: { trade: AnalyzedTrade }) {
   const values = trade.sides.flatMap((side) => side.got.flatMap((a) => [...a.path.map((p) => p.value ?? 0), a.then ?? 0, a.now ?? 0]));
   const scale: ChartScale = { first: days[0] ?? 0, last: days[days.length - 1] ?? 0, lo: Math.min(...values), hi: Math.max(...values) };
   return (
-    <li className="grid grid-cols-[auto_minmax(0,1fr)] gap-2 border border-border p-2 sm:gap-3">
+    <li className="@container grid grid-cols-[auto_minmax(0,1fr)] gap-2 border border-border p-2 sm:gap-3">
       {/* On the left, when the trade was made; under it, the gap between the sides then, at its widest (with when) and now. */}
       <div className="flex min-w-[3.25rem] flex-col items-center gap-3 border-r border-border pr-2 sm:pr-3">
         <span className="text-center text-[0.6875rem] font-semibold uppercase leading-tight tracking-wide text-ink-secondary" title="When the trade was made">
@@ -264,7 +264,8 @@ function TradeCard({ trade }: { trade: AnalyzedTrade }) {
           <GapNumber label="Now" title="How far apart the sides are now" value={trade.gap} color={colorOf(trade.gap.ahead)} />
         </div>
       </div>
-      <div className={`grid min-w-0 gap-3 ${trade.sides.length > 2 ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+      {/* The sides side by side where there's room, one over the other in a narrow card. */}
+      <div className={`grid min-w-0 gap-3 ${trade.sides.length > 2 ? "@3xl:grid-cols-3" : "@lg:grid-cols-2"}`}>
         {trade.sides.map((side, i) => (
           <SideColumn key={side.rosterId} side={side} color={SIDE_COLORS[i % SIDE_COLORS.length]} ahead={side === leader && side.now > 0} scale={scale} />
         ))}
@@ -332,10 +333,10 @@ export function TradeAnalyzer({ leagueId, leagueName, sleeperUserId }: { leagueI
   const filtered = filter.season !== null || filter.team !== null;
   return (
     <div className="flex flex-col gap-3">
-    {/* Every team's players over time, a column of dots after each trade. */}
+    {/* The trades one at a time: a timeline, the rosters they changed, and their cards. */}
     {data && data.timeline.some((c) => c.kind === "trade") ? (
-      <PlateCard title="Rosters over time" bodyClassName="p-0">
-        <RosterTimeline
+      <PlateCard title="Trade timeline" bodyClassName="p-2 sm:p-3">
+        <TradeViewer
           timeline={data.timeline}
           people={data.people}
           teams={data.teams}

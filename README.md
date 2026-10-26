@@ -199,20 +199,18 @@ history is one click from inside each league, so a separate nav entry was
 redundant.
 
 Over the page, **All players** and each of your leagues: pick a league and
-the list gives way to its **rosters over time** and its **trade analyzer**, at
-the page's full width. Rosters over time is every team's players as a timeline
-of dots (`RosterTimeline`, `rosterTimeline`): a column for each trade, as the
-league stood just after it, spaced by the time since the one before — by its
-log, so a long lull doesn't stretch it out and trades days apart don't pile
-up; each team's players single file down it in their own band, the bands back
-to back with every other one shaded, a small dot each in its position's color;
-and between columns a line from each player to where they are next, faint for
-one staying put, in their color for one who moved. The columns are rebuilt
-backward from today's rosters by undoing every move the league made (trades,
-waiver and free-agent moves, draft picks), so each is the league as it really
-stood. Scrolled sideways, the column at the focus line (the middle on a phone,
-three quarters across wider) is picked and its trade shows under it; pointing
-at a dot names its player. The trade analyzer is every trade in it,
+the list gives way to its **trade timeline** and its **trade analyzer**, at
+the page's full width. The trade timeline (`TradeViewer`) shows the trades one
+at a time. Along the top, a year at a time, each year's trades are spaced by
+the time between them, its first and last at the ends (`timelineSpots`); a
+swipe, a sideways scroll or the year arrows turn to another year. Under it, the
+trading teams' whole rosters (players and draft picks), sortable by position,
+value or name, play the trade: the pieces that changed hands slide across to
+their new roster, leaving a dashed gap and a line to where they landed
+(`tradeRosters`). Beside them is the trade's card. The rosters are rebuilt
+backward from today's by undoing every move the league made (trades, waiver and
+free-agent moves, draft picks; see `rosterTimeline`), so each is the league as
+it really stood. The trade analyzer is every trade in it,
 all seasons (following `previous_league_id`), newest first. Each side's haul is
 weighed in KTC dynasty values (superflex or 1QB, as the league plays), shown as
 grades. Each side fills its box with a chart of its pieces week by week since
