@@ -48,7 +48,7 @@ const dateLabel = (at: number, year = true) =>
 
 /**
  * The league's trades, one at a time: along the top, a timeline a year wide — each year's trades spaced by the time
- * between them, its first and last at the ends, swiped (or scrolled) sideways from year to year; under it, the
+ * between them (by its log: trades days apart get room, long lulls don't take over), its first and last at the ends, swiped (or scrolled) sideways from year to year; under it, the
  * trading teams' rosters as they stood, the pieces that changed hands sliding from one to the other; and beside
  * them, the trade's card. Picking a trade on the timeline, or stepping with the arrows, moves them all.
  */

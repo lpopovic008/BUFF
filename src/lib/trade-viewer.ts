@@ -9,23 +9,30 @@ export interface TimelineSpot {
   x: number;
 }
 
+const DAY_MS = 86_400_000;
+// The room between two trades, by the days between them: never less than GAP_MIN, and more the longer — but by the
+// log of it, so trades days apart get room of their own and a long lull doesn't take the line over.
+const GAP_MIN = 1.5;
+const gapFor = (days: number) => GAP_MIN + Math.log2(1 + Math.max(0, days));
+
 /**
- * Each trade's spot, in the order given: within its calendar year, spaced by the time between that year's trades —
- * the year's first at 0 and its last at 1, a year's only trade in the middle.
+ * Each trade's spot, in the order given: within its calendar year, spaced by the time between that year's trades
+ * (see gapFor) — the year's first at 0 and its last at 1, a year's only trade in the middle.
  */
 export function timelineSpots(ats: number[]): TimelineSpot[] {
   const yearOf = (at: number) => new Date(at).getFullYear();
-  const span = new Map<number, { first: number; last: number }>();
-  for (const at of ats) {
-    const y = yearOf(at);
-    const s = span.get(y);
-    span.set(y, s ? { first: Math.min(s.first, at), last: Math.max(s.last, at) } : { first: at, last: at });
+  // Each year's trades in time order, and how far along its line each is.
+  const byYear = new Map<number, number[]>();
+  for (const at of ats) byYear.set(yearOf(at), [...(byYear.get(yearOf(at)) ?? []), at]);
+  const along = new Map<number, Map<number, number>>();
+  for (const [year, list] of byYear) {
+    const sorted = [...new Set(list)].sort((a, b) => a - b);
+    const cum = [0];
+    for (let i = 1; i < sorted.length; i++) cum.push(cum[i - 1] + gapFor((sorted[i] - sorted[i - 1]) / DAY_MS));
+    const total = cum[cum.length - 1];
+    along.set(year, new Map(sorted.map((at, i) => [at, total > 0 ? cum[i] / total : 0.5])));
   }
-  return ats.map((at) => {
-    const year = yearOf(at);
-    const { first, last } = span.get(year)!;
-    return { year, x: last === first ? 0.5 : (at - first) / (last - first) };
-  });
+  return ats.map((at) => ({ year: yearOf(at), x: along.get(yearOf(at))!.get(at)! }));
 }
 
 /** One team in a trade: who it had just before and just after. */
