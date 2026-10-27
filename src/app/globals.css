@@ -303,18 +303,16 @@ li[data-lit] {
   }
 }
 
-/* The home page's room, from tablet width up (see GridRoom): a horizon a little over halfway down the screen, and a
-   grid floor running back to it — the dashboard's screens stand on it. Lines and glow in the theme's ink, so it's dark
-   lines on light and light on dark. */
+/* The home page's room, from tablet width up: a horizon a little over halfway down the screen, and a grid floor
+   running back to it — the dashboard's screens stand on it. Lines and glow in the theme's ink, so it's dark lines on
+   light and light on dark. Its geometry (the horizon, the perspective, the floor's lay and grid) is set from
+   grid-room.ts, where what stands on the floor finds its lines. */
 .grid-room {
-  --horizon: 64%;
   position: fixed;
   inset: 0;
   z-index: -1;
   overflow: hidden;
   pointer-events: none;
-  perspective: 520px;
-  perspective-origin: 50% var(--horizon);
   background:
     radial-gradient(ellipse 60% 22% at 50% var(--horizon), color-mix(in srgb, var(--ink-primary) 9%, transparent), transparent 70%),
     var(--page);
@@ -337,22 +335,9 @@ li[data-lit] {
   top: var(--horizon);
   height: 200%;
   transform-origin: top;
-  transform: rotateX(80deg);
   background-image:
     linear-gradient(to right, color-mix(in srgb, var(--ink-primary) 22%, transparent) 1px, transparent 1px),
     linear-gradient(to bottom, color-mix(in srgb, var(--ink-primary) 22%, transparent) 1px, transparent 1px);
-  background-size: 64px 64px;
   /* Fading toward the horizon, but only so far: its far end still shows, as faint as the horizon. */
   mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.4), black 30%);
-  animation: grid-room-drift 4s linear infinite;
-}
-@keyframes grid-room-drift {
-  to {
-    background-position: 0 64px;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .grid-room-floor {
-    animation: none;
-  }
 }

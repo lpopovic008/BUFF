@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "reac
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { GameMap, MappedGame } from "@/components/GameMap";
+import { FLOOR_TILT, GRID_PX, HORIZON_SHARE, PERSPECTIVE_PX, lowestGridLine } from "@/lib/grid-room";
 import { LeagueTicker, TickerLeague } from "@/components/LeagueTicker";
 import { ByeTeam, LeagueLegendEntry, StartersByGame, viewPlayers } from "@/components/StartersByGame";
 import { NFL_TEAMS } from "@/lib/nfl-logos";
@@ -203,6 +204,14 @@ export default function DashboardPage() {
   const [redZoneEmpty, setRedZoneEmpty] = useState(false);
   const redZoneRef = useRef<HTMLDivElement>(null);
   const mapColumnRef = useRef<HTMLDivElement>(null);
+  // How far up from the screen's bottom the floor's lowest grid line is — where the starters list stands.
+  const [standOn, setStandOn] = useState(0);
+  useEffect(() => {
+    const measure = () => setStandOn(window.innerHeight - lowestGridLine(window.innerHeight));
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
   // Where the map's column (and the page) stood before the Red Zone was stretched — back to just that once it's not.
   const scrollBeforeFull = useRef<{ column: number; page: number } | null>(null);
   const toggleRedZoneFull = () => {
@@ -426,11 +435,15 @@ export default function DashboardPage() {
   return (
     // From tablet width up the columns reach the bottom of the screen: the page's own bottom padding is taken back.
     // The room under the screens, where the floor shows: none on a phone.
-    <div className="flex flex-col gap-0.5 [--floor-room:0px] md:-mb-8 md:[--floor-room:9vh]">
+    <div className="flex flex-col gap-0.5 [--floor-room:0px] md:-mb-8 md:[--floor-room:9vh]" style={{ ["--stand" as string]: `${standOn}px` }}>
       <h1 className="sr-only">Dashboard</h1>
       {/* From tablet width up, the room the dashboard stands in: a grid floor running back to the horizon (see .grid-room). */}
-      <div aria-hidden className="grid-room max-md:hidden">
-        <div className="grid-room-floor" />
+      <div
+        aria-hidden
+        className="grid-room max-md:hidden"
+        style={{ ["--horizon" as string]: `${HORIZON_SHARE * 100}%`, perspective: `${PERSPECTIVE_PX}px`, perspectiveOrigin: `50% ${HORIZON_SHARE * 100}%` }}
+      >
+        <div className="grid-room-floor" style={{ transform: `rotateX(${FLOOR_TILT}deg)`, backgroundSize: `${GRID_PX}px ${GRID_PX}px` }} />
       </div>
       <LeagueTicker leagues={leagueCards} />
 
@@ -514,8 +527,11 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Starters by game — one continuous column running alongside the map and leagues, with its own independent scroll at md+ so a long list here doesn't push the left column around or vice versa. As wide as its rows need (in rem, so it shrinks with the text when the browser zooms out), the map taking the rest. */}
-        <div className={`w-full animate-[rise_0.5s_ease-out_backwards] [animation-delay:200ms] md:sticky md:top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+2px)] md:max-h-[calc(100vh-var(--header-h,0px)-var(--ticker-h,0px)-2px-var(--floor-room))] md:w-80 md:shrink-0 lg:w-[22rem] md:overflow-y-auto md:pb-16 md:origin-right md:[rotate:y_-4deg]`}>
+        {/* Starters by game — one continuous column running alongside the map and leagues, with its own independent scroll at md+ so a long list here doesn't push the left column around or vice versa. As wide as its rows need (in rem, so it shrinks with the text when the browser zooms out), the map taking the rest.
+            From tablet width up it stands upright on the floor's lowest grid line (--stand), facing you square on, as
+            something standing on a line across the floor does — from where it sits under the ticker (past the gap and
+            the row's padding, 0.625rem), so its foot is on the line whether or not it's stuck. */}
+        <div className={`w-full animate-[rise_0.5s_ease-out_backwards] [animation-delay:200ms] md:sticky md:top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] md:h-[calc(100vh-var(--header-h,0px)-var(--ticker-h,0px)-0.625rem-var(--stand))] md:w-80 md:shrink-0 lg:w-[22rem] md:overflow-y-auto md:pb-16`}>
           {myStarters === null ? (
             <p className="text-sm text-ink-secondary">Loading your lineups…</p>
           ) : weekGames.length === 0 ? (

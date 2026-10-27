@@ -1,14 +1,15 @@
-// A flat board — the payouts grid — seen at the dashboard map's opening
-// angle, with blocks standing on it. The same camera as the map's
-// (cameraTransform in map-perspective.ts, with no spin): the board tips back
-// the map's opening tilt about its near edge, so its far rows recede
-// and shrink, and anything raised off it lifts up the screen with its
+// A flat board — the payouts grid — seen in the dashboard map's camera
+// (cameraTransform in map-perspective.ts, with no spin), with blocks
+// standing on it: the board tips back about its near edge, so its far rows
+// recede and shrink, and anything raised off it lifts up the screen with its
 // near-facing side showing.
 
 /**
- * The map's opening tilt, and how strong its perspective is for its depth
- * (DEFAULT_CAMERA.tilt and FOCAL / MAP_H in map-perspective.ts — copied, not
- * imported, as that module carries the whole map with it; a test keeps them in step).
+ * The board's tilt — its own, less than the map's (laid back as far as the
+ * home page's floor, which would leave the board's rows too thin to read) —
+ * and how strong its perspective is for its depth, as the map's is (FOCAL /
+ * MAP_H in map-perspective.ts — copied, not imported, as that module carries
+ * the whole map with it; a test keeps them in step).
  */
 export const BOARD_TILT = 58;
 export const BOARD_FOCAL_PER_DEPTH = 2;
