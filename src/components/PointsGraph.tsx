@@ -328,8 +328,8 @@ export function PointsGraph({
   const fill = (onPace: boolean | null) => (onPace === null ? "fill-ink-muted" : onPace ? "fill-status-good" : "fill-status-critical");
 
   return (
-    // Open, like the map: no frame of its own.
-    <div ref={rootRef} className="flex h-full w-full min-w-0 flex-col bg-[var(--page)]">
+    // Open, like the map: no frame or background of its own — the room behind it.
+    <div ref={rootRef} className="flex h-full w-full min-w-0 flex-col">
       {/* Who, their game, and their total — and the way back to the map. */}
       <div className={`flex items-center gap-2 ${compact ? "px-1 py-0.5" : "px-2 py-1.5"}`}>
         {/* Whose he is, by the color of his name: yours green, the ones you're facing red, both yellow. */}

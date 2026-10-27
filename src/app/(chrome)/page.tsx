@@ -437,10 +437,10 @@ export default function DashboardPage() {
     // The room under the screens, where the floor shows: none on a phone.
     <div className="flex flex-col gap-0.5 [--floor-room:0px] md:-mb-8 md:[--floor-room:9vh]" style={{ ["--stand" as string]: `${standOn}px` }}>
       <h1 className="sr-only">Dashboard</h1>
-      {/* From tablet width up, the room the dashboard stands in: a grid floor running back to the horizon (see .grid-room). */}
+      {/* The room the dashboard stands in, on phones too: a grid floor running back to the horizon (see .grid-room). */}
       <div
         aria-hidden
-        className="grid-room max-md:hidden"
+        className="grid-room"
         style={{ ["--horizon" as string]: `${HORIZON_SHARE * 100}%`, perspective: `${PERSPECTIVE_PX}px`, perspectiveOrigin: `50% ${HORIZON_SHARE * 100}%` }}
       >
         <div className="grid-room-floor" style={{ transform: `rotateX(${FLOOR_TILT}deg)`, backgroundSize: `${GRID_PX}px ${GRID_PX}px` }} />

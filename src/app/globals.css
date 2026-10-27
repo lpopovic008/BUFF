@@ -307,7 +307,7 @@ li[data-lit] {
   }
 }
 
-/* The home page's room, from tablet width up: a horizon a little over halfway down the screen, and a grid floor
+/* The home page's room, on phones too: a horizon a little over halfway down the screen, and a grid floor
    running back to it — the dashboard's screens stand on it. Lines and glow in the theme's ink, so it's dark lines on
    light and light on dark. Its geometry (the horizon, the perspective, the floor's lay and grid) is set from
    grid-room.ts, where what stands on the floor finds its lines. */
