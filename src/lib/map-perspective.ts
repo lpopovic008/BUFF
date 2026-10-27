@@ -31,7 +31,7 @@ export interface MapCamera {
 }
 
 /** The view the map always opens on. */
-export const DEFAULT_CAMERA: MapCamera = { tilt: 48, yaw: 0, zoom: 1, tx: 160, ty: 100 };
+export const DEFAULT_CAMERA: MapCamera = { tilt: 58, yaw: 0, zoom: 1, tx: 160, ty: 100 };
 // 0 looks straight down on the map; 90 sees it edge-on, from the side.
 export const MIN_TILT = 0;
 export const MAX_TILT = 90;
