@@ -5,7 +5,6 @@ import { GroupedStarter } from "@/lib/my-starters";
 import { NFLGame } from "@/lib/nfl-schedule";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import { halftimeSpan, pacePieces, periodStarts, pointsTimeline } from "@/lib/live-play-points";
-import { sleeperDiffers } from "@/lib/matchup-timeline";
 import { useGamePlays, withScoreboardPlay } from "@/hooks/useRedZoneFeed";
 
 // Room around the plot for its labels, in px.
@@ -79,9 +78,8 @@ function minutes(ms: number): string {
  * Live, the line runs up to now and moves as plays come in, the axis running
  * on to about when the game should end. Each play is scored under the
  * league's own rules (`scoring`; PPR without one) — bonuses, a TE premium, a
- * defense's points-allowed bracket and all; should Sleeper's total still
- * differ — stats no single play carries — a dashed rise at the end makes up
- * the difference, so the line always ends on the number in their row.
+ * defense's points-allowed bracket and all — from ESPN's play-by-play
+ * alone: its total is what the plays add up to, never Sleeper's number.
  * Dragging (or hovering) across it puts a dotted line under the finger,
  * left where it's lifted, and the Red Zone shows the last play by then
  * (`onCursorPlay`); tapping the graph again, or anywhere off it, takes the
@@ -126,9 +124,7 @@ export function PointsGraph({
   const halftime = useMemo(() => halftimeSpan(plays), [plays]);
   const etchId = `etch-${useId().replace(/:/g, "")}`;
   const live = game.state === "in";
-  // The clock, ticking once the game's begun — though the line only runs to now while it's on.
-  const clockNow = useLiveNow(game.state !== "pre");
-  const now = live ? clockNow : null;
+  const now = useLiveNow(live);
 
   const plotRef = useRef<HTMLDivElement>(null);
   const size = useSize(plotRef);
@@ -137,11 +133,9 @@ export function PointsGraph({
   const [cursor, setCursor] = useState<{ at: number; playId?: string } | null>(null);
   const cursorAt = cursor?.at ?? null;
 
-  // Their total in the row — the league's number — which the line ends on, once Sleeper's had time to count the
-  // plays and still disagrees (see sleeperDiffers); till then the plays have it.
-  const final = game.state === "pre" ? null : player.points;
+  // Their total: ESPN's plays alone, scored under the league's scoring — never Sleeper's number, which lags the plays
+  // and needn't agree with them.
   const playTotal = steps.length > 0 ? steps[steps.length - 1].total : 0;
-  const makeUp = final !== null && Math.abs(final - playTotal) >= 0.05 && sleeperDiffers(steps, final, clockNow ?? 0) ? final : null;
   const projected = player.projected != null && player.projected > 0 ? player.projected : null;
 
   // The time it spans: kickoff (or its first play) to the final whistle — or,
@@ -154,7 +148,7 @@ export function PointsGraph({
   // Where the line stops: the end of the game, or now (its latest play, until the clock's read).
   const lineEnd = game.state === "pre" ? null : over ? end : Math.max(lastPlayAt, now ?? 0, start);
 
-  const values = [0, ...steps.map((s) => s.total), ...(makeUp !== null ? [makeUp] : []), ...(projected !== null ? [projected] : [])];
+  const values = [0, ...steps.map((s) => s.total), ...(projected !== null ? [projected] : [])];
   const step = niceStep(Math.max(5, Math.max(...values) - Math.min(...values)));
   const lo = Math.floor(Math.min(...values) / step) * step;
   const hi = Math.max(lo + step, Math.ceil(Math.max(...values, 5) / step) * step);
@@ -329,7 +323,7 @@ export function PointsGraph({
   }, [compact, steps, cursor, shownStep]);
 
   const status = game.state === "pre" ? `Kickoff ${clock(kickoff)}` : over ? "Final" : (game.statusDetail ?? "Live");
-  const shownTotal = final ?? player.projected ?? null;
+  const shownTotal = game.state === "pre" ? (player.projected ?? null) : playTotal;
   const baseline = y(Math.max(lo, 0));
   const fill = (onPace: boolean | null) => (onPace === null ? "fill-ink-muted" : onPace ? "fill-status-good" : "fill-status-critical");
 
@@ -467,11 +461,8 @@ export function PointsGraph({
             {lineEnd !== null ? (
               <g className="text-ink-primary">
                 <path d={line} fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinejoin="miter" />
-                {makeUp !== null ? (
-                  <line x1={x(lineEnd)} x2={x(lineEnd)} y1={y(playTotal)} y2={y(makeUp)} stroke="currentColor" strokeWidth={1.75} strokeDasharray="3 2" />
-                ) : null}
                 {/* Where it stands now, while the game's on. */}
-                {live ? <circle cx={x(lineEnd)} cy={y(makeUp ?? playTotal)} r={2.5} fill="currentColor" className="animate-pulse" /> : null}
+                {live ? <circle cx={x(lineEnd)} cy={y(playTotal)} r={2.5} fill="currentColor" className="animate-pulse" /> : null}
               </g>
             ) : null}
             {/* How much of the game they've been on pace (green) and behind it (red), up in the corner. */}

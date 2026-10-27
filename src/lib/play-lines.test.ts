@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { GamePlay } from "./play-by-play";
-import { findPlayer, labelNames, LinePlayer, linesForPlays, playAction, statLine } from "./play-lines";
+import { findPlayer, labelNames, LinePlayer, linePoints, linesForPlays, playAction, statLine } from "./play-lines";
 
 function play(over: Partial<GamePlay>): GamePlay {
   return {
@@ -198,4 +198,17 @@ test("playAction says what someone did on the play", () => {
   assert.equal(playAction(null), "");
   assert.equal(playAction({ fga: 1, fgm: 1, fgm_yds: 45 }), "45 yard FG");
   assert.equal(playAction({ sack: 1 }), "sack");
+});
+
+test("linePoints scores a line under a league's own scoring, from its stats alone", () => {
+  const plays = [
+    play({ id: "a", sequence: 1, type: "Pass Reception", text: "J.Allen pass short left to D.Kincaid to BUF 33 for 8 yards (J.Phillips)." }),
+    play({ id: "b", sequence: 2, type: "Pass Reception", text: "J.Allen pass short right to D.Kincaid for 12 yards." }),
+  ];
+  const line = linesForPlays(plays, ["BUF", "MIA"], pool).get("b")!.find((l) => l.name === "Dalton Kincaid")!;
+  // Standard PPR without a league's: 1 + 1.2 on the play, 4 in all.
+  assert.deepEqual(linePoints(line), { delta: 2.2, total: 4 });
+  // Half PPR with a TE premium: 0.5 + 0.5 + 1.2 on the play.
+  assert.deepEqual(linePoints(line, { rec: 0.5, rec_yd: 0.1, bonus_rec_te: 0.5 }), { delta: 2.2, total: 4 });
+  assert.deepEqual(linePoints(line, { rec: 0.5, rec_yd: 0.1 }), { delta: 1.7, total: 3 });
 });

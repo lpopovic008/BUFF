@@ -3,7 +3,7 @@
 // earned them, and how their game is going.
 
 import { FeedCandidate, GamePlay, playTextActors } from "./play-by-play";
-import { PlayStats, pprPoints, statsForPlay } from "./play-points";
+import { PlayStats, pprPoints, scoreStats, statsForPlay } from "./play-points";
 
 /** A player a play's names can be matched to. */
 export interface LinePlayer {
@@ -147,6 +147,19 @@ export function linesForPlays(
     out.set(play.id, lines);
   }
   return out;
+}
+
+/**
+ * A line's points under a league's own scoring (see scoreStats): its game total through the play, and what the
+ * play added — worked out from ESPN's play-by-play alone, the same way the player graphs score it. Standard PPR (the
+ * line's own) without a league's scoring, and for a defense, whose points hang on what it's allowed.
+ */
+export function linePoints(line: PlayLine, scoring?: Record<string, number>): { delta: number | null; total: number | null } {
+  if (!scoring || !line.stats || !line.did || line.position === "DEF") return { delta: line.delta, total: line.total };
+  const before: PlayStats = { ...line.stats };
+  for (const [key, value] of Object.entries(line.did)) before[key] = (before[key] ?? 0) - value;
+  const total = scoreStats(line.stats, scoring, line.position);
+  return { delta: Math.round((total - scoreStats(before, scoring, line.position)) * 100) / 100, total };
 }
 
 const n = (stats: Record<string, number>, key: string) => Math.round(stats[key] ?? 0);

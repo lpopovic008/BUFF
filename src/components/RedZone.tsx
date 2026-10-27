@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, memo, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ExpandVerticalIcon } from "@/components/ui/Icon";
 import { Ordinals } from "@/components/Ordinals";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
@@ -13,7 +13,7 @@ import { GameStarters, GroupedStarter } from "@/lib/my-starters";
 import { gameClock, NFLGame } from "@/lib/nfl-schedule";
 import { formatPlayPoints } from "@/lib/play-points";
 import { yardLineLabel } from "@/lib/play-by-play";
-import { playAction, PlayLine, statLine } from "@/lib/play-lines";
+import { linePoints, playAction, PlayLine, statLine } from "@/lib/play-lines";
 import { useFullPlays } from "@/hooks/useFullPlays";
 import { nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
@@ -55,7 +55,10 @@ function whenLabel(entry: FeedEntry): string {
 }
 
 const POINTS_TITLE =
-  "Standard PPR points, worked out from ESPN's play-by-play — your league's scoring, and Sleeper's official numbers, can differ.";
+  "Points worked out from ESPN's play-by-play alone, under your league's scoring (standard PPR for anyone you don't start) — Sleeper's official numbers can differ.";
+
+/** Each league's scoring, by league id — a starter's line is scored under his first league's, as his graph is. */
+const ScoringContext = createContext<Map<string, Record<string, number> | undefined>>(new Map());
 
 function deltaClass(delta: number): string {
   return delta > 0 ? "text-status-good" : delta < 0 ? "text-status-critical" : "text-ink-muted";
@@ -76,21 +79,22 @@ function TotalChip({ total }: { total: number }) {
  * down, for your starters), then their PPR total for the game through this
  * play, highlighted.
  */
-function LinePoints({ line, mine, at }: { line: PlayLine; mine: boolean; at: number }) {
-  if (line.delta === null || line.total === null) return null;
+function LinePoints({ line, mine, at, scoring }: { line: PlayLine; mine: boolean; at: number; scoring?: Record<string, number> }) {
+  const { delta, total } = linePoints(line, scoring);
+  if (delta === null || total === null) return null;
   return (
     <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap leading-none tabular-nums" title={POINTS_TITLE}>
       {/* Tagged so the starters list can find it and light it up as it applies it to this player's total. */}
       <span
         {...(line.playerId ? { "data-rz-player": line.playerId } : { "data-rz-actor": line.label ?? "", "data-rz-team": line.team ?? "" })}
-        data-rz-delta={line.delta}
+        data-rz-delta={delta}
         data-rz-at={at}
         // The total's type, not bold (green or red for your own player's).
-        className={`text-[0.8125rem] ${mine ? deltaClass(line.delta) : "text-ink-secondary"}`}
+        className={`text-[0.8125rem] ${mine ? deltaClass(delta) : "text-ink-secondary"}`}
       >
-        {formatPlayPoints(line.delta)}
+        {formatPlayPoints(delta)}
       </span>
-      <TotalChip total={line.total} />
+      <TotalChip total={total} />
     </span>
   );
 }
@@ -116,6 +120,7 @@ function PlayerLine({
   at: number;
 }) {
   const defense = line.position === "DEF";
+  const scoringByLeague = useContext(ScoringContext);
   // Their game as it stood once this play was over.
   const summary = statLine(line.position, line.stats ?? undefined);
   return (
@@ -155,7 +160,7 @@ function PlayerLine({
           </span>
         )}
       </span>
-      <LinePoints line={line} mine={!!starter} at={at} />
+      <LinePoints line={line} mine={!!starter} at={at} scoring={starter?.leagueIds[0] ? scoringByLeague.get(starter.leagueIds[0]) : undefined} />
     </li>
   );
 }
@@ -393,6 +398,7 @@ function RedZoneAlert({ alert }: { alert: RedZoneNow }) {
 }
 
 const NO_GAMES = new Set<string>();
+const NO_SCORING = new Map<string, Record<string, number> | undefined>();
 
 /** Which plays the Red Zone shows: your starters', theirs and the ones you face too, or every play. */
 export type RedZoneScope = "mine" | "vs" | "all";
@@ -422,6 +428,7 @@ export function RedZone({
   full,
   hiddenGames = NO_GAMES,
   onEmptyChange,
+  scoringByLeague = NO_SCORING,
 }: {
   /** Your starters, grouped by the game they're playing in. */
   starters: GameStarters[];
@@ -441,6 +448,8 @@ export function RedZone({
   compactOnPhone?: boolean;
   /** From tablet width up, whether the box is stretched to the whole column's height, and the ⇕ button's switch for it (on a phone the button fits the box to the screen). */
   full?: { on: boolean; toggle: () => void };
+  /** Each of your leagues' scoring, by league id: a starter's points are scored under his first league's (see linePoints). */
+  scoringByLeague?: Map<string, Record<string, number> | undefined>;
   /** Games hidden in the starters list (their matchups swiped over), by id: none of their plays shown. */
   hiddenGames?: Set<string>;
   /** Told whether it has no plays to show (just its header, then), so its room can go to the rest of the page. */
@@ -600,9 +609,11 @@ export function RedZone({
   const across = !live || empty;
   useEffect(() => onEmptyChange?.(empty), [empty, onEmptyChange]);
   return (
-    // No box: while games are on, the header runs down the left side as narrow as it goes, the plays spread out
-    // beside it to the next section or the screen's edge; otherwise it runs across the top, the plays under it.
-    // From tablet width up it fills the room it's given; on a phone it's about one big play tall.
+    // Each starter's points scored under his league's scoring (see PlayerLine).
+    <ScoringContext.Provider value={scoringByLeague}>
+    {/* No box: while games are on, the header runs down the left side as narrow as it goes, the plays spread out
+        beside it to the next section or the screen's edge; otherwise it runs across the top, the plays under it.
+        From tablet width up it fills the room it's given; on a phone it's about one big play tall. */}
     <div className={`flex md:min-h-0 md:flex-1 ${across ? "flex-col" : "flex-row"}`}>
       <div
         // Down the side, its contents sit inside it, never making the Red Zone taller.
@@ -715,5 +726,6 @@ export function RedZone({
         </div>
       )}
     </div>
+    </ScoringContext.Provider>
   );
 }

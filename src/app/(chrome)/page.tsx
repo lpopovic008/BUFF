@@ -500,6 +500,7 @@ export default function DashboardPage() {
                   hiddenGames={offMap}
                   full={{ on: redZoneFull, toggle: toggleRedZoneFull }}
                   onEmptyChange={setRedZoneEmpty}
+                  scoringByLeague={scoringByLeague}
                 />
               </div>
             ) : null}
