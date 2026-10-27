@@ -204,25 +204,13 @@ export default function DashboardPage() {
   const [redZoneEmpty, setRedZoneEmpty] = useState(false);
   const redZoneRef = useRef<HTMLDivElement>(null);
   const mapColumnRef = useRef<HTMLDivElement>(null);
-  // How far up from the screen's bottom the floor's lowest grid line is — where the starters list stands — and the
-  // room's vanishing point (the middle of the horizon) from the list's corner, so it's seen in the room's own perspective.
+  // How far up from the screen's bottom the floor's lowest grid line is — where the starters list stands.
   const [standOn, setStandOn] = useState(0);
-  const [vanishing, setVanishing] = useState<string | undefined>(undefined);
-  const standRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const measure = () => {
-      setStandOn(window.innerHeight - lowestGridLine(window.innerHeight));
-      const box = standRef.current?.getBoundingClientRect();
-      if (box) setVanishing(`${window.innerWidth / 2 - box.left}px ${window.innerHeight * HORIZON_SHARE - box.top}px`);
-    };
+    const measure = () => setStandOn(window.innerHeight - lowestGridLine(window.innerHeight));
     measure();
     window.addEventListener("resize", measure);
-    const observer = new ResizeObserver(measure);
-    if (standRef.current) observer.observe(standRef.current);
-    return () => {
-      window.removeEventListener("resize", measure);
-      observer.disconnect();
-    };
+    return () => window.removeEventListener("resize", measure);
   }, []);
   // Where the map's column (and the page) stood before the Red Zone was stretched — back to just that once it's not.
   const scrollBeforeFull = useRef<{ column: number; page: number } | null>(null);
@@ -540,16 +528,10 @@ export default function DashboardPage() {
         </div>
 
         {/* Starters by game — one continuous column running alongside the map and leagues, with its own independent scroll at md+ so a long list here doesn't push the left column around or vice versa. As wide as its rows need (in rem, so it shrinks with the text when the browser zooms out), the map taking the rest.
-            From tablet width up it stands on the floor's lowest grid line (--stand) — from where it sits under the ticker
-            (past the gap and the row's padding, 0.625rem), so its outer corner's foot is on the line whether or not
-            it's stuck — turned in toward the middle about that outer edge, and seen in the room's own perspective
-            (its strength, and the horizon's middle as its vanishing point), so its inner edge recedes as the floor does. */}
-        <div
-          ref={standRef}
-          className={`w-full animate-[rise_0.5s_ease-out_backwards] [animation-delay:200ms] md:sticky md:top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] md:h-[calc(100vh-var(--header-h,0px)-var(--ticker-h,0px)-0.625rem-var(--stand))] md:w-80 md:shrink-0 lg:w-[22rem]`}
-          style={desktop ? { perspective: `${PERSPECTIVE_PX}px`, perspectiveOrigin: vanishing } : undefined}
-        >
-        <div className="md:h-full md:origin-bottom-right md:overflow-y-auto md:pb-16 md:[transform:rotateY(-10deg)]">
+            From tablet width up it stands upright on the floor's lowest grid line (--stand), facing you square on, as
+            something standing on a line across the floor does — from where it sits under the ticker (past the gap and
+            the row's padding, 0.625rem), so its foot is on the line whether or not it's stuck. */}
+        <div className={`w-full animate-[rise_0.5s_ease-out_backwards] [animation-delay:200ms] md:sticky md:top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] md:h-[calc(100vh-var(--header-h,0px)-var(--ticker-h,0px)-0.625rem-var(--stand))] md:w-80 md:shrink-0 lg:w-[22rem] md:overflow-y-auto md:pb-16`}>
           {myStarters === null ? (
             <p className="text-sm text-ink-secondary">Loading your lineups…</p>
           ) : weekGames.length === 0 ? (
@@ -576,7 +558,6 @@ export default function DashboardPage() {
               onViewsChange={setListViews}
             />
           )}
-        </div>
         </div>
       </div>
 
