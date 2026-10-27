@@ -604,7 +604,7 @@ function EyeIcon({ off }: { off: boolean }) {
 
 /**
  * Swiped left — by touch, a mouse drag or a trackpad's sideways scroll — a
- * box slides over to show a button behind it, the way a list row does on iOS.
+ * box slides over to show a button beside it, the way a list row does on iOS.
  * Swiped back, or tapped anywhere outside the button, it slides home again.
  */
 function Swipeable({ children, action, className }: { children: React.ReactNode; action: React.ReactNode; className: string }) {
@@ -671,11 +671,19 @@ function Swipeable({ children, action, className }: { children: React.ReactNode;
         }
       }}
     >
-      <div ref={actionRef} className="absolute inset-y-0 right-0 flex items-stretch" style={{ width: SWIPE_PX }}>
-        {action}
+      {/* The button opens from the right edge as the box slides off it — never under the box, which has no
+          background of its own to hide it. */}
+      <div
+        ref={actionRef}
+        className={`absolute inset-y-0 right-0 flex justify-end overflow-hidden ${dragging ? "" : "transition-[width] duration-200 ease-out"}`}
+        style={{ width: Math.max(0, -offset) }}
+      >
+        <div className="flex shrink-0 items-stretch" style={{ width: SWIPE_PX }}>
+          {action}
+        </div>
       </div>
       <div
-        className={`relative bg-[var(--page)] ${dragging ? "select-none" : "transition-transform duration-200 ease-out"}`}
+        className={`relative ${dragging ? "select-none" : "transition-transform duration-200 ease-out"}`}
         style={{ transform: offset ? `translateX(${offset}px)` : undefined }}
       >
         {children}
@@ -693,7 +701,7 @@ function Swipeable({ children, action, className }: { children: React.ReactNode;
  * themselves just as a time block's do, and the box slides to its new
  * height. A game's matchup swipes left to show a button that hides the game
  * from the map and the Red Zone (or brings it back); while it's hidden its
- * border goes dashed and its matchup dims.
+ * matchup dims.
  */
 function GameBox({
   id,
@@ -783,9 +791,9 @@ function GameBox({
       {children}
     </div>
   );
-  // Each game boxed, so one game's players never run into the next's — its border dashed while it's hidden.
+  // Each game on the room behind, no box of its own: just its words and its field (dimmed while it's hidden).
   return (
-    <div className={`border border-ink-muted/40 ${map?.off ? "border-dashed" : ""}`}>
+    <div>
       <div ref={box} className="flex flex-col px-2 py-1.5">
         {map ? (
           // Just the matchup swipes over, out to the box's edges, to show the button that hides the game.
@@ -811,7 +819,7 @@ function GameBox({
         )}
         {/* The players its view lists, set apart below the teams. */}
         {shown.length > 0 ? (
-          <div className="mt-1 border-t border-ink-muted/25 pt-1">
+          <div className="mt-1 pt-1">
             <GameRows
               players={shown}
               sortByPoints={live}
@@ -911,8 +919,8 @@ function ByeRow({
                     }
                   : undefined
               }
-              // An open one is outlined in ink, to tie it to its players below.
-              className={`min-w-0 border px-2 py-1.5 ${open ? "border-ink-primary" : "border-ink-muted/40"} ${toggleable ? "cursor-pointer transition-opacity hover:opacity-80" : ""}`}
+              // An open one stands out in bold ink, to tie it to its players below.
+              className={`min-w-0 px-2 py-1.5 ${open ? "font-bold text-ink-primary" : ""} ${toggleable ? "cursor-pointer transition-opacity hover:opacity-80" : ""}`}
             >
               <ByeLine team={b.team} shown />
             </div>
@@ -925,7 +933,7 @@ function ByeRow({
         if (shown.length === 0) return null;
         const closing = closingGames.has(id);
         return (
-          <div key={id} className="flex flex-col border border-ink-muted/40 px-2 py-1.5">
+          <div key={id} className="flex flex-col px-2 py-1.5">
             <span className="text-[0.625rem] font-semibold uppercase tracking-wider text-ink-muted">{b.team ?? "No team"}</span>
             <GameRows
               players={shown}
@@ -1173,7 +1181,7 @@ export function StartersByGame({
     <div className="flex flex-col gap-0.5 md:pt-3.5">
       {nothingToShow ? null : (
         // Every box to one view at once.
-        <div className="grid grid-cols-3 border border-ink-muted/40" role="group" aria-label="Show in every game">
+        <div className="grid grid-cols-3" role="group" aria-label="Show in every game">
           {VIEW_NAMES.map(([view, name]) => (
             <button
               key={view}
