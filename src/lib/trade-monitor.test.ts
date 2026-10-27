@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { afterTrade, futurePicks, MonitorPlayer, MonitorTeam, playoffPicture, positionalNeeds, sellCandidates, startersByPosition, tradePartners, tradeTargets, weighTrade } from "./trade-monitor";
+import { afterTrade, evenUps, futurePicks, MonitorPlayer, MonitorTeam, playoffPicture, positionalNeeds, sellCandidates, startersByPosition, tradePartners, tradeTargets, weighTrade } from "./trade-monitor";
 
 const team = (rosterId: number, wins: number, losses: number, players: string[] = []): MonitorTeam => ({
   rosterId,
@@ -127,4 +127,24 @@ test("afterTrade moves the pieces between the two rosters only", () => {
   const teams = [team(1, 0, 0, ["a", "b"]), team(2, 0, 0, ["c"]), team(3, 0, 0, ["d"])];
   const after = afterTrade(teams, 1, 2, ["a"], ["c"]);
   assert.deepEqual(after.map((t) => t.players), [["b", "c"], ["a"], ["d"]]);
+});
+
+test("evenUps finds the pieces that bring a trade back toward even, the nearest first", () => {
+  // You get 8000 for 5000. KTC's added value means small adds only widen the gap (the one better piece is due
+  // more): only a big enough piece closes it.
+  const pool = [
+    { id: "big", value: 9000 },
+    { id: "right", value: 6000 },
+    { id: "small", value: 2500 },
+    { id: "tiny", value: 300 },
+    { id: "nothing", value: null },
+  ];
+  const ups = evenUps([5000], [8000], pool, "give");
+  assert.deepEqual(ups.map((u) => u.id), ["right"]);
+  assert.ok(Math.abs(ups[0].verdict.margin) < 3000);
+  // Behind instead: what to ask them for.
+  assert.equal(evenUps([8000], [5000], pool, "get")[0].id, "right");
+  // One that makes it fair goes ahead of any that only gets closer.
+  const fair = evenUps([5000], [8000], [{ id: "closer", value: 6000 }, { id: "fair", value: 6200 }], "give");
+  assert.deepEqual(fair.map((u) => [u.id, u.verdict.fair]), [["fair", true], ["closer", false]]);
 });

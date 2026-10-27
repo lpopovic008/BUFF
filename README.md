@@ -322,6 +322,10 @@ season's stats (`trade-monitor.ts`, loaded by `useTradeMonitor`):
   value for fewer, better pieces (`weighTrade`), the verdict says who wins and
   by how much (fair within 5%), and both rosters' ranks at each position show
   before and after (`afterTrade`). Your best trade partner is picked to start.
+  KTC's value adjustment shows as a line of its own under the side it's due,
+  and when the trade isn't fair it suggests what would even it out
+  (`evenUps`): ahead, pieces of yours to add; behind, pieces of theirs to ask
+  for — each with where it would leave the trade, one tap to add it.
 - **Playoff picture** — every team against the playoff line: in, on the bubble
   (within a game either way), out, or clinched / eliminated with the games
   left, and so likely buying, selling or either.

@@ -333,3 +333,24 @@ export function afterTrade(teams: MonitorTeam[], mine: number, theirs: number, g
         : t
   );
 }
+
+/** A piece that would bring a trade closer to even, and the trade weighed with it in. */
+export interface EvenUp {
+  id: string;
+  verdict: TradeVerdict;
+}
+
+/**
+ * The pieces from `pool` that, added to one side of a trade (`side`: what you give, or what you get), bring it
+ * closest to even — only those that bring it closer than it is, those that make it fair first, then by how near
+ * even each leaves it. Pieces with no value can't help and aren't counted.
+ */
+export function evenUps(give: number[], get: number[], pool: { id: string; value: number | null }[], side: "give" | "get", count = 4): EvenUp[] {
+  const now = Math.abs(weighTrade(give, get).margin);
+  return pool
+    .filter((p): p is { id: string; value: number } => (p.value ?? 0) > 0)
+    .map((p) => ({ id: p.id, verdict: side === "give" ? weighTrade([...give, p.value], get) : weighTrade(give, [...get, p.value]) }))
+    .filter((e) => Math.abs(e.verdict.margin) < now)
+    .sort((a, b) => Number(b.verdict.fair) - Number(a.verdict.fair) || Math.abs(a.verdict.margin) - Math.abs(b.verdict.margin))
+    .slice(0, count);
+}

@@ -6,7 +6,7 @@ import { TradeMonitor } from "@/hooks/useTradeMonitor";
 import { ordinal } from "@/lib/format";
 import { shownGrade, valueGrade } from "@/lib/player-values";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
-import { afterTrade, FAIR_SHARE, MONITOR_POSITIONS, MonitorPlayer, positionalNeeds, weighTrade } from "@/lib/trade-monitor";
+import { afterTrade, evenUps, FAIR_SHARE, MONITOR_POSITIONS, MonitorPlayer, positionalNeeds, weighTrade } from "@/lib/trade-monitor";
 
 /** A piece a team could trade: a player, or a future draft pick. */
 interface Piece {
@@ -28,10 +28,13 @@ function Side({
   onAdd,
   onRemove,
   onOpen,
+  added,
 }: {
   title: string;
   pieces: Piece[];
   chosen: string[];
+  /** KTC's added value this side's due on top of its pieces (see weighTrade), shown as a line of its own. */
+  added: number;
   onAdd: (id: string) => void;
   onRemove: (id: string) => void;
   onOpen: (p: MonitorPlayer) => void;
@@ -68,6 +71,17 @@ function Side({
             </li>
           );
         })}
+        {/* KTC's adjustment, as its calculator shows it: a line under the pieces, for fewer, better ones. */}
+        {added > 0 ? (
+          <li className="flex items-center gap-2 border-t border-dashed border-ink-muted py-1.5" title="KTC's value adjustment: fewer, better pieces are worth more than the plain sum">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center text-sm font-extrabold text-status-good" aria-hidden>
+              +
+            </span>
+            <span className="min-w-0 truncate text-sm font-bold text-ink-secondary">Value adjustment</span>
+            <span className="ml-auto shrink-0 text-sm font-extrabold tabular-nums text-status-good">+{grade(added)}</span>
+            <span className="h-6 w-6 shrink-0" aria-hidden />
+          </li>
+        ) : null}
       </ul>
       <select
         value=""
@@ -130,6 +144,14 @@ export function TradeCalculator({ monitor, onOpen }: { monitor: TradeMonitor; on
   const after = positionalNeeds(afterTrade(monitor.teams, mine.rosterId, partnerId, give, get), monitor.players, monitor.starters);
   const rankIn = (needs: typeof before, rosterId: number) => needs.find((n) => n.rosterId === rosterId)!.positions;
   const total = verdict.give.total + verdict.get.total;
+  // Ahead, pieces of yours would even it; behind, pieces of theirs.
+  const ahead = verdict.margin > 0;
+  const balancers = evenUps(
+    give.map(value),
+    get.map(value),
+    (ahead ? ours.filter((p) => !give.includes(p.id)) : theirs.filter((p) => !get.includes(p.id))).map((p) => ({ id: p.id, value: p.value })),
+    ahead ? "give" : "get"
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -153,8 +175,8 @@ export function TradeCalculator({ monitor, onOpen }: { monitor: TradeMonitor; on
       </label>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Side title="You give" pieces={ours} chosen={give} onAdd={(id) => setGive((g) => [...g, id])} onRemove={(id) => setGive((g) => g.filter((x) => x !== id))} onOpen={onOpen} />
-        <Side title={`You get from ${teamName(partnerId)}`} pieces={theirs} chosen={get} onAdd={(id) => setGet((g) => [...g, id])} onRemove={(id) => setGet((g) => g.filter((x) => x !== id))} onOpen={onOpen} />
+        <Side title="You give" pieces={ours} chosen={give} onAdd={(id) => setGive((g) => [...g, id])} onRemove={(id) => setGive((g) => g.filter((x) => x !== id))} onOpen={onOpen} added={verdict.give.added} />
+        <Side title={`You get from ${teamName(partnerId)}`} pieces={theirs} chosen={get} onAdd={(id) => setGet((g) => [...g, id])} onRemove={(id) => setGet((g) => g.filter((x) => x !== id))} onOpen={onOpen} added={verdict.get.added} />
       </div>
 
       {any ? (
@@ -164,7 +186,6 @@ export function TradeCalculator({ monitor, onOpen }: { monitor: TradeMonitor; on
             <div className="flex flex-col">
               <span className="text-[0.625rem] font-bold uppercase tracking-wide text-ink-muted">You give</span>
               <span className="text-3xl font-extrabold leading-none tabular-nums text-ink-primary">{grade(verdict.give.total)}</span>
-              {verdict.give.added > 0 ? <span className="text-[0.6875rem] tabular-nums text-ink-muted">+{grade(verdict.give.added)} added value</span> : null}
             </div>
             <span
               className={`border px-2 py-1 text-center text-xs font-extrabold uppercase tracking-wide ${
@@ -176,13 +197,51 @@ export function TradeCalculator({ monitor, onOpen }: { monitor: TradeMonitor; on
             <div className="flex flex-col items-end">
               <span className="text-[0.625rem] font-bold uppercase tracking-wide text-ink-muted">You get</span>
               <span className="text-3xl font-extrabold leading-none tabular-nums text-ink-primary">{grade(verdict.get.total)}</span>
-              {verdict.get.added > 0 ? <span className="text-[0.6875rem] tabular-nums text-ink-muted">+{grade(verdict.get.added)} added value</span> : null}
             </div>
           </div>
           <div className="flex h-2.5 w-full gap-0.5" aria-hidden>
             <span className="h-full bg-ink-muted" style={{ width: `${total > 0 ? (verdict.give.total / total) * 100 : 50}%` }} />
             <span className="h-full bg-ink-primary" style={{ width: `${total > 0 ? (verdict.get.total / total) * 100 : 50}%` }} />
           </div>
+
+          {/* What would even it out: ahead, pieces of yours to add; behind, pieces of theirs to ask for. */}
+          {!verdict.fair && give.length > 0 && get.length > 0 ? (
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[0.6875rem] font-bold uppercase tracking-wide text-ink-secondary">
+                {ahead ? "Add one of yours to even it out" : `Ask for one of ${teamName(partnerId)}'s to even it out`}
+              </span>
+              {balancers.length > 0 ? (
+                <ul className="grid gap-1.5 sm:grid-cols-2">
+                  {balancers.map((b) => {
+                    const p = [...ours, ...theirs].find((x) => x.id === b.id)!;
+                    return (
+                      <li key={b.id}>
+                        <button
+                          type="button"
+                          onClick={() => (ahead ? setGive((g) => [...g, b.id]) : setGet((g) => [...g, b.id]))}
+                          className="flex w-full items-center gap-2 border border-border px-2 py-1.5 text-left hover:border-ink-primary"
+                        >
+                          {p.player ? <PlayerHeadshot playerId={p.id} size={22} /> : <span className="h-[1.375rem] w-[1.375rem] shrink-0 rounded-full border-2 border-ink-muted" aria-hidden />}
+                          <span className="min-w-0 flex-1 truncate text-sm font-bold text-ink-primary">
+                            {p.label}
+                            {p.player ? <span className={`ml-1.5 text-[0.625rem] font-semibold uppercase ${POSITION_TEXT_COLOR[p.position] ?? "text-ink-muted"}`}>{p.position}</span> : null}
+                          </span>
+                          <span className="shrink-0 text-sm font-extrabold tabular-nums text-ink-primary">{p.value != null ? grade(p.value) : ""}</span>
+                          <span
+                            className={`shrink-0 text-[0.6875rem] font-bold uppercase ${b.verdict.fair ? "text-ink-primary" : b.verdict.margin > 0 ? "text-status-good" : "text-status-critical"}`}
+                          >
+                            {b.verdict.fair ? "→ Fair" : b.verdict.margin > 0 ? `→ Up ${grade(b.verdict.margin)}` : `→ Down ${grade(-b.verdict.margin)}`}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="text-xs text-ink-muted">Nothing on its own brings it closer: a smaller piece only adds to the other side&rsquo;s value adjustment.</p>
+              )}
+            </div>
+          ) : null}
 
           {/* What it does to both rosters: each team's rank at each position, before and after. */}
           <div className="grid gap-3 sm:grid-cols-2">
