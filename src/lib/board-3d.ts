@@ -10,7 +10,7 @@
  * (DEFAULT_CAMERA.tilt and FOCAL / MAP_H in map-perspective.ts — copied, not
  * imported, as that module carries the whole map with it; a test keeps them in step).
  */
-export const BOARD_TILT = 32;
+export const BOARD_TILT = 48;
 export const BOARD_FOCAL_PER_DEPTH = 2;
 
 /** [screen x, screen y, perspective scale] for a board point. */

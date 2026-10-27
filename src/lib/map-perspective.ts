@@ -31,7 +31,7 @@ export interface MapCamera {
 }
 
 /** The view the map always opens on. */
-export const DEFAULT_CAMERA: MapCamera = { tilt: 32, yaw: 0, zoom: 1, tx: 160, ty: 100 };
+export const DEFAULT_CAMERA: MapCamera = { tilt: 48, yaw: 0, zoom: 1, tx: 160, ty: 100 };
 // 0 looks straight down on the map; 90 sees it edge-on, from the side.
 export const MIN_TILT = 0;
 export const MAX_TILT = 90;
@@ -444,9 +444,11 @@ function projectorFor(camera: MapCamera): { project: MapProjector; scaleAt: MapS
   };
 }
 
-// The opening view's half-size around the map's projected center: wide
-// enough for the whole country, plus room above for the mountains. Every
-// view is this, divided by its zoom.
+// The opening view around the map's projected center: wide enough for the
+// whole country, and just tall enough — its far (upper) edge, shrunk by the
+// perspective, needs less room above the center than its near edge below, so
+// the view takes each as it is rather than the larger twice. Every view is
+// this, divided by its zoom.
 const BASE = (() => {
   const { project } = projectorFor(DEFAULT_CAMERA);
   const [cx, cy] = project(CENTER[0], CENTER[1]);
@@ -461,18 +463,17 @@ const BASE = (() => {
       down = Math.max(down, py - cy);
     }
   }
-  return { halfW: halfW + PAD, halfH: Math.max(up, down) + PAD };
+  return { halfW: halfW + PAD, up: up + PAD, down: down + PAD };
 })();
 
 /** The map's fixed width-to-height ratio on the page. */
-export const MAP_ASPECT = BASE.halfW / BASE.halfH;
+export const MAP_ASPECT = (BASE.halfW * 2) / (BASE.up + BASE.down);
 
 export function buildMapScene(camera: MapCamera): MapScene {
   const { project, scaleAt } = projectorFor(camera);
   const [cx, cy] = project(camera.tx, camera.ty);
   const halfW = BASE.halfW / camera.zoom;
-  const halfH = BASE.halfH / camera.zoom;
-  const view = { x: cx - halfW, y: cy - halfH, width: halfW * 2, height: halfH * 2 };
+  const view = { x: cx - halfW, y: cy - BASE.up / camera.zoom, width: halfW * 2, height: (BASE.up + BASE.down) / camera.zoom };
   const viewBox = `${view.x.toFixed(2)} ${view.y.toFixed(2)} ${view.width.toFixed(2)} ${view.height.toFixed(2)}`;
   let farScale = Infinity;
   for (let i = 0; i < OUTLINE.xs.length; i++) farScale = Math.min(farScale, scaleAt(OUTLINE.xs[i], OUTLINE.ys[i]));

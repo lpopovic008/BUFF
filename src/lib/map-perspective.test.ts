@@ -26,10 +26,11 @@ import { US_STATE_SHAPES } from "./us-states";
 import { TEAM_CITIES } from "./team-cities";
 
 const aspect = (s: { view: { width: number; height: number } }) => s.view.width / s.view.height;
-const center = (s: { view: { x: number; y: number; width: number; height: number } }) => [
-  s.view.x + s.view.width / 2,
-  s.view.y + s.view.height / 2,
-];
+// Where in the view (as shares of its width and height) a scene's camera target sits.
+const targetAt = (s: { view: { x: number; y: number; width: number; height: number }; project: (x: number, y: number) => [number, number] }, tx: number, ty: number) => {
+  const [px, py] = s.project(tx, ty);
+  return [(px - s.view.x) / s.view.width, (py - s.view.y) / s.view.height];
+};
 
 test("normalizeYaw folds any angle into (-180, 180]", () => {
   assert.equal(normalizeYaw(0), 0);
@@ -59,7 +60,7 @@ test("a full turn at the opening zoom is still the default view; any zoom isn't"
   assert.ok(!isDefaultCamera({ ...DEFAULT_CAMERA, tx: 250 }));
 });
 
-test("turning the map never re-fits it: same size at the same zoom, always centered on the camera's target", () => {
+test("turning the map never re-fits it: same size at the same zoom, the camera's target always at the same place in it", () => {
   for (const camera of [
     { tilt: 32, yaw: 90, zoom: 1, tx: 160, ty: 100 },
     { tilt: MIN_TILT, yaw: 45, zoom: 1, tx: 280, ty: 180 },
@@ -68,9 +69,9 @@ test("turning the map never re-fits it: same size at the same zoom, always cente
     const scene = buildMapScene(camera);
     assert.ok(Math.abs(scene.view.width - DEFAULT_SCENE.view.width) < 1e-9);
     assert.ok(Math.abs(scene.view.height - DEFAULT_SCENE.view.height) < 1e-9);
-    const [cx, cy] = center(scene);
-    const [mx, my] = scene.project(camera.tx, camera.ty);
-    assert.ok(Math.abs(cx - mx) < 1e-9 && Math.abs(cy - my) < 1e-9);
+    const [ax, ay] = targetAt(scene, camera.tx, camera.ty);
+    const [dx, dy] = targetAt(DEFAULT_SCENE, DEFAULT_CAMERA.tx, DEFAULT_CAMERA.ty);
+    assert.ok(Math.abs(ax - dx) < 1e-9 && Math.abs(ay - dy) < 1e-9);
   }
 });
 
@@ -85,11 +86,12 @@ test("unproject finds the map point under any screen point, at any angle", () =>
   }
 });
 
-test("zooming in shrinks the view about the same center, keeping the aspect", () => {
+test("zooming in shrinks the view about the camera's target, keeping the aspect", () => {
   const at1 = buildMapScene({ ...DEFAULT_CAMERA, zoom: 1 });
   const at2 = buildMapScene({ ...DEFAULT_CAMERA, zoom: 2 });
   assert.ok(Math.abs(at2.view.width * 2 - at1.view.width) < 1e-9);
-  assert.deepEqual(center(at2).map((n) => n.toFixed(6)), center(at1).map((n) => n.toFixed(6)));
+  const [tx, ty] = [DEFAULT_CAMERA.tx, DEFAULT_CAMERA.ty];
+  assert.deepEqual(targetAt(at2, tx, ty).map((n) => n.toFixed(6)), targetAt(at1, tx, ty).map((n) => n.toFixed(6)));
   assert.ok(Math.abs(aspect(at2) - MAP_ASPECT) < 1e-9);
 });
 

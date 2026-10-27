@@ -326,7 +326,8 @@ li[data-lit] {
   inset-inline: 0;
   top: var(--horizon);
   height: 1px;
-  background: linear-gradient(to right, transparent, color-mix(in srgb, var(--ink-primary) 35%, transparent) 20% 80%, transparent);
+  /* As faint as the grid's far end, which runs up to it (see the floor's mask). */
+  background: linear-gradient(to right, transparent, color-mix(in srgb, var(--ink-primary) 9%, transparent) 20% 80%, transparent);
 }
 .grid-room-floor {
   /* A wide plane hinged at the horizon and laid back almost flat: its grid runs to the vanishing point. */
@@ -341,8 +342,8 @@ li[data-lit] {
     linear-gradient(to right, color-mix(in srgb, var(--ink-primary) 22%, transparent) 1px, transparent 1px),
     linear-gradient(to bottom, color-mix(in srgb, var(--ink-primary) 22%, transparent) 1px, transparent 1px);
   background-size: 64px 64px;
-  /* Faded out toward the horizon. */
-  mask-image: linear-gradient(to bottom, transparent, black 30%);
+  /* Fading toward the horizon, but only so far: its far end still shows, as faint as the horizon. */
+  mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.4), black 30%);
   animation: grid-room-drift 4s linear infinite;
 }
 @keyframes grid-room-drift {
