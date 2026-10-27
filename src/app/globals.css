@@ -346,15 +346,18 @@ li[data-lit] {
   mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.4), black 30%);
 }
 .grid-room-floor::before {
-  /* The grid, just a "+" where each of its lines would cross (every --grid, from the floor's top left): the
-     theme's ink, cut to the marks by a tile with a quarter of a "+" in each corner. */
+  /* The grid, just a small thin "+" where each of its lines would cross: the theme's ink, cut to the marks by a
+     tile with a "+" in its middle. Placed so the screen's middle runs straight down the middle of a column of
+     boxes (the tile's middle half a box right of the floor's), and so the rows fall every --grid back from the
+     horizon (the tile's middle half a box up). */
   content: "";
   position: absolute;
   inset: 0;
-  background: color-mix(in srgb, var(--ink-primary) 34%, transparent);
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M0 0h7v1.4H0zM57 0h7v1.4h-7zM0 0h1.4v7H0zM0 57h1.4v7H0z'/%3E%3C/svg%3E");
+  background: color-mix(in srgb, var(--ink-primary) 38%, transparent);
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M28 31.55h8v.9h-8zM31.55 28h.9v8h-.9z'/%3E%3C/svg%3E");
   mask-size: var(--grid) var(--grid);
   mask-repeat: repeat;
+  mask-position: calc(50% + var(--grid) / 2) calc(var(--grid) / -2);
 }
 
 /* A game's header in the starters list: no box, the page behind it, each team's main color (--away, --home) faint
@@ -376,4 +379,10 @@ li[data-lit] {
 }
 .team-line {
   background: linear-gradient(to right, color-mix(in srgb, color-mix(in srgb, var(--team), white var(--team-lift)) var(--tint), transparent), transparent var(--team-reach));
+}
+
+/* Something standing on the home page's floor, reflected faintly in it: the bottom of it, upside down under its
+   foot, fading out as it runs away from it. Where a browser can't (Firefox), there's just no reflection. */
+.floor-reflect {
+  -webkit-box-reflect: below 0 linear-gradient(transparent calc(100% - 5rem), rgb(0 0 0 / 0.2));
 }

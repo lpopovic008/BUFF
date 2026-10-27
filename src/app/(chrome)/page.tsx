@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "reac
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { GameMap, MappedGame } from "@/components/GameMap";
-import { FLOOR_TILT, GRID_PX, HORIZON_SHARE, PERSPECTIVE_PX, lowestGridLine } from "@/lib/grid-room";
+import { FLOOR_TILT, GRID_PX, HORIZON_SHARE, PERSPECTIVE_PX, lowestGridLine, rowAtOrAbove } from "@/lib/grid-room";
+import { MAP_ASPECT } from "@/lib/map-perspective";
 import { LeagueTicker, TickerLeague } from "@/components/LeagueTicker";
 import { ByeTeam, LeagueLegendEntry, StartersByGame, viewPlayers } from "@/components/StartersByGame";
 import { NFL_TEAMS } from "@/lib/nfl-logos";
@@ -204,16 +205,29 @@ export default function DashboardPage() {
   const [redZoneEmpty, setRedZoneEmpty] = useState(false);
   const redZoneRef = useRef<HTMLDivElement>(null);
   const mapColumnRef = useRef<HTMLDivElement>(null);
-  // The room's height as it's drawn (not 100vh, which a browser's toolbars can make taller than the screen), and how
-  // far up from its bottom the floor's lowest grid line is — where the starters list stands.
-  const [stand, setStand] = useState<{ room: number; on: number } | null>(null);
+  // The room's height as it's drawn (not 100vh, which a browser's toolbars can make taller than the screen); how far up
+  // from its bottom the floor's lowest grid line is — where the starters list stands from tablet width up; the
+  // horizon; and, on a phone, the grid line about halfway back it stands on instead (the lowest leaving the map room
+  // in front of it, above the tab bar) — screen y's, from the top.
+  const [stand, setStand] = useState<{ room: number; on: number; horizon: number; foot: number; tabBar: number } | null>(null);
+  // Fitted to the screen (⇕), the Red Zone takes a phone's whole scene.
+  const [redZoneFitted, setRedZoneFitted] = useState(false);
   // The room's only drawn once the leagues are in (not while the page is loading), so it's measured once it is.
   const [room, setRoom] = useState<HTMLDivElement | null>(null);
   useEffect(() => {
     if (!room) return;
     const measure = () => {
       const height = room.clientHeight || window.innerHeight;
-      setStand({ room: height, on: height - lowestGridLine(height) });
+      const tabBar = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--tabbar-h")) || 0;
+      // The map's height at a phone's width, and room for its tags over it.
+      const mapNeeds = (window.innerWidth - 32) / MAP_ASPECT + 48;
+      setStand({
+        room: height,
+        on: height - lowestGridLine(height),
+        horizon: height * HORIZON_SHARE,
+        foot: rowAtOrAbove(height, height - tabBar - mapNeeds),
+        tabBar,
+      });
     };
     measure();
     const observer = new ResizeObserver(measure);
@@ -339,7 +353,6 @@ export default function DashboardPage() {
     }));
   }, [starterSources, leagues]);
 
-  const anyGameLive = weekGames.some((g) => g.state === "in");
   // The week's kickoffs, in order, for the countdown over the map.
   const kickoffs = useMemo(
     () => weekGames.map((g) => new Date(g.kickoff).getTime()).filter((t) => !Number.isNaN(t)).sort((a, b) => a - b),
@@ -444,137 +457,187 @@ export default function DashboardPage() {
     };
   });
 
+  // The room the dashboard stands in: a grid floor running back to the horizon (see .grid-room).
+  const roomView = (
+    <div
+      ref={setRoom}
+      aria-hidden
+      className="grid-room"
+      style={{ ["--horizon" as string]: `${HORIZON_SHARE * 100}%`, perspective: `${PERSPECTIVE_PX}px`, perspectiveOrigin: `50% ${HORIZON_SHARE * 100}%` }}
+    >
+      <div className="grid-room-floor" style={{ transform: `rotateX(${FLOOR_TILT}deg)`, ["--grid" as string]: `${GRID_PX}px` }} />
+    </div>
+  );
+  // The games on the map: those whose kickoff block and game aren't hidden.
+  const games = mappedGames.filter((g) => !hiddenBlocks.has(kickoffBlockLabel(g.game)) && !offMap.has(g.game.id));
+  // One graph in full; two side by side; three or four, one to a corner.
+  const graphsView =
+    graphed.length > 0 ? (
+      <PointsGraphGrid
+        graphs={graphed.map(({ game, player }) => ({
+          game,
+          player,
+          // Under the league their row's points are scored in (the first they're started in); anyone else's is PPR, as their row is.
+          scoring: player.side === "other" ? undefined : scoringByLeague.get(player.leagueIds[0]),
+        }))}
+        onClose={unpickGraph}
+        onCursorPlay={setSpotlight}
+      />
+    ) : null;
+  // The Red Zone, your starters' plays as they happen.
+  const redZoneView =
+    weekGames.length > 0 && myStarters !== null ? (
+      <RedZone
+        // Fresh for each week, so a week's plays slide in rather than flashing as new.
+        key={shownWeek ?? 0}
+        starters={grouped.games}
+        opponents={groupedOpponent.games}
+        weekGames={weekGames}
+        legend={legend}
+        weekStats={livePlayers.stats}
+        compactOnPhone
+        spotlight={graphed.length > 0 ? spotlight : null}
+        hiddenGames={offMap}
+        full={{ on: redZoneFull, toggle: toggleRedZoneFull }}
+        onEmptyChange={setRedZoneEmpty}
+        onFitChange={setRedZoneFitted}
+        scoringByLeague={scoringByLeague}
+      />
+    ) : null;
+  // On a phone, gone altogether between weeks — no plays, and no game started to have any.
+  const redZoneOff = redZoneEmpty && weekGames.every((g) => g.state === "pre");
+  const startersView =
+    myStarters === null ? (
+      <p className="text-sm text-ink-secondary">Loading your lineups…</p>
+    ) : weekGames.length === 0 ? (
+      // Without the schedule every starter would fall into "not playing",
+      // which would read as a league-wide bye rather than a failed fetch.
+      <p className="text-sm text-ink-secondary">
+        Couldn&rsquo;t load this week&rsquo;s NFL schedule, so there&rsquo;s nothing to group
+        your starters under yet.
+      </p>
+    ) : (
+      <StartersByGame
+        // Fresh for each week, so switching weeks doesn't count every total up from the last week's.
+        key={shownWeek ?? 0}
+        games={listedGames}
+        byes={byes}
+        legend={legend}
+        allLeaguesHidden={config.leagues.length > 0 && config.leagues.every((l) => l.hidden)}
+        hiddenBlocks={hiddenBlocks}
+        onToggleBlock={toggleBlock}
+        offMap={offMap}
+        onToggleMap={toggleMap}
+        selectedPlayers={graphFor}
+        onSelectPlayer={pickGraph}
+        onViewsChange={setListViews}
+      />
+    );
+  const standVars = stand ? { ["--room-h" as string]: `${stand.room}px`, ["--stand" as string]: `${stand.on}px` } : undefined;
+
+  if (!desktop) {
+    // A phone: one scene that doesn't scroll, standing in the room — the Red Zone up under the ticker, the starters
+    // list standing on a grid line about halfway back on the floor (scrolling within itself), and the map lying at
+    // the front, nearest you. Player graphs go up at the very back, their foot on the horizon, the starters list
+    // stepping down to stand under them. The Red Zone fitted to the screen (⇕) takes the whole scene.
+    const graphsUp = graphsView !== null && !redZoneFitted;
+    return (
+      <div style={standVars}>
+        <h1 className="sr-only">Dashboard</h1>
+        {roomView}
+        <div
+          className="fixed inset-x-0 bottom-0 top-[var(--header-h,0px)] flex flex-col px-4 pt-6"
+          style={{ paddingBottom: stand && !redZoneFitted ? stand.room - stand.foot : "var(--tabbar-h, 0px)" }}
+        >
+          <LeagueTicker leagues={leagueCards} />
+          {redZoneView ? <div className={`-mx-4 shrink-0 animate-[rise_0.5s_ease-out_backwards] pt-1 ${redZoneOff ? "hidden" : ""} ${redZoneFitted ? "min-h-0 flex-1" : ""}`}>{redZoneView}</div> : null}
+          {graphsUp ? <div className="floor-reflect min-h-0 flex-1 pt-2">{graphsView}</div> : null}
+          <div
+            className={`floor-reflect min-h-0 animate-[rise_0.5s_ease-out_backwards] overflow-y-auto overscroll-contain pb-6 pt-2 [animation-delay:200ms] [mask-image:linear-gradient(to_bottom,black_calc(100%-1.5rem),transparent)] ${
+              redZoneFitted ? "hidden" : graphsUp ? "flex-none" : "flex-1"
+            }`}
+            style={graphsUp && stand ? { height: stand.foot - stand.horizon } : undefined}
+          >
+            {startersView}
+          </div>
+          {weekGames.length > 0 && stand && !redZoneFitted ? (
+            // The map, lying on the floor at the front: from the starters list's foot down to the tab bar.
+            <div className="absolute inset-x-4 flex flex-col justify-end" style={{ top: `calc(${stand.foot}px - var(--header-h, 0px))`, bottom: "var(--tabbar-h, 0px)" }}>
+              <GameMap games={games} legend={legend} room={`${stand.room - stand.tabBar - stand.foot}px`} />
+            </div>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
   return (
     // From tablet width up the columns reach the bottom of the screen: the page's own bottom padding is taken back.
-    // The room under the screens, where the floor shows: none on a phone.
-    <div className="flex flex-col gap-0.5 [--floor-room:0px] md:-mb-8 md:[--floor-room:9vh]" style={stand ? { ["--room-h" as string]: `${stand.room}px`, ["--stand" as string]: `${stand.on}px` } : undefined}>
+    <div className="flex flex-col gap-0.5 md:-mb-8" style={standVars}>
       <h1 className="sr-only">Dashboard</h1>
-      {/* The room the dashboard stands in, on phones too: a grid floor running back to the horizon (see .grid-room). */}
-      <div
-        ref={setRoom}
-        aria-hidden
-        className="grid-room"
-        style={{ ["--horizon" as string]: `${HORIZON_SHARE * 100}%`, perspective: `${PERSPECTIVE_PX}px`, perspectiveOrigin: `50% ${HORIZON_SHARE * 100}%` }}
-      >
-        <div className="grid-room-floor" style={{ transform: `rotateX(${FLOOR_TILT}deg)`, ["--grid" as string]: `${GRID_PX}px` }} />
-      </div>
+      {roomView}
       <LeagueTicker leagues={leagueCards} />
 
-      {/* On phones the map column's wrappers step aside (display: contents), so the Red Zone can sit either under the map or after the starters list. */}
-      {/* From tablet width up, the two columns stand in the room with no backgrounds of their own — the room behind
-          them — angled in toward the middle (each turned on its outer edge, so however wide it is that edge stays on the screen), a little short of the screen's bottom so the floor shows under them. */}
-      <div className={`flex flex-col gap-6 md:flex-row md:items-start md:gap-8 md:px-4 md:pt-2 md:[perspective:2200px] ${anyGameLive ? "max-md:pb-16" : ""}`}>
-        {/* The map and the Red Zone. From tablet width up, a column exactly as tall as the screen under the ticker: the map along its
-            bottom, as wide as the column at its own proportions, and the Red Zone filling the rest above it, its plays scrolling
-            within it. Should the two not fit, the column scrolls — flipped to rtl so its scrollbar sits on the column's own left
-            edge instead of in the gutter between the two columns; the inner wrapper flips back to ltr so the content reads normally. */}
-        <div ref={mapColumnRef} className={`min-w-0 flex-1 max-md:contents md:sticky md:top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+2px)] md:h-[calc(100vh-var(--header-h,0px)-var(--ticker-h,0px)-2px-var(--floor-room))] md:overflow-y-auto md:[direction:rtl] md:origin-left md:[rotate:y_4deg]`}>
-          <div className="flex flex-col max-md:contents md:h-full md:[direction:ltr]">
+      {/* The two columns stand in the room with no backgrounds of their own — the room behind them — each on the
+          floor's lowest grid line (--stand). The map's column is angled in toward the middle (turned on its outer
+          edge, so however wide it is that edge stays on the screen). */}
+      <div className="flex flex-row items-start gap-8 px-4 pt-2 [perspective:2200px]">
+        {/* The Red Zone and the map. A column standing on the floor's lowest grid line: the Red Zone filling its top,
+            its plays scrolling within it, and the map along its bottom, lying on the floor nearest you, as wide as the
+            column at its own proportions. Should the two not fit, the column scrolls — flipped to rtl so its scrollbar
+            sits on the column's own left edge instead of in the gutter between the two columns; the inner wrapper flips
+            back to ltr so the content reads normally. */}
+        <div
+          ref={mapColumnRef}
+          className="sticky top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] h-[calc(var(--room-h,100vh)-var(--header-h,0px)-var(--ticker-h,0px)-0.625rem-var(--stand,9vh))] min-w-0 flex-1 origin-left overflow-y-auto [direction:rtl] [rotate:y_4deg]"
+        >
+          <div className="flex h-full flex-col [direction:ltr]">
+            {redZoneView ? (
+              <div
+                ref={redZoneRef}
+                className={`flex animate-[rise_0.5s_ease-out_backwards] flex-col [animation-delay:120ms] ${
+                  // Stretched (its ⇕ button), the whole column's height — the map under it, scrolled past.
+                  redZoneFull ? "h-full flex-none" : redZoneEmpty ? "flex-none" : "min-h-40 flex-1"
+                }`}
+              >
+                {redZoneView}
+              </div>
+            ) : null}
             {weekGames.length > 0 ? (
-              <div className="shrink-0 animate-[rise_0.5s_ease-out_backwards]">
+              <div className="mt-auto shrink-0 animate-[rise_0.5s_ease-out_backwards]">
                 {/* A player's graph takes the map's place; the map stays put underneath, just out of sight. */}
                 <div className="relative">
                   <div className={graphed.length > 0 ? "invisible" : undefined} aria-hidden={graphed.length > 0 ? true : undefined}>
                     <GameMap
-                      games={mappedGames.filter((g) => !hiddenBlocks.has(kickoffBlockLabel(g.game)) && !offMap.has(g.game.id))}
+                      games={games}
                       legend={legend}
                       // The countdown to the next kickoff, in the open space over the land.
                       overhead={<KickoffCountdown kickoffs={kickoffs} />}
-                      // From tablet width up, the column's height less the Red Zone's least (10rem, room for its side header), right under it —
-                      // or, with no plays, its header alone across the top (2rem).
-                      room={desktop ? `100vh - var(--header-h, 0px) - var(--ticker-h, 0px) - 2px - ${redZoneEmpty ? "2rem" : "10rem"}` : undefined}
+                      // The column's height less the Red Zone's least (10rem, room for its side header) — or, with no plays,
+                      // its header alone across the top (2rem).
+                      room={`var(--room-h, 100vh) - var(--header-h, 0px) - var(--ticker-h, 0px) - 0.625rem - var(--stand, 0px) - ${redZoneEmpty ? "2rem" : "10rem"}`}
                     />
                   </div>
-                  {/* One graph in full; two side by side; three or four, one to a corner. */}
-                  {graphed.length > 0 ? (
+                  {graphsView ? (
                     // As much room over them as there is over the starters list's bar.
-                    <div className="absolute inset-0 pt-3.5">
-                      <PointsGraphGrid
-                        graphs={graphed.map(({ game, player }) => ({
-                          game,
-                          player,
-                          // Under the league their row's points are scored in (the first they're started in); anyone else's is PPR, as their row is.
-                          scoring: player.side === "other" ? undefined : scoringByLeague.get(player.leagueIds[0]),
-                        }))}
-                        onClose={unpickGraph}
-                        onCursorPlay={setSpotlight}
-                      />
-                    </div>
+                    <div className="floor-reflect absolute inset-0 pt-3.5">{graphsView}</div>
                   ) : null}
                 </div>
-              </div>
-            ) : null}
-
-            {/* The Red Zone, your starters' plays as they happen, under the map: from tablet width up, filling the column's room
-                under it; on phones, a box about a play tall you scroll within (⇕, or double-tap its side header, to fit it to the
-                screen). Your leagues ride the ticker under the header (see LeagueTicker). */}
-            {weekGames.length > 0 && myStarters !== null ? (
-              <div
-                ref={redZoneRef}
-                // On a phone, out to the screen's edges and right under the map (taking back the gap between the sections).
-                className={`animate-[rise_0.5s_ease-out_backwards] [animation-delay:120ms] max-md:-mx-4 max-md:-mt-6 md:flex md:flex-col ${
-                  // On a phone, gone altogether between weeks — no plays, and no game started to have any.
-                  redZoneEmpty && weekGames.every((g) => g.state === "pre") ? "max-md:hidden" : ""
-                } ${
-                  // Stretched (its ⇕ button), the whole column's height — the map above it, scrolled past.
-                  redZoneFull ? "md:h-full md:flex-none" : redZoneEmpty ? "md:flex-none" : "md:min-h-40 md:flex-1"
-                }`}
-              >
-                <RedZone
-                  // Fresh for each week, so a week's plays slide in rather than flashing as new.
-                  key={shownWeek ?? 0}
-                  starters={grouped.games}
-                  opponents={groupedOpponent.games}
-                  weekGames={weekGames}
-                  legend={legend}
-                  weekStats={livePlayers.stats}
-                  compactOnPhone
-                  spotlight={graphed.length > 0 ? spotlight : null}
-                  hiddenGames={offMap}
-                  full={{ on: redZoneFull, toggle: toggleRedZoneFull }}
-                  onEmptyChange={setRedZoneEmpty}
-                  scoringByLeague={scoringByLeague}
-                />
               </div>
             ) : null}
           </div>
         </div>
 
-        {/* Starters by game — one continuous column running alongside the map and leagues, with its own independent scroll at md+ so a long list here doesn't push the left column around or vice versa. As wide as its rows need (in rem, so it shrinks with the text when the browser zooms out), the map taking the rest.
-            From tablet width up it stands upright on the floor's lowest grid line (--stand), facing you square on, as
+        {/* Starters by game, with its own scroll, so a long list here doesn't push the left column around or vice versa.
+            As wide as its rows need (in rem, so it shrinks with the text when the browser zooms out), the map's column
+            taking the rest. It stands upright on the floor's lowest grid line (--stand), facing you square on, as
             something standing on a line across the floor does — from where it sits under the ticker (past the gap and
-            the row's padding, 0.625rem), so its foot is on the line whether or not it's stuck. Its last 2.5rem fade out, so
-            it's gone by the time it meets the floor. */}
-        <div className={`w-full animate-[rise_0.5s_ease-out_backwards] [animation-delay:200ms] md:sticky md:top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] md:h-[calc(var(--room-h,100vh)-var(--header-h,0px)-var(--ticker-h,0px)-0.625rem-var(--stand,0px))] md:w-80 md:shrink-0 lg:w-[22rem] md:overflow-y-auto md:pb-16 md:[mask-image:linear-gradient(to_bottom,black_calc(100%-2.5rem),transparent)]`}>
-          {myStarters === null ? (
-            <p className="text-sm text-ink-secondary">Loading your lineups…</p>
-          ) : weekGames.length === 0 ? (
-            // Without the schedule every starter would fall into "not playing",
-            // which would read as a league-wide bye rather than a failed fetch.
-            <p className="text-sm text-ink-secondary">
-              Couldn&rsquo;t load this week&rsquo;s NFL schedule, so there&rsquo;s nothing to group
-              your starters under yet.
-            </p>
-          ) : (
-            <StartersByGame
-              // Fresh for each week, so switching weeks doesn't count every total up from the last week's.
-              key={shownWeek ?? 0}
-              games={listedGames}
-              byes={byes}
-              legend={legend}
-              allLeaguesHidden={config.leagues.length > 0 && config.leagues.every((l) => l.hidden)}
-              hiddenBlocks={hiddenBlocks}
-              onToggleBlock={toggleBlock}
-              offMap={offMap}
-              onToggleMap={toggleMap}
-              selectedPlayers={graphFor}
-              onSelectPlayer={pickGraph}
-              onViewsChange={setListViews}
-            />
-          )}
+            the row's padding, 0.625rem), so its foot is on the line whether or not it's stuck. Its last 1.5rem fade
+            out, so it's gone by the time it meets the floor, a faint reflection of it there. */}
+        <div className="floor-reflect sticky top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] h-[calc(var(--room-h,100vh)-var(--header-h,0px)-var(--ticker-h,0px)-0.625rem-var(--stand,0px))] w-80 shrink-0 animate-[rise_0.5s_ease-out_backwards] overflow-y-auto pb-16 [animation-delay:200ms] [mask-image:linear-gradient(to_bottom,black_calc(100%-1.5rem),transparent)] lg:w-[22rem]">
+          {startersView}
         </div>
       </div>
-
     </div>
   );
 }

@@ -27,3 +27,19 @@ export function lowestGridLine(height: number): number {
     y = next;
   }
 }
+
+/** The floor's across-the-screen grid lines on a screen `height` px tall, from the top, horizon first. */
+export function gridRows(height: number): number[] {
+  const rows: number[] = [];
+  for (let n = 0; n * GRID_PX * Math.sin((FLOOR_TILT * Math.PI) / 180) < PERSPECTIVE_PX; n++) {
+    const y = floorY(n * GRID_PX, height);
+    if (y >= height) break;
+    rows.push(y);
+  }
+  return rows;
+}
+
+/** The lowest of the floor's grid lines at or above screen y `limit` — the horizon itself if none is. */
+export function rowAtOrAbove(height: number, limit: number): number {
+  return gridRows(height).filter((y) => y <= limit).at(-1) ?? floorY(0, height);
+}

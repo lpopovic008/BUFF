@@ -427,6 +427,7 @@ export function RedZone({
   full,
   hiddenGames = NO_GAMES,
   onEmptyChange,
+  onFitChange,
   scoringByLeague = NO_SCORING,
 }: {
   /** Your starters, grouped by the game they're playing in. */
@@ -453,6 +454,8 @@ export function RedZone({
   hiddenGames?: Set<string>;
   /** Told whether it has no plays to show (just its header, then), so its room can go to the rest of the page. */
   onEmptyChange?: (empty: boolean) => void;
+  /** Told whether, on a phone, it's fitted to the screen (⇕) — so what's under it can step aside. */
+  onFitChange?: (fitted: boolean) => void;
 }) {
   const mode = useLiveMode();
   const [scope, setScope] = useState<RedZoneScope>("all");
@@ -493,6 +496,7 @@ export function RedZone({
   const headRef = useRef<HTMLDivElement>(null);
   const lastTap = useRef(0);
   const [boxHeight, setBoxHeight] = useState<number | null>(null);
+  useEffect(() => onFitChange?.(boxHeight !== null), [boxHeight, onFitChange]);
   // Where the page was before the box was fitted, to go back to once it's taken back down.
   const scrollBeforeFit = useRef<number | null>(null);
   const toggleFit = () => {
