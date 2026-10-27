@@ -19,6 +19,8 @@
   --map-land-quiet: #e8e9eb;
   --map-wall: #a8aaaf;
   --map-edge: #121212;
+  /* How far a team's color is lifted toward white in its header tint (see .team-bar): not at all on a light page. */
+  --team-lift: 0%;
   --map-state-line: rgba(0, 0, 0, 0.22);
   /* Game tags on the map: a neutral plate that contrasts with the land —
      near-black here, near-white in dark mode. */
@@ -77,6 +79,8 @@
   --map-land-quiet: #2b2d30;
   --map-wall: #26282c;
   --map-edge: #f4f4f4;
+  /* Lifted on a dark page, so the darkest team colors (navy, black) still show. */
+  --team-lift: 40%;
   --map-state-line: rgba(255, 255, 255, 0.24);
   --map-tag: #ececec;
   --map-tag-ink: #111111;
@@ -340,4 +344,23 @@ li[data-lit] {
     linear-gradient(to bottom, color-mix(in srgb, var(--ink-primary) 22%, transparent) 1px, transparent 1px);
   /* Fading toward the horizon, but only so far: its far end still shows, as faint as the horizon. */
   mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.4), black 30%);
+}
+
+/* A game's header in the starters list: no box, the page behind it, each team's main color (--away, --home) faint
+   at its own end, fading out well before the middle. A game under way has a line per team, each tinted from its
+   own end (.team-line, with --team). */
+.team-bar,
+.team-line {
+  --tint: 22%;
+}
+.team-bar {
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, color-mix(in srgb, var(--away), white var(--team-lift)) var(--tint), transparent),
+    transparent 42% 58%,
+    color-mix(in srgb, color-mix(in srgb, var(--home), white var(--team-lift)) var(--tint), transparent)
+  );
+}
+.team-line {
+  background: linear-gradient(to right, color-mix(in srgb, color-mix(in srgb, var(--team), white var(--team-lift)) var(--tint), transparent), transparent 50%);
 }

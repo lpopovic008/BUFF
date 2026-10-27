@@ -15,6 +15,7 @@ import { LastAction, onPace, paceShare } from "@/lib/live-play-points";
 import { GAME_MS } from "./PointsGraph";
 import { useLastActions } from "@/hooks/useLastActions";
 import { getHomeView, saveHomeView } from "@/lib/localStore";
+import { teamColor } from "@/lib/team-colors";
 
 export type { LeagueLegendEntry };
 
@@ -124,7 +125,8 @@ function TeamLine({ game, side, shown = true }: { game: NFLGame; side: "away" | 
   // The status (or kickoff time) in small muted type, the score as big as the points under it.
   const [status, score] = started ? (pieces.length > 1 ? typed : [null, typed[0]]) : [typed[0] ?? null, null];
   return (
-    <div ref={ref} className="flex min-h-[1.375rem] items-center gap-1.5">
+    // Its team's color faint from its own end (see .team-line).
+    <div ref={ref} className="team-line flex min-h-[1.375rem] items-center gap-1.5" style={{ ["--team" as string]: teamColor(team) }}>
       <span className="flex w-[2.4em] shrink-0 justify-center text-[0.6875rem]">
         <TeamLogo team={team} visible={visible} />
       </span>
@@ -145,6 +147,45 @@ function TeamLine({ game, side, shown = true }: { game: NFLGame; side: "away" | 
       <span className="w-[2.4em] shrink-0 text-right text-[0.9375rem] font-bold tabular-nums text-ink-primary">{score}</span>
       {/* The game's status (or kickoff time) on the right. */}
       <StatusColumn game={game} text={status ?? ""} />
+    </div>
+  );
+}
+
+/**
+ * A game yet to kick off, on one line: the away team at the left end and the home team at the right (logo
+ * outermost, record inside it), the kickoff time between them — each team's color faint at its own end (see
+ * .team-bar). The time types itself in the first time it scrolls into view, and deletes itself when its block
+ * is switched off.
+ */
+function PreGameHeader({ game, shown = true }: { game: NFLGame; shown?: boolean }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const seen = useSeenOnce(ref);
+  const pieces = teamLinePieces(game, "away");
+  const [time] = typedSlices(pieces, useTypedCount(shown && seen ? totalChars(pieces) : 0));
+  const visible = shown && seen;
+  const record = (text: string | undefined) =>
+    text ? <span className={`shrink-0 text-xs tabular-nums text-ink-muted transition-opacity duration-150 ${visible ? "" : "opacity-0"}`}>{text}</span> : null;
+  return (
+    <div
+      ref={ref}
+      className="team-bar grid min-h-[1.375rem] grid-cols-[1fr_auto_1fr] items-center gap-1.5"
+      style={{ ["--away" as string]: teamColor(game.awayTeam), ["--home" as string]: teamColor(game.homeTeam) }}
+    >
+      <span className="flex items-center gap-1.5">
+        <span className="flex w-[2.4em] shrink-0 justify-center text-[0.6875rem]">
+          <TeamLogo team={game.awayTeam} visible={visible} />
+        </span>
+        {record(game.awayRecord)}
+      </span>
+      <span className="whitespace-nowrap text-ink-muted" title={pieces[0]}>
+        <StatusText text={time ?? ""} />
+      </span>
+      <span className="flex items-center justify-end gap-1.5">
+        {record(game.homeRecord)}
+        <span className="flex w-[2.4em] shrink-0 justify-center text-[0.6875rem]">
+          <TeamLogo team={game.homeTeam} visible={visible} />
+        </span>
+      </span>
     </div>
   );
 }
@@ -472,6 +513,87 @@ function GameLine({
   );
 }
 
+/**
+ * A player's line under a game yet to kick off, under their own team: the away team's down the left (name, then
+ * their leagues, then the projection at the middle), the home team's mirrored down the right (projection at the
+ * middle, then their leagues, then the name at the right end). Types itself in the first time it scrolls into
+ * view, and deletes itself when its box shuts or its block is switched off.
+ */
+function PreLine({
+  player,
+  mirrored,
+  shown,
+  legendByLeagueId,
+  selected,
+  onSelect,
+}: {
+  player: GroupedStarter;
+  /** On the right, under the home team: its pieces in mirror order. */
+  mirrored: boolean;
+  shown: boolean;
+  legendByLeagueId: Map<string, LeagueLegendEntry>;
+  selected: boolean;
+  onSelect?: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const seen = useSeenOnce(ref);
+  const pieces = [player.name, player.position, player.projected != null ? formatProjection(player.projected) : "–"];
+  const total = totalChars(pieces);
+  const count = useTypedCount(shown && seen ? total : 0);
+  const [name, position, projection] = typedSlices(pieces, count);
+  const typedIn = shown && seen && count >= total;
+  const side = player.side ?? "mine";
+  const leagueIds = [...player.leagueIds].sort(
+    (x, y) => (legendByLeagueId.get(x)?.colorIndex ?? 0) - (legendByLeagueId.get(y)?.colorIndex ?? 0)
+  );
+  const leagueNames = leagueIds.map((id) => legendByLeagueId.get(id)?.leagueName ?? id);
+  // The first league's logo, boxed green (yours) or red (theirs) for a player who's both; "+N" for the rest.
+  const first = leagueIds[0];
+  return (
+    <div
+      ref={ref}
+      role={onSelect ? "button" : undefined}
+      tabIndex={onSelect ? 0 : undefined}
+      aria-pressed={onSelect ? selected : undefined}
+      onClick={onSelect}
+      onKeyDown={
+        onSelect
+          ? (e) => {
+              if (e.key !== "Enter" && e.key !== " ") return;
+              e.preventDefault();
+              onSelect();
+            }
+          : undefined
+      }
+      className={`flex items-center gap-1 py-[3px] text-[0.8125rem] leading-tight ${mirrored ? "flex-row-reverse" : ""} ${onSelect ? "cursor-pointer" : ""}`}
+      title={leagueNames.length > 0 ? `${player.name} — ${leagueNames.join(", ")}` : player.name}
+    >
+      <span
+        className={`min-w-0 truncate ${SIDE_NAME_COLOR[side]} ${
+          selected ? "underline decoration-2 underline-offset-2" : onSelect ? "decoration-ink-muted hover:underline" : ""
+        }`}
+      >
+        {name || "​"}
+      </span>
+      <span className={`shrink-0 text-[0.5rem] font-semibold uppercase ${POSITION_TEXT_COLOR[player.position] ?? "text-ink-muted"}`}>{position}</span>
+      <span className="min-w-0 flex-1" />
+      {first ? (
+        <span className={`flex shrink-0 items-center gap-0.5 transition-opacity duration-150 ${mirrored ? "flex-row-reverse" : ""} ${typedIn ? "" : "opacity-0"}`} aria-hidden>
+          {side === "both" ? (
+            <span className={`flex border p-px ${player.facedIn?.includes(first) ? "border-status-critical" : "border-status-good"}`}>
+              <LeagueMark league={legendByLeagueId.get(first)} className="h-3 w-3" />
+            </span>
+          ) : (
+            <LeagueMark league={legendByLeagueId.get(first)} className="h-3 w-3" />
+          )}
+          {leagueIds.length > 1 ? <span className="text-[0.625rem] tabular-nums text-ink-muted">+{leagueIds.length - 1}</span> : null}
+        </span>
+      ) : null}
+      <span className={`w-[2.4em] shrink-0 font-light italic tabular-nums text-ink-muted ${mirrored ? "text-left" : "text-right"}`}>{projection}</span>
+    </div>
+  );
+}
+
 /** How long a box's lines take to delete themselves before it shuts. */
 function closeMsFor(players: GroupedStarter[], phase: Phase, actions: Record<string, LastAction>): number {
   if (reducedMotion()) return 0;
@@ -554,6 +676,7 @@ function BlockGames({
               phase={phaseOf(g.game)}
               live={!!g.live}
               label={`${g.game.awayTeam} at ${g.game.homeTeam}`}
+              teams={{ away: g.game.awayTeam, home: g.game.homeTeam }}
               view={views.get(g.game.id) ?? 0}
               closing={closingGames.has(g.game.id)}
               hidden={hidden}
@@ -565,9 +688,15 @@ function BlockGames({
               selectedPlayerIds={selectedPlayers.filter((p) => p.gameId === g.game.id).map((p) => p.playerId)}
               onSelectPlayer={(playerId) => onSelectPlayer(playerId, g.game.id)}
             >
-              <TeamLine game={g.game} side="away" shown={!hidden} />
-              <TeamLine game={g.game} side="home" shown={!hidden} />
-              <BallSpot game={g.game} />
+              {g.game.state === "pre" ? (
+                <PreGameHeader game={g.game} shown={!hidden} />
+              ) : (
+                <>
+                  <TeamLine game={g.game} side="away" shown={!hidden} />
+                  <TeamLine game={g.game} side="home" shown={!hidden} />
+                  <BallSpot game={g.game} />
+                </>
+              )}
             </GameBox>
           ))}
         </div>
@@ -709,6 +838,7 @@ function GameBox({
   phase,
   live,
   label,
+  teams,
   view,
   closing,
   hidden,
@@ -728,6 +858,8 @@ function GameBox({
   live: boolean;
   /** What it's called, for screen readers ("BUF at MIA"). */
   label: string;
+  /** Its two teams — before kickoff its players split under them. None for a bye. */
+  teams?: { away: string; home: string };
   view: number;
   /** On its way shut, its lines deleting themselves first. */
   closing: boolean;
@@ -817,8 +949,27 @@ function GameBox({
         ) : (
           matchup
         )}
-        {/* The players its view lists, set apart below the teams. */}
-        {shown.length > 0 ? (
+        {/* The players its view lists, set apart below the teams: before kickoff, each under their own team, their
+            projections meeting in the middle. */}
+        {shown.length > 0 && phase === "pre" && teams ? (
+          <div className="mt-1 grid grid-cols-2 gap-x-4 pt-1">
+            {[shown.filter((p) => p.team !== teams.home), shown.filter((p) => p.team === teams.home)].map((column, i) => (
+              <div key={i} className="flex min-w-0 flex-col">
+                {column.map((player) => (
+                  <PreLine
+                    key={player.playerId}
+                    player={player}
+                    mirrored={i === 1}
+                    shown={!hidden && !closing}
+                    legendByLeagueId={legendByLeagueId}
+                    selected={selectedPlayerIds.includes(player.playerId)}
+                    onSelect={onSelectPlayer ? () => onSelectPlayer(player.playerId) : undefined}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+        ) : shown.length > 0 ? (
           <div className="mt-1 pt-1">
             <GameRows
               players={shown}
