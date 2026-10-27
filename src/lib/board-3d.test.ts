@@ -1,10 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { BOARD_FOCAL_PER_DEPTH, BOARD_TILT, blockFaces, boardProjector } from "./board-3d";
-import { DEFAULT_CAMERA, FOCAL, MAP_H } from "./map-perspective";
+import { FOCAL, MAP_H } from "./map-perspective";
 
-test("the board's camera is the map's opening one", () => {
-  assert.equal(BOARD_TILT, DEFAULT_CAMERA.tilt);
+test("the board's perspective is as strong as the map's, at its own tilt", () => {
+  assert.equal(BOARD_TILT, 32);
   assert.equal(BOARD_FOCAL_PER_DEPTH, FOCAL / MAP_H);
 });
 
