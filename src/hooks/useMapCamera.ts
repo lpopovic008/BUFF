@@ -10,6 +10,7 @@ import {
   clampZoom,
   isDefaultCamera,
   normalizeYaw,
+  TARGET_DOWN_SHARE,
   unproject,
 } from "@/lib/map-perspective";
 
@@ -65,11 +66,11 @@ function keepUnder(prev: MapCamera, next: MapCamera, box: DOMRect, x: number, y:
   const { view, project } = buildMapScene(next);
   const k = box.width / view.width;
   const [sx, sy] = project(px, py);
-  // The view centers on the target, so put the target where the point's
-  // offset from the box's middle says the middle should be.
+  // The view holds the target across its middle and TARGET_DOWN_SHARE of the way down, so put the target where
+  // the point's offset from that spot in the box says it should be.
   return retarget(
     { ...next, tx: prev.tx, ty: prev.ty },
-    unproject(next, sx - (x - box.left - box.width / 2) / k, sy - (y - box.top - box.height / 2) / k)
+    unproject(next, sx - (x - box.left - box.width / 2) / k, sy - (y - box.top - box.height * TARGET_DOWN_SHARE) / k)
   );
 }
 

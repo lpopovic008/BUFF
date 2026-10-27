@@ -469,6 +469,9 @@ const BASE = (() => {
 /** The map's fixed width-to-height ratio on the page. */
 export const MAP_ASPECT = (BASE.halfW * 2) / (BASE.up + BASE.down);
 
+/** How far down the view the target sits, as a share of its height — over the middle, as the far edge needs less room. */
+export const TARGET_DOWN_SHARE = BASE.up / (BASE.up + BASE.down);
+
 export function buildMapScene(camera: MapCamera): MapScene {
   const { project, scaleAt } = projectorFor(camera);
   const [cx, cy] = project(camera.tx, camera.ty);

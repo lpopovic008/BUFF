@@ -16,6 +16,7 @@ import { GAME_MS } from "./PointsGraph";
 import { useLastActions } from "@/hooks/useLastActions";
 import { getHomeView, saveHomeView } from "@/lib/localStore";
 import { teamColor } from "@/lib/team-colors";
+import { positionRows, shortName } from "@/lib/pregame-rows";
 
 export type { LeagueLegendEntry };
 
@@ -537,7 +538,7 @@ function PreLine({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const seen = useSeenOnce(ref);
-  const pieces = [player.name, player.position, player.projected != null ? formatProjection(player.projected) : "–"];
+  const pieces = [shortName(player.name, player.position), player.position, player.projected != null ? formatProjection(player.projected) : "–"];
   const total = totalChars(pieces);
   const count = useTypedCount(shown && seen ? total : 0);
   const [name, position, projection] = typedSlices(pieces, count);
@@ -950,8 +951,28 @@ function GameBox({
           matchup
         )}
         {/* The players its view lists, set apart below the teams: before kickoff, each under their own team, their
-            projections meeting in the middle. */}
-        {shown.length > 0 && phase === "pre" && teams ? (
+            projections meeting in the middle — under ALL, lined up by position across the two (see positionRows). */}
+        {shown.length > 0 && phase === "pre" && teams && view === 3 ? (
+          <div className="mt-1 grid grid-cols-2 gap-x-4 pt-1">
+            {positionRows(shown, teams.home).flatMap((row, r) =>
+              row.map((player, i) =>
+                player ? (
+                  <PreLine
+                    key={player.playerId}
+                    player={player}
+                    mirrored={i === 1}
+                    shown={!hidden && !closing}
+                    legendByLeagueId={legendByLeagueId}
+                    selected={selectedPlayerIds.includes(player.playerId)}
+                    onSelect={onSelectPlayer ? () => onSelectPlayer(player.playerId) : undefined}
+                  />
+                ) : (
+                  <span key={`${r}-${i}`} />
+                )
+              )
+            )}
+          </div>
+        ) : shown.length > 0 && phase === "pre" && teams ? (
           <div className="mt-1 grid grid-cols-2 gap-x-4 pt-1">
             {[shown.filter((p) => p.team !== teams.home), shown.filter((p) => p.team === teams.home)].map((column, i) => (
               <div key={i} className="flex min-w-0 flex-col">

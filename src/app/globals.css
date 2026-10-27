@@ -317,8 +317,11 @@ li[data-lit] {
   z-index: -1;
   overflow: hidden;
   pointer-events: none;
+  /* The light at the back of the room, at the horizon's middle: a glow as wide as the screen allows, and a smaller
+     one at its heart that never shrinks below what a phone needs to show it. */
   background:
-    radial-gradient(ellipse 60% 22% at 50% var(--horizon), color-mix(in srgb, var(--ink-primary) 9%, transparent), transparent 70%),
+    radial-gradient(ellipse 26rem 11rem at 50% var(--horizon), color-mix(in srgb, var(--ink-primary) 8%, transparent), transparent 70%),
+    radial-gradient(ellipse 60% 24% at 50% var(--horizon), color-mix(in srgb, var(--ink-primary) 11%, transparent), transparent 70%),
     var(--page);
 }
 .grid-room::before {

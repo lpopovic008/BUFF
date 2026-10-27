@@ -19,6 +19,7 @@ import {
   insideUS,
   isDefaultCamera,
   normalizeYaw,
+  TARGET_DOWN_SHARE,
   unproject,
 } from "./map-perspective";
 import { US_DETAIL_LEVELS } from "./us-detail";
@@ -72,6 +73,8 @@ test("turning the map never re-fits it: same size at the same zoom, the camera's
     const [ax, ay] = targetAt(scene, camera.tx, camera.ty);
     const [dx, dy] = targetAt(DEFAULT_SCENE, DEFAULT_CAMERA.tx, DEFAULT_CAMERA.ty);
     assert.ok(Math.abs(ax - dx) < 1e-9 && Math.abs(ay - dy) < 1e-9);
+      // Across the middle, and TARGET_DOWN_SHARE down — where the camera's gestures expect it.
+    assert.ok(Math.abs(ax - 0.5) < 1e-9 && Math.abs(ay - TARGET_DOWN_SHARE) < 1e-9);
   }
 });
 

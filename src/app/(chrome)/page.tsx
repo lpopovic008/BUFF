@@ -530,8 +530,9 @@ export default function DashboardPage() {
         {/* Starters by game — one continuous column running alongside the map and leagues, with its own independent scroll at md+ so a long list here doesn't push the left column around or vice versa. As wide as its rows need (in rem, so it shrinks with the text when the browser zooms out), the map taking the rest.
             From tablet width up it stands upright on the floor's lowest grid line (--stand), facing you square on, as
             something standing on a line across the floor does — from where it sits under the ticker (past the gap and
-            the row's padding, 0.625rem), so its foot is on the line whether or not it's stuck. */}
-        <div className={`w-full animate-[rise_0.5s_ease-out_backwards] [animation-delay:200ms] md:sticky md:top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] md:h-[calc(100vh-var(--header-h,0px)-var(--ticker-h,0px)-0.625rem-var(--stand))] md:w-80 md:shrink-0 lg:w-[22rem] md:overflow-y-auto md:pb-16`}>
+            the row's padding, 0.625rem), so its foot is on the line whether or not it's stuck. Its last 2.5rem fade out, so
+            it's gone by the time it meets the floor. */}
+        <div className={`w-full animate-[rise_0.5s_ease-out_backwards] [animation-delay:200ms] md:sticky md:top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] md:h-[calc(100vh-var(--header-h,0px)-var(--ticker-h,0px)-0.625rem-var(--stand))] md:w-80 md:shrink-0 lg:w-[22rem] md:overflow-y-auto md:pb-16 md:[mask-image:linear-gradient(to_bottom,black_calc(100%-2.5rem),transparent)]`}>
           {myStarters === null ? (
             <p className="text-sm text-ink-secondary">Loading your lineups…</p>
           ) : weekGames.length === 0 ? (
