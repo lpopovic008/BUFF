@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "reac
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { GameMap, MappedGame } from "@/components/GameMap";
-import { GridRoom } from "@/components/GridRoom";
 import { LeagueTicker, TickerLeague } from "@/components/LeagueTicker";
 import { ByeTeam, LeagueLegendEntry, StartersByGame, viewPlayers } from "@/components/StartersByGame";
 import { NFL_TEAMS } from "@/lib/nfl-logos";
@@ -374,9 +373,6 @@ export default function DashboardPage() {
     }));
   }, [weekGames, grouped.games, groupedOpponent.games, shownCounts]);
 
-  // The games on the map: those whose kickoff block and game aren't hidden.
-  const onMap = mappedGames.filter((g) => !hiddenBlocks.has(kickoffBlockLabel(g.game)) && !offMap.has(g.game.id));
-
   if (!loaded || leagues === null) {
     return (
       <Card className="p-12 text-center text-sm text-ink-secondary">
@@ -432,9 +428,10 @@ export default function DashboardPage() {
     // The room under the screens, where the floor shows: none on a phone.
     <div className="flex flex-col gap-0.5 [--floor-room:0px] md:-mb-8 md:[--floor-room:9vh]">
       <h1 className="sr-only">Dashboard</h1>
-      {/* From tablet width up, the room the dashboard stands in: a grid floor running back to the horizon, the map
-          and the week's games laid on it (see GridRoom). */}
-      <GridRoom games={onMap} />
+      {/* From tablet width up, the room the dashboard stands in: a grid floor running back to the horizon (see .grid-room). */}
+      <div aria-hidden className="grid-room max-md:hidden">
+        <div className="grid-room-floor" />
+      </div>
       <LeagueTicker leagues={leagueCards} />
 
       {/* On phones the map column's wrappers step aside (display: contents), so the Red Zone can sit either under the map or after the starters list. */}
@@ -449,12 +446,11 @@ export default function DashboardPage() {
           <div className="flex flex-col max-md:contents md:h-full md:[direction:ltr]">
             {weekGames.length > 0 ? (
               <div className="shrink-0 animate-[rise_0.5s_ease-out_backwards]">
-                {/* A player's graph takes the map's place; the map stays put underneath, just out of sight. From tablet
-                    width up the map's on the floor instead (see GridRoom), its space here left open for now. */}
+                {/* A player's graph takes the map's place; the map stays put underneath, just out of sight. */}
                 <div className="relative">
-                  <div className={graphed.length > 0 ? "invisible" : "md:invisible"} aria-hidden={graphed.length > 0 ? true : undefined}>
+                  <div className={graphed.length > 0 ? "invisible" : undefined} aria-hidden={graphed.length > 0 ? true : undefined}>
                     <GameMap
-                      games={onMap}
+                      games={mappedGames.filter((g) => !hiddenBlocks.has(kickoffBlockLabel(g.game)) && !offMap.has(g.game.id))}
                       legend={legend}
                       // The countdown to the next kickoff, in the open space over the land.
                       overhead={<KickoffCountdown kickoffs={kickoffs} />}
