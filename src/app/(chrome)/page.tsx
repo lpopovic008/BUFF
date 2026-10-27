@@ -35,6 +35,8 @@ const NFL_WEEKS = 18;
 
 /** How many players' graphs can be up at once, in place of the map. */
 const MAX_GRAPHS = 4;
+// A column as a screen in the room, from tablet width up: solid, edged, and casting its shadow on the floor.
+const SCREEN = "md:border md:border-border md:bg-page md:shadow-[0_45px_70px_-35px_rgba(0,0,0,0.6)]";
 
 // From tablet width up, where the map and the Red Zone share a column the screen's height.
 const DESKTOP = "(min-width: 768px)";
@@ -425,17 +427,24 @@ export default function DashboardPage() {
 
   return (
     // From tablet width up the columns reach the bottom of the screen: the page's own bottom padding is taken back.
-    <div className="flex flex-col gap-0.5 md:-mb-8">
+    // The room under the screens, where the floor shows: none on a phone.
+    <div className="flex flex-col gap-0.5 [--floor-room:0px] md:-mb-8 md:[--floor-room:9vh]">
       <h1 className="sr-only">Dashboard</h1>
+      {/* From tablet width up, the room the dashboard stands in: a grid floor running back to the horizon (see .grid-room). */}
+      <div aria-hidden className="grid-room max-md:hidden">
+        <div className="grid-room-floor" />
+      </div>
       <LeagueTicker leagues={leagueCards} />
 
       {/* On phones the map column's wrappers step aside (display: contents), so the Red Zone can sit either under the map or after the starters list. */}
-      <div className={`flex flex-col gap-6 md:flex-row md:items-start md:gap-3 ${anyGameLive ? "max-md:pb-16" : ""}`}>
+      {/* From tablet width up, the two columns are screens standing on the room's floor: angled in toward the middle,
+          a little short of the screen's bottom so the floor shows under and between them. */}
+      <div className={`flex flex-col gap-6 md:flex-row md:items-start md:gap-8 md:px-4 md:pt-2 md:[perspective:2200px] ${anyGameLive ? "max-md:pb-16" : ""}`}>
         {/* The map and the Red Zone. From tablet width up, a column exactly as tall as the screen under the ticker: the map along its
             bottom, as wide as the column at its own proportions, and the Red Zone filling the rest above it, its plays scrolling
             within it. Should the two not fit, the column scrolls — flipped to rtl so its scrollbar sits on the column's own left
             edge instead of in the gutter between the two columns; the inner wrapper flips back to ltr so the content reads normally. */}
-        <div ref={mapColumnRef} className="min-w-0 flex-1 max-md:contents md:sticky md:top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+2px)] md:h-[calc(100vh-var(--header-h,0px)-var(--ticker-h,0px)-2px)] md:overflow-y-auto md:[direction:rtl]">
+        <div ref={mapColumnRef} className={`min-w-0 flex-1 max-md:contents md:sticky md:top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+2px)] md:h-[calc(100vh-var(--header-h,0px)-var(--ticker-h,0px)-2px-var(--floor-room))] md:overflow-y-auto md:[direction:rtl] ${SCREEN} md:[rotate:y_4deg]`}>
           <div className="flex flex-col max-md:contents md:h-full md:[direction:ltr]">
             {weekGames.length > 0 ? (
               <div className="shrink-0 animate-[rise_0.5s_ease-out_backwards]">
@@ -508,7 +517,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Starters by game — one continuous column running alongside the map and leagues, with its own independent scroll at md+ so a long list here doesn't push the left column around or vice versa. Always a quarter of the window wide once side-by-side. */}
-        <div className="w-full animate-[rise_0.5s_ease-out_backwards] [animation-delay:200ms] md:sticky md:top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+2px)] md:max-h-[calc(100vh-var(--header-h,0px)-var(--ticker-h,0px)-2px)] md:w-[30vw] md:shrink-0 md:overflow-y-auto md:pb-16">
+        <div className={`w-full animate-[rise_0.5s_ease-out_backwards] [animation-delay:200ms] md:sticky md:top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+2px)] md:max-h-[calc(100vh-var(--header-h,0px)-var(--ticker-h,0px)-2px-var(--floor-room))] md:w-[30vw] md:shrink-0 md:overflow-y-auto md:pb-16 ${SCREEN} md:[rotate:y_-4deg]`}>
           {myStarters === null ? (
             <p className="text-sm text-ink-secondary">Loading your lineups…</p>
           ) : weekGames.length === 0 ? (
