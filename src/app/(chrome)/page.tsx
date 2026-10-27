@@ -432,9 +432,9 @@ export default function DashboardPage() {
     // The room under the screens, where the floor shows: none on a phone.
     <div className="flex flex-col gap-0.5 [--floor-room:0px] md:-mb-8 md:[--floor-room:9vh]">
       <h1 className="sr-only">Dashboard</h1>
-      {/* From tablet width up, the room the dashboard stands in: a grid floor running back to the horizon, the week's
-          games on the map drawn into it, toured game by game (see GridRoom). */}
-      <GridRoom games={onMap} anchorRef={mapColumnRef} />
+      {/* From tablet width up, the room the dashboard stands in: a grid floor running back to the horizon, the map
+          and the week's games laid on it (see GridRoom). */}
+      <GridRoom games={onMap} />
       <LeagueTicker leagues={leagueCards} />
 
       {/* On phones the map column's wrappers step aside (display: contents), so the Red Zone can sit either under the map or after the starters list. */}

@@ -1,116 +1,90 @@
 "use client";
 
-import { RefObject, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { isOutsideUS } from "@/lib/nfl-schedule";
 import { gameMapPosition, gameState, internationalSlotPosition } from "@/lib/game-map";
 import { US_MAP_VIEWBOX, US_SIMPLE_OUTLINE_PATH, US_SIMPLE_STATE_LINES_PATH } from "@/lib/team-cities";
 import { US_STATE_SHAPES } from "@/lib/us-states";
-import { FLOOR_TILT, HORIZON_SHARE, PERSPECTIVE_PX, floorAt, frameOn, tourStops } from "@/lib/grid-floor";
+import { OUTLINE_POINTS } from "@/lib/map-perspective";
+import { FLOOR_TILT, HORIZON_SHARE, PERSPECTIVE_PX, fitMap, screenAt } from "@/lib/grid-floor";
 import type { MappedGame } from "./GameMap";
 
 const [, , MAP_W, MAP_H] = US_MAP_VIEWBOX.split(" ").map(Number);
-// The floor's grid, in world px.
+// The floor's grid, in floor px.
 const GRID_PX = 64;
-// Where on the screen the camera brings each game: under the middle of the column the map stood in, this far
-// from the horizon down to the screen's bottom.
-const FOCUS_DOWN = 0.3;
-// While panning, about this share of the map's width shows across at that spot; landing on a game zooms in this much.
-const MAP_SHARE = 0.9;
-const LAND_ZOOM = 1.35;
-// The tour's beats: the pan to a game, the zoom in on it, and how long it stays there.
-const PAN_MS = 2800;
-const LAND_MS = 1400;
-const DWELL_MS = 3600;
-// A game's tag type size and its plate's padding, in world px; its ring's outline.
-const TAG_PX = 11;
-const PAD_PX = 3;
+// The room kept between the map and the screen's sides and bottom, in px.
+const SIDE_PX = 24;
+const BOTTOM_PX = 24;
+// The map's lines, and each game's ring outline, in screen-ish px (at the floor's horizon, where it's least magnified).
+const LINE_PX = 1;
 const RING_PX = 1.5;
+// A game's stem and tag, standing up off the floor as on the map (see GameMap): the stem taller the more players
+// the game counts, the tag a steady size nudged bigger nearer you and smaller farther back, and fading farther back.
+const TAG_REM = 0.625;
+const STEM_REM = 0.6;
+const STEM_REM_PER_PLAYER = 0.3;
+const MAX_STEM_REM = 4;
+const STEM_GAP_EM = 0.35;
+const MIN_TAG_SCALE = 0.85;
+const MAX_TAG_SCALE = 1.2;
+const FAR_OPACITY = 0.35;
 
 /** A game site's ring radius in map units, wider the more players it counts — as on the map (see GameMap). */
 function ringRadius(count: number): number {
   return count === 0 ? 2.8 : Math.min(3.6 + count * 0.9, 16);
 }
 
-interface Site {
-  entry: MappedGame;
-  pos: [number, number];
-  label: string;
-  count: number;
-}
-
 /**
- * The home page's room, from tablet width up: a grid floor running back to the horizon with the week's games on
- * the US map drawn into it, and a camera that pans from game to game, zooming in a little as it lands on each
- * (every game, by kickoff). Still, under reduced motion: the whole map.
+ * The home page's room, from tablet width up: a grid floor running back to the horizon with the US map laid on it,
+ * as large as it fits on the screen, and the week's games on it — a ring on the floor at each, and a stem standing
+ * up from it with the matchup's tag on top.
  */
-export function GridRoom({ games, anchorRef }: { games: MappedGame[]; anchorRef: RefObject<HTMLElement | null> }) {
-  const [view, setView] = useState<{ width: number; height: number; anchorX: number } | null>(null);
-  const [reduced, setReduced] = useState(false);
+export function GridRoom({ games }: { games: MappedGame[] }) {
+  const [view, setView] = useState<{ width: number; height: number } | null>(null);
   useEffect(() => {
-    const measure = () => {
-      const box = anchorRef.current?.getBoundingClientRect();
-      const width = window.innerWidth;
-      setView({ width, height: window.innerHeight, anchorX: box && box.width > 0 ? box.left + box.width / 2 : width / 2 });
-    };
+    const measure = () => setView({ width: window.innerWidth, height: window.innerHeight });
     measure();
-    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const onMotion = () => setReduced(motion.matches);
-    onMotion();
     window.addEventListener("resize", measure);
-    motion.addEventListener("change", onMotion);
-    return () => {
-      window.removeEventListener("resize", measure);
-      motion.removeEventListener("change", onMotion);
-    };
-  }, [anchorRef]);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
 
+  const fit = useMemo(() => (view ? fitMap(OUTLINE_POINTS, view, SIDE_PX, BOTTOM_PX) : null), [view]);
   const sites = useMemo(() => {
     let abroad = 0;
-    return games.flatMap((entry): Site[] => {
+    return games.flatMap((entry) => {
       const pos = isOutsideUS(entry.game) ? internationalSlotPosition(abroad++) : gameMapPosition(entry.game);
       if (!pos) return [];
       const count = entry.count ?? entry.starters.length + entry.opponentStarters.length;
-      return [{ entry, pos, label: `${entry.game.awayTeam} @ ${entry.game.homeTeam}`, count }];
+      return [{ id: entry.game.id, pos, label: `${entry.game.awayTeam} @ ${entry.game.homeTeam}`, count }];
     });
   }, [games]);
-  const stops = useMemo(() => {
-    const byId = new Map(sites.map((s) => [s.entry.game.id, s]));
-    return tourStops(sites.map((s) => s.entry.game)).map((g) => byId.get(g.id)!);
-  }, [sites]);
   const activeStates = useMemo(() => [...new Set(games.map(({ game }) => gameState(game)).filter((c) => c !== null))], [games]);
 
-  // The tour: pan to a stop, land (zoom in), stay, then on to the next. The first framing is set without moving.
-  const [stop, setStop] = useState(0);
-  const [landed, setLanded] = useState(false);
-  const [moving, setMoving] = useState(false);
-  const touring = !reduced && stops.length > 0 && view !== null;
-  useEffect(() => {
-    if (!touring) return;
-    const timer = setTimeout(
-      () => {
-        setMoving(true);
-        if (!landed) setLanded(true);
-        else {
-          setLanded(false);
-          setStop((i) => i + 1);
-        }
-      },
-      !moving ? 600 : landed ? LAND_MS + DWELL_MS : PAN_MS
-    );
-    return () => clearTimeout(timer);
-  }, [touring, landed, stop, moving]);
-
-  const focus = view ? floorAt(view.anchorX, view.height * (HORIZON_SHARE + (1 - HORIZON_SHARE) * FOCUS_DOWN), view) : null;
-  // World px per map unit: the map sized so MAP_SHARE of it shows across the focus.
-  const k = view && focus ? view.width / focus.scale / MAP_SHARE / MAP_W : 1;
-  const current = touring ? stops[stop % stops.length] : null;
-  const [wx, wy] = current ? current.pos : [MAP_W / 2, MAP_H / 2];
-  const frame = focus ? frameOn(wx * k, wy * k, focus.u, focus.d, current && landed ? LAND_ZOOM : 1) : null;
-  const ease = landed ? `${LAND_MS}ms cubic-bezier(0.2, 0.7, 0.3, 1)` : `${PAN_MS}ms cubic-bezier(0.65, 0, 0.35, 1)`;
-  const animate = touring && moving;
+  // Each site on the screen, with how magnified the floor is there; drawn far to near, so nearer tags sit on top.
+  const placed = useMemo(() => {
+    if (!view || !fit) return [];
+    const a = (FLOOR_TILT * Math.PI) / 180;
+    const scaleAt = (d: number) => PERSPECTIVE_PX / (PERSPECTIVE_PX - d * Math.sin(a));
+    const at = sites.map((s) => {
+      const d = fit.d + fit.k * s.pos[1];
+      const [x, y] = screenAt(fit.u + fit.k * s.pos[0], d, view);
+      return { ...s, x, y, scale: scaleAt(d) };
+    });
+    // Near and far by the map's own edges, so a game's tag reads the same whichever other games are on.
+    const ys = OUTLINE_POINTS.filter((_, i) => i % 2 === 1);
+    const [far, near] = [scaleAt(fit.d + fit.k * Math.min(...ys)), scaleAt(fit.d + fit.k * Math.max(...ys))];
+    const mid = (far + near) / 2;
+    return at
+      .map((s) => ({
+        ...s,
+        tag: Math.min(MAX_TAG_SCALE, Math.max(MIN_TAG_SCALE, s.scale / mid)),
+        opacity: near > far ? FAR_OPACITY + (1 - FAR_OPACITY) * ((s.scale - far) / (near - far)) : 1,
+      }))
+      .sort((p, q) => p.y - q.y);
+  }, [sites, view, fit]);
 
   const ink = (percent: number) => `color-mix(in srgb, var(--ink-primary) ${percent}%, transparent)`;
-  const unit = 1 / k;
+  const unit = fit ? 1 / fit.k : 1;
   return (
     <div
       aria-hidden
@@ -119,58 +93,43 @@ export function GridRoom({ games, anchorRef }: { games: MappedGame[]; anchorRef:
     >
       <div
         className="grid-room-floor"
-        style={{
-          transform: `rotateX(${FLOOR_TILT}deg)`,
-          ...(frame
-            ? {
-                backgroundSize: `${GRID_PX * frame.zoom}px ${GRID_PX * frame.zoom}px`,
-                backgroundPosition: `${frame.x}px ${frame.y}px`,
-                transition: animate ? `background-position ${ease}, background-size ${ease}` : "none",
-              }
-            : {}),
-        }}
+        // The grid lined up with the map's corner.
+        style={{ transform: `rotateX(${FLOOR_TILT}deg)`, backgroundSize: `${GRID_PX}px ${GRID_PX}px`, ...(fit ? { backgroundPosition: `${fit.u}px ${fit.d}px` } : {}) }}
       >
-        {frame ? (
+        {fit ? (
           <svg
             viewBox={US_MAP_VIEWBOX}
-            width={MAP_W * k}
-            height={MAP_H * k}
-            className="absolute left-0 top-0 origin-top-left overflow-visible"
-            style={{ transform: `translate(${frame.x}px, ${frame.y}px) scale(${frame.zoom})`, transition: animate ? `transform ${ease}` : "none" }}
+            width={MAP_W * fit.k}
+            height={MAP_H * fit.k}
+            className="absolute left-0 top-0 overflow-visible"
+            style={{ transform: `translate(${fit.u}px, ${fit.d}px)` }}
           >
-            <path d={US_SIMPLE_OUTLINE_PATH} fill={ink(5)} />
-            {activeStates.map((code) => (US_STATE_SHAPES[code] ? <path key={code} d={US_STATE_SHAPES[code]} fill={ink(9)} /> : null))}
-            <path d={US_SIMPLE_STATE_LINES_PATH} fill="none" stroke={ink(22)} strokeWidth={unit} />
-            <path d={US_SIMPLE_OUTLINE_PATH} fill="none" stroke={ink(50)} strokeWidth={RING_PX * unit} />
-            {sites.map((site) => {
-              const on = site === current;
-              const r = ringRadius(site.count);
-              const size = TAG_PX * unit;
-              const pad = PAD_PX * unit;
-              const w = site.label.length * 0.5 * size + pad * 2;
-              const h = size * 1.3;
-              const [x, y] = site.pos;
-              return (
-                <g key={site.entry.game.id} opacity={on || !current ? 1 : 0.35} className="transition-opacity duration-700">
-                  <circle cx={x} cy={y} r={r} fill="none" stroke="var(--map-edge)" strokeWidth={(on ? 2.5 : RING_PX) * unit} />
-                  <rect x={x - r - pad - w} y={y - h / 2} width={w} height={h} fill="var(--map-tag)" />
-                  <text
-                    x={x - r - pad - w / 2}
-                    y={y}
-                    fontSize={size}
-                    fontWeight={700}
-                    textAnchor="middle"
-                    dominantBaseline="central"
-                    fill="var(--map-tag-ink)"
-                  >
-                    {site.label}
-                  </text>
-                </g>
-              );
-            })}
+            <path d={US_SIMPLE_OUTLINE_PATH} fill={ink(6)} />
+            {activeStates.map((code) => (US_STATE_SHAPES[code] ? <path key={code} d={US_STATE_SHAPES[code]} fill={ink(11)} /> : null))}
+            <path d={US_SIMPLE_STATE_LINES_PATH} fill="none" stroke={ink(25)} strokeWidth={LINE_PX * unit} />
+            <path d={US_SIMPLE_OUTLINE_PATH} fill="none" stroke={ink(55)} strokeWidth={LINE_PX * 1.5 * unit} />
+            {sites.map((s) => (
+              <circle key={s.id} cx={s.pos[0]} cy={s.pos[1]} r={ringRadius(s.count)} fill="none" stroke="var(--map-edge)" strokeWidth={RING_PX * unit} />
+            ))}
           </svg>
         ) : null}
       </div>
+
+      {/* Standing up off the floor: each game's stem, and its tag hung off the stem's top on the left. */}
+      {placed.map((p) => {
+        const stem = Math.min(STEM_REM + p.count * STEM_REM_PER_PLAYER, MAX_STEM_REM);
+        return (
+          <div key={p.id} className="absolute left-0 top-0" style={{ transform: `translate(${p.x}px, ${p.y}px)`, opacity: p.opacity }}>
+            <span className="absolute bottom-0 left-0 w-px bg-[var(--map-edge)]" style={{ height: `${stem}rem` }} />
+            <span
+              className="absolute right-0 whitespace-nowrap bg-[var(--map-tag)] px-[0.35em] py-[0.12em] font-bold leading-[1.3] text-[var(--map-tag-ink)]"
+              style={{ bottom: `${stem}rem`, marginRight: `${STEM_GAP_EM}em`, fontSize: `${TAG_REM * p.tag}rem`, transform: "translateY(100%)" }}
+            >
+              {p.label}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }

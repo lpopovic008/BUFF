@@ -16,48 +16,50 @@ export interface Viewport {
   height: number;
 }
 
-/**
- * The floor point under a point on the screen, and how much the floor is
- * magnified there (1 at the horizon, more toward you). Null at or above the
- * horizon, where there's no floor.
- */
-export function floorAt(screenX: number, screenY: number, { width, height }: Viewport): { u: number; d: number; scale: number } | null {
-  const horizon = height * HORIZON_SHARE;
-  const below = screenY - horizon;
-  if (below <= 0) return null;
-  const a = (FLOOR_TILT * Math.PI) / 180;
-  // A point d back from the hinge sits d·cos(a) below it and d·sin(a) toward you; seen through the perspective,
-  // below = d·cos(a)·p / (p − d·sin(a)). Solved for d:
-  const d = (below * PERSPECTIVE_PX) / (Math.cos(a) * PERSPECTIVE_PX + below * Math.sin(a));
-  const scale = PERSPECTIVE_PX / (PERSPECTIVE_PX - d * Math.sin(a));
-  // Across, the perspective spreads points out from the middle of the screen; the floor starts a screen's width left.
-  const u = width / 2 + (screenX - width / 2) / scale + width;
-  return { u, d, scale };
-}
-
-/** Where a floor point shows on the screen (the inverse of floorAt). */
+/** Where a floor point shows on the screen. */
 export function screenAt(u: number, d: number, { width, height }: Viewport): [number, number] {
   const a = (FLOOR_TILT * Math.PI) / 180;
   const scale = PERSPECTIVE_PX / (PERSPECTIVE_PX - d * Math.sin(a));
   return [width / 2 + (u - width - width / 2) * scale, height * HORIZON_SHARE + d * Math.cos(a) * scale];
 }
 
-export interface FloorFraming {
-  /** The world's offset on the floor, in floor px. */
-  x: number;
-  y: number;
-  /** The world's scale on the floor. */
-  zoom: number;
+export interface FloorFit {
+  /** World px per map unit. */
+  k: number;
+  /** Where the map's top-left sits on the floor, in floor px. */
+  u: number;
+  d: number;
 }
 
-/** The framing that puts world point (wx, wy) — in world px — on floor point (u, d), at a zoom. */
-export function frameOn(wx: number, wy: number, u: number, d: number, zoom: number): FloorFraming {
-  return { x: u - wx * zoom, y: d - wy * zoom, zoom };
-}
-
-/** The stops a camera tour of the week's games makes, in order: every game, by kickoff, then id. */
-export function tourStops<T extends { id: string; kickoff: string }>(games: T[]): T[] {
-  return games
-    .slice()
-    .sort((a, b) => new Date(a.kickoff).getTime() - new Date(b.kickoff).getTime() || a.id.localeCompare(b.id));
+/**
+ * The largest the map can be laid on the floor with every outline point (`points`: [x0, y0, x1, y1, ...], in map
+ * units) still on screen: its far edge on the horizon (a map pushed back only shrinks), centred across the screen,
+ * and within `side` px of the screen's sides and `bottom` px of its bottom.
+ */
+export function fitMap(points: number[], view: Viewport, side: number, bottom: number): FloorFit {
+  let [minX, maxX, minY] = [Infinity, -Infinity, Infinity];
+  for (let i = 0; i < points.length; i += 2) {
+    minX = Math.min(minX, points[i]);
+    maxX = Math.max(maxX, points[i]);
+    minY = Math.min(minY, points[i + 1]);
+  }
+  const place = (k: number): FloorFit => ({ k, u: view.width * 1.5 - (k * (minX + maxX)) / 2, d: -k * minY });
+  const fits = (k: number) => {
+    const { u, d } = place(k);
+    for (let i = 0; i < points.length; i += 2) {
+      const pd = d + k * points[i + 1];
+      // Past the viewer, a point's no longer anywhere on the screen.
+      if (pd * Math.sin((FLOOR_TILT * Math.PI) / 180) >= PERSPECTIVE_PX) return false;
+      const [x, y] = screenAt(u + k * points[i], pd, view);
+      if (x < side || x > view.width - side || y > view.height - bottom) return false;
+    }
+    return true;
+  };
+  let [lo, hi] = [0, 100];
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2;
+    if (fits(mid)) lo = mid;
+    else hi = mid;
+  }
+  return place(lo);
 }
