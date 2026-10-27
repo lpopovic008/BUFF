@@ -204,14 +204,26 @@ export default function DashboardPage() {
   const [redZoneEmpty, setRedZoneEmpty] = useState(false);
   const redZoneRef = useRef<HTMLDivElement>(null);
   const mapColumnRef = useRef<HTMLDivElement>(null);
-  // How far up from the screen's bottom the floor's lowest grid line is — where the starters list stands.
-  const [standOn, setStandOn] = useState(0);
+  // The room's height as it's drawn (not 100vh, which a browser's toolbars can make taller than the screen), and how
+  // far up from its bottom the floor's lowest grid line is — where the starters list stands.
+  const [stand, setStand] = useState<{ room: number; on: number } | null>(null);
+  // The room's only drawn once the leagues are in (not while the page is loading), so it's measured once it is.
+  const [room, setRoom] = useState<HTMLDivElement | null>(null);
   useEffect(() => {
-    const measure = () => setStandOn(window.innerHeight - lowestGridLine(window.innerHeight));
+    if (!room) return;
+    const measure = () => {
+      const height = room.clientHeight || window.innerHeight;
+      setStand({ room: height, on: height - lowestGridLine(height) });
+    };
     measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(room);
     window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, []);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [room]);
   // Where the map's column (and the page) stood before the Red Zone was stretched — back to just that once it's not.
   const scrollBeforeFull = useRef<{ column: number; page: number } | null>(null);
   const toggleRedZoneFull = () => {
@@ -435,15 +447,16 @@ export default function DashboardPage() {
   return (
     // From tablet width up the columns reach the bottom of the screen: the page's own bottom padding is taken back.
     // The room under the screens, where the floor shows: none on a phone.
-    <div className="flex flex-col gap-0.5 [--floor-room:0px] md:-mb-8 md:[--floor-room:9vh]" style={{ ["--stand" as string]: `${standOn}px` }}>
+    <div className="flex flex-col gap-0.5 [--floor-room:0px] md:-mb-8 md:[--floor-room:9vh]" style={stand ? { ["--room-h" as string]: `${stand.room}px`, ["--stand" as string]: `${stand.on}px` } : undefined}>
       <h1 className="sr-only">Dashboard</h1>
       {/* The room the dashboard stands in, on phones too: a grid floor running back to the horizon (see .grid-room). */}
       <div
+        ref={setRoom}
         aria-hidden
         className="grid-room"
         style={{ ["--horizon" as string]: `${HORIZON_SHARE * 100}%`, perspective: `${PERSPECTIVE_PX}px`, perspectiveOrigin: `50% ${HORIZON_SHARE * 100}%` }}
       >
-        <div className="grid-room-floor" style={{ transform: `rotateX(${FLOOR_TILT}deg)`, backgroundSize: `${GRID_PX}px ${GRID_PX}px` }} />
+        <div className="grid-room-floor" style={{ transform: `rotateX(${FLOOR_TILT}deg)`, ["--grid" as string]: `${GRID_PX}px` }} />
       </div>
       <LeagueTicker leagues={leagueCards} />
 
@@ -532,7 +545,7 @@ export default function DashboardPage() {
             something standing on a line across the floor does — from where it sits under the ticker (past the gap and
             the row's padding, 0.625rem), so its foot is on the line whether or not it's stuck. Its last 2.5rem fade out, so
             it's gone by the time it meets the floor. */}
-        <div className={`w-full animate-[rise_0.5s_ease-out_backwards] [animation-delay:200ms] md:sticky md:top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] md:h-[calc(100vh-var(--header-h,0px)-var(--ticker-h,0px)-0.625rem-var(--stand))] md:w-80 md:shrink-0 lg:w-[22rem] md:overflow-y-auto md:pb-16 md:[mask-image:linear-gradient(to_bottom,black_calc(100%-2.5rem),transparent)]`}>
+        <div className={`w-full animate-[rise_0.5s_ease-out_backwards] [animation-delay:200ms] md:sticky md:top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] md:h-[calc(var(--room-h,100vh)-var(--header-h,0px)-var(--ticker-h,0px)-0.625rem-var(--stand,0px))] md:w-80 md:shrink-0 lg:w-[22rem] md:overflow-y-auto md:pb-16 md:[mask-image:linear-gradient(to_bottom,black_calc(100%-2.5rem),transparent)]`}>
           {myStarters === null ? (
             <p className="text-sm text-ink-secondary">Loading your lineups…</p>
           ) : weekGames.length === 0 ? (

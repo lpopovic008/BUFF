@@ -320,8 +320,8 @@ li[data-lit] {
   /* The light at the back of the room, at the horizon's middle: a glow as wide as the screen allows, and a smaller
      one at its heart that never shrinks below what a phone needs to show it. */
   background:
-    radial-gradient(ellipse 26rem 11rem at 50% var(--horizon), color-mix(in srgb, var(--ink-primary) 8%, transparent), transparent 70%),
-    radial-gradient(ellipse 60% 24% at 50% var(--horizon), color-mix(in srgb, var(--ink-primary) 11%, transparent), transparent 70%),
+    radial-gradient(ellipse 26rem 11rem at 50% var(--horizon), color-mix(in srgb, var(--ink-primary) 6%, transparent), transparent 70%),
+    radial-gradient(ellipse 60% 24% at 50% var(--horizon), color-mix(in srgb, var(--ink-primary) 9%, transparent), transparent 70%),
     var(--page);
 }
 .grid-room::before {
@@ -342,28 +342,38 @@ li[data-lit] {
   top: var(--horizon);
   height: 200%;
   transform-origin: top;
-  background-image:
-    linear-gradient(to right, color-mix(in srgb, var(--ink-primary) 22%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in srgb, var(--ink-primary) 22%, transparent) 1px, transparent 1px);
   /* Fading toward the horizon, but only so far: its far end still shows, as faint as the horizon. */
   mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.4), black 30%);
 }
+.grid-room-floor::before {
+  /* The grid, just a "+" where each of its lines would cross (every --grid, from the floor's top left): the
+     theme's ink, cut to the marks by a tile with a quarter of a "+" in each corner. */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--ink-primary) 34%, transparent);
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M0 0h7v1.4H0zM57 0h7v1.4h-7zM0 0h1.4v7H0zM0 57h1.4v7H0z'/%3E%3C/svg%3E");
+  mask-size: var(--grid) var(--grid);
+  mask-repeat: repeat;
+}
 
 /* A game's header in the starters list: no box, the page behind it, each team's main color (--away, --home) faint
-   at its own end, fading out well before the middle. A game under way has a line per team, each tinted from its
+   at its own end, just behind its logo and record. A game under way has a line per team, each tinted from its
    own end (.team-line, with --team). */
 .team-bar,
 .team-line {
   --tint: 22%;
+  /* Just over the team's logo and record, gone by their end. */
+  --team-reach: 5.5rem;
 }
 .team-bar {
   background: linear-gradient(
     to right,
     color-mix(in srgb, color-mix(in srgb, var(--away), white var(--team-lift)) var(--tint), transparent),
-    transparent 42% 58%,
+    transparent var(--team-reach) calc(100% - var(--team-reach)),
     color-mix(in srgb, color-mix(in srgb, var(--home), white var(--team-lift)) var(--tint), transparent)
   );
 }
 .team-line {
-  background: linear-gradient(to right, color-mix(in srgb, color-mix(in srgb, var(--team), white var(--team-lift)) var(--tint), transparent), transparent 50%);
+  background: linear-gradient(to right, color-mix(in srgb, color-mix(in srgb, var(--team), white var(--team-lift)) var(--tint), transparent), transparent var(--team-reach));
 }

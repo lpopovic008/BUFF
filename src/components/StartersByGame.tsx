@@ -280,7 +280,11 @@ type Listing = Pick<GameStarters, "players" | "everyone">;
 export function viewPlayers({ players, everyone }: Listing, view: number): GroupedStarter[] {
   const all = everyone ?? players;
   if (view <= 0) return [];
-  if (view === 1) return all.filter((p) => (p.side ?? "mine") === "mine" || p.side === "both");
+  // Team: just yours, as yours — one you also face elsewhere in green, with only the leagues you have him in.
+  if (view === 1)
+    return all
+      .filter((p) => (p.side ?? "mine") === "mine" || p.side === "both")
+      .map((p) => (p.side === "both" ? { ...p, side: "mine" as const, leagueIds: p.leagueIds.filter((id) => !p.facedIn?.includes(id)), facedIn: undefined } : p));
   if (view === 2) return all.filter((p) => (p.side ?? "mine") !== "other");
   return all;
 }
@@ -427,8 +431,9 @@ function GameLine({
   const one = phase === "live" || (crowded && !both);
   const logoIds = one ? leagueIds.slice(0, 1) : leagueIds;
   const marks = (
-    // Every league: the first on the right, the rest building leftward. Just the first: it, then "+N".
-    <span className={`flex shrink-0 ${one ? "" : "flex-row-reverse"} items-center gap-0.5 transition-opacity duration-150 ${typedIn ? "" : "opacity-0"}`} aria-hidden>
+    // Every league: the first on the right, the rest building leftward. Just the first: it, "+N" up off its top
+    // right corner, so it keeps its place in the column of logos.
+    <span className={`relative flex shrink-0 ${one ? "" : "flex-row-reverse"} items-center gap-0.5 transition-opacity duration-150 ${typedIn ? "" : "opacity-0"}`} aria-hidden>
       {logoIds.map((id) =>
         both ? (
           <span key={id} className={`flex border p-px ${player.facedIn?.includes(id) ? "border-status-critical" : "border-status-good"}`}>
@@ -438,7 +443,7 @@ function GameLine({
           <LeagueMark key={id} league={legendByLeagueId.get(id)} className="h-3 w-3" />
         )
       )}
-      {one && leagueIds.length > 1 ? <span className="text-[0.625rem] tabular-nums text-ink-muted">+{leagueIds.length - 1}</span> : null}
+      {one && leagueIds.length > 1 ? <PlusMore n={leagueIds.length - 1} /> : null}
     </span>
   );
 
@@ -579,7 +584,7 @@ function PreLine({
       <span className={`shrink-0 text-[0.5rem] font-semibold uppercase ${POSITION_TEXT_COLOR[player.position] ?? "text-ink-muted"}`}>{position}</span>
       <span className="min-w-0 flex-1" />
       {first ? (
-        <span className={`flex shrink-0 items-center gap-0.5 transition-opacity duration-150 ${mirrored ? "flex-row-reverse" : ""} ${typedIn ? "" : "opacity-0"}`} aria-hidden>
+        <span className={`relative flex shrink-0 items-center transition-opacity duration-150 ${typedIn ? "" : "opacity-0"}`} aria-hidden>
           {side === "both" ? (
             <span className={`flex border p-px ${player.facedIn?.includes(first) ? "border-status-critical" : "border-status-good"}`}>
               <LeagueMark league={legendByLeagueId.get(first)} className="h-3 w-3" />
@@ -587,12 +592,17 @@ function PreLine({
           ) : (
             <LeagueMark league={legendByLeagueId.get(first)} className="h-3 w-3" />
           )}
-          {leagueIds.length > 1 ? <span className="text-[0.625rem] tabular-nums text-ink-muted">+{leagueIds.length - 1}</span> : null}
+          {leagueIds.length > 1 ? <PlusMore n={leagueIds.length - 1} /> : null}
         </span>
       ) : null}
       <span className={`w-[2.4em] shrink-0 font-light italic tabular-nums text-ink-muted ${mirrored ? "text-left" : "text-right"}`}>{projection}</span>
     </div>
   );
+}
+
+/** "+N" more leagues, small, up off the top right corner of the league logo it's set beside (in a relative box). */
+function PlusMore({ n }: { n: number }) {
+  return <span className="absolute -right-2.5 -top-1.5 text-[0.5625rem] leading-none tabular-nums text-ink-muted">+{n}</span>;
 }
 
 /** How long a box's lines take to delete themselves before it shuts. */
