@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, memo, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, memo, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ExpandVerticalIcon } from "@/components/ui/Icon";
 import { Ordinals } from "@/components/Ordinals";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
@@ -17,8 +17,7 @@ import { linePoints, playAction, PlayLine, statLine } from "@/lib/play-lines";
 import { useFullPlays } from "@/hooks/useFullPlays";
 import { nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
-
-const PAGE = 30;
+import { inWindow, PLAY_PAGE as PAGE, PlayWindow, windowAround } from "@/lib/play-window";
 
 function TeamLogo({ team, side = 16 }: { team: string; side?: number }) {
   return (
@@ -475,7 +474,9 @@ export function RedZone({
   const feedScope: FeedScope = scope === "all" ? "all" : "mine";
   const feed = useRedZoneFeed(shownFollowed, shownGames, feedScope, teamPlayers);
   const starterById = useMemo(() => new Map(starters.flatMap((g) => g.players.map((p) => [p.playerId, p] as const))), [starters]);
-  const [shown, setShown] = useState(PAGE);
+  // The plays loaded: from the top, a page more as the end comes near — or, around a graph cursor's play far down
+  // them, a page either side of it, a page more as either end comes near (see play-window.ts).
+  const [range, setRange] = useState<PlayWindow>({ start: 0, end: PAGE });
   // Plays already on hand when the feed fills in just slide in; ones that arrive after that flash.
   const [settled, setSettled] = useState(false);
   const hasEntries = feed.entries.length > 0;
@@ -486,6 +487,7 @@ export function RedZone({
   }, [hasEntries, settled]);
   const boxRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const topSentinelRef = useRef<HTMLDivElement>(null);
   // Double-tapping the side header (or its ⇕) fits the phone box to the screen — the card's top under the
   // header and ticker, its bottom at the tab bar's top — and doing it again takes it back to a play's height.
   const headRef = useRef<HTMLDivElement>(null);
@@ -545,48 +547,92 @@ export function RedZone({
     query.addEventListener("change", update);
     return () => query.removeEventListener("change", update);
   }, []);
-  // Among the plays: the box scrolls to it (its rows loaded that far), lit up, so you can scroll on from there
-  // to what led up to it — and back to where it was once it's gone.
+  // Among the plays: the box scrolls to it, lit up, so you can scroll on from there to what led up to it — and back
+  // to where it was once it's gone. Not among those loaded, just the page around it is loaded (not every play down
+  // to it), and the ones it took the place of come back with the scroll.
   const savedScroll = useRef<number | null>(null);
+  const savedRange = useRef<PlayWindow | null>(null);
   const spotKey = spotlight && spotIndex >= 0 ? `${spotlight.gameId}-${spotlight.playId}` : null;
-  if (spotIndex >= shown) setShown(spotIndex + PAGE);
+  if (spotIndex >= 0 && !inWindow(range, spotIndex)) {
+    savedRange.current ??= range;
+    setRange(windowAround(spotIndex, feed.entries.length));
+  }
+  // The play the box was last brought to: it's brought to each play once, so scrolling on from there — and the
+  // plays that loads in — is left alone.
+  const pinnedKey = useRef<string | null>(null);
   useEffect(() => {
     const box = boxRef.current;
     if (!box) return;
     if (spotKey === null) {
-      if (savedScroll.current !== null) box.scrollTop = savedScroll.current;
+      pinnedKey.current = null;
+      if (savedRange.current !== null) setRange(savedRange.current);
+      savedRange.current = null;
+      if (savedScroll.current !== null) {
+        const top = savedScroll.current;
+        requestAnimationFrame(() => (box.scrollTop = top));
+      }
       savedScroll.current = null;
       return;
     }
+    if (pinnedKey.current === spotKey) return;
     const row = box.querySelector<HTMLElement>(`[data-play="${CSS.escape(spotKey)}"]`);
     if (!row) return;
     savedScroll.current ??= box.scrollTop;
     box.scrollTop = row.offsetTop;
-  }, [spotKey, shown]);
+    pinnedKey.current = spotKey;
+  }, [spotKey, range]);
   // Not among them (another of the buttons is picked): laid over the top of the plays instead.
   const pinned = spotEntry && spotIndex < 0 ? spotEntry : null;
-  const moreToShow = feed.entries.length > shown;
-  // Scrolling near the end of the plays loads the next page of them — no button. Watched within the box when
-  // it scrolls on its own, else the screen; a page is only added once the end of the plays comes near.
+  const moreBelow = feed.entries.length > range.end;
+  const moreAbove = range.start > 0;
+  // Scrolling near the end of the plays loaded loads the next page of them — no button. Watched within the box
+  // when it scrolls on its own, else the screen; a page is only added once the end of the plays comes near.
   useEffect(() => {
     const sentinel = sentinelRef.current;
     const box = boxRef.current;
     if (!sentinel || !box) return;
     const observer = new IntersectionObserver(
       (seen) => {
-        if (seen.some((e) => e.isIntersecting)) setShown((n) => n + PAGE);
+        if (seen.some((e) => e.isIntersecting)) setRange((r) => ({ ...r, end: r.end + PAGE }));
       },
       { root: getComputedStyle(box).overflowY === "visible" ? null : box, rootMargin: "0px 0px 800px 0px" }
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [moreToShow, shown, phone]);
+  }, [moreBelow, range.end, phone]);
+  // And near the start of them, while there are plays above (loaded around a graph cursor's play), the page before
+  // them — the plays in view held where they are as it goes in over them.
+  const heightBeforePrepend = useRef<number | null>(null);
+  useEffect(() => {
+    const sentinel = topSentinelRef.current;
+    const box = boxRef.current;
+    if (!sentinel || !box) return;
+    const observer = new IntersectionObserver(
+      (seen) => {
+        if (!seen.some((e) => e.isIntersecting)) return;
+        heightBeforePrepend.current = box.scrollHeight;
+        setRange((r) => ({ ...r, start: Math.max(0, r.start - PAGE) }));
+      },
+      { root: getComputedStyle(box).overflowY === "visible" ? null : box, rootMargin: "200px 0px 0px 0px" }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [moreAbove, range.start, phone]);
+  useLayoutEffect(() => {
+    const box = boxRef.current;
+    const before = heightBeforePrepend.current;
+    heightBeforePrepend.current = null;
+    if (!box || before === null) return;
+    const grew = box.scrollHeight - before;
+    if (getComputedStyle(box).overflowY === "visible") window.scrollBy(0, grew);
+    else box.scrollTop += grew;
+  }, [range.start]);
 
   // Another scope starts the plays over from the top.
   const pickScope = (next: RedZoneScope) => {
     if (next === scope) return;
     setScope(next);
-    setShown(PAGE);
+    setRange({ start: 0, end: PAGE });
     setSettled(false);
     boxRef.current?.scrollTo({ top: 0 });
   };
@@ -704,8 +750,10 @@ export function RedZone({
                 }`}
                 style={boxHeight !== null ? ({ "--rz-user-h": `${boxHeight}px` } as React.CSSProperties) : undefined}
               >
+                {/* The start of the plays loaded, when there are more above: coming near it brings in the ones before. */}
+                {range.start > 0 ? <div ref={topSentinelRef} className="h-px" aria-hidden /> : null}
                 <ol className="flex flex-col" aria-label={scope === "mine" ? "Plays your starters were part of" : scope === "vs" ? "Plays your starters or the ones you face were part of" : "Every play"} aria-live="polite">
-                  {entries.slice(0, shown).map((entry, i) => (
+                  {entries.slice(range.start, range.end).map((entry, i) => (
                     <FeedRow
                       key={`${entry.game.id}-${entry.play.id}`}
                       entry={entry}
@@ -713,13 +761,13 @@ export function RedZone({
                       legendByLeagueId={legendByLeagueId}
                       arrivedLive={settled}
                       index={i}
-                      spotlit={i === spotIndex}
+                      spotlit={range.start + i === spotIndex}
                       latest={latestPlays.has(`${entry.game.id}-${entry.play.id}`)}
                     />
                   ))}
                 </ol>
                 {/* The end of the plays shown: coming within a screen or so of it brings in the next ones. */}
-                {entries.length > shown ? <div ref={sentinelRef} className="h-px" aria-hidden /> : null}
+                {entries.length > range.end ? <div ref={sentinelRef} className="h-px" aria-hidden /> : null}
               </div>
             </div>
           ) : null}
