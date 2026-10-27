@@ -1,6 +1,8 @@
 // The trade monitor's reading of a league: who's in the playoff picture (and so buying or selling), where each
 // roster is strong or thin, which of your players to think about moving before their value goes, and the young
-// stars and breakouts on other rosters to go after. Pure — the loading is useTradeMonitor.ts.
+// stars and breakouts on other rosters to go after, and a trade calculator. Pure — the loading is useTradeMonitor.ts.
+
+import { addedValues } from "./trades";
 
 /** A rostered player as the monitor weighs them. */
 export interface MonitorPlayer {
@@ -254,4 +256,80 @@ export function tradeTargets(
   stars.sort((a, b) => b.score - a.score);
   breakouts.sort((a, b) => b.score - a.score);
   return { stars, breakouts };
+}
+
+// ---------- The trade calculator ----------
+
+/** A future draft pick a team holds: which draft and round, whose it first was, and KTC's value for it. */
+export interface MonitorPick {
+  id: string;
+  season: number;
+  round: number;
+  /** The team it first belonged to. */
+  originalRosterId: number;
+  /** The team holding it now. */
+  rosterId: number;
+  value: number | null;
+}
+
+/**
+ * Every team's future picks: each team its own for each of `seasons` and `rounds`, save those `traded` (Sleeper's
+ * traded picks, each with who holds it now) — valued by `valueOf` (a pick's season and round), null without one.
+ */
+export function futurePicks(
+  rosterIds: number[],
+  seasons: number[],
+  rounds: number,
+  traded: { season: string; round: number; roster_id: number; owner_id: number }[],
+  valueOf: (season: number, round: number) => number | null
+): MonitorPick[] {
+  const holder = new Map(traded.map((t) => [`${t.season}-${t.round}-${t.roster_id}`, t.owner_id]));
+  return seasons.flatMap((season) =>
+    Array.from({ length: rounds }, (_, r) => r + 1).flatMap((round) =>
+      rosterIds.map((original) => ({
+        id: `pick:${season}-${round}-${original}`,
+        season,
+        round,
+        originalRosterId: original,
+        rosterId: holder.get(`${season}-${round}-${original}`) ?? original,
+        value: valueOf(season, round),
+      }))
+    )
+  );
+}
+
+/** How far apart a trade's sides can be and still be fair: this share of the bigger side. */
+export const FAIR_SHARE = 0.05;
+
+/** A trade weighed: each side's total — its pieces plus KTC's added value — and who comes out ahead. */
+export interface TradeVerdict {
+  give: { plain: number; added: number; total: number };
+  get: { plain: number; added: number; total: number };
+  /** What you get less what you give: ahead when it's over 0. */
+  margin: number;
+  fair: boolean;
+}
+
+/**
+ * A trade as KTC's calculator weighs it: each side's values added up, the side with fewer, better pieces due
+ * added value on top (see addedValues), and fair when the sides are within FAIR_SHARE of each other.
+ */
+export function weighTrade(give: number[], get: number[]): TradeVerdict {
+  const [addGive, addGet] = addedValues(give, get);
+  const sum = (vs: number[]) => vs.reduce((t, v) => t + v, 0);
+  const g = { plain: sum(give), added: addGive, total: sum(give) + addGive };
+  const r = { plain: sum(get), added: addGet, total: sum(get) + addGet };
+  const margin = r.total - g.total;
+  return { give: g, get: r, margin, fair: Math.abs(margin) <= FAIR_SHARE * Math.max(g.total, r.total) };
+}
+
+/** The league's teams after a trade: what `mine` gives goes to `theirs`, and what it gets comes over. */
+export function afterTrade(teams: MonitorTeam[], mine: number, theirs: number, give: string[], get: string[]): MonitorTeam[] {
+  return teams.map((t) =>
+    t.rosterId === mine
+      ? { ...t, players: [...t.players.filter((id) => !give.includes(id)), ...get] }
+      : t.rosterId === theirs
+        ? { ...t, players: [...t.players.filter((id) => !get.includes(id)), ...give] }
+        : t
+  );
 }

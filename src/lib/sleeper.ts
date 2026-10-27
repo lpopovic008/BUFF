@@ -236,6 +236,11 @@ export async function getTransactions(
   return txns ?? [];
 }
 
+/** Every future draft pick that's changed hands in a league, with who holds it now (`owner_id`) — a pick not in it is still its own team's. */
+export async function getTradedPicks(leagueId: string): Promise<SleeperTradedPick[]> {
+  return (await sleeperFetch<SleeperTradedPick[]>(`/league/${leagueId}/traded_picks`, 300)) ?? [];
+}
+
 export async function getLeagueDrafts(leagueId: string): Promise<SleeperDraft[]> {
   return (await sleeperFetch<SleeperDraft[]>(`/league/${leagueId}/drafts`, 3600)) ?? [];
 }

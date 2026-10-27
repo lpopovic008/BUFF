@@ -1,17 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getLeague, getLeagueRosters, getLeagueUsers, isDynastyLeague, leagueQBFormat } from "@/lib/sleeper";
+import { getLeague, getLeagueRosters, getLeagueUsers, getTradedPicks, isDynastyLeague, leagueQBFormat } from "@/lib/sleeper";
 import { buildLiveStandings, regularSeasonWeeksOf } from "@/lib/league-data";
 import { loadPlayerIdIndex, resolvePlayers } from "@/lib/players";
 import { positionValuesById, seasonLinesById } from "@/lib/matchup-players";
 import { normalizeName } from "@/lib/name-match";
 import { PlayerStatsSnapshot } from "@/lib/player-stats";
-import { PlayerValuesSnapshot } from "@/lib/player-values";
+import { PlayerValuesSnapshot, valueFor } from "@/lib/player-values";
+import { ordinal } from "@/lib/format";
 import { dayOf, valueOn } from "@/lib/value-history";
 import { loadValueHistory } from "@/hooks/useLeagueTrades";
 import {
   Candidate,
+  futurePicks,
+  MonitorPick,
+  MonitorPosition,
   MonitorPlayer,
   MonitorTeam,
   playoffPicture,
@@ -48,7 +52,16 @@ export interface TradeMonitor {
   sell: Candidate[];
   stars: Target[];
   breakouts: Target[];
+  /** Every team's future draft picks, for the trade calculator. */
+  picks: MonitorPick[];
+  /** How many each team starts at each position (see startersByPosition) — the calculator re-ranks rosters with it. */
+  starters: Record<MonitorPosition, number>;
 }
+
+// How many future drafts a team's picks are counted for, and the most rounds a rookie draft has (more is a startup).
+const PICK_SEASONS = 3;
+const MAX_ROOKIE_ROUNDS = 7;
+const DEFAULT_ROUNDS = 4;
 
 /** A league read for trading (see trade-monitor.ts) — undefined while it loads, null if it couldn't be. */
 export function useTradeMonitor(leagueId: string, myUserId: string | null): TradeMonitor | null | undefined {
@@ -56,12 +69,13 @@ export function useTradeMonitor(leagueId: string, myUserId: string | null): Trad
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [league, rosters, users, idIndex, history] = await Promise.all([
+      const [league, rosters, users, idIndex, history, traded] = await Promise.all([
         getLeague(leagueId),
         getLeagueRosters(leagueId),
         getLeagueUsers(leagueId),
         loadPlayerIdIndex(),
         loadValueHistory(),
+        getTradedPicks(leagueId),
       ]);
       if (!league) {
         if (!cancelled) setData({ leagueId, monitor: null });
@@ -69,6 +83,7 @@ export function useTradeMonitor(leagueId: string, myUserId: string | null): Trad
       }
       const dynasty = isDynastyLeague(league);
       const superflex = leagueQBFormat(league) === "superflex";
+      const tep = (league.scoring_settings?.bonus_rec_te ?? 0) > 0 ? "tep" : "standard";
       const standings = buildLiveStandings(rosters, users);
       const allIds = rosters.flatMap((r) => r.players ?? []);
       const resolved = await resolvePlayers(allIds);
@@ -77,7 +92,7 @@ export function useTradeMonitor(leagueId: string, myUserId: string | null): Trad
       // Valued as the league plays; trending by KTC's dynasty history, matched on position and name.
       const values = positionValuesById(
         valuesSnapshot,
-        { listType: dynasty ? "dynasty" : "fantasy", format: superflex ? "superflex" : "oneQB", tep: (league.scoring_settings?.bonus_rec_te ?? 0) > 0 ? "tep" : "standard" },
+        { listType: dynasty ? "dynasty" : "fantasy", format: superflex ? "superflex" : "oneQB", tep },
         idIndex
       );
       const trend = new Map<string, number>();
@@ -128,13 +143,29 @@ export function useTradeMonitor(leagueId: string, myUserId: string | null): Trad
       const playoffTeams = Number(league.settings.playoff_teams) || 6;
       const played = Math.max(0, ...teams.map((t) => t.wins + t.losses + t.ties));
       const gamesLeft = Math.max(0, regularSeasonWeeksOf(league) - played);
-      const needs = positionalNeeds(teams, players, startersByPosition(league.roster_positions));
+      const starters = startersByPosition(league.roster_positions);
+      const needs = positionalNeeds(teams, players, starters);
       const myNeeds = needs.find((n) => n.rosterId === mineRoster?.roster_id);
       const mine = teams.find((t) => t.mine);
       const others = teams.filter((t) => !t.mine);
       const { stars, breakouts } = tradeTargets(
         others.map((t) => ({ rosterId: t.rosterId, players: t.players.flatMap((id) => players.get(id) ?? []) })),
         myNeeds?.needs ?? []
+      );
+      // Each team's picks for the next drafts — this season's too while its draft's still to come — valued as KTC's
+      // middle of the round (where a pick lands isn't known yet).
+      const year = Number(league.season);
+      const first = league.status === "pre_draft" || league.status === "drafting" ? year : year + 1;
+      const setRounds = Number(league.settings.draft_rounds) || 0;
+      const picks = futurePicks(
+        rosters.map((r) => r.roster_id),
+        Array.from({ length: PICK_SEASONS }, (_, i) => first + i),
+        setRounds > 0 && setRounds <= MAX_ROOKIE_ROUNDS ? setRounds : DEFAULT_ROUNDS,
+        traded,
+        (draft, round) => {
+          const pick = valuesSnapshot.dynasty.find((p) => p.position === "RDP" && p.name === `${draft} Mid ${ordinal(round)}`);
+          return pick ? valueFor(pick, superflex ? "superflex" : "oneQB", tep) : null;
+        }
       );
       const monitor: TradeMonitor = {
         leagueName: league.name,
@@ -150,6 +181,8 @@ export function useTradeMonitor(leagueId: string, myUserId: string | null): Trad
         sell: mine ? sellCandidates(mine.players.flatMap((id) => players.get(id) ?? [])) : [],
         stars,
         breakouts,
+        picks,
+        starters,
       };
       if (!cancelled) setData({ leagueId, monitor });
     })().catch(() => {

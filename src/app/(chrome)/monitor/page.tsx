@@ -6,6 +6,7 @@ import { PlateCard } from "@/components/ui/PlateCard";
 import { PickButton } from "@/components/ui/PickButton";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { PlayerCareer } from "@/components/PlayerCareer";
+import { TradeCalculator } from "@/components/TradeCalculator";
 import { useConfig } from "@/hooks/useConfig";
 import { useMyLeagues } from "@/hooks/useMyLeagues";
 import { TradeMonitor, useTradeMonitor } from "@/hooks/useTradeMonitor";
@@ -233,6 +234,9 @@ function LeagueMonitor({ leagueId, myUserId }: { leagueId: string; myUserId: str
   return (
     <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
       {card ? <PlayerCareer player={card} season={Number(monitor.season)} scoring={monitor.scoring} onClose={() => setCard(null)} /> : null}
+      <PlateCard title="Trade calculator" className="lg:col-span-2" bodyClassName="p-3 sm:p-4">
+        <TradeCalculator monitor={monitor} onOpen={open} />
+      </PlateCard>
       <PlateCard title="Playoff picture" aside={<span>Top {monitor.playoffTeams} make it</span>} bodyClassName="px-3 py-1 sm:px-4">
         <PlayoffPicture monitor={monitor} />
       </PlateCard>

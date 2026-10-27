@@ -316,6 +316,12 @@ its Sleeper rosters and standings, KTC's values (as the league plays: dynasty
 or redraft, 1QB or superflex, TE premium), KTC's value history and this
 season's stats (`trade-monitor.ts`, loaded by `useTradeMonitor`):
 
+- **Trade calculator** — pick any team, then what you'd give and get from
+  both rosters and both teams' future picks (Sleeper's traded picks, each
+  valued at KTC's middle of its round). Each side's value adds KTC's added
+  value for fewer, better pieces (`weighTrade`), the verdict says who wins and
+  by how much (fair within 5%), and both rosters' ranks at each position show
+  before and after (`afterTrade`). Your best trade partner is picked to start.
 - **Playoff picture** — every team against the playoff line: in, on the bubble
   (within a game either way), out, or clinched / eliminated with the games
   left, and so likely buying, selling or either.

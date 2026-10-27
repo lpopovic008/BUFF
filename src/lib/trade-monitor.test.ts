@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { MonitorPlayer, MonitorTeam, playoffPicture, positionalNeeds, sellCandidates, startersByPosition, tradePartners, tradeTargets } from "./trade-monitor";
+import { afterTrade, futurePicks, MonitorPlayer, MonitorTeam, playoffPicture, positionalNeeds, sellCandidates, startersByPosition, tradePartners, tradeTargets, weighTrade } from "./trade-monitor";
 
 const team = (rosterId: number, wins: number, losses: number, players: string[] = []): MonitorTeam => ({
   rosterId,
@@ -98,4 +98,33 @@ test("tradeTargets finds young stars and breakouts on other rosters, your needs 
   assert.deepEqual(stars.map((t) => t.player.id), ["star"]);
   assert.deepEqual(breakouts.map((t) => t.player.id), ["producer", "riser"]);
   assert.ok(breakouts[0].reasons.some((r) => /TE need/.test(r.text)));
+});
+
+test("futurePicks gives each team its own picks, save those traded away", () => {
+  const picks = futurePicks([1, 2], [2027, 2028], 2, [{ season: "2027", round: 1, roster_id: 2, owner_id: 1 }], (season, round) => (round === 1 ? 5000 : 2000) - (season - 2027) * 100);
+  assert.equal(picks.length, 8);
+  const held = (rosterId: number) => picks.filter((p) => p.rosterId === rosterId).map((p) => p.id).sort();
+  // Team 1 has team 2's 2027 1st too; team 2 doesn't.
+  assert.ok(held(1).includes("pick:2027-1-2"));
+  assert.equal(held(1).length, 5);
+  assert.equal(held(2).length, 3);
+  assert.equal(picks.find((p) => p.id === "pick:2028-1-1")!.value, 4900);
+});
+
+test("weighTrade adds KTC's value for the fewer, better pieces and calls it fair when close", () => {
+  // One star for three pieces adding up to more: the star's side is due the difference and then some.
+  const star = weighTrade([9000], [4000, 3000, 2500]);
+  assert.ok(star.give.added > 0);
+  assert.equal(star.get.added, 0);
+  assert.equal(star.margin, star.get.total - star.give.total);
+  // Even swaps are fair; lopsided ones aren't.
+  assert.equal(weighTrade([5000], [5100]).fair, true);
+  assert.equal(weighTrade([5000], [7000]).fair, false);
+  assert.ok(weighTrade([5000], [7000]).margin > 0);
+});
+
+test("afterTrade moves the pieces between the two rosters only", () => {
+  const teams = [team(1, 0, 0, ["a", "b"]), team(2, 0, 0, ["c"]), team(3, 0, 0, ["d"])];
+  const after = afterTrade(teams, 1, 2, ["a"], ["c"]);
+  assert.deepEqual(after.map((t) => t.players), [["b", "c"], ["a"], ["d"]]);
 });
