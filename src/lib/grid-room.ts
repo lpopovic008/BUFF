@@ -39,7 +39,7 @@ export function gridRows(height: number): number[] {
   return rows;
 }
 
-/** The lowest of the floor's grid lines at or above screen y `limit` — the horizon itself if none is. */
-export function rowAtOrAbove(height: number, limit: number): number {
-  return gridRows(height).filter((y) => y <= limit).at(-1) ?? floorY(0, height);
+/** The floor's grid line nearest screen y `y` — the horizon itself above the floor. */
+export function nearestRow(height: number, y: number): number {
+  return gridRows(height).reduce((best, row) => (Math.abs(row - y) < Math.abs(best - y) ? row : best), floorY(0, height));
 }

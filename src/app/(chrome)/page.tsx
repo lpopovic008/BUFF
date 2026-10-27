@@ -4,8 +4,8 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "reac
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { GameMap, MappedGame } from "@/components/GameMap";
-import { FLOOR_TILT, GRID_PX, HORIZON_SHARE, PERSPECTIVE_PX, lowestGridLine, rowAtOrAbove } from "@/lib/grid-room";
-import { MAP_ASPECT } from "@/lib/map-perspective";
+import { FLOOR_TILT, GRID_PX, HORIZON_SHARE, PERSPECTIVE_PX, lowestGridLine, nearestRow } from "@/lib/grid-room";
+import { DEFAULT_SCENE, landTopShare, MAP_ASPECT } from "@/lib/map-perspective";
 import { LeagueTicker, TickerLeague } from "@/components/LeagueTicker";
 import { ByeTeam, LeagueLegendEntry, StartersByGame, viewPlayers } from "@/components/StartersByGame";
 import { NFL_TEAMS } from "@/lib/nfl-logos";
@@ -207,9 +207,9 @@ export default function DashboardPage() {
   const mapColumnRef = useRef<HTMLDivElement>(null);
   // The room's height as it's drawn (not 100vh, which a browser's toolbars can make taller than the screen); how far up
   // from its bottom the floor's lowest grid line is — where the starters list stands from tablet width up; the
-  // horizon; and, on a phone, the grid line about halfway back it stands on instead (the lowest leaving the map room
-  // in front of it, above the tab bar) — screen y's, from the top.
-  const [stand, setStand] = useState<{ room: number; on: number; horizon: number; foot: number; tabBar: number } | null>(null);
+  // horizon; and, on a phone, the grid line it stands on instead (nearest the top of the map's land) and where the
+  // map's room starts — screen y's, from the top.
+  const [stand, setStand] = useState<{ room: number; on: number; horizon: number; foot: number; mapTop: number; tabBar: number } | null>(null);
   // Fitted to the screen (⇕), the Red Zone takes a phone's whole scene.
   const [redZoneFitted, setRedZoneFitted] = useState(false);
   // The room's only drawn once the leagues are in (not while the page is loading), so it's measured once it is.
@@ -219,13 +219,17 @@ export default function DashboardPage() {
     const measure = () => {
       const height = room.clientHeight || window.innerHeight;
       const tabBar = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--tabbar-h")) || 0;
-      // The map's height at a phone's width, and room for its tags over it.
-      const mapNeeds = (window.innerWidth - 32) / MAP_ASPECT + 48;
+      // On a phone the map lies across the screen just over the tab bar, with room for its tags over it; the
+      // starters list stands on the grid line nearest the top of its land, behind its tags' stems.
+      const mapBox = (window.innerWidth - 32) / MAP_ASPECT;
+      const tabTop = height - tabBar;
+      const landTop = tabTop - mapBox * (1 - landTopShare(DEFAULT_SCENE));
       setStand({
         room: height,
         on: height - lowestGridLine(height),
         horizon: height * HORIZON_SHARE,
-        foot: rowAtOrAbove(height, height - tabBar - mapNeeds),
+        foot: nearestRow(height, landTop),
+        mapTop: tabTop - mapBox - 48,
         tabBar,
       });
     };
@@ -552,18 +556,20 @@ export default function DashboardPage() {
           <LeagueTicker leagues={leagueCards} />
           {redZoneView ? <div className={`-mx-4 shrink-0 animate-[rise_0.5s_ease-out_backwards] pt-1 ${redZoneOff ? "hidden" : ""} ${redZoneFitted ? "min-h-0 flex-1" : ""}`}>{redZoneView}</div> : null}
           {graphsUp ? <div className="floor-reflect min-h-0 flex-1 pt-2">{graphsView}</div> : null}
+          {/* Reflected in the floor from its foot; within it, scrolling, its last 4rem fading into the floor behind the
+              map's stems. */}
           <div
-            className={`floor-reflect min-h-0 animate-[rise_0.5s_ease-out_backwards] overflow-y-auto overscroll-contain pb-6 pt-2 [animation-delay:200ms] [mask-image:linear-gradient(to_bottom,black_calc(100%-1.5rem),transparent)] ${
-              redZoneFitted ? "hidden" : graphsUp ? "flex-none" : "flex-1"
-            }`}
+            className={`floor-reflect min-h-0 animate-[rise_0.5s_ease-out_backwards] pt-2 [animation-delay:200ms] ${redZoneFitted ? "hidden" : graphsUp ? "flex-none" : "flex-1"}`}
             style={graphsUp && stand ? { height: stand.foot - stand.horizon } : undefined}
           >
-            {startersView}
+            <div className="h-full overflow-y-auto overscroll-contain pb-16 [-webkit-mask-image:linear-gradient(to_bottom,black_calc(100%-4rem),transparent)] [mask-image:linear-gradient(to_bottom,black_calc(100%-4rem),transparent)]">
+              {startersView}
+            </div>
           </div>
           {weekGames.length > 0 && stand && !redZoneFitted ? (
-            // The map, lying on the floor at the front: from the starters list's foot down to the tab bar.
-            <div className="absolute inset-x-4 flex flex-col justify-end" style={{ top: `calc(${stand.foot}px - var(--header-h, 0px))`, bottom: "var(--tabbar-h, 0px)" }}>
-              <GameMap games={games} legend={legend} room={`${stand.room - stand.tabBar - stand.foot}px`} />
+            // The map, lying on the floor at the front, just over the tab bar — in front of the starters list's foot.
+            <div className="absolute inset-x-4 flex flex-col justify-end" style={{ top: `calc(${stand.mapTop}px - var(--header-h, 0px))`, bottom: "var(--tabbar-h, 0px)" }}>
+              <GameMap games={games} legend={legend} room={`${stand.room - stand.tabBar - stand.mapTop}px`} />
             </div>
           ) : null}
         </div>
