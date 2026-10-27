@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { floorY, GRID_PX, gridRows, HORIZON_SHARE, lowestGridLine, nearestRow } from "./grid-room";
+import { floorY, GRID_PX, gridRows, HORIZON_SHARE, lowestGridLine, nearestRow, PHONE_HORIZON_SHARE } from "./grid-room";
 
 test("floorY puts the hinge on the horizon and the floor's lines ever further apart toward you", () => {
   assert.equal(floorY(0, 900), 900 * HORIZON_SHARE);
@@ -35,4 +35,11 @@ test("nearestRow finds the grid line closest to a point, above or below it", () 
   assert.equal(nearestRow(852, a + (b - a) * 0.4), a);
   assert.equal(nearestRow(852, a + (b - a) * 0.6), b);
   assert.equal(nearestRow(852, 100), 852 * HORIZON_SHARE);
+});
+
+test("a phone's horizon sits nearer the middle, and its rows follow it", () => {
+  assert.equal(floorY(0, 852, PHONE_HORIZON_SHARE), 852 * PHONE_HORIZON_SHARE);
+  assert.ok(PHONE_HORIZON_SHARE > 0.5 && PHONE_HORIZON_SHARE < HORIZON_SHARE);
+  assert.equal(gridRows(852, PHONE_HORIZON_SHARE)[0], 852 * PHONE_HORIZON_SHARE);
+  assert.ok(lowestGridLine(852, PHONE_HORIZON_SHARE) < 852);
 });

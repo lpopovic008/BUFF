@@ -444,7 +444,7 @@ export function RedZone({
    * scroll on from there to what led up to it; once it's gone they're back just where they were.
    */
   spotlight?: { gameId: string; playId: string } | null;
-  /** On phones, show the plays in a box about one play tall (or, ⇕ or the side header double-tapped, as tall as the screen) that scrolls on its own, instead of running down the page. */
+  /** On phones, show the plays in a box about a play and a half tall (or, ⇕ or the side header double-tapped, as tall as the screen) that scrolls on its own, instead of running down the page. */
   compactOnPhone?: boolean;
   /** From tablet width up, whether the box is stretched to the whole column's height, and the ⇕ button's switch for it (on a phone the button fits the box to the screen). */
   full?: { on: boolean; toggle: () => void };
@@ -663,7 +663,7 @@ export function RedZone({
     <ScoringContext.Provider value={scoringByLeague}>
     {/* No box: while games are on, the header runs down the left side as narrow as it goes, the plays spread out
         beside it to the next section or the screen's edge; otherwise it runs across the top, the plays under it.
-        From tablet width up it fills the room it's given; on a phone it's about one big play tall. */}
+        From tablet width up it fills the room it's given; on a phone it's about a play and a half tall. */}
     <div className={`flex md:min-h-0 md:flex-1 ${across ? "flex-col" : "flex-row"}`}>
       <div
         // Down the side, its contents sit inside it, never making the Red Zone taller.
@@ -749,8 +749,8 @@ export function RedZone({
               <div
                 ref={boxRef}
                 className={`relative md:h-full md:overflow-y-auto md:overscroll-contain ${
-                  // About one play tall: one with three people in it and three lines of description.
-                  compactOnPhone ? "max-md:h-[var(--rz-user-h,12.25rem)] max-md:overflow-y-auto max-md:overscroll-contain" : ""
+                  // About a play and a half tall.
+                  compactOnPhone ? "max-md:h-[var(--rz-user-h,9.5rem)] max-md:overflow-y-auto max-md:overscroll-contain" : ""
                 }`}
                 style={boxHeight !== null ? ({ "--rz-user-h": `${boxHeight}px` } as React.CSSProperties) : undefined}
               >

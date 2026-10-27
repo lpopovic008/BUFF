@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "reac
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { GameMap, MappedGame } from "@/components/GameMap";
-import { FLOOR_TILT, GRID_PX, HORIZON_SHARE, PERSPECTIVE_PX, lowestGridLine, nearestRow } from "@/lib/grid-room";
+import { FLOOR_TILT, GRID_PX, HORIZON_SHARE, PERSPECTIVE_PX, PHONE_HORIZON_SHARE, lowestGridLine, nearestRow } from "@/lib/grid-room";
 import { DEFAULT_SCENE, landTopShare, MAP_ASPECT } from "@/lib/map-perspective";
 import { LeagueTicker, TickerLeague } from "@/components/LeagueTicker";
 import { ByeTeam, LeagueLegendEntry, StartersByGame, viewPlayers } from "@/components/StartersByGame";
@@ -227,8 +227,8 @@ export default function DashboardPage() {
       setStand({
         room: height,
         on: height - lowestGridLine(height),
-        horizon: height * HORIZON_SHARE,
-        foot: nearestRow(height, landTop),
+        horizon: height * PHONE_HORIZON_SHARE,
+        foot: nearestRow(height, landTop, PHONE_HORIZON_SHARE),
         mapTop: tabTop - mapBox - 48,
         tabBar,
       });
@@ -461,13 +461,15 @@ export default function DashboardPage() {
     };
   });
 
-  // The room the dashboard stands in: a grid floor running back to the horizon (see .grid-room).
+  // The room the dashboard stands in: a grid floor running back to the horizon (see .grid-room) — on a phone, nearer
+  // the middle of the screen.
+  const horizon = desktop ? HORIZON_SHARE : PHONE_HORIZON_SHARE;
   const roomView = (
     <div
       ref={setRoom}
       aria-hidden
       className="grid-room"
-      style={{ ["--horizon" as string]: `${HORIZON_SHARE * 100}%`, perspective: `${PERSPECTIVE_PX}px`, perspectiveOrigin: `50% ${HORIZON_SHARE * 100}%` }}
+      style={{ ["--horizon" as string]: `${horizon * 100}%`, perspective: `${PERSPECTIVE_PX}px`, perspectiveOrigin: `50% ${horizon * 100}%` }}
     >
       <div className="grid-room-floor" style={{ transform: `rotateX(${FLOOR_TILT}deg)`, ["--grid" as string]: `${GRID_PX}px` }} />
     </div>
