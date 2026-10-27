@@ -12,7 +12,6 @@
 // side wall, which is what sells the perspective.
 
 import { US_STATE_SHAPES } from "./us-states";
-import { FLOOR_TILT } from "./grid-room";
 import { US_MAP_VIEWBOX, US_SIMPLE_OUTLINE_PATH, US_SIMPLE_STATE_LINES_PATH } from "./team-cities";
 
 export const [, , MAP_W, MAP_H] = US_MAP_VIEWBOX.split(" ").map(Number);
@@ -31,8 +30,8 @@ export interface MapCamera {
   ty: number;
 }
 
-/** The view the map always opens on: laid back as far as the home page's floor (see grid-room.ts). */
-export const DEFAULT_CAMERA: MapCamera = { tilt: FLOOR_TILT, yaw: 0, zoom: 1, tx: 160, ty: 100 };
+/** The view the map always opens on. */
+export const DEFAULT_CAMERA: MapCamera = { tilt: 58, yaw: 0, zoom: 1, tx: 160, ty: 100 };
 // 0 looks straight down on the map; 90 sees it edge-on, from the side.
 export const MIN_TILT = 0;
 export const MAX_TILT = 90;
