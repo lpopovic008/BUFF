@@ -66,7 +66,14 @@ export function NavBar() {
         {/* The app's icon, home — and from tablet width up the pages as text tabs, the one you're on lit like a map
             tag. (Back and forward sit just under the header: see HistoryButtons.) */}
         <div className="flex min-w-0 items-center gap-2 justify-self-start sm:gap-3 lg:gap-5">
-          <Link href="/" aria-label="Commi$h — home" title="Commi$h" className="shrink-0 text-ink-primary transition-transform active:scale-90 md:ml-2">
+          {/* From tablet width up, centered in a box the size of the profile button across the header, the same way in
+              from its edge, so the two ends mirror each other. */}
+          <Link
+            href="/"
+            aria-label="Commi$h — home"
+            title="Commi$h"
+            className="shrink-0 text-ink-primary transition-transform active:scale-90 md:flex md:h-9 md:w-9 md:items-center md:justify-center"
+          >
             <Logo className="block h-7 sm:h-9" />
           </Link>
           <nav aria-label="Pages" className="flex items-center gap-1 max-md:hidden lg:gap-2">
