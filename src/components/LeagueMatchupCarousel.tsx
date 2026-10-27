@@ -663,8 +663,8 @@ function sides(game: ResolvedMatchupGame, myRosterId: number | null) {
 /**
  * Sleeper-style matchup view: full lineup, slot by slot, for the league's
  * current week. On a phone every matchup's header is stacked, and tapping one
- * opens its lineup (see MatchupStack); from tablet width up the chosen matchup takes the left 70%
- * and every matchup is listed down the right 30% — boxes in the league
+ * opens its lineup (see MatchupStack); from tablet width up the chosen matchup takes the left
+ * and every matchup is listed down a column on the right, as wide as its boxes need — boxes in the league
  * ticker's format — to pick from. Opens on your own matchup.
  */
 export function LeagueMatchupCarousel({
@@ -745,8 +745,8 @@ export function LeagueMatchupCarousel({
         />
       </div>
 
-      {/* Tablet and up: the chosen matchup large on the left (70%), every matchup listed on the right (30%, never narrower than 16rem so names stay readable). */}
-      <div className="hidden md:grid md:grid-cols-[minmax(0,7fr)_minmax(16rem,3fr)] md:items-start md:gap-3">
+      {/* Tablet and up: the chosen matchup large on the left, every matchup listed on the right — as wide as names and scores need, not a share of the screen. */}
+      <div className="hidden md:grid md:grid-cols-[minmax(0,1fr)_15rem] lg:grid-cols-[minmax(0,1fr)_18rem] md:items-start md:gap-3">
         <MatchupSlide leagueId={leagueId} game={picked} myRosterId={myRosterId} standings={standings} owners={owners} allTime={allTime} />
         <div className="flex flex-col gap-2">
         <ul className="flex flex-col gap-2" aria-label="This week's matchups">

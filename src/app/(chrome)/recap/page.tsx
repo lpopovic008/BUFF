@@ -728,10 +728,10 @@ function RecapContent() {
         // plain-textarea fallback (no model) still needs the Card for its
         // border/background.
         if (!model) return <Card className="p-5">{editor}</Card>;
-        // The contents down the left (30%), the write-up on the right (70%);
+        // The contents down the left, as wide as they need, the write-up taking the rest;
         // on a phone, just the write-up.
         return (
-          <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-[minmax(12rem,3fr)_minmax(0,7fr)]">
+          <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-[20rem_minmax(0,1fr)]">
             <aside className="hidden md:sticky md:top-[calc(var(--header-h,0px)+1rem)] md:block md:max-h-[calc(100vh-var(--header-h,0px)-2rem)] md:overflow-y-auto">
               <RecapContents
                 entries={recapContents(model, resultPicks)}

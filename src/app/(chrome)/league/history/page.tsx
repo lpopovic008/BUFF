@@ -372,9 +372,9 @@ function LeagueHistoryContent() {
         <h1 className="text-2xl font-semibold text-ink-primary">League history</h1>
       </TitleWithHistory>
 
-      {/* The pick's stats on the left (70%), All-time and every season listed on the right (30%,
-          never narrower than 16rem). On a phone the list comes first, the stats under it. */}
-      <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-[minmax(0,7fr)_minmax(16rem,3fr)]">
+      {/* The pick's stats on the left, All-time and every season listed on the right, as wide as the
+          list needs. On a phone the list comes first, the stats under it. */}
+      <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-[minmax(0,1fr)_18rem]">
         <div className="order-2 min-w-0 md:order-1">
           {picked ? (
             <SeasonDetail key={picked.leagueId} season={picked} profile={profile} />
