@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { formatCountdown } from "@/lib/format";
-import { TYPE_MS_PER_CHAR, totalChars, typedSlices, useSeenOnce, useTypedCount } from "@/hooks/useTyped";
+import { totalChars, typedSlices } from "@/hooks/useTyped";
 import { formatKickoffTime, GameStarters, groupGamesByTimeBlock, GroupedStarter, PlayerSide } from "@/lib/my-starters";
 import { gameClock, NFLGame } from "@/lib/nfl-schedule";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
@@ -109,17 +109,15 @@ function TeamLogo({ team, visible }: { team: string; visible: boolean }) {
  * the edge, inside the players' points — and on the far right the game's
  * status: the quarter on the top line and the clock on the bottom while it
  * runs ("2Q" over "12:43"), otherwise just the top line's ("Half", "Final",
- * or the kickoff time before it starts). Types itself in the
- * first time it scrolls into view, and deletes itself when its block is
- * switched off.
+ * or the kickoff time before it starts). Gone while its block is switched
+ * off.
  */
 function TeamLine({ game, side, shown = true }: { game: NFLGame; side: "away" | "home"; shown?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
-  const seen = useSeenOnce(ref);
   const pieces = teamLinePieces(game, side);
-  const count = useTypedCount(shown && seen ? totalChars(pieces) : 0);
+  const count = shown ? totalChars(pieces) : 0;
   const typed = typedSlices(pieces, count);
-  const visible = shown && seen;
+  const visible = shown;
   const team = side === "away" ? game.awayTeam : game.homeTeam;
   const record = side === "away" ? game.awayRecord : game.homeRecord;
   const started = game.state !== "pre";
@@ -155,15 +153,13 @@ function TeamLine({ game, side, shown = true }: { game: NFLGame; side: "away" | 
 /**
  * A game yet to kick off, on one line: the away team at the left end and the home team at the right (logo
  * outermost, record inside it), the kickoff time between them — each team's color faint at its own end (see
- * .team-bar). The time types itself in the first time it scrolls into view, and deletes itself when its block
- * is switched off.
+ * .team-bar). The time's gone while its block is switched off.
  */
 function PreGameHeader({ game, shown = true }: { game: NFLGame; shown?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
-  const seen = useSeenOnce(ref);
   const pieces = teamLinePieces(game, "away");
-  const [time] = typedSlices(pieces, useTypedCount(shown && seen ? totalChars(pieces) : 0));
-  const visible = shown && seen;
+  const [time] = typedSlices(pieces, shown ? totalChars(pieces) : 0);
+  const visible = shown;
   const record = (text: string | undefined) =>
     text ? <span className={`shrink-0 text-xs tabular-nums text-ink-muted transition-opacity duration-150 ${visible ? "" : "opacity-0"}`}>{text}</span> : null;
   return (
@@ -354,9 +350,8 @@ const LINE_LOGO_GAP_PX = 2;
  * play's +/- (only while the game's on: otherwise the logos take its place),
  * and their total (or projection, before kickoff). The first league's logo
  * sits on the right, the rest building leftward; should they reach the
- * position, just the first shows, with "+N" for the others. Types itself in
- * the first time it scrolls into view, and deletes itself when its box shuts
- * or its block is switched off. Once typed in, the total follows the points
+ * position, just the first shows, with "+N" for the others. Gone while its
+ * box is shut or its block switched off. Shown, the total follows the points
  * as they change (see GameRows): the name lit as the play lights up in the
  * Red Zone, the +/- lit as it's applied, the total lit as it counts up.
  */
@@ -385,13 +380,12 @@ function GameLine({
   onSelect?: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const seen = useSeenOnce(ref);
   const pieces = linePieces(player, phase, action);
   const total = totalChars(pieces);
-  const count = useTypedCount(shown && seen ? total : 0);
+  const count = (shown ? total : 0);
   const [time, name, position, delta, points] = typedSlices(pieces, count);
   const [typedIn, setTypedIn] = useState(false);
-  if (shown && seen && count >= total && !typedIn) setTypedIn(true);
+  if (shown && count >= total && !typedIn) setTypedIn(true);
   if (!shown && typedIn) setTypedIn(false);
   const side = player.side ?? "mine";
   const lit = "bg-[var(--map-tag)] text-[var(--map-tag-ink)]";
@@ -404,7 +398,7 @@ function GameLine({
     (x, y) => (legendByLeagueId.get(x)?.colorIndex ?? 0) - (legendByLeagueId.get(y)?.colorIndex ?? 0)
   );
   const leagueNames = leagueIds.map((id) => legendByLeagueId.get(id)?.leagueName ?? id);
-  // Whether every logo would reach the name and position, measured once the line's typed in.
+  // Whether every logo would reach the name and position, measured once the line's in.
   const middle = useRef<HTMLSpanElement>(null);
   const nameRef = useRef<HTMLSpanElement>(null);
   const positionRef = useRef<HTMLSpanElement>(null);
@@ -522,8 +516,8 @@ function GameLine({
 /**
  * A player's line under a game yet to kick off, under their own team: the away team's down the left (name, then
  * their leagues, then the projection at the middle), the home team's mirrored down the right (projection at the
- * middle, then their leagues, then the name at the right end). Types itself in the first time it scrolls into
- * view, and deletes itself when its box shuts or its block is switched off.
+ * middle, then their leagues, then the name at the right end). Gone while its box is shut or its block switched
+ * off.
  */
 function PreLine({
   player,
@@ -542,12 +536,11 @@ function PreLine({
   onSelect?: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const seen = useSeenOnce(ref);
   const pieces = [shortName(player.name, player.position), player.position, player.projected != null ? formatProjection(player.projected) : "–"];
   const total = totalChars(pieces);
-  const count = useTypedCount(shown && seen ? total : 0);
+  const count = (shown ? total : 0);
   const [name, position, projection] = typedSlices(pieces, count);
-  const typedIn = shown && seen && count >= total;
+  const typedIn = shown && count >= total;
   const side = player.side ?? "mine";
   const leagueIds = [...player.leagueIds].sort(
     (x, y) => (legendByLeagueId.get(x)?.colorIndex ?? 0) - (legendByLeagueId.get(y)?.colorIndex ?? 0)
@@ -605,16 +598,14 @@ function PlusMore({ n }: { n: number }) {
   return <span className="absolute -right-2.5 -top-1.5 text-[0.5625rem] leading-none tabular-nums text-ink-muted">+{n}</span>;
 }
 
-/** How long a box's lines take to delete themselves before it shuts. */
-function closeMsFor(players: GroupedStarter[], phase: Phase, actions: Record<string, LastAction>): number {
-  if (reducedMotion()) return 0;
-  return Math.max(0, ...players.map((p) => totalChars(linePieces(p, phase, actions[p.playerId])))) * TYPE_MS_PER_CHAR + 60;
+/** How long a box's lines take to go before it shuts. */
+function closeMsFor(): number {
+  return reducedMotion() ? 0 : 60;
 }
 
 /**
- * A kickoff window's games, collapsing when its block is switched off: every
- * line deletes itself, letter by letter, then the block folds shut. Switched
- * back on, it opens and the lines type themselves back in.
+ * A kickoff window's games, collapsing when its block is switched off: its
+ * lines go, then the block folds shut. Switched back on, it opens with them.
  */
 function BlockGames({
   games,
@@ -649,25 +640,18 @@ function BlockGames({
   selectedPlayers: { playerId: string; gameId: string }[];
   onSelectPlayer: (playerId: string, gameId: string) => void;
 }) {
-  // Folded only once the deleting has finished — the longest line sets how long.
+  // Folded a moment after its lines go.
   const [prevHidden, setPrevHidden] = useState(hidden);
   const [folded, setFolded] = useState(hidden);
   if (hidden !== prevHidden) {
     setPrevHidden(hidden);
     setFolded(false);
   }
-  const longest = Math.max(
-    0,
-    ...games.flatMap((g) => [
-      totalChars(teamLinePieces(g.game, "away")),
-      ...viewPlayers(g, views.get(g.game.id) ?? 0).map((p) => totalChars(linePieces(p, phaseOf(g.game), actions[p.playerId]))),
-    ])
-  );
   useEffect(() => {
     if (!hidden || folded) return;
-    const id = setTimeout(() => setFolded(true), longest * TYPE_MS_PER_CHAR + 60);
+    const id = setTimeout(() => setFolded(true), closeMsFor());
     return () => clearTimeout(id);
-  }, [hidden, folded, longest]);
+  }, [hidden, folded]);
   const collapsed = hidden && folded;
 
   return (
@@ -911,7 +895,7 @@ function GameBox({
     el.animate([{ height: `${prev}px`, overflow: "hidden" }, { height: `${height}px`, overflow: "hidden" }], { duration: FOLD_MS, easing: "ease-out" });
   });
 
-  const toggle = () => onToggle(id, next, closeMsFor(shown, phase, actions));
+  const toggle = () => onToggle(id, next, closeMsFor());
   const nextLabel = ["show just the teams", "show your players", "show yours and the ones you face", "show everyone"][next];
   // The matchup — and only the matchup — steps through the box's views.
   const matchup = (
@@ -1038,14 +1022,13 @@ export interface ByeTeam {
 /** A bye team's line, standing in for a game's two: its logo, then its abbreviation. */
 function ByeLine({ team, shown }: { team: string | null; shown: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
-  const seen = useSeenOnce(ref);
   const name = team ?? "No team";
-  const count = useTypedCount(shown && seen ? name.length : 0);
+  const count = (shown ? name.length : 0);
   return (
     <div ref={ref} className="flex min-h-[1.375rem] items-center gap-1.5">
       {team ? (
         <span className="flex w-[2.4em] shrink-0 justify-center text-[0.6875rem]">
-          <TeamLogo team={team} visible={shown && seen} />
+          <TeamLogo team={team} visible={shown} />
         </span>
       ) : null}
       <span className="text-xs uppercase tracking-wide text-ink-muted">{name.slice(0, count) || "​"}</span>
@@ -1084,7 +1067,7 @@ function ByeRow({
           const toggleable = viewCycle(b).length > 1;
           const next = nextView(b, view);
           const open = viewPlayers(b, view).length > 0 && !closingGames.has(id);
-          const toggle = () => onToggle(id, next, closeMsFor(viewPlayers(b, view), "pre", actions));
+          const toggle = () => onToggle(id, next, closeMsFor());
           return (
             <div
               key={id}
@@ -1334,7 +1317,7 @@ export function StartersByGame({
       for (const box of boxes) {
         const current = views.get(box.id) ?? 0;
         if (current === 0 || closingGames.has(box.id)) continue;
-        shut(box.id, closeMsFor(viewPlayers(box.listing, current), box.phase, actions));
+        shut(box.id, closeMsFor());
       }
       return;
     }

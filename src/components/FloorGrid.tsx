@@ -6,7 +6,7 @@ import type { FloorCameraStore } from "@/lib/floor-camera";
 
 // How strongly the grid's lines show, and how they fade toward the horizon: from FAR_OPACITY of that at the
 // hinge to all of it FULL_DEPTH_SHARE of the screen's height back on the floor.
-const LINE_OPACITY = 0.22;
+export const LINE_OPACITY = 0.22;
 // The horizon: as faint as the grid's far end, which runs up to it, fading out toward the screen's sides.
 const HORIZON_OPACITY = LINE_OPACITY * 0.4;
 const FAR_OPACITY = 0.4;

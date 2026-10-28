@@ -230,6 +230,13 @@ body {
    just plays on mount, every time, so a page always feels like it arrived
    rather than snapped into existence. */
 /* A floor reflection's copy of a list, moved up with the list's scroll (see FloorReflection). */
+/* A floor reflection fading in once what it reflects is up (see FloorReflection). */
+@keyframes reflect-in {
+  from {
+    opacity: 0;
+  }
+}
+
 @keyframes reflect-scroll {
   to {
     transform: translateY(calc(-1 * var(--reflect-max, 0px)));

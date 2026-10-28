@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { FloorCamera, floorAt, HOME_CAMERA } from "@/lib/grid-room";
+import { FloorCamera, floorAt, floorDepth, GRID_PX, HOME_CAMERA } from "@/lib/grid-room";
 import { FloorMapFit, floorMapFloor, MAP_BOUNDS } from "@/lib/floor-map";
 import { cameraPutting, cameraUnder, FloorCameraStore, FloorPt, pinchCamera, zoomCameraAt } from "@/lib/floor-camera";
 import { mapSites } from "./FloorMap";
@@ -13,6 +13,8 @@ const FOCUS_ZOOM = 1.6;
 const ZOOM_STEP = 1.25;
 /** How far a finger or the mouse goes before it's moving the floor, not tapping it (px). */
 const SLOP = 4;
+/** How long the Red Zone takes to sink back into the floor before the floor slides back (ms; see page). */
+export const RED_ZONE_SINK_MS = 400;
 
 /** Bare floor — the page's own wrappers marked data-floor, or nothing at all — not anything standing on it. */
 function onFloor(target: EventTarget | null): boolean {
@@ -26,7 +28,9 @@ function onFloor(target: EventTarget | null): boolean {
  * it, never the page, and leaving it where it's put. At home it follows the
  * starters list (`list`): scrolled down it, it glides to the map's game at the list's top, zoomed in a little — and
  * back to the whole map scrolled back to the top. Moved by you, it stays where you put it, the list scrolling on its
- * own, until its home button takes it back.
+ * own, until its home button takes it back. Its Red Zone button slides the floor toward you, whole squares at a time,
+ * till the map's gone off the screen's bottom — and the Red Zone comes up out of it (see page); again, it sinks
+ * back, and the floor slides back home. The floor holds still while it's up.
  */
 export function FloorCameraControls({
   store,
@@ -34,6 +38,7 @@ export function FloorCameraControls({
   games,
   list,
   desktop,
+  redZone,
 }: {
   store: FloorCameraStore;
   /** The map as it lies on the floor. */
@@ -41,7 +46,10 @@ export function FloorCameraControls({
   games: MappedGame[];
   list: HTMLElement | null;
   desktop: boolean;
+  /** Whether the Red Zone's up out of the floor, and its switch. */
+  redZone?: { on: boolean; onChange: (on: boolean) => void };
 }) {
+  const redZoneUp = redZone?.on ?? false;
   const { following } = useFloorCamera(store);
   // Where the map's middle lies on the floor: where a game it glides to is put, and what the buttons zoom about.
   const middle = useMemo<FloorPt>(
@@ -50,8 +58,9 @@ export function FloorCameraControls({
   );
   const sites = useMemo(() => new Map(mapSites(games).map((s) => [s.id, floorMapFloor(fit, s.pos[0], s.pos[1])])), [games, fit]);
 
-  // Dragged and pinched.
+  // Dragged and pinched — not while the Red Zone's up.
   useEffect(() => {
+    if (redZoneUp) return;
     const { width, height, share } = fit;
     const horizon = height * share;
     const toFloor = (x: number, y: number) => floorAt(x, Math.max(y, horizon + 2), width, height, share);
@@ -159,7 +168,7 @@ export function FloorCameraControls({
       document.removeEventListener("gesturechange", gestureChange);
       document.removeEventListener("gestureend", gestureEnd);
     };
-  }, [store, fit]);
+  }, [store, fit, redZoneUp]);
 
   // At home, following the starters list: the game at its top (the first on the map from there down), or, at the
   // list's top, the whole map.
@@ -198,9 +207,28 @@ export function FloorCameraControls({
   }, [follow, store]);
 
   const goHome = () => {
+    if (redZoneUp) return toggleRedZone();
     followed.current = null;
     store.glide(HOME_CAMERA, true);
     follow(true);
+  };
+  // The floor slid toward you a whole number of squares (so its lines end up where they were), the map's far edge
+  // past the screen's bottom.
+  const toggleRedZone = () => {
+    if (!redZone) return;
+    if (redZoneUp) {
+      redZone.onChange(false);
+      window.setTimeout(() => {
+        followed.current = null;
+        store.glide(HOME_CAMERA, true);
+        follow(true);
+      }, RED_ZONE_SINK_MS);
+      return;
+    }
+    const far = fit.nearDepth - (MAP_BOUNDS.maxY - MAP_BOUNDS.minY) * fit.k;
+    const bottom = floorDepth(fit.height, fit.height, fit.share);
+    store.glide({ zoom: 1, x: 0, d: Math.ceil((bottom - far + 8) / GRID_PX) * GRID_PX }, false);
+    redZone.onChange(true);
   };
   const zoomBy = (factor: number) => store.glide(zoomCameraAt(store.get().camera, factor, middle), false);
 
@@ -213,19 +241,41 @@ export function FloorCameraControls({
       </svg>
     </button>
   );
+  // The Red Zone's switch: its dot, and RZ — turned over while it's up.
+  const redZoneButton = redZone ? (
+    <button
+      type="button"
+      aria-label="Red Zone"
+      title="Red Zone"
+      aria-pressed={redZoneUp}
+      onClick={toggleRedZone}
+      className={`${plate} gap-1 ${redZoneUp ? "!bg-[var(--map-tag-ink)] !text-[var(--map-tag)] outline outline-1 outline-[var(--map-tag)]" : ""}`}
+    >
+      <span className="h-1.5 w-1.5 rounded-full bg-status-critical" aria-hidden />
+      RZ
+    </button>
+  ) : null;
   // From tablet width up, zoom buttons too (for a mouse with no pinch), in the screen's bottom-left corner; on a phone,
-  // just the way home, over the map's right end.
+  // over the map's right end. The way home, while it's away; the Red Zone's switch, last.
   return desktop ? (
     <div className="pointer-events-none fixed bottom-3 left-4 z-20 flex gap-1">
-      <button type="button" aria-label="Zoom out" onClick={() => zoomBy(1 / ZOOM_STEP)} className={plate}>
-        −
-      </button>
-      <button type="button" aria-label="Zoom in" onClick={() => zoomBy(ZOOM_STEP)} className={plate}>
-        +
-      </button>
-      {following ? null : home}
+      {redZoneUp ? null : (
+        <>
+          <button type="button" aria-label="Zoom out" onClick={() => zoomBy(1 / ZOOM_STEP)} className={plate}>
+            −
+          </button>
+          <button type="button" aria-label="Zoom in" onClick={() => zoomBy(ZOOM_STEP)} className={plate}>
+            +
+          </button>
+        </>
+      )}
+      {following || redZoneUp ? null : home}
+      {redZoneButton}
     </div>
-  ) : following ? null : (
-    <div className="pointer-events-none fixed bottom-[calc(var(--tabbar-h,0px)+0.75rem)] right-4 z-20">{home}</div>
+  ) : (
+    <div className="pointer-events-none fixed bottom-[calc(var(--tabbar-h,0px)+0.75rem)] right-4 z-20 flex gap-1">
+      {following || redZoneUp ? null : home}
+      {redZoneButton}
+    </div>
   );
 }

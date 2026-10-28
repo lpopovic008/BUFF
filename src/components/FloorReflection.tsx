@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef } from "react";
+import { DRAG_SCROLL_EVENT } from "@/hooks/useDragScroll";
 
 /** How far down the floor a reflection reaches, and how strong it is at its top. */
 const REACH = "5rem";
@@ -14,11 +15,23 @@ const publishTimelines = () => document.body.style.setProperty("timeline-scope",
  * Something standing on the floor reflected in it (`source`): its bottom part, upside down, fading out a little way
  * down — a list moving as it scrolls. Drawn from a copy of it (-webkit-box-reflect doesn't keep up with a box that
  * scrolls, and some browsers reflect the wrong part of it), laid out as it is (`className`, `style`: a list's padding
- * and fade), redone the frame it changes. A list (`source` scrolling) moves its copy by a scroll timeline, so the two
- * move together in the same frame; where there's none, and for anything scrolling within it, the copy follows its
- * scroll.
+ * and fade), redone the moment it changes. A list the page scrolls itself (see useDragScroll, its overflow hidden)
+ * moves its copy with each move it makes, there and then — pulled past its ends too; one the browser scrolls, by a
+ * scroll timeline, so the two move in the same frame. Where there's none, and for anything scrolling within it, the
+ * copy follows its scroll.
  */
-export function FloorReflection({ source, className = "", style }: { source: HTMLElement | null; className?: string; style?: React.CSSProperties }) {
+export function FloorReflection({
+  source,
+  className = "",
+  style,
+  appearAfterMs,
+}: {
+  source: HTMLElement | null;
+  className?: string;
+  style?: React.CSSProperties;
+  /** Faded in only after this long (something rising into place, its reflection along once it's up). */
+  appearAfterMs?: number;
+}) {
   const box = useRef<HTMLDivElement>(null);
   const copy = useRef<HTMLDivElement>(null);
   const name = `--reflect-${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
@@ -26,8 +39,9 @@ export function FloorReflection({ source, className = "", style }: { source: HTM
     const out = box.current;
     const cp = copy.current;
     if (!source || !out || !cp) return;
-    const scrolls = getComputedStyle(source).overflowY !== "visible";
-    const timeline = scrolls && CSS.supports("animation-timeline", "--x") && CSS.supports("timeline-scope", "--x");
+    const overflow = getComputedStyle(source).overflowY;
+    const scrolls = overflow !== "visible";
+    const timeline = scrolls && overflow !== "hidden" && CSS.supports("animation-timeline", "--x") && CSS.supports("timeline-scope", "--x");
     if (timeline) {
       source.style.setProperty("scroll-timeline", `${name} y`);
       timelines.add(name);
@@ -39,7 +53,7 @@ export function FloorReflection({ source, className = "", style }: { source: HTM
     const follow = () => {
       if (content && scrolls) {
         if (timeline) content.style.setProperty("--reflect-max", `${source.scrollHeight - source.clientHeight}px`);
-        else content.style.transform = `translateY(${-source.scrollTop}px)`;
+        else content.style.transform = `translateY(${-source.scrollTop + (parseFloat(source.style.getPropertyValue("--overscroll")) || 0)}px)`;
       }
       for (const [from, to] of inner) to.scrollTop = from.scrollTop;
     };
@@ -66,13 +80,14 @@ export function FloorReflection({ source, className = "", style }: { source: HTM
       inner = [...froms].flatMap((from, i) => (from.scrollTop > 0 || from.scrollHeight > from.clientHeight + 1 ? [[from, tos[i]] as [HTMLElement, HTMLElement]] : []));
       place();
     };
-    let frame = 0;
-    const changed = () => {
-      if (!frame) frame = requestAnimationFrame(() => ((frame = 0), recopy()));
+    // Its own moves past its ends (--overscroll on it) aren't changes to copy.
+    const changed = (records: MutationRecord[]) => {
+      if (records.some((r) => r.target !== source || r.type !== "attributes")) recopy();
     };
     recopy();
     // Scrolls within it don't bubble, so they're caught on their way down.
     source.addEventListener("scroll", follow, { capture: true, passive: true });
+    source.addEventListener(DRAG_SCROLL_EVENT, follow);
     const mutations = new MutationObserver(changed);
     mutations.observe(source, { subtree: true, childList: true, characterData: true, attributes: true });
     const resize = new ResizeObserver(place);
@@ -81,8 +96,8 @@ export function FloorReflection({ source, className = "", style }: { source: HTM
     // Its rise into place, when it's first drawn.
     document.addEventListener("animationend", place, true);
     return () => {
-      cancelAnimationFrame(frame);
       source.removeEventListener("scroll", follow, { capture: true });
+      source.removeEventListener(DRAG_SCROLL_EVENT, follow);
       mutations.disconnect();
       resize.disconnect();
       window.removeEventListener("resize", place);
@@ -105,6 +120,7 @@ export function FloorReflection({ source, className = "", style }: { source: HTM
         height: REACH,
         WebkitMaskImage: `linear-gradient(to bottom, rgb(0 0 0 / ${STRENGTH}), transparent)`,
         maskImage: `linear-gradient(to bottom, rgb(0 0 0 / ${STRENGTH}), transparent)`,
+        animation: appearAfterMs === undefined ? undefined : `reflect-in 0.4s ease-out ${appearAfterMs}ms backwards`,
       }}
     >
       {/* Still: no animation or transition in it replays each time it's copied (only its scroll's). */}
