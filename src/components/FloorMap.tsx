@@ -68,8 +68,8 @@ function useWire(): number {
 
 /**
  * The week's map lying on the room's floor, at the front, nearest you (see floor-map.ts): the land the floor's own
- * color (no grid lines across it), its borders and coast wires like the grid's, the states with a game solid ink
- * (white, or black in light mode), and each game's ring on it. Drawn in the room,
+ * color (no grid lines across it), its borders and coast wires like the grid's, the states with a game outlined
+ * solid in ink (white, or black in light mode), and each game's ring on it. Drawn in the room,
  * behind everything; the games' stems and tags stand up in front (see FloorMapTags). Moved with the floor
  * (`camera`), none of it past the horizon.
  */
@@ -93,23 +93,18 @@ export function FloorMapLand({ fit: lying, games, camera }: { fit: FloorMapFit; 
       </clipPath>
       <g clipPath="url(#floor-map-floor)">
         <path d={paths.outline} fill="var(--page)" />
-        {paths.active.map((d, i) => (
-          <path key={i} d={d} fill="var(--ink-primary)" />
-        ))}
         <g fill="none" stroke="var(--ink-primary)" strokeOpacity={LINE_OPACITY} strokeWidth={wire}>
           <path d={paths.lines} />
           <path d={paths.outline} />
         </g>
-        {/* Each ring twice, so it shows on a solid state and on the floor alike. */}
-        {sites.map((s) => {
-          const d = floorMapRing(fit, s.pos[0], s.pos[1], ringRadius(s.count));
-          return (
-            <g key={s.id} fill="none">
-              <path d={d} stroke="var(--page)" strokeWidth={wire * 3} />
-              <path d={d} stroke="var(--ink-primary)" strokeWidth={wire * 1.5} />
-            </g>
-          );
-        })}
+        <g fill="none" stroke="var(--ink-primary)" strokeWidth={wire}>
+          {paths.active.map((d, i) => (
+            <path key={i} d={d} />
+          ))}
+        </g>
+        {sites.map((s) => (
+          <path key={s.id} d={floorMapRing(fit, s.pos[0], s.pos[1], ringRadius(s.count))} fill="none" stroke="var(--ink-primary)" strokeWidth={wire * 1.5} />
+        ))}
       </g>
     </svg>
   );
