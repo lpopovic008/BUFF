@@ -10,6 +10,7 @@ import { HORIZON_SHARE, gridRows, lowestGridLine } from "@/lib/grid-room";
 import { FloorGrid } from "@/components/FloorGrid";
 import { FloorCameraControls } from "@/components/FloorCameraControls";
 import { FloorReflection } from "@/components/FloorReflection";
+import { FloorStadiums } from "@/components/FloorStadiums";
 import { ScrollThumb } from "@/components/ScrollThumb";
 import { useDragScroll } from "@/hooks/useDragScroll";
 import { createFloorCameraStore } from "@/lib/floor-camera";
@@ -511,6 +512,7 @@ export default function DashboardPage() {
     >
       <FloorGrid share={horizon} camera={floorCamera} />
       {mapShown ? <FloorMapLand fit={stand.fit} games={games} camera={floorCamera} /> : null}
+      {mapShown ? <FloorStadiums fit={stand.fit} camera={floorCamera} /> : null}
     </div>
   );
   // One graph in full; two side by side; three or four, one to a corner.

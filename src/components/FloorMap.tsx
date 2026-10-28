@@ -3,12 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { isOutsideUS } from "@/lib/nfl-schedule";
 import { gameMapPosition, gameState, internationalSlotPosition } from "@/lib/game-map";
-import { TEAM_CITIES, US_SIMPLE_OUTLINE_PATH, US_SIMPLE_STATE_LINES_PATH } from "@/lib/team-cities";
+import { US_SIMPLE_OUTLINE_PATH, US_SIMPLE_STATE_LINES_PATH } from "@/lib/team-cities";
 import { US_STATE_SHAPES } from "@/lib/us-states";
 import { FloorMapFit, floorMapPath, floorMapPoint, floorMapRing, MAP_BOUNDS } from "@/lib/floor-map";
 import { gridRows } from "@/lib/grid-room";
-import { STADIUM_MODELS } from "@/lib/stadium-models";
-import { stadiumClay } from "@/lib/stadium-clay";
+
 
 /** The screen y the map's back edge reaches at most where it lies (the third grid line from the front): moved further back, it fades. */
 function fadeFrom(fit: FloorMapFit): number {
@@ -97,19 +96,11 @@ export function FloorMapLand({ fit: lying, games, camera }: { fit: FloorMapFit; 
     }),
     [fit, active]
   );
-  // The stadiums made so far, clay models standing at their teams' homes (a first try: Soldier Field, whatever the
-  // week's games).
-  const stadiums = useMemo(
-    () => Object.entries(STADIUM_MODELS).flatMap(([team, parts]) => (TEAM_CITIES[team] ? [stadiumClay(fit, TEAM_CITIES[team].pos, parts)] : [])),
-    [fit]
-  );
+
   return (
     <svg className="absolute inset-0 h-full w-full" aria-hidden>
       <defs>
         <FloorFade id="floor-map-fade" width={fit.width} height={fit.height} share={fit.share} whole={whole} />
-        <filter id="stadium-shadow" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="1.5" />
-        </filter>
         <clipPath id="floor-map-floor">
           <rect x={0} y={fit.height * fit.share} width={fit.width} height={fit.height * (1 - fit.share)} />
         </clipPath>
@@ -129,25 +120,6 @@ export function FloorMapLand({ fit: lying, games, camera }: { fit: FloorMapFit; 
         </g>
         {sites.map((s) => (
           <path key={s.id} d={floorMapRing(fit, s.pos[0], s.pos[1], ringRadius(s.count))} fill="none" stroke="var(--ink-primary)" strokeWidth={wire * 1.5} />
-        ))}
-        {/* Stadiums in clay: each's soft shadow on the floor, then its faces — each stroked in its own shade, so no
-            seam shows between them — and its creases. */}
-        {stadiums.map((s, i) => (
-          <g key={i} strokeLinejoin="round" strokeLinecap="round">
-            {/* Its pieces solid, together see-through: where they overlap, no darker. */}
-            <g opacity={0.3} filter="url(#stadium-shadow)">
-              {s.shadow.map((d, j) => (
-                <path key={j} d={d} fill="black" />
-              ))}
-            </g>
-            {s.paths.map((p, j) =>
-              p.fill ? (
-                <path key={j} d={p.d} fill={p.fill} stroke={p.fill} strokeWidth={wire * 0.75} />
-              ) : (
-                <path key={j} d={p.d} fill="none" stroke={p.stroke} strokeWidth={wire} strokeOpacity={0.75} />
-              )
-            )}
-          </g>
         ))}
       </g>
     </svg>
