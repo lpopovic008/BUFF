@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-27T18:25:51.402Z",
+  "updatedAt": "2026-10-28T18:33:02.302Z",
   "season": "2026",
   "throughWeek": 7,
   "players": [
@@ -439,9 +439,9 @@
       "playerId": "11563",
       "position": "QB",
       "gamesPlayed": 7,
-      "ptsPpr": 98.94000000000001,
-      "ptsHalfPpr": 98.94000000000001,
-      "ptsStd": 98.94000000000001
+      "ptsPpr": 98.84,
+      "ptsHalfPpr": 98.84,
+      "ptsStd": 98.84
     },
     {
       "playerId": "11564",
@@ -750,7 +750,7 @@
     {
       "playerId": "11630",
       "position": "WR",
-      "gamesPlayed": 6,
+      "gamesPlayed": 5,
       "ptsPpr": 44.8,
       "ptsHalfPpr": 37.8,
       "ptsStd": 30.799999999999997
@@ -3118,7 +3118,7 @@
     {
       "playerId": "5409",
       "position": "TE",
-      "gamesPlayed": 5,
+      "gamesPlayed": 4,
       "ptsPpr": 16.3,
       "ptsHalfPpr": 12.8,
       "ptsStd": 9.3
@@ -3308,28 +3308,12 @@
       "ptsStd": 10.8
     },
     {
-      "playerId": "6011",
-      "position": "QB",
-      "gamesPlayed": 1,
-      "ptsPpr": 0,
-      "ptsHalfPpr": 0,
-      "ptsStd": 0
-    },
-    {
       "playerId": "6012",
       "position": "RB",
       "gamesPlayed": 6,
       "ptsPpr": 1.5,
       "ptsHalfPpr": 1.5,
       "ptsStd": 1.5
-    },
-    {
-      "playerId": "6037",
-      "position": "QB",
-      "gamesPlayed": 1,
-      "ptsPpr": 0,
-      "ptsHalfPpr": 0,
-      "ptsStd": 0
     },
     {
       "playerId": "6039",
@@ -4066,6 +4050,14 @@
       "ptsPpr": 1.5,
       "ptsHalfPpr": 1,
       "ptsStd": 0.5
+    },
+    {
+      "playerId": "8107",
+      "position": "TE",
+      "gamesPlayed": 1,
+      "ptsPpr": 0,
+      "ptsHalfPpr": 0,
+      "ptsStd": 0
     },
     {
       "playerId": "8110",
@@ -5161,9 +5153,9 @@
       "team": "ARI",
       "position": "QB",
       "games": 7,
-      "ptsPpr": 159.04,
-      "ptsHalfPpr": 159.04,
-      "ptsStd": 159.04
+      "ptsPpr": 158.94,
+      "ptsHalfPpr": 158.94,
+      "ptsStd": 158.94
     },
     {
       "team": "ARI",
