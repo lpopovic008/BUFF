@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { cameraBetween, cameraPutting, cameraShows, cameraUnder, MAX_ZOOM, pinchCamera, zoomCameraAt } from "./floor-camera";
+import { cameraBetween, cameraPutting, cameraShows, cameraUnder, keepOnFloor, MAX_ZOOM, pinchCamera, zoomCameraAt } from "./floor-camera";
 import { floorAt, floorPoint, GRID_PX, gridColumns, gridRows, HOME_CAMERA, HORIZON_SHARE } from "./grid-room";
 
 const near = (a: readonly number[], b: readonly number[]) => a.every((v, i) => Math.abs(v - b[i]) < 1e-6);
@@ -46,4 +46,20 @@ test("the grid moves with the floor, at home just where it lies", () => {
   // Zoomed in, its rows further apart.
   const zoomed = gridRows(900, HORIZON_SHARE, { zoom: 2, x: 0, d: 0 });
   assert.ok(zoomed[1] > gridRows(900)[1]);
+});
+
+test("a camera's kept from taking the map off the back of the room, cut off at the sides or bottom as it may be", () => {
+  const box = { minX: -100, maxX: 100, minD: 200, maxD: 300 };
+  const view = { far: 50, near: 400, halfWidthAt: () => 180 };
+  // Dragged back past the horizon: its back edge on it.
+  const back = keepOnFloor({ zoom: 1, x: 0, d: -900 }, box, view);
+  assert.equal(back.d, 50 - 200);
+  // Off to the side, or down past the bottom: as far as its middle's still on the screen.
+  const side = keepOnFloor({ zoom: 1, x: 500, d: 0 }, box, view);
+  assert.equal(side.x, 180);
+  const down = keepOnFloor({ zoom: 1, x: 0, d: 900 }, box, view);
+  assert.equal(down.d, 400 - 250);
+  // Partly cut off is left be.
+  assert.deepEqual(keepOnFloor({ zoom: 1, x: 150, d: 120 }, box, view), { zoom: 1, x: 150, d: 120 });
+  assert.deepEqual(keepOnFloor(HOME_CAMERA, box, view), HOME_CAMERA);
 });

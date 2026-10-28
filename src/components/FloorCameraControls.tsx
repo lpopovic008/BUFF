@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { FloorCamera, floorAt, floorDepth, GRID_PX, HOME_CAMERA } from "@/lib/grid-room";
+import { FloorCamera, floorAt, floorDepth, floorScale, GRID_PX, HOME_CAMERA } from "@/lib/grid-room";
 import { FloorMapFit, floorMapFloor, MAP_BOUNDS } from "@/lib/floor-map";
-import { cameraPutting, cameraUnder, FloorCameraStore, FloorPt, pinchCamera, zoomCameraAt } from "@/lib/floor-camera";
+import { cameraPutting, cameraUnder, FloorCameraStore, FloorPt, keepOnFloor, pinchCamera, zoomCameraAt } from "@/lib/floor-camera";
 import { mapSites } from "./FloorMap";
 import { useFloorCamera } from "./FloorGrid";
 import type { MappedGame } from "./GameMap";
@@ -57,6 +57,14 @@ export function FloorCameraControls({
     [fit]
   );
   const sites = useMemo(() => new Map(mapSites(games).map((s) => [s.id, floorMapFloor(fit, s.pos[0], s.pos[1])])), [games, fit]);
+  // Wherever it's moved, the map's never taken off the back of the room — past the horizon — though it may be cut off
+  // at the screen's sides or bottom (see keepOnFloor).
+  const keep = useMemo(() => {
+    const [minX, minD] = floorMapFloor(fit, MAP_BOUNDS.minX, MAP_BOUNDS.minY);
+    const [maxX, maxD] = floorMapFloor(fit, MAP_BOUNDS.maxX, MAP_BOUNDS.maxY);
+    const view = { far: 0, near: fit.nearDepth, halfWidthAt: (d: number) => fit.width / 2 / floorScale(d) };
+    return (camera: FloorCamera) => keepOnFloor(camera, { minX, maxX, minD, maxD }, view);
+  }, [fit]);
 
   // Dragged and pinched — not while the Red Zone's up.
   useEffect(() => {
@@ -96,13 +104,13 @@ export function FloorCameraControls({
         pinched = true;
         moving = true;
         zoomedAt = performance.now();
-        store.move(pinchCamera([a.grab, b.grab], [toFloor(...a.at), toFloor(...b.at)]));
+        store.move(keep(pinchCamera([a.grab, b.grab], [toFloor(...a.at), toFloor(...b.at)])));
         return;
       }
       if (pinched) return;
       if (!moving && start && Math.hypot(p.at[0] - start[0], p.at[1] - start[1]) < SLOP) return;
       moving = true;
-      store.move(cameraPutting(a.grab, toFloor(...a.at), store.get().camera.zoom));
+      store.move(keep(cameraPutting(a.grab, toFloor(...a.at), store.get().camera.zoom)));
     };
     const up = (e: PointerEvent) => {
       if (!pointers.delete(e.pointerId)) return;
@@ -122,9 +130,9 @@ export function FloorCameraControls({
       const at = toFloor(e.clientX, e.clientY);
       if (zoom) {
         zoomedAt = performance.now();
-        store.move(zoomCameraAt(camera, Math.exp(-e.deltaY * px * 0.01), at));
+        store.move(keep(zoomCameraAt(camera, Math.exp(-e.deltaY * px * 0.01), at)));
       } else if (performance.now() - zoomedAt > 300) {
-        store.move(cameraPutting(cameraUnder(camera, at), toFloor(e.clientX - e.deltaX * px, e.clientY - e.deltaY * px), camera.zoom));
+        store.move(keep(cameraPutting(cameraUnder(camera, at), toFloor(e.clientX - e.deltaX * px, e.clientY - e.deltaY * px), camera.zoom)));
       }
     };
     // Safari's own pinch (a Mac's trackpad, or two fingers on an iPhone): never the page's zoom while it's on the
@@ -142,7 +150,7 @@ export function FloorCameraControls({
       g.preventDefault();
       if (gesture) {
         zoomedAt = performance.now();
-        store.move(zoomCameraAt(gesture.camera, g.scale, gesture.at));
+        store.move(keep(zoomCameraAt(gesture.camera, g.scale, gesture.at)));
       }
     };
     const gestureEnd = (e: Event) => {
@@ -168,7 +176,7 @@ export function FloorCameraControls({
       document.removeEventListener("gesturechange", gestureChange);
       document.removeEventListener("gestureend", gestureEnd);
     };
-  }, [store, fit, redZoneUp]);
+  }, [store, fit, redZoneUp, keep]);
 
   // At home, following the starters list: the game at its top (the first on the map from there down), or, at the
   // list's top, the whole map.
@@ -230,7 +238,7 @@ export function FloorCameraControls({
     store.glide({ zoom: 1, x: 0, d: Math.ceil((bottom - far + 8) / GRID_PX) * GRID_PX }, false);
     redZone.onChange(true);
   };
-  const zoomBy = (factor: number) => store.glide(zoomCameraAt(store.get().camera, factor, middle), false);
+  const zoomBy = (factor: number) => store.glide(keep(zoomCameraAt(store.get().camera, factor, middle)), false);
 
   const plate =
     "pointer-events-auto flex h-7 min-w-7 cursor-pointer items-center justify-center bg-[var(--map-tag)] px-1.5 text-xs font-bold leading-none text-[var(--map-tag-ink)] transition-opacity hover:opacity-90";

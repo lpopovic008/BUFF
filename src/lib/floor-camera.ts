@@ -50,6 +50,33 @@ export function cameraBetween(from: FloorCamera, to: FloorCamera, t: number): Fl
   return { zoom, x: from.x + (to.x - from.x) * s, d: from.d + (to.d - from.d) * s };
 }
 
+/** Something on the floor, as it lies (camera-free), in floor px: its extent across, and back to front. */
+export interface FloorBox {
+  minX: number;
+  maxX: number;
+  minD: number;
+  maxD: number;
+}
+
+/**
+ * The floor's camera kept from taking `box` off the back of the room: `view` the floor that's shown — from `far` (the
+ * horizon) to `near` (the screen's bottom), and half its width at a depth. Its back edge is never past the horizon;
+ * cut off at the screen's sides or bottom is fine, so long as its middle's still on the screen.
+ */
+export function keepOnFloor(
+  camera: FloorCamera,
+  box: FloorBox,
+  view: { far: number; near: number; halfWidthAt: (d: number) => number }
+): FloorCamera {
+  const z = camera.zoom;
+  const midD = ((box.minD + box.maxD) / 2) * z;
+  // The horizon first: zoomed well in, its middle may be under the screen's bottom before its back edge leaves it.
+  const d = Math.max(Math.min(camera.d, view.near - midD), view.far - box.minD * z);
+  const reach = view.halfWidthAt(midD + d);
+  const midX = ((box.minX + box.maxX) / 2) * z;
+  return { zoom: z, x: Math.min(Math.max(camera.x, -reach - midX), reach - midX), d };
+}
+
 export function isHome(camera: FloorCamera): boolean {
   return camera.zoom === HOME_CAMERA.zoom && camera.x === HOME_CAMERA.x && camera.d === HOME_CAMERA.d;
 }
