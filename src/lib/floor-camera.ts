@@ -8,7 +8,7 @@ export type FloorPt = readonly [number, number];
 
 /** As far out, and in, as the floor zooms. */
 export const MIN_ZOOM = 0.5;
-export const MAX_ZOOM = 6;
+export const MAX_ZOOM = 40;
 
 const clampZoom = (zoom: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom));
 

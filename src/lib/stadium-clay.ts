@@ -172,8 +172,12 @@ export interface PlacedStadium {
   box: [number, number, number, number];
 }
 
-/** The stadium (`parts`) standing `at` its middle (map units) on the floor map as it's shown (`fit`, moved with the floor). */
-export function placeStadium(fit: FloorMapFit, at: [number, number], parts: StadiumPart[]): PlacedStadium {
+/**
+ * The stadium (`parts`) standing `at` its middle (map units) on the floor map as it's shown (`fit`, moved with the
+ * floor) — `rise` of the way up out of the floor (1, all the way). The order its faces are painted in is fixed the
+ * first time it's placed to be painted (`painted`), from where it's seen then.
+ */
+export function placeStadium(fit: FloorMapFit, at: [number, number], parts: StadiumPart[], rise = 1, painted = true): PlacedStadium {
   let model = built.get(parts);
   if (!model) built.set(parts, (model = build(parts)));
   const tilt = (FLOOR_TILT * Math.PI) / 180;
@@ -189,18 +193,20 @@ export function placeStadium(fit: FloorMapFit, at: [number, number], parts: Stad
     // In the room, from the horizon's middle (px: across, down, toward you); then on the screen.
     const lying = floorMapFloor(fit, at[0] + x * UNITS_PER_M, at[1] - y * UNITS_PER_M);
     const [across, d] = fit.camera ? cameraShows(fit.camera, lying) : lying;
-    const up = h * UNITS_PER_M * unit;
-    const [rx, ry, rz] = [across, d * cos - up * sin, d * sin + up * cos];
+    const room = (up: number) => [across, d * cos - up * sin, d * sin + up * cos];
+    const [rx, ry, rz] = room(h * rise * UNITS_PER_M * unit);
     const s = P / Math.max(P - rz, 1);
     xs[i] = fit.width / 2 + rx * s;
     ys[i] = horizon + ry * s;
-    far[i] = rx * rx + ry * ry + (P - rz) * (P - rz);
+    // How far from you it is all the way up, for the order its faces are painted in.
+    const [fx, fy, fz] = room(h * UNITS_PER_M * unit);
+    far[i] = fx * fx + fy * fy + (P - fz) * (P - fz);
     box[0] = Math.min(box[0], xs[i]);
     box[1] = Math.min(box[1], ys[i]);
     box[2] = Math.max(box[2], xs[i]);
     box[3] = Math.max(box[3], ys[i]);
   }
-  if (!model.order) {
+  if (painted && !model.order) {
     const key = model.prims.map(({ at, fill }) => at.reduce((sum, i) => sum + far[i], 0) / at.length - (fill ? 0 : 16));
     model.order = key.map((_, i) => i).sort((a, b) => key[b] - key[a]);
   }
