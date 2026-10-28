@@ -536,6 +536,27 @@ function PreLine({
   onSelect?: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const nameBox = useRef<HTMLSpanElement>(null);
+  // Their whole name too long for the room their side of the row leaves it (on a phone), cut to their first initial.
+  const [cramped, setCramped] = useState(false);
+  useLayoutEffect(() => {
+    const row = ref.current;
+    const box = nameBox.current;
+    if (!row || !box) return;
+    const check = () => {
+      const style = getComputedStyle(row);
+      const kids = [...row.children] as HTMLElement[];
+      // All else in the row but the space that stretches between.
+      const others = kids.reduce((sum, k) => (k === box || getComputedStyle(k).flexGrow !== "0" ? sum : sum + k.offsetWidth), 0);
+      const room = row.clientWidth - others - (parseFloat(style.columnGap) || 0) * (kids.length - 1);
+      setCramped(textWidth(player.name, getComputedStyle(box)) > room + 0.5);
+    };
+    check();
+    const resize = new ResizeObserver(check);
+    resize.observe(row);
+    document.fonts?.ready.then(check);
+    return () => resize.disconnect();
+  }, [player.name]);
   const pieces = [shortName(player.name, player.position), player.position, player.projected != null ? formatProjection(player.projected) : "–"];
   const total = totalChars(pieces);
   const count = (shown ? total : 0);
@@ -568,11 +589,20 @@ function PreLine({
       title={leagueNames.length > 0 ? `${player.name} — ${leagueNames.join(", ")}` : player.name}
     >
       <span
+        ref={nameBox}
         className={`min-w-0 truncate ${SIDE_NAME_COLOR[side]} ${
           selected ? "underline decoration-2 underline-offset-2" : onSelect ? "decoration-ink-muted hover:underline" : ""
         }`}
       >
-        {name || "​"}
+        {/* On a phone, their whole name where it fits; from tablet width up (a narrower list), their first initial and last name. */}
+        {name ? (
+          <>
+            <span className="md:hidden">{cramped ? name : player.name}</span>
+            <span className="hidden md:inline">{name}</span>
+          </>
+        ) : (
+          "​"
+        )}
       </span>
       <span className={`shrink-0 text-[0.5rem] font-semibold uppercase ${POSITION_TEXT_COLOR[player.position] ?? "text-ink-muted"}`}>{position}</span>
       <span className="min-w-0 flex-1" />
@@ -591,6 +621,17 @@ function PreLine({
       <span className={`w-[2.4em] shrink-0 font-light italic tabular-nums text-ink-muted ${mirrored ? "text-left" : "text-right"}`}>{projection}</span>
     </div>
   );
+}
+
+let measure: CanvasRenderingContext2D | null = null;
+
+/** How wide `text` is set in `style`'s font (px). */
+function textWidth(text: string, style: CSSStyleDeclaration): number {
+  measure ??= document.createElement("canvas").getContext("2d");
+  if (!measure) return 0;
+  measure.font = style.font;
+  const tracking = parseFloat(style.letterSpacing) || 0;
+  return measure.measureText(text).width + tracking * text.length;
 }
 
 /** "+N" more leagues, small, up off the top right corner of the league logo it's set beside (in a relative box). */
