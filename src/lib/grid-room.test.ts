@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { floorY, GRID_PX, gridRows, HORIZON_SHARE, lowestGridLine, nearestRow, PHONE_HORIZON_SHARE } from "./grid-room";
+import { floorDepth, floorY, GRID_PX, gridColumns, gridRows, HORIZON_SHARE, lowestGridLine, nearestRow, PHONE_HORIZON_SHARE } from "./grid-room";
 
 test("floorY puts the hinge on the horizon and the floor's lines ever further apart toward you", () => {
   assert.equal(floorY(0, 900), 900 * HORIZON_SHARE);
@@ -42,4 +42,20 @@ test("a phone's horizon sits nearer the middle, and its rows follow it", () => {
   assert.ok(PHONE_HORIZON_SHARE > 0.5 && PHONE_HORIZON_SHARE < HORIZON_SHARE);
   assert.equal(gridRows(852, PHONE_HORIZON_SHARE)[0], 852 * PHONE_HORIZON_SHARE);
   assert.ok(lowestGridLine(852, PHONE_HORIZON_SHARE) < 852);
+});
+
+test("floorDepth undoes floorY", () => {
+  for (const d of [0, 64, 200, 380]) assert.ok(Math.abs(floorDepth(floorY(d, 900), 900) - d) < 1e-9);
+});
+
+test("gridColumns run from the horizon to the bottom, mirrored about the middle, none down it", () => {
+  const lines = gridColumns(1440, 900);
+  assert.ok(lines.every((l) => l.y1 === 900 * HORIZON_SHARE && l.y2 === 900));
+  const mid = 720;
+  assert.ok(lines.every((l) => Math.abs(l.x1 - mid) >= GRID_PX / 2 - 1e-9));
+  const left = lines.filter((l) => l.x1 < mid).map((l) => mid - l.x1).sort((p, q) => p - q);
+  const right = lines.filter((l) => l.x1 > mid).map((l) => l.x1 - mid).sort((p, q) => p - q);
+  assert.deepEqual(left, right);
+  // Spreading out toward you.
+  assert.ok(lines.every((l) => Math.abs(l.x2 - mid) > Math.abs(l.x1 - mid)));
 });

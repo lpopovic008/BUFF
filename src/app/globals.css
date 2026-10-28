@@ -309,8 +309,8 @@ li[data-lit] {
 
 /* The home page's room, on phones too: a horizon a little over halfway down the screen, and a grid floor
    running back to it — the dashboard's screens stand on it. Lines and glow in the theme's ink, so it's dark lines on
-   light and light on dark. Its geometry (the horizon, the perspective, the floor's lay and grid) is set from
-   grid-room.ts, where what stands on the floor finds its lines. */
+   light and light on dark. Its geometry (the horizon, the floor's lay and grid) is in grid-room.ts, where what
+   stands on the floor finds its lines; the grid's drawn by FloorGrid. */
 .grid-room {
   position: fixed;
   inset: 0;
@@ -324,41 +324,6 @@ li[data-lit] {
     radial-gradient(ellipse 60% 24% at 50% var(--horizon), color-mix(in srgb, var(--ink-primary) 9%, transparent), transparent 70%),
     var(--page);
 }
-.grid-room::before {
-  /* The horizon. */
-  content: "";
-  position: absolute;
-  inset-inline: 0;
-  top: var(--horizon);
-  height: 1px;
-  /* As faint as the grid's far end, which runs up to it (see the floor's mask). */
-  background: linear-gradient(to right, transparent, color-mix(in srgb, var(--ink-primary) 9%, transparent) 20% 80%, transparent);
-}
-.grid-room-floor {
-  /* A wide plane hinged at the horizon and laid back almost flat: its grid runs to the vanishing point. */
-  position: absolute;
-  left: -100%;
-  right: -100%;
-  top: var(--horizon);
-  height: 200%;
-  transform-origin: top;
-  /* Fading toward the horizon, but only so far: its far end still shows, as faint as the horizon. */
-  mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.4), black 30%);
-}
-.grid-room-floor::before {
-  /* The grid, in full lines every --grid: across, every --grid back from the horizon; and running back to it,
-     placed so the screen's middle runs straight down the middle of a column of boxes (the tiles centred on the
-     floor's middle, which is the screen's). */
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(to right, color-mix(in srgb, var(--ink-primary) 22%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in srgb, var(--ink-primary) 22%, transparent) 1px, transparent 1px);
-  background-size: var(--grid) var(--grid);
-  background-position: 50% 0;
-}
-
 /* A game's header in the starters list: no box, the page behind it, each team's main color (--away, --home) faint
    at its own end, just behind its logo and record. A game under way has a line per team, each tinted from its
    own end (.team-line, with --team). */

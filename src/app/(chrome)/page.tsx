@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "reac
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { GameMap, MappedGame } from "@/components/GameMap";
-import { FLOOR_TILT, GRID_PX, HORIZON_SHARE, PERSPECTIVE_PX, PHONE_HORIZON_SHARE, lowestGridLine, nearestRow } from "@/lib/grid-room";
+import { HORIZON_SHARE, PHONE_HORIZON_SHARE, lowestGridLine, nearestRow } from "@/lib/grid-room";
+import { FloorGrid } from "@/components/FloorGrid";
 import { DEFAULT_SCENE, landTopShare, MAP_ASPECT } from "@/lib/map-perspective";
 import { LeagueTicker, TickerLeague } from "@/components/LeagueTicker";
 import { ByeTeam, LeagueLegendEntry, StartersByGame, viewPlayers } from "@/components/StartersByGame";
@@ -469,9 +470,9 @@ export default function DashboardPage() {
       ref={setRoom}
       aria-hidden
       className="grid-room"
-      style={{ ["--horizon" as string]: `${horizon * 100}%`, perspective: `${PERSPECTIVE_PX}px`, perspectiveOrigin: `50% ${horizon * 100}%` }}
+      style={{ ["--horizon" as string]: `${horizon * 100}%` }}
     >
-      <div className="grid-room-floor" style={{ transform: `rotateX(${FLOOR_TILT}deg)`, ["--grid" as string]: `${GRID_PX}px` }} />
+      <FloorGrid share={horizon} />
     </div>
   );
   // The games on the map: those whose kickoff block and game aren't hidden.
@@ -586,18 +587,19 @@ export default function DashboardPage() {
       {roomView}
       <LeagueTicker leagues={leagueCards} />
 
-      {/* The two columns stand in the room with no backgrounds of their own — the room behind them — each on the
-          floor's lowest grid line (--stand). The map's column is angled in toward the middle (turned on its outer
+      {/* The two columns stand in the room with no backgrounds of their own — the room behind them: the starters list
+          on the floor's lowest grid line (--stand), the map's column down to the screen's bottom, the map lying on the
+          floor there. The map's column is angled in toward the middle (turned on its outer
           edge, so however wide it is that edge stays on the screen). */}
       <div className="flex flex-row items-start gap-8 px-4 pt-2 [perspective:2200px]">
-        {/* The Red Zone and the map. A column standing on the floor's lowest grid line: the Red Zone filling its top,
-            its plays scrolling within it, and the map along its bottom, lying on the floor nearest you, as wide as the
-            column at its own proportions. Should the two not fit, the column scrolls — flipped to rtl so its scrollbar
+        {/* The Red Zone and the map. A column down to the screen's bottom: the Red Zone filling its top, its plays
+            scrolling within it, and the map along its bottom, lying on the floor at the bottom of the screen, nearest
+            you, as wide as the column at its own proportions. Should the two not fit, the column scrolls — flipped to rtl so its scrollbar
             sits on the column's own left edge instead of in the gutter between the two columns; the inner wrapper flips
             back to ltr so the content reads normally. */}
         <div
           ref={mapColumnRef}
-          className="sticky top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] h-[calc(var(--room-h,100vh)-var(--header-h,0px)-var(--ticker-h,0px)-0.625rem-var(--stand,9vh))] min-w-0 flex-1 origin-left overflow-y-auto [direction:rtl] [rotate:y_4deg]"
+          className="sticky top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] h-[calc(var(--room-h,100vh)-var(--header-h,0px)-var(--ticker-h,0px)-0.625rem)] min-w-0 flex-1 origin-left overflow-y-auto [direction:rtl] [rotate:y_4deg]"
         >
           <div className="flex h-full flex-col [direction:ltr]">
             {redZoneView ? (
@@ -623,7 +625,7 @@ export default function DashboardPage() {
                       overhead={<KickoffCountdown kickoffs={kickoffs} />}
                       // The column's height less the Red Zone's least (10rem, room for its side header) — or, with no plays,
                       // its header alone across the top (2rem).
-                      room={`var(--room-h, 100vh) - var(--header-h, 0px) - var(--ticker-h, 0px) - 0.625rem - var(--stand, 0px) - ${redZoneEmpty ? "2rem" : "10rem"}`}
+                      room={`var(--room-h, 100vh) - var(--header-h, 0px) - var(--ticker-h, 0px) - 0.625rem - ${redZoneEmpty ? "2rem" : "10rem"}`}
                     />
                   </div>
                   {graphsView ? (
