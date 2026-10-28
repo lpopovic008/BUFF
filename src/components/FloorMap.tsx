@@ -107,6 +107,9 @@ export function FloorMapLand({ fit: lying, games, camera }: { fit: FloorMapFit; 
     <svg className="absolute inset-0 h-full w-full" aria-hidden>
       <defs>
         <FloorFade id="floor-map-fade" width={fit.width} height={fit.height} share={fit.share} whole={whole} />
+        <filter id="stadium-shadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="1.5" />
+        </filter>
         <clipPath id="floor-map-floor">
           <rect x={0} y={fit.height * fit.share} width={fit.width} height={fit.height * (1 - fit.share)} />
         </clipPath>
@@ -127,12 +130,23 @@ export function FloorMapLand({ fit: lying, games, camera }: { fit: FloorMapFit; 
         {sites.map((s) => (
           <path key={s.id} d={floorMapRing(fit, s.pos[0], s.pos[1], ringRadius(s.count))} fill="none" stroke="var(--ink-primary)" strokeWidth={wire * 1.5} />
         ))}
-        {/* Stadiums in clay, each face stroked in its own shade so no seam shows between them. */}
-        {stadiums.map((faces, i) => (
-          <g key={i} strokeWidth={wire * 0.75} strokeLinejoin="round">
-            {faces.map((f, j) => (
-              <path key={j} d={f.d} fill={f.fill} stroke={f.fill} />
-            ))}
+        {/* Stadiums in clay: each's soft shadow on the floor, then its faces — each stroked in its own shade, so no
+            seam shows between them — and its creases. */}
+        {stadiums.map((s, i) => (
+          <g key={i} strokeLinejoin="round" strokeLinecap="round">
+            {/* Its pieces solid, together see-through: where they overlap, no darker. */}
+            <g opacity={0.3} filter="url(#stadium-shadow)">
+              {s.shadow.map((d, j) => (
+                <path key={j} d={d} fill="black" />
+              ))}
+            </g>
+            {s.paths.map((p, j) =>
+              p.fill ? (
+                <path key={j} d={p.d} fill={p.fill} stroke={p.fill} strokeWidth={wire * 0.75} />
+              ) : (
+                <path key={j} d={p.d} fill="none" stroke={p.stroke} strokeWidth={wire} strokeOpacity={0.75} />
+              )
+            )}
           </g>
         ))}
       </g>
