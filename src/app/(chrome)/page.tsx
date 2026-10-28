@@ -8,6 +8,8 @@ import { FloorMapLand, FloorMapTags } from "@/components/FloorMap";
 import { FloorMapFit, fitFloorMap, floorMapTop } from "@/lib/floor-map";
 import { HORIZON_SHARE, PHONE_HORIZON_SHARE, gridRows, lowestGridLine, nearestRow } from "@/lib/grid-room";
 import { FloorGrid } from "@/components/FloorGrid";
+import { FloorCameraControls } from "@/components/FloorCameraControls";
+import { createFloorCameraStore } from "@/lib/floor-camera";
 import { LeagueTicker, TickerLeague } from "@/components/LeagueTicker";
 import { ByeTeam, LeagueLegendEntry, StartersByGame, viewPlayers } from "@/components/StartersByGame";
 import { NFL_TEAMS } from "@/lib/nfl-logos";
@@ -439,6 +441,15 @@ export default function DashboardPage() {
     }));
   }, [weekGames, grouped.games, groupedOpponent.games, shownCounts]);
 
+  // The games on the map: those whose kickoff block and game aren't hidden.
+  const games = useMemo(
+    () => mappedGames.filter((g) => !hiddenBlocks.has(kickoffBlockLabel(g.game)) && !offMap.has(g.game.id)),
+    [mappedGames, hiddenBlocks, offMap]
+  );
+  // The floor moved around and zoomed (see FloorCameraControls), following the starters list while it's home.
+  const [floorCamera] = useState(createFloorCameraStore);
+  const [startersList, setStartersList] = useState<HTMLDivElement | null>(null);
+
   if (!loaded || leagues === null) {
     return (
       <Card className="p-12 text-center text-sm text-ink-secondary">
@@ -492,8 +503,6 @@ export default function DashboardPage() {
   // The room the dashboard stands in: a grid floor running back to the horizon (see .grid-room) — on a phone, nearer
   // the middle of the screen.
   const horizon = desktop ? HORIZON_SHARE : PHONE_HORIZON_SHARE;
-  // The games on the map: those whose kickoff block and game aren't hidden.
-  const games = mappedGames.filter((g) => !hiddenBlocks.has(kickoffBlockLabel(g.game)) && !offMap.has(g.game.id));
   // The map lies on the floor at the front (see FloorMapLand), its games standing up off it in front of everything
   // (FloorMapTags) — out of the way while the Red Zone takes the screen (⇕).
   const mapShown = stand !== null && weekGames.length > 0 && !(desktop ? redZoneFull : redZoneFitted);
@@ -504,8 +513,8 @@ export default function DashboardPage() {
       className="grid-room"
       style={{ ["--horizon" as string]: `${horizon * 100}%` }}
     >
-      <FloorGrid share={horizon} />
-      {mapShown ? <FloorMapLand fit={stand.fit} games={games} /> : null}
+      <FloorGrid share={horizon} camera={floorCamera} />
+      {mapShown ? <FloorMapLand fit={stand.fit} games={games} camera={floorCamera} /> : null}
     </div>
   );
   // One graph in full; two side by side; three or four, one to a corner.
@@ -572,6 +581,10 @@ export default function DashboardPage() {
       />
     );
   const standVars = stand ? { ["--room-h" as string]: `${stand.room}px`, ["--stand" as string]: `${stand.on}px` } : undefined;
+  // Moving the floor from wherever it's bare (the page's own wrappers, data-floor, touched nowhere else).
+  const floorControls = mapShown ? (
+    <FloorCameraControls store={floorCamera} fit={stand.fit} games={games} list={startersList} desktop={desktop} />
+  ) : null;
 
   if (!desktop) {
     // A phone: one scene that doesn't scroll, standing in the room — the Red Zone up under the ticker, the starters
@@ -580,11 +593,12 @@ export default function DashboardPage() {
     // stepping down to stand under them. The Red Zone fitted to the screen (⇕) takes the whole scene.
     const graphsUp = graphsView !== null && !redZoneFitted;
     return (
-      <div style={standVars}>
+      <div data-floor style={standVars}>
         <h1 className="sr-only">Dashboard</h1>
         {roomView}
         <div
-          className="fixed inset-x-0 bottom-0 top-[var(--header-h,0px)] flex flex-col px-4 pt-6"
+          data-floor
+          className="fixed inset-x-0 bottom-0 top-[var(--header-h,0px)] flex touch-none flex-col px-4 pt-6"
           style={{ paddingBottom: stand && !redZoneFitted ? stand.room - stand.foot : "var(--tabbar-h, 0px)" }}
         >
           <LeagueTicker leagues={leagueCards} />
@@ -596,12 +610,13 @@ export default function DashboardPage() {
             className={`floor-reflect min-h-0 animate-[rise_0.5s_ease-out_backwards] pt-2 [animation-delay:200ms] ${redZoneFitted ? "hidden" : graphsUp ? "flex-none" : "flex-1"}`}
             style={graphsUp && stand ? { height: stand.foot - stand.horizon } : undefined}
           >
-            <div className="h-full overflow-y-auto overscroll-contain pb-16 [-webkit-mask-image:linear-gradient(to_bottom,black_85%,transparent)] [mask-image:linear-gradient(to_bottom,black_85%,transparent)]">
+            <div ref={setStartersList} className="h-full overflow-y-auto overscroll-contain pb-16 [-webkit-mask-image:linear-gradient(to_bottom,black_85%,transparent)] [mask-image:linear-gradient(to_bottom,black_85%,transparent)]">
               {startersView}
             </div>
           </div>
         </div>
-        {mapShown ? <FloorMapTags fit={stand.fit} games={games} top={stand.landTop} /> : null}
+        {mapShown ? <FloorMapTags fit={stand.fit} games={games} top={stand.landTop} camera={floorCamera} /> : null}
+        {floorControls}
       </div>
     );
   }
@@ -615,7 +630,7 @@ export default function DashboardPage() {
   return (
     // From tablet width up the columns reach the bottom of the screen: the page's own bottom padding is taken back.
     // Nothing scrolls but the starters list (and the Red Zone's plays, within it).
-    <div className="flex flex-col gap-0.5 md:-mb-8" style={standVars}>
+    <div data-floor className="flex touch-none flex-col gap-0.5 md:-mb-8" style={standVars}>
       <h1 className="sr-only">Dashboard</h1>
       {roomView}
       <LeagueTicker leagues={leagueCards} />
@@ -624,10 +639,11 @@ export default function DashboardPage() {
           on the floor's lowest grid line (--stand), the Red Zone's column over the map lying on the floor at the front.
           The Red Zone's column is angled in toward the middle (turned on its outer edge, so however wide it is that
           edge stays on the screen). */}
-      <div className="flex flex-row items-start gap-8 px-4 pt-2 [perspective:2200px]">
+      <div data-floor className="flex flex-row items-start gap-8 px-4 pt-2 [perspective:2200px]">
         {/* The Red Zone, filling its column, its plays scrolling within it; player graphs under it while they're up. */}
         <div
           ref={mapColumnRef}
+          data-floor
           className="sticky top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] flex min-w-0 flex-1 origin-left flex-col overflow-hidden [rotate:y_4deg]"
           style={{ height: `calc(${columnBottom} - var(--header-h, 0px) - var(--ticker-h, 0px) - 0.625rem)` }}
         >
@@ -652,13 +668,20 @@ export default function DashboardPage() {
             something standing on a line across the floor does — from where it sits under the ticker (past the gap and
             the row's padding, 0.625rem), so its foot is on the line whether or not it's stuck. Its bottom 15% fades
             out, so it's gone by the time it meets the floor, a faint reflection of it there. */}
-        <div className="floor-reflect sticky top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] h-[calc(var(--room-h,100vh)-var(--header-h,0px)-var(--ticker-h,0px)-0.625rem-var(--stand,0px))] w-80 shrink-0 animate-[rise_0.5s_ease-out_backwards] overflow-y-auto pb-16 [animation-delay:200ms] [mask-image:linear-gradient(to_bottom,black_85%,transparent)] lg:w-[22rem]">
+        <div ref={setStartersList} className="floor-reflect sticky top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] h-[calc(var(--room-h,100vh)-var(--header-h,0px)-var(--ticker-h,0px)-0.625rem-var(--stand,0px))] w-80 shrink-0 animate-[rise_0.5s_ease-out_backwards] overflow-y-auto pb-16 [animation-delay:200ms] [mask-image:linear-gradient(to_bottom,black_85%,transparent)] lg:w-[22rem]">
           {startersView}
         </div>
       </div>
       {mapShown ? (
-        <FloorMapTags fit={stand.fit} games={games} top={stand.landTop - 5 * stand.rootPx} overhead={graphsBack ? undefined : <KickoffCountdown kickoffs={kickoffs} />} />
+        <FloorMapTags
+          fit={stand.fit}
+          games={games}
+          top={stand.landTop - 5 * stand.rootPx}
+          overhead={graphsBack ? undefined : <KickoffCountdown kickoffs={kickoffs} />}
+          camera={floorCamera}
+        />
       ) : null}
+      {floorControls}
     </div>
   );
 }

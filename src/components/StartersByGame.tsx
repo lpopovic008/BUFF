@@ -934,9 +934,10 @@ function GameBox({
       {children}
     </div>
   );
-  // Each game on the room behind, no box of its own: just its words and its field (dimmed while it's hidden).
+  // Each game on the room behind, no box of its own: just its words and its field (dimmed while it's hidden). Marked
+  // with its game, for the floor to follow (see FloorCameraControls) — not a bye's.
   return (
-    <div>
+    <div data-game={map ? id : undefined}>
       <div ref={box} className="flex flex-col px-2 py-1.5">
         {map ? (
           // Just the matchup swipes over, out to the box's edges, to show the button that hides the game.

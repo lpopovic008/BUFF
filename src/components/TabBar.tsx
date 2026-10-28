@@ -50,9 +50,13 @@ export function TabBar() {
     <nav
       ref={ref}
       aria-label="Pages"
-      // Its background down to the screen's bottom edge, its buttons kept clear of the phone's home indicator (the
-      // safe area under them, none on a phone without one).
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-page/95 pb-[env(safe-area-inset-bottom)] backdrop-blur [transform:translateZ(0)] md:hidden"
+      // Its background down to the screen's bottom edge, its icons as far above the phone's home indicator as that is
+      // above the screen's bottom, 8px: the indicator's top is 21px under the safe area's (13px up an iPhone's 34px),
+      // and the icons 21px up their row, so the row's bottom sits 34px under the safe area's top — at the screen's
+      // bottom on an iPhone. On the home page, see-through to the room's floor under it.
+      className={`fixed inset-x-0 bottom-0 z-50 border-t border-border pb-[max(0px,calc(env(safe-area-inset-bottom)-34px))] [transform:translateZ(0)] md:hidden ${
+        pathname === "/" ? "bg-page/40" : "bg-page/95 backdrop-blur"
+      }`}
     >
       <div className="grid h-16 grid-cols-5">
         {tabs.map(({ href, label, icon: Icon, active }) => (

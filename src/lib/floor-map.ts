@@ -2,13 +2,14 @@
 // the screen where its points fall — so its lines are crisp wires like the grid's. It reaches no further back than a
 // given grid line (the third from the front), and no nearer than the screen's bottom (a phone's tab bar), and is as
 // large as fits between them, no wider than it's let be: where the floor near you is magnified too much for that
-// (a phone's narrow screen), it sits a little back from the bottom so it can be bigger.
+// (a phone's narrow screen), it sits a little back from the bottom so it can be bigger. Where the floor's been moved
+// (see floor-camera.ts), it moves with it.
 
 import { US_SIMPLE_OUTLINE_PATH } from "./team-cities";
-import { FLOOR_TILT, HORIZON_SHARE, PERSPECTIVE_PX, floorDepth, floorY } from "./grid-room";
+import { FloorCamera, HORIZON_SHARE, floorDepth, floorPoint, floorScale } from "./grid-room";
+import { cameraShows } from "./floor-camera";
 
 const POINT = /(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g;
-const SIN = Math.sin((FLOOR_TILT * Math.PI) / 180);
 
 const OUTLINE_POINTS = [...US_SIMPLE_OUTLINE_PATH.matchAll(POINT)].map((m) => [Number(m[1]), Number(m[2])] as const);
 /** The mainland's extent, in map units. */
@@ -19,11 +20,6 @@ export const MAP_BOUNDS = {
   maxY: Math.max(...OUTLINE_POINTS.map((p) => p[1])),
 };
 
-/** How the floor magnifies a point `d` px back from the horizon's hinge. */
-function scaleAt(d: number): number {
-  return PERSPECTIVE_PX / (PERSPECTIVE_PX - d * SIN);
-}
-
 export interface FloorMapFit {
   width: number;
   height: number;
@@ -33,6 +29,8 @@ export interface FloorMapFit {
   /** How far back on the floor the map's near edge lies, and how far across from the floor's middle its middle. */
   nearDepth: number;
   across: number;
+  /** Where the floor's been moved — none, where it lies. */
+  camera?: FloorCamera;
 }
 
 /**
@@ -64,7 +62,7 @@ export function fitFloorMap({
   // first grows as the near edge comes forward, the second shrinks (the floor's magnified more), so the largest map
   // has its near edge where they meet — or at the bottom, if they don't.
   const byDepth = (near: number) => (near - far) / deep;
-  const byWidth = (near: number) => maxWidth / (wide * scaleAt(near));
+  const byWidth = (near: number) => maxWidth / (wide * floorScale(near));
   let near = floorDepth(bottom, height, share);
   if (byDepth(near) > byWidth(near)) {
     let [lo, hi] = [far, near];
@@ -76,15 +74,20 @@ export function fitFloorMap({
     near = lo;
   }
   const k = Math.min(byDepth(near), byWidth(near));
-  return { width, height, share, k, nearDepth: near, across: (centerX - width / 2) / scaleAt(near) };
+  return { width, height, share, k, nearDepth: near, across: (centerX - width / 2) / floorScale(near) };
 }
 
-/** Where map point (x, y), in map units, shows on the screen, and how magnified the floor is there. */
-export function floorMapPoint(fit: FloorMapFit, x: number, y: number): [number, number, number] {
+/** Where on the floor, as it lies, map point (x, y) in map units is: [across, back] in floor px. */
+export function floorMapFloor(fit: FloorMapFit, x: number, y: number): [number, number] {
   const midX = (MAP_BOUNDS.minX + MAP_BOUNDS.maxX) / 2;
-  const d = fit.nearDepth - (MAP_BOUNDS.maxY - y) * fit.k;
-  const scale = scaleAt(d);
-  return [fit.width / 2 + (fit.across + (x - midX) * fit.k) * scale, floorY(d, fit.height, fit.share), scale];
+  return [fit.across + (x - midX) * fit.k, fit.nearDepth - (MAP_BOUNDS.maxY - y) * fit.k];
+}
+
+/** Where map point (x, y), in map units, shows on the screen. */
+export function floorMapPoint(fit: FloorMapFit, x: number, y: number): [number, number] {
+  const lying = floorMapFloor(fit, x, y);
+  const [across, d] = fit.camera ? cameraShows(fit.camera, lying) : lying;
+  return floorPoint(across, d, fit.width, fit.height, fit.share);
 }
 
 /** An SVG path in map units (absolute x,y pairs), laid on the floor in screen px. */

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { floorDepth, floorY, gridColumns, gridRows, HORIZON_SHARE } from "@/lib/grid-room";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { floorDepth, floorY, gridColumns, gridRows, HOME_CAMERA, HORIZON_SHARE } from "@/lib/grid-room";
+import type { FloorCameraStore } from "@/lib/floor-camera";
 
 // How strongly the grid's lines show, and how they fade toward the horizon: from FAR_OPACITY of that at the
 // hinge to all of it FULL_DEPTH_SHARE of the screen's height back on the floor.
@@ -17,10 +18,11 @@ const FADE_STOPS = 8;
  * the laid-back floor — so every line is a wire one device pixel wide, near or far, whatever the browser's zoom.
  * The horizon, then across, a line every grid square back from it; running back, lines meeting at the horizon's
  * middle, the screen's middle down the middle of a column of boxes. Fading toward the horizon, its far end as faint
- * as it.
+ * as it. Moved and zoomed with the floor (`camera`, see floor-camera.ts).
  */
-export function FloorGrid({ share = HORIZON_SHARE }: { share?: number }) {
+export function FloorGrid({ share = HORIZON_SHARE, camera: store }: { share?: number; camera?: FloorCameraStore }) {
   const ref = useRef<SVGSVGElement>(null);
+  const camera = useFloorCamera(store).camera;
   const [view, setView] = useState<{ width: number; height: number; dpr: number } | null>(null);
   useEffect(() => {
     const svg = ref.current;
@@ -37,7 +39,12 @@ export function FloorGrid({ share = HORIZON_SHARE }: { share?: number }) {
     };
   }, []);
 
-  const lines = view ? { rows: gridRows(view.height, share).slice(1), columns: gridColumns(view.width, view.height, share) } : null;
+  const lines = view
+    ? {
+        rows: gridRows(view.height, share, camera).filter((y) => y > view.height * share + 0.5),
+        columns: gridColumns(view.width, view.height, share, camera),
+      }
+    : null;
   // One device pixel, and a row snapped to the middle of one, so it's a crisp wire.
   const wire = view ? 1 / view.dpr : 1;
   const snap = (y: number) => (view ? (Math.floor(y * view.dpr) + 0.5) / view.dpr : y);
@@ -82,4 +89,12 @@ export function FloorGrid({ share = HORIZON_SHARE }: { share?: number }) {
       ) : null}
     </svg>
   );
+}
+
+const AT_HOME = { camera: HOME_CAMERA, following: true };
+const still = () => () => {};
+
+/** The floor's camera, from its store — at home without one. */
+export function useFloorCamera(store?: FloorCameraStore) {
+  return useSyncExternalStore(store?.subscribe ?? still, store?.get ?? (() => AT_HOME), () => AT_HOME);
 }
