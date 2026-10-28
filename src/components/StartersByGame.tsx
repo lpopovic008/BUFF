@@ -7,7 +7,7 @@ import { formatKickoffTime, GameStarters, groupGamesByTimeBlock, GroupedStarter,
 import { gameClock, NFLGame } from "@/lib/nfl-schedule";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import { nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
-import { LeagueLegendEntry, LeagueMark } from "./LeagueMark";
+import { LeagueLegendEntry } from "./LeagueMark";
 import { GameRows, RowMotion } from "./GameRows";
 import { FieldSpot, PossessionMark } from "./FieldSpot";
 import { Ordinals } from "./Ordinals";
@@ -338,20 +338,14 @@ function linePieces(player: GroupedStarter, phase: Phase, action: LastAction | u
   ];
 }
 
-// A league logo on a player's line, and the gap between two, in px.
-const LINE_LOGO_PX = 12;
-const LINE_LOGO_GAP_PX = 2;
-
 /**
  * One player's line under a game, in columns that line up from line to line:
  * the time of their latest play that moved their points (while it's on —
  * kept blank otherwise), their name with their position (small, in its
- * color) right after it, the logo of every league they're started in, that
- * play's +/- (only while the game's on: otherwise the logos take its place),
- * and their total (or projection, before kickoff). The first league's logo
- * sits on the right, the rest building leftward; should they reach the
- * position, just the first shows, with "+N" for the others. Gone while its
- * box is shut or its block switched off. Shown, the total follows the points
+ * color) right after it, that play's +/- (only while the game's on), and
+ * their total (or projection, before kickoff) — their leagues are in their
+ * graph's header (see PointsGraph). Gone while its box is shut or its block
+ * switched off. Shown, the total follows the points
  * as they change (see GameRows): the name lit as the play lights up in the
  * Red Zone, the +/- lit as it's applied, the total lit as it counts up.
  */
@@ -393,53 +387,11 @@ function GameLine({
   const shownDelta = typedIn && phase === "live" && action ? (motion.chip?.delta ?? action.delta) : null;
   const shownPoints = typedIn && phase !== "pre" ? (motion.points ?? player.points) : null;
 
-  // Their leagues in the order they're tracked — the first is the one on the right.
+  // Their leagues in the order they're tracked, named when hovered.
   const leagueIds = [...player.leagueIds].sort(
     (x, y) => (legendByLeagueId.get(x)?.colorIndex ?? 0) - (legendByLeagueId.get(y)?.colorIndex ?? 0)
   );
   const leagueNames = leagueIds.map((id) => legendByLeagueId.get(id)?.leagueName ?? id);
-  // Whether every logo would reach the name and position, measured once the line's in.
-  const middle = useRef<HTMLSpanElement>(null);
-  const nameRef = useRef<HTMLSpanElement>(null);
-  const positionRef = useRef<HTMLSpanElement>(null);
-  const deltaRef = useRef<HTMLSpanElement>(null);
-  const [crowded, setCrowded] = useState(false);
-  useLayoutEffect(() => {
-    const el = middle.current;
-    if (!el || !typedIn || leagueIds.length < 2) return;
-    const measure = () => {
-      const logos = leagueIds.length * LINE_LOGO_PX + (leagueIds.length - 1) * LINE_LOGO_GAP_PX;
-      // The name at its full width, even while it's cut short, a gap either side of the position, and the +/- with its gap.
-      const delta = deltaRef.current ? deltaRef.current.offsetWidth + 4 : 0;
-      const used = (nameRef.current?.scrollWidth ?? 0) + (positionRef.current?.offsetWidth ?? 0) + 3 * 4 + delta;
-      setCrowded(used + logos > el.clientWidth);
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [typedIn, leagueIds.length, player.name, player.position]);
-  // Yours in one league and faced in another: every league, each boxed green (yours) or red (theirs). While the
-  // game's on (the +/- to its right), or crowded, just the first league's and "+N" for the rest.
-  const both = side === "both";
-  const one = phase === "live" || (crowded && !both);
-  const logoIds = one ? leagueIds.slice(0, 1) : leagueIds;
-  const marks = (
-    // Every league: the first on the right, the rest building leftward. Just the first: it, "+N" up off its top
-    // right corner, so it keeps its place in the column of logos.
-    <span className={`relative flex shrink-0 ${one ? "" : "flex-row-reverse"} items-center gap-0.5 transition-opacity duration-150 ${typedIn ? "" : "opacity-0"}`} aria-hidden>
-      {logoIds.map((id) =>
-        both ? (
-          <span key={id} className={`flex border p-px ${player.facedIn?.includes(id) ? "border-status-critical" : "border-status-good"}`}>
-            <LeagueMark league={legendByLeagueId.get(id)} className="h-3 w-3" />
-          </span>
-        ) : (
-          <LeagueMark key={id} league={legendByLeagueId.get(id)} className="h-3 w-3" />
-        )
-      )}
-      {one && leagueIds.length > 1 ? <PlusMore n={leagueIds.length - 1} /> : null}
-    </span>
-  );
 
   return (
     <div
@@ -462,24 +414,20 @@ function GameLine({
     >
       {/* Just wide enough for "12:59", the name tucked in close after it — never touching. */}
       <span className="-mr-0.5 w-[2.6em] shrink-0 text-[0.6875rem] tabular-nums text-ink-muted">{time}</span>
-      <span ref={middle} className="flex min-w-0 flex-1 items-center gap-1">
+      <span className="flex min-w-0 flex-1 items-center gap-1">
         <span
-          ref={nameRef}
           className={`min-w-0 truncate ${SIDE_NAME_COLOR[side]} ${motion.highlight ? `-mx-1 px-1 ${lit}` : ""} ${
             selected ? "underline decoration-2 underline-offset-2" : onSelect ? "decoration-ink-muted hover:underline" : ""
           }`}
         >
           {name || "​"}
         </span>
-        <span ref={positionRef} className={`shrink-0 text-[0.5rem] font-semibold uppercase ${POSITION_TEXT_COLOR[player.position] ?? "text-ink-muted"}`}>
+        <span className={`shrink-0 text-[0.5rem] font-semibold uppercase ${POSITION_TEXT_COLOR[player.position] ?? "text-ink-muted"}`}>
           {position}
         </span>
         <span className="min-w-0 flex-1" />
-        {/* While the game's on, the leagues ahead of the play's +/-, clear of it; otherwise on the right. */}
-        {phase === "live" ? marks : null}
         {phase === "live" ? (
           <span
-            ref={deltaRef}
             className={`w-[3.8em] shrink-0 text-right tabular-nums ${
               shownDelta !== null && motion.chip
                 ? `font-bold ${lit}`
@@ -491,7 +439,6 @@ function GameLine({
             {shownDelta !== null ? `${shownDelta > 0 ? "+" : ""}${formatPoints(shownDelta)}` : delta}
           </span>
         ) : null}
-        {phase === "live" ? null : marks}
       </span>
       <span
         className={`w-[3.4em] shrink-0 text-right tabular-nums ${
@@ -515,9 +462,8 @@ function GameLine({
 
 /**
  * A player's line under a game yet to kick off, under their own team: the away team's down the left (name, then
- * their leagues, then the projection at the middle), the home team's mirrored down the right (projection at the
- * middle, then their leagues, then the name at the right end). Gone while its box is shut or its block switched
- * off.
+ * the projection at the middle), the home team's mirrored down the right (projection at the middle, then the name
+ * at the right end). Gone while its box is shut or its block switched off.
  */
 function PreLine({
   player,
@@ -561,14 +507,11 @@ function PreLine({
   const total = totalChars(pieces);
   const count = (shown ? total : 0);
   const [name, position, projection] = typedSlices(pieces, count);
-  const typedIn = shown && count >= total;
   const side = player.side ?? "mine";
   const leagueIds = [...player.leagueIds].sort(
     (x, y) => (legendByLeagueId.get(x)?.colorIndex ?? 0) - (legendByLeagueId.get(y)?.colorIndex ?? 0)
   );
   const leagueNames = leagueIds.map((id) => legendByLeagueId.get(id)?.leagueName ?? id);
-  // The first league's logo, boxed green (yours) or red (theirs) for a player who's both; "+N" for the rest.
-  const first = leagueIds[0];
   return (
     <div
       ref={ref}
@@ -606,18 +549,6 @@ function PreLine({
       </span>
       <span className={`shrink-0 text-[0.5rem] font-semibold uppercase ${POSITION_TEXT_COLOR[player.position] ?? "text-ink-muted"}`}>{position}</span>
       <span className="min-w-0 flex-1" />
-      {first ? (
-        <span className={`relative flex shrink-0 items-center transition-opacity duration-150 ${typedIn ? "" : "opacity-0"}`} aria-hidden>
-          {side === "both" ? (
-            <span className={`flex border p-px ${player.facedIn?.includes(first) ? "border-status-critical" : "border-status-good"}`}>
-              <LeagueMark league={legendByLeagueId.get(first)} className="h-3 w-3" />
-            </span>
-          ) : (
-            <LeagueMark league={legendByLeagueId.get(first)} className="h-3 w-3" />
-          )}
-          {leagueIds.length > 1 ? <PlusMore n={leagueIds.length - 1} /> : null}
-        </span>
-      ) : null}
       <span className={`w-[2.4em] shrink-0 font-light italic tabular-nums text-ink-muted ${mirrored ? "text-left" : "text-right"}`}>{projection}</span>
     </div>
   );
@@ -632,11 +563,6 @@ function textWidth(text: string, style: CSSStyleDeclaration): number {
   measure.font = style.font;
   const tracking = parseFloat(style.letterSpacing) || 0;
   return measure.measureText(text).width + tracking * text.length;
-}
-
-/** "+N" more leagues, small, up off the top right corner of the league logo it's set beside (in a relative box). */
-function PlusMore({ n }: { n: number }) {
-  return <span className="absolute -right-2.5 -top-1.5 text-[0.5625rem] leading-none tabular-nums text-ink-muted">+{n}</span>;
 }
 
 /** How long a box's lines take to go before it shuts. */
@@ -1240,7 +1166,7 @@ export function StartersByGame({
   games: GameStarters[];
   /** The teams on their bye this week, with any starters on them — listed last, under their own header. */
   byes: ByeTeam[];
-  /** Each league's name and logo, for the marks on each starter's row. */
+  /** Each league's name and logo, for naming each starter's leagues when their row's hovered. */
   legend: LeagueLegendEntry[];
   /** Every league is hidden in Settings, so there's nobody to list. */
   allLeaguesHidden: boolean;

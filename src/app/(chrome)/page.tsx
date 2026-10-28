@@ -522,6 +522,7 @@ export default function DashboardPage() {
           player,
           // Under the league their row's points are scored in (the first they're started in); anyone else's is PPR, as their row is.
           scoring: player.side === "other" ? undefined : scoringByLeague.get(player.leagueIds[0]),
+          leagues: legend.filter((l) => player.leagueIds.includes(l.leagueId)),
         }))}
         onClose={unpickGraph}
         onCursorPlay={setSpotlight}

@@ -4,6 +4,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { GroupedStarter } from "@/lib/my-starters";
 import { NFLGame } from "@/lib/nfl-schedule";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
+import { LeagueLegendEntry, LeagueMark } from "./LeagueMark";
 import { halftimeSpan, pacePieces, periodStarts, pointsTimeline } from "@/lib/live-play-points";
 import { useGamePlays, withScoreboardPlay } from "@/hooks/useRedZoneFeed";
 
@@ -91,6 +92,7 @@ export function PointsGraph({
   onClose,
   compact = false,
   scoring,
+  leagues = [],
   onCursorPlay,
 }: {
   player: GroupedStarter;
@@ -98,6 +100,8 @@ export function PointsGraph({
   onClose: () => void;
   /** The league's scoring (Sleeper's scoring_settings) each play is scored under — standard PPR without one. */
   scoring?: Record<string, number>;
+  /** The leagues they're started in (or faced in), in the order they're tracked. */
+  leagues?: LeagueLegendEntry[];
   /** One of several on screen: just the name, the total, the points axis and the lines. */
   compact?: boolean;
   /** Told the play by the cursor (its game and ESPN play id) whenever that changes — null once the cursor's gone. */
@@ -352,6 +356,20 @@ export function PointsGraph({
             </span>
           </>
         )}
+        {/* Their leagues' logos — for one who's yours in one league and faced in another, each boxed green (yours) or red (theirs). */}
+        {leagues.length > 0 ? (
+          <span className="flex shrink-0 items-center gap-0.5" title={leagues.map((l) => l.leagueName).join(", ")}>
+            {leagues.map((l) =>
+              player.side === "both" ? (
+                <span key={l.leagueId} className={`flex border p-px ${player.facedIn?.includes(l.leagueId) ? "border-status-critical" : "border-status-good"}`}>
+                  <LeagueMark league={l} className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} />
+                </span>
+              ) : (
+                <LeagueMark key={l.leagueId} league={l} className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} />
+              )
+            )}
+          </span>
+        ) : null}
         {shownTotal !== null ? (
           // Lit on a tag plate, like the map's game tags; a projection in italics.
           <span
@@ -501,11 +519,12 @@ export function PointsGraph({
   );
 }
 
-/** One graph to put up: the player, their game, and the scoring to draw it under. */
+/** One graph to put up: the player, their game, the scoring to draw it under, and their leagues. */
 export interface GraphedPlayer {
   player: GroupedStarter;
   game: NFLGame;
   scoring?: Record<string, number>;
+  leagues?: LeagueLegendEntry[];
 }
 
 /**
@@ -529,12 +548,13 @@ export function PointsGraphGrid({
         graphs.length === 1 ? "grid-cols-1 grid-rows-1" : graphs.length === 2 ? "grid-cols-2 grid-rows-1" : "grid-cols-2 grid-rows-2"
       }`}
     >
-      {graphs.map(({ player, game, scoring }) => (
+      {graphs.map(({ player, game, scoring, leagues }) => (
         <div key={`${game.id}-${player.playerId}`} className="min-h-0 min-w-0">
           <PointsGraph
             player={player}
             game={game}
             scoring={scoring}
+            leagues={leagues}
             compact={graphs.length > 1}
             onClose={() => onClose(player.playerId)}
             onCursorPlay={graphs.length > 1 ? undefined : onCursorPlay}
