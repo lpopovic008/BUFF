@@ -60,7 +60,7 @@ export function NavBar() {
   return (
     // Padded down by the safe area, so on a phone its background fills the strip around the camera and
     // its contents start just under it — and no lower: a little less padding of its own on a phone.
-    <header ref={ref} className="sticky top-0 z-50 border-b border-border bg-page/95 pt-[env(safe-area-inset-top)] backdrop-blur">
+    <header ref={ref} className="sticky top-0 z-50 border-b border-border bg-page/70 pt-[env(safe-area-inset-top)] backdrop-blur-[3px]">
       {/* The week centered — unless one side's too wide for that (the page tabs beside a long week, on a tablet), then just clear of it. */}
       <div className="relative grid grid-cols-[minmax(max-content,1fr)_auto_minmax(max-content,1fr)] items-center gap-2 px-4 py-2 sm:gap-3 sm:px-6 sm:py-3 md:px-1">
         {/* The app's icon, home — and from tablet width up the pages as text tabs, the one you're on lit like a map

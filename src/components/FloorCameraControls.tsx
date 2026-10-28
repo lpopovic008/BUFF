@@ -23,7 +23,7 @@ function onFloor(target: EventTarget | null): boolean {
 /**
  * The home page's floor, moved around and zoomed: dragged (a finger, or the mouse) and pinched (two fingers, or a
  * trackpad) wherever it's bare below the horizon, a trackpad's two-finger scroll sliding it. At home it follows the
- * starters list (`list`): scrolled down it, it glides to the map's game at the list's top, zoomed in a little — and
+ * starters list (`list`): scrolled down it, it glides to the map's game at the top of its games, zoomed in a little — and
  * back to the whole map scrolled back to the top. Moved by you, it stays where you put it, the list scrolling on its
  * own, until its home button takes it back.
  */
@@ -122,7 +122,9 @@ export function FloorCameraControls({
       if (!store.get().following) return;
       let target: string | null = null;
       if (list && list.scrollTop > 4) {
-        const top = list.getBoundingClientRect().top + 12;
+        // Where the games' top rests (data-follow), scrolled to the list's top — or the list's own top.
+        const games = list.querySelector("[data-follow]");
+        const top = (games ? games.getBoundingClientRect().top + list.scrollTop : list.getBoundingClientRect().top) + 12;
         for (const box of list.querySelectorAll<HTMLElement>("[data-game]")) {
           const id = box.dataset.game!;
           if (box.getBoundingClientRect().bottom > top && sites.has(id)) {

@@ -44,10 +44,12 @@ const MAX_GRAPHS = 4;
 
 // From tablet width up, where the map and the Red Zone share a column the screen's height.
 const DESKTOP = "(min-width: 768px)";
-// From tablet width up, the player graphs at the back of the room: 15rem tall, or less on a shorter screen, so
-// the Red Zone over them keeps the 10rem its side header needs — from the column's top down to the horizon.
+// From tablet width up, the player graphs at the back of the room, under the Red Zone: it keeps a reasonable height
+// (12rem, less on a short screen, but never under the 10.5rem its side header needs), and they take the rest of the
+// column's top down to the horizon.
 const COLUMN_TO_HORIZON = `(var(--room-h, 100vh) * ${HORIZON_SHARE} - var(--header-h, 0px) - var(--ticker-h, 0px) - 0.625rem)`;
-const BACK_GRAPHS_HEIGHT = `min(15rem, calc(${COLUMN_TO_HORIZON} - 10.5rem))`;
+const RED_ZONE_OVER_GRAPHS = `max(10.5rem, min(12rem, calc(${COLUMN_TO_HORIZON} - 10rem)))`;
+const BACK_GRAPHS_HEIGHT = `calc(${COLUMN_TO_HORIZON} - ${RED_ZONE_OVER_GRAPHS} - 0.5rem)`;
 const onDesktopChange = (listener: () => void) => {
   const query = window.matchMedia(DESKTOP);
   query.addEventListener("change", listener);
@@ -449,6 +451,7 @@ export default function DashboardPage() {
   // The floor moved around and zoomed (see FloorCameraControls), following the starters list while it's home.
   const [floorCamera] = useState(createFloorCameraStore);
   const [startersList, setStartersList] = useState<HTMLDivElement | null>(null);
+  const startersRef = useRef<HTMLDivElement>(null);
 
   if (!loaded || leagues === null) {
     return (
@@ -587,32 +590,57 @@ export default function DashboardPage() {
   ) : null;
 
   if (!desktop) {
-    // A phone: one scene that doesn't scroll, standing in the room — the Red Zone up under the ticker, the starters
-    // list standing on a grid line about halfway back on the floor (scrolling within itself), and the map lying at
-    // the front, nearest you. Player graphs go up at the very back, their foot on the horizon, the starters list
-    // stepping down to stand under them. The Red Zone fitted to the screen (⇕) takes the whole scene.
+    // A phone: one scene that doesn't scroll, standing in the room, the ticker along its top — and under it, scrolling
+    // together as one list standing on a grid line about halfway back on the floor (nearest the top of the map's land,
+    // which lies at the front, nearest you), the Red Zone, any player graphs and the starters list. Scrolled to its
+    // top, the graphs fill the room between the Red Zone and the horizon, their foot on it, the starters list
+    // from there down; or, with none up, the starters list straight under the Red Zone. Scrolled up, it all goes
+    // up under the see-through ticker and header, the starters list fading out as it passes back over where its top
+    // rests (the horizon, with graphs up) — a trace of it left. The Red Zone fitted to the screen (⇕) takes the scene.
     const graphsUp = graphsView !== null && !redZoneFitted;
+    const underTicker = "var(--header-h, 0px) + var(--ticker-h, 0px) + 0.25rem";
     return (
       <div data-floor style={standVars}>
         <h1 className="sr-only">Dashboard</h1>
         {roomView}
-        <div
-          data-floor
-          className="fixed inset-x-0 bottom-0 top-[var(--header-h,0px)] flex touch-none flex-col px-4 pt-6"
-          style={{ paddingBottom: stand && !redZoneFitted ? stand.room - stand.foot : "var(--tabbar-h, 0px)" }}
-        >
-          <LeagueTicker leagues={leagueCards} />
-          {redZoneView ? <div className={`-mx-4 shrink-0 animate-[rise_0.5s_ease-out_backwards] pt-1 ${redZoneOff ? "hidden" : ""} ${redZoneFitted ? "min-h-0 flex-1" : ""}`}>{redZoneView}</div> : null}
-          {graphsUp ? <div className="floor-reflect min-h-0 flex-1 pt-2">{graphsView}</div> : null}
-          {/* Reflected in the floor from its foot; within it, scrolling, its bottom 15% fading into the floor behind the
-              map's stems. */}
+        <div data-floor className="fixed inset-0 touch-none">
+          {/* Reflected in the floor from its foot. */}
           <div
-            className={`floor-reflect min-h-0 animate-[rise_0.5s_ease-out_backwards] pt-2 [animation-delay:200ms] ${redZoneFitted ? "hidden" : graphsUp ? "flex-none" : "flex-1"}`}
-            style={graphsUp && stand ? { height: stand.foot - stand.horizon } : undefined}
+            className="floor-reflect absolute inset-x-0 top-0 animate-[rise_0.5s_ease-out_backwards]"
+            style={{ height: stand && !redZoneFitted ? stand.foot : "calc(100% - var(--tabbar-h, 0px))" }}
           >
-            <div ref={setStartersList} className="h-full overflow-y-auto overscroll-contain pb-16 [-webkit-mask-image:linear-gradient(to_bottom,black_85%,transparent)] [mask-image:linear-gradient(to_bottom,black_85%,transparent)]">
-              {startersView}
+            {/* Its bottom fading into the floor behind the map's stems — not the fitted Red Zone's. */}
+            <div
+              ref={setStartersList}
+              onScroll={(e) => startersRef.current?.style.setProperty("--above", `${e.currentTarget.scrollTop}px`)}
+              className={`h-full overflow-y-auto overscroll-contain px-4 ${
+                redZoneFitted ? "" : "pb-16 [-webkit-mask-image:linear-gradient(to_bottom,black_calc(100%-2.5rem),transparent)] [mask-image:linear-gradient(to_bottom,black_calc(100%-2.5rem),transparent)]"
+              }`}
+              style={{ paddingTop: `calc(${underTicker})` }}
+            >
+              <div
+                className="flex flex-col"
+                style={
+                  redZoneFitted ? { height: "100%" } : graphsUp && stand ? { height: `calc(${stand.horizon}px - (${underTicker}))` } : undefined
+                }
+              >
+                {redZoneView ? <div className={`-mx-4 shrink-0 pt-1 ${redZoneOff ? "hidden" : ""} ${redZoneFitted ? "min-h-0 flex-1" : ""}`}>{redZoneView}</div> : null}
+                {graphsUp ? <div className="floor-reflect min-h-0 flex-1 pt-2">{graphsView}</div> : null}
+              </div>
+              {/* Faded to a trace above where its top rests (--above: how far it's scrolled past that). */}
+              <div
+                ref={startersRef}
+                data-follow
+                className={`pt-2 [-webkit-mask-image:linear-gradient(to_bottom,rgb(0_0_0/0.12)_calc(var(--above,0px)-2rem),black_var(--above,0px))] [mask-image:linear-gradient(to_bottom,rgb(0_0_0/0.12)_calc(var(--above,0px)-2rem),black_var(--above,0px))] ${
+                  redZoneFitted ? "hidden" : ""
+                }`}
+              >
+                {startersView}
+              </div>
             </div>
+          </div>
+          <div className="absolute inset-x-0 top-[var(--header-h,0px)] px-4 pt-6">
+            <LeagueTicker leagues={leagueCards} />
           </div>
         </div>
         {mapShown ? <FloorMapTags fit={stand.fit} games={games} top={stand.landTop} camera={floorCamera} /> : null}
@@ -651,8 +679,8 @@ export default function DashboardPage() {
             <div
               ref={redZoneRef}
               className={`flex animate-[rise_0.5s_ease-out_backwards] flex-col [animation-delay:120ms] ${graphsBack || redZoneEmpty ? "flex-none" : "min-h-0 flex-1"}`}
-              // With graphs up, down to just over them.
-              style={graphsBack ? { height: `calc(${COLUMN_TO_HORIZON} - ${BACK_GRAPHS_HEIGHT} - 0.5rem)` } : undefined}
+              // With graphs up, its own height, over them.
+              style={graphsBack ? { height: RED_ZONE_OVER_GRAPHS } : undefined}
             >
               {redZoneView}
             </div>

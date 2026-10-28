@@ -341,7 +341,7 @@ export function LeagueTicker({ leagues }: { leagues: TickerLeague[] }) {
     <nav
       ref={bar}
       aria-label="Your leagues"
-      className="sticky top-[var(--header-h,0px)] z-40 -mx-4 -mt-6 border-b border-border bg-page/95 backdrop-blur sm:-mx-6 sm:-mt-8 md:-mx-1"
+      className="sticky top-[var(--header-h,0px)] z-40 -mx-4 -mt-6 border-b border-border bg-page/70 backdrop-blur-[3px] sm:-mx-6 sm:-mt-8 md:-mx-1"
     >
       <div ref={viewport} className="select-none overflow-hidden [touch-action:pan-y]">
         <div ref={track} className="flex w-max will-change-transform">
