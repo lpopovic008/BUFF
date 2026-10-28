@@ -978,7 +978,7 @@ function GameBox({
   );
 }
 
-/** A team on its bye: its logo, its name, and any of your starters (or the ones you face) on it. */
+/** A team on its bye: its logo, its name, and any of your starters on it. */
 export interface ByeTeam {
   /** Sleeper's abbreviation; null for starters with no NFL team at all. */
   team: string | null;

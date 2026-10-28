@@ -403,18 +403,18 @@ export default function DashboardPage() {
     [graphFor, listedGames]
   );
 
-  // The teams with no game this week, each with your starters on it (and the
-  // ones you face) — and any starter with no NFL team at all, together last.
+  // The teams with no game this week, each with your starters on it — and any starter with no NFL team at all,
+  // together last. The ones you face on a bye aren't listed (one who's yours in another league is).
   const byes = useMemo<ByeTeam[]>(() => {
     const playing = new Set(weekGames.flatMap((g) => [g.homeTeam, g.awayTeam]));
     const teams = NFL_TEAMS.filter((t) => !playing.has(t)).sort();
-    const benched = withSides(grouped.notPlaying, groupedOpponent.notPlaying);
+    const benched = withSides(grouped.notPlaying, groupedOpponent.notPlaying).filter((p) => p.side !== "opponent");
     const out: ByeTeam[] = teams.map((team) => {
-      const everyone = benched.filter((p) => p.team === team);
-      return { team, players: everyone.filter((p) => p.side !== "opponent"), everyone };
+      const players = benched.filter((p) => p.team === team);
+      return { team, players, everyone: players };
     });
     const teamless = benched.filter((p) => !p.team || !teams.includes(p.team));
-    if (teamless.length > 0) out.push({ team: null, players: teamless.filter((p) => p.side !== "opponent"), everyone: teamless });
+    if (teamless.length > 0) out.push({ team: null, players: teamless, everyone: teamless });
     return out;
   }, [weekGames, grouped.notPlaying, groupedOpponent.notPlaying]);
 
