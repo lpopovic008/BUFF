@@ -9,6 +9,7 @@ import { FloorMapFit, fitFloorMap, floorMapTop } from "@/lib/floor-map";
 import { HORIZON_SHARE, PHONE_HORIZON_SHARE, gridRows, lowestGridLine } from "@/lib/grid-room";
 import { FloorGrid } from "@/components/FloorGrid";
 import { FloorCameraControls } from "@/components/FloorCameraControls";
+import { FloorReflection } from "@/components/FloorReflection";
 import { createFloorCameraStore } from "@/lib/floor-camera";
 import { LeagueTicker, TickerLeague } from "@/components/LeagueTicker";
 import { ByeTeam, LeagueLegendEntry, StartersByGame, viewPlayers } from "@/components/StartersByGame";
@@ -600,9 +601,8 @@ export default function DashboardPage() {
         <h1 className="sr-only">Dashboard</h1>
         {roomView}
         <div data-floor className="fixed inset-0 touch-none">
-          {/* Reflected in the floor from the horizon. */}
           <div
-            className="floor-reflect absolute inset-x-0 top-0 animate-[rise_0.5s_ease-out_backwards]"
+            className="absolute inset-x-0 top-0 animate-[rise_0.5s_ease-out_backwards]"
             style={{ height: stand && !redZoneFitted ? stand.horizon : "calc(100% - var(--tabbar-h, 0px))" }}
           >
             <div
@@ -628,6 +628,8 @@ export default function DashboardPage() {
             <LeagueTicker leagues={leagueCards} />
           </div>
         </div>
+        {/* Reflected in the floor from the horizon, as it scrolls. */}
+        {redZoneFitted ? null : <FloorReflection source={startersList} className="px-4 pb-8" style={{ paddingTop: `calc(${underTicker})` }} />}
         {mapShown ? <FloorMapTags fit={stand.fit} games={games} top={stand.landTop} camera={floorCamera} /> : null}
         {floorControls}
       </div>
@@ -681,7 +683,7 @@ export default function DashboardPage() {
             something standing on a line across the floor does — from where it sits under the ticker (past the gap and
             the row's padding, 0.625rem), so its foot is on the line whether or not it's stuck. Its bottom 15% fades
             out, so it's gone by the time it meets the floor, a faint reflection of it there. */}
-        <div ref={setStartersList} className="floor-reflect sticky top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] h-[calc(var(--room-h,100vh)-var(--header-h,0px)-var(--ticker-h,0px)-0.625rem-var(--stand,0px))] w-80 shrink-0 animate-[rise_0.5s_ease-out_backwards] overflow-y-auto pb-16 [animation-delay:200ms] [mask-image:linear-gradient(to_bottom,black_85%,transparent)] lg:w-[22rem]">
+        <div ref={setStartersList} className="sticky top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] h-[calc(var(--room-h,100vh)-var(--header-h,0px)-var(--ticker-h,0px)-0.625rem-var(--stand,0px))] w-80 shrink-0 animate-[rise_0.5s_ease-out_backwards] overflow-y-auto pb-16 [animation-delay:200ms] [mask-image:linear-gradient(to_bottom,black_85%,transparent)] lg:w-[22rem]">
           {startersView}
         </div>
       </div>
@@ -694,6 +696,7 @@ export default function DashboardPage() {
           camera={floorCamera}
         />
       ) : null}
+      <FloorReflection source={startersList} className="pb-16 [mask-image:linear-gradient(to_bottom,black_85%,transparent)]" />
       {floorControls}
     </div>
   );
