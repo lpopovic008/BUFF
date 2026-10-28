@@ -10,6 +10,7 @@ import { FeedEntry, FeedScope, RedZoneNow, useRedZoneFeed } from "@/hooks/useRed
 import { useLiveMode } from "@/hooks/useLiveTick";
 import { useTeamPlayers } from "@/hooks/useTeamPlayers";
 import { useDragScroll } from "@/hooks/useDragScroll";
+import { ScrollThumb } from "@/components/ScrollThumb";
 import { GameStarters, GroupedStarter } from "@/lib/my-starters";
 import { gameClock, NFLGame } from "@/lib/nfl-schedule";
 import { formatPlayPoints } from "@/lib/play-points";
@@ -792,6 +793,7 @@ export function RedZone({
                 {/* The end of the plays shown: coming within a screen or so of it brings in the next ones. */}
                 {entries.length > range.end ? <div ref={sentinelRef} className="h-px" aria-hidden /> : null}
               </div>
+              {fill ? <ScrollThumb source={box} /> : null}
             </div>
           ) : null}
         </div>

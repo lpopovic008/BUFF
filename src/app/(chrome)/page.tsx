@@ -10,6 +10,7 @@ import { HORIZON_SHARE, gridRows, lowestGridLine } from "@/lib/grid-room";
 import { FloorGrid } from "@/components/FloorGrid";
 import { FloorCameraControls } from "@/components/FloorCameraControls";
 import { FloorReflection } from "@/components/FloorReflection";
+import { ScrollThumb } from "@/components/ScrollThumb";
 import { useDragScroll } from "@/hooks/useDragScroll";
 import { createFloorCameraStore } from "@/lib/floor-camera";
 import { LeagueTicker, TickerLeague } from "@/components/LeagueTicker";
@@ -47,12 +48,12 @@ const MAX_GRAPHS = 4;
 // From tablet width up, where the map and the Red Zone share a column the screen's height.
 const DESKTOP = "(min-width: 768px)";
 // The Red Zone rising out of the floor once the floor's slid away from under it (see FloorCameraControls), ms; up,
-// how far it floats over the floor (as far as the player graphs seem to over the horizon at the top of the list),
-// and how tall it is: two plays of two players each, under its header (on a tablet or wider, on fewer lines).
+// how far it floats over the floor (a couple of px), and how tall it is at first: a play of three players, under its
+// header (on a tablet or wider, on fewer lines).
 const RED_ZONE_RISE_DELAY_MS = 650;
-const RED_ZONE_FLOAT_REM = 0.375;
-const RED_ZONE_REM = 14.75;
-const DESKTOP_RED_ZONE_REM = 11.5;
+const RED_ZONE_FLOAT_REM = 0.125;
+const RED_ZONE_REM = 10.5;
+const DESKTOP_RED_ZONE_REM = 8.125;
 // From tablet width up, the player graphs at the back of the room: from under the ticker down to the horizon.
 const COLUMN_TO_HORIZON = `(var(--room-h, 100vh) * ${HORIZON_SHARE} - var(--header-h, 0px) - var(--ticker-h, 0px) - 0.625rem)`;
 const onDesktopChange = (listener: () => void) => {
@@ -217,8 +218,15 @@ export default function DashboardPage() {
   // The Red Zone up out of the floor in front of you (see redZoneStage); stretched (⇕) from there up over the screen,
   // the map out of its way.
   const [redZoneUp, setRedZoneUp] = useState(false);
-  const [redZoneFull, setRedZoneFull] = useState(false);
-  const toggleRedZoneFull = () => setRedZoneFull((on) => !on);
+  // ⇕ stretches it a step at a time: to just short of the horizon, then up to the ticker (on a phone, the starters list
+  // sinking into the floor first, out of its way), then back.
+  const [redZoneLevel, setRedZoneLevel] = useState<0 | 1 | 2>(0);
+  const stretchRedZone = () => setRedZoneLevel((level) => ((level + 1) % 3) as 0 | 1 | 2);
+  const redZoneFull = redZoneLevel === 2;
+  const switchRedZone = (on: boolean) => {
+    setRedZoneUp(on);
+    if (!on) setRedZoneLevel(0);
+  };
   // The Red Zone's place on the floor, reflected in it (see FloorReflection).
   const [redZoneBox, setRedZoneBox] = useState<HTMLDivElement | null>(null);
   // The room's height as it's drawn (not 100vh, which a browser's toolbars can make taller than the screen); how far up
@@ -493,7 +501,7 @@ export default function DashboardPage() {
   const horizon = HORIZON_SHARE;
   // The map lies on the floor at the front (see FloorMapLand), its games standing up off it in front of everything
   // (FloorMapTags) — out of the way while the Red Zone takes the screen (⇕).
-  const mapShown = stand !== null && weekGames.length > 0 && !redZoneFull;
+  const mapShown = stand !== null && weekGames.length > 0;
   const roomView = (
     <div
       ref={setRoom}
@@ -533,7 +541,7 @@ export default function DashboardPage() {
         fill
         spotlight={graphed.length > 0 ? spotlight : null}
         hiddenGames={offMap}
-        full={{ on: redZoneFull, toggle: toggleRedZoneFull }}
+        full={{ on: redZoneFull, toggle: stretchRedZone }}
         scoringByLeague={scoringByLeague}
       />
     ) : null;
@@ -544,32 +552,37 @@ export default function DashboardPage() {
   // the floor behind it show softly through it; reflected in the floor under it, the gap it floats by and all, its
   // plays' scroll with it (see FloorReflection). Stretched (⇕), from under the ticker down to the bottom (a phone's
   // tab bar).
+  const redZoneHeight = (desktop ? DESKTOP_RED_ZONE_REM : RED_ZONE_REM) + RED_ZONE_FLOAT_REM;
   const redZoneStage =
     redZoneView && stand ? (
       <>
         <div
           ref={setRedZoneBox}
           inert={!redZoneUp}
-          // Cut off at the line it comes up out of.
-          className={`fixed z-[5] overflow-hidden ${desktop ? "left-4 md:right-[23rem] lg:right-[25rem]" : "inset-x-0"}`}
-          style={
-            redZoneFull
-              ? { top: "calc(var(--header-h, 0px) + var(--ticker-h, 0px) + 0.625rem)", bottom: desktop ? "0.75rem" : "var(--tabbar-h, 0px)" }
-              : {
-                  top: stand.redZoneLine - (RED_ZONE_FLOAT_REM + (desktop ? DESKTOP_RED_ZONE_REM : RED_ZONE_REM)) * stand.rootPx,
-                  height: (RED_ZONE_FLOAT_REM + (desktop ? DESKTOP_RED_ZONE_REM : RED_ZONE_REM)) * stand.rootPx,
-                }
-          }
+          // Cut off at the line it comes up out of; its top moving up a step at a time as it's stretched — up to the
+          // ticker only once the starters list (on a phone) has sunk out of its way.
+          className={`fixed z-[5] overflow-hidden transition-[top] duration-500 ease-out ${
+            desktop ? "left-4 md:right-[23rem] lg:right-[25rem]" : "inset-x-0"
+          } ${redZoneFull && !desktop ? "delay-500" : ""}`}
+          style={{
+            bottom: stand.room - stand.redZoneLine,
+            top:
+              redZoneLevel === 2
+                ? "calc(var(--header-h, 0px) + var(--ticker-h, 0px) + 0.625rem)"
+                : redZoneLevel === 1
+                  ? `${stand.horizon + 0.375 * stand.rootPx}px`
+                  : `${stand.redZoneLine - redZoneHeight * stand.rootPx}px`,
+          }}
         >
           <div
-            className={`absolute inset-x-0 top-0 flex flex-col bg-page/50 backdrop-blur-[1px] transition-transform ease-out ${
-              redZoneFull ? "bottom-0" : "bottom-1.5"
-            } ${redZoneUp ? `translate-y-0 duration-500 ${redZoneFull ? "" : "delay-[650ms]"}` : "translate-y-[calc(100%+0.375rem)] duration-[400ms]"}`}
+            className={`absolute inset-x-0 bottom-0.5 top-0 flex flex-col bg-page/50 backdrop-blur-[1px] transition-transform ease-out ${
+              redZoneUp ? "translate-y-0 delay-[650ms] duration-500" : "translate-y-[calc(100%+0.125rem)] duration-[400ms]"
+            }`}
           >
             {redZoneView}
           </div>
         </div>
-        {redZoneUp && !redZoneFull ? <FloorReflection source={redZoneBox} appearAfterMs={RED_ZONE_RISE_DELAY_MS + 500} /> : null}
+        {redZoneUp ? <FloorReflection source={redZoneBox} appearAfterMs={RED_ZONE_RISE_DELAY_MS + 500} /> : null}
       </>
     ) : null;
   const startersView =
@@ -608,7 +621,7 @@ export default function DashboardPage() {
       games={games}
       list={startersList}
       desktop={desktop}
-      redZone={redZoneView ? { on: redZoneUp, onChange: setRedZoneUp } : undefined}
+      redZone={redZoneView ? { on: redZoneUp, onChange: switchRedZone } : undefined}
     />
   ) : null;
 
@@ -619,7 +632,8 @@ export default function DashboardPage() {
     // foot on it, the starters list behind it; with none up, the starters list from under the ticker. Scrolled, it goes
     // up under the see-through ticker and header and comes up from behind the horizon, reflected in the floor there —
     // scrolled by the page itself (see useDragScroll), so its reflection moves with it, pulled past its ends and all.
-    // The Red Zone comes up out of the floor in front of it (see redZoneStage) — stretched (⇕), in its place.
+    // The Red Zone comes up out of the floor in front of it (see redZoneStage) — stretched (⇕) up to the ticker, the
+    // list sinks into the floor first, out of its way, and comes back up once it's down again.
     const graphsUp = graphsView !== null;
     const underTicker = "var(--header-h, 0px) + var(--ticker-h, 0px) + 0.25rem";
     return (
@@ -627,14 +641,13 @@ export default function DashboardPage() {
         <h1 className="sr-only">Dashboard</h1>
         {roomView}
         <div data-floor className="fixed inset-0 touch-none">
-          <div
-            className={`absolute inset-x-0 top-0 ${redZoneFull ? "hidden" : ""}`}
-            style={{ height: stand ? stand.horizon : "50%" }}
-          >
+          <div className="absolute inset-x-0 top-0 overflow-hidden" style={{ height: stand ? stand.horizon : "50%" }}>
             <div
               ref={setStartersList}
               data-drag-scroll
-              className="h-full touch-none overflow-y-auto overscroll-none px-4 pb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              className={`h-full touch-none overflow-y-auto overscroll-none px-4 pb-8 transition-transform duration-500 ease-in-out [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+                redZoneFull ? "translate-y-full" : "delay-500"
+              }`}
               style={{ paddingTop: `calc(${underTicker})` }}
             >
               {/* Moved down (or up) as far as it's pulled past an end. */}
@@ -647,6 +660,7 @@ export default function DashboardPage() {
                 <div className="pt-2">{startersView}</div>
               </div>
             </div>
+            <ScrollThumb source={startersList} />
           </div>
           <div className="absolute inset-x-0 top-[var(--header-h,0px)] px-4 pt-6">
             <LeagueTicker leagues={leagueCards} />
@@ -692,8 +706,15 @@ export default function DashboardPage() {
             something standing on a line across the floor does — from where it sits under the ticker (past the gap and
             the row's padding, 0.625rem), so its foot is on the line whether or not it's stuck. Its bottom 15% fades
             out, so it's gone by the time it meets the floor, a faint reflection of it there. */}
-        <div ref={setStartersList} className="sticky top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] h-[calc(var(--room-h,100vh)-var(--header-h,0px)-var(--ticker-h,0px)-0.625rem-var(--stand,0px))] w-80 shrink-0 overflow-y-auto pb-16 [mask-image:linear-gradient(to_bottom,black_85%,transparent)] lg:w-[22rem]">
-          {startersView}
+        <div className="sticky top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] h-[calc(var(--room-h,100vh)-var(--header-h,0px)-var(--ticker-h,0px)-0.625rem-var(--stand,0px))] w-80 shrink-0 lg:w-[22rem]">
+          {/* Its scrollbar hidden (its reflection's copy has none, so they'd not line up), a thin thumb up as it scrolls. */}
+          <div
+            ref={setStartersList}
+            className="h-full overflow-y-auto pb-16 [mask-image:linear-gradient(to_bottom,black_85%,transparent)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {startersView}
+          </div>
+          <ScrollThumb source={startersList} />
         </div>
       </div>
       {mapShown ? (
@@ -702,7 +723,7 @@ export default function DashboardPage() {
           games={games}
           // The countdown over the map's middle, above the horizon — out of the way of graphs.
           top={stand.horizon - 0.75 * stand.rootPx}
-          overhead={graphsBack ? undefined : <KickoffCountdown kickoffs={kickoffs} />}
+          overhead={graphsBack || redZoneUp ? undefined : <KickoffCountdown kickoffs={kickoffs} />}
           camera={floorCamera}
         />
       ) : null}

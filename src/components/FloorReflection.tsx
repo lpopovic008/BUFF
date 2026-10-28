@@ -82,9 +82,11 @@ export function FloorReflection({
         next.style.setProperty("animation-timeline", name);
       }
       next.append(...[...source.childNodes].map((n) => n.cloneNode(true)));
+      // Nothing marked to be left out (a scroll thumb).
+      for (const el of next.querySelectorAll("[data-no-reflect]")) el.remove();
       cp.replaceChildren(next);
       content = next;
-      const froms = source.querySelectorAll<HTMLElement>("*");
+      const froms = source.querySelectorAll<HTMLElement>(":not([data-no-reflect])");
       const tos = next.querySelectorAll<HTMLElement>("*");
       inner = [...froms].flatMap((from, i) => (from.scrollTop > 0 || from.scrollHeight > from.clientHeight + 1 ? [[from, tos[i]] as [HTMLElement, HTMLElement]] : []));
       place();
@@ -93,7 +95,8 @@ export function FloorReflection({
     const scrollers = () => new Set<Node>([source, ...inner.map(([from]) => from)]);
     const changed = (records: MutationRecord[]) => {
       const moving = scrollers();
-      if (records.some((r) => r.type !== "attributes" || r.attributeName !== "style" || !moving.has(r.target))) recopy();
+      const left = (r: MutationRecord) => r.target instanceof Element && r.target.closest("[data-no-reflect]") !== null;
+      if (records.some((r) => !left(r) && (r.type !== "attributes" || r.attributeName !== "style" || !moving.has(r.target)))) recopy();
     };
     recopy();
     // Scrolls within it don't bubble, so they're caught on their way down.
