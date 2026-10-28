@@ -51,15 +51,11 @@ const LEGS: Record<"stand" | "stride" | "together" | "kick", string[]> = {
 const W = 13;
 const H = 16;
 
-// A 3x5 pixel font, for numbers on jerseys and what's written on the ground.
+// A 3x5 pixel font, for the numbers on the jerseys.
 const GLYPHS: Record<string, string> = {
   "0": "111101101101111", "1": "010110010010111", "2": "111001111100111", "3": "111001111001111", "4": "101101111001001",
   "5": "111100111001111", "6": "111100111101111", "7": "111001010010010", "8": "111101111101111", "9": "111101111001111",
-  A: "010101111101101", B: "110101110101110", C: "011100100100011", D: "110101101101110", E: "111100110100111",
-  F: "111100110100100", G: "011100101101011", H: "101101111101101", I: "111010010010111", K: "101101110101101",
-  L: "100100100100111", M: "101111111101101", N: "111101101101101", O: "111101101101111", P: "110101110100100",
-  R: "110101110101101", S: "011100010001110", T: "111010010010010", U: "101101101101111", W: "101101111111101",
-  Y: "101101010010010", "+": "000010111010000", "-": "000000111000000", " ": "000000000000000",
+  " ": "000000000000000",
 };
 
 /** Each lit pixel of `text` in the font: column, row — 4 columns a character. */
@@ -387,8 +383,8 @@ export function FloorPlay({
             line(x, hz * 0.3 - 0.8, x, hz * 0.3 + 0.8);
           }
           if (g % 10 === 0) {
-            const [sx, sy] = at(x, hz * 0.62);
-            const size = Math.max(12, px(hz * 0.62) * 4);
+            const [sx, sy] = at(x, hz * 0.85);
+            const size = Math.max(12, px(hz * 0.85) * 4);
             ctx.save();
             ctx.globalAlpha = fade * 0.5 * f;
             ctx.fillStyle = ink;
@@ -424,22 +420,27 @@ export function FloorPlay({
         line(stage.end.x, -hz, stage.end.x, hz);
       }
 
-      // What's written on the ground, in pixels lying on it — squashed less than the floor would (it's laid back so far
-      // that, squashed as much, it couldn't be read), a little way in front of where it's set.
-      const flat = (text: string, x: number, z: number, cell: number, color: string, alpha: number) => {
-        const pixels = glyphPixels(text);
-        const cols = text.length * 4 - 1;
-        const wide = cell * px(z);
-        const deep = wide * 0.6;
+      // What's written on the ground, in the page's own type, bold, lying on it — squashed less than the floor would
+      // (it's laid back so far that, squashed as much, it couldn't be read), a little way in front of where it's set.
+      const type = getComputedStyle(document.body).fontFamily;
+      const flat = (text: string, x: number, z: number, color: string, alpha: number) => {
         const [sx, sy] = at(x, z);
+        ctx.save();
         ctx.fillStyle = color;
         ctx.globalAlpha = fade * alpha;
-        for (const [c, r] of pixels) ctx.fillRect(sx + (c - cols / 2) * wide, sy + r * deep, Math.ceil(wide * 0.9), Math.ceil(deep * 0.9));
+        ctx.font = `700 ${Math.max(15, px(z) * 5.5)}px ${type}`;
+        // Just past the line it's by, clear of it.
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        ctx.translate(sx + 4, sy);
+        ctx.scale(1, 0.6);
+        ctx.fillText(text, 0, 0);
+        ctx.restore();
       };
       for (const m of stage.marks) {
         if (t < m.t || m.kind === "plus") continue;
         const pop = Math.min(1, (t - m.t) / 0.25);
-        if (m.kind === "yards") flat(m.text, m.x, m.z, 1.1, ink, pop);
+        if (m.kind === "yards") flat(m.text, m.x, m.z, ink, pop);
       }
 
       // A kick's goalposts: up from the ground, the bar across, the uprights up from it.
@@ -521,17 +522,16 @@ export function FloorPlay({
         if (m.kind !== "plus" || t < m.t || t > m.t + 1.6 || m.by === undefined) continue;
         const f = (t - m.t) / 1.6;
         const p = actorAt(stage.actors[m.by], m.t);
-        const unit = px(p.z) * 0.6;
         const [sx, sy] = at(p.x, p.z);
         ctx.globalAlpha = fade * (1 - f * f * f);
         ctx.fillStyle = good;
+        ctx.font = `700 ${Math.max(14, px(p.z) * 4.5)}px ${type}`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "bottom";
         // From just over his helmet, up a few yards.
-        const top = sy - (H + 2) * px(p.z) * 0.42 - 6 * unit - f * 4 * px(p.z);
-        const pixels = glyphPixels(m.text);
-        for (const [c, r] of pixels) ctx.fillRect(Math.round(sx + (c - 3.5) * unit), Math.round(top + r * unit), Math.ceil(unit), Math.ceil(unit));
+        ctx.fillText(m.text, sx, sy - (H + 2) * px(p.z) * 0.42 - 2 - f * 4 * px(p.z));
       }
       // What happened, in the page's own type, bold and in capitals, standing up over the far side — popping up as it does.
-      const type = getComputedStyle(document.body).fontFamily;
       for (const m of stage.marks) {
         if (m.kind !== "word" || t < m.t) continue;
         const pop = Math.min(1, (t - m.t) / 0.2);
