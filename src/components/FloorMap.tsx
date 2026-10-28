@@ -8,7 +8,7 @@ import { US_STATE_SHAPES } from "@/lib/us-states";
 import { FloorMapFit, floorMapPath, floorMapPoint, floorMapRing, MAP_BOUNDS } from "@/lib/floor-map";
 import { gridRows } from "@/lib/grid-room";
 import { STADIUM_MODELS } from "@/lib/stadium-models";
-import { stadiumWire } from "@/lib/stadium-wire";
+import { stadiumClay } from "@/lib/stadium-clay";
 
 /** The screen y the map's back edge reaches at most where it lies (the third grid line from the front): moved further back, it fades. */
 function fadeFrom(fit: FloorMapFit): number {
@@ -97,9 +97,10 @@ export function FloorMapLand({ fit: lying, games, camera }: { fit: FloorMapFit; 
     }),
     [fit, active]
   );
-  // The stadiums drawn so far, standing at their teams' homes (a first try: Soldier Field, whatever the week's games).
+  // The stadiums made so far, clay models standing at their teams' homes (a first try: Soldier Field, whatever the
+  // week's games).
   const stadiums = useMemo(
-    () => Object.entries(STADIUM_MODELS).flatMap(([team, parts]) => (TEAM_CITIES[team] ? [stadiumWire(fit, TEAM_CITIES[team].pos, parts)] : [])),
+    () => Object.entries(STADIUM_MODELS).flatMap(([team, parts]) => (TEAM_CITIES[team] ? [stadiumClay(fit, TEAM_CITIES[team].pos, parts)] : [])),
     [fit]
   );
   return (
@@ -126,12 +127,12 @@ export function FloorMapLand({ fit: lying, games, camera }: { fit: FloorMapFit; 
         {sites.map((s) => (
           <path key={s.id} d={floorMapRing(fit, s.pos[0], s.pos[1], ringRadius(s.count))} fill="none" stroke="var(--ink-primary)" strokeWidth={wire * 1.5} />
         ))}
-        {/* Stadiums in wires: faint on the floor and up their walls, their tops clear. */}
-        {stadiums.map((w, i) => (
-          <g key={i} fill="none" stroke="var(--ink-primary)" strokeWidth={wire}>
-            <path d={w.base} strokeOpacity={0.35} />
-            <path d={w.walls} strokeOpacity={0.35} />
-            <path d={w.top} strokeOpacity={0.9} />
+        {/* Stadiums in clay, each face stroked in its own shade so no seam shows between them. */}
+        {stadiums.map((faces, i) => (
+          <g key={i} strokeWidth={wire * 0.75} strokeLinejoin="round">
+            {faces.map((f, j) => (
+              <path key={j} d={f.d} fill={f.fill} stroke={f.fill} />
+            ))}
           </g>
         ))}
       </g>
