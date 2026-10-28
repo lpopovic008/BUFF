@@ -68,6 +68,8 @@ export function FloorReflection({
     };
     const recopy = () => {
       const next = document.createElement("div");
+      // As tall as the copy at least: moved (transformed), it's what anything placed within the copy sizes against.
+      next.style.minHeight = "100%";
       if (timeline) {
         next.style.animation = "reflect-scroll linear both";
         next.style.setProperty("animation-timeline", name);

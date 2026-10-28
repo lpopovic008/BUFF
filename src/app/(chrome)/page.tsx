@@ -226,6 +226,8 @@ export default function DashboardPage() {
     horizon: number;
     fit: FloorMapFit;
     landTop: number;
+    /** The line on the floor the Red Zone comes up out of (see redZoneStage). */
+    redZoneLine: number;
     rootPx: number;
   } | null>(null);
   // The room's only drawn once the leagues are in (not while the page is loading), so it's measured once it is.
@@ -254,6 +256,9 @@ export default function DashboardPage() {
       const landTop = floorMapTop(fit);
       setStand({
         room: height,
+        // Its switch's top (0.75rem off the bottom, or a phone's tab bar, and 1.75rem tall), the room its reflection
+        // shows in (3.5rem) and the gap it floats over the floor by (0.75rem) above that.
+        redZoneLine: height - (desk ? 0 : tabBar) - 6.75 * rootPx,
         on: height - lowestGridLine(height),
         horizon: height * HORIZON_SHARE,
         fit,
@@ -528,29 +533,31 @@ export default function DashboardPage() {
         scoringByLeague={scoringByLeague}
       />
     ) : null;
-  // The Red Zone, up out of the floor at its front (its switch beside the map's way home, see FloorCameraControls):
-  // once the floor's slid toward you and the map's gone off the screen's bottom, it rises from the grid line nearest
-  // you to just short of the horizon, as wide as the screen (on a tablet or wider, the room left of the starters list)
-  // — and sinks back into it. Backed like the ticker, see-through, so the reflections on the floor behind it show
-  // softly through it; reflected in the floor itself. Stretched (⇕), from under the ticker down to the bottom (a
-  // phone's tab bar).
+  // The Red Zone, up out of the floor in front of you (its switch beside the map's way home, see FloorCameraControls):
+  // once the floor's slid toward you and the map's gone off the screen's bottom, it rises out of the floor just above
+  // its switch and floats a little over it, up to just short of the horizon, as wide as the screen (on a tablet or
+  // wider, the room left of the starters list) — and sinks back into it. Backed like the ticker, see-through, so the
+  // reflections on the floor behind it show softly through it; reflected in the floor under it, the gap it floats by
+  // and all, its reflection's room between it and its switch. Stretched (⇕), from under the ticker down to the bottom
+  // (a phone's tab bar).
   const redZoneStage =
     redZoneView && stand ? (
       <>
         <div
           ref={setRedZoneBox}
           inert={!redZoneUp}
+          // Cut off at the line it comes up out of.
           className={`fixed z-[5] overflow-hidden ${desktop ? "left-4 md:right-[23rem] lg:right-[25rem]" : "inset-x-0"}`}
           style={
             redZoneFull
               ? { top: "calc(var(--header-h, 0px) + var(--ticker-h, 0px) + 0.625rem)", bottom: desktop ? "0.75rem" : "var(--tabbar-h, 0px)" }
-              : { top: stand.horizon + 0.375 * stand.rootPx, height: stand.room - stand.on - stand.horizon - 0.375 * stand.rootPx }
+              : { top: stand.horizon + 0.375 * stand.rootPx, height: stand.redZoneLine - stand.horizon - 0.375 * stand.rootPx }
           }
         >
           <div
-            className={`absolute inset-0 flex flex-col bg-page/50 backdrop-blur-[1px] transition-transform ease-out ${
-              redZoneUp ? `translate-y-0 duration-500 ${redZoneFull ? "" : "delay-[650ms]"}` : "translate-y-full duration-[400ms]"
-            }`}
+            className={`absolute inset-x-0 top-0 flex flex-col bg-page/50 backdrop-blur-[1px] transition-transform ease-out ${
+              redZoneFull ? "bottom-0" : "bottom-3"
+            } ${redZoneUp ? `translate-y-0 duration-500 ${redZoneFull ? "" : "delay-[650ms]"}` : "translate-y-[calc(100%+0.75rem)] duration-[400ms]"}`}
           >
             {redZoneView}
           </div>
