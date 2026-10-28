@@ -6,8 +6,9 @@ import { gameMapPosition, gameState, internationalSlotPosition } from "@/lib/gam
 import { US_SIMPLE_OUTLINE_PATH, US_SIMPLE_STATE_LINES_PATH } from "@/lib/team-cities";
 import { US_STATE_SHAPES } from "@/lib/us-states";
 import { FloorMapFit, floorMapPath, floorMapPoint, floorMapRing } from "@/lib/floor-map";
+import { floorFadeStart } from "@/lib/grid-room";
 import type { FloorCameraStore } from "@/lib/floor-camera";
-import { LINE_OPACITY, useFloorCamera } from "./FloorGrid";
+import { FloorFade, LINE_OPACITY, useFloorCamera } from "./FloorGrid";
 import type { MappedGame } from "./GameMap";
 
 // A game's ring on the floor, wider the more players it counts (in map units), and its stem standing up from it,
@@ -71,7 +72,7 @@ function useWire(): number {
  * color (no grid lines across it), its borders and coast wires like the grid's, the states with a game outlined
  * solid in ink (white, or black in light mode), and each game's ring on it. Drawn in the room,
  * behind everything; the games' stems and tags stand up in front (see FloorMapTags). Moved with the floor
- * (`camera`), none of it past the horizon.
+ * (`camera`): moved back, it shrinks away toward the horizon, fading as the floor's lines do.
  */
 export function FloorMapLand({ fit: lying, games, camera }: { fit: FloorMapFit; games: MappedGame[]; camera?: FloorCameraStore }) {
   const fit = useMovedFit(lying, camera);
@@ -88,10 +89,11 @@ export function FloorMapLand({ fit: lying, games, camera }: { fit: FloorMapFit; 
   );
   return (
     <svg className="absolute inset-0 h-full w-full" aria-hidden>
-      <clipPath id="floor-map-floor">
-        <rect x={0} y={fit.height * fit.share} width={fit.width} height={fit.height * (1 - fit.share)} />
-      </clipPath>
-      <g clipPath="url(#floor-map-floor)">
+      <defs>
+        <FloorFade id="floor-map-fade" width={fit.width} height={fit.height} share={fit.share} />
+      </defs>
+      {/* Faded away back toward the horizon, as the floor's lines are, however far back it's moved. */}
+      <g mask="url(#floor-map-fade)">
         <path d={paths.outline} fill="var(--page)" />
         <g fill="none" stroke="var(--ink-primary)" strokeOpacity={LINE_OPACITY} strokeWidth={wire}>
           <path d={paths.lines} />
@@ -132,12 +134,16 @@ export function FloorMapTags({
   const fit = useMovedFit(lying, camera);
   const sites = useSites(games);
   // Nearer tags on top of farther ones.
+  // Moved back, each fades and shrinks away toward the horizon with the map under it — gone once it's too small.
+  const horizon = fit.height * fit.share;
+  const fadeStart = floorFadeStart(fit.height, fit.share);
   const placed = sites
     .map((s) => {
       const [x, y] = floorMapPoint(fit, s.pos[0], s.pos[1]);
       return { ...s, x, y };
     })
-    .filter((s) => s.y >= fit.height * fit.share && s.y <= fit.height && s.x >= 0 && s.x <= fit.width)
+    .map((s) => ({ ...s, far: Math.min(1, (s.y - horizon) / (fadeStart - horizon)) }))
+    .filter((s) => s.far > 0.12 && s.y <= fit.height && s.x >= 0 && s.x <= fit.width)
     .sort((a, b) => a.y - b.y);
   const [midX] = floorMapPoint(lying, 160, 200);
   return (
@@ -148,7 +154,7 @@ export function FloorMapTags({
         </div>
       ) : null}
       {placed.map((s) => (
-        <div key={s.id} className="absolute left-0 top-0" style={{ transform: `translate(${s.x}px, ${s.y}px)` }}>
+        <div key={s.id} className="absolute left-0 top-0 origin-top-left" style={{ transform: `translate(${s.x}px, ${s.y}px) scale(${s.far})`, opacity: s.far }}>
           <span className="absolute bottom-0 left-0 w-px bg-[var(--map-edge)]" style={{ height: `${stemRem(s.count)}rem` }} />
           <span
             className={`absolute whitespace-nowrap bg-[var(--map-tag)] px-[0.35em] py-[0.12em] font-bold leading-[1.3] text-[var(--map-tag-ink)] ${s.west ? "left-0" : "right-0"}`}
