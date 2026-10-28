@@ -3,10 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { isOutsideUS } from "@/lib/nfl-schedule";
 import { gameMapPosition, gameState, internationalSlotPosition } from "@/lib/game-map";
-import { US_SIMPLE_OUTLINE_PATH, US_SIMPLE_STATE_LINES_PATH } from "@/lib/team-cities";
+import { TEAM_CITIES, US_SIMPLE_OUTLINE_PATH, US_SIMPLE_STATE_LINES_PATH } from "@/lib/team-cities";
 import { US_STATE_SHAPES } from "@/lib/us-states";
 import { FloorMapFit, floorMapPath, floorMapPoint, floorMapRing, MAP_BOUNDS } from "@/lib/floor-map";
 import { gridRows } from "@/lib/grid-room";
+import { STADIUM_MODELS } from "@/lib/stadium-models";
+import { stadiumWire } from "@/lib/stadium-wire";
 
 /** The screen y the map's back edge reaches at most where it lies (the third grid line from the front): moved further back, it fades. */
 function fadeFrom(fit: FloorMapFit): number {
@@ -95,6 +97,11 @@ export function FloorMapLand({ fit: lying, games, camera }: { fit: FloorMapFit; 
     }),
     [fit, active]
   );
+  // The stadiums drawn so far, standing at their teams' homes (a first try: Soldier Field, whatever the week's games).
+  const stadiums = useMemo(
+    () => Object.entries(STADIUM_MODELS).flatMap(([team, parts]) => (TEAM_CITIES[team] ? [stadiumWire(fit, TEAM_CITIES[team].pos, parts)] : [])),
+    [fit]
+  );
   return (
     <svg className="absolute inset-0 h-full w-full" aria-hidden>
       <defs>
@@ -118,6 +125,14 @@ export function FloorMapLand({ fit: lying, games, camera }: { fit: FloorMapFit; 
         </g>
         {sites.map((s) => (
           <path key={s.id} d={floorMapRing(fit, s.pos[0], s.pos[1], ringRadius(s.count))} fill="none" stroke="var(--ink-primary)" strokeWidth={wire * 1.5} />
+        ))}
+        {/* Stadiums in wires: faint on the floor and up their walls, their tops clear. */}
+        {stadiums.map((w, i) => (
+          <g key={i} fill="none" stroke="var(--ink-primary)" strokeWidth={wire}>
+            <path d={w.base} strokeOpacity={0.35} />
+            <path d={w.walls} strokeOpacity={0.35} />
+            <path d={w.top} strokeOpacity={0.9} />
+          </g>
         ))}
       </g>
     </svg>

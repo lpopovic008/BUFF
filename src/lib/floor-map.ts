@@ -85,6 +85,14 @@ export function floorMapPoint(fit: FloorMapFit, x: number, y: number): [number, 
   return floorPoint(across, d, fit.width, fit.height, fit.share);
 }
 
+/** Where map point (x, y) shows on the screen, and how many screen px a map unit stands up off the floor there. */
+export function floorMapStanding(fit: FloorMapFit, x: number, y: number): [number, number, number] {
+  const lying = floorMapFloor(fit, x, y);
+  const [across, d] = fit.camera ? cameraShows(fit.camera, lying) : lying;
+  const [sx, sy] = floorPoint(across, d, fit.width, fit.height, fit.share);
+  return [sx, sy, fit.k * (fit.camera?.zoom ?? 1) * floorScale(d)];
+}
+
 /** An SVG path in map units (absolute x,y pairs), laid on the floor in screen px. */
 export function floorMapPath(fit: FloorMapFit, d: string): string {
   return d.replace(POINT, (_, x: string, y: string) => {

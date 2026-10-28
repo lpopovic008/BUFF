@@ -263,6 +263,17 @@ export function FloorCameraControls({
       RZ
     </button>
   ) : null;
+  // The stadiums' outlines are OpenStreetMap's (see stadium-models.ts): its credit, small, by the buttons.
+  const credit = (
+    <a
+      href="https://www.openstreetmap.org/copyright"
+      target="_blank"
+      rel="noreferrer"
+      className="pointer-events-auto self-end text-[0.5rem] leading-none text-ink-muted opacity-60 hover:opacity-100"
+    >
+      © OpenStreetMap
+    </a>
+  );
   // From tablet width up, zoom buttons too (for a mouse with no pinch), in the screen's bottom-left corner; on a phone,
   // over the map's right end. The way home, while it's away; the Red Zone's switch, last.
   return desktop ? (
@@ -279,9 +290,11 @@ export function FloorCameraControls({
       )}
       {following || redZoneUp ? null : home}
       {redZoneButton}
+      {credit}
     </div>
   ) : (
     <div className="pointer-events-none fixed bottom-[calc(var(--tabbar-h,0px)+0.75rem)] right-4 z-20 flex gap-1">
+      {credit}
       {following || redZoneUp ? null : home}
       {redZoneButton}
     </div>
