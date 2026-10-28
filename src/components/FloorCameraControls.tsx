@@ -63,7 +63,7 @@ export function FloorCameraControls({
     if (redZoneUp) return;
     const { width, height, share } = fit;
     const horizon = height * share;
-    const toFloor = (x: number, y: number) => floorAt(x, Math.max(y, horizon + 8), width, height, share);
+    const toFloor = (x: number, y: number) => floorAt(x, Math.max(y, horizon + 2), width, height, share);
     const pointers = new Map<number, { at: [number, number]; grab: FloorPt }>();
     let start: [number, number] | null = null;
     let moving = false;
@@ -81,7 +81,7 @@ export function FloorCameraControls({
       start = first ? first.at : null;
     };
     const down = (e: PointerEvent) => {
-      if (!onFloor(e.target) || e.clientY <= horizon + 8 || (e.pointerType === "mouse" && e.button !== 0)) return;
+      if (!onFloor(e.target) || e.clientY <= horizon + 2 || (e.pointerType === "mouse" && e.button !== 0)) return;
       if (e.pointerType === "mouse") e.preventDefault();
       pointers.set(e.pointerId, { at: [e.clientX, e.clientY], grab: [0, 0] });
       moving = pointers.size > 1 && moving;
@@ -112,7 +112,7 @@ export function FloorCameraControls({
     // A pinch on a trackpad (or Ctrl/⌘ + scroll) anywhere over the floor zooms it, about the pointer, and never the
     // page; a two-finger scroll on the bare floor slides it.
     const wheel = (e: WheelEvent) => {
-      if (e.clientY <= horizon + 8) return;
+      if (e.clientY <= horizon + 2) return;
       const zoom = e.ctrlKey || e.metaKey;
       if (!zoom && !onFloor(e.target)) return;
       e.preventDefault();
@@ -132,7 +132,7 @@ export function FloorCameraControls({
     type Gesture = UIEvent & { scale: number; clientX: number; clientY: number };
     const gestureStart = (e: Event) => {
       const g = e as Gesture;
-      if (pointers.size === 0 && (!onFloor(g.target) || g.clientY <= horizon + 8)) return;
+      if (pointers.size === 0 && (!onFloor(g.target) || g.clientY <= horizon + 2)) return;
       g.preventDefault();
       gesture = pointers.size === 0 ? { camera: store.get().camera, at: toFloor(g.clientX, g.clientY) } : null;
     };
