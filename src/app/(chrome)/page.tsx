@@ -10,9 +10,6 @@ import { HORIZON_SHARE, gridRows, lowestGridLine } from "@/lib/grid-room";
 import { FloorGrid } from "@/components/FloorGrid";
 import { FloorCameraControls } from "@/components/FloorCameraControls";
 import { FloorReflection } from "@/components/FloorReflection";
-import { FloorStadiums, StadiumFocus } from "@/components/FloorStadiums";
-import { STADIUM_MODELS } from "@/lib/stadium-models";
-import { stadiumCamera } from "@/lib/stadium-view";
 import { ScrollThumb } from "@/components/ScrollThumb";
 import { useDragScroll } from "@/hooks/useDragScroll";
 import { createFloorCameraStore } from "@/lib/floor-camera";
@@ -447,8 +444,6 @@ export default function DashboardPage() {
   // The floor moved around and zoomed (see FloorCameraControls), following the starters list while it's home.
   const [floorCamera] = useState(createFloorCameraStore);
   const [startersList, setStartersList] = useState<HTMLDivElement | null>(null);
-  // The stadium a game's tag was tapped for, and the close look at it the floor glides to (see FloorStadiums).
-  const [stadiumFocus, setStadiumFocus] = useState<StadiumFocus | null>(null);
   // On a phone, the page scrolls the starters list itself, so its reflection keeps up with it (see useDragScroll).
   useDragScroll(desktop ? null : startersList);
 
@@ -516,7 +511,6 @@ export default function DashboardPage() {
     >
       <FloorGrid share={horizon} camera={floorCamera} />
       {mapShown ? <FloorMapLand fit={stand.fit} games={games} camera={floorCamera} /> : null}
-      {mapShown ? <FloorStadiums fit={stand.fit} camera={floorCamera} focus={stadiumFocus} /> : null}
     </div>
   );
   // One graph in full; two side by side; three or four, one to a corner.
@@ -618,24 +612,6 @@ export default function DashboardPage() {
         onViewsChange={setListViews}
       />
     );
-  // A game's tag tapped: the floor glides in close on it — its home stadium (any made yet: see stadium-models.ts) nearly
-  // filling the floor that's free (left of the starters list, from tablet width up), and pops up once it's there.
-  const lookAtStadium = (id: string, at: [number, number]) => {
-    if (!stand || redZoneUp) return;
-    const game = weekGames.find((g) => g.id === id);
-    const team = game && !game.neutralSite ? game.homeTeam : null;
-    const parts = team ? STADIUM_MODELS[team] : undefined;
-    const free = {
-      left: desktop ? stand.rootPx : 0,
-      right: desktop && startersList ? startersList.getBoundingClientRect().left - 2 * stand.rootPx : stand.fit.width,
-      // Just over the map's buttons (see redZoneLine).
-      bottom: stand.redZoneLine,
-    };
-    // Without one made, as close as one would be.
-    const camera = stadiumCamera(stand.fit, at, parts ?? STADIUM_MODELS.CHI, free);
-    floorCamera.glide(camera, false);
-    setStadiumFocus(team && parts ? { team, at, camera } : null);
-  };
   const standVars = stand ? { ["--room-h" as string]: `${stand.room}px`, ["--stand" as string]: `${stand.on}px` } : undefined;
   // Moving the floor from wherever it's bare (the page's own wrappers, data-floor, touched nowhere else).
   const floorControls = mapShown ? (
@@ -693,9 +669,7 @@ export default function DashboardPage() {
         {/* Reflected in the floor from the horizon, as it scrolls. */}
         {redZoneFull ? null : <FloorReflection source={startersList} className="px-4 pb-8" style={{ paddingTop: `calc(${underTicker})` }} />}
         {redZoneStage}
-        {mapShown ? (
-          <FloorMapTags fit={stand.fit} games={games} top={stand.landTop} camera={floorCamera} onPick={lookAtStadium} hideAt={stadiumFocus?.camera} />
-        ) : null}
+        {mapShown ? <FloorMapTags fit={stand.fit} games={games} top={stand.landTop} camera={floorCamera} /> : null}
         {floorControls}
       </div>
     );
@@ -751,8 +725,6 @@ export default function DashboardPage() {
           top={stand.horizon - 0.75 * stand.rootPx}
           overhead={graphsBack || redZoneUp ? undefined : <KickoffCountdown kickoffs={kickoffs} />}
           camera={floorCamera}
-          onPick={lookAtStadium}
-          hideAt={stadiumFocus?.camera}
         />
       ) : null}
       {/* Its reflection without its fade, so what's at its foot shows in the floor. */}

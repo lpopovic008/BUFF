@@ -5,11 +5,8 @@ import { isOutsideUS } from "@/lib/nfl-schedule";
 import { gameMapPosition, gameState, internationalSlotPosition } from "@/lib/game-map";
 import { US_SIMPLE_OUTLINE_PATH, US_SIMPLE_STATE_LINES_PATH } from "@/lib/team-cities";
 import { US_STATE_SHAPES } from "@/lib/us-states";
-import type { FloorCamera } from "@/lib/grid-room";
-import { atFocus } from "./FloorStadiums";
 import { FloorMapFit, floorMapPath, floorMapPoint, floorMapRing, MAP_BOUNDS } from "@/lib/floor-map";
 import { gridRows } from "@/lib/grid-room";
-
 
 /** The screen y the map's back edge reaches at most where it lies (the third grid line from the front): moved further back, it fades. */
 function fadeFrom(fit: FloorMapFit): number {
@@ -98,7 +95,6 @@ export function FloorMapLand({ fit: lying, games, camera }: { fit: FloorMapFit; 
     }),
     [fit, active]
   );
-
   return (
     <svg className="absolute inset-0 h-full w-full" aria-hidden>
       <defs>
@@ -140,21 +136,14 @@ export function FloorMapTags({
   overhead,
   top,
   camera,
-  onPick,
-  hideAt,
 }: {
   fit: FloorMapFit;
   games: MappedGame[];
   overhead?: React.ReactNode;
   top: number;
   camera?: FloorCameraStore;
-  /** A game's tag tapped (its id, and where it is on the map, map units). */
-  onPick?: (id: string, at: [number, number]) => void;
-  /** Out of the way with the floor here (looking at a stadium close up). */
-  hideAt?: FloorCamera;
 }) {
   const fit = useMovedFit(lying, camera);
-  const hidden = !!hideAt && !!fit.camera && atFocus(fit.camera, hideAt);
   const sites = useSites(games);
   // Nearer tags on top of farther ones.
   // Moved back, each fades toward the horizon with the map under it; past it, gone.
@@ -170,7 +159,7 @@ export function FloorMapTags({
     .sort((a, b) => a.y - b.y);
   const [midX] = floorMapPoint(lying, 160, 200);
   return (
-    <div className={`pointer-events-none fixed inset-0 z-10 ${hidden ? "hidden" : ""}`}>
+    <div className="pointer-events-none fixed inset-0 z-10" aria-hidden>
       {overhead ? (
         <div className="absolute -translate-x-1/2 -translate-y-full" style={{ left: midX, top }}>
           {overhead}
@@ -178,19 +167,13 @@ export function FloorMapTags({
       ) : null}
       {placed.map((s) => (
         <div key={s.id} className="absolute left-0 top-0" style={{ transform: `translate(${s.x}px, ${s.y}px)`, opacity: s.fade }}>
-          <span aria-hidden className="absolute bottom-0 left-0 w-px bg-[var(--map-edge)]" style={{ height: `${stemRem(s.count)}rem` }} />
-          {/* Tapped, the floor zooms in close on the game's stadium (see FloorStadiums). */}
-          <button
-            type="button"
-            onClick={onPick ? () => onPick(s.id, s.pos) : undefined}
-            aria-label={`${s.label}: look at the stadium`}
-            className={`absolute whitespace-nowrap bg-[var(--map-tag)] px-[0.35em] py-[0.12em] font-bold leading-[1.3] text-[var(--map-tag-ink)] ${
-              onPick ? "pointer-events-auto cursor-pointer" : ""
-            } ${s.west ? "left-0" : "right-0"}`}
+          <span className="absolute bottom-0 left-0 w-px bg-[var(--map-edge)]" style={{ height: `${stemRem(s.count)}rem` }} />
+          <span
+            className={`absolute whitespace-nowrap bg-[var(--map-tag)] px-[0.35em] py-[0.12em] font-bold leading-[1.3] text-[var(--map-tag-ink)] ${s.west ? "left-0" : "right-0"}`}
             style={{ bottom: `${stemRem(s.count)}rem`, [s.west ? "marginLeft" : "marginRight"]: "0.35em", fontSize: `${TAG_REM}rem`, transform: "translateY(100%)" }}
           >
             {s.label}
-          </button>
+          </span>
         </div>
       ))}
     </div>
