@@ -55,7 +55,10 @@ export function FloorReflection({
         if (timeline) content.style.setProperty("--reflect-max", `${source.scrollHeight - source.clientHeight}px`);
         else content.style.transform = `translateY(${-source.scrollTop + (parseFloat(source.style.getPropertyValue("--overscroll")) || 0)}px)`;
       }
-      for (const [from, to] of inner) to.scrollTop = from.scrollTop;
+      for (const [from, to] of inner) {
+        to.scrollTop = from.scrollTop;
+        to.style.setProperty("--overscroll", from.style.getPropertyValue("--overscroll"));
+      }
     };
     // Just under it, as wide as it — its copy as tall as it, turned over about its foot.
     const place = () => {
@@ -82,14 +85,17 @@ export function FloorReflection({
       inner = [...froms].flatMap((from, i) => (from.scrollTop > 0 || from.scrollHeight > from.clientHeight + 1 ? [[from, tos[i]] as [HTMLElement, HTMLElement]] : []));
       place();
     };
-    // Its own moves past its ends (--overscroll on it) aren't changes to copy.
+    // Moves past an end (--overscroll on it, or on what scrolls within it) aren't changes to copy.
+    const scrollers = () => new Set<Node>([source, ...inner.map(([from]) => from)]);
     const changed = (records: MutationRecord[]) => {
-      if (records.some((r) => r.target !== source || r.type !== "attributes")) recopy();
+      const moving = scrollers();
+      if (records.some((r) => r.type !== "attributes" || r.attributeName !== "style" || !moving.has(r.target))) recopy();
     };
     recopy();
     // Scrolls within it don't bubble, so they're caught on their way down.
     source.addEventListener("scroll", follow, { capture: true, passive: true });
-    source.addEventListener(DRAG_SCROLL_EVENT, follow);
+    // Its own moves, and those of anything within it the page scrolls itself, caught on their way down too.
+    source.addEventListener(DRAG_SCROLL_EVENT, follow, { capture: true });
     const mutations = new MutationObserver(changed);
     mutations.observe(source, { subtree: true, childList: true, characterData: true, attributes: true });
     const resize = new ResizeObserver(place);
@@ -99,7 +105,7 @@ export function FloorReflection({
     document.addEventListener("animationend", place, true);
     return () => {
       source.removeEventListener("scroll", follow, { capture: true });
-      source.removeEventListener(DRAG_SCROLL_EVENT, follow);
+      source.removeEventListener(DRAG_SCROLL_EVENT, follow, { capture: true });
       mutations.disconnect();
       resize.disconnect();
       window.removeEventListener("resize", place);

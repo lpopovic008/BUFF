@@ -46,8 +46,13 @@ const MAX_GRAPHS = 4;
 
 // From tablet width up, where the map and the Red Zone share a column the screen's height.
 const DESKTOP = "(min-width: 768px)";
-// The Red Zone rising out of the floor once the floor's slid away from under it (see FloorCameraControls), ms.
+// The Red Zone rising out of the floor once the floor's slid away from under it (see FloorCameraControls), ms; up,
+// how far it floats over the floor (as far as the player graphs seem to over the horizon at the top of the list),
+// and how tall it is: two plays of two players each, under its header (on a tablet or wider, on fewer lines).
 const RED_ZONE_RISE_DELAY_MS = 650;
+const RED_ZONE_FLOAT_REM = 0.375;
+const RED_ZONE_REM = 14.75;
+const DESKTOP_RED_ZONE_REM = 11.5;
 // From tablet width up, the player graphs at the back of the room: from under the ticker down to the horizon.
 const COLUMN_TO_HORIZON = `(var(--room-h, 100vh) * ${HORIZON_SHARE} - var(--header-h, 0px) - var(--ticker-h, 0px) - 0.625rem)`;
 const onDesktopChange = (listener: () => void) => {
@@ -256,9 +261,8 @@ export default function DashboardPage() {
       const landTop = floorMapTop(fit);
       setStand({
         room: height,
-        // Its switch's top (0.75rem off the bottom, or a phone's tab bar, and 1.75rem tall), the room its reflection
-        // shows in (3.5rem) and the gap it floats over the floor by (0.75rem) above that.
-        redZoneLine: height - (desk ? 0 : tabBar) - 6.75 * rootPx,
+        // Its switch's top: 0.75rem off the bottom (or a phone's tab bar), and 1.75rem tall.
+        redZoneLine: height - (desk ? 0 : tabBar) - 2.5 * rootPx,
         on: height - lowestGridLine(height),
         horizon: height * HORIZON_SHARE,
         fit,
@@ -534,12 +538,12 @@ export default function DashboardPage() {
       />
     ) : null;
   // The Red Zone, up out of the floor in front of you (its switch beside the map's way home, see FloorCameraControls):
-  // once the floor's slid toward you and the map's gone off the screen's bottom, it rises out of the floor just above
-  // its switch and floats a little over it, up to just short of the horizon, as wide as the screen (on a tablet or
-  // wider, the room left of the starters list) — and sinks back into it. Backed like the ticker, see-through, so the
-  // reflections on the floor behind it show softly through it; reflected in the floor under it, the gap it floats by
-  // and all, its reflection's room between it and its switch. Stretched (⇕), from under the ticker down to the bottom
-  // (a phone's tab bar).
+  // once the floor's slid toward you and the map's gone off the screen's bottom, it rises out of the floor at its
+  // switch's top and floats a little over it, two plays tall, as wide as the screen (on a tablet or wider, the room
+  // left of the starters list) — and sinks back into it. Backed like the ticker, see-through, so the reflections on
+  // the floor behind it show softly through it; reflected in the floor under it, the gap it floats by and all, its
+  // plays' scroll with it (see FloorReflection). Stretched (⇕), from under the ticker down to the bottom (a phone's
+  // tab bar).
   const redZoneStage =
     redZoneView && stand ? (
       <>
@@ -551,13 +555,16 @@ export default function DashboardPage() {
           style={
             redZoneFull
               ? { top: "calc(var(--header-h, 0px) + var(--ticker-h, 0px) + 0.625rem)", bottom: desktop ? "0.75rem" : "var(--tabbar-h, 0px)" }
-              : { top: stand.horizon + 0.375 * stand.rootPx, height: stand.redZoneLine - stand.horizon - 0.375 * stand.rootPx }
+              : {
+                  top: stand.redZoneLine - (RED_ZONE_FLOAT_REM + (desktop ? DESKTOP_RED_ZONE_REM : RED_ZONE_REM)) * stand.rootPx,
+                  height: (RED_ZONE_FLOAT_REM + (desktop ? DESKTOP_RED_ZONE_REM : RED_ZONE_REM)) * stand.rootPx,
+                }
           }
         >
           <div
             className={`absolute inset-x-0 top-0 flex flex-col bg-page/50 backdrop-blur-[1px] transition-transform ease-out ${
-              redZoneFull ? "bottom-0" : "bottom-3"
-            } ${redZoneUp ? `translate-y-0 duration-500 ${redZoneFull ? "" : "delay-[650ms]"}` : "translate-y-[calc(100%+0.75rem)] duration-[400ms]"}`}
+              redZoneFull ? "bottom-0" : "bottom-1.5"
+            } ${redZoneUp ? `translate-y-0 duration-500 ${redZoneFull ? "" : "delay-[650ms]"}` : "translate-y-[calc(100%+0.375rem)] duration-[400ms]"}`}
           >
             {redZoneView}
           </div>
