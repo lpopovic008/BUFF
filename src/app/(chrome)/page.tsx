@@ -631,7 +631,12 @@ export default function DashboardPage() {
             className={`absolute inset-x-0 top-0 ${redZoneFull ? "hidden" : ""}`}
             style={{ height: stand ? stand.horizon : "50%" }}
           >
-            <div ref={setStartersList} className="h-full overflow-hidden px-4 pb-8" style={{ paddingTop: `calc(${underTicker})` }}>
+            <div
+              ref={setStartersList}
+              data-drag-scroll
+              className="h-full touch-none overflow-y-auto overscroll-none px-4 pb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              style={{ paddingTop: `calc(${underTicker})` }}
+            >
               {/* Moved down (or up) as far as it's pulled past an end. */}
               <div className="translate-y-[var(--overscroll,0px)]">
                 {graphsUp && stand ? (

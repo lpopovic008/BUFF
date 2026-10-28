@@ -15,7 +15,7 @@ const publishTimelines = () => document.body.style.setProperty("timeline-scope",
  * Something standing on the floor reflected in it (`source`): its bottom part, upside down, fading out a little way
  * down — a list moving as it scrolls. Drawn from a copy of it (-webkit-box-reflect doesn't keep up with a box that
  * scrolls, and some browsers reflect the wrong part of it), laid out as it is (`className`, `style`: a list's padding
- * and fade), redone the moment it changes. A list the page scrolls itself (see useDragScroll, its overflow hidden)
+ * and fade), redone the moment it changes. A list the page scrolls itself (see useDragScroll, data-drag-scroll)
  * moves its copy with each move it makes, there and then — pulled past its ends too; one the browser scrolls, by a
  * scroll timeline, so the two move in the same frame. Where there's none, and for anything scrolling within it, the
  * copy follows its scroll.
@@ -41,7 +41,9 @@ export function FloorReflection({
     if (!source || !out || !cp) return;
     const overflow = getComputedStyle(source).overflowY;
     const scrolls = overflow !== "visible";
-    const timeline = scrolls && overflow !== "hidden" && CSS.supports("animation-timeline", "--x") && CSS.supports("timeline-scope", "--x");
+    // Scrolled by the page itself (see useDragScroll), its copy's moved with each move; else by its scroll timeline.
+    const driven = source.hasAttribute("data-drag-scroll");
+    const timeline = scrolls && !driven && overflow !== "hidden" && CSS.supports("animation-timeline", "--x") && CSS.supports("timeline-scope", "--x");
     if (timeline) {
       source.style.setProperty("scroll-timeline", `${name} y`);
       timelines.add(name);
@@ -73,6 +75,8 @@ export function FloorReflection({
       const next = document.createElement("div");
       // As tall as the copy at least: moved (transformed), it's what anything placed within the copy sizes against.
       next.style.minHeight = "100%";
+      // Moved by the graphics card, not repainted, as it follows.
+      next.style.willChange = "transform";
       if (timeline) {
         next.style.animation = "reflect-scroll linear both";
         next.style.setProperty("animation-timeline", name);

@@ -64,12 +64,21 @@ export function FloorGrid({ share = HORIZON_SHARE, camera: store }: { share?: nu
   const wire = view ? 1 / view.dpr : 1;
   const snap = (y: number) => (view ? (Math.floor(y * view.dpr) + 0.5) / view.dpr : y);
   const horizon = view ? view.height * share : 0;
+  // Every line one shape, stroked with the fade back to the horizon: nothing made anew, or masked, as the floor moves.
+  const d = lines
+    ? lines.rows.map((y) => `M0 ${snap(y).toFixed(2)}H${view!.width}`).join("") +
+      lines.columns.map((l) => `M${l.x1.toFixed(1)} ${l.y1.toFixed(1)}L${l.x2.toFixed(1)} ${l.y2.toFixed(1)}`).join("")
+    : "";
   return (
     <svg ref={ref} className="absolute inset-0 h-full w-full" aria-hidden>
       {view && lines ? (
         <>
           <defs>
-            <FloorFade id="floor-grid-mask" width={view.width} height={view.height} share={share} />
+            {/* The lines' fade, by how far up the screen (so how far back on the floor) they are. */}
+            <linearGradient id="floor-grid-fade" gradientUnits="userSpaceOnUse" x1="0" y1={horizon} x2="0" y2={floorFadeStart(view.height, share)}>
+              <stop offset="0" stopColor="var(--ink-primary)" stopOpacity="0" />
+              <stop offset="1" stopColor="var(--ink-primary)" stopOpacity={LINE_OPACITY} />
+            </linearGradient>
             {/* In the screen's px: a straight line's own box has no height for a gradient to fill. */}
             <linearGradient id="floor-grid-horizon" gradientUnits="userSpaceOnUse" x1="0" x2={view.width} y1="0" y2="0">
               <stop offset="0" stopColor="var(--ink-primary)" stopOpacity="0" />
@@ -79,14 +88,7 @@ export function FloorGrid({ share = HORIZON_SHARE, camera: store }: { share?: nu
             </linearGradient>
           </defs>
           <line x1={0} x2={view.width} y1={snap(horizon)} y2={snap(horizon)} stroke="url(#floor-grid-horizon)" strokeWidth={wire} />
-          <g mask="url(#floor-grid-mask)" stroke="var(--ink-primary)" strokeOpacity={LINE_OPACITY} strokeWidth={wire} fill="none">
-            {lines.rows.map((y) => (
-              <line key={y} x1={0} x2={view.width} y1={snap(y)} y2={snap(y)} />
-            ))}
-            {lines.columns.map((l) => (
-              <line key={l.x2} {...l} />
-            ))}
-          </g>
+          <path d={d} stroke="url(#floor-grid-fade)" strokeWidth={wire} fill="none" />
         </>
       ) : null}
     </svg>

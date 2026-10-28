@@ -17,11 +17,13 @@ const SPRING = 0.02;
 const PULL = 0.55;
 
 /**
- * A list (`el`, its overflow hidden) scrolled by the page itself rather than the browser: dragged with a finger (or
+ * A list (`el`, a scroll box the browser can't scroll by touch: touch-action none, marked data-drag-scroll so what
+ * follows it knows) scrolled by the page itself rather than the browser: dragged with a finger (or
  * the mouse), flicked to glide on, pulled a little way past either end to spring back, and scrolled by a wheel or
  * trackpad — so the list and anything following it move together, each move announced (DRAG_SCROLL_EVENT). Within
  * its ends it's the element's own scroll position (scrollTop, its scroll events, and anything that scrolls it into
- * view all as usual); past them, the distance as --overscroll on it, for its contents to move by. Drags that start
+ * view all as usual — and moved by the graphics card, nothing repainted); past them, the distance as --overscroll
+ * on it, for its contents to move by (set only as it changes: every change restyles the whole list). Drags that start
  * sideways, or on something that takes the finger itself (touch-action: none, like a graph), are left alone.
  */
 export function useDragScroll(el: HTMLElement | null) {
@@ -35,9 +37,10 @@ export function useDragScroll(el: HTMLElement | null) {
     const at = () => el.scrollTop - over;
     const show = (p: number) => {
       const s = Math.min(max(), Math.max(0, p));
-      over = s - p;
+      const past = s - p;
       el.scrollTop = s;
-      el.style.setProperty("--overscroll", `${over}px`);
+      if (past !== over) el.style.setProperty("--overscroll", `${past}px`);
+      over = past;
       el.dispatchEvent(new Event(DRAG_SCROLL_EVENT));
     };
     const stop = () => {

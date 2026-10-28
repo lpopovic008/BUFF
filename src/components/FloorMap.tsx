@@ -5,7 +5,7 @@ import { isOutsideUS } from "@/lib/nfl-schedule";
 import { gameMapPosition, gameState, internationalSlotPosition } from "@/lib/game-map";
 import { US_SIMPLE_OUTLINE_PATH, US_SIMPLE_STATE_LINES_PATH } from "@/lib/team-cities";
 import { US_STATE_SHAPES } from "@/lib/us-states";
-import { FloorMapFit, floorMapPath, floorMapPoint, floorMapRing } from "@/lib/floor-map";
+import { FloorMapFit, floorMapPath, floorMapPoint, floorMapRing, MAP_BOUNDS } from "@/lib/floor-map";
 import { floorFadeStart } from "@/lib/grid-room";
 import type { FloorCameraStore } from "@/lib/floor-camera";
 import { FloorFade, LINE_OPACITY, useFloorCamera } from "./FloorGrid";
@@ -78,6 +78,7 @@ export function FloorMapLand({ fit: lying, games, camera }: { fit: FloorMapFit; 
   const fit = useMovedFit(lying, camera);
   const sites = useSites(games);
   const wire = useWire();
+  const fades = floorMapPoint(fit, MAP_BOUNDS.minX, MAP_BOUNDS.minY)[1] < floorFadeStart(fit.height, fit.share);
   const active = useMemo(() => [...new Set(games.map(({ game }) => gameState(game)).filter((c) => c !== null))], [games]);
   const paths = useMemo(
     () => ({
@@ -92,8 +93,9 @@ export function FloorMapLand({ fit: lying, games, camera }: { fit: FloorMapFit; 
       <defs>
         <FloorFade id="floor-map-fade" width={fit.width} height={fit.height} share={fit.share} />
       </defs>
-      {/* Faded away back toward the horizon, as the floor's lines are, however far back it's moved. */}
-      <g mask="url(#floor-map-fade)">
+      {/* Faded away back toward the horizon, as the floor's lines are, however far back it's moved — masked only once
+          its far edge is back where the fade starts (a mask's costly to draw, every move). */}
+      <g mask={fades ? "url(#floor-map-fade)" : undefined}>
         <path d={paths.outline} fill="var(--page)" />
         <g fill="none" stroke="var(--ink-primary)" strokeOpacity={LINE_OPACITY} strokeWidth={wire}>
           <path d={paths.lines} />

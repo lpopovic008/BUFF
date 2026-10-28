@@ -762,7 +762,12 @@ export function RedZone({
                   boxRef.current = el;
                   setBox(el);
                 }}
-                className={`relative ${fill ? "h-full overflow-hidden" : "md:h-full md:overflow-y-auto md:overscroll-contain"} ${
+                data-drag-scroll={fill ? "" : undefined}
+                className={`relative ${
+                  fill
+                    ? "h-full touch-none overflow-y-auto overscroll-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                    : "md:h-full md:overflow-y-auto md:overscroll-contain"
+                } ${
                   // About a play and a half tall.
                   compactOnPhone ? "max-md:h-[var(--rz-user-h,9.5rem)] max-md:overflow-y-auto max-md:overscroll-contain" : ""
                 }`}
