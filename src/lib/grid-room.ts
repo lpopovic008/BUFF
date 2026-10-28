@@ -2,9 +2,8 @@
 // the horizon and laid back almost flat under a CSS perspective. Its geometry
 // lives here so what stands on the floor can find its lines.
 
-/** How far down the screen the horizon sits — on a phone, nearer the middle (short of it), for more floor. */
-export const HORIZON_SHARE = 0.64;
-export const PHONE_HORIZON_SHARE = 0.56;
+/** How far down the screen the horizon sits: nearer the middle (short of it), for more floor. */
+export const HORIZON_SHARE = 0.56;
 /** The room's CSS perspective, in px. */
 export const PERSPECTIVE_PX = 520;
 /** How far the floor is laid back from upright, in degrees. */

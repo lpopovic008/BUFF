@@ -423,6 +423,7 @@ export function RedZone({
   legend,
   weekStats,
   compactOnPhone = false,
+  fill = false,
   spotlight = null,
   full,
   hiddenGames = NO_GAMES,
@@ -446,6 +447,11 @@ export function RedZone({
   spotlight?: { gameId: string; playId: string } | null;
   /** On phones, show the plays in a box about a play and a half tall (or, ⇕ or the side header double-tapped, as tall as the screen) that scrolls on its own, instead of running down the page. */
   compactOnPhone?: boolean;
+  /**
+   * Fills the box it's given on any screen, its plays scrolling within it, its header across its top — and ⇕ (or the
+   * header double-tapped) is `full`'s switch on a phone too.
+   */
+  fill?: boolean;
   /** From tablet width up, whether the box is stretched to the whole column's height, and the ⇕ button's switch for it (on a phone the button fits the box to the screen). */
   full?: { on: boolean; toggle: () => void };
   /** Each of your leagues' scoring, by league id: a starter's points are scored under his first league's (see linePoints). */
@@ -523,11 +529,12 @@ export function RedZone({
   };
   const onHeadTap = (e: React.PointerEvent) => {
     // Its buttons are buttons; and only on a phone, where the box is.
-    if (!compactOnPhone || (e.target as HTMLElement).closest("button") || !window.matchMedia("(max-width: 767px)").matches) return;
+    if (!(compactOnPhone || fill) || (e.target as HTMLElement).closest("button") || !window.matchMedia("(max-width: 767px)").matches) return;
     const now = performance.now();
     if (now - lastTap.current < 350) {
       lastTap.current = 0;
-      toggleFit();
+      if (fill) full?.toggle();
+      else toggleFit();
     } else lastTap.current = now;
   };
   // The play by a graph's cursor. Not among these plays (another of the buttons is picked)? Found among the game's
@@ -652,11 +659,11 @@ export function RedZone({
     latestPlays.add(`${e.game.id}-${e.play.id}`);
   }
   const live = mode === "live";
-  const stretched = phone ? boxHeight !== null : !!full?.on;
+  const stretched = phone && !fill ? boxHeight !== null : !!full?.on;
   // With no game on, the header runs across the top instead of down the side — and with no plays, it's just
   // the header, across the top, no room kept for them.
   const empty = entries.length === 0 && feed.redZone.length === 0 && !pinned;
-  const across = !live || empty;
+  const across = !live || empty || fill;
   useEffect(() => onEmptyChange?.(empty), [empty, onEmptyChange]);
   return (
     // Each starter's points scored under his league's scoring (see PlayerLine).
@@ -664,14 +671,14 @@ export function RedZone({
     {/* No box: while games are on, the header runs down the left side as narrow as it goes, the plays spread out
         beside it to the next section or the screen's edge; otherwise it runs across the top, the plays under it.
         From tablet width up it fills the room it's given; on a phone it's about a play and a half tall. */}
-    <div className={`flex md:min-h-0 md:flex-1 ${across ? "flex-col" : "flex-row"}`}>
+    <div className={`flex ${fill ? "min-h-0 flex-1" : "md:min-h-0 md:flex-1"} ${across ? "flex-col" : "flex-row"}`}>
       <div
         // Down the side, its contents sit inside it, never making the Red Zone taller.
         ref={headRef}
         onPointerUp={onHeadTap}
         className={`relative shrink-0 touch-manipulation select-none border-border ${across ? "border-b max-md:px-2" : "w-7 border-r"}`}
       >
-        <div className={across ? "flex items-center gap-2 py-1" : "absolute inset-0 flex flex-col items-center gap-1.5 px-0.5 py-1.5"}>
+        <div className={across ? `flex items-center gap-2 ${fill ? "py-0.5" : "py-1"}` : "absolute inset-0 flex flex-col items-center gap-1.5 px-0.5 py-1.5"}>
           {/* The title, ⇕ after it (under it, down the side). */}
           <div className={`flex shrink-0 items-center gap-1 ${across ? "flex-row" : "flex-col"}`}>
             <h2 className={`flex items-center ${across ? "flex-row gap-1.5" : "flex-col gap-1"}`} aria-label="Red Zone">
@@ -693,7 +700,7 @@ export function RedZone({
             {/* ⇕: the box as tall as the screen (on a phone, fit under the header; wider, the map's whole column) — and back. */}
             <button
               type="button"
-              onClick={() => (phone ? toggleFit() : full?.toggle())}
+              onClick={() => (phone && !fill ? toggleFit() : full?.toggle())}
               aria-pressed={stretched}
               aria-label={stretched ? "Back to size" : "Fit to the screen"}
               title={stretched ? "Back to size" : "Fit to the screen"}
@@ -714,7 +721,7 @@ export function RedZone({
                 type="button"
                 aria-pressed={scope === opt.value}
                 onClick={() => pickScope(opt.value)}
-                className={`py-1 leading-tight transition-colors ${across ? "px-2" : ""} ${
+                className={`leading-tight transition-colors ${fill ? "py-0.5" : "py-1"} ${across ? "px-2" : ""} ${
                   scope === opt.value ? "bg-ink-primary text-surface-raised" : "text-ink-secondary hover:text-ink-primary"
                 }`}
               >
@@ -728,7 +735,7 @@ export function RedZone({
       {empty ? (
         feed.loading ? <p className="py-1 text-xs text-ink-muted max-md:px-2">Loading play-by-play…</p> : null
       ) : (
-        <div className={`relative flex min-w-0 flex-1 flex-col gap-2 py-1 md:min-h-0 ${across ? "max-md:px-2" : "pl-1.5 max-md:pr-2"}`}>
+        <div className={`relative flex min-w-0 flex-1 flex-col gap-2 py-1 ${fill ? "min-h-0" : "md:min-h-0"} ${across ? "max-md:px-2" : "pl-1.5 max-md:pr-2"}`}>
           {/* The play by a graph's cursor when it isn't among these plays, laid over the top of them (see spotlight). */}
           {pinned ? (
             <ol aria-label="The play by the graph's cursor" className="absolute left-1.5 right-0 top-1 z-20 bg-page shadow-md max-md:right-2">
@@ -745,10 +752,10 @@ export function RedZone({
           ) : null}
 
           {entries.length > 0 ? (
-            <div className="relative md:min-h-0 md:flex-1">
+            <div className={`relative ${fill ? "min-h-0 flex-1" : "md:min-h-0 md:flex-1"}`}>
               <div
                 ref={boxRef}
-                className={`relative md:h-full md:overflow-y-auto md:overscroll-contain ${
+                className={`relative ${fill ? "h-full overflow-y-auto overscroll-contain" : "md:h-full md:overflow-y-auto md:overscroll-contain"} ${
                   // About a play and a half tall.
                   compactOnPhone ? "max-md:h-[var(--rz-user-h,9.5rem)] max-md:overflow-y-auto max-md:overscroll-contain" : ""
                 }`}

@@ -229,6 +229,13 @@ body {
    needs no browser support check and no coordination with the router — it
    just plays on mount, every time, so a page always feels like it arrived
    rather than snapped into existence. */
+/* A floor reflection's copy of a list, moved up with the list's scroll (see FloorReflection). */
+@keyframes reflect-scroll {
+  to {
+    transform: translateY(calc(-1 * var(--reflect-max, 0px)));
+  }
+}
+
 @keyframes rise {
   from {
     opacity: 0;

@@ -2,14 +2,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { fitFloorMap, floorMapPath, floorMapPoint, floorMapTop, MAP_BOUNDS } from "./floor-map";
 import { US_SIMPLE_OUTLINE_PATH } from "./team-cities";
-import { gridRows, PHONE_HORIZON_SHARE } from "./grid-room";
+import { gridRows } from "./grid-room";
 
 const midX = (MAP_BOUNDS.minX + MAP_BOUNDS.maxX) / 2;
 const OUTLINE = [...US_SIMPLE_OUTLINE_PATH.matchAll(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g)].map((m) => [Number(m[1]), Number(m[2])] as const);
 const deskRows = gridRows(900);
 const desk = fitFloorMap({ width: 1440, height: 900, centerX: 720, bottom: 885, farthest: deskRows.at(-3)!, maxWidth: 1400 });
-const phoneRows = gridRows(852, PHONE_HORIZON_SHARE);
-const phone = fitFloorMap({ width: 393, height: 852, share: PHONE_HORIZON_SHARE, centerX: 196.5, bottom: 780, farthest: phoneRows.at(-3)!, maxWidth: 361 });
+const phoneRows = gridRows(852);
+const phone = fitFloorMap({ width: 393, height: 852, centerX: 196.5, bottom: 780, farthest: phoneRows.at(-3)!, maxWidth: 361 });
 
 test("the map's near edge is on the bottom, and it reaches back no further than the line it's given", () => {
   for (const [fit, rows, bottom] of [[desk, deskRows, 885], [phone, phoneRows, 780]] as const) {

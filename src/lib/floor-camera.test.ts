@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { cameraBetween, cameraPutting, cameraShows, cameraUnder, MAX_ZOOM, pinchCamera, zoomCameraAt } from "./floor-camera";
-import { floorAt, floorPoint, GRID_PX, gridColumns, gridRows, HOME_CAMERA } from "./grid-room";
+import { floorAt, floorPoint, GRID_PX, gridColumns, gridRows, HOME_CAMERA, HORIZON_SHARE } from "./grid-room";
 
 const near = (a: readonly number[], b: readonly number[]) => a.every((v, i) => Math.abs(v - b[i]) < 1e-6);
 
@@ -32,18 +32,18 @@ test("a glide runs from one camera to the other", () => {
 });
 
 test("floorAt undoes floorPoint", () => {
-  const [x, y] = floorPoint(-80, 300, 393, 852, 0.56);
-  assert.ok(near(floorAt(x, y, 393, 852, 0.56), [-80, 300]));
+  const [x, y] = floorPoint(-80, 300, 393, 852);
+  assert.ok(near(floorAt(x, y, 393, 852), [-80, 300]));
 });
 
 test("the grid moves with the floor, at home just where it lies", () => {
-  assert.deepEqual(gridRows(900, 0.64, HOME_CAMERA), gridRows(900));
+  assert.deepEqual(gridRows(900, HORIZON_SHARE, HOME_CAMERA), gridRows(900));
   // Slid a whole box back, or across, it's the same grid.
-  const back = gridRows(900, 0.64, { zoom: 1, x: 0, d: GRID_PX });
+  const back = gridRows(900, HORIZON_SHARE, { zoom: 1, x: 0, d: GRID_PX });
   assert.deepEqual(back, gridRows(900));
-  const across = gridColumns(1440, 900, 0.64, { zoom: 1, x: GRID_PX, d: 0 }).map((l) => l.x1);
+  const across = gridColumns(1440, 900, HORIZON_SHARE, { zoom: 1, x: GRID_PX, d: 0 }).map((l) => l.x1);
   assert.ok(gridColumns(1440, 900).every((l) => across.some((x) => Math.abs(x - l.x1) < 1e-9) || Math.abs(l.x1 - 720) > 720 - GRID_PX));
   // Zoomed in, its rows further apart.
-  const zoomed = gridRows(900, 0.64, { zoom: 2, x: 0, d: 0 });
+  const zoomed = gridRows(900, HORIZON_SHARE, { zoom: 2, x: 0, d: 0 });
   assert.ok(zoomed[1] > gridRows(900)[1]);
 });
