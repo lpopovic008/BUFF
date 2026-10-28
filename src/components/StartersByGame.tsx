@@ -1356,7 +1356,7 @@ export function StartersByGame({
   }
   const nothingToShow = games.length === 0 && byes.every((b) => b.everyone.length === 0);
   // A block's header, and the bye's: styled like the map's game tags, the same solid contrasting fill and ink.
-  const headerBar = "flex w-full items-baseline justify-between gap-2 bg-[var(--map-tag)] px-2 py-1 text-left text-xs font-bold uppercase tracking-wide text-[var(--map-tag-ink)]";
+  const headerBar = "flex w-full items-baseline justify-between gap-2 bg-[var(--title-plate)] px-2 py-1 text-left text-xs font-bold uppercase tracking-wide text-[var(--map-tag-ink)]";
 
   return (
     // Room over the bar, under the ticker; the games start right under it.
@@ -1371,7 +1371,7 @@ export function StartersByGame({
               onClick={() => setAllViews(view)}
               aria-pressed={shownView === view}
               className={`cursor-pointer py-1 text-xs font-bold uppercase tracking-wide transition-opacity hover:opacity-80 ${
-                shownView === view ? "bg-[var(--map-tag)] text-[var(--map-tag-ink)]" : "text-ink-secondary"
+                shownView === view ? "bg-[var(--title-plate)] text-[var(--map-tag-ink)]" : "text-ink-secondary"
               }`}
             >
               {name}

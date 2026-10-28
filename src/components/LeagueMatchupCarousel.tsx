@@ -412,7 +412,7 @@ function MatchupHeader({
     );
   };
   return (
-    <div className="flex flex-col gap-1.5 bg-[var(--map-tag)] px-2 py-2 text-[var(--map-tag-ink)]">
+    <div className="flex flex-col gap-1.5 bg-[var(--title-plate)] px-2 py-2 text-[var(--map-tag-ink)]">
       {/* Each name with its projected total right over the score, on a line that's there anyway: the name's
           own, or on a phone (where the name sits over its rank and record) the rank and record's. */}
       <div className={`grid ${SLOT_COLS} items-start gap-1 sm:gap-2`}>
@@ -501,7 +501,7 @@ function MatchupSlide({
 function CompactHeader({ left, right }: { left: MatchupTeam; right: MatchupTeam | undefined }) {
   return (
     <div
-      className={`grid ${SLOT_COLS} items-baseline gap-1 bg-[var(--map-tag)] px-2 py-2 text-[0.8125rem] text-[var(--map-tag-ink)] sm:gap-2`}
+      className={`grid ${SLOT_COLS} items-baseline gap-1 bg-[var(--title-plate)] px-2 py-2 text-[0.8125rem] text-[var(--map-tag-ink)] sm:gap-2`}
     >
       <span className="flex min-w-0 items-baseline gap-2">
         <span className="min-w-0 flex-1 truncate font-semibold">{left.teamName}</span>

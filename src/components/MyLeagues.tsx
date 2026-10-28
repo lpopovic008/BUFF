@@ -73,7 +73,7 @@ export function MyLeagues() {
           <Card key={leagueId} className="overflow-hidden">
             <Link
               href={href}
-              className="flex items-center gap-2 bg-[var(--map-tag)] px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-[var(--map-tag-ink)] transition-opacity hover:opacity-90"
+              className="flex items-center gap-2 bg-[var(--title-plate)] px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-[var(--map-tag-ink)] transition-opacity hover:opacity-90"
             >
               {logo ? (
                 // eslint-disable-next-line @next/next/no-img-element -- Sleeper's avatar CDN on a static export

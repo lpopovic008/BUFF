@@ -74,6 +74,8 @@ const MAX_TAG_SCALE = 1.2;
 const MIN_HEADROOM_REM = 1.5;
 const OVERHEAD_GAP_REM = 0.5;
 const ZOOM_STEP = 1.25;
+// The widest the map gets, in rem — about a tablet's screen.
+const MAX_MAP_REM = 64;
 // Clearance between a tag's bottom and its site, in rem — the visible stem
 // (see stemRem: it grows with the game's starters, like the ring).
 const STEM_REM = 0.6;
@@ -651,9 +653,10 @@ export function GameMap({
           className="mx-auto w-full min-w-0"
           style={{
             marginTop: frameTop === null ? `${MIN_HEADROOM_REM}rem` : -frameTop,
+            // And never wider than MAX_MAP_REM, so on a big screen it keeps the size it has on a tablet.
             maxWidth: room
-              ? `max(20rem, calc((${room} - ${opening?.overLand ?? 0}px) * ${MAP_ASPECT / (1 - landTopShare(DEFAULT_SCENE))}))`
-              : `max(20rem, calc((100vh - var(--header-h, 0px) - 12rem) * ${MAP_ASPECT}))`,
+              ? `min(${MAX_MAP_REM}rem, max(20rem, calc((${room} - ${opening?.overLand ?? 0}px) * ${MAP_ASPECT / (1 - landTopShare(DEFAULT_SCENE))})))`
+              : `min(${MAX_MAP_REM}rem, max(20rem, calc((100vh - var(--header-h, 0px) - 12rem) * ${MAP_ASPECT})))`,
           }}
         >
           <div ref={mapRef} className="relative" style={{ aspectRatio: MAP_ASPECT }}>

@@ -21,7 +21,7 @@ export function PlateCard({
 }) {
   return (
     <Card className={className}>
-      <div className="flex items-center justify-between gap-2 bg-[var(--map-tag)] px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-[var(--map-tag-ink)]">
+      <div className="flex items-center justify-between gap-2 bg-[var(--title-plate)] px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-[var(--map-tag-ink)]">
         <h2 className="min-w-0 truncate">{title}</h2>
         {aside ? <div className="flex shrink-0 items-center gap-2">{aside}</div> : null}
       </div>

@@ -108,7 +108,7 @@ export function PlayerCareer({
         style={{ animation: "rise 0.25s ease-out" }}
       >
         {/* Who he is, on the plate. */}
-        <div className="flex items-center gap-3 bg-[var(--map-tag)] px-3 py-2 text-[var(--map-tag-ink)]">
+        <div className="flex items-center gap-3 bg-[var(--title-plate)] px-3 py-2 text-[var(--map-tag-ink)]">
           <PlayerHeadshot playerId={player.playerId} sizeClass="h-11 w-11" square />
           <div className="min-w-0 flex-1">
             <h2 className="truncate text-base font-extrabold uppercase tracking-wide sm:text-lg">{player.name}</h2>

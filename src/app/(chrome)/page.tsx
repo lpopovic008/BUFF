@@ -41,6 +41,10 @@ const MAX_GRAPHS = 4;
 
 // From tablet width up, where the map and the Red Zone share a column the screen's height.
 const DESKTOP = "(min-width: 768px)";
+// From tablet width up, the player graphs at the back of the room: 15rem tall, or less on a shorter screen, so
+// the Red Zone over them keeps the 10rem its side header needs — from the column's top down to the horizon.
+const COLUMN_TO_HORIZON = `(var(--room-h, 100vh) * ${HORIZON_SHARE} - var(--header-h, 0px) - var(--ticker-h, 0px) - 0.625rem)`;
+const BACK_GRAPHS_HEIGHT = `min(15rem, calc(${COLUMN_TO_HORIZON} - 10.5rem))`;
 const onDesktopChange = (listener: () => void) => {
   const query = window.matchMedia(DESKTOP);
   query.addEventListener("change", listener);
@@ -580,6 +584,10 @@ export default function DashboardPage() {
     );
   }
 
+  // From tablet width up, graphs go up at the back of the room — unless the Red Zone's stretched to the column's
+  // height, when they take the map's place.
+  const graphsBack = graphsView !== null && !redZoneFull;
+  const graphsOverMap = graphsView !== null && redZoneFull;
   return (
     // From tablet width up the columns reach the bottom of the screen: the page's own bottom padding is taken back.
     <div className="flex flex-col gap-0.5 md:-mb-8" style={standVars}>
@@ -607,17 +615,22 @@ export default function DashboardPage() {
                 ref={redZoneRef}
                 className={`flex animate-[rise_0.5s_ease-out_backwards] flex-col [animation-delay:120ms] ${
                   // Stretched (its ⇕ button), the whole column's height — the map under it, scrolled past.
-                  redZoneFull ? "h-full flex-none" : redZoneEmpty ? "flex-none" : "min-h-40 flex-1"
+                  redZoneFull ? "h-full flex-none" : graphsBack ? "flex-none" : redZoneEmpty ? "flex-none" : "min-h-40 flex-1"
                 }`}
+                // With graphs up, down to just over them.
+                style={graphsBack ? { height: `calc(${COLUMN_TO_HORIZON} - ${BACK_GRAPHS_HEIGHT} - 0.5rem)` } : undefined}
               >
                 {redZoneView}
               </div>
             ) : null}
+            {/* Player graphs at the very back of the room, their foot on the horizon (the Red Zone's bottom and the
+                gap under it, and their own height, put it there), faintly reflected in the floor. */}
+            {graphsBack ? <div className="floor-reflect mt-2 shrink-0" style={{ height: BACK_GRAPHS_HEIGHT }}>{graphsView}</div> : null}
             {weekGames.length > 0 ? (
               <div className="mt-auto shrink-0 animate-[rise_0.5s_ease-out_backwards]">
-                {/* A player's graph takes the map's place; the map stays put underneath, just out of sight. */}
                 <div className="relative">
-                  <div className={graphed.length > 0 ? "invisible" : undefined} aria-hidden={graphed.length > 0 ? true : undefined}>
+                  {/* Stretched over it, the Red Zone's graphs take the map's place; the map stays put underneath. */}
+                  <div className={graphsOverMap ? "invisible" : undefined} aria-hidden={graphsOverMap ? true : undefined}>
                     <GameMap
                       games={games}
                       legend={legend}
@@ -628,7 +641,7 @@ export default function DashboardPage() {
                       room={`var(--room-h, 100vh) - var(--header-h, 0px) - var(--ticker-h, 0px) - 0.625rem - ${redZoneEmpty ? "2rem" : "10rem"}`}
                     />
                   </div>
-                  {graphsView ? (
+                  {graphsOverMap ? (
                     // As much room over them as there is over the starters list's bar.
                     <div className="floor-reflect absolute inset-0 pt-3.5">{graphsView}</div>
                   ) : null}

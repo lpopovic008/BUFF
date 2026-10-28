@@ -25,6 +25,8 @@
   /* Game tags on the map: a neutral plate that contrasts with the land —
      near-black here, near-white in dark mode. */
   --map-tag: #1f1f1f;
+  /* The plate under a highlighted title — the tag's, a little see-through (its ink stays solid). */
+  --title-plate: color-mix(in srgb, var(--map-tag) 85%, transparent);
   --map-tag-ink: #f4f4f4;
   /* Good / middling / bad marks (ranks, streaks) on a map-tag plate. */
   --on-tag-good: #3fcf3f;
@@ -163,13 +165,13 @@
     U+2600-27BF, U+2934-2935, U+2B05-2B55, U+3030, U+303D, U+3297, U+3299, U+FE0F, U+200D, U+1F000-1FAFF;
 }
 
-/* Fluid root size: every rem-based value in the app (Tailwind's text sizes,
-   spacing, max-widths) scales with it, so the whole UI grows smoothly from
-   a phone (16px) through a 2560px display (24px) instead of staying a small
-   fixed-size column in a sea of white space. Breakpoint media queries are
-   unaffected — those resolve rem against the browser default, not this. */
+/* Root size: every rem-based value in the app (Tailwind's text sizes,
+   spacing, max-widths) scales with it — from a phone (16px) up to a tablet's
+   (18px, an iPad's width), and no further: a bigger screen gets more room,
+   not bigger text, so a monitor reads like an iPad. Breakpoint media queries
+   are unaffected — those resolve rem against the browser default, not this. */
 html {
-  font-size: clamp(16px, 14.6px + 0.366vw, 24px);
+  font-size: clamp(16px, 14.6px + 0.366vw, 18px);
 }
 
 /* On a phone the page doesn't bounce past its ends: iOS drags everything,
