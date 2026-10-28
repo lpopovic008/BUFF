@@ -11,13 +11,15 @@ import { useFloorCamera } from "./FloorGrid";
 import type { MappedGame } from "./GameMap";
 
 // A game's ring on the floor, wider the more players it counts (in map units), and its stem standing up from it,
-// taller the more it counts (in rem) — as on the map (see GameMap).
+// taller the more it counts (in rem) — each player a good deal taller, so counts tell apart at a glance.
 function ringRadius(count: number): number {
   return count === 0 ? 2.8 : Math.min(3.6 + count * 0.9, 16);
 }
 function stemRem(count: number): number {
-  return Math.min(0.6 + count * 0.3, 4);
+  return Math.min(0.4 + count * 0.6, 6);
 }
+// The states on Mountain and Pacific time: their games' tags hang off the right of the stem, the rest off the left.
+const WEST_STATES = new Set(["AZ", "CO", "NM", "UT", "WY", "MT", "ID", "NV", "CA", "OR", "WA"]);
 const TAG_REM = 0.625;
 
 export interface MapSite {
@@ -26,6 +28,8 @@ export interface MapSite {
   pos: [number, number];
   label: string;
   count: number;
+  /** Played on Mountain or Pacific time: its tag on the stem's right. */
+  west: boolean;
 }
 
 /** Where each game is on the map — those played abroad in slots off its coast. */
@@ -35,7 +39,8 @@ export function mapSites(games: MappedGame[]): MapSite[] {
     const pos = isOutsideUS(entry.game) ? internationalSlotPosition(abroad++) : gameMapPosition(entry.game);
     if (!pos) return [];
     const count = entry.count ?? entry.starters.length + entry.opponentStarters.length;
-    return [{ id: entry.game.id, pos, label: `${entry.game.awayTeam} @ ${entry.game.homeTeam}`, count }];
+    const west = WEST_STATES.has(gameState(entry.game) ?? "");
+    return [{ id: entry.game.id, pos, label: `${entry.game.awayTeam} @ ${entry.game.homeTeam}`, count, west }];
   });
 }
 
@@ -103,7 +108,7 @@ export function FloorMapLand({ fit: lying, games, camera }: { fit: FloorMapFit; 
 /**
  * The week's games standing up off the map on the floor, in front of everything (the starters list sinks into the
  * floor behind them): each game's stem from its ring, taller the more players it counts, with the matchup's tag
- * hung off its top on the left — and, set over them, `overhead` (the kickoff countdown), above the map's middle as
+ * hung off its top on the left (on Mountain or Pacific time, the right) — and, set over them, `overhead` (the kickoff countdown), above the map's middle as
  * it lies. Moved with the floor (`camera`), those on the floor still on the screen.
  */
 export function FloorMapTags({
@@ -141,8 +146,8 @@ export function FloorMapTags({
         <div key={s.id} className="absolute left-0 top-0" style={{ transform: `translate(${s.x}px, ${s.y}px)` }}>
           <span className="absolute bottom-0 left-0 w-px bg-[var(--map-edge)]" style={{ height: `${stemRem(s.count)}rem` }} />
           <span
-            className="absolute right-0 whitespace-nowrap bg-[var(--map-tag)] px-[0.35em] py-[0.12em] font-bold leading-[1.3] text-[var(--map-tag-ink)]"
-            style={{ bottom: `${stemRem(s.count)}rem`, marginRight: "0.35em", fontSize: `${TAG_REM}rem`, transform: "translateY(100%)" }}
+            className={`absolute whitespace-nowrap bg-[var(--map-tag)] px-[0.35em] py-[0.12em] font-bold leading-[1.3] text-[var(--map-tag-ink)] ${s.west ? "left-0" : "right-0"}`}
+            style={{ bottom: `${stemRem(s.count)}rem`, [s.west ? "marginLeft" : "marginRight"]: "0.35em", fontSize: `${TAG_REM}rem`, transform: "translateY(100%)" }}
           >
             {s.label}
           </span>
