@@ -538,8 +538,8 @@ export default function DashboardPage() {
   const redZoneOff = redZoneEmpty && weekGames.every((g) => g.state === "pre");
   // The Red Zone popping up out of the floor on the grid line a full square back from the map — not moved with it —
   // its top short of the horizon, a little narrower than the screen (on a tablet or wider, than the room left of the
-  // starters list) and drawn a little smaller, as further back; backed, so what's behind it on the floor is hidden,
-  // and reflected in the floor. Stretched (⇕), from under the ticker down to the bottom (a phone's tab bar).
+  // starters list) and drawn a little smaller, as further back; backed like the ticker, see-through, so the
+  // reflections on the floor behind it show softly through it; and reflected in the floor itself. Stretched (⇕), from under the ticker down to the bottom (a phone's tab bar).
   const redZoneSide = desktop ? "left-8 md:right-[23rem] lg:right-[25rem]" : "inset-x-6";
   const redZoneScale = desktop ? DESKTOP_RED_ZONE_SCALE : RED_ZONE_SCALE;
   const redZoneStage =
@@ -555,7 +555,7 @@ export default function DashboardPage() {
           }
         >
           <div
-            className="absolute bottom-0 left-0 flex origin-bottom-left animate-[rise_0.5s_ease-out_backwards] flex-col bg-page/85 [animation-delay:120ms]"
+            className="absolute bottom-0 left-0 flex origin-bottom-left animate-[rise_0.5s_ease-out_backwards] flex-col bg-page/50 backdrop-blur-[1px] [animation-delay:120ms]"
             style={
               redZoneFull
                 ? { width: "100%", height: "100%" }
@@ -659,10 +659,10 @@ export default function DashboardPage() {
       <div data-floor className="flex flex-row items-start gap-8 px-4 pt-2 [perspective:2200px]">
         <div
           data-floor
-          className="sticky top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] flex min-w-0 flex-1 origin-left flex-col overflow-hidden [rotate:y_4deg]"
+          className="sticky top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] flex min-w-0 flex-1 origin-left flex-col [rotate:y_4deg]"
           style={{ height: graphsBack ? `calc(${COLUMN_TO_HORIZON})` : 0 }}
         >
-          {/* Faintly reflected in the floor. */}
+          {/* Faintly reflected in the floor (past the column's foot, so it isn't clipped to it). */}
           {graphsBack ? <div className="floor-reflect flex min-h-0 flex-1 animate-[rise_0.5s_ease-out_backwards] flex-col">{graphsView}</div> : null}
         </div>
 
@@ -686,7 +686,8 @@ export default function DashboardPage() {
           camera={floorCamera}
         />
       ) : null}
-      <FloorReflection source={startersList} className="pb-16 [mask-image:linear-gradient(to_bottom,black_85%,transparent)]" />
+      {/* Its reflection without its fade, so what's at its foot shows in the floor. */}
+      <FloorReflection source={startersList} className="pb-16" />
       {redZoneStage}
       {floorControls}
     </div>
