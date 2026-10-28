@@ -412,10 +412,10 @@ export function FloorPlay({
         }
       }
 
-      // As on television: the line of scrimmage in blue, the line to gain for a first down in yellow — then where the
-      // play ended, in the page's ink, once it has.
-      ctx.globalAlpha = fade * 0.95;
-      ctx.lineWidth = 2;
+      // As on television: the line of scrimmage in blue, the line to gain for a first down in yellow — wires, a device
+      // pixel wide like the floor's grid lines — then where the play ended, in the page's ink, once it has.
+      ctx.globalAlpha = fade;
+      ctx.lineWidth = 1 / dpr;
       ctx.strokeStyle = SCRIMMAGE;
       line(stage.los, -hz, stage.los, hz);
       if (stage.firstDown !== null) {
