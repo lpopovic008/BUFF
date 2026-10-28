@@ -8,7 +8,7 @@ export type FloorPt = readonly [number, number];
 
 /** As far out, and in, as the floor zooms. */
 export const MIN_ZOOM = 0.5;
-export const MAX_ZOOM = 40;
+export const MAX_ZOOM = 6;
 
 const clampZoom = (zoom: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom));
 
@@ -59,28 +59,20 @@ export interface FloorBox {
 }
 
 /**
- * The floor's camera kept from losing `box` (the map): `view` the floor that's shown — from `far` (the horizon) to
- * `near` (the screen's bottom), and half its width at a depth. At its own size its back edge is never past the
- * horizon; zoomed in, as much further past it as it's grown (so anywhere on it can be zoomed in on). Off the sides or
- * the bottom it may go, so long as `margin` px of it's still on the screen.
+ * The floor's camera kept from taking `box` off the back of the room: `view` the floor that's shown — from `far` (the
+ * horizon) to `near` (the screen's bottom), and half its width at a depth. Its back edge is never past the horizon;
+ * cut off at the screen's sides or bottom is fine, so long as its middle's still on the screen.
  */
 export function keepOnFloor(
   camera: FloorCamera,
   box: FloorBox,
-  view: { far: number; near: number; halfWidthAt: (d: number) => number },
-  margin = 40
+  view: { far: number; near: number; halfWidthAt: (d: number) => number }
 ): FloorCamera {
   const z = camera.zoom;
-  const deep = box.maxD - box.minD;
-  const width = view.halfWidthAt(view.near) * 2;
-  // Its back edge: at the horizon at most (and past it by what zooming in's added), and above the bottom by a margin.
-  const back = view.far - Math.max(0, z - 1) * deep - box.minD * z;
-  const front = view.near - (margin * (view.near - view.far)) / Math.max(1, width) - box.minD * z;
-  const d = Math.max(Math.min(camera.d, front), back);
-  // Across: some of it on the screen, where its middle is.
-  const midD = Math.min(view.near, Math.max(view.far, ((box.minD + box.maxD) / 2) * z + d));
-  const shown = view.halfWidthAt(midD);
-  const reach = ((box.maxX - box.minX) / 2) * z + shown * (1 - (2 * margin) / Math.max(1, shown * 2));
+  const midD = ((box.minD + box.maxD) / 2) * z;
+  // The horizon first: zoomed well in, its middle may be under the screen's bottom before its back edge leaves it.
+  const d = Math.max(Math.min(camera.d, view.near - midD), view.far - box.minD * z);
+  const reach = view.halfWidthAt(midD + d);
   const midX = ((box.minX + box.maxX) / 2) * z;
   return { zoom: z, x: Math.min(Math.max(camera.x, -reach - midX), reach - midX), d };
 }
