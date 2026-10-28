@@ -1,17 +1,14 @@
 // The US map laid on the home page's floor (see grid-room.ts), at the front of it, nearest you, and drawn flat on
-// the screen where its points fall — so its lines are crisp wires like the grid's. Only so much of the floor's
-// perspective is let through it: the map is kept small enough that its far edge shows at no less than
-// MIN_FAR_SCALE of its near edge's scale (and narrower still on a narrow screen), so it never smears into a long
-// trapezoid — on a tall screen, where the floor near you is magnified the most, that keeps it narrower too.
+// the screen where its points fall — so its lines are crisp wires like the grid's. It reaches no further back than a
+// given grid line (the third from the front), and no nearer than the screen's bottom (a phone's tab bar), and is as
+// large as fits between them, no wider than it's let be: where the floor near you is magnified too much for that
+// (a phone's narrow screen), it sits a little back from the bottom so it can be bigger.
 
 import { US_SIMPLE_OUTLINE_PATH } from "./team-cities";
 import { FLOOR_TILT, HORIZON_SHARE, PERSPECTIVE_PX, floorDepth, floorY } from "./grid-room";
 
 const POINT = /(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g;
 const SIN = Math.sin((FLOOR_TILT * Math.PI) / 180);
-
-/** How small the map's far edge may show next to its near edge. */
-export const MIN_FAR_SCALE = 0.6;
 
 const OUTLINE_POINTS = [...US_SIMPLE_OUTLINE_PATH.matchAll(POINT)].map((m) => [Number(m[1]), Number(m[2])] as const);
 /** The mainland's extent, in map units. */
@@ -39,9 +36,9 @@ export interface FloorMapFit {
 }
 
 /**
- * The map on a `width` x `height` screen (its horizon `share` of the way down): its near edge on screen y
- * `bottom`, its middle across at screen x `centerX` there, as large as it can be with its near edge no wider than
- * `maxWidth` and its far edge at no less than `minFarScale` of its near edge's scale.
+ * The map on a `width` x `height` screen (its horizon `share` of the way down), its middle across at screen x
+ * `centerX`: as large as it can be with its far edge no further back than screen y `farthest`, its near edge no
+ * nearer than screen y `bottom`, and no wider than `maxWidth` there.
  */
 export function fitFloorMap({
   width,
@@ -49,25 +46,37 @@ export function fitFloorMap({
   share = HORIZON_SHARE,
   centerX,
   bottom,
+  farthest,
   maxWidth,
-  minFarScale = MIN_FAR_SCALE,
 }: {
   width: number;
   height: number;
   share?: number;
   centerX: number;
   bottom: number;
+  farthest: number;
   maxWidth: number;
-  minFarScale?: number;
 }): FloorMapFit {
-  const nearDepth = floorDepth(bottom, height, share);
-  const near = scaleAt(nearDepth);
-  // From the near edge to where the floor would meet the eye; the far edge's scale over the near edge's is that
-  // over itself plus the map's depth.
-  const toEye = PERSPECTIVE_PX / SIN - nearDepth;
-  const deepest = (toEye * (1 - minFarScale)) / minFarScale;
-  const k = Math.min(deepest / (MAP_BOUNDS.maxY - MAP_BOUNDS.minY), maxWidth / ((MAP_BOUNDS.maxX - MAP_BOUNDS.minX) * near));
-  return { width, height, share, k, nearDepth, across: (centerX - width / 2) / near };
+  const far = floorDepth(farthest, height, share);
+  const deep = MAP_BOUNDS.maxY - MAP_BOUNDS.minY;
+  const wide = MAP_BOUNDS.maxX - MAP_BOUNDS.minX;
+  // As deep as the room between the far line and the near edge allows, and as wide as the width allows there: the
+  // first grows as the near edge comes forward, the second shrinks (the floor's magnified more), so the largest map
+  // has its near edge where they meet — or at the bottom, if they don't.
+  const byDepth = (near: number) => (near - far) / deep;
+  const byWidth = (near: number) => maxWidth / (wide * scaleAt(near));
+  let near = floorDepth(bottom, height, share);
+  if (byDepth(near) > byWidth(near)) {
+    let [lo, hi] = [far, near];
+    for (let i = 0; i < 50; i++) {
+      const mid = (lo + hi) / 2;
+      if (byDepth(mid) > byWidth(mid)) hi = mid;
+      else lo = mid;
+    }
+    near = lo;
+  }
+  const k = Math.min(byDepth(near), byWidth(near));
+  return { width, height, share, k, nearDepth: near, across: (centerX - width / 2) / scaleAt(near) };
 }
 
 /** Where map point (x, y), in map units, shows on the screen, and how magnified the floor is there. */

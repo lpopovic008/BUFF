@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/Card";
 import type { MappedGame } from "@/components/GameMap";
 import { FloorMapLand, FloorMapTags } from "@/components/FloorMap";
 import { FloorMapFit, fitFloorMap, floorMapTop } from "@/lib/floor-map";
-import { HORIZON_SHARE, PHONE_HORIZON_SHARE, lowestGridLine, nearestRow } from "@/lib/grid-room";
+import { HORIZON_SHARE, PHONE_HORIZON_SHARE, gridRows, lowestGridLine, nearestRow } from "@/lib/grid-room";
 import { FloorGrid } from "@/components/FloorGrid";
 import { LeagueTicker, TickerLeague } from "@/components/LeagueTicker";
 import { ByeTeam, LeagueLegendEntry, StartersByGame, viewPlayers } from "@/components/StartersByGame";
@@ -236,20 +236,20 @@ export default function DashboardPage() {
       const css = getComputedStyle(document.documentElement);
       const tabBar = parseFloat(css.getPropertyValue("--tabbar-h")) || 0;
       const rootPx = parseFloat(css.fontSize) || 16;
-      // The map lies on the floor at the front: from tablet width up under the middle of its column, its near edge
-      // just over the screen's bottom, no wider than the column (nor 64rem); on a phone across the screen, just over
-      // the tab bar — where the starters list stands on the grid line nearest the top of its land.
-      const column = mapColumnRef.current?.getBoundingClientRect();
-      const fit = window.matchMedia(DESKTOP).matches
-        ? fitFloorMap({
-            width,
-            height,
-            share: HORIZON_SHARE,
-            centerX: column ? column.left + column.width / 2 : width / 2,
-            bottom: height - 0.75 * rootPx,
-            maxWidth: Math.min(column?.width ?? width / 2, 64 * rootPx),
-          })
-        : fitFloorMap({ width, height, share: PHONE_HORIZON_SHARE, centerX: width / 2, bottom: height - tabBar - 0.5 * rootPx, maxWidth: width - 32 });
+      // The map lies on the floor at the front, centred across the screen, reaching back as far as the third grid line
+      // from the front and no nearer than just over the screen's bottom (a phone's tab bar), as wide as that makes it
+      // within the screen — where, on a phone, the starters list stands on the grid line nearest the top of its land.
+      const desk = window.matchMedia(DESKTOP).matches;
+      const share = desk ? HORIZON_SHARE : PHONE_HORIZON_SHARE;
+      const fit = fitFloorMap({
+        width,
+        height,
+        share,
+        centerX: width / 2,
+        bottom: desk ? height - 0.75 * rootPx : height - tabBar - 0.5 * rootPx,
+        farthest: gridRows(height, share).at(-3) ?? height * share,
+        maxWidth: width - 2 * rootPx,
+      });
       const landTop = floorMapTop(fit);
       setStand({
         room: height,
@@ -606,10 +606,12 @@ export default function DashboardPage() {
     );
   }
 
-  // From tablet width up, graphs go up at the back of the room. The map's column stops over the map's games' tags and
-  // the countdown over them (7rem over its land) — or, the Red Zone stretched (⇕), runs to the screen's bottom.
+  // From tablet width up, graphs go up at the back of the room. The Red Zone's column stops over the map's games' tags
+  // and the countdown over them (7rem over its land) — down to the horizon at least, with graphs up, their foot on it
+  // (the countdown out of their way) — or, the Red Zone stretched (⇕), runs to the screen's bottom.
   const graphsBack = graphsView !== null;
-  const columnBottom = stand && !redZoneFull ? `${stand.landTop - 7 * stand.rootPx}px` : "var(--room-h, 100vh)";
+  const columnBottom =
+    stand && !redZoneFull ? `${Math.max(stand.landTop - 7 * stand.rootPx, graphsBack ? stand.room * HORIZON_SHARE : 0)}px` : "var(--room-h, 100vh)";
   return (
     // From tablet width up the columns reach the bottom of the screen: the page's own bottom padding is taken back.
     // Nothing scrolls but the starters list (and the Red Zone's plays, within it).
@@ -655,7 +657,7 @@ export default function DashboardPage() {
         </div>
       </div>
       {mapShown ? (
-        <FloorMapTags fit={stand.fit} games={games} top={stand.landTop - 5 * stand.rootPx} overhead={<KickoffCountdown kickoffs={kickoffs} />} />
+        <FloorMapTags fit={stand.fit} games={games} top={stand.landTop - 5 * stand.rootPx} overhead={graphsBack ? undefined : <KickoffCountdown kickoffs={kickoffs} />} />
       ) : null}
     </div>
   );
