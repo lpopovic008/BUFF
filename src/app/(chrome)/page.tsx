@@ -590,13 +590,13 @@ export default function DashboardPage() {
           <LeagueTicker leagues={leagueCards} />
           {redZoneView ? <div className={`-mx-4 shrink-0 animate-[rise_0.5s_ease-out_backwards] pt-1 ${redZoneOff ? "hidden" : ""} ${redZoneFitted ? "min-h-0 flex-1" : ""}`}>{redZoneView}</div> : null}
           {graphsUp ? <div className="floor-reflect min-h-0 flex-1 pt-2">{graphsView}</div> : null}
-          {/* Reflected in the floor from its foot; within it, scrolling, its last 4rem fading into the floor behind the
+          {/* Reflected in the floor from its foot; within it, scrolling, its bottom 15% fading into the floor behind the
               map's stems. */}
           <div
             className={`floor-reflect min-h-0 animate-[rise_0.5s_ease-out_backwards] pt-2 [animation-delay:200ms] ${redZoneFitted ? "hidden" : graphsUp ? "flex-none" : "flex-1"}`}
             style={graphsUp && stand ? { height: stand.foot - stand.horizon } : undefined}
           >
-            <div className="h-full overflow-y-auto overscroll-contain pb-16 [-webkit-mask-image:linear-gradient(to_bottom,black_calc(100%-4rem),transparent)] [mask-image:linear-gradient(to_bottom,black_calc(100%-4rem),transparent)]">
+            <div className="h-full overflow-y-auto overscroll-contain pb-16 [-webkit-mask-image:linear-gradient(to_bottom,black_85%,transparent)] [mask-image:linear-gradient(to_bottom,black_85%,transparent)]">
               {startersView}
             </div>
           </div>
@@ -650,9 +650,9 @@ export default function DashboardPage() {
             As wide as its rows need (in rem, so it shrinks with the text when the browser zooms out), the map's column
             taking the rest. It stands upright on the floor's lowest grid line (--stand), facing you square on, as
             something standing on a line across the floor does — from where it sits under the ticker (past the gap and
-            the row's padding, 0.625rem), so its foot is on the line whether or not it's stuck. Its last 1.5rem fade
+            the row's padding, 0.625rem), so its foot is on the line whether or not it's stuck. Its bottom 15% fades
             out, so it's gone by the time it meets the floor, a faint reflection of it there. */}
-        <div className="floor-reflect sticky top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] h-[calc(var(--room-h,100vh)-var(--header-h,0px)-var(--ticker-h,0px)-0.625rem-var(--stand,0px))] w-80 shrink-0 animate-[rise_0.5s_ease-out_backwards] overflow-y-auto pb-16 [animation-delay:200ms] [mask-image:linear-gradient(to_bottom,black_calc(100%-1.5rem),transparent)] lg:w-[22rem]">
+        <div className="floor-reflect sticky top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] h-[calc(var(--room-h,100vh)-var(--header-h,0px)-var(--ticker-h,0px)-0.625rem-var(--stand,0px))] w-80 shrink-0 animate-[rise_0.5s_ease-out_backwards] overflow-y-auto pb-16 [animation-delay:200ms] [mask-image:linear-gradient(to_bottom,black_85%,transparent)] lg:w-[22rem]">
           {startersView}
         </div>
       </div>
