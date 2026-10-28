@@ -1,9 +1,8 @@
 // The US map laid on the home page's floor (see grid-room.ts), at the front of it, nearest you, and drawn flat on
-// the screen where its points fall — so its lines are crisp wires like the grid's. It reaches no further back than a
-// given grid line (the third from the front), and no nearer than the screen's bottom (a phone's tab bar), and is as
-// large as fits between them, no wider than it's let be: where the floor near you is magnified too much for that
-// (a phone's narrow screen), it sits a little back from the bottom so it can be bigger. Where the floor's been moved
-// (see floor-camera.ts), it moves with it.
+// the screen where its points fall — so its lines are crisp wires like the grid's. Its near edge on the screen's
+// bottom (a phone's tab bar), it reaches back no further than a given grid line (the third from the front), and is
+// as large as fits between them, its land no wider than it's let be. Where the floor's been moved (see
+// floor-camera.ts), it moves with it.
 
 import { US_SIMPLE_OUTLINE_PATH } from "./team-cities";
 import { FloorCamera, HORIZON_SHARE, floorDepth, floorPoint, floorScale } from "./grid-room";
@@ -35,8 +34,8 @@ export interface FloorMapFit {
 
 /**
  * The map on a `width` x `height` screen (its horizon `share` of the way down), its middle across at screen x
- * `centerX`: as large as it can be with its far edge no further back than screen y `farthest`, its near edge no
- * nearer than screen y `bottom`, and no wider than `maxWidth` there.
+ * `centerX`: its near edge at screen y `bottom`, as large as it can be with its far edge no further back than screen
+ * y `farthest`, and its land within `maxWidth` about its middle.
  */
 export function fitFloorMap({
   width,
@@ -55,26 +54,22 @@ export function fitFloorMap({
   farthest: number;
   maxWidth: number;
 }): FloorMapFit {
-  const far = floorDepth(farthest, height, share);
-  const deep = MAP_BOUNDS.maxY - MAP_BOUNDS.minY;
-  const wide = MAP_BOUNDS.maxX - MAP_BOUNDS.minX;
-  // As deep as the room between the far line and the near edge allows, and as wide as the width allows there: the
-  // first grows as the near edge comes forward, the second shrinks (the floor's magnified more), so the largest map
-  // has its near edge where they meet — or at the bottom, if they don't.
-  const byDepth = (near: number) => (near - far) / deep;
-  const byWidth = (near: number) => maxWidth / (wide * floorScale(near));
-  let near = floorDepth(bottom, height, share);
-  if (byDepth(near) > byWidth(near)) {
-    let [lo, hi] = [far, near];
-    for (let i = 0; i < 50; i++) {
-      const mid = (lo + hi) / 2;
-      if (byDepth(mid) > byWidth(mid)) hi = mid;
-      else lo = mid;
-    }
-    near = lo;
+  const near = floorDepth(bottom, height, share);
+  const across = (centerX - width / 2) / floorScale(near);
+  const byDepth = (near - floorDepth(farthest, height, share)) / (MAP_BOUNDS.maxY - MAP_BOUNDS.minY);
+  const at = (k: number): FloorMapFit => ({ width, height, share, k, nearDepth: near, across });
+  // As deep as it may go, unless that's too wide somewhere: the floor's magnified more toward you, so each point of
+  // the land is checked where it falls, the largest that fits found by halving.
+  const fits = (k: number) =>
+    OUTLINE_POINTS.every(([x, y]) => Math.abs(floorMapPoint(at(k), x, y)[0] - centerX) <= maxWidth / 2 + 1e-6);
+  if (fits(byDepth)) return at(byDepth);
+  let [lo, hi] = [0, byDepth];
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2;
+    if (fits(mid)) lo = mid;
+    else hi = mid;
   }
-  const k = Math.min(byDepth(near), byWidth(near));
-  return { width, height, share, k, nearDepth: near, across: (centerX - width / 2) / floorScale(near) };
+  return at(lo);
 }
 
 /** Where on the floor, as it lies, map point (x, y) in map units is: [across, back] in floor px. */

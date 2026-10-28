@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { floorAt, HOME_CAMERA } from "@/lib/grid-room";
+import { FloorCamera, floorAt, HOME_CAMERA } from "@/lib/grid-room";
 import { FloorMapFit, floorMapFloor, MAP_BOUNDS } from "@/lib/floor-map";
 import { cameraPutting, cameraUnder, FloorCameraStore, FloorPt, pinchCamera, zoomCameraAt } from "@/lib/floor-camera";
 import { mapSites } from "./FloorMap";
@@ -22,8 +22,9 @@ function onFloor(target: EventTarget | null): boolean {
 
 /**
  * The home page's floor, moved around and zoomed: dragged (a finger, or the mouse) and pinched (two fingers, or a
- * trackpad) wherever it's bare below the horizon, a trackpad's two-finger scroll sliding it. At home it follows the
- * starters list (`list`): scrolled down it, it glides to the map's game at the top of its games, zoomed in a little — and
+ * trackpad) wherever it's bare below the horizon, a trackpad's two-finger scroll sliding it — a pinch zooming just
+ * it, never the page, and leaving it where it's put. At home it follows the
+ * starters list (`list`): scrolled down it, it glides to the map's game at the list's top, zoomed in a little — and
  * back to the whole map scrolled back to the top. Moved by you, it stays where you put it, the list scrolling on its
  * own, until its home button takes it back.
  */
@@ -57,6 +58,12 @@ export function FloorCameraControls({
     const pointers = new Map<number, { at: [number, number]; grab: FloorPt }>();
     let start: [number, number] | null = null;
     let moving = false;
+    // Once two fingers have pinched, the floor stays put until they're all off it: a finger left down doesn't drag it.
+    let pinched = false;
+    // A zoom's own scrolls, and a moment after, aren't taken for a slide.
+    let zoomedAt = 0;
+    // A pinch on a Safari trackpad: the camera it started from, and the floor point under it.
+    let gesture: { camera: FloorCamera; at: FloorPt } | null = null;
     // Each finger holding the floor's point under it now.
     const regrab = () => {
       const { camera } = store.get();
@@ -75,42 +82,82 @@ export function FloorCameraControls({
       const p = pointers.get(e.pointerId);
       if (!p) return;
       p.at = [e.clientX, e.clientY];
-      if (!moving && start && Math.hypot(p.at[0] - start[0], p.at[1] - start[1]) < SLOP && pointers.size === 1) return;
-      moving = true;
       const [a, b] = [...pointers.values()];
-      store.move(
-        b ? pinchCamera([a.grab, b.grab], [toFloor(...a.at), toFloor(...b.at)]) : cameraPutting(a.grab, toFloor(...a.at), store.get().camera.zoom)
-      );
+      if (b) {
+        pinched = true;
+        moving = true;
+        zoomedAt = performance.now();
+        store.move(pinchCamera([a.grab, b.grab], [toFloor(...a.at), toFloor(...b.at)]));
+        return;
+      }
+      if (pinched) return;
+      if (!moving && start && Math.hypot(p.at[0] - start[0], p.at[1] - start[1]) < SLOP) return;
+      moving = true;
+      store.move(cameraPutting(a.grab, toFloor(...a.at), store.get().camera.zoom));
     };
     const up = (e: PointerEvent) => {
       if (!pointers.delete(e.pointerId)) return;
-      if (pointers.size === 0) moving = false;
+      if (pointers.size === 0) moving = pinched = false;
       regrab();
     };
-    // A pinch on a trackpad (or Ctrl/⌘ + scroll) zooms about the pointer; a two-finger scroll slides the floor.
+    // A pinch on a trackpad (or Ctrl/⌘ + scroll) anywhere over the floor zooms it, about the pointer, and never the
+    // page; a two-finger scroll on the bare floor slides it.
     const wheel = (e: WheelEvent) => {
-      if (!onFloor(e.target) || e.clientY <= horizon + 2) return;
+      if (e.clientY <= horizon + 2) return;
+      const zoom = e.ctrlKey || e.metaKey;
+      if (!zoom && !onFloor(e.target)) return;
       e.preventDefault();
+      if (gesture) return;
       const { camera } = store.get();
       const px = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? height : 1;
       const at = toFloor(e.clientX, e.clientY);
-      store.move(
-        e.ctrlKey || e.metaKey
-          ? zoomCameraAt(camera, Math.exp(-e.deltaY * px * 0.01), at)
-          : cameraPutting(cameraUnder(camera, at), toFloor(e.clientX - e.deltaX * px, e.clientY - e.deltaY * px), camera.zoom)
-      );
+      if (zoom) {
+        zoomedAt = performance.now();
+        store.move(zoomCameraAt(camera, Math.exp(-e.deltaY * px * 0.01), at));
+      } else if (performance.now() - zoomedAt > 300) {
+        store.move(cameraPutting(cameraUnder(camera, at), toFloor(e.clientX - e.deltaX * px, e.clientY - e.deltaY * px), camera.zoom));
+      }
+    };
+    // Safari's own pinch (a Mac's trackpad, or two fingers on an iPhone): never the page's zoom while it's on the
+    // floor. Fingers on the floor already pinch it (above); a trackpad's pinch zooms it here.
+    type Gesture = UIEvent & { scale: number; clientX: number; clientY: number };
+    const gestureStart = (e: Event) => {
+      const g = e as Gesture;
+      if (pointers.size === 0 && (!onFloor(g.target) || g.clientY <= horizon + 2)) return;
+      g.preventDefault();
+      gesture = pointers.size === 0 ? { camera: store.get().camera, at: toFloor(g.clientX, g.clientY) } : null;
+    };
+    const gestureChange = (e: Event) => {
+      const g = e as Gesture;
+      if (!gesture && pointers.size === 0) return;
+      g.preventDefault();
+      if (gesture) {
+        zoomedAt = performance.now();
+        store.move(zoomCameraAt(gesture.camera, g.scale, gesture.at));
+      }
+    };
+    const gestureEnd = (e: Event) => {
+      if (!gesture && pointers.size === 0) return;
+      e.preventDefault();
+      gesture = null;
     };
     document.addEventListener("pointerdown", down);
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
     window.addEventListener("pointercancel", up);
     document.addEventListener("wheel", wheel, { passive: false });
+    document.addEventListener("gesturestart", gestureStart, { passive: false });
+    document.addEventListener("gesturechange", gestureChange, { passive: false });
+    document.addEventListener("gestureend", gestureEnd, { passive: false });
     return () => {
       document.removeEventListener("pointerdown", down);
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
       window.removeEventListener("pointercancel", up);
       document.removeEventListener("wheel", wheel);
+      document.removeEventListener("gesturestart", gestureStart);
+      document.removeEventListener("gesturechange", gestureChange);
+      document.removeEventListener("gestureend", gestureEnd);
     };
   }, [store, fit]);
 
@@ -122,9 +169,8 @@ export function FloorCameraControls({
       if (!store.get().following) return;
       let target: string | null = null;
       if (list && list.scrollTop > 4) {
-        // Where the games' top rests (data-follow), scrolled to the list's top — or the list's own top.
-        const games = list.querySelector("[data-follow]");
-        const top = (games ? games.getBoundingClientRect().top + list.scrollTop : list.getBoundingClientRect().top) + 12;
+        // The top of what's seen of it: under its padding (on a phone, under the ticker).
+        const top = list.getBoundingClientRect().top + (parseFloat(getComputedStyle(list).paddingTop) || 0) + 12;
         for (const box of list.querySelectorAll<HTMLElement>("[data-game]")) {
           const id = box.dataset.game!;
           if (box.getBoundingClientRect().bottom > top && sites.has(id)) {

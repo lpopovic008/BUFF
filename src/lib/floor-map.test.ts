@@ -1,39 +1,31 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { fitFloorMap, floorMapPath, floorMapPoint, floorMapTop, MAP_BOUNDS } from "./floor-map";
+import { US_SIMPLE_OUTLINE_PATH } from "./team-cities";
 import { gridRows, PHONE_HORIZON_SHARE } from "./grid-room";
 
 const midX = (MAP_BOUNDS.minX + MAP_BOUNDS.maxX) / 2;
+const OUTLINE = [...US_SIMPLE_OUTLINE_PATH.matchAll(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g)].map((m) => [Number(m[1]), Number(m[2])] as const);
 const deskRows = gridRows(900);
 const desk = fitFloorMap({ width: 1440, height: 900, centerX: 720, bottom: 885, farthest: deskRows.at(-3)!, maxWidth: 1400 });
 const phoneRows = gridRows(852, PHONE_HORIZON_SHARE);
 const phone = fitFloorMap({ width: 393, height: 852, share: PHONE_HORIZON_SHARE, centerX: 196.5, bottom: 780, farthest: phoneRows.at(-3)!, maxWidth: 361 });
 
-test("the map reaches back to the line it's given, and no nearer than the bottom", () => {
+test("the map's near edge is on the bottom, and it reaches back no further than the line it's given", () => {
   for (const [fit, rows, bottom] of [[desk, deskRows, 885], [phone, phoneRows, 780]] as const) {
     assert.ok(floorMapTop(fit) >= rows.at(-3)! - 1e-6);
-    assert.ok(floorMapPoint(fit, midX, MAP_BOUNDS.maxY)[1] <= bottom + 1e-6);
+    assert.ok(Math.abs(floorMapPoint(fit, midX, MAP_BOUNDS.maxY)[1] - bottom) < 1e-6);
   }
-  // Room to spare in width on a wide screen: as deep as it may go, its near edge on the bottom.
+  // Room to spare in width on a wide screen: as deep as it may go.
   assert.ok(Math.abs(floorMapTop(desk) - deskRows.at(-3)!) < 1);
-  assert.ok(Math.abs(floorMapPoint(desk, midX, MAP_BOUNDS.maxY)[1] - 885) < 1e-6);
 });
 
-test("the map keeps within the width it's given, centred where it's asked", () => {
-  const near = (fit: typeof phone) => {
-    const [l] = floorMapPoint(fit, MAP_BOUNDS.minX, MAP_BOUNDS.maxY);
-    const [r] = floorMapPoint(fit, MAP_BOUNDS.maxX, MAP_BOUNDS.maxY);
-    return r - l;
-  };
-  assert.ok(near(phone) <= 361 + 1e-6);
+test("the map's land keeps within the width it's given, centred where it's asked", () => {
+  const xs = (fit: typeof phone) => OUTLINE.map(([x, y]) => floorMapPoint(fit, x, y)[0]);
+  assert.ok(Math.max(...xs(phone).map((x) => Math.abs(x - 196.5))) <= 361 / 2 + 1e-6);
+  // As wide as that lets it be, on a narrow screen.
+  assert.ok(Math.max(...xs(phone).map((x) => Math.abs(x - 196.5))) > 361 / 2 - 1);
   assert.ok(Math.abs(floorMapPoint(desk, midX, MAP_BOUNDS.maxY)[0] - 720) < 1e-6);
-});
-
-test("on a narrow screen the map sits back from the bottom to be bigger than it could be at it", () => {
-  const atBottom = fitFloorMap({ width: 393, height: 852, share: PHONE_HORIZON_SHARE, centerX: 196.5, bottom: 780, farthest: 780 - 1, maxWidth: 361 });
-  assert.ok(phone.k > 0);
-  assert.ok(floorMapPoint(phone, midX, MAP_BOUNDS.maxY)[1] < 780);
-  assert.ok(atBottom.k < phone.k);
 });
 
 test("floorMapPath lays every point of a path on the floor", () => {

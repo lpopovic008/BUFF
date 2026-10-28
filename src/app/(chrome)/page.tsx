@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/Card";
 import type { MappedGame } from "@/components/GameMap";
 import { FloorMapLand, FloorMapTags } from "@/components/FloorMap";
 import { FloorMapFit, fitFloorMap, floorMapTop } from "@/lib/floor-map";
-import { HORIZON_SHARE, PHONE_HORIZON_SHARE, gridRows, lowestGridLine, nearestRow } from "@/lib/grid-room";
+import { HORIZON_SHARE, PHONE_HORIZON_SHARE, gridRows, lowestGridLine } from "@/lib/grid-room";
 import { FloorGrid } from "@/components/FloorGrid";
 import { FloorCameraControls } from "@/components/FloorCameraControls";
 import { createFloorCameraStore } from "@/lib/floor-camera";
@@ -217,15 +217,14 @@ export default function DashboardPage() {
   const mapColumnRef = useRef<HTMLDivElement>(null);
   // The room's height as it's drawn (not 100vh, which a browser's toolbars can make taller than the screen); how far up
   // from its bottom the floor's lowest grid line is — where the starters list stands from tablet width up; the
-  // horizon; the map on the floor (see floor-map.ts) and the top of its land; on a phone, the grid line the starters
-  // list stands on instead (nearest the top of the map's land); and the root font size — screen y's, from the top.
+  // horizon; the map on the floor (see floor-map.ts) and the top of its land; and the root font size — screen y's,
+  // from the top.
   const [stand, setStand] = useState<{
     room: number;
     on: number;
     horizon: number;
     fit: FloorMapFit;
     landTop: number;
-    foot: number;
     rootPx: number;
   } | null>(null);
   // Fitted to the screen (⇕), the Red Zone takes a phone's whole scene.
@@ -240,9 +239,9 @@ export default function DashboardPage() {
       const css = getComputedStyle(document.documentElement);
       const tabBar = parseFloat(css.getPropertyValue("--tabbar-h")) || 0;
       const rootPx = parseFloat(css.fontSize) || 16;
-      // The map lies on the floor at the front, centred across the screen, reaching back as far as the third grid line
-      // from the front and no nearer than just over the screen's bottom (a phone's tab bar), as wide as that makes it
-      // within the screen — where, on a phone, the starters list stands on the grid line nearest the top of its land.
+      // The map lies on the floor at the front, centred across the screen, its near edge on the screen's bottom (a
+      // phone's tab bar), reaching back as far as the third grid line from the front, as wide as that makes it within
+      // the screen.
       const desk = window.matchMedia(DESKTOP).matches;
       const share = desk ? HORIZON_SHARE : PHONE_HORIZON_SHARE;
       const fit = fitFloorMap({
@@ -250,7 +249,7 @@ export default function DashboardPage() {
         height,
         share,
         centerX: width / 2,
-        bottom: desk ? height - 0.75 * rootPx : height - tabBar - 0.5 * rootPx,
+        bottom: desk ? height : height - tabBar,
         farthest: gridRows(height, share).at(-3) ?? height * share,
         maxWidth: width - 2 * rootPx,
       });
@@ -261,7 +260,6 @@ export default function DashboardPage() {
         horizon: height * PHONE_HORIZON_SHARE,
         fit,
         landTop,
-        foot: nearestRow(height, landTop, PHONE_HORIZON_SHARE),
         rootPx,
       });
     };
@@ -451,7 +449,6 @@ export default function DashboardPage() {
   // The floor moved around and zoomed (see FloorCameraControls), following the starters list while it's home.
   const [floorCamera] = useState(createFloorCameraStore);
   const [startersList, setStartersList] = useState<HTMLDivElement | null>(null);
-  const startersRef = useRef<HTMLDivElement>(null);
 
   if (!loaded || leagues === null) {
     return (
@@ -591,12 +588,11 @@ export default function DashboardPage() {
 
   if (!desktop) {
     // A phone: one scene that doesn't scroll, standing in the room, the ticker along its top — and under it, scrolling
-    // together as one list standing on a grid line about halfway back on the floor (nearest the top of the map's land,
-    // which lies at the front, nearest you), the Red Zone, any player graphs and the starters list. Scrolled to its
-    // top, the graphs fill the room between the Red Zone and the horizon, their foot on it, the starters list
-    // from there down; or, with none up, the starters list straight under the Red Zone. Scrolled up, it all goes
-    // up under the see-through ticker and header, the starters list fading out as it passes back over where its top
-    // rests (the horizon, with graphs up) — a trace of it left. The Red Zone fitted to the screen (⇕) takes the scene.
+    // together as one list at the back of the room, above the horizon (nothing of it in front of the floor), the Red
+    // Zone, any player graphs and the starters list. Scrolled to its top, the graphs fill the room between the Red Zone
+    // and the horizon, their foot on it, the starters list behind it; or, with none up, the starters list straight
+    // under the Red Zone. Scrolled, it goes up under the see-through ticker and header, and comes up from behind the
+    // horizon, faintly reflected in the floor there. The Red Zone fitted to the screen (⇕) takes the scene.
     const graphsUp = graphsView !== null && !redZoneFitted;
     const underTicker = "var(--header-h, 0px) + var(--ticker-h, 0px) + 0.25rem";
     return (
@@ -604,18 +600,14 @@ export default function DashboardPage() {
         <h1 className="sr-only">Dashboard</h1>
         {roomView}
         <div data-floor className="fixed inset-0 touch-none">
-          {/* Reflected in the floor from its foot. */}
+          {/* Reflected in the floor from the horizon. */}
           <div
             className="floor-reflect absolute inset-x-0 top-0 animate-[rise_0.5s_ease-out_backwards]"
-            style={{ height: stand && !redZoneFitted ? stand.foot : "calc(100% - var(--tabbar-h, 0px))" }}
+            style={{ height: stand && !redZoneFitted ? stand.horizon : "calc(100% - var(--tabbar-h, 0px))" }}
           >
-            {/* Its bottom fading into the floor behind the map's stems — not the fitted Red Zone's. */}
             <div
               ref={setStartersList}
-              onScroll={(e) => startersRef.current?.style.setProperty("--above", `${e.currentTarget.scrollTop}px`)}
-              className={`h-full overflow-y-auto overscroll-contain px-4 ${
-                redZoneFitted ? "" : "pb-16 [-webkit-mask-image:linear-gradient(to_bottom,black_calc(100%-2.5rem),transparent)] [mask-image:linear-gradient(to_bottom,black_calc(100%-2.5rem),transparent)]"
-              }`}
+              className={`h-full overflow-y-auto overscroll-contain px-4 ${redZoneFitted ? "" : "pb-8"}`}
               style={{ paddingTop: `calc(${underTicker})` }}
             >
               <div
@@ -625,16 +617,9 @@ export default function DashboardPage() {
                 }
               >
                 {redZoneView ? <div className={`-mx-4 shrink-0 pt-1 ${redZoneOff ? "hidden" : ""} ${redZoneFitted ? "min-h-0 flex-1" : ""}`}>{redZoneView}</div> : null}
-                {graphsUp ? <div className="floor-reflect min-h-0 flex-1 pt-2">{graphsView}</div> : null}
+                {graphsUp ? <div className="min-h-0 flex-1 pt-2">{graphsView}</div> : null}
               </div>
-              {/* Faded to a trace above where its top rests (--above: how far it's scrolled past that). */}
-              <div
-                ref={startersRef}
-                data-follow
-                className={`pt-2 [-webkit-mask-image:linear-gradient(to_bottom,rgb(0_0_0/0.12)_calc(var(--above,0px)-2rem),black_var(--above,0px))] [mask-image:linear-gradient(to_bottom,rgb(0_0_0/0.12)_calc(var(--above,0px)-2rem),black_var(--above,0px))] ${
-                  redZoneFitted ? "hidden" : ""
-                }`}
-              >
+              <div className={`pt-2 ${redZoneFitted ? "hidden" : ""}`}>
                 {startersView}
               </div>
             </div>
