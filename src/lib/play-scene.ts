@@ -39,6 +39,8 @@ export interface PlayScene {
   /** How far the line of scrimmage was from the goal line the team driving left to right is going for (a kickoff's
    * from the kicking team's) — null when ESPN doesn't say. */
   toGoal: number | null;
+  /** How far the offense had to go for a first down ("3rd & 4": 4) — null to the goal line, or off a down. */
+  toGo: number | null;
 }
 
 const NAME = `(${SHORT_NAME})`;
@@ -58,6 +60,12 @@ function airYards(yards: number, depth: string | undefined): number {
 function inParens(text: string, from = 0): string | null {
   const m = new RegExp(String.raw`\(\s*${NAME}`).exec(text.slice(from));
   return m ? m[1].replace(/\s+/g, " ") : null;
+}
+
+/** The yards to go in a down and distance ("3rd & 4": 4); null for "& Goal", or none given. */
+function toGoOf(downDistance: string | null): number | null {
+  const m = /&\s*(\d+)/.exec(downDistance ?? "");
+  return m ? Number(m[1]) : null;
 }
 
 /** "for 12 yards" / "for -3 yards" / "for no gain" after `from`, or null. */
@@ -98,6 +106,7 @@ export function sceneFor(play: GamePlay, teams: [home: string, away: string]): P
     returner: null,
     scramble: false,
     toGoal: play.yardsToEndzone ?? null,
+    toGo: toGoOf(play.downDistance),
   };
   let m: RegExpExecArray | null;
 
@@ -107,11 +116,11 @@ export function sceneFor(play: GamePlay, teams: [home: string, away: string]): P
     const distance = Number(m[2]);
     // Kicked from 7 yards behind the line, the posts 10 past the goal line.
     const toGoal = base.toGoal ?? Math.max(0, distance - 17);
-    return { ...base, kind: "fieldGoal", kicker: m[1], yards: distance, good: result === "GOOD", blocked: result === "BLOCKED", touchdown: false, toGoal };
+    return { ...base, kind: "fieldGoal", kicker: m[1], yards: distance, good: result === "GOOD", blocked: result === "BLOCKED", touchdown: false, toGoal, toGo: null };
   }
   if ((m = new RegExp(String.raw`^${NAME}\s+extra point is (GOOD|No Good|BLOCKED)`, "i").exec(action))) {
     const result = m[2].toUpperCase();
-    return { ...base, kind: "extraPoint", kicker: m[1], yards: 33, good: result === "GOOD", blocked: result === "BLOCKED", touchdown: false, toGoal: 15 };
+    return { ...base, kind: "extraPoint", kicker: m[1], yards: 33, good: result === "GOOD", blocked: result === "BLOCKED", touchdown: false, toGoal: 15, toGo: null };
   }
   // Punted or kicked off: who kicked it how far, and who caught it (on a fair catch, or running it back, and how far).
   if ((m = new RegExp(String.raw`^${NAME}\s+(punts|kicks)\s+(-?\d+)\s+yards?`, "i").exec(action))) {
@@ -124,6 +133,7 @@ export function sceneFor(play: GamePlay, teams: [home: string, away: string]): P
       kind: punt ? "punt" : "kickoff",
       // Kicked off from the kicking team's 35.
       toGoal: punt ? base.toGoal : 65,
+      toGo: null,
       kicker: m[1],
       yards: Number(m[3]),
       returner: fair ? fair[1] : ran ? ran[1] : null,
@@ -251,6 +261,8 @@ export interface Stage {
   los: number;
   /** How far the line of scrimmage is from the goal line on the right, when known (see PlayScene). */
   toGoal: number | null;
+  /** Where the line to gain is (a first down), when there's one short of the goal line. */
+  firstDown: number | null;
   /** Half how far it reaches along the field, from where anyone (or the ball) starts to where anyone ends. */
   reach: number;
   end: { x: number; t: number } | null;
@@ -517,6 +529,7 @@ export function stageFor(scene: PlayScene): Stage {
     marks: marks.map((m) => ({ ...m, x: moved(m.x) })),
     los: moved(los),
     toGoal: scene.toGoal,
+    firstDown: scene.toGo !== null && scene.toGo > 0 && (scene.toGoal === null || scene.toGo < scene.toGoal) ? moved(los + scene.toGo) : null,
     reach: (Math.max(...xs) - Math.min(...xs)) / 2,
     end: end ? { x: moved(end.x), t: end.t } : null,
     posts: posts !== null ? moved(posts) : null,

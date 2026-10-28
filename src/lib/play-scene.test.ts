@@ -111,3 +111,11 @@ test("the field under a play: its line of scrimmage's yard line, and how far the
   // A kickoff from the kicking team's 35.
   assert.equal(stageFor(sceneFor(play("T.Bass kicks 65 yards from BUF 35 to end zone, Touchback."), teams)!).toGoal, 65);
 });
+
+test("the line to gain: as many yards past the line of scrimmage as the down and distance says — none to the goal", () => {
+  const run = stageFor(sceneFor(play("J.Cook left end to KC 23 for 7 yards (N.Bolton).", { offense: "BUF", yards: 7, yardsToEndzone: 30, downDistance: "3rd & 4" }), teams)!);
+  assert.ok(Math.abs(run.firstDown! - (run.los + 4)) < 1e-9);
+  const goal = stageFor(sceneFor(play("J.Cook up the middle to KC 2 for 2 yards.", { offense: "BUF", yards: 2, yardsToEndzone: 4, downDistance: "1st & Goal" }), teams)!);
+  assert.equal(goal.firstDown, null);
+  assert.equal(stageFor(sceneFor(play("H.Butker 45 yard field goal is GOOD.", { downDistance: "4th & 8" }), teams)!).firstDown, null);
+});

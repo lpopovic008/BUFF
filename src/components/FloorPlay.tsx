@@ -35,6 +35,9 @@ const FADE_IN = 0.35;
 // Along the field, how much shows: the play's length and this many yards either side, at least this many in all.
 const MARGIN = 5;
 const MIN_SPAN = 16;
+// The line of scrimmage and the line to gain, colored as on television.
+const SCRIMMAGE = "#2f7cf6";
+const FIRST_DOWN = "#f5d020";
 const FADE_OUT = 0.5;
 const QUEUE = 3;
 
@@ -299,7 +302,8 @@ export function FloorPlay({
       // A yard across the field, and the players' size: the field's depth and everything standing on it, as ever. Along
       // it, zoomed in to the play — as long as it reaches and some either side, across the screen.
       const base = long / FIELD_LONG;
-      const span = Math.min(FIELD_LONG, Math.max(MIN_SPAN, 2 * (stage.reach + MARGIN)));
+      const reach = Math.max(stage.reach, stage.firstDown !== null ? Math.abs(stage.firstDown) : 0);
+      const span = Math.min(FIELD_LONG, Math.max(MIN_SPAN, 2 * (reach + MARGIN)));
       const yard = long / span;
       const at = (x: number, z: number) => floorPoint(across + x * yard, back + z * base, w, h, sh);
       const px = (z: number) => base * floorScale(back + z * base);
@@ -408,12 +412,17 @@ export function FloorPlay({
         }
       }
 
-      // The line of scrimmage, dashed; where it ended, solid, once it has.
-      ctx.globalAlpha = fade * 0.75;
-      ctx.lineWidth = 1;
-      ctx.setLineDash([4, 3]);
+      // As on television: the line of scrimmage in blue, the line to gain for a first down in yellow — then where the
+      // play ended, in the page's ink, once it has.
+      ctx.globalAlpha = fade * 0.95;
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = SCRIMMAGE;
       line(stage.los, -hz, stage.los, hz);
-      ctx.setLineDash([]);
+      if (stage.firstDown !== null) {
+        ctx.strokeStyle = FIRST_DOWN;
+        line(stage.firstDown, -hz, stage.firstDown, hz);
+      }
+      ctx.strokeStyle = ink;
       if (stage.end && t >= stage.end.t) {
         ctx.globalAlpha = fade * 0.95;
         ctx.lineWidth = 2;
