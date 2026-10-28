@@ -98,3 +98,16 @@ test("a play's staged centered on the field: it starts left of the middle and en
   const flying = ballAt(stage, (midair.from + midair.to) / 2);
   assert.ok(flying && "h" in flying && flying.h > 1);
 });
+
+test("the field under a play: its line of scrimmage's yard line, and how far the play reaches", () => {
+  const run = stageFor(sceneFor(play("J.Cook left end to KC 23 for 7 yards (N.Bolton).", { offense: "BUF", yards: 7, yardsToEndzone: 30 }), teams)!);
+  assert.equal(run.toGoal, 30);
+  const xs = run.actors.flatMap((a) => a.keys.map((k) => k.x));
+  assert.ok(Math.abs(run.reach - (Math.max(...xs) - Math.min(...xs)) / 2) < 1e-9);
+  // A field goal's line is 7 yards in front of where it's kicked; its posts on the end line, 10 past the goal line.
+  const fg = stageFor(sceneFor(play("H.Butker 45 yard field goal is GOOD."), teams)!);
+  assert.equal(fg.toGoal, 28);
+  assert.ok(Math.abs(fg.posts! - (fg.los + fg.toGoal! + 10)) < 1e-9);
+  // A kickoff from the kicking team's 35.
+  assert.equal(stageFor(sceneFor(play("T.Bass kicks 65 yards from BUF 35 to end zone, Touchback."), teams)!).toGoal, 65);
+});

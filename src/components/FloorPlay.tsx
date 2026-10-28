@@ -32,6 +32,9 @@ const PHONE_SQUARES = 3.3;
 const FIELD_LONG = 120;
 const FIELD_WIDE = 53.3;
 const FADE_IN = 0.35;
+// Along the field, how much shows: the play's length and this many yards either side, at least this many in all.
+const MARGIN = 5;
+const MIN_SPAN = 16;
 const FADE_OUT = 0.5;
 const QUEUE = 3;
 
@@ -297,9 +300,13 @@ export function FloorPlay({
       lying = lying === null ? target : lying + (target - lying) * 0.12;
       const back = lying;
       const { long, across } = sized(back);
-      const yard = long / FIELD_LONG;
-      const at = (x: number, z: number) => floorPoint(across + x * yard, back + z * yard, w, h, sh);
-      const px = (z: number) => yard * floorScale(back + z * yard);
+      // A yard across the field, and the players' size: the field's depth and everything standing on it, as ever. Along
+      // it, zoomed in to the play — as long as it reaches and some either side, across the screen.
+      const base = long / FIELD_LONG;
+      const span = Math.min(FIELD_LONG, Math.max(MIN_SPAN, 2 * (stage.reach + MARGIN)));
+      const yard = long / span;
+      const at = (x: number, z: number) => floorPoint(across + x * yard, back + z * base, w, h, sh);
+      const px = (z: number) => base * floorScale(back + z * base);
 
       ctx.save();
       ctx.globalAlpha = fade;
@@ -317,31 +324,97 @@ export function FloorPlay({
         ctx.lineTo(...at(x1, z1));
         ctx.stroke();
       };
-      const [hx, hz] = [FIELD_LONG / 2, FIELD_WIDE / 2];
-      // Laid over what's on the floor under it, its end zones shaded, its lines every five yards.
-      ctx.fillStyle = page;
+      const hz = FIELD_WIDE / 2;
+      const half = span / 2;
+      // The field under the play, its real yard lines where they are: the line of scrimmage on the yard line it was
+      // snapped from (the goal line it's going for off to the right). Only as much as the play needs, fading off at
+      // either end — but for its end line, where it ends.
+      const goal = stage.toGoal !== null ? stage.los + stage.toGoal : null;
+      const [from, to] = goal !== null ? [Math.max(-half, goal - 110), Math.min(half, goal + 10)] : [-half, half];
+      const edge = (x: number) => Math.max(0, Math.min(1, (half - Math.abs(x)) / (span * 0.2)));
+      const [gx0] = at(-half, 0);
+      const [gx1] = at(half, 0);
+      const shade = (alpha: number) => {
+        const g = ctx.createLinearGradient(gx0, 0, gx1, 0);
+        g.addColorStop(0, "transparent");
+        g.addColorStop(0.2, alpha === 1 ? page : ink);
+        g.addColorStop(0.8, alpha === 1 ? page : ink);
+        g.addColorStop(1, "transparent");
+        return g;
+      };
+      // Laid over what's on the floor under it.
+      ctx.fillStyle = shade(1);
       ctx.globalAlpha = fade * 0.7;
-      quad(-hx, -hz, hx, hz);
-      ctx.fill();
-      ctx.fillStyle = ink;
-      ctx.globalAlpha = fade * 0.06;
-      quad(-hx, -hz, -hx + 10, hz);
-      ctx.fill();
-      quad(hx - 10, -hz, hx, hz);
+      quad(from, -hz, to, hz);
       ctx.fill();
       ctx.strokeStyle = ink;
-      ctx.lineWidth = 1;
-      for (let x = -hx + 10; x <= hx - 10; x += 5) {
-        ctx.globalAlpha = fade * (x % 10 === 0 ? 0.28 : 0.12);
-        line(x, -hz, x, hz);
+      ctx.fillStyle = ink;
+      if (goal !== null) {
+        // Its end zones, shaded, as far as they show.
+        ctx.globalAlpha = fade * 0.07;
+        ctx.fillStyle = shade(0.07);
+        for (const [a, b] of [
+          [goal, goal + 10],
+          [goal - 110, goal - 100],
+        ]) {
+          const [lo, hi] = [Math.max(a, -half), Math.min(b, half)];
+          if (hi > lo) {
+            quad(lo, -hz, hi, hz);
+            ctx.fill();
+          }
+        }
+        // A line every yard of it: across the field every five, hash marks between (zoomed in enough to see them),
+        // the goal lines and the end lines stronger — and the tens numbered, near side.
+        const font = getComputedStyle(document.body).fontFamily;
+        for (let g = -10; g <= 110; g++) {
+          const x = goal - g;
+          if (x < -half || x > half) continue;
+          const f = edge(x);
+          if (g <= 0 || g >= 100) {
+            if (g !== 0 && g !== 100 && g !== -10 && g !== 110) continue;
+            ctx.globalAlpha = fade * 0.6 * Math.max(f, 0.35);
+            ctx.lineWidth = 1.5;
+            line(x, -hz, x, hz);
+            continue;
+          }
+          ctx.lineWidth = 1;
+          if (g % 5 === 0) {
+            ctx.globalAlpha = fade * (g % 10 === 0 ? 0.32 : 0.16) * f;
+            line(x, -hz, x, hz);
+          } else if (yard * floorScale(back) > 5) {
+            ctx.globalAlpha = fade * 0.22 * f;
+            line(x, -hz * 0.3 - 0.8, x, -hz * 0.3 + 0.8);
+            line(x, hz * 0.3 - 0.8, x, hz * 0.3 + 0.8);
+          }
+          if (g % 10 === 0) {
+            const [sx, sy] = at(x, hz * 0.62);
+            const size = Math.max(12, px(hz * 0.62) * 4);
+            ctx.save();
+            ctx.globalAlpha = fade * 0.5 * f;
+            ctx.fillStyle = ink;
+            ctx.font = `700 ${size}px ${font}`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.translate(sx, sy);
+            // Lying on the floor.
+            ctx.scale(1, 0.6);
+            ctx.fillText(String(g <= 50 ? g : 100 - g), 0, 0);
+            ctx.restore();
+          }
+        }
+      } else {
+        // Where it was snapped from isn't known: lines every five yards from the line of scrimmage.
+        ctx.lineWidth = 1;
+        for (let x = stage.los - Math.ceil((stage.los + half) / 5) * 5; x <= half; x += 5) {
+          if (x < -half) continue;
+          ctx.globalAlpha = fade * 0.2 * edge(x);
+          line(x, -hz, x, hz);
+        }
       }
-      ctx.globalAlpha = fade * 0.6;
-      ctx.lineWidth = 1.25;
-      quad(-hx, -hz, hx, hz);
-      ctx.stroke();
 
       // The line of scrimmage, dashed; where it ended, solid, once it has.
       ctx.globalAlpha = fade * 0.75;
+      ctx.lineWidth = 1;
       ctx.setLineDash([4, 3]);
       line(stage.los, -hz, stage.los, hz);
       ctx.setLineDash([]);
@@ -437,7 +510,8 @@ export function FloorPlay({
         }
         if (ball && "by" in ball && ball.by === p.i) {
           const hands = p.pose === "down" ? 0.4 : 2.4;
-          drawBall(p.x + (p.pose === "down" ? facingOf(p.a) * 2 : 0.9), p.z + 0.3, hands);
+          // In his hands: a step off his middle, at his own size (not the field's zoom).
+          drawBall(p.x + ((p.pose === "down" ? facingOf(p.a) * 2 : 0.9) * base) / yard, p.z + 0.3, hands);
         }
       }
       if (ball && !("by" in ball)) drawBall(ball.x, ball.z, ball.h);
@@ -456,17 +530,19 @@ export function FloorPlay({
         const pixels = glyphPixels(m.text);
         for (const [c, r] of pixels) ctx.fillRect(Math.round(sx + (c - 3.5) * unit), Math.round(top + r * unit), Math.ceil(unit), Math.ceil(unit));
       }
-      // What happened, in big pixels standing up over the far sideline, popping up as it does.
+      // What happened, in the page's own type, bold and in capitals, standing up over the far side — popping up as it does.
+      const type = getComputedStyle(document.body).fontFamily;
       for (const m of stage.marks) {
         if (m.kind !== "word" || t < m.t) continue;
         const pop = Math.min(1, (t - m.t) / 0.2);
-        const unit = px(-hz) * 0.85 * (0.6 + 0.4 * pop);
+        const size = Math.min(28, Math.max(14, px(-hz) * 4.5)) * (0.7 + 0.3 * pop);
         const [sx, sy] = at(m.x, -hz);
-        const cols = m.text.length * 4 - 1;
         ctx.globalAlpha = fade * pop;
         ctx.fillStyle = m.text === "TOUCHDOWN" || m.text === "GOOD" ? good : ink;
-        const top = sy - 7 * unit;
-        for (const [c, r] of glyphPixels(m.text)) ctx.fillRect(Math.round(sx + (c - cols / 2) * unit), Math.round(top + r * unit), Math.ceil(unit), Math.ceil(unit));
+        ctx.font = `700 ${size}px ${type}`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "alphabetic";
+        ctx.fillText(m.text.toUpperCase(), sx, sy - 4);
       }
       ctx.restore();
       frame = requestAnimationFrame(draw);
