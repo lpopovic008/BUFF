@@ -3,10 +3,11 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
-import { GameMap, MappedGame } from "@/components/GameMap";
+import type { MappedGame } from "@/components/GameMap";
+import { FloorMapLand, FloorMapTags } from "@/components/FloorMap";
+import { FloorMapFit, fitFloorMap, floorMapTop } from "@/lib/floor-map";
 import { HORIZON_SHARE, PHONE_HORIZON_SHARE, lowestGridLine, nearestRow } from "@/lib/grid-room";
 import { FloorGrid } from "@/components/FloorGrid";
-import { DEFAULT_SCENE, landTopShare, MAP_ASPECT } from "@/lib/map-perspective";
 import { LeagueTicker, TickerLeague } from "@/components/LeagueTicker";
 import { ByeTeam, LeagueLegendEntry, StartersByGame, viewPlayers } from "@/components/StartersByGame";
 import { NFL_TEAMS } from "@/lib/nfl-logos";
@@ -212,9 +213,17 @@ export default function DashboardPage() {
   const mapColumnRef = useRef<HTMLDivElement>(null);
   // The room's height as it's drawn (not 100vh, which a browser's toolbars can make taller than the screen); how far up
   // from its bottom the floor's lowest grid line is — where the starters list stands from tablet width up; the
-  // horizon; and, on a phone, the grid line it stands on instead (nearest the top of the map's land) and where the
-  // map's room starts — screen y's, from the top.
-  const [stand, setStand] = useState<{ room: number; on: number; horizon: number; foot: number; mapTop: number; tabBar: number } | null>(null);
+  // horizon; the map on the floor (see floor-map.ts) and the top of its land; on a phone, the grid line the starters
+  // list stands on instead (nearest the top of the map's land); and the root font size — screen y's, from the top.
+  const [stand, setStand] = useState<{
+    room: number;
+    on: number;
+    horizon: number;
+    fit: FloorMapFit;
+    landTop: number;
+    foot: number;
+    rootPx: number;
+  } | null>(null);
   // Fitted to the screen (⇕), the Red Zone takes a phone's whole scene.
   const [redZoneFitted, setRedZoneFitted] = useState(false);
   // The room's only drawn once the leagues are in (not while the page is loading), so it's measured once it is.
@@ -223,19 +232,33 @@ export default function DashboardPage() {
     if (!room) return;
     const measure = () => {
       const height = room.clientHeight || window.innerHeight;
-      const tabBar = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--tabbar-h")) || 0;
-      // On a phone the map lies across the screen just over the tab bar, with room for its tags over it; the
-      // starters list stands on the grid line nearest the top of its land, behind its tags' stems.
-      const mapBox = (window.innerWidth - 32) / MAP_ASPECT;
-      const tabTop = height - tabBar;
-      const landTop = tabTop - mapBox * (1 - landTopShare(DEFAULT_SCENE));
+      const width = window.innerWidth;
+      const css = getComputedStyle(document.documentElement);
+      const tabBar = parseFloat(css.getPropertyValue("--tabbar-h")) || 0;
+      const rootPx = parseFloat(css.fontSize) || 16;
+      // The map lies on the floor at the front: from tablet width up under the middle of its column, its near edge
+      // just over the screen's bottom, no wider than the column (nor 64rem); on a phone across the screen, just over
+      // the tab bar — where the starters list stands on the grid line nearest the top of its land.
+      const column = mapColumnRef.current?.getBoundingClientRect();
+      const fit = window.matchMedia(DESKTOP).matches
+        ? fitFloorMap({
+            width,
+            height,
+            share: HORIZON_SHARE,
+            centerX: column ? column.left + column.width / 2 : width / 2,
+            bottom: height - 0.75 * rootPx,
+            maxWidth: Math.min(column?.width ?? width / 2, 64 * rootPx),
+          })
+        : fitFloorMap({ width, height, share: PHONE_HORIZON_SHARE, centerX: width / 2, bottom: height - tabBar - 0.5 * rootPx, maxWidth: width - 32 });
+      const landTop = floorMapTop(fit);
       setStand({
         room: height,
         on: height - lowestGridLine(height),
         horizon: height * PHONE_HORIZON_SHARE,
+        fit,
+        landTop,
         foot: nearestRow(height, landTop, PHONE_HORIZON_SHARE),
-        mapTop: tabTop - mapBox - 48,
-        tabBar,
+        rootPx,
       });
     };
     measure();
@@ -246,7 +269,7 @@ export default function DashboardPage() {
       observer.disconnect();
       window.removeEventListener("resize", measure);
     };
-  }, [room]);
+  }, [room, desktop]);
   // Where the map's column (and the page) stood before the Red Zone was stretched — back to just that once it's not.
   const scrollBeforeFull = useRef<{ column: number; page: number } | null>(null);
   const toggleRedZoneFull = () => {
@@ -469,6 +492,11 @@ export default function DashboardPage() {
   // The room the dashboard stands in: a grid floor running back to the horizon (see .grid-room) — on a phone, nearer
   // the middle of the screen.
   const horizon = desktop ? HORIZON_SHARE : PHONE_HORIZON_SHARE;
+  // The games on the map: those whose kickoff block and game aren't hidden.
+  const games = mappedGames.filter((g) => !hiddenBlocks.has(kickoffBlockLabel(g.game)) && !offMap.has(g.game.id));
+  // The map lies on the floor at the front (see FloorMapLand), its games standing up off it in front of everything
+  // (FloorMapTags) — out of the way while the Red Zone takes the screen (⇕).
+  const mapShown = stand !== null && weekGames.length > 0 && !(desktop ? redZoneFull : redZoneFitted);
   const roomView = (
     <div
       ref={setRoom}
@@ -477,10 +505,9 @@ export default function DashboardPage() {
       style={{ ["--horizon" as string]: `${horizon * 100}%` }}
     >
       <FloorGrid share={horizon} />
+      {mapShown ? <FloorMapLand fit={stand.fit} games={games} /> : null}
     </div>
   );
-  // The games on the map: those whose kickoff block and game aren't hidden.
-  const games = mappedGames.filter((g) => !hiddenBlocks.has(kickoffBlockLabel(g.game)) && !offMap.has(g.game.id));
   // One graph in full; two side by side; three or four, one to a corner.
   const graphsView =
     graphed.length > 0 ? (
@@ -573,82 +600,48 @@ export default function DashboardPage() {
               {startersView}
             </div>
           </div>
-          {weekGames.length > 0 && stand && !redZoneFitted ? (
-            // The map, lying on the floor at the front, just over the tab bar — in front of the starters list's foot.
-            <div className="absolute inset-x-4 flex flex-col justify-end" style={{ top: `calc(${stand.mapTop}px - var(--header-h, 0px))`, bottom: "var(--tabbar-h, 0px)" }}>
-              <GameMap games={games} legend={legend} room={`${stand.room - stand.tabBar - stand.mapTop}px`} />
-            </div>
-          ) : null}
         </div>
+        {mapShown ? <FloorMapTags fit={stand.fit} games={games} top={stand.landTop} /> : null}
       </div>
     );
   }
 
-  // From tablet width up, graphs go up at the back of the room — unless the Red Zone's stretched to the column's
-  // height, when they take the map's place.
-  const graphsBack = graphsView !== null && !redZoneFull;
-  const graphsOverMap = graphsView !== null && redZoneFull;
+  // From tablet width up, graphs go up at the back of the room. The map's column stops over the map's games' tags and
+  // the countdown over them (7rem over its land) — or, the Red Zone stretched (⇕), runs to the screen's bottom.
+  const graphsBack = graphsView !== null;
+  const columnBottom = stand && !redZoneFull ? `${stand.landTop - 7 * stand.rootPx}px` : "var(--room-h, 100vh)";
   return (
     // From tablet width up the columns reach the bottom of the screen: the page's own bottom padding is taken back.
+    // Nothing scrolls but the starters list (and the Red Zone's plays, within it).
     <div className="flex flex-col gap-0.5 md:-mb-8" style={standVars}>
       <h1 className="sr-only">Dashboard</h1>
       {roomView}
       <LeagueTicker leagues={leagueCards} />
 
       {/* The two columns stand in the room with no backgrounds of their own — the room behind them: the starters list
-          on the floor's lowest grid line (--stand), the map's column down to the screen's bottom, the map lying on the
-          floor there. The map's column is angled in toward the middle (turned on its outer
-          edge, so however wide it is that edge stays on the screen). */}
+          on the floor's lowest grid line (--stand), the Red Zone's column over the map lying on the floor at the front.
+          The Red Zone's column is angled in toward the middle (turned on its outer edge, so however wide it is that
+          edge stays on the screen). */}
       <div className="flex flex-row items-start gap-8 px-4 pt-2 [perspective:2200px]">
-        {/* The Red Zone and the map. A column down to the screen's bottom: the Red Zone filling its top, its plays
-            scrolling within it, and the map along its bottom, lying on the floor at the bottom of the screen, nearest
-            you, as wide as the column at its own proportions. Should the two not fit, the column scrolls — flipped to rtl so its scrollbar
-            sits on the column's own left edge instead of in the gutter between the two columns; the inner wrapper flips
-            back to ltr so the content reads normally. */}
+        {/* The Red Zone, filling its column, its plays scrolling within it; player graphs under it while they're up. */}
         <div
           ref={mapColumnRef}
-          className="sticky top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] h-[calc(var(--room-h,100vh)-var(--header-h,0px)-var(--ticker-h,0px)-0.625rem)] min-w-0 flex-1 origin-left overflow-y-auto [direction:rtl] [rotate:y_4deg]"
+          className="sticky top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] flex min-w-0 flex-1 origin-left flex-col overflow-hidden [rotate:y_4deg]"
+          style={{ height: `calc(${columnBottom} - var(--header-h, 0px) - var(--ticker-h, 0px) - 0.625rem)` }}
         >
-          <div className="flex h-full flex-col [direction:ltr]">
-            {redZoneView ? (
-              <div
-                ref={redZoneRef}
-                className={`flex animate-[rise_0.5s_ease-out_backwards] flex-col [animation-delay:120ms] ${
-                  // Stretched (its ⇕ button), the whole column's height — the map under it, scrolled past.
-                  redZoneFull ? "h-full flex-none" : graphsBack ? "flex-none" : redZoneEmpty ? "flex-none" : "min-h-40 flex-1"
-                }`}
-                // With graphs up, down to just over them.
-                style={graphsBack ? { height: `calc(${COLUMN_TO_HORIZON} - ${BACK_GRAPHS_HEIGHT} - 0.5rem)` } : undefined}
-              >
-                {redZoneView}
-              </div>
-            ) : null}
-            {/* Player graphs at the very back of the room, their foot on the horizon (the Red Zone's bottom and the
-                gap under it, and their own height, put it there), faintly reflected in the floor. */}
-            {graphsBack ? <div className="floor-reflect mt-2 shrink-0" style={{ height: BACK_GRAPHS_HEIGHT }}>{graphsView}</div> : null}
-            {weekGames.length > 0 ? (
-              <div className="mt-auto shrink-0 animate-[rise_0.5s_ease-out_backwards]">
-                <div className="relative">
-                  {/* Stretched over it, the Red Zone's graphs take the map's place; the map stays put underneath. */}
-                  <div className={graphsOverMap ? "invisible" : undefined} aria-hidden={graphsOverMap ? true : undefined}>
-                    <GameMap
-                      games={games}
-                      legend={legend}
-                      // The countdown to the next kickoff, in the open space over the land.
-                      overhead={<KickoffCountdown kickoffs={kickoffs} />}
-                      // The column's height less the Red Zone's least (10rem, room for its side header) — or, with no plays,
-                      // its header alone across the top (2rem).
-                      room={`var(--room-h, 100vh) - var(--header-h, 0px) - var(--ticker-h, 0px) - 0.625rem - ${redZoneEmpty ? "2rem" : "10rem"}`}
-                    />
-                  </div>
-                  {graphsOverMap ? (
-                    // As much room over them as there is over the starters list's bar.
-                    <div className="floor-reflect absolute inset-0 pt-3.5">{graphsView}</div>
-                  ) : null}
-                </div>
-              </div>
-            ) : null}
-          </div>
+          {redZoneView ? (
+            <div
+              ref={redZoneRef}
+              className={`flex animate-[rise_0.5s_ease-out_backwards] flex-col [animation-delay:120ms] ${graphsBack || redZoneEmpty ? "flex-none" : "min-h-0 flex-1"}`}
+              // With graphs up, down to just over them.
+              style={graphsBack ? { height: `calc(${COLUMN_TO_HORIZON} - ${BACK_GRAPHS_HEIGHT} - 0.5rem)` } : undefined}
+            >
+              {redZoneView}
+            </div>
+          ) : null}
+          {/* Player graphs at the very back of the room, their foot on the horizon (the Red Zone's bottom and the gap
+              under it, and their own height, put it there), faintly reflected in the floor. */}
+          {graphsBack ? <div className="floor-reflect mt-2 shrink-0" style={{ height: BACK_GRAPHS_HEIGHT }}>{graphsView}</div> : null}
         </div>
 
         {/* Starters by game, with its own scroll, so a long list here doesn't push the left column around or vice versa.
@@ -661,6 +654,9 @@ export default function DashboardPage() {
           {startersView}
         </div>
       </div>
+      {mapShown ? (
+        <FloorMapTags fit={stand.fit} games={games} top={stand.landTop - 5 * stand.rootPx} overhead={<KickoffCountdown kickoffs={kickoffs} />} />
+      ) : null}
     </div>
   );
 }
