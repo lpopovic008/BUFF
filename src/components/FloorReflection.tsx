@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId, useLayoutEffect, useRef } from "react";
 import { DRAG_SCROLL_EVENT } from "@/hooks/useDragScroll";
 
 /** How far down the floor a reflection reaches, and how strong it is at its top. */
@@ -11,6 +11,19 @@ const STRENGTH = 0.2;
 const timelines = new Set<string>();
 const publishTimelines = () => document.body.style.setProperty("timeline-scope", [...timelines].join(", ") || "none");
 
+/** A copy moved as its source comes up out of the floor, or goes down into it (see FloorReflection's rise, sinkMs). */
+function moveCopy(
+  el: HTMLElement,
+  { riseAt, sinkAt, timed, rise, sinkMs }: { riseAt: number | null; sinkAt: number | null; timed: boolean; rise?: { delayMs: number; ms: number }; sinkMs?: number }
+) {
+  // A copy moved by its source's scroll timeline is left to it.
+  if (timed) return;
+  const now = performance.now();
+  if (sinkAt !== null && sinkMs !== undefined) el.style.animation = `reflect-sink ${sinkMs}ms ease-out ${sinkAt - now}ms forwards`;
+  else if (riseAt !== null && rise) el.style.animation = `reflect-rise ${rise.ms}ms ease-out ${riseAt - now}ms backwards`;
+  else el.style.removeProperty("animation");
+}
+
 /**
  * Something standing on the floor reflected in it (`source`): its bottom part, upside down, fading out a little way
  * down — a list moving as it scrolls. Drawn from a copy of it (-webkit-box-reflect doesn't keep up with a box that
@@ -18,23 +31,44 @@ const publishTimelines = () => document.body.style.setProperty("timeline-scope",
  * and fade), redone the moment it changes. A list the page scrolls itself (see useDragScroll, data-drag-scroll)
  * moves its copy with each move it makes, there and then — pulled past its ends too; one the browser scrolls, by a
  * scroll timeline, so the two move in the same frame. Where there's none, and for anything scrolling within it, the
- * copy follows its scroll.
+ * copy follows its scroll. Something coming up out of the floor (`rise`), or going back down into it (`sinkMs`),
+ * has its reflection come down out of the floor's surface, or go back up into it, in step.
  */
 export function FloorReflection({
   source,
   className = "",
   style,
-  appearAfterMs,
+  rise,
+  sinkMs,
 }: {
   source: HTMLElement | null;
   className?: string;
   style?: React.CSSProperties;
-  /** Faded in only after this long (something rising into place, its reflection along once it's up). */
-  appearAfterMs?: number;
+  /** It's coming up out of the floor, after `delayMs`, over `ms` (eased out), from as far down as it's tall. */
+  rise?: { delayMs: number; ms: number };
+  /** It's going back down into the floor, over this long (eased out), as far down as it's tall. */
+  sinkMs?: number;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const copy = useRef<HTMLDivElement>(null);
   const name = `--reflect-${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
+  // Its copy's contents (redone as it changes), and when it rises (or sinks): its copy moved to match, mirrored.
+  const content = useRef<HTMLDivElement | null>(null);
+  const timing = useRef({ riseAt: null as number | null, sinkAt: null as number | null, timed: false, rise, sinkMs });
+  // Set before anything it's copying changes on the way down (its source's own sink), so that's not copied.
+  const sinking = sinkMs !== undefined;
+  useLayoutEffect(() => {
+    const t = timing.current;
+    Object.assign(t, { rise, sinkMs });
+    if (sinking) t.sinkAt = performance.now();
+    else if (t.sinkAt !== null || t.riseAt === null) {
+      // Coming up — again, if it was going down.
+      t.sinkAt = null;
+      t.riseAt = rise ? performance.now() + rise.delayMs : null;
+    }
+    if (content.current) moveCopy(content.current, t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once each way
+  }, [sinking]);
   useEffect(() => {
     const out = box.current;
     const cp = copy.current;
@@ -44,18 +78,19 @@ export function FloorReflection({
     // Scrolled by the page itself (see useDragScroll), its copy's moved with each move; else by its scroll timeline.
     const driven = source.hasAttribute("data-drag-scroll");
     const timeline = scrolls && !driven && overflow !== "hidden" && CSS.supports("animation-timeline", "--x") && CSS.supports("timeline-scope", "--x");
+    timing.current.timed = timeline;
     if (timeline) {
       source.style.setProperty("scroll-timeline", `${name} y`);
       timelines.add(name);
       publishTimelines();
     }
     // The copy's contents, moved up as far as the list's scrolled; and what scrolls within it, each paired with its copy.
-    let content: HTMLDivElement | null = null;
     let inner: [HTMLElement, HTMLElement][] = [];
     const follow = () => {
-      if (content && scrolls) {
-        if (timeline) content.style.setProperty("--reflect-max", `${source.scrollHeight - source.clientHeight}px`);
-        else content.style.transform = `translateY(${-source.scrollTop + (parseFloat(source.style.getPropertyValue("--overscroll")) || 0)}px)`;
+      const moved = content.current;
+      if (moved && scrolls) {
+        if (timeline) moved.style.setProperty("--reflect-max", `${source.scrollHeight - source.clientHeight}px`);
+        else moved.style.transform = `translateY(${-source.scrollTop + (parseFloat(source.style.getPropertyValue("--overscroll")) || 0)}px)`;
       }
       for (const [from, to] of inner) {
         to.scrollTop = from.scrollTop;
@@ -84,8 +119,9 @@ export function FloorReflection({
       next.append(...[...source.childNodes].map((n) => n.cloneNode(true)));
       // Nothing marked to be left out (a scroll thumb).
       for (const el of next.querySelectorAll("[data-no-reflect]")) el.remove();
+      moveCopy(next, timing.current);
       cp.replaceChildren(next);
-      content = next;
+      content.current = next;
       const froms = source.querySelectorAll<HTMLElement>(":not([data-no-reflect])");
       const tos = next.querySelectorAll<HTMLElement>("*");
       inner = [...froms].flatMap((from, i) => (from.scrollTop > 0 || from.scrollHeight > from.clientHeight + 1 ? [[from, tos[i]] as [HTMLElement, HTMLElement]] : []));
@@ -94,6 +130,8 @@ export function FloorReflection({
     // Moves past an end (--overscroll on it, or on what scrolls within it) aren't changes to copy.
     const scrollers = () => new Set<Node>([source, ...inner.map(([from]) => from)]);
     const changed = (records: MutationRecord[]) => {
+      // Going down into the floor: kept as it was as it goes.
+      if (timing.current.sinkAt !== null) return;
       const moving = scrollers();
       const left = (r: MutationRecord) => r.target instanceof Element && r.target.closest("[data-no-reflect]") !== null;
       if (records.some((r) => !left(r) && (r.type !== "attributes" || r.attributeName !== "style" || !moving.has(r.target)))) recopy();
@@ -135,7 +173,6 @@ export function FloorReflection({
         height: REACH,
         WebkitMaskImage: `linear-gradient(to bottom, rgb(0 0 0 / ${STRENGTH}), transparent)`,
         maskImage: `linear-gradient(to bottom, rgb(0 0 0 / ${STRENGTH}), transparent)`,
-        animation: appearAfterMs === undefined ? undefined : `reflect-in 0.4s ease-out ${appearAfterMs}ms backwards`,
       }}
     >
       {/* Still: no animation or transition in it replays each time it's copied (only its scroll's). */}

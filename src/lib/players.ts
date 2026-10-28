@@ -17,6 +17,8 @@ interface PlayerRecord {
   years_exp?: number | null;
   college?: string | null;
   number?: number | string | null;
+  /** Where they stand on their team's depth chart at their position (1, the starter). */
+  depth_chart_order?: number | null;
   /** Inches, as a string ("74"). */
   height?: string | null;
   weight?: string | null;
@@ -145,5 +147,40 @@ export async function loadTeamPlayers(): Promise<Map<string, ResolvedPlayer[]>> 
     idx.set(record.team, list);
   }
   teamIndexCache = idx;
+  return idx;
+}
+
+/** A player as their team's roster has them: their name, position, jersey number, and place on its depth chart. */
+export interface RosterPlayer {
+  name: string;
+  position: string;
+  number: string | null;
+  depth: number | null;
+}
+
+let rosterCache: Map<string, RosterPlayer[]> | null = null;
+
+/**
+ * Every active player, by NFL team, with their jersey number — for putting the numbers ESPN's play-by-play names
+ * ("J.Allen" on BUF, a tackler on the other side) on their jerseys. Empty if the dump fails to load (and not cached,
+ * so a later call can retry).
+ */
+export async function loadRosters(): Promise<Map<string, RosterPlayer[]>> {
+  if (rosterCache) return rosterCache;
+  const players = await loadPlayers();
+  if (!players) return new Map();
+  const idx = new Map<string, RosterPlayer[]>();
+  for (const record of Object.values(players)) {
+    if (!record.team || record.active === false || !record.full_name || !record.position) continue;
+    const list = idx.get(record.team) ?? [];
+    list.push({
+      name: record.full_name,
+      position: record.position,
+      number: record.number == null || record.number === "" ? null : String(record.number),
+      depth: typeof record.depth_chart_order === "number" ? record.depth_chart_order : null,
+    });
+    idx.set(record.team, list);
+  }
+  rosterCache = idx;
   return idx;
 }

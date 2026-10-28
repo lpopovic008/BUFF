@@ -8,8 +8,9 @@ import { FloorMapLand, FloorMapTags } from "@/components/FloorMap";
 import { FloorMapFit, fitFloorMap, floorMapTop } from "@/lib/floor-map";
 import { HORIZON_SHARE, gridRows, lowestGridLine } from "@/lib/grid-room";
 import { FloorGrid } from "@/components/FloorGrid";
-import { FloorCameraControls } from "@/components/FloorCameraControls";
+import { FloorCameraControls, RED_ZONE_SINK_MS } from "@/components/FloorCameraControls";
 import { FloorReflection } from "@/components/FloorReflection";
+import { FloorPlay } from "@/components/FloorPlay";
 import { ScrollThumb } from "@/components/ScrollThumb";
 import { useDragScroll } from "@/hooks/useDragScroll";
 import { createFloorCameraStore } from "@/lib/floor-camera";
@@ -51,6 +52,8 @@ const DESKTOP = "(min-width: 768px)";
 // how far it floats over the floor (a couple of px), and how tall it is at first: a play of three players, under its
 // header (on a tablet or wider, on fewer lines).
 const RED_ZONE_RISE_DELAY_MS = 650;
+/** How long it takes to come up (its rise in redZoneStage: duration-500). */
+const RED_ZONE_RISE_MS = 500;
 const RED_ZONE_FLOAT_REM = 0.125;
 const RED_ZONE_REM = 10.5;
 const DESKTOP_RED_ZONE_REM = 8.125;
@@ -223,10 +226,18 @@ export default function DashboardPage() {
   const [redZoneLevel, setRedZoneLevel] = useState<0 | 1 | 2>(0);
   const stretchRedZone = () => setRedZoneLevel((level) => ((level + 1) % 3) as 0 | 1 | 2);
   const redZoneFull = redZoneLevel === 2;
+  // On its way back down into the floor (its reflection along with it, see redZoneStage).
+  const [redZoneSinking, setRedZoneSinking] = useState(false);
   const switchRedZone = (on: boolean) => {
     setRedZoneUp(on);
+    setRedZoneSinking(!on);
     if (!on) setRedZoneLevel(0);
   };
+  useEffect(() => {
+    if (!redZoneSinking) return;
+    const done = setTimeout(() => setRedZoneSinking(false), RED_ZONE_SINK_MS);
+    return () => clearTimeout(done);
+  }, [redZoneSinking]);
   // The Red Zone's place on the floor, reflected in it (see FloorReflection).
   const [redZoneBox, setRedZoneBox] = useState<HTMLDivElement | null>(null);
   // The room's height as it's drawn (not 100vh, which a browser's toolbars can make taller than the screen); how far up
@@ -554,6 +565,9 @@ export default function DashboardPage() {
   // plays' scroll with it (see FloorReflection). Stretched (⇕), from under the ticker down to the bottom (a phone's
   // tab bar).
   const redZoneHeight = (desktop ? DESKTOP_RED_ZONE_REM : RED_ZONE_REM) + RED_ZONE_FLOAT_REM;
+  // Where the Red Zone's top stands over the floor while it's up (not stretched over all of it): plays acted out on
+  // the floor are kept above it (see FloorPlay).
+  const redZoneOver = stand && redZoneUp && redZoneLevel === 0 ? stand.redZoneLine - redZoneHeight * stand.rootPx : null;
   const redZoneStage =
     redZoneView && stand ? (
       <>
@@ -583,7 +597,14 @@ export default function DashboardPage() {
             {redZoneView}
           </div>
         </div>
-        {redZoneUp ? <FloorReflection source={redZoneBox} appearAfterMs={RED_ZONE_RISE_DELAY_MS + 500} /> : null}
+        {/* Its reflection coming down out of the floor as it comes up, and going back up as it goes down. */}
+        {redZoneUp || redZoneSinking ? (
+          <FloorReflection
+            source={redZoneBox}
+            rise={{ delayMs: RED_ZONE_RISE_DELAY_MS, ms: RED_ZONE_RISE_MS }}
+            sinkMs={redZoneUp ? undefined : RED_ZONE_SINK_MS}
+          />
+        ) : null}
       </>
     ) : null;
   const startersView =
@@ -671,6 +692,8 @@ export default function DashboardPage() {
         {redZoneFull ? null : <FloorReflection source={startersList} className="px-4 pb-8" style={{ paddingTop: `calc(${underTicker})` }} />}
         {redZoneStage}
         {mapShown ? <FloorMapTags fit={stand.fit} games={games} top={stand.landTop} camera={floorCamera} /> : null}
+        {/* Red Zone plays acted out on the floor, across the whole screen. */}
+        {stand ? <FloorPlay width={stand.fit.width} height={stand.room} share={stand.fit.share} area={null} clear={redZoneOver} /> : null}
         {floorControls}
       </div>
     );
@@ -730,6 +753,16 @@ export default function DashboardPage() {
       ) : null}
       {/* Its reflection without its fade, so what's at its foot shows in the floor. */}
       <FloorReflection source={startersList} className="pb-16" />
+      {/* Red Zone plays acted out on the floor, from the room's left to at most halfway across. */}
+      {stand ? (
+        <FloorPlay
+          width={stand.fit.width}
+          height={stand.room}
+          share={stand.fit.share}
+          area={{ left: stand.rootPx, right: stand.fit.width / 2 - stand.rootPx }}
+          clear={redZoneOver}
+        />
+      ) : null}
       {redZoneStage}
       {floorControls}
     </div>

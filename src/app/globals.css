@@ -231,9 +231,16 @@ body {
    rather than snapped into existence. */
 /* A floor reflection's copy of a list, moved up with the list's scroll (see FloorReflection). */
 /* A floor reflection fading in once what it reflects is up (see FloorReflection). */
-@keyframes reflect-in {
+/* Something coming up out of the floor, reflected: its copy coming down out of the floor's surface (it's upside down). */
+@keyframes reflect-rise {
   from {
-    opacity: 0;
+    transform: translateY(100%);
+  }
+}
+
+@keyframes reflect-sink {
+  to {
+    transform: translateY(100%);
   }
 }
 

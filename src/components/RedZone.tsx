@@ -6,6 +6,8 @@ import { Ordinals } from "@/components/Ordinals";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { LeagueLegendEntry, LeagueMark } from "@/components/LeagueMark";
 import { replayRedZonePlay } from "@/components/GameRows";
+import { showPlayOnFloor } from "@/components/FloorPlay";
+import { sceneFor } from "@/lib/play-scene";
 import { FeedEntry, FeedScope, RedZoneNow, useRedZoneFeed } from "@/hooks/useRedZoneFeed";
 import { useLiveMode } from "@/hooks/useLiveTick";
 import { useTeamPlayers } from "@/hooks/useTeamPlayers";
@@ -59,6 +61,9 @@ const POINTS_TITLE =
   "Points worked out from ESPN's play-by-play alone, under your league's scoring (standard PPR for anyone you don't start) — Sleeper's official numbers can differ.";
 
 /** Each league's scoring, by league id — a starter's line is scored under his first league's, as his graph is. */
+/** How recent a play coming in must be to be acted out on the floor (ms) — not one the play-by-play's only now caught up on. */
+const RECENT_MS = 10 * 60_000;
+
 const ScoringContext = createContext<Map<string, Record<string, number> | undefined>>(new Map());
 
 function deltaClass(delta: number): string {
@@ -288,16 +293,28 @@ const FeedRow = memo(function FeedRow({ entry, starterById, legendByLeagueId, ar
   const spot = yardLineLabel(play, defense);
   // The game's score once the play was over — ESPN's, or for its latest play the scoreboard's.
   const score = play.score ?? (latest && game.state !== "pre" ? { home: game.homeScore, away: game.awayScore } : null);
+  // A play that can be acted out on the floor by pixel players (see FloorPlay): as it comes in, and tapped, again.
+  const actable = useMemo(() => sceneFor(play, [game.homeTeam, game.awayTeam]) !== null, [play, game.homeTeam, game.awayTeam]);
+  useEffect(() => {
+    // Only one just made — not one the play-by-play's catching up on from a while ago.
+    if (live && actable && (play.at === null || Date.now() - play.at < RECENT_MS)) showPlayOnFloor(play, [game.homeTeam, game.awayTeam]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, as it comes in
+  }, []);
   return (
-    // Tapping a play (on desktop) replays its points being applied in the starters list.
+    // Tapping a play acts it out on the floor again, and (on desktop) replays its points being applied in the starters list.
     <li
       data-play={`${game.id}-${play.id}`}
-      onClick={(e) => replayRedZonePlay(e.currentTarget)}
-      title={hasPoints ? "Replay" : undefined}
+      onClick={(e) => {
+        replayRedZonePlay(e.currentTarget);
+        if (actable) showPlayOnFloor(play, [game.homeTeam, game.awayTeam], true);
+      }}
+      title={hasPoints || actable ? "Replay" : undefined}
       // Every row leaves room down its left for a marked play's strip (see MarkColumn).
       className={`relative flex flex-col gap-1 border-b border-border py-2 pl-3 pr-1 last:border-b-0 ${
         spotlit ? "bg-[color-mix(in_srgb,var(--ink-primary)_8%,var(--surface-raised))] outline outline-1 -outline-offset-1 outline-ink-primary" : ""
-      } ${hasPoints ? "md:cursor-pointer md:hover:bg-[color-mix(in_srgb,var(--ink-primary)_4%,transparent)]" : ""}`}
+      } ${actable ? "cursor-pointer" : hasPoints ? "md:cursor-pointer" : ""} ${
+        hasPoints || actable ? "md:hover:bg-[color-mix(in_srgb,var(--ink-primary)_4%,transparent)]" : ""
+      }`}
       style={{
         animation: live
           ? "rise 0.35s ease-out backwards, rz-flash 2.4s ease-out"

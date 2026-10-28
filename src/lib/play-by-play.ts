@@ -56,7 +56,7 @@ export function downAndDistance(down: number, distance: number, yardsToEndzone: 
 
 /** Drops the formation note ESPN opens a play with: "(Shotgun) ", "(No Huddle, Shotgun) ". */
 // ESPN's shorthand for a player, as it names them in a play line: "J.Allen", "Jos.Allen", "A.St. Brown".
-const SHORT_NAME = String.raw`[A-Z][A-Za-z']{0,3}\.\s?(?:St\.\s)?[A-Z][A-Za-z'-]+`;
+export const SHORT_NAME = String.raw`[A-Z][A-Za-z']{0,3}\.\s?(?:St\.\s)?[A-Z][A-Za-z'-]+`;
 // One or more of them: "L.Borom", "L.Borom and B.Miller", "L.Borom, B.Miller and T.Smith".
 const SHORT_NAMES = String.raw`${SHORT_NAME}(?:(?:,\s*(?:and\s+)?|\s+and\s+)${SHORT_NAME})*`;
 // The notes ESPN can open a play's line with before the play itself — linemen reporting in as eligible
