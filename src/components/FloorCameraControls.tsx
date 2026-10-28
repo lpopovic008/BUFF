@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { FloorCamera, floorAt, floorDepth, floorScale, GRID_PX, HOME_CAMERA } from "@/lib/grid-room";
+import { FloorCamera, floorAt, floorDepth, floorScale, floorY, GRID_PX, HOME_CAMERA } from "@/lib/grid-room";
 import { FloorMapFit, floorMapFloor, MAP_BOUNDS } from "@/lib/floor-map";
 import { cameraPutting, cameraUnder, FloorCameraStore, FloorPt, keepOnFloor, pinchCamera, zoomCameraAt } from "@/lib/floor-camera";
 import { mapSites } from "./FloorMap";
@@ -13,6 +13,8 @@ const FOCUS_ZOOM = 1.6;
 const ZOOM_STEP = 1.25;
 /** How far a finger or the mouse goes before it's moving the floor, not tapping it (px). */
 const SLOP = 4;
+/** How much of the map's kept on the screen, however far it's moved off it (px). */
+const MAP_MARGIN_PX = 40;
 /** How long the Red Zone takes to sink back into the floor before the floor slides back (ms; see page). */
 export const RED_ZONE_SINK_MS = 400;
 
@@ -57,13 +59,16 @@ export function FloorCameraControls({
     [fit]
   );
   const sites = useMemo(() => new Map(mapSites(games).map((s) => [s.id, floorMapFloor(fit, s.pos[0], s.pos[1])])), [games, fit]);
-  // Wherever it's moved, the map's never taken off the back of the room — past the horizon — though it may be cut off
-  // at the screen's sides or bottom (see keepOnFloor).
+  // Wherever it's moved, the map's never lost: at its own size never taken off the back of the room — past the horizon —
+  // and off the screen's sides or bottom only so far as a little of it still shows, so anywhere on it can be zoomed in
+  // on (see keepOnFloor).
   const keep = useMemo(() => {
     const [minX, minD] = floorMapFloor(fit, MAP_BOUNDS.minX, MAP_BOUNDS.minY);
     const [maxX, maxD] = floorMapFloor(fit, MAP_BOUNDS.maxX, MAP_BOUNDS.maxY);
-    const view = { far: 0, near: fit.nearDepth, halfWidthAt: (d: number) => fit.width / 2 / floorScale(d) };
-    return (camera: FloorCamera) => keepOnFloor(camera, { minX, maxX, minD, maxD }, view);
+    // The floor shown: back to the horizon, forward to a margin up from the screen's bottom (a phone's tab bar).
+    const edge = floorDepth(floorY(fit.nearDepth, fit.height, fit.share) - MAP_MARGIN_PX, fit.height, fit.share);
+    const view = { far: 0, edge, halfWidthAt: (d: number) => fit.width / 2 / floorScale(d), perPx: (d: number) => 1 / floorScale(d) };
+    return (camera: FloorCamera) => keepOnFloor(camera, { minX, maxX, minD, maxD }, view, MAP_MARGIN_PX);
   }, [fit]);
 
   // Dragged and pinched — not while the Red Zone's up.
