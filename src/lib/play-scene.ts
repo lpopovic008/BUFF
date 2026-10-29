@@ -761,10 +761,12 @@ export function stageFor(scene: PlayScene): Stage {
       if (scene.blocked) {
         ball.push({ from: tk, to: tk + flight, arc: { a: [0, 0, 0.3], b: [5, 3, 0], apex: 2 } }, { from: tk + flight, to: Infinity, at: [5.5, 3] });
       } else {
-        // Over the bar between the uprights when it's good, wide when it isn't, and down beyond.
+        // Over the bar between the uprights when it's good (well over it: twice its height as it passes them), wide when
+        // it isn't, and down beyond.
         const wide = scene.good ? 0 : 7;
+        const atPosts = distance / (distance + 6);
         ball.push(
-          { from: tk, to: tk + flight, arc: { a: [0, 0, 0.3], b: [distance + 6, wide, 0], apex: Math.max(9, distance * 0.28) } },
+          { from: tk, to: tk + flight, arc: { a: [0, 0, 0.3], b: [distance + 6, wide, 0], apex: Math.max(9, 6.6 / (4 * atPosts * (1 - atPosts))) } },
           { from: tk + flight, to: Infinity, at: [distance + 6, wide] }
         );
       }

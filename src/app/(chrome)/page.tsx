@@ -636,7 +636,7 @@ export default function DashboardPage() {
           // Cut off at the line it comes up out of; its top moving up a step at a time as it's stretched — up to the
           // ticker only once the starters list (on a phone) has sunk out of its way.
           className={`fixed z-[5] overflow-hidden transition-[top] duration-500 ease-out ${
-            desktop ? "left-4 md:right-[23rem] lg:right-[25rem]" : "inset-x-0"
+            desktop ? "left-4 md:right-[19rem] lg:right-[21rem]" : "inset-x-0"
           } ${redZoneFull && !desktop ? "delay-500" : ""}`}
           style={{
             bottom: stand.room - stand.redZoneLine,
@@ -799,7 +799,7 @@ export default function DashboardPage() {
             the row's padding, 0.625rem), so its foot is on the line whether or not it's stuck. Like a phone's, it runs
             right down to the floor, reflected in it — just what meets the floor, mirrored, as it scrolls — and up behind
             the see-through ticker and header, scrolled up under them. */}
-        <div className="sticky top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] h-[calc(var(--room-h,100vh)-var(--header-h,0px)-var(--ticker-h,0px)-0.625rem-var(--stand,0px))] w-80 shrink-0 lg:w-[22rem]">
+        <div className="sticky top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] h-[calc(var(--room-h,100vh)-var(--header-h,0px)-var(--ticker-h,0px)-0.625rem-var(--stand,0px))] w-64 shrink-0 lg:w-72">
           {/* Its scrollbar hidden (its reflection's copy has none, so they'd not line up), a thin thumb up as it scrolls;
               scrolled by the page, so its reflection moves with it (see useDragScroll). */}
           <div

@@ -6,7 +6,7 @@ import { labelNames } from "@/lib/play-lines";
 import { actorAt, ballAt, formation, PlayScene, Pose, sceneFor, Stage, StageActor, stageFor } from "@/lib/play-scene";
 import { loadRosters, RosterPlayer } from "@/lib/players";
 import { uniformFor, Uniform } from "@/lib/team-colors";
-import { floorDepth, floorPoint, floorScale, GRID_PX, HOME_CAMERA } from "@/lib/grid-room";
+import { floorDepth, floorPoint, floorScale, GRID_PX, HOME_CAMERA, lowestGridLine } from "@/lib/grid-room";
 import type { FloorCameraStore } from "@/lib/floor-camera";
 
 /** Asks the floor to act a play out (see showPlayOnFloor). */
@@ -36,10 +36,15 @@ const PLAY_FIT = 0.8;
 const SQUARE_YARDS = [5, 10, 20];
 // How long the floor takes to slide over to the next line of scrimmage and the players to line up on it (s).
 const RESET = 1.2;
-// The field's numbers: how far in from the far sideline their feet are (yards), and how far down the screen the near
-// side's are.
+// The field's markings, where a field's own are (yards): its numbers' feet in from either sideline, and how deep (6
+// feet) and wide (4 feet) they are, and how far off the line beside them; and its hash marks either side of its
+// middle (an NFL field's), and how long.
 const FIELD_NUMBERS = 7;
-const NEAR_NUMBERS = 0.975;
+const NUMBER_DEEP = 2;
+const NUMBER_WIDE = 4 / 3;
+const NUMBER_GAP = 1 / 3;
+const HASH = 3.08;
+const HASH_LONG = 2 / 3;
 // The line of scrimmage and the line to gain, colored as on television.
 const SCRIMMAGE = "#2f7cf6";
 const FIRST_DOWN = "#f5d020";
@@ -327,9 +332,10 @@ export function FloorPlay({
       const horizon = h * sh;
       const hz = FIELD_WIDE / 2;
       const wordPx = w >= 768 ? WORD_PX.desk : WORD_PX.phone;
-      // The whole floor: its far sideline on the grid's first line in front of the back of the room, its near one at
-      // the screen's bottom — how far back its middle lies, and a yard across it in floor px (how big the players are).
-      const [farSide, nearSide] = [GRID_PX, floorDepth(h, h, sh)];
+      // The floor's middle five squares of its grid: its far sideline on the grid's first line in front of the back of
+      // the room, its near one on the grid's front line — how far back its middle lies, and a yard across it in floor px
+      // (how big the players are).
+      const [farSide, nearSide] = [GRID_PX, floorDepth(lowestGridLine(h, sh), h, sh)];
       const to = { base: (nearSide - farSide) / (2 * hz), back: 0 };
       to.back = farSide + hz * to.base;
       const from = settledAt ?? to;
@@ -401,13 +407,13 @@ export function FloorPlay({
         // The field's real yard lines where they are: the line of scrimmage on the yard line it was snapped from (the goal
         // line it's going for off to the right), fading off toward the screen's sides.
         const edge = (x: number) => Math.max(0, Math.min(1, Math.min(x - from0, to0 - x) / (span * 0.1)));
-        // Painted on the field, lying on it in the floor's own perspective, a field's own: 4 feet wide, 6 feet deep (as
-        // the floor's laid back), a foot off the line beside it — its near edge at `z`, the other way up (`flip`) on the
-        // far side, as a field's numbers are — from its left edge at `x` (its right, flipped). In the page's own type.
+        // Painted on the field, lying on it in the floor's own perspective, a field's own size for how deep the field
+        // lies: 6 feet deep, 4 feet wide, a foot off the line beside it — its near edge at `z`, the other way up (`flip`)
+        // on the far side, as a field's numbers are — from its left edge at `x` (its right, flipped). In the page's type.
         const type = getComputedStyle(document.body).fontFamily;
-        const digitWide = 4 / 3;
-        const digitGap = Math.max(1 / 3, 4 / yardPx);
-        const deep = (2 * yard) / base;
+        const deep = NUMBER_DEEP;
+        const digitWide = (NUMBER_WIDE * base) / yard;
+        const digitGap = Math.max((NUMBER_GAP * base) / yard, 3 / yardPx);
         const paint = (ch: string, x: number, z: number, flip: boolean) => {
           ctx.save();
           ctx.font = `700 100px ${type}`;
@@ -458,17 +464,17 @@ export function FloorPlay({
               line(x, -far, x, hz);
             } else if (yardPx > 5) {
               ctx.globalAlpha = fade * 0.22 * e;
-              line(x, -hz * 0.3 - 0.8, x, -hz * 0.3 + 0.8);
-              line(x, hz * 0.3 - 0.8, x, hz * 0.3 + 0.8);
+              line(x, -HASH - HASH_LONG / 2, x, -HASH + HASH_LONG / 2);
+              line(x, HASH - HASH_LONG / 2, x, HASH + HASH_LONG / 2);
             }
-            // The tens numbered on the field, the line between their digits: a square of the floor's grid up from the
-            // screen's bottom, and a square on in from the far sideline the other way up.
+            // The tens numbered on the field, the line between their digits: in from the near sideline, and in from the
+            // far one the other way up.
             if (g % 10 === 0) {
               ctx.globalAlpha = fade * 0.45 * e;
               ctx.fillStyle = ink;
               const n = String(g <= 50 ? g : 100 - g);
-              paintBy(n, x, (floorDepth(h * NEAR_NUMBERS, h, sh) - GRID_PX - back) / base);
-              paintBy(n, x, -hz + FIELD_NUMBERS + GRID_PX / base, true);
+              paintBy(n, x, hz - FIELD_NUMBERS);
+              paintBy(n, x, -hz + FIELD_NUMBERS, true);
             }
           }
         } else {
@@ -559,7 +565,8 @@ export function FloorPlay({
           }
           ctx.globalAlpha = fade;
           ctx.fillStyle = "#8b5a2b";
-          const by = sy - hgt * body(z);
+          // Up off the ground as high as the field's own yards make it (as its goalposts are).
+          const by = sy - hgt * px(z);
           ctx.fillRect(Math.round(sx - unit * 1.5), Math.round(by - unit), Math.ceil(unit * 3), Math.ceil(unit * 2));
           ctx.fillStyle = "#f2f2f2";
           ctx.fillRect(Math.round(sx - unit * 0.5), Math.round(by - unit), Math.ceil(unit), Math.ceil(unit * 0.6));
@@ -601,9 +608,10 @@ export function FloorPlay({
             ctx.drawImage(sprite, Math.round(sx - sw / 2), Math.round(sy - shh - lift), sw, shh);
           }
           if (f === 0 && ballNow && "by" in ballNow && ballNow.by === p.i) {
-            const hands = p.pose === "down" ? 0.4 : 2.4;
-            // In his hands: a step off his middle, at his own size (not the field's zoom).
-            drawBall(p.x + ((p.pose === "down" ? facingOf(p.a) * 2 : 0.9) * base * (SQUARE_YARDS[0] / grid.yards)) / yard, p.z + 0.3, hands);
+            // In his hands: a step off his middle and up at his waist, at his own size (not the field's).
+            const own = SQUARE_YARDS[0] / grid.yards;
+            const hands = (p.pose === "down" ? 0.4 : 2.4) * own;
+            drawBall(p.x + ((p.pose === "down" ? facingOf(p.a) * 2 : 0.9) * base * own) / yard, p.z + 0.3, hands);
           }
         }
         if (f > 0) {
