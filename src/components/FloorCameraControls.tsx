@@ -17,6 +17,10 @@ const SLOP = 4;
 const MAP_MARGIN_PX = 40;
 /** How long the Red Zone takes to sink back into the floor before the floor slides back (ms; see page). */
 export const RED_ZONE_SINK_MS = 400;
+/** How long after it's switched on the Red Zone starts coming up out of the floor (once the floor's slid away from
+ * under it), and how long it takes (its rise in the page's redZoneStage: delay-[650ms] duration-500). */
+export const RED_ZONE_RISE_DELAY_MS = 650;
+export const RED_ZONE_RISE_MS = 500;
 
 /** Bare floor — the page's own wrappers marked data-floor, or nothing at all — not anything standing on it. */
 function onFloor(target: EventTarget | null): boolean {
@@ -245,6 +249,44 @@ export function FloorCameraControls({
       follow(true);
     }, RED_ZONE_SINK_MS);
   }, [redZoneUp, fit, store, follow]);
+  // On a phone its switch flies up into the Red Zone's header as it comes up — the header's title (`data-rz-title`) its
+  // switch from there — and back down to its corner as it goes.
+  const switchRef = useRef<HTMLButtonElement>(null);
+  const flewUp = useRef(false);
+  useEffect(() => {
+    if (flewUp.current === redZoneUp) return;
+    flewUp.current = redZoneUp;
+    const button = switchRef.current;
+    const title = document.querySelector<HTMLElement>("[data-rz-title]");
+    if (desktop || !button || !title || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const from = button.getBoundingClientRect();
+    const to = title.getBoundingClientRect();
+    // Where the title stands once it's up (coming up, it's still down in the floor).
+    const rising = title.closest<HTMLElement>("[data-rz-rise]");
+    const lift = redZoneUp && rising ? new DOMMatrixReadOnly(getComputedStyle(rising).transform).m42 : 0;
+    const there = `translate(${to.left - from.left}px, ${to.top - lift + (to.height - from.height) / 2 - from.top}px)`;
+    if (redZoneUp) {
+      button.animate(
+        [
+          { transform: "none", opacity: 1 },
+          { transform: there, opacity: 1, offset: 0.9 },
+          { transform: there, opacity: 0 },
+        ],
+        { duration: RED_ZONE_RISE_MS, delay: RED_ZONE_RISE_DELAY_MS, easing: "ease-in-out", fill: "backwards" }
+      );
+      title.animate([{ opacity: 0 }, { opacity: 0, offset: 0.9 }, { opacity: 1 }], { duration: RED_ZONE_RISE_DELAY_MS + RED_ZONE_RISE_MS });
+    } else {
+      button.animate(
+        [
+          { transform: there, opacity: 0 },
+          { transform: there, opacity: 1, offset: 0.1 },
+          { transform: "none", opacity: 1 },
+        ],
+        { duration: RED_ZONE_RISE_MS, easing: "ease-in-out" }
+      );
+      title.animate([{ opacity: 1 }, { opacity: 0, offset: 0.1 }, { opacity: 0 }], { duration: RED_ZONE_SINK_MS });
+    }
+  }, [redZoneUp, desktop]);
   const zoomBy = (factor: number) => store.glide(keep(zoomCameraAt(store.get().camera, factor, middle)), false);
 
   const plate =
@@ -256,22 +298,28 @@ export function FloorCameraControls({
       </svg>
     </button>
   );
-  // The Red Zone's switch: its dot, and RZ — turned over while it's up.
+  // The Red Zone's switch: its dot, and RZ — turned over while it's up (on a phone, gone up into its header instead).
+  const tucked = redZoneUp && !desktop;
   const redZoneButton = redZone ? (
     <button
+      ref={switchRef}
       type="button"
       aria-label="Red Zone"
       title="Red Zone"
       aria-pressed={redZoneUp}
+      aria-hidden={tucked || undefined}
+      tabIndex={tucked ? -1 : undefined}
       onClick={toggleRedZone}
-      className={`${plate} gap-1 ${redZoneUp ? "!bg-[var(--map-tag-ink)] !text-[var(--map-tag)] outline outline-1 outline-[var(--map-tag)]" : ""}`}
+      className={`${plate} gap-1 ${
+        tucked ? "!pointer-events-none opacity-0" : redZoneUp ? "!bg-[var(--map-tag-ink)] !text-[var(--map-tag)] outline outline-1 outline-[var(--map-tag)]" : ""
+      }`}
     >
       <span className="h-1.5 w-1.5 rounded-full bg-status-critical" aria-hidden />
       RZ
     </button>
   ) : null;
-  // From tablet width up, zoom buttons too (for a mouse with no pinch), in the screen's bottom-left corner; on a phone,
-  // over the map's right end. The way home, while it's away; the Red Zone's switch, last.
+  // From tablet width up, zoom buttons too (for a mouse with no pinch); in the screen's bottom-left corner (on a phone,
+  // over the tab bar), the Red Zone's switch first on a phone, last wider. The way home, while it's away.
   return desktop ? (
     <div className="pointer-events-none fixed bottom-3 left-4 z-20 flex gap-1">
       {redZoneUp ? null : (
@@ -288,9 +336,9 @@ export function FloorCameraControls({
       {redZoneButton}
     </div>
   ) : (
-    <div className="pointer-events-none fixed bottom-[calc(var(--tabbar-h,0px)+0.75rem)] right-4 z-20 flex gap-1">
-      {following || redZoneUp ? null : home}
+    <div className="pointer-events-none fixed bottom-[calc(var(--tabbar-h,0px)+0.75rem)] left-4 z-20 flex gap-1">
       {redZoneButton}
+      {following || redZoneUp ? null : home}
     </div>
   );
 }

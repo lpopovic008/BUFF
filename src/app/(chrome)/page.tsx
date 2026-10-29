@@ -8,7 +8,7 @@ import { FloorMapLand, FloorMapTags } from "@/components/FloorMap";
 import { FloorMapFit, fitFloorMap, floorMapTop } from "@/lib/floor-map";
 import { HORIZON_SHARE, gridRows, lowestGridLine } from "@/lib/grid-room";
 import { FloorGrid } from "@/components/FloorGrid";
-import { FloorCameraControls, RED_ZONE_SINK_MS } from "@/components/FloorCameraControls";
+import { FloorCameraControls, RED_ZONE_RISE_DELAY_MS, RED_ZONE_RISE_MS, RED_ZONE_SINK_MS } from "@/components/FloorCameraControls";
 import { FloorReflection } from "@/components/FloorReflection";
 import { FloorPlay } from "@/components/FloorPlay";
 import { ScrollThumb } from "@/components/ScrollThumb";
@@ -48,12 +48,9 @@ const MAX_GRAPHS = 4;
 
 // From tablet width up, where the map and the Red Zone share a column the screen's height.
 const DESKTOP = "(min-width: 768px)";
-// The Red Zone rising out of the floor once the floor's slid away from under it (see FloorCameraControls), ms; up,
-// how far it floats over the floor (a couple of px), and how tall it is at first: a play of three players, under its
-// header (on a tablet or wider, on fewer lines).
-const RED_ZONE_RISE_DELAY_MS = 650;
-/** How long it takes to come up (its rise in redZoneStage: duration-500). */
-const RED_ZONE_RISE_MS = 500;
+// The Red Zone, up: how far it floats over the floor (a couple of px), and how tall it is at first: a play of three
+// players, under its header (on a tablet or wider, on fewer lines). (It rises once the floor's slid away from under
+// it, see FloorCameraControls.)
 const RED_ZONE_FLOAT_REM = 0.125;
 const RED_ZONE_REM = 10.5;
 const DESKTOP_RED_ZONE_REM = 8.125;
@@ -605,6 +602,8 @@ export default function DashboardPage() {
         spotlight={graphed.length > 0 ? spotlight : null}
         hiddenGames={offMap}
         full={{ on: redZoneFull, toggle: stretchRedZone }}
+        // On a phone its title's its switch, once it's up (its switch flies up into it, see FloorCameraControls).
+        onSwitchOff={desktop ? undefined : () => switchRedZone(false)}
         scoringByLeague={scoringByLeague}
       />
     ) : null;
@@ -649,6 +648,7 @@ export default function DashboardPage() {
           }}
         >
           <div
+            data-rz-rise
             className={`absolute inset-x-0 bottom-0.5 top-0 flex flex-col transition-transform ease-out ${
               redZoneUp ? "translate-y-0 delay-[650ms] duration-500" : "translate-y-[calc(100%+0.125rem)] duration-[400ms]"
             }`}

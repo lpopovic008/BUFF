@@ -422,6 +422,17 @@ const SCOPES: { label: string; value: RedZoneScope }[] = [
   { label: "All", value: "all" },
 ];
 
+/** The Red Zone's title: the switch that puts it away, when there's one (`onClick`); otherwise just the title. */
+function TitleSwitch({ onClick, className, children }: { onClick?: () => void; className: string; children: React.ReactNode }) {
+  return onClick ? (
+    <button type="button" onClick={onClick} aria-label="Put the Red Zone away" title="Put the Red Zone away" className={`${className} cursor-pointer`}>
+      {children}
+    </button>
+  ) : (
+    <span className={className}>{children}</span>
+  );
+}
+
 /**
  * The Red Zone: plays as they happen, newest on top — the ones your starters
  * are part of (Team), those and the ones your opponents' starters are (VS),
@@ -439,6 +450,7 @@ export function RedZone({
   fill = false,
   spotlight = null,
   full,
+  onSwitchOff,
   hiddenGames = NO_GAMES,
   onEmptyChange,
   onFitChange,
@@ -467,6 +479,8 @@ export function RedZone({
   fill?: boolean;
   /** From tablet width up, whether the box is stretched to the whole column's height, and the ⇕ button's switch for it (on a phone the button fits the box to the screen). */
   full?: { on: boolean; toggle: () => void };
+  /** On a phone, switches the Red Zone off: its title's the switch. */
+  onSwitchOff?: () => void;
   /** Each of your leagues' scoring, by league id: a starter's points are scored under his first league's (see linePoints). */
   scoringByLeague?: Map<string, Record<string, number> | undefined>;
   /** Games hidden in the starters list (their matchups swiped over), by id: none of their plays shown. */
@@ -697,7 +711,9 @@ export function RedZone({
         <div className={across ? `flex items-center gap-2 ${fill ? "py-0.5" : "py-1"}` : "absolute inset-0 flex flex-col items-center gap-1.5 px-0.5 py-1.5"}>
           {/* The title, ⇕ after it (under it, down the side). */}
           <div className={`flex shrink-0 items-center gap-1 ${across ? "flex-row" : "flex-col"}`}>
-            <h2 className={`flex items-center ${across ? "flex-row gap-1.5" : "flex-col gap-1"}`} aria-label="Red Zone">
+            <h2 data-rz-title className="flex" aria-label="Red Zone">
+              {/* On a phone, the Red Zone's switch (it flies up into here as it comes up). */}
+              <TitleSwitch onClick={onSwitchOff} className={`flex items-center ${across ? "flex-row gap-1.5" : "flex-col gap-1"}`}>
               <span className="relative flex h-1.5 w-1.5 shrink-0" aria-hidden>
                 {live ? <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-status-critical opacity-60" /> : null}
                 <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${live ? "bg-status-critical" : "bg-ink-muted"}`} />
@@ -712,6 +728,7 @@ export function RedZone({
                   {"RED ZONE".split("").map((ch, i) => (ch === " " ? <span key={i} className="h-1" /> : <span key={i}>{ch}</span>))}
                 </span>
               )}
+              </TitleSwitch>
             </h2>
             {/* ⇕: the box as tall as the screen (on a phone, fit under the header; wider, the map's whole column) — and back. */}
             <button
