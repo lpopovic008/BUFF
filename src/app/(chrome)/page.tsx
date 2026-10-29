@@ -65,6 +65,16 @@ const onDesktopChange = (listener: () => void) => {
   return () => query.removeEventListener("change", listener);
 };
 
+/** Where across a screen `width` wide the floor's plays are acted out from tablet width up: its middle, half of it at
+ * most, short of `clear` (the starters list) by as much on the left — or, with the list too near the middle for that
+ * (a narrow screen), the middle of the floor left of it. */
+function playArea(width: number, clear: number): { left: number; right: number } {
+  const half = Math.min(width / 4, clear - width / 2);
+  if (half >= width / 8) return { left: width / 2 - half, right: width / 2 + half };
+  const [mid, room] = [clear / 2, Math.min(width / 4, clear / 2 - 16)];
+  return { left: mid - room, right: mid + room };
+}
+
 export default function DashboardPage() {
   const { config, loaded } = useConfig();
   const desktop = useSyncExternalStore(onDesktopChange, () => window.matchMedia(DESKTOP).matches, () => false);
@@ -753,13 +763,13 @@ export default function DashboardPage() {
       ) : null}
       {/* Its reflection without its fade, so what's at its foot shows in the floor. */}
       <FloorReflection source={startersList} className="pb-16" />
-      {/* Red Zone plays acted out on the floor, from the room's left to at most halfway across. */}
+      {/* Red Zone plays acted out on the floor, in the middle of the screen (see playArea). */}
       {stand ? (
         <FloorPlay
           width={stand.fit.width}
           height={stand.room}
           share={stand.fit.share}
-          area={{ left: stand.rootPx, right: stand.fit.width / 2 - stand.rootPx }}
+          area={playArea(stand.fit.width, startersList ? startersList.getBoundingClientRect().left - stand.rootPx : stand.fit.width)}
           clear={redZoneOver}
         />
       ) : null}
