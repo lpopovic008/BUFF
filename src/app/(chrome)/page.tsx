@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import type { MappedGame } from "@/components/GameMap";
@@ -67,19 +67,20 @@ const onDesktopChange = (listener: () => void) => {
   return () => query.removeEventListener("change", listener);
 };
 
-/** Where across a screen `width` wide the floor's plays are acted out from tablet width up: its middle, half of it at
- * most, short of `clear` (the starters list) by as much on the left — or, with the list too near the middle for that
- * (a narrow screen), the middle of the floor left of it. */
-function playArea(width: number, clear: number): { left: number; right: number } {
-  const half = Math.min(width / 4, clear - width / 2);
-  if (half >= width / 8) return { left: width / 2 - half, right: width / 2 + half };
-  const [mid, room] = [clear / 2, Math.min(width / 4, clear / 2 - 16)];
-  return { left: mid - room, right: mid + room };
-}
-
 export default function DashboardPage() {
   const { config, loaded } = useConfig();
   const desktop = useSyncExternalStore(onDesktopChange, () => window.matchMedia(DESKTOP).matches, () => false);
+  // The room fits the screen: the page itself never scrolls (nothing but the starters list and the Red Zone's plays do).
+  useEffect(() => {
+    const [html, body] = [document.documentElement.style, document.body.style];
+    const was = [html.overflow, html.overscrollBehavior, body.overflow, body.overscrollBehavior];
+    html.overflow = body.overflow = "hidden";
+    html.overscrollBehavior = body.overscrollBehavior = "none";
+    window.scrollTo(0, 0);
+    return () => {
+      [html.overflow, html.overscrollBehavior, body.overflow, body.overscrollBehavior] = was;
+    };
+  }, []);
   const [leagues, setLeagues] = useState<LoadedLeague[] | null>(null);
   const [week, setWeek] = useState<number | null>(null);
   // The week shown: the current one, unless another's been picked from the header's "Week N".
@@ -233,8 +234,9 @@ export default function DashboardPage() {
   // The Red Zone up out of the floor in front of you (see redZoneStage); stretched (⇕) from there up over the screen,
   // the map out of its way.
   const [redZoneUp, setRedZoneUp] = useState(false);
-  // ⇕ stretches it a step at a time: to just short of the horizon, then up to the ticker (on a phone, the starters list
-  // sinking into the floor first, out of its way), then back.
+  // ⇕ stretches it a step at a time: to just short of the horizon (from tablet width up, halfway back to it — where it
+  // comes up to, there), then up to the ticker (on a phone, the starters list sinking into the floor first, out of its
+  // way), then back.
   const [redZoneLevel, setRedZoneLevel] = useState<0 | 1 | 2>(0);
   const stretchRedZone = () => setRedZoneLevel((level) => ((level + 1) % 3) as 0 | 1 | 2);
   const redZoneFull = redZoneLevel === 2;
@@ -243,7 +245,7 @@ export default function DashboardPage() {
   const switchRedZone = (on: boolean) => {
     setRedZoneUp(on);
     setRedZoneSinking(!on);
-    if (!on) setRedZoneLevel(0);
+    setRedZoneLevel(on && desktop ? 1 : 0);
   };
   useEffect(() => {
     if (!redZoneSinking) return;
@@ -266,9 +268,23 @@ export default function DashboardPage() {
       }
       setRedZoneUp(true);
       setRedZoneSinking(false);
+      if (window.matchMedia(DESKTOP).matches) setRedZoneLevel(1);
     });
     return () => cancelAnimationFrame(up);
   }, [weekUnderway, season, week]);
+  // From tablet width up, it's up from the start, halfway back to the horizon — once there's a Red Zone to show.
+  const redZoneReady = weekGames.length > 0 && myStarters !== null;
+  const startedUp = useRef(false);
+  useEffect(() => {
+    if (!desktop || !redZoneReady || startedUp.current) return;
+    startedUp.current = true;
+    const up = requestAnimationFrame(() => {
+      setRedZoneUp(true);
+      setRedZoneSinking(false);
+      setRedZoneLevel(1);
+    });
+    return () => cancelAnimationFrame(up);
+  }, [desktop, redZoneReady]);
   // The Red Zone's place on the floor, reflected in it (see FloorReflection).
   const [redZoneBox, setRedZoneBox] = useState<HTMLDivElement | null>(null);
   // The room's height as it's drawn (not 100vh, which a browser's toolbars can make taller than the screen); how far up
@@ -597,9 +613,17 @@ export default function DashboardPage() {
   // plays' scroll with it (see FloorReflection). Stretched (⇕), from under the ticker down to the bottom (a phone's
   // tab bar).
   const redZoneHeight = (desktop ? DESKTOP_RED_ZONE_REM : RED_ZONE_REM) + RED_ZONE_FLOAT_REM;
-  // Where the Red Zone's top stands over the floor while it's up (not stretched over all of it): plays acted out on
-  // the floor are kept above it (see FloorPlay).
-  const redZoneOver = stand && redZoneUp && redZoneLevel === 0 ? stand.redZoneLine - redZoneHeight * stand.rootPx : null;
+  // Where the Red Zone's top stands over the floor while it's up (not stretched over all of it — from tablet width up,
+  // halfway back to the horizon at most): plays acted out on the floor are kept above it (see FloorPlay).
+  const redZoneTop = (level: 0 | 1) =>
+    !stand
+      ? 0
+      : level === 0
+        ? stand.redZoneLine - redZoneHeight * stand.rootPx
+        : desktop
+          ? stand.horizon + 0.5 * (stand.redZoneLine - stand.horizon)
+          : stand.horizon + 0.375 * stand.rootPx;
+  const redZoneOver = stand && redZoneUp && (redZoneLevel === 0 || (redZoneLevel === 1 && desktop)) ? redZoneTop(redZoneLevel) : null;
   const redZoneStage =
     redZoneView && stand ? (
       <>
@@ -616,9 +640,7 @@ export default function DashboardPage() {
             top:
               redZoneLevel === 2
                 ? "calc(var(--header-h, 0px) + var(--ticker-h, 0px) + 0.625rem)"
-                : redZoneLevel === 1
-                  ? `${stand.horizon + 0.375 * stand.rootPx}px`
-                  : `${stand.redZoneLine - redZoneHeight * stand.rootPx}px`,
+                : `${redZoneTop(redZoneLevel)}px`,
           }}
         >
           <div
@@ -799,13 +821,14 @@ export default function DashboardPage() {
       ) : null}
       {/* Its reflection: what's at its foot, in the floor. */}
       <FloorReflection source={startersList} className="pb-16" style={{ paddingTop: `calc(${UNDER_TICKER})` }} />
-      {/* Red Zone plays acted out on the floor, in the middle of the screen (see playArea). */}
+      {/* Red Zone plays acted out on the floor left of the starters list, over the Red Zone, in the middle of the screen
+          (see FloorPlay). */}
       {stand ? (
         <FloorPlay
           width={stand.fit.width}
           height={stand.room}
           share={stand.fit.share}
-          area={playArea(stand.fit.width, startersList ? startersList.getBoundingClientRect().left - stand.rootPx : stand.fit.width)}
+          area={{ left: stand.rootPx, right: (startersList ? startersList.getBoundingClientRect().left : stand.fit.width) - stand.rootPx }}
           clear={redZoneOver}
         />
       ) : null}

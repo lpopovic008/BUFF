@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { GamePlay } from "./play-by-play";
-import { actorAt, ballAt, sceneFor, stageFor } from "./play-scene";
+import { actorAt, ballAt, formation, sceneFor, stageFor } from "./play-scene";
 
 function play(text: string, over: Partial<GamePlay> = {}): GamePlay {
   return {
@@ -162,4 +162,15 @@ test("the line to gain: as many yards past the line of scrimmage as the down and
   const goal = stageFor(sceneFor(play("J.Cook up the middle to KC 2 for 2 yards.", { offense: "BUF", yards: 2, yardsToEndzone: 4, downDistance: "1st & Goal" }), teams)!);
   assert.equal(goal.firstDown, null);
   assert.equal(stageFor(sceneFor(play("H.Butker 45 yard field goal is GOOD.", { downDistance: "4th & 8" }), teams)!).firstDown, null);
+});
+
+test("set up for the next play: the next snap where the ball ended, everyone lined up on it", () => {
+  const run = stageFor(sceneFor(play("J.Cook left end to KC 23 for 7 yards (N.Bolton).", { offense: "BUF", yards: 7, yardsToEndzone: 30 }), teams)!);
+  assert.equal(run.next, run.end!.x);
+  const spots = formation(run);
+  assert.equal(spots.length, run.actors.length);
+  run.actors.forEach((a, i) => assert.ok(a.team === run.offense ? spots[i][0] < run.next : spots[i][0] > run.next));
+  // An incompletion: from where it was snapped again.
+  const inc = stageFor(sceneFor(play("P.Mahomes pass incomplete deep right to X.Worthy."), teams)!);
+  assert.equal(inc.next, inc.los);
 });

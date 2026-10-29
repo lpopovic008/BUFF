@@ -371,6 +371,10 @@ export interface Stage {
   posts: number | null;
   /** A penalty flag: thrown from `from` when, landing at `to` (yards along, across). */
   flag: { t: number; from: [number, number]; to: [number, number] } | null;
+  /** Where the next play's snapped from, as near as can be told (where this one ended; back where it began after an
+   * incompletion; moved off a flag's yards), and the team that had the ball on this one. */
+  next: number;
+  offense: string;
   /** How long it all takes, the ending held a moment (s). */
   length: number;
 }
@@ -730,6 +734,11 @@ export function stageFor(scene: PlayScene): Stage {
     marks.push({ t: (end?.t ?? length - HOLD) + 0.1, kind: "word", x: (end?.x ?? 0) / 2, z: 13, text: "SAFETY", row });
   }
 
+  // Where the next snap is.
+  let next = end && scene.kind !== "incomplete" && scene.kind !== "spike" ? end.x : los;
+  if (scene.kind === "penalty" && pen) next = los + (pen.team === offense ? -1 : 1) * (pen.yards ?? 0);
+  if (scene.toGoal !== null) next = Math.min(scene.toGoal - 1, Math.max(scene.toGoal - 99, next));
+
   // No one past either end line.
   if (scene.toGoal !== null) {
     const [lo, hi] = [scene.toGoal - 110 + 0.5, scene.toGoal + 10 - 0.5];
@@ -763,6 +772,8 @@ export function stageFor(scene: PlayScene): Stage {
     end: end ? { x: moved(end.x), t: end.t } : null,
     posts: posts !== null ? moved(posts) : null,
     flag: flag ? { t: flag.t, from: [moved(flag.from[0]), flag.from[1]], to: [moved(flag.to[0]), flag.to[1]] } : null,
+    next: moved(next),
+    offense,
     length: length!,
   };
 }
@@ -792,4 +803,35 @@ export function ballAt(stage: Stage, t: number): { x: number; z: number; h: numb
   const f = Math.min(1, Math.max(0, (t - span.from) / Math.max(1e-6, span.to - span.from)));
   const { a, b, apex } = span.arc;
   return { x: a[0] + (b[0] - a[0]) * f, z: a[1] + (b[1] - a[1]) * f, h: a[2] + (b[2] - a[2]) * f + 4 * apex * f * (1 - f) };
+}
+
+/**
+ * Where each of a play's players lines up for the next one, at its line of scrimmage (`stage.next`): the team that had
+ * the ball behind it — its quarterback over the ball, the rest back and out wide — and the other across from it.
+ */
+export function formation(stage: Stage): [number, number][] {
+  const line = stage.next;
+  const offense: [number, number][] = [
+    [line - 1, 0],
+    [line - 6, 0],
+    [line, -12],
+    [line, 2.5],
+    [line, -2.5],
+  ];
+  const defense: [number, number][] = [
+    [line + 2, -1.5],
+    [line + 2, 2],
+    [line + 6, -8],
+    [line + 5, 8],
+    [line + 9, 0],
+  ];
+  // The quarterback first to his spot, then the rest as they come.
+  const order = stage.actors.map((a, i) => i).sort((a, b) => Number(stage.actors[b].role === "qb") - Number(stage.actors[a].role === "qb"));
+  const spots: [number, number][] = new Array(stage.actors.length);
+  let [o, d] = [0, 0];
+  for (const i of order) {
+    const ours = stage.actors[i].team === stage.offense;
+    spots[i] = ours ? offense[o++ % offense.length] : defense[d++ % defense.length];
+  }
+  return spots;
 }
