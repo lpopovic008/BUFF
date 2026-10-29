@@ -177,6 +177,7 @@ export function FloorPlay({
   share,
   area,
   clear,
+  onPlaying,
 }: {
   width: number;
   height: number;
@@ -186,9 +187,15 @@ export function FloorPlay({
   /** How far down the floor shows (screen y) when something stands in front of the rest (the Red Zone, up): the
    * field's brought back toward the horizon so all of it's over that. */
   clear: number | null;
+  /** Told when a play starts being acted out (true), and when it's over — set up for the next, none following it. */
+  onPlaying?: (playing: boolean) => void;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const room = useRef({ width, height, share, area, clear });
+  const told = useRef(onPlaying);
+  useEffect(() => {
+    told.current = onPlaying;
+  }, [onPlaying]);
   // Drawn again when the room changes under a play that's set up and waiting.
   const redraw = useRef(() => {});
   useEffect(() => {
@@ -297,7 +304,14 @@ export function FloorPlay({
     };
 
     // How deep the field lies and how big what's on it is (floor px a yard across it), eased as that changes.
-    let settledAt: { back: number; base: number } | null = null;
+    let settledAt: { back: number; base: number; left: number; right: number; middle: number } | null = null;
+    // Whether a play's being acted out, as last told.
+    let acting = false;
+    const tell = (now: boolean) => {
+      if (now === acting) return;
+      acting = now;
+      told.current?.(now);
+    };
 
     const draw = (now: number) => {
       looping = false;
@@ -315,12 +329,12 @@ export function FloorPlay({
       const hz = FIELD_WIDE / 2;
       // Where the field lies across the screen (its part of it), and where on the screen a play's middle goes: the
       // middle of the screen, or as near as leaves its far end short of the starters list beside it.
-      const [left, right] = field ? [field.left, field.right] : [0.02 * w, 0.98 * w];
+      const [left0, right0] = field ? [field.left, field.right] : [0.02 * w, 0.98 * w];
       // Over the field, room for what's said of the play (as many lines as it has): the field starts under it.
       const wordPx = field ? WORD_PX.desk : WORD_PX.phone;
       const lines = Math.max(1, ...playing.stage.marks.map((m) => (m.kind === "word" ? (m.row ?? 0) + 1 : 0)));
       const top = horizon + 6 + lines * wordPx * WORD_LINE + 4;
-      const middle = field ? Math.min(w / 2, right - (PLAY_SHARE * w) / 2) : w / 2;
+      const middle0 = field ? Math.min(w / 2, right0 - (PLAY_SHARE * w) / 2) : w / 2;
       // The highest anything of it stands on the screen, lying `bk` back, a yard across it `bs`: its far sideline, or the
       // head of whoever's farthest back on it, standing up over that.
       const zMin = Math.min(0, ...playing.stage.actors.flatMap((a) => a.keys.map((k) => k.z)));
@@ -353,8 +367,8 @@ export function FloorPlay({
         [back, base] = fit((bk) => MOST_PIXEL / (0.42 * floorScale(bk)));
       } else {
         const sized = (d: number) => {
-          let long = (right - left) / floorScale(d);
-          for (let i = 0; i < 6; i++) long = (right - left) / floorScale(d + hz * (long / FIELD_LONG));
+          let long = (right0 - left0) / floorScale(d);
+          for (let i = 0; i < 6; i++) long = (right0 - left0) / floorScale(d + hz * (long / FIELD_LONG));
           return long / FIELD_LONG;
         };
         back = BACK_SHARE * ((PERSPECTIVE_PX - (PERSPECTIVE_PX * PHONE_SQUARES * GRID_PX) / w) / sin);
@@ -375,9 +389,17 @@ export function FloorPlay({
           [back, base] = fit(() => most);
         }
       }
-      const eased = settledAt === null ? { back, base } : { back: settledAt.back + (back - settledAt.back) * 0.12, base: settledAt.base + (base - settledAt.base) * 0.12 };
-      const still = Math.abs(eased.back - back) < 0.05 && Math.abs(eased.base - base) < 0.0005;
+      // Eased there as any of it changes (the Red Zone coming up; the starters list going up out of its way and back).
+      const to = { back, base, left: left0, right: right0, middle: middle0 };
+      const from = settledAt ?? to;
+      const ease = (a: number, b: number) => a + (b - a) * 0.12;
+      const eased = { back: ease(from.back, back), base: ease(from.base, base), left: ease(from.left, left0), right: ease(from.right, right0), middle: ease(from.middle, middle0) };
+      const still =
+        Math.abs(eased.back - back) < 0.05 &&
+        Math.abs(eased.base - base) < 0.0005 &&
+        [eased.left - left0, eased.right - right0, eased.middle - middle0].every((d) => Math.abs(d) < 0.5);
       settledAt = eased;
+      const { left, right, middle } = eased;
       const { ink, page, good } = css();
 
       if (leaving && now - leaving.since > FADE_IN * 1000) leaving = null;
@@ -387,6 +409,8 @@ export function FloorPlay({
       // the next play or the room changes — and the next play, if one's waiting.
       if (!ready(playing, now) || leaving || !still) loop();
       else void next();
+      // (The one on now: the next, if it's just been put on.)
+      tell((current !== null && !ready(current, now)) || following.length > 0 || queue.length > 0 || preparing);
 
       function drawScene(playing: Playing, now: number, alpha: number) {
         const { stage, sprites, spots } = playing;

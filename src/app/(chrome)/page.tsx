@@ -345,6 +345,8 @@ export default function DashboardPage() {
       window.removeEventListener("resize", measure);
     };
   }, [room, desktop]);
+  // A Red Zone play being acted out on the floor (from tablet width up, the starters list goes up out of its way).
+  const [playOn, setPlayOn] = useState(false);
   // The play by the graph's cursor, shown in the Red Zone while the cursor's up.
   const [spotlight, setSpotlight] = useState<{ gameId: string; playId: string } | null>(null);
   const unpickGraph = (playerId: string) =>
@@ -794,7 +796,16 @@ export default function DashboardPage() {
             the row's padding, 0.625rem), so its foot is on the line whether or not it's stuck. Like a phone's, it runs
             right down to the floor, reflected in it — just what meets the floor, mirrored, as it scrolls — and up behind
             the see-through ticker and header, scrolled up under them. */}
-        <div className="sticky top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] h-[calc(var(--room-h,100vh)-var(--header-h,0px)-var(--ticker-h,0px)-0.625rem-var(--stand,0px))] w-80 shrink-0 lg:w-[22rem]">
+        {/* While a play's acted out on the floor, its foot goes up to the horizon, as a phone's stands — the play acted
+            out right across the floor, over where it stood — and comes back down once it's over. */}
+        <div
+          className="sticky top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] w-80 shrink-0 transition-[height] duration-500 ease-in-out lg:w-[22rem]"
+          style={{
+            height: playOn
+              ? `calc(${COLUMN_TO_HORIZON})`
+              : "calc(var(--room-h,100vh) - var(--header-h,0px) - var(--ticker-h,0px) - 0.625rem - var(--stand,0px))",
+          }}
+        >
           {/* Its scrollbar hidden (its reflection's copy has none, so they'd not line up), a thin thumb up as it scrolls;
               scrolled by the page, so its reflection moves with it (see useDragScroll). */}
           <div
@@ -821,15 +832,16 @@ export default function DashboardPage() {
       ) : null}
       {/* Its reflection: what's at its foot, in the floor. */}
       <FloorReflection source={startersList} className="pb-16" style={{ paddingTop: `calc(${UNDER_TICKER})` }} />
-      {/* Red Zone plays acted out on the floor left of the starters list, over the Red Zone, in the middle of the screen
-          (see FloorPlay). */}
+      {/* Red Zone plays acted out on the floor over the Red Zone, in the middle of the screen, right across it (the
+          starters list up out of the way); set up for the next, left of the list again (see FloorPlay). */}
       {stand ? (
         <FloorPlay
           width={stand.fit.width}
           height={stand.room}
           share={stand.fit.share}
-          area={{ left: stand.rootPx, right: (startersList ? startersList.getBoundingClientRect().left : stand.fit.width) - stand.rootPx }}
+          area={{ left: stand.rootPx, right: (playOn || !startersList ? stand.fit.width : startersList.getBoundingClientRect().left) - stand.rootPx }}
           clear={redZoneOver}
+          onPlaying={setPlayOn}
         />
       ) : null}
       {redZoneStage}
