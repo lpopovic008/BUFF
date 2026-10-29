@@ -19,7 +19,9 @@ export function appPages(pathname: string) {
 
 const tabClass = (active: boolean) =>
   `flex h-full items-center justify-center transition-colors ${
-    active ? "bg-[var(--map-tag)] text-[var(--map-tag-ink)]" : "text-ink-secondary hover:text-ink-primary active:scale-90"
+    active
+      ? "bg-[color-mix(in_srgb,var(--map-tag)_80%,transparent)] text-[var(--map-tag-ink)]"
+      : "text-ink-secondary hover:text-ink-primary active:scale-90"
   }`;
 
 /**
@@ -52,10 +54,10 @@ export function TabBar() {
       aria-label="Pages"
       // Its background down to the screen's bottom edge, its row of buttons sitting above the phone's home indicator,
       // as far above it as it is above the screen's bottom, 8px: the indicator's top is 13px up an iPhone's 34px safe
-      // area, so the row's bottom is 21px up — the safe area less 13px (none on a phone without one). On the home
-      // page, see-through to the room's floor under it.
-      className={`fixed inset-x-0 bottom-0 z-50 border-t border-border pb-[max(0px,calc(env(safe-area-inset-bottom)-13px))] [transform:translateZ(0)] md:hidden ${
-        pathname === "/" ? "bg-page/40" : "bg-page/95 backdrop-blur"
+      // area, so the row's bottom is 21px up — the safe area less 13px (none on a phone without one). No line along its
+      // top; on the home page, nothing behind it at all — the room's floor right under its buttons.
+      className={`fixed inset-x-0 bottom-0 z-50 pb-[max(0px,calc(env(safe-area-inset-bottom)-13px))] [transform:translateZ(0)] md:hidden ${
+        pathname === "/" ? "" : "bg-page/95 backdrop-blur"
       }`}
     >
       <div className="grid h-16 grid-cols-5">

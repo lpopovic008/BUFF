@@ -58,6 +58,8 @@ const RED_ZONE_FLOAT_REM = 0.125;
 const RED_ZONE_REM = 10.5;
 const DESKTOP_RED_ZONE_REM = 8.125;
 // From tablet width up, the player graphs at the back of the room: from under the ticker down to the horizon.
+// From tablet width up, how far down the starters list's first row sits: under the header and ticker, and the gap.
+const UNDER_TICKER = "var(--header-h, 0px) + var(--ticker-h, 0px) + 0.625rem";
 const COLUMN_TO_HORIZON = `(var(--room-h, 100vh) * ${HORIZON_SHARE} - var(--header-h, 0px) - var(--ticker-h, 0px) - 0.625rem)`;
 const onDesktopChange = (listener: () => void) => {
   const query = window.matchMedia(DESKTOP);
@@ -465,8 +467,9 @@ export default function DashboardPage() {
   // The floor moved around and zoomed (see FloorCameraControls), following the starters list while it's home.
   const [floorCamera] = useState(createFloorCameraStore);
   const [startersList, setStartersList] = useState<HTMLDivElement | null>(null);
-  // On a phone, the page scrolls the starters list itself, so its reflection keeps up with it (see useDragScroll).
-  useDragScroll(desktop ? null : startersList);
+  // The page scrolls the starters list itself, so its reflection keeps up with it — pulled past its ends and springing
+  // back included (see useDragScroll).
+  useDragScroll(startersList);
 
   if (!loaded || leagues === null) {
     return (
@@ -570,8 +573,8 @@ export default function DashboardPage() {
   // The Red Zone, up out of the floor in front of you (its switch beside the map's way home, see FloorCameraControls):
   // once the floor's slid toward you and the map's gone off the screen's bottom, it rises out of the floor at its
   // switch's top and floats a little over it, two plays tall, as wide as the screen (on a tablet or wider, the room
-  // left of the starters list) — and sinks back into it. Backed like the ticker, see-through, so the reflections on
-  // the floor behind it show softly through it; reflected in the floor under it, the gap it floats by and all, its
+  // left of the starters list) — and sinks back into it. With no backing of its own, the room behind it showing right
+  // through; reflected in the floor under it, the gap it floats by and all, its
   // plays' scroll with it (see FloorReflection). Stretched (⇕), from under the ticker down to the bottom (a phone's
   // tab bar).
   const redZoneHeight = (desktop ? DESKTOP_RED_ZONE_REM : RED_ZONE_REM) + RED_ZONE_FLOAT_REM;
@@ -600,7 +603,7 @@ export default function DashboardPage() {
           }}
         >
           <div
-            className={`absolute inset-x-0 bottom-0.5 top-0 flex flex-col bg-page/50 backdrop-blur-[1px] transition-transform ease-out ${
+            className={`absolute inset-x-0 bottom-0.5 top-0 flex flex-col transition-transform ease-out ${
               redZoneUp ? "translate-y-0 delay-[650ms] duration-500" : "translate-y-[calc(100%+0.125rem)] duration-[400ms]"
             }`}
           >
@@ -739,14 +742,19 @@ export default function DashboardPage() {
             taking the rest. It stands upright on the floor's lowest grid line (--stand), facing you square on, as
             something standing on a line across the floor does — from where it sits under the ticker (past the gap and
             the row's padding, 0.625rem), so its foot is on the line whether or not it's stuck. Like a phone's, it runs
-            right down to the floor, reflected in it — just what meets the floor, mirrored, as it scrolls. */}
+            right down to the floor, reflected in it — just what meets the floor, mirrored, as it scrolls — and up behind
+            the see-through ticker and header, scrolled up under them. */}
         <div className="sticky top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] h-[calc(var(--room-h,100vh)-var(--header-h,0px)-var(--ticker-h,0px)-0.625rem-var(--stand,0px))] w-80 shrink-0 lg:w-[22rem]">
-          {/* Its scrollbar hidden (its reflection's copy has none, so they'd not line up), a thin thumb up as it scrolls. */}
+          {/* Its scrollbar hidden (its reflection's copy has none, so they'd not line up), a thin thumb up as it scrolls;
+              scrolled by the page, so its reflection moves with it (see useDragScroll). */}
           <div
             ref={setStartersList}
-            className="h-full overflow-y-auto pb-16 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            data-drag-scroll
+            className="absolute inset-x-0 bottom-0 touch-none overflow-y-auto overscroll-none pb-16 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            style={{ top: `calc(-1 * (${UNDER_TICKER}))`, paddingTop: `calc(${UNDER_TICKER})` }}
           >
-            {startersView}
+            {/* Moved down (or up) as far as it's pulled past an end. */}
+            <div className="translate-y-[var(--overscroll,0px)]">{startersView}</div>
           </div>
           <ScrollThumb source={startersList} />
         </div>
@@ -762,7 +770,7 @@ export default function DashboardPage() {
         />
       ) : null}
       {/* Its reflection: what's at its foot, in the floor. */}
-      <FloorReflection source={startersList} className="pb-16" />
+      <FloorReflection source={startersList} className="pb-16" style={{ paddingTop: `calc(${UNDER_TICKER})` }} />
       {/* Red Zone plays acted out on the floor, in the middle of the screen (see playArea). */}
       {stand ? (
         <FloorPlay

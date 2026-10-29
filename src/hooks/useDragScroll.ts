@@ -15,12 +15,15 @@ const DECAY_MS = 325;
 const SPRING = 0.02;
 /** How much of a finger's pull past an end the list follows: less the further it's pulled, as on a phone. */
 const PULL = 0.55;
+/** How long after a wheel or trackpad stops pushing past an end the list springs back (ms). */
+const WHEEL_SETTLE_MS = 120;
 
 /**
  * A list (`el`, a scroll box the browser can't scroll by touch: touch-action none, marked data-drag-scroll so what
  * follows it knows) scrolled by the page itself rather than the browser: dragged with a finger (or
  * the mouse), flicked to glide on, pulled a little way past either end to spring back, and scrolled by a wheel or
- * trackpad — so the list and anything following it move together, each move announced (DRAG_SCROLL_EVENT). Within
+ * trackpad (pushed past an end too, springing back once it stops) — so the list and anything following it move
+ * together, each move announced (DRAG_SCROLL_EVENT). Within
  * its ends it's the element's own scroll position (scrollTop, its scroll events, and anything that scrolls it into
  * view all as usual — and moved by the graphics card, nothing repainted); past them, the distance as --overscroll
  * on it, for its contents to move by (set only as it changes: every change restyles the whole list). Drags that start
@@ -142,12 +145,29 @@ export function useDragScroll(el: HTMLElement | null) {
       e.stopPropagation();
       e.preventDefault();
     };
+    // A wheel or trackpad pushing on past an end: how far, as if there were no end (pulled() gives how far the list
+    // follows), until it's let go of a moment and springs back.
+    let pushed: number | null = null;
+    let settle = 0;
     const wheel = (e: WheelEvent) => {
       if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
       e.preventDefault();
       stop();
       const px = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? el.clientHeight : 1;
-      show(Math.min(max(), Math.max(0, at() + e.deltaY * px)));
+      const raw = (pushed ?? at()) + e.deltaY * px;
+      window.clearTimeout(settle);
+      if (raw >= 0 && raw <= max()) {
+        pushed = null;
+        show(raw);
+        return;
+      }
+      pushed = raw;
+      show(pulled(raw));
+      settle = window.setTimeout(() => {
+        pushed = null;
+        const end = at() < 0 ? 0 : max();
+        springBack(end, at() - end, 0);
+      }, WHEEL_SETTLE_MS);
     };
     // Shorter now (its contents changed)? Back within its ends.
     const resize = new ResizeObserver(() => {
@@ -163,6 +183,7 @@ export function useDragScroll(el: HTMLElement | null) {
     el.addEventListener("wheel", wheel, { passive: false });
     return () => {
       stop();
+      window.clearTimeout(settle);
       resize.disconnect();
       el.removeEventListener("pointerdown", down);
       el.removeEventListener("pointermove", move);
