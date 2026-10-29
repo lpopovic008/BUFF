@@ -89,6 +89,7 @@ test("kneels, spikes, two-point tries and snaps that get away", () => {
   const kneel = sceneFor(play("P.Mahomes kneels to KC 29 for -1 yards."), teams)!;
   assert.deepEqual([kneel.kind, kneel.passer, kneel.yards], ["kneel", "P.Mahomes", -1]);
   assert.ok(stageFor(kneel).actors[0].keys.some((k) => k.pose === "kneel"));
+  assert.ok(!stageFor(kneel).actors.some((a) => a.role === "lineman"));
   assert.equal(sceneFor(play("P.Mahomes spiked the ball to stop the clock."), teams)!.kind, "spike");
   const two = sceneFor(play("TWO-POINT CONVERSION ATTEMPT. P.Mahomes pass to T.Kelce is complete. ATTEMPT SUCCEEDS."), teams)!;
   assert.deepEqual([two.kind, two.target, two.toGoal, two.conversion], ["pass", "T.Kelce", 2, { good: true }]);

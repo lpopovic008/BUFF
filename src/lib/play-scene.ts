@@ -562,10 +562,9 @@ export function stageFor(scene: PlayScene): Stage {
       break;
     }
     case "kneel": {
-      // Under center, the snap, and down on a knee.
+      // The snap, and down on a knee (no center: just the quarterback and the defense).
       const te = SNAP + 0.35;
       const qb = add("qb", offense, scene.passer, [key(0, -1, 0, "stand"), key(SNAP, -1, 0, "run"), key(te, scene.yards - 0.5, 0, "kneel")]);
-      add("lineman", offense, null, [key(0, 0, 1.5, "stand")]);
       add("defender", defense, null, [key(0, 1.8, -1.2, "stand")]);
       ball.push({ from: 0, to: Infinity, by: qb });
       word(te + 0.1, 0, "KNEEL");
