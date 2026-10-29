@@ -8,7 +8,7 @@ import { gameClock, NFLGame } from "@/lib/nfl-schedule";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import { nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import { LeagueLegendEntry } from "./LeagueMark";
-import { GameRows, RowMotion } from "./GameRows";
+import { GameRows } from "./GameRows";
 import { FieldSpot, PossessionMark } from "./FieldSpot";
 import { Ordinals } from "./Ordinals";
 import { LastAction, onPace, paceShare } from "@/lib/live-play-points";
@@ -346,16 +346,13 @@ function linePieces(player: GroupedStarter, phase: Phase, action: LastAction | u
  * color) right after it, that play's +/- (only while the game's on), and
  * their total (or projection, before kickoff) — their leagues are in their
  * graph's header (see PointsGraph). Gone while its box is shut or its block
- * switched off. Shown, the total follows the points
- * as they change (see GameRows): the name lit as the play lights up in the
- * Red Zone, the +/- lit as it's applied, the total lit as it counts up.
+ * switched off.
  */
 function GameLine({
   player,
   phase,
   action,
   shown,
-  motion,
   legendByLeagueId,
   selected = false,
   onSelect,
@@ -367,7 +364,6 @@ function GameLine({
   /** How far along their game is, as their graph's pace line reads it (see paceShare) — while it's on. */
   pace?: number;
   shown: boolean;
-  motion: RowMotion;
   legendByLeagueId: Map<string, LeagueLegendEntry>;
   /** Their points-over-time graph is up in place of the map. */
   selected?: boolean;
@@ -384,10 +380,9 @@ function GameLine({
   if (shown && count >= total && !typedIn) setTypedIn(true);
   if (!shown && typedIn) setTypedIn(false);
   const side = player.side ?? "mine";
-  const lit = "bg-[var(--map-tag)] text-[var(--map-tag-ink)]";
-  // While points are being applied, the +/- being applied; otherwise their latest play's.
-  const shownDelta = typedIn && phase === "live" && action ? (motion.chip?.delta ?? action.delta) : null;
-  const shownPoints = typedIn && phase !== "pre" ? (motion.points ?? player.points) : null;
+  // Their latest play's +/-, and their total.
+  const shownDelta = typedIn && phase === "live" && action ? action.delta : null;
+  const shownPoints = typedIn && phase !== "pre" ? player.points : null;
 
   // Their leagues in the order they're tracked, named when hovered.
   const leagueIds = [...player.leagueIds].sort(
@@ -418,7 +413,7 @@ function GameLine({
       <span className="-mr-0.5 w-[2.6em] shrink-0 text-[0.6875rem] tabular-nums text-ink-muted">{time}</span>
       <span className="flex min-w-0 flex-1 items-center gap-1">
         <span
-          className={`min-w-0 truncate ${SIDE_NAME_COLOR[side]} ${motion.highlight ? `-mx-1 px-1 ${lit}` : ""} ${
+          className={`min-w-0 truncate ${SIDE_NAME_COLOR[side]} ${
             selected ? "underline decoration-2 underline-offset-2" : onSelect ? "decoration-ink-muted hover:underline" : ""
           }`}
         >
@@ -431,11 +426,7 @@ function GameLine({
         {phase === "live" ? (
           <span
             className={`w-[3.8em] shrink-0 text-right tabular-nums ${
-              shownDelta !== null && motion.chip
-                ? `font-bold ${lit}`
-                : (shownDelta ?? action?.delta ?? 0) < 0
-                  ? "text-status-critical"
-                  : "text-status-good"
+              (shownDelta ?? action?.delta ?? 0) < 0 ? "text-status-critical" : "text-status-good"
             }`}
           >
             {shownDelta !== null ? `${shownDelta > 0 ? "+" : ""}${formatPoints(shownDelta)}` : delta}
@@ -451,9 +442,7 @@ function GameLine({
         }`}
       >
         {shownPoints !== null && shownPoints !== undefined ? (
-          <span data-points className={`relative inline-block ${motion.counting ? `-mx-1 px-1 font-bold ${lit}` : ""}`}>
-            {formatPoints(shownPoints)}
-          </span>
+          <span className="relative inline-block">{formatPoints(shownPoints)}</span>
         ) : (
           points
         )}
@@ -953,14 +942,13 @@ function GameBox({
             <GameRows
               players={shown}
               sortByPoints={live}
-              render={(player, motion) => (
+              render={(player) => (
                 <GameLine
                   player={player}
                   phase={phase}
                   action={actions[player.playerId]}
                   pace={pace}
                   shown={!hidden && !closing}
-                  motion={motion}
                   legendByLeagueId={legendByLeagueId}
                   selected={selectedPlayerIds.includes(player.playerId)}
                   onSelect={onSelectPlayer ? () => onSelectPlayer(player.playerId) : undefined}
@@ -1067,13 +1055,12 @@ function ByeRow({
             <GameRows
               players={shown}
               sortByPoints={false}
-              render={(player, motion) => (
+              render={(player) => (
                 <GameLine
                   player={player}
                   phase="pre"
                   action={actions[player.playerId]}
                   shown={!closing}
-                  motion={motion}
                   legendByLeagueId={legendByLeagueId}
                   selected={false}
                 />

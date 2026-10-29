@@ -271,45 +271,6 @@ body {
   }
 }
 
-/* The +/- applied beside a total in the starters list: its digits blink in,
-   HUD-style, then hold. Only the text blinks — the plate stays solid, so the
-   league logos it sits over never show through. */
-@keyframes pts-chip {
-  0% {
-    color: transparent;
-  }
-  20% {
-    color: var(--map-tag-ink);
-  }
-  40% {
-    color: transparent;
-  }
-  60% {
-    color: var(--map-tag-ink);
-  }
-  80% {
-    color: color-mix(in srgb, var(--map-tag-ink) 40%, transparent);
-  }
-  100% {
-    color: var(--map-tag-ink);
-  }
-}
-
-/* What the home page's points animation is pointing at in the Red Zone — the
-   play's row, the player's name and the +/- it earned — lit while it plays
-   out (set from GameRows). */
-[data-lit]:not(li) {
-  margin-inline: -0.25em;
-  padding-inline: 0.25em;
-  background: var(--map-tag) !important;
-  color: var(--map-tag-ink) !important;
-}
-li[data-lit] {
-  background: color-mix(in srgb, var(--ink-primary) 8%, transparent) !important;
-  outline: 1.5px solid var(--ink-primary);
-  outline-offset: -1.5px;
-}
-
 /* The Red Zone alert's pulse. */
 @keyframes rz-pulse {
   0%,
