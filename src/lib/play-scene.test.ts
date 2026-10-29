@@ -267,3 +267,16 @@ test("defenders start at least 5 yards off the line on their side — even for a
     for (const [x] of formation(stage).filter((_, i) => stage.actors[i].team !== stage.nextBall.team)) assert.ok(x >= stage.next + 5 - 1e-9);
   }
 });
+
+test("an onside kick however ESPN words it", () => {
+  for (const text of [
+    "H.Butker kicks onside 11 yards from KC 35 to KC 46. RECOVERED by KC-J.Watson.",
+    "(Onside Kick formation) H.Butker kicks onside 12 yards from KC 35 to KC 47. RECOVERED by BUF-K.Coleman.",
+    "H.Butker onside kick 10 yards from KC 35 to KC 45, out of bounds.",
+  ]) {
+    const s = sceneFor(play(text, { offense: "BUF" }), teams);
+    assert.equal(s?.kind, "kickoff", text);
+    assert.equal(s?.onside, true, text);
+    assert.ok(stageFor(s!).marks.some((m) => m.text === "ONSIDE KICK"), text);
+  }
+});

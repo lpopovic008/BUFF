@@ -261,7 +261,8 @@ function readPlay(raw: string, action: string, base: PlayScene, play: GamePlay):
     return { ...base, kind: "extraPoint", kicker: m[1], yards: 33, good: result === "GOOD", blocked: result === "BLOCKED", touchdown: false, toGoal: 15, toGo: null };
   }
   // Punted or kicked off: who kicked it how far, and who caught it (on a fair catch, or running it back, and how far).
-  if ((m = new RegExp(String.raw`^${NAME}\s+(punts|kicks|onside kick)\s+(-?\d+)\s+yards?`, "i").exec(action))) {
+  // (An onside kick's said either way: "kicks onside 11 yards", "onside kick 11 yards".)
+  if ((m = new RegExp(String.raw`^${NAME}\s+(punts|kicks(?:\s+onside)?|onside\s+kicks?)\s+(-?\d+)\s+yards?`, "i").exec(action))) {
     const rest = action.slice(m.index + m[0].length);
     const fair = new RegExp(String.raw`fair catch by\s+(?:[A-Z]{2,3}-)?${NAME}`, "i").exec(rest);
     const ran = new RegExp(String.raw`\.\s*${NAME}\s+(?:to|pushed|ran|for)\b`).exec(rest);
