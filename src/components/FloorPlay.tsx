@@ -6,7 +6,7 @@ import { labelNames } from "@/lib/play-lines";
 import { actorAt, ballAt, formation, PlayScene, Pose, sceneFor, Stage, StageActor, stageFor } from "@/lib/play-scene";
 import { loadRosters, RosterPlayer } from "@/lib/players";
 import { uniformFor, Uniform } from "@/lib/team-colors";
-import { FLOOR_TILT, floorDepth, floorPoint, floorScale, floorY, GRID_PX, HOME_CAMERA, lowestGridLine, PERSPECTIVE_PX } from "@/lib/grid-room";
+import { floorDepth, floorPoint, floorScale, GRID_PX, HOME_CAMERA } from "@/lib/grid-room";
 import type { FloorCameraStore } from "@/lib/floor-camera";
 
 /** Asks the floor to act a play out (see showPlayOnFloor). */
@@ -27,39 +27,28 @@ export function showPlayOnFloor(play: GamePlay, teams: [home: string, away: stri
   window.dispatchEvent(new CustomEvent<PlayDetail>(PLAY_EVENT, { detail: { play, teams, now } }));
 }
 
-// The field: on a phone, about this many of the floor's squares long, as wide as the screen; how long it is and how
-// wide, in yards (end zones and all); how long a play takes to come in (s); and how many plays wait their turn.
-const PHONE_SQUARES = 3.3;
-const FIELD_LONG = 120;
+// The field: how wide it is, in yards; how long a play takes to come in (s); and how many plays wait their turn.
 const FIELD_WIDE = 53.3;
 const FADE_IN = 0.35;
-// Along the field: how much of the screen's width a play takes from where it starts to where it ends; a yard at most
-// (as a share of the screen's width) and at least (px), however short or long it is; and set up for the next one,
-// how far either way from its line of scrimmage it shows as much as.
-const PLAY_SHARE = 0.5;
-const MOST_YARD = 0.035;
-const LEAST_YARD = 4;
-const READY_REACH = 10;
-// How long the field takes to slide over to the next line of scrimmage and the players to line up on it (s).
+// How much of the screen's width a play takes at most, from where it starts to where it ends: a square of the floor's
+// grid five yards of the field, or ten or twenty to fit one that long.
+const PLAY_FIT = 0.8;
+const SQUARE_YARDS = [5, 10, 20];
+// How long the floor takes to slide over to the next line of scrimmage and the players to line up on it (s).
 const RESET = 1.2;
-// How far past the near sideline the field reaches down (yards); how far in from either sideline its numbers' feet are.
-const NUMBERS = 2;
+// The field's numbers: how far in from the far sideline their feet are (yards), and how far down the screen the near
+// side's are.
 const FIELD_NUMBERS = 7;
+const NEAR_NUMBERS = 0.975;
 // The line of scrimmage and the line to gain, colored as on television.
 const SCRIMMAGE = "#2f7cf6";
 const FIRST_DOWN = "#f5d020";
 // A penalty flag's yellow; a coach's challenge flag's red.
 const FLAG = { yellow: "#f5d020", red: "#e5383b" };
-// What happened, over the field: how big (px; from tablet width up, and on a phone), each line over the last.
-const WORD_PX = { desk: 20, phone: 15 };
+// What happened, up over the horizon: how big (px; from tablet width up, and on a phone), each line over the last.
+const WORD_PX = { desk: 20, phone: 16 };
 const WORD_LINE = 1.15;
-// How far back past the far sideline the field's lines run, as a share of half its width.
-const FAR_REACH = 1.7;
-// How much farther back than otherwise the field and its play lie, as a share of how far back they'd be.
-const BACK_SHARE = 0.9;
 const QUEUE = 3;
-// How many of the floor's squares in front of the back of the room the field's farthest reach stays.
-const BACK_SQUARES = 2;
 
 // A pixel player, facing you: helmet (H) and its face (V), jersey (J) and sleeves (A), gloves (G), pants (P), socks
 // (S) and shoes (K) — its number on its chest, rows 5–9, columns 3–9. Legs and arms change with how they stand.
@@ -161,57 +150,43 @@ interface Playing {
   /** Where each lines up for the next play (see formation). */
   spots: [number, number][];
   start: number;
-  /** From tablet width up, where it lies on the floor's grid (set as it comes on): how many yards a square of it is,
-   * and where across the floor (px, before the floor's moved) the play's middle is; and whether the floor's been slid
-   * over to the next play's line of scrimmage yet. */
+  /** Where it lies on the floor's grid (set as it comes on): how many yards a square of it is, and where across the
+   * floor (px, before the floor's moved) the play's middle is; and whether the floor's been slid over to the next
+   * play's line of scrimmage yet. */
   grid?: { yards: number; x0: number; slid: boolean };
 }
 
 /**
- * Red Zone plays acted out on the room's floor by pixel players: a field laid on the floor — on a phone as wide as
- * the screen (a few of its squares long), from tablet width up, the left of the room to at most halfway across
- * (`area`) — and on it the play, set in its middle: the quarterback dropping back and throwing, the receiver
- * running out to catch it (+1, floating up off him), the runner taking the handoff to where he's brought down, the
- * gain written on the ground where it ended; each in his team's colors (white on the road), his number on his chest.
- * A play comes in, it's acted out (after any on already); tapped in the Red Zone, again.
+ * Red Zone plays acted out on the room's floor by pixel players: the whole floor a field, its grid's lines the yard
+ * lines (moved and zoomed with it, `camera`), and on it the play, in the middle of the screen: the quarterback
+ * dropping back and throwing, the receiver running out to catch it (+1, floating up off him), the runner taking the
+ * handoff to where he's brought down, the gain painted on the field where it ended; each in his team's colors (white
+ * on the road), his number on his chest. A play comes in, it's acted out (after any on already); tapped in the Red
+ * Zone, again. Whatever stands on the floor, it's acted out behind.
  */
 export function FloorPlay({
   width,
   height,
   share,
-  area,
-  clear,
-  onPlaying,
   camera,
   steer = false,
 }: {
   width: number;
   height: number;
   share: number;
-  /** Where across the screen the field lies, from tablet width up (null on a phone: the whole width). */
-  area: { left: number; right: number } | null;
-  /** How far down the floor shows (screen y) when something stands in front of the rest (the Red Zone, up): the
-   * field's brought back toward the horizon so all of it's over that. */
-  clear: number | null;
-  /** Told when a play starts being acted out (true), and when it's over — set up for the next, none following it. */
-  onPlaying?: (playing: boolean) => void;
-  /** From tablet width up, the floor's camera: the field's laid on its grid, moved and zoomed with it. */
+  /** The floor's camera: the field's laid on its grid, moved and zoomed with it. */
   camera?: FloorCameraStore;
   /** Whether the floor may be slid over to center each next play's line of scrimmage (the Red Zone up, the floor ours). */
   steer?: boolean;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
-  const room = useRef({ width, height, share, area, clear, camera, steer });
-  const told = useRef(onPlaying);
-  useEffect(() => {
-    told.current = onPlaying;
-  }, [onPlaying]);
+  const room = useRef({ width, height, share, camera, steer });
   // Drawn again when the room changes under a play that's set up and waiting.
   const redraw = useRef(() => {});
   useEffect(() => {
-    room.current = { width, height, share, area, clear, camera, steer };
+    room.current = { width, height, share, camera, steer };
     redraw.current();
-  }, [width, height, share, area, clear, camera, steer]);
+  }, [width, height, share, camera, steer]);
   // Drawn again as the floor moves.
   useEffect(() => camera?.subscribe(() => redraw.current()), [camera]);
 
@@ -316,20 +291,13 @@ export function FloorPlay({
     };
 
     // How deep the field lies and how big what's on it is (floor px a yard across it), eased as that changes.
-    let settledAt: { back: number; base: number; left: number; right: number; middle: number } | null = null;
-    // Whether a play's being acted out, as last told.
-    let acting = false;
-    const tell = (now: boolean) => {
-      if (now === acting) return;
-      acting = now;
-      told.current?.(now);
-    };
+    let settledAt: { back: number; base: number } | null = null;
 
     const draw = (now: number) => {
       looping = false;
       const playing = current;
       if (!playing) return;
-      const { width: w, height: h, share: sh, area: field, clear: over, camera: store, steer } = room.current;
+      const { width: w, height: h, share: sh, camera: store, steer } = room.current;
       const cam = store?.get().camera ?? HOME_CAMERA;
       const dpr = window.devicePixelRatio || 1;
       if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
@@ -338,86 +306,19 @@ export function FloorPlay({
       }
       clear();
       const horizon = h * sh;
-      const sin = Math.sin((FLOOR_TILT * Math.PI) / 180);
       const hz = FIELD_WIDE / 2;
-      // Where the field lies across the screen (its part of it), and where on the screen a play's middle goes: the
-      // middle of the screen, or as near as leaves its far end short of the starters list beside it.
-      const [left0, right0] = field ? [field.left, field.right] : [0.02 * w, 0.98 * w];
-      // Over the field, room for what's said of the play (as many lines as it has): the field starts under it — and no
-      // farther back than two of the floor's squares in front of the back of the room.
-      const wordPx = field ? WORD_PX.desk : WORD_PX.phone;
-      const lines = Math.max(1, ...playing.stage.marks.map((m) => (m.kind === "word" ? (m.row ?? 0) + 1 : 0)));
-      const top = Math.max(floorY(BACK_SQUARES * GRID_PX, h, sh), horizon + 6 + lines * wordPx * WORD_LINE + 4);
-      const middle0 = field ? Math.min(w / 2, right0 - (PLAY_SHARE * w) / 2) : w / 2;
-      // The highest anything of it stands on the screen, lying `bk` back, a yard across it `bs`: its far sideline, or the
-      // head of whoever's farthest back on it, standing up over that.
-      const zMin = Math.min(0, ...playing.stage.actors.flatMap((a) => a.keys.map((k) => k.z)));
-      const highest = (bk: number, bs: number) =>
-        Math.min(floorPoint(0, bk - hz * bs, w, h, sh)[1], floorPoint(0, bk + zMin * bs, w, h, sh)[1] - (H + 3) * 0.42 * bs * floorScale(bk + zMin * bs));
-      // On a phone: down from `from` to whatever stands in front of the floor (or the screen's bottom), as big as fits — its far sideline at `from`, the numbers past its near one just over the bottom — up to `most`; moved
-      // down until all of it's under the words.
-      const bottom = over ?? h - 6;
-      const fit = (most: (bk: number) => number): [number, number] => {
-        let from = top;
-        let fitted: [number, number] = [0, 0];
-        for (let i = 0; i < 6; i++) {
-          const [far, near] = [floorDepth(from, h, sh), floorDepth(bottom - 6, h, sh)];
-          let bs = (near - far) / (2 * hz + NUMBERS);
-          bs = Math.min(bs, most(far + hz * bs));
-          fitted = [far + hz * bs, bs];
-          const short = top - highest(...fitted);
-          if (short <= 0.5) break;
-          from += short;
-        }
-        return fitted;
-      };
-      // How deep it lies, and a yard across it in floor px (how big the players are). On a phone: its near sideline as
-      // wide as the screen, a few of the floor's squares long, over whatever stands in front of the floor's near part.
-      // From tablet width up: filling the floor from under the words to what stands in front of it.
-      let back: number;
-      let base: number;
-      if (field) {
-        // The whole floor: its far sideline on the grid's first line in front of the back of the room, its near one on
-        // the grid's front line.
-        const [far, near] = [GRID_PX, floorDepth(lowestGridLine(h, sh), h, sh)];
-        base = (near - far) / (2 * hz);
-        back = far + hz * base;
-      } else {
-        const sized = (d: number) => {
-          let long = (right0 - left0) / floorScale(d);
-          for (let i = 0; i < 6; i++) long = (right0 - left0) / floorScale(d + hz * (long / FIELD_LONG));
-          return long / FIELD_LONG;
-        };
-        back = BACK_SHARE * ((PERSPECTIVE_PX - (PERSPECTIVE_PX * PHONE_SQUARES * GRID_PX) / w) / sin);
-        const nearY = (d: number) => floorPoint(0, d + hz * sized(d), w, h, sh)[1];
-        if (over !== null && nearY(back) > over - 6) {
-          let [lo, hi] = [0, back];
-          for (let i = 0; i < 24; i++) {
-            const mid = (lo + hi) / 2;
-            if (nearY(mid) > over - 6) hi = mid;
-            else lo = mid;
-          }
-          back = lo;
-        }
-        base = sized(back);
-        // Up into the room for the words: under them instead, no bigger than that, as big as fits.
-        if (highest(back, base) < top) {
-          const most = base;
-          [back, base] = fit(() => most);
-        }
-      }
-      // Eased there as any of it changes (the Red Zone coming up; the starters list going up out of its way and back).
-      const to = { back, base, left: left0, right: right0, middle: middle0 };
+      const wordPx = w >= 768 ? WORD_PX.desk : WORD_PX.phone;
+      // The whole floor: its far sideline on the grid's first line in front of the back of the room, its near one at
+      // the screen's bottom — how far back its middle lies, and a yard across it in floor px (how big the players are).
+      const [farSide, nearSide] = [GRID_PX, floorDepth(h, h, sh)];
+      const to = { base: (nearSide - farSide) / (2 * hz), back: 0 };
+      to.back = farSide + hz * to.base;
       const from = settledAt ?? to;
       const ease = (a: number, b: number) => a + (b - a) * 0.12;
-      const eased = { back: ease(from.back, back), base: ease(from.base, base), left: ease(from.left, left0), right: ease(from.right, right0), middle: ease(from.middle, middle0) };
-      const still =
-        Math.abs(eased.back - back) < 0.05 &&
-        Math.abs(eased.base - base) < 0.0005 &&
-        [eased.left - left0, eased.right - right0, eased.middle - middle0].every((d) => Math.abs(d) < 0.5);
+      const eased = { back: ease(from.back, to.back), base: ease(from.base, to.base) };
+      const still = Math.abs(eased.back - to.back) < 0.05 && Math.abs(eased.base - to.base) < 0.0005;
       settledAt = eased;
-      const { left, right, middle } = eased;
-      const { ink, page, good } = css();
+      const { ink, good } = css();
 
       if (leaving && now - leaving.since > FADE_IN * 1000) leaving = null;
       if (leaving) drawScene(leaving.playing, now, 1 - (now - leaving.since) / (FADE_IN * 1000));
@@ -426,8 +327,6 @@ export function FloorPlay({
       // the next play or the room changes — and the next play, if one's waiting.
       if (!ready(playing, now) || leaving || !still) loop();
       else void next();
-      // (The one on now: the next, if it's just been put on.)
-      tell((current !== null && !ready(current, now)) || following.length > 0 || queue.length > 0 || preparing);
 
       function drawScene(playing: Playing, now: number, alpha: number) {
         const { stage, sprites, spots } = playing;
@@ -440,77 +339,55 @@ export function FloorPlay({
         const gone = fade * (1 - f);
         const back = eased.back;
         const base = eased.base;
-        // Along the field: the play from where it starts to where it ends across the middle half of the screen (no
-        // more than so big a yard, nor less) — and, lining up for the next, sliding over to its line of scrimmage.
         const playReach = Math.max(stage.reach, stage.firstDown !== null ? Math.abs(stage.firstDown) : 0, 1);
         const goal = stage.toGoal !== null ? stage.los + stage.toGoal : null;
-        // From tablet width up, laid on the floor's grid, a square of it five yards (ten, for a long play), its lines
-        // the field's: the play's middle on the screen's middle (as near as puts a yard line on one of the grid's) —
-        // and, lining up for the next, the floor slid over to put its line of scrimmage there.
-        if (field && !playing.grid) {
-          const yards = playReach > 20 ? 10 : 5;
+        // Laid on the floor's grid, its lines the field's — a square of it five yards (ten, twenty: as many as fit the
+        // play across most of the screen): the play's middle on the screen's middle (as near as puts a yard line on
+        // one of the grid's) — and, lining up for the next, the floor slid over to put its line of scrimmage there.
+        if (!playing.grid) {
+          const yards = SQUARE_YARDS.find((y) => ((2 * playReach) / y) * GRID_PX * cam.zoom * floorScale(back) <= PLAY_FIT * w) ?? SQUARE_YARDS.at(-1)!;
           const Y = GRID_PX / yards;
           const ref = goal !== null ? goal - Math.round(goal / yards) * yards : stage.los - Math.round(stage.los / yards) * yards;
           const want = -cam.x / cam.zoom + ref * Y;
           playing.grid = { yards, x0: (Math.round(want / GRID_PX - 0.5) + 0.5) * GRID_PX - ref * Y, slid: false };
         }
-        const grid = field ? playing.grid! : null;
-        if (grid && steer && store && alpha === 1 && f > 0 && !grid.slid) {
+        const grid = playing.grid;
+        if (steer && store && alpha === 1 && f > 0 && !grid.slid) {
           grid.slid = true;
           store.glide({ ...cam, x: -(grid.x0 + (stage.next * GRID_PX) / grid.yards) * cam.zoom }, false);
         }
-        const reach = playReach + (READY_REACH - playReach) * f;
-        const yard = grid ? (GRID_PX / grid.yards) * cam.zoom : Math.min(MOST_YARD * w, Math.max(LEAST_YARD, (PLAY_SHARE * w) / (2 * reach))) / floorScale(back);
+        const yard = (GRID_PX / grid.yards) * cam.zoom;
         const yardPx = yard * floorScale(back);
-        const across = (middle - w / 2) / floorScale(back);
-        const cx = grid ? 0 : stage.next * f;
         // Across the floor (px, as it's been moved) where a point `x` yards along the field lies.
-        const acrossOf = (x: number) => (grid ? (grid.x0 + (x * GRID_PX) / grid.yards) * cam.zoom + cam.x : across + (x - cx) * yard);
+        const acrossOf = (x: number) => (grid.x0 + (x * GRID_PX) / grid.yards) * cam.zoom + cam.x;
         const at = (x: number, z: number) => floorPoint(acrossOf(x), back + z * base, w, h, sh);
         const px = (z: number) => base * floorScale(back + z * base);
+        // The players (and the ball, a flag) as big as a square of the field makes them: smaller, the more yards it is.
+        const body = (z: number) => px(z) * (SQUARE_YARDS[0] / grid.yards);
 
         ctx.save();
-        // Nothing of it outside its part of the screen (from tablet width up, over the starters list).
-        ctx.beginPath();
-        ctx.rect(left, 0, right - left, h);
-        ctx.clip();
-        const quad = (x0: number, z0: number, x1: number, z1: number) => {
-          ctx.beginPath();
-          ctx.moveTo(...at(x0, z0));
-          ctx.lineTo(...at(x1, z0));
-          ctx.lineTo(...at(x1, z1));
-          ctx.lineTo(...at(x0, z1));
-          ctx.closePath();
-        };
         const line = (x0: number, z0: number, x1: number, z1: number) => {
           ctx.beginPath();
           ctx.moveTo(...at(x0, z0));
           ctx.lineTo(...at(x1, z1));
           ctx.stroke();
         };
-        // Its lines run on back past the far sideline, over more of the room — but not past the horizon (from tablet
-        // width up, to its sidelines).
-        const far = grid ? hz : Math.max(hz, Math.min(hz * FAR_REACH, (back - floorDepth(top, h, sh)) / base));
-        // What of it shows across the screen (its part of it), along the field.
-        const xAt = (sx: number) => {
-          const a = (sx - w / 2) / floorScale(back);
-          return grid ? ((a - cam.x) / cam.zoom - grid.x0) / (GRID_PX / grid.yards) : cx + (a - across) / yard;
-        };
-        const [from0, to0] = [xAt(left), xAt(right)];
+        // Its lines run from sideline to sideline.
+        const far = hz;
+        // What of it shows across the screen, along the field.
+        const xAt = (sx: number) => (((sx - w / 2) / floorScale(back) - cam.x) / cam.zoom - grid.x0) / (GRID_PX / grid.yards);
+        const [from0, to0] = [xAt(0), xAt(w)];
         const span = to0 - from0;
-        // The field under the play, its real yard lines where they are: the line of scrimmage on the yard line it was
-        // snapped from (the goal line it's going for off to the right). Fading off at either end — but for its end
-        // line, where it ends.
-        const [from, to] = goal !== null ? [Math.max(from0, goal - 110), Math.min(to0, goal + 10)] : [from0, to0];
+        // The field's real yard lines where they are: the line of scrimmage on the yard line it was snapped from (the goal
+        // line it's going for off to the right), fading off toward the screen's sides.
         const edge = (x: number) => Math.max(0, Math.min(1, Math.min(x - from0, to0 - x) / (span * 0.1)));
-        // Painted on the field, lying on it in the floor's own perspective: a digit `wide` yards across, as deep as
-        // reads (not squashed flat), its near edge at `z` — the other way up (`flip`) on the far side, as a field's
-        // numbers are — from its left edge at `x` (its right, flipped). In the page's own type, bold.
+        // Painted on the field, lying on it in the floor's own perspective, a field's own: 4 feet wide, 6 feet deep (as
+        // the floor's laid back), a foot off the line beside it — its near edge at `z`, the other way up (`flip`) on the
+        // far side, as a field's numbers are — from its left edge at `x` (its right, flipped). In the page's own type.
         const type = getComputedStyle(document.body).fontFamily;
-        // From tablet width up, a field's own: 4 feet wide, 6 feet deep (as the floor's laid back), a foot off the line.
-        const digitWide = grid ? 4 / 3 : Math.max(1.3, 9 / yardPx);
-        const digitGap = grid ? Math.max(1 / 3, 4 / yardPx) : Math.max(0.45, 4 / yardPx);
-        const digitDeep = grid ? (2 * yard) / base : null;
+        const digitWide = 4 / 3;
+        const digitGap = Math.max(1 / 3, 4 / yardPx);
+        const deep = (2 * yard) / base;
         const paint = (ch: string, x: number, z: number, flip: boolean) => {
           ctx.save();
           ctx.font = `700 100px ${type}`;
@@ -525,14 +402,11 @@ export function FloorPlay({
           const [bx, by] = at(mid, z + 1);
           const along = [ax - ox, ay - oy];
           const toward = [bx - ox, by - oy];
-          // As deep as about three quarters of its width shows, in yards toward you.
-          const deep = digitDeep ?? Math.min(9, Math.max(1, (0.75 * digitWide * Math.hypot(along[0], along[1])) / Math.max(0.01, Math.abs(toward[1]))));
           const [su, sv] = [(flip ? -1 : 1) * (digitWide / m.width), (flip ? -1 : 1) * (deep / tall)];
           const [px0, py0] = at(x, z);
           ctx.transform(along[0] * su, along[1] * su, toward[0] * sv, toward[1] * sv, px0, py0);
           ctx.fillText(ch, 0, 0);
           ctx.restore();
-          return deep;
         };
         // A number painted by a line at `x`: two digits either side of it, clear of it; otherwise just past it.
         const paintBy = (text: string, x: number, z: number, flip = false) => {
@@ -542,39 +416,9 @@ export function FloorPlay({
             paint(text[1], r, z, flip);
           } else [...text].forEach((ch, i) => paint(ch, r + (flip ? -1 : 1) * i * digitWide, z, flip));
         };
-        const [gx0] = at(from0, 0);
-        const [gx1] = at(to0, 0);
-        const shade = (alpha: number) => {
-          const g = ctx.createLinearGradient(gx0, 0, gx1, 0);
-          g.addColorStop(0, "transparent");
-          g.addColorStop(0.1, alpha === 1 ? page : ink);
-          g.addColorStop(0.9, alpha === 1 ? page : ink);
-          g.addColorStop(1, "transparent");
-          return g;
-        };
-        // On a phone, laid over what's on the floor under it (from tablet width up, the floor's own grid is the field).
-        if (!grid) {
-          ctx.fillStyle = shade(1);
-          ctx.globalAlpha = fade * 0.7;
-          quad(from, -far, to, hz);
-          ctx.fill();
-        }
         ctx.strokeStyle = ink;
         ctx.fillStyle = ink;
         if (goal !== null) {
-          // Its end zones, shaded, as far as they show (on a phone).
-          ctx.globalAlpha = grid ? 0 : fade * 0.07;
-          ctx.fillStyle = shade(0.07);
-          for (const [a, b] of [
-            [goal, goal + 10],
-            [goal - 110, goal - 100],
-          ]) {
-            const [lo, hi] = [Math.max(a, from0), Math.min(b, to0)];
-            if (hi > lo) {
-              quad(lo, -far, hi, hz);
-              ctx.fill();
-            }
-          }
           // A line every yard of it: across the field every five, hash marks between (zoomed in enough to see them),
           // the goal lines and the end lines stronger.
           for (let g = -10; g <= 110; g++) {
@@ -590,21 +434,21 @@ export function FloorPlay({
             }
             ctx.lineWidth = 1;
             if (g % 5 === 0) {
-              // From tablet width up, the grid's own lines are these (but for the fives between, ten yards a square).
-              ctx.globalAlpha = grid && g % grid.yards === 0 ? 0 : fade * (g % 10 === 0 ? 0.32 : 0.16) * e;
+              // The grid's own lines are these (but for those between its lines, ten or twenty yards a square).
+              ctx.globalAlpha = g % grid.yards === 0 ? 0 : fade * (g % 10 === 0 ? 0.32 : 0.16) * e;
               line(x, -far, x, hz);
             } else if (yardPx > 5) {
               ctx.globalAlpha = fade * 0.22 * e;
               line(x, -hz * 0.3 - 0.8, x, -hz * 0.3 + 0.8);
               line(x, hz * 0.3 - 0.8, x, hz * 0.3 + 0.8);
             }
-            // The tens numbered on the field, near each sideline, the line between their digits — the far side's the
-            // other way up.
+            // The tens numbered on the field, the line between their digits: near the screen's bottom, and in from the
+            // far sideline the other way up.
             if (g % 10 === 0) {
               ctx.globalAlpha = fade * 0.45 * e;
               ctx.fillStyle = ink;
               const n = String(g <= 50 ? g : 100 - g);
-              paintBy(n, x, hz - FIELD_NUMBERS);
+              paintBy(n, x, (floorDepth(h * NEAR_NUMBERS, h, sh) - back) / base);
               paintBy(n, x, -hz + FIELD_NUMBERS, true);
             }
           }
@@ -685,7 +529,7 @@ export function FloorPlay({
           .sort((p, q) => p.z - q.z);
         const ballNow = ballAt(stage, playT);
         const drawBall = (x: number, z: number, hgt: number) => {
-          const unit = px(z) * 0.55;
+          const unit = body(z) * 0.55;
           const [sx, sy] = at(x, z);
           if (hgt > 0.2) {
             ctx.globalAlpha = fade * 0.25;
@@ -696,7 +540,7 @@ export function FloorPlay({
           }
           ctx.globalAlpha = fade;
           ctx.fillStyle = "#8b5a2b";
-          const by = sy - hgt * px(z);
+          const by = sy - hgt * body(z);
           ctx.fillRect(Math.round(sx - unit * 1.5), Math.round(by - unit), Math.ceil(unit * 3), Math.ceil(unit * 2));
           ctx.fillStyle = "#f2f2f2";
           ctx.fillRect(Math.round(sx - unit * 0.5), Math.round(by - unit), Math.ceil(unit), Math.ceil(unit * 0.6));
@@ -710,7 +554,7 @@ export function FloorPlay({
           return ballNow ? [ballNow.x, ballNow.z] : [stage.next, 0];
         };
         for (const p of placed) {
-          const unit = px(p.z) * 0.42;
+          const unit = body(p.z) * 0.42;
           const [sx, sy] = at(p.x, p.z);
           ctx.globalAlpha = fade * 0.22;
           ctx.fillStyle = ink;
@@ -734,13 +578,13 @@ export function FloorPlay({
             const rows = 13;
             ctx.drawImage(sprite, 0, 0, W + 2, rows, Math.round(sx - sw / 2), Math.round(sy - rows * unit), sw, rows * unit);
           } else {
-            const lift = p.pose === "jump" ? Math.abs(Math.sin(t * 7)) * px(p.z) * 1.4 : look === "runB" ? unit : 0;
+            const lift = p.pose === "jump" ? Math.abs(Math.sin(t * 7)) * body(p.z) * 1.4 : look === "runB" ? unit : 0;
             ctx.drawImage(sprite, Math.round(sx - sw / 2), Math.round(sy - shh - lift), sw, shh);
           }
           if (f === 0 && ballNow && "by" in ballNow && ballNow.by === p.i) {
             const hands = p.pose === "down" ? 0.4 : 2.4;
             // In his hands: a step off his middle, at his own size (not the field's zoom).
-            drawBall(p.x + ((p.pose === "down" ? facingOf(p.a) * 2 : 0.9) * base) / yard, p.z + 0.3, hands);
+            drawBall(p.x + ((p.pose === "down" ? facingOf(p.a) * 2 : 0.9) * base * (SQUARE_YARDS[0] / grid.yards)) / yard, p.z + 0.3, hands);
           }
         }
         if (f > 0) {
@@ -754,8 +598,8 @@ export function FloorPlay({
           const { from: [x0, z0], to: [x1, z1] } = flag;
           const fl = Math.min(1, (t - flag.t) / 0.5);
           const [x, z] = [x0 + (x1 - x0) * fl, z0 + (z1 - z0) * fl];
-          const lift = (2 * (1 - fl) + 12 * fl * (1 - fl)) * px(z);
-          const unit = px(z) * 0.5;
+          const lift = (2 * (1 - fl) + 12 * fl * (1 - fl)) * body(z);
+          const unit = body(z) * 0.5;
           const [sx, sy] = at(x, z);
           ctx.globalAlpha = gone;
           ctx.fillStyle = FLAG[flag.color];
@@ -774,18 +618,18 @@ export function FloorPlay({
           const [sx, sy] = at(p.x, p.z);
           ctx.globalAlpha = fade * (1 - fl * fl * fl);
           ctx.fillStyle = good;
-          ctx.font = `700 ${Math.max(14, px(p.z) * 4.5)}px ${type}`;
+          ctx.font = `700 ${Math.max(14, body(p.z) * 4.5)}px ${type}`;
           ctx.textAlign = "center";
           ctx.textBaseline = "bottom";
           // From just over his helmet, up a few yards.
-          ctx.fillText(m.text, sx, sy - (H + 2) * px(p.z) * 0.42 - 2 - fl * 4 * px(p.z));
+          ctx.fillText(m.text, sx, sy - (H + 2) * body(p.z) * 0.42 - 2 - fl * 4 * body(p.z));
         }
         // What happened, in the page's own type, bold and in capitals, over the whole field (none of it on it) and under
         // the horizon (on a phone, the starters list is over it) — popping up as it does, one line over another.
         // The first on top, the rest under it in turn, the last just over the field.
         const lines = Math.max(1, ...stage.marks.map((m) => (m.kind === "word" ? (m.row ?? 0) + 1 : 0)));
-        // (From tablet width up, up on the back of the room, over the horizon.)
-        const fieldTop = grid ? horizon - 8 : Math.min(at(0, -far)[1], highest(back, base)) - 4;
+        // Up on the back of the room, over the horizon.
+        const fieldTop = horizon - 8;
         for (const m of stage.marks) {
           if (m.kind !== "word" || t < m.t) continue;
           const pop = Math.min(1, (t - m.t) / 0.2);

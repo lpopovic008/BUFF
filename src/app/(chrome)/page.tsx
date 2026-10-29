@@ -345,8 +345,6 @@ export default function DashboardPage() {
       window.removeEventListener("resize", measure);
     };
   }, [room, desktop]);
-  // A Red Zone play being acted out on the floor (from tablet width up, the starters list goes up out of its way).
-  const [playOn, setPlayOn] = useState(false);
   // The play by the graph's cursor, shown in the Red Zone while the cursor's up.
   const [spotlight, setSpotlight] = useState<{ gameId: string; playId: string } | null>(null);
   const unpickGraph = (playerId: string) =>
@@ -615,8 +613,8 @@ export default function DashboardPage() {
   // plays' scroll with it (see FloorReflection). Stretched (⇕), from under the ticker down to the bottom (a phone's
   // tab bar).
   const redZoneHeight = (desktop ? DESKTOP_RED_ZONE_REM : RED_ZONE_REM) + RED_ZONE_FLOAT_REM;
-  // Where the Red Zone's top stands over the floor while it's up (not stretched over all of it — from tablet width up,
-  // two of the floor's squares back from its front line at most): plays acted out on the floor are kept above it (see FloorPlay).
+  // Where the Red Zone's top stands over the floor while it's up, a step at a time (from tablet width up, its middle
+  // step two of the floor's squares back from its front line).
   const redZoneTop = (level: 0 | 1) =>
     !stand
       ? 0
@@ -625,7 +623,6 @@ export default function DashboardPage() {
         : desktop
           ? (gridRows(stand.room).at(-3) ?? stand.horizon + 0.5 * (stand.redZoneLine - stand.horizon))
           : stand.horizon + 0.375 * stand.rootPx;
-  const redZoneOver = stand && redZoneUp && (redZoneLevel === 0 || (redZoneLevel === 1 && desktop)) ? redZoneTop(redZoneLevel) : null;
   const redZoneStage =
     redZoneView && stand ? (
       <>
@@ -758,7 +755,7 @@ export default function DashboardPage() {
         {redZoneStage}
         {mapShown ? <FloorMapTags fit={stand.fit} games={games} top={stand.landTop} camera={floorCamera} /> : null}
         {/* Red Zone plays acted out on the floor, across the whole screen. */}
-        {stand ? <FloorPlay width={stand.fit.width} height={stand.room} share={stand.fit.share} area={null} clear={redZoneOver} /> : null}
+        {stand ? <FloorPlay width={stand.fit.width} height={stand.room} share={stand.fit.share} camera={floorCamera} steer={redZoneUp} /> : null}
         {floorControls}
       </div>
     );
@@ -796,16 +793,7 @@ export default function DashboardPage() {
             the row's padding, 0.625rem), so its foot is on the line whether or not it's stuck. Like a phone's, it runs
             right down to the floor, reflected in it — just what meets the floor, mirrored, as it scrolls — and up behind
             the see-through ticker and header, scrolled up under them. */}
-        {/* While a play's acted out on the floor, its foot goes up to the horizon, as a phone's stands — the play acted
-            out right across the floor, over where it stood — and comes back down once it's over. */}
-        <div
-          className="sticky top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] w-80 shrink-0 transition-[height] duration-500 ease-in-out lg:w-[22rem]"
-          style={{
-            height: playOn
-              ? `calc(${COLUMN_TO_HORIZON})`
-              : "calc(var(--room-h,100vh) - var(--header-h,0px) - var(--ticker-h,0px) - 0.625rem - var(--stand,0px))",
-          }}
-        >
+        <div className="sticky top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] h-[calc(var(--room-h,100vh)-var(--header-h,0px)-var(--ticker-h,0px)-0.625rem-var(--stand,0px))] w-80 shrink-0 lg:w-[22rem]">
           {/* Its scrollbar hidden (its reflection's copy has none, so they'd not line up), a thin thumb up as it scrolls;
               scrolled by the page, so its reflection moves with it (see useDragScroll). */}
           <div
@@ -833,15 +821,12 @@ export default function DashboardPage() {
       {/* Its reflection: what's at its foot, in the floor. */}
       <FloorReflection source={startersList} className="pb-16" style={{ paddingTop: `calc(${UNDER_TICKER})` }} />
       {/* Red Zone plays acted out right across the floor, the floor's grid their field, in the middle of the screen —
-          behind what stands on it (the starters list up out of the way while one's on; see FloorPlay). */}
+          whatever stands on it (see FloorPlay). */}
       {stand ? (
         <FloorPlay
           width={stand.fit.width}
           height={stand.room}
           share={stand.fit.share}
-          area={{ left: 0, right: stand.fit.width }}
-          clear={null}
-          onPlaying={setPlayOn}
           camera={floorCamera}
           steer={redZoneUp}
         />

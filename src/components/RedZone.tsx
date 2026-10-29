@@ -5,7 +5,6 @@ import { ExpandVerticalIcon } from "@/components/ui/Icon";
 import { Ordinals } from "@/components/Ordinals";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { LeagueLegendEntry, LeagueMark } from "@/components/LeagueMark";
-import { replayRedZonePlay } from "@/components/GameRows";
 import { showPlayOnFloor } from "@/components/FloorPlay";
 import { sceneFor } from "@/lib/play-scene";
 import { FeedEntry, FeedScope, RedZoneNow, useRedZoneFeed } from "@/hooks/useRedZoneFeed";
@@ -301,20 +300,15 @@ const FeedRow = memo(function FeedRow({ entry, starterById, legendByLeagueId, ar
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once, as it comes in
   }, []);
   return (
-    // Tapping a play acts it out on the floor again, and (on desktop) replays its points being applied in the starters list.
+    // Tapping a play acts it out on the floor again.
     <li
       data-play={`${game.id}-${play.id}`}
-      onClick={(e) => {
-        replayRedZonePlay(e.currentTarget);
-        if (actable) showPlayOnFloor(play, [game.homeTeam, game.awayTeam], true);
-      }}
-      title={hasPoints || actable ? "Replay" : undefined}
+      onClick={actable ? () => showPlayOnFloor(play, [game.homeTeam, game.awayTeam], true) : undefined}
+      title={actable ? "Replay" : undefined}
       // Every row leaves room down its left for a marked play's strip (see MarkColumn).
-      className={`relative flex flex-col gap-1 border-b border-border py-2 pl-3 pr-1 last:border-b-0 ${
+      className={`relative flex flex-col gap-1 py-2 pl-3 pr-1 ${
         spotlit ? "bg-[color-mix(in_srgb,var(--ink-primary)_8%,var(--surface-raised))] outline outline-1 -outline-offset-1 outline-ink-primary" : ""
-      } ${actable ? "cursor-pointer" : hasPoints ? "md:cursor-pointer" : ""} ${
-        hasPoints || actable ? "md:hover:bg-[color-mix(in_srgb,var(--ink-primary)_4%,transparent)]" : ""
-      }`}
+      } ${actable ? "cursor-pointer md:hover:bg-[color-mix(in_srgb,var(--ink-primary)_4%,transparent)]" : ""}`}
       style={{
         animation: live
           ? "rise 0.35s ease-out backwards, rz-flash 2.4s ease-out"
