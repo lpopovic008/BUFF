@@ -299,12 +299,14 @@ export function FloorCameraControls({
     const headBox = head?.getBoundingClientRect();
     // Clipped to its title alone, from the right.
     const toTitle = headBox ? `inset(0 ${Math.max(0, headBox.right - titleBox.right)}px 0 0)` : "inset(0)";
-    // Where the switch is, spelled out, against the title — measured once it's spelled out (it grows as it spells).
+    // Straight up (or down) to the title's level: the title stands right over the switch.
     const there = () => {
       const from = button.getBoundingClientRect();
       const to = title.getBoundingClientRect();
-      return `translate(${to.left - from.left}px, ${to.top + (to.height - from.height) / 2 - from.top}px)`;
+      return `translateY(${to.top + (to.height - from.height) / 2 - from.top}px)`;
     };
+    // The switch as the title is: no plate, just its words in ink.
+    const bare = { backgroundColor: "transparent", color: "var(--ink-primary)" };
     if (redZoneUp) {
       // Hidden till they come in.
       title.animate([{ opacity: 0 }, { opacity: 0 }], { duration: RISE_AT_MS + RISE_MS, fill: "backwards" });
@@ -314,27 +316,31 @@ export function FloorCameraControls({
       spell(0, SPELLING.length - 1, 0);
       at(RISE_AT_MS, () => {
         const to = there();
+        // Up, then its plate falling away — its words the title's — and the title there in its place.
+        const landed = RISE_MS / (RISE_MS + LANDED_MS);
         button.animate(
           [
             { transform: "none", opacity: 1 },
-            { transform: to, opacity: 1, offset: RISE_MS / (RISE_MS + LANDED_MS) },
-            { transform: to, opacity: 0 },
+            { transform: to, opacity: 1, offset: landed },
+            { transform: to, opacity: 1, ...bare, offset: 0.99 },
+            { transform: to, opacity: 0, ...bare },
           ],
           { duration: RISE_MS + LANDED_MS, easing: "ease-in-out" }
         );
-        title.animate([{ opacity: 0 }, { opacity: 1 }], { duration: LANDED_MS, delay: RISE_MS });
+        title.animate([{ opacity: 0 }, { opacity: 0, offset: 0.99 }, { opacity: 1 }], { duration: LANDED_MS, delay: RISE_MS });
       });
     } else {
       at(0, () => setSpelled(SPELLING.length - 1));
       plays?.animate([{ opacity: 1 }, { opacity: 0 }], { duration: AWAY_PLAYS_MS, fill: "forwards" });
       head?.animate([{ clipPath: "inset(0)" }, { clipPath: toTitle }], { duration: AWAY_HEAD_MS, delay: AWAY_HEAD_AT_MS, easing: "ease-in", fill: "both" });
-      title.animate([{ opacity: 1 }, { opacity: 0 }], { duration: LANDED_MS, delay: DROP_AT_MS, fill: "forwards" });
+      title.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 1, delay: DROP_AT_MS, fill: "forwards" });
       button.animate([{ opacity: 0 }, { opacity: 0 }], { duration: DROP_AT_MS, fill: "backwards" });
       at(DROP_AT_MS, () => {
         const to = there();
+        // The title turning back into the switch where it stands (its plate coming back), then down.
         button.animate(
           [
-            { transform: to, opacity: 0 },
+            { transform: to, opacity: 1, ...bare },
             { transform: to, opacity: 1, offset: LANDED_MS / (LANDED_MS + DROP_MS) },
             { transform: "none", opacity: 1 },
           ],

@@ -708,20 +708,23 @@ export function RedZone({
         data-rz-head
         onPointerUp={onHeadTap}
         // Dragged to set the Red Zone's height (see the page), so no scrolling or zooming from it.
-        className={`relative shrink-0 cursor-ns-resize touch-none select-none ${across ? "max-md:px-2" : "w-7"}`}
+        // Across the top, its title just where the Red Zone's switch stands below it (1rem in, and the switch's own
+        // 0.75rem), so the switch turns into it where it stands (see FloorCameraControls).
+        className={`relative shrink-0 cursor-ns-resize touch-none select-none ${across ? "pl-7 max-md:pr-2" : "w-7"}`}
       >
         <div className={across ? `flex items-center gap-2 ${fill ? "py-0.5" : "py-1"}` : "absolute inset-0 flex flex-col items-center gap-1.5 px-0.5 py-1.5"}>
           {/* The title, ⇕ after it (under it, down the side). */}
           <div className={`flex shrink-0 items-center gap-1 ${across ? "flex-row" : "flex-col"}`}>
             <h2 data-rz-title className="flex" aria-label="Red Zone">
               {/* On a phone, the Red Zone's switch (it flies up into here as it comes up). */}
-              <TitleSwitch onClick={onSwitchOff} className={`flex items-center ${across ? "flex-row gap-1.5" : "flex-col gap-1"}`}>
+              <TitleSwitch onClick={onSwitchOff} className={`flex items-center ${across ? "flex-row gap-1" : "flex-col gap-1"}`}>
               <span className="relative flex h-1.5 w-1.5 shrink-0" aria-hidden>
                 {live ? <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-status-critical opacity-60" /> : null}
                 <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${live ? "bg-status-critical" : "bg-ink-muted"}`} />
               </span>
               {across ? (
-                <span className="text-[0.6875rem] font-bold uppercase leading-none tracking-wide text-ink-primary" aria-hidden>
+                // The switch's own type (it turns into this).
+                <span className="text-xs font-bold uppercase leading-none text-ink-primary" aria-hidden>
                   Red Zone
                 </span>
               ) : (
