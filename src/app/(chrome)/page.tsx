@@ -738,13 +738,13 @@ export default function DashboardPage() {
             As wide as its rows need (in rem, so it shrinks with the text when the browser zooms out), the map's column
             taking the rest. It stands upright on the floor's lowest grid line (--stand), facing you square on, as
             something standing on a line across the floor does — from where it sits under the ticker (past the gap and
-            the row's padding, 0.625rem), so its foot is on the line whether or not it's stuck. Its bottom 15% fades
-            out, so it's gone by the time it meets the floor, a faint reflection of it there. */}
+            the row's padding, 0.625rem), so its foot is on the line whether or not it's stuck. Like a phone's, it runs
+            right down to the floor, reflected in it — just what meets the floor, mirrored, as it scrolls. */}
         <div className="sticky top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] h-[calc(var(--room-h,100vh)-var(--header-h,0px)-var(--ticker-h,0px)-0.625rem-var(--stand,0px))] w-80 shrink-0 lg:w-[22rem]">
           {/* Its scrollbar hidden (its reflection's copy has none, so they'd not line up), a thin thumb up as it scrolls. */}
           <div
             ref={setStartersList}
-            className="h-full overflow-y-auto pb-16 [mask-image:linear-gradient(to_bottom,black_85%,transparent)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="h-full overflow-y-auto pb-16 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
             {startersView}
           </div>
@@ -761,7 +761,7 @@ export default function DashboardPage() {
           camera={floorCamera}
         />
       ) : null}
-      {/* Its reflection without its fade, so what's at its foot shows in the floor. */}
+      {/* Its reflection: what's at its foot, in the floor. */}
       <FloorReflection source={startersList} className="pb-16" />
       {/* Red Zone plays acted out on the floor, in the middle of the screen (see playArea). */}
       {stand ? (

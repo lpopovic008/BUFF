@@ -483,7 +483,7 @@ function PreLine({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const nameBox = useRef<HTMLSpanElement>(null);
-  // Their whole name too long for the room their side of the row leaves it (on a phone), cut to their first initial.
+  // Their whole name too long for the room their side of the row leaves it, cut to their first initial.
   const [cramped, setCramped] = useState(false);
   useLayoutEffect(() => {
     const row = ref.current;
@@ -537,15 +537,8 @@ function PreLine({
           selected ? "underline decoration-2 underline-offset-2" : onSelect ? "decoration-ink-muted hover:underline" : ""
         }`}
       >
-        {/* On a phone, their whole name where it fits; from tablet width up (a narrower list), their first initial and last name. */}
-        {name ? (
-          <>
-            <span className="md:hidden">{cramped ? name : player.name}</span>
-            <span className="hidden md:inline">{name}</span>
-          </>
-        ) : (
-          "​"
-        )}
+        {/* Their whole name where it fits; where it doesn't, their first initial and last name. */}
+        {name ? (cramped ? name : player.name) : "​"}
       </span>
       <span className={`shrink-0 text-[0.5rem] font-semibold uppercase ${POSITION_TEXT_COLOR[player.position] ?? "text-ink-muted"}`}>{position}</span>
       <span className="min-w-0 flex-1" />
