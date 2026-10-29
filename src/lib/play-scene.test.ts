@@ -258,3 +258,12 @@ test("set up for the next play off an accepted flag's yards", () => {
   const declined = stageFor(sceneFor(play("J.Cook left end to KC 23 for 7 yards (N.Bolton). PENALTY on KC-N.Bolton, Defensive Holding, declined.", { offense: "BUF", yards: 7, yardsToEndzone: 30 }), teams)!);
   assert.ok(Math.abs(declined.next - declined.end!.x) < 1e-9);
 });
+
+test("defenders start at least 5 yards off the line on their side — even for a sack", () => {
+  for (const text of ["P.Mahomes sacked at KC 30 for -7 yards (G.Rousseau).", "P.Mahomes sacked at KC 36 for -1 yards (G.Rousseau).", "J.Cook up the middle to KC 29 for 1 yard (N.Bolton)."]) {
+    const offense = text.startsWith("J.") ? "BUF" : "KC";
+    const stage = stageFor(sceneFor(play(text, { offense }), teams)!);
+    for (const a of stage.actors.filter((x) => x.team !== offense)) assert.ok(a.keys[0].x >= stage.los + 5 - 1e-9, text);
+    for (const [x] of formation(stage).filter((_, i) => stage.actors[i].team !== stage.nextBall.team)) assert.ok(x >= stage.next + 5 - 1e-9);
+  }
+});

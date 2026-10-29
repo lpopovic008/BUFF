@@ -476,7 +476,8 @@ const SPEED = 14;
 const CHASE = 12;
 const DROP = 0.55;
 const HOLD = 1.7;
-/** How far from where he makes his play a defender starts out (yards) — but no nearer the snap than `CLEAR`. */
+/** How far from where he makes his play a defender starts out (yards) — but never nearer the line of scrimmage than
+ * `CLEAR`, on his own side of it. */
 const CLOSE = 2;
 const CLEAR = 5;
 /** The deepest into the end zone a pass is caught, or falls (yards). */
@@ -485,12 +486,8 @@ const END_ZONE_DEPTH = 5;
 const key = (t: number, x: number, z: number, pose: Pose): Key => ({ t, x, z, pose });
 
 /** A defender's start: `CLOSE` yards from where he makes his play (`x`, `z`), ahead of it and a little to the far side —
- * or, that being within `CLEAR` of the snap, out ahead of it as far as that. */
-const near = (x: number, z: number, side: number): [number, number] => {
-  const [nx, nz] = [x + CLOSE * 0.8, z - CLOSE * 0.6 * side];
-  if (Math.hypot(nx, nz) >= CLEAR) return [nx, nz];
-  return [Math.sqrt(CLEAR * CLEAR - nz * nz), nz];
-};
+ * but at least `CLEAR` off the line of scrimmage on his own side (never in the backfield at the snap, even for a sack). */
+const near = (x: number, z: number, side: number): [number, number] => [Math.max(CLEAR, x + CLOSE * 0.8), z - CLOSE * 0.6 * side];
 
 /** When a defender standing at `from` sets off to be at `to` by `t`. */
 const chase = (from: [number, number], to: [number, number], t: number) => Math.max(SNAP, t - Math.max(0.25, Math.hypot(to[0] - from[0], to[1] - from[1]) / CHASE));
@@ -695,7 +692,8 @@ export function stageFor(scene: PlayScene): Stage {
       ]);
       const [dx, dz] = near(spot, 0.5, -1);
       const hit: [number, number] = [spot + 0.6, 1.3];
-      add("defender", defense, scene.defender, [key(0, dx, dz, "stand"), key(chase([dx, dz], hit, te), dx, dz, "run"), key(te, hit[0], hit[1], "down")]);
+      // The rusher, off the line at the snap.
+      add("defender", defense, scene.defender, [key(0, dx, dz, "stand"), key(SNAP, dx, dz, "run"), key(te, hit[0], hit[1], "down")]);
       ball.push({ from: 0, to: scene.fumble ? te : Infinity, by: qb });
       word(te, spot / 2, "SACK");
       marks.push({ t: te, kind: "yards", x: spot, z: 9, text: String(spot) });
@@ -827,17 +825,18 @@ export function stageFor(scene: PlayScene): Stage {
         break;
       }
       if (scene.blocked) {
-        // Blocked: the rusher gets a hand on it right off the punter's foot.
-        const kicker = add("kicker", kickingTeam, scene.kicker, [key(0, from, 0, "stand"), key(tk, from, 0, "kick"), key(tk + 0.35, from, 0, "stand")]);
-        add("defender", receivingTeam, scene.defender, [key(0, from + CLEAR, -1.2, "stand"), key(tk - 0.4, from + CLEAR, -1.2, "run"), key(tk, from + 1, -0.5, "jump"), key(tk + 0.5, from + 1, -0.5, "stand")]);
+        // Blocked: the rusher, off the line at the snap, through in time to get a hand on it off the punter's foot.
+        const tb = SNAP + (CLEAR - from) / SPEED;
+        const kicker = add("kicker", kickingTeam, scene.kicker, [key(0, from, 0, "stand"), key(tb, from, 0, "kick"), key(tb + 0.35, from, 0, "stand")]);
+        add("defender", receivingTeam, scene.defender, [key(0, CLEAR, -1.2, "stand"), key(SNAP, CLEAR, -1.2, "run"), key(tb, from + 1, -0.5, "jump"), key(tb + 0.5, from + 1, -0.5, "stand")]);
         ball.push(
-          { from: SNAP, to: tk - 0.1, arc: { a: [0, 0, 0.4], b: [from, 0, 1.2], apex: 1.6 } },
-          { from: tk - 0.1, to: tk, by: kicker },
-          { from: tk, to: tk + 0.6, arc: { a: [from, 0, 1], b: [from - 4, 3, 0], apex: 2 } },
-          { from: tk + 0.6, to: Infinity, at: [from - 4, 3] }
+          { from: SNAP, to: tb - 0.1, arc: { a: [0, 0, 0.4], b: [from, 0, 1.2], apex: 1.6 } },
+          { from: tb - 0.1, to: tb, by: kicker },
+          { from: tb, to: tb + 0.6, arc: { a: [from, 0, 1], b: [from - 4, 3, 0], apex: 2 } },
+          { from: tb + 0.6, to: Infinity, at: [from - 4, 3] }
         );
-        word(tk + 0.1, from, "BLOCKED");
-        length = tk + 0.6 + HOLD;
+        word(tb + 0.1, from, "BLOCKED");
+        length = tb + 0.6 + HOLD;
         break;
       }
       const land = from + scene.yards;
@@ -886,10 +885,10 @@ export function stageFor(scene: PlayScene): Stage {
       // No play: the teams set, and the flag's thrown on whoever it's on as he moves.
       const pen = scene.penalty!;
       const onOffense = pen.team === offense;
-      const [ox, oz] = onOffense ? [0, -3] : [1.5, 2.5];
+      const [ox, oz] = onOffense ? [0, -3] : [CLEAR, 2.5];
       add("qb", offense, null, [key(0, -1, 0, "stand")]);
-      add(onOffense ? "defender" : "lineman", onOffense ? defense : offense, null, [key(0, onOffense ? 1.5 : 0, onOffense ? 2.5 : -3, "stand")]);
-      add("lineman", pen.team, pen.label, [key(0, ox, oz, "stand"), key(SNAP * 0.7, ox, oz, "run"), key(SNAP * 0.7 + 0.25, onOffense ? ox + 1 : ox - 1.5, oz, "stand")]);
+      add(onOffense ? "defender" : "lineman", onOffense ? defense : offense, null, [key(0, onOffense ? CLEAR : 0, onOffense ? 2.5 : -3, "stand")]);
+      add("lineman", pen.team, pen.label, [key(0, ox, oz, "stand"), key(SNAP * 0.7, ox, oz, "run"), key(SNAP * 0.7 + 0.4, onOffense ? ox + 1 : 0.5, oz, "stand")]);
       ball.push({ from: 0, to: Infinity, at: [0, 0] });
       flags.push({ t: SNAP, from: [ox + 4, -20], to: [onOffense ? ox + 1.5 : ox - 1, oz + 1.5], color: "yellow" });
       length = SNAP + 0.6 + HOLD;
@@ -1024,12 +1023,13 @@ export function formation(stage: Stage): [number, number][] {
     [0, 2.5],
     [0, -2.5],
   ]);
+  // The defense at least CLEAR off the line.
   const defense = at([
-    [2, -1.5],
-    [2, 2],
-    [6, -8],
-    [5, 8],
-    [9, 0],
+    [CLEAR, -1.5],
+    [CLEAR, 2],
+    [CLEAR + 3, -8],
+    [CLEAR + 2, 8],
+    [CLEAR + 5, 0],
   ]);
   // The quarterback first to his spot, then the rest as they come.
   const order = stage.actors.map((a, i) => i).sort((a, b) => Number(stage.actors[b].role === "qb") - Number(stage.actors[a].role === "qb"));
