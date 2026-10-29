@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { formatCountdown } from "@/lib/format";
 import { totalChars, typedSlices } from "@/hooks/useTyped";
 import { formatKickoffTime, GameStarters, groupGamesByTimeBlock, GroupedStarter, PlayerSide } from "@/lib/my-starters";
@@ -315,11 +315,12 @@ const VIEW_NAMES: [number, string][] = [
 type Phase = "pre" | "live" | "final";
 
 /**
- * A player line's text, in typing order: the time of their latest play that
- * moved their points (while the game's on), their name and position, what
- * that play was worth, their total (the projection before kickoff).
+ * A player line's text, in typing order: how long it's been since their
+ * latest play that moved their points (while the game's on), their name and
+ * position, what that play was worth, their total (the projection before
+ * kickoff).
  */
-function linePieces(player: GroupedStarter, phase: Phase, action: LastAction | undefined): string[] {
+function linePieces(player: GroupedStarter, phase: Phase, action: LastAction | undefined, now: number | null): string[] {
   const live = phase === "live" && action;
   const total =
     phase === "pre"
@@ -330,7 +331,7 @@ function linePieces(player: GroupedStarter, phase: Phase, action: LastAction | u
         ? formatPoints(player.points)
         : "–";
   return [
-    live ? clockTime(action.at) : "",
+    live ? sinceTime(action.at, now) : "",
     player.name,
     player.position,
     live ? `${action.delta > 0 ? "+" : ""}${formatPoints(action.delta)}` : "",
@@ -374,7 +375,8 @@ function GameLine({
   onSelect?: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const pieces = linePieces(player, phase, action);
+  const now = useSinceClock();
+  const pieces = linePieces(player, phase, action, now);
   const total = totalChars(pieces);
   const count = (shown ? total : 0);
   const [time, name, position, delta, points] = typedSlices(pieces, count);
@@ -412,7 +414,7 @@ function GameLine({
       className={`flex items-center gap-1.5 py-[3px] text-[0.8125rem] leading-tight ${onSelect ? "cursor-pointer" : ""}`}
       title={leagueNames.length > 0 ? `${player.name} — ${leagueNames.join(", ")}` : player.name}
     >
-      {/* Just wide enough for "12:59", the name tucked in close after it — never touching. */}
+      {/* Just wide enough for "12:59" since their latest play, the name tucked in close after it — never touching. */}
       <span className="-mr-0.5 w-[2.6em] shrink-0 text-[0.6875rem] tabular-nums text-ink-muted">{time}</span>
       <span className="flex min-w-0 flex-1 items-center gap-1">
         <span
@@ -664,10 +666,34 @@ function phaseOf(game: NFLGame): Phase {
   return game.state === "pre" ? "pre" : game.state === "post" ? "final" : "live";
 }
 
-/** The time of day a play happened, e.g. "1:42" — no AM/PM, so the column stays narrow (the tooltip has it). */
-function clockTime(at: number | null): string {
-  return at === null ? "" : new Date(at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).replace(/\s?[AP]M$/i, "");
+/** How long ago a play happened, counting up in hours and minutes: "0:01" a minute on, "1:00" an hour. */
+export function sinceTime(at: number | null, now: number | null): string {
+  if (at === null || now === null) return "";
+  const minutes = Math.max(0, Math.floor((now - at) / 60_000));
+  return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, "0")}`;
 }
+
+// One clock for every line's "how long ago", read every few seconds (so each count ticks over close to its minute).
+const SINCE_TICK_MS = 5000;
+const sinceListeners = new Set<() => void>();
+let sinceTimer: ReturnType<typeof setInterval> | null = null;
+function onSinceTick(listener: () => void) {
+  sinceListeners.add(listener);
+  sinceTimer ??= setInterval(() => sinceListeners.forEach((l) => l()), SINCE_TICK_MS);
+  return () => {
+    sinceListeners.delete(listener);
+    if (sinceListeners.size === 0 && sinceTimer !== null) {
+      clearInterval(sinceTimer);
+      sinceTimer = null;
+    }
+  };
+}
+const useSinceClock = () =>
+  useSyncExternalStore(
+    onSinceTick,
+    () => Math.floor(Date.now() / SINCE_TICK_MS) * SINCE_TICK_MS,
+    () => null
+  );
 
 /** How long a game's box takes to slide open or shut — as long as a time block takes to fold. */
 const FOLD_MS = 200;

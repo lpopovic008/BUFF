@@ -6,7 +6,7 @@ import { labelNames } from "@/lib/play-lines";
 import { actorAt, ballAt, formation, PlayScene, Pose, sceneFor, Stage, StageActor, stageFor } from "@/lib/play-scene";
 import { loadRosters, RosterPlayer } from "@/lib/players";
 import { uniformFor, Uniform } from "@/lib/team-colors";
-import { FLOOR_TILT, floorDepth, floorPoint, floorScale, GRID_PX, PERSPECTIVE_PX } from "@/lib/grid-room";
+import { FLOOR_TILT, floorDepth, floorPoint, floorScale, floorY, GRID_PX, PERSPECTIVE_PX } from "@/lib/grid-room";
 
 /** Asks the floor to act a play out (see showPlayOnFloor). */
 const PLAY_EVENT = "floor:play";
@@ -45,8 +45,9 @@ const RESET = 1.2;
 // it (the Red Zone), or this far down to the screen's bottom; and a player's pixel there at most (px).
 const DESK_FLOOR = 0.6;
 const MOST_PIXEL = 4;
-// How far past the near sideline its numbers are, and down to the bottom of them (yards).
-const NUMBERS = 7;
+// How far past the near sideline the field reaches down (yards); how far in from either sideline its numbers' feet are.
+const NUMBERS = 2;
+const FIELD_NUMBERS = 7;
 // The line of scrimmage and the line to gain, colored as on television.
 const SCRIMMAGE = "#2f7cf6";
 const FIRST_DOWN = "#f5d020";
@@ -60,6 +61,8 @@ const FAR_REACH = 1.7;
 // How much farther back than otherwise the field and its play lie, as a share of how far back they'd be.
 const BACK_SHARE = 0.9;
 const QUEUE = 3;
+// How many of the floor's squares in front of the back of the room the field's farthest reach stays.
+const BACK_SQUARES = 2;
 
 // A pixel player, facing you: helmet (H) and its face (V), jersey (J) and sleeves (A), gloves (G), pants (P), socks
 // (S) and shoes (K) — its number on its chest, rows 5–9, columns 3–9. Legs and arms change with how they stand.
@@ -330,10 +333,11 @@ export function FloorPlay({
       // Where the field lies across the screen (its part of it), and where on the screen a play's middle goes: the
       // middle of the screen, or as near as leaves its far end short of the starters list beside it.
       const [left0, right0] = field ? [field.left, field.right] : [0.02 * w, 0.98 * w];
-      // Over the field, room for what's said of the play (as many lines as it has): the field starts under it.
+      // Over the field, room for what's said of the play (as many lines as it has): the field starts under it — and no
+      // farther back than two of the floor's squares in front of the back of the room.
       const wordPx = field ? WORD_PX.desk : WORD_PX.phone;
       const lines = Math.max(1, ...playing.stage.marks.map((m) => (m.kind === "word" ? (m.row ?? 0) + 1 : 0)));
-      const top = horizon + 6 + lines * wordPx * WORD_LINE + 4;
+      const top = Math.max(floorY(BACK_SQUARES * GRID_PX, h, sh), horizon + 6 + lines * wordPx * WORD_LINE + 4);
       const middle0 = field ? Math.min(w / 2, right0 - (PLAY_SHARE * w) / 2) : w / 2;
       // The highest anything of it stands on the screen, lying `bk` back, a yard across it `bs`: its far sideline, or the
       // head of whoever's farthest back on it, standing up over that.
@@ -464,6 +468,43 @@ export function FloorPlay({
         const goal = stage.toGoal !== null ? stage.los + stage.toGoal : null;
         const [from, to] = goal !== null ? [Math.max(from0, goal - 110), Math.min(to0, goal + 10)] : [from0, to0];
         const edge = (x: number) => Math.max(0, Math.min(1, Math.min(x - from0, to0 - x) / (span * 0.1)));
+        // Painted on the field, lying on it in the floor's own perspective: a digit `wide` yards across, as deep as
+        // reads (not squashed flat), its near edge at `z` — the other way up (`flip`) on the far side, as a field's
+        // numbers are — from its left edge at `x` (its right, flipped). In the page's own type, bold.
+        const type = getComputedStyle(document.body).fontFamily;
+        const digitWide = Math.max(1.3, 9 / yardPx);
+        const digitGap = Math.max(0.45, 4 / yardPx);
+        const paint = (ch: string, x: number, z: number, flip: boolean) => {
+          ctx.save();
+          ctx.font = `700 100px ${type}`;
+          ctx.textAlign = "left";
+          ctx.textBaseline = "alphabetic";
+          const m = ctx.measureText(ch);
+          const tall = m.actualBoundingBoxAscent || 72;
+          // The floor's directions where it lies: a yard along the field, and a yard toward you, on the screen.
+          const mid = x + (flip ? -digitWide / 2 : digitWide / 2);
+          const [ox, oy] = at(mid, z);
+          const [ax, ay] = at(mid + 1, z);
+          const [bx, by] = at(mid, z + 1);
+          const along = [ax - ox, ay - oy];
+          const toward = [bx - ox, by - oy];
+          // As deep as about three quarters of its width shows, in yards toward you.
+          const deep = Math.min(9, Math.max(1, (0.75 * digitWide * Math.hypot(along[0], along[1])) / Math.max(0.01, Math.abs(toward[1]))));
+          const [su, sv] = [(flip ? -1 : 1) * (digitWide / m.width), (flip ? -1 : 1) * (deep / tall)];
+          const [px0, py0] = at(x, z);
+          ctx.transform(along[0] * su, along[1] * su, toward[0] * sv, toward[1] * sv, px0, py0);
+          ctx.fillText(ch, 0, 0);
+          ctx.restore();
+          return deep;
+        };
+        // A number painted by a line at `x`: two digits either side of it, clear of it; otherwise just past it.
+        const paintBy = (text: string, x: number, z: number, flip = false) => {
+          const [l, r] = flip ? [x + digitGap + digitWide, x - digitGap] : [x - digitGap - digitWide, x + digitGap];
+          if (/^\d\d$/.test(text)) {
+            paint(text[0], l, z, flip);
+            paint(text[1], r, z, flip);
+          } else [...text].forEach((ch, i) => paint(ch, r + (flip ? -1 : 1) * i * digitWide, z, flip));
+        };
         const [gx0] = at(from0, 0);
         const [gx1] = at(to0, 0);
         const shade = (alpha: number) => {
@@ -474,11 +515,30 @@ export function FloorPlay({
           g.addColorStop(1, "transparent");
           return g;
         };
-        // Laid over what's on the floor under it.
-        ctx.fillStyle = shade(1);
-        ctx.globalAlpha = fade * 0.7;
-        quad(from, -far, to, hz);
-        ctx.fill();
+        // A cloud on the floor under it, soft at its edges: none of the floor's grid lines showing through.
+        {
+          const [x0, x1] = [Math.max(from, from0 + span * 0.06), Math.min(to, to0 - span * 0.06)];
+          const [a, b, c, d] = [at(x0, -far), at(x1, -far), at(x1, hz + NUMBERS), at(x0, hz + NUMBERS)];
+          // Soft as far as it's deep allows; out past the field by as much, so all of the field's on its solid middle.
+          const blur = Math.min(24, (d[1] - a[1]) / 3);
+          const out = blur * 0.8;
+          // Only its blurred shadow drawn (the shape itself off the screen), so it fades out evenly all round.
+          const away = 10000;
+          ctx.save();
+          ctx.globalAlpha = fade;
+          ctx.fillStyle = page;
+          ctx.shadowColor = page;
+          ctx.shadowBlur = blur * dpr;
+          ctx.shadowOffsetX = -away * dpr;
+          ctx.beginPath();
+          ctx.moveTo(a[0] + away, a[1] - out);
+          ctx.lineTo(b[0] + away, b[1] - out);
+          ctx.lineTo(c[0] + away, c[1] + out);
+          ctx.lineTo(d[0] + away, d[1] + out);
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
+        }
         ctx.strokeStyle = ink;
         ctx.fillStyle = ink;
         if (goal !== null) {
@@ -496,8 +556,7 @@ export function FloorPlay({
             }
           }
           // A line every yard of it: across the field every five, hash marks between (zoomed in enough to see them),
-          // the goal lines and the end lines stronger — and the tens numbered, off the field past the near sideline.
-          const font = getComputedStyle(document.body).fontFamily;
+          // the goal lines and the end lines stronger.
           for (let g = -10; g <= 110; g++) {
             const x = goal - g;
             if (x < from0 || x > to0) continue;
@@ -518,20 +577,14 @@ export function FloorPlay({
               line(x, -hz * 0.3 - 0.8, x, -hz * 0.3 + 0.8);
               line(x, hz * 0.3 - 0.8, x, hz * 0.3 + 0.8);
             }
+            // The tens numbered on the field, near each sideline, the line between their digits — the far side's the
+            // other way up.
             if (g % 10 === 0) {
-              const [sx, sy] = at(x, hz + 4);
-              const size = Math.max(12, px(hz + 4) * 4);
-              ctx.save();
-              ctx.globalAlpha = fade * 0.5 * e;
+              ctx.globalAlpha = fade * 0.45 * e;
               ctx.fillStyle = ink;
-              ctx.font = `700 ${size}px ${font}`;
-              ctx.textAlign = "center";
-              ctx.textBaseline = "middle";
-              ctx.translate(sx, sy);
-              // Lying on the floor.
-              ctx.scale(1, 0.6);
-              ctx.fillText(String(g <= 50 ? g : 100 - g), 0, 0);
-              ctx.restore();
+              const n = String(g <= 50 ? g : 100 - g);
+              paintBy(n, x, hz - FIELD_NUMBERS);
+              paintBy(n, x, -hz + FIELD_NUMBERS, true);
             }
           }
         } else {
@@ -566,27 +619,12 @@ export function FloorPlay({
           line(stage.end.x, -far, stage.end.x, hz);
         }
 
-        // What's written on the ground, in the page's own type, bold, lying on it — squashed less than the floor would
-        // (it's laid back so far that, squashed as much, it couldn't be read), a little way in front of where it's set.
-        const type = getComputedStyle(document.body).fontFamily;
-        const flat = (text: string, x: number, z: number, color: string, alpha: number) => {
-          const [sx, sy] = at(x, z);
-          ctx.save();
-          ctx.fillStyle = color;
-          ctx.globalAlpha = gone * alpha;
-          ctx.font = `700 ${Math.max(15, px(z) * 5.5)}px ${type}`;
-          // Just past the line it's by, clear of it.
-          ctx.textAlign = "left";
-          ctx.textBaseline = "top";
-          ctx.translate(sx + 4, sy);
-          ctx.scale(1, 0.6);
-          ctx.fillText(text, 0, 0);
-          ctx.restore();
-        };
+        // The yards gained, painted on the field by the line where the play ended, as its numbers are.
         for (const m of stage.marks) {
-          if (t < m.t || m.kind === "plus") continue;
-          const pop = Math.min(1, (t - m.t) / 0.25);
-          if (m.kind === "yards") flat(m.text, m.x, m.z, ink, pop);
+          if (t < m.t || m.kind !== "yards") continue;
+          ctx.globalAlpha = gone * Math.min(1, (t - m.t) / 0.25);
+          ctx.fillStyle = ink;
+          paintBy(m.text, m.x, m.z);
         }
 
         // A kick's goalposts: up from the ground, the bar across, the uprights up from it.

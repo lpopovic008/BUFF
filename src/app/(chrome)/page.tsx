@@ -234,8 +234,8 @@ export default function DashboardPage() {
   // The Red Zone up out of the floor in front of you (see redZoneStage); stretched (⇕) from there up over the screen,
   // the map out of its way.
   const [redZoneUp, setRedZoneUp] = useState(false);
-  // ⇕ stretches it a step at a time: to just short of the horizon (from tablet width up, halfway back to it — where it
-  // comes up to, there), then up to the ticker (on a phone, the starters list sinking into the floor first, out of its
+  // ⇕ stretches it a step at a time: to just short of the horizon (from tablet width up, two of the floor's squares
+  // back from its front line — where it comes up to, there), then up to the ticker (on a phone, the starters list sinking into the floor first, out of its
   // way), then back.
   const [redZoneLevel, setRedZoneLevel] = useState<0 | 1 | 2>(0);
   const stretchRedZone = () => setRedZoneLevel((level) => ((level + 1) % 3) as 0 | 1 | 2);
@@ -616,14 +616,14 @@ export default function DashboardPage() {
   // tab bar).
   const redZoneHeight = (desktop ? DESKTOP_RED_ZONE_REM : RED_ZONE_REM) + RED_ZONE_FLOAT_REM;
   // Where the Red Zone's top stands over the floor while it's up (not stretched over all of it — from tablet width up,
-  // halfway back to the horizon at most): plays acted out on the floor are kept above it (see FloorPlay).
+  // two of the floor's squares back from its front line at most): plays acted out on the floor are kept above it (see FloorPlay).
   const redZoneTop = (level: 0 | 1) =>
     !stand
       ? 0
       : level === 0
         ? stand.redZoneLine - redZoneHeight * stand.rootPx
         : desktop
-          ? stand.horizon + 0.5 * (stand.redZoneLine - stand.horizon)
+          ? (gridRows(stand.room).at(-3) ?? stand.horizon + 0.5 * (stand.redZoneLine - stand.horizon))
           : stand.horizon + 0.375 * stand.rootPx;
   const redZoneOver = stand && redZoneUp && (redZoneLevel === 0 || (redZoneLevel === 1 && desktop)) ? redZoneTop(redZoneLevel) : null;
   const redZoneStage =
