@@ -38,6 +38,12 @@ const MIN_SPAN = 16;
 // The line of scrimmage and the line to gain, colored as on television.
 const SCRIMMAGE = "#2f7cf6";
 const FIRST_DOWN = "#f5d020";
+// A penalty flag's yellow.
+const FLAG = "#f5d020";
+// How far back past the far sideline the field's lines run, as a share of half its width.
+const FAR_REACH = 1.7;
+// How much farther back than otherwise the field and its play lie, as a share of how far back they'd be.
+const BACK_SHARE = 0.9;
 const FADE_OUT = 0.5;
 const QUEUE = 3;
 
@@ -284,7 +290,7 @@ export function FloorPlay({
         const near = floorScale(d + (FIELD_WIDE / 2) * (long / FIELD_LONG));
         return { long, across: ((left + right) / 2 - w / 2) / near };
       };
-      let target = field ? floorDepth(h * sh + 0.42 * (h - h * sh), h, sh) : (PERSPECTIVE_PX - (PERSPECTIVE_PX * PHONE_SQUARES * GRID_PX) / w) / sin;
+      let target = BACK_SHARE * (field ? floorDepth(h * sh + 0.42 * (h - h * sh), h, sh) : (PERSPECTIVE_PX - (PERSPECTIVE_PX * PHONE_SQUARES * GRID_PX) / w) / sin);
       // All of it over whatever stands in front of the floor's near part: its near sideline a little above that.
       const nearY = (d: number) => floorPoint(0, d + (FIELD_WIDE / 2) * (sized(d).long / FIELD_LONG), w, h, sh)[1];
       if (over !== null && nearY(target) > over - 6) {
@@ -325,6 +331,8 @@ export function FloorPlay({
         ctx.stroke();
       };
       const hz = FIELD_WIDE / 2;
+      // Its lines run on back past the far sideline, over more of the room.
+      const far = hz * FAR_REACH;
       const half = span / 2;
       // The field under the play, its real yard lines where they are: the line of scrimmage on the yard line it was
       // snapped from (the goal line it's going for off to the right). Only as much as the play needs, fading off at
@@ -345,7 +353,7 @@ export function FloorPlay({
       // Laid over what's on the floor under it.
       ctx.fillStyle = shade(1);
       ctx.globalAlpha = fade * 0.7;
-      quad(from, -hz, to, hz);
+      quad(from, -far, to, hz);
       ctx.fill();
       ctx.strokeStyle = ink;
       ctx.fillStyle = ink;
@@ -359,7 +367,7 @@ export function FloorPlay({
         ]) {
           const [lo, hi] = [Math.max(a, -half), Math.min(b, half)];
           if (hi > lo) {
-            quad(lo, -hz, hi, hz);
+            quad(lo, -far, hi, hz);
             ctx.fill();
           }
         }
@@ -374,21 +382,22 @@ export function FloorPlay({
             if (g !== 0 && g !== 100 && g !== -10 && g !== 110) continue;
             ctx.globalAlpha = fade * 0.6 * Math.max(f, 0.35);
             ctx.lineWidth = 1.5;
-            line(x, -hz, x, hz);
+            line(x, -far, x, hz);
             continue;
           }
           ctx.lineWidth = 1;
           if (g % 5 === 0) {
             ctx.globalAlpha = fade * (g % 10 === 0 ? 0.32 : 0.16) * f;
-            line(x, -hz, x, hz);
+            line(x, -far, x, hz);
           } else if (yard * floorScale(back) > 5) {
             ctx.globalAlpha = fade * 0.22 * f;
             line(x, -hz * 0.3 - 0.8, x, -hz * 0.3 + 0.8);
             line(x, hz * 0.3 - 0.8, x, hz * 0.3 + 0.8);
           }
           if (g % 10 === 0) {
-            const [sx, sy] = at(x, hz * 0.85);
-            const size = Math.max(12, px(hz * 0.85) * 4);
+            // Off the field, past the near sideline.
+            const [sx, sy] = at(x, hz + 4);
+            const size = Math.max(12, px(hz + 4) * 4);
             ctx.save();
             ctx.globalAlpha = fade * 0.5 * f;
             ctx.fillStyle = ink;
@@ -408,7 +417,7 @@ export function FloorPlay({
         for (let x = stage.los - Math.ceil((stage.los + half) / 5) * 5; x <= half; x += 5) {
           if (x < -half) continue;
           ctx.globalAlpha = fade * 0.2 * edge(x);
-          line(x, -hz, x, hz);
+          line(x, -far, x, hz);
         }
       }
 
@@ -417,16 +426,16 @@ export function FloorPlay({
       ctx.globalAlpha = fade;
       ctx.lineWidth = 1 / dpr;
       ctx.strokeStyle = SCRIMMAGE;
-      line(stage.los, -hz, stage.los, hz);
+      line(stage.los, -far, stage.los, hz);
       if (stage.firstDown !== null) {
         ctx.strokeStyle = FIRST_DOWN;
-        line(stage.firstDown, -hz, stage.firstDown, hz);
+        line(stage.firstDown, -far, stage.firstDown, hz);
       }
       ctx.strokeStyle = ink;
       if (stage.end && t >= stage.end.t) {
         ctx.globalAlpha = fade * 0.95;
         ctx.lineWidth = 2;
-        line(stage.end.x, -hz, stage.end.x, hz);
+        line(stage.end.x, -far, stage.end.x, hz);
       }
 
       // What's written on the ground, in the page's own type, bold, lying on it — squashed less than the floor would
@@ -514,6 +523,10 @@ export function FloorPlay({
           ctx.rotate((facing * Math.PI) / 2);
           ctx.drawImage(sprite, -sw / 2, -shh / 2, sw, shh);
           ctx.restore();
+        } else if (p.pose === "kneel") {
+          // Down on a knee: no legs showing, his pants on the ground.
+          const rows = 13;
+          ctx.drawImage(sprite, 0, 0, W + 2, rows, Math.round(sx - sw / 2), Math.round(sy - rows * unit), sw, rows * unit);
         } else {
           const lift = p.pose === "jump" ? Math.abs(Math.sin(t * 7)) * px(p.z) * 1.4 : look === "runB" ? unit : 0;
           ctx.drawImage(sprite, Math.round(sx - sw / 2), Math.round(sy - shh - lift), sw, shh);
@@ -525,6 +538,23 @@ export function FloorPlay({
         }
       }
       if (ball && !("by" in ball)) drawBall(ball.x, ball.z, ball.h);
+
+      // A penalty flag: thrown in from the side, tumbling, and lying where it lands.
+      if (stage.flag && t >= stage.flag.t) {
+        const { from: [x0, z0], to: [x1, z1] } = stage.flag;
+        const f = Math.min(1, (t - stage.flag.t) / 0.5);
+        const [x, z] = [x0 + (x1 - x0) * f, z0 + (z1 - z0) * f];
+        const lift = (2 * (1 - f) + 12 * f * (1 - f)) * px(z);
+        const unit = px(z) * 0.5;
+        const [sx, sy] = at(x, z);
+        ctx.globalAlpha = fade;
+        ctx.fillStyle = FLAG;
+        ctx.save();
+        ctx.translate(sx, sy - lift - unit);
+        if (f < 1) ctx.rotate(t * 12);
+        ctx.fillRect(-unit * 1.6, -unit, unit * 3.2, unit * (f < 1 ? 2 : 1.2));
+        ctx.restore();
+      }
 
       // +1 for the catch, floating up off whoever made it.
       for (const m of stage.marks) {
@@ -540,18 +570,24 @@ export function FloorPlay({
         // From just over his helmet, up a few yards.
         ctx.fillText(m.text, sx, sy - (H + 2) * px(p.z) * 0.42 - 2 - f * 4 * px(p.z));
       }
-      // What happened, in the page's own type, bold and in capitals, standing up over the far side — popping up as it does.
+      // What happened, in the page's own type, bold and in capitals, standing up over the far side — popping up as it does,
+      // and all of it under the horizon (on a phone, the starters list is over it).
+      const wordRows = Math.max(0, ...stage.marks.filter((m) => m.kind === "word" && t >= m.t).map((m) => m.row ?? 0));
+      const wordSize = Math.min(28, Math.max(14, px(-hz) * 4.5));
+      const lowest = h * sh + 2 + wordSize + wordRows * wordSize * 1.15;
       for (const m of stage.marks) {
         if (m.kind !== "word" || t < m.t) continue;
         const pop = Math.min(1, (t - m.t) / 0.2);
-        const size = Math.min(28, Math.max(14, px(-hz) * 4.5)) * (0.7 + 0.3 * pop);
+        const full = wordSize;
+        const size = full * (0.7 + 0.3 * pop);
         const [sx, sy] = at(m.x, -hz);
         ctx.globalAlpha = fade * pop;
-        ctx.fillStyle = m.text === "TOUCHDOWN" || m.text === "GOOD" ? good : ink;
+        ctx.fillStyle = m.tone === "good" ? good : ink;
         ctx.font = `700 ${size}px ${type}`;
         ctx.textAlign = "center";
         ctx.textBaseline = "alphabetic";
-        ctx.fillText(m.text.toUpperCase(), sx, sy - 4);
+        // Several at once, one over another.
+        ctx.fillText(m.text.toUpperCase(), sx, Math.max(sy - 4, lowest) - (m.row ?? 0) * full * 1.15);
       }
       ctx.restore();
       frame = requestAnimationFrame(draw);

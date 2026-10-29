@@ -27,6 +27,8 @@ function stemRem(count: number): number {
 // The states on Mountain and Pacific time: their games' tags hang off the right of the stem, the rest off the left.
 const WEST_STATES = new Set(["AZ", "CO", "NM", "UT", "WY", "MT", "ID", "NV", "CA", "OR", "WA"]);
 const TAG_REM = 0.625;
+/** How faint the farthest of the map's titles is (the nearest, whole). */
+const FARTHEST_TAG = 0.4;
 
 export interface MapSite {
   id: string;
@@ -145,18 +147,18 @@ export function FloorMapTags({
 }) {
   const fit = useMovedFit(lying, camera);
   const sites = useSites(games);
-  // Nearer tags on top of farther ones.
-  // Moved back, each fades toward the horizon with the map under it; past it, gone.
+  // Nearer tags on top of farther ones; past the horizon, gone.
   const horizon = fit.height * fit.share;
-  const whole = fadeFrom(lying);
-  const placed = sites
+  const shown = sites
     .map((s) => {
       const [x, y] = floorMapPoint(fit, s.pos[0], s.pos[1]);
       return { ...s, x, y };
     })
-    .map((s) => ({ ...s, fade: 0.4 + 0.6 * Math.min(1, Math.max(0, (s.y - horizon) / (whole - horizon))) }))
     .filter((s) => s.y >= horizon && s.y <= fit.height && s.x >= 0 && s.x <= fit.width)
     .sort((a, b) => a.y - b.y);
+  // Graded from the nearest of them (whole) back to the farthest (faintest), however near or far they all are.
+  const [farthest, nearest] = [shown[0]?.y ?? 0, shown.at(-1)?.y ?? 0];
+  const placed = shown.map((s) => ({ ...s, fade: nearest > farthest ? FARTHEST_TAG + (1 - FARTHEST_TAG) * ((s.y - farthest) / (nearest - farthest)) : 1 }));
   const [midX] = floorMapPoint(lying, 160, 200);
   return (
     <div className="pointer-events-none fixed inset-0 z-10" aria-hidden>

@@ -250,6 +250,25 @@ export default function DashboardPage() {
     const done = setTimeout(() => setRedZoneSinking(false), RED_ZONE_SINK_MS);
     return () => clearTimeout(done);
   }, [redZoneSinking]);
+  // Up out of the floor on its own when the week's first game kicks off — once a week (remembered in this browser),
+  // the week that's on, whether you're watching then or come by later.
+  const weekUnderway = week !== null && shownWeek === week && weekGames.some((g) => g.state !== "pre");
+  const season = nflPhase.season ?? config.season;
+  useEffect(() => {
+    if (!weekUnderway) return;
+    const key = `commish:red-zone-up:${season}:${week}`;
+    const up = requestAnimationFrame(() => {
+      try {
+        if (localStorage.getItem(key)) return;
+        localStorage.setItem(key, "1");
+      } catch {
+        return;
+      }
+      setRedZoneUp(true);
+      setRedZoneSinking(false);
+    });
+    return () => cancelAnimationFrame(up);
+  }, [weekUnderway, season, week]);
   // The Red Zone's place on the floor, reflected in it (see FloorReflection).
   const [redZoneBox, setRedZoneBox] = useState<HTMLDivElement | null>(null);
   // The room's height as it's drawn (not 100vh, which a browser's toolbars can make taller than the screen); how far up
@@ -702,7 +721,16 @@ export default function DashboardPage() {
           </div>
         </div>
         {/* Reflected in the floor from the horizon, as it scrolls. */}
-        {redZoneFull ? null : <FloorReflection source={startersList} className="px-4 pb-8" style={{ paddingTop: `calc(${underTicker})` }} />}
+        {/* Going down into the floor with it, as the Red Zone's stretched up to the ticker, and coming back up with it. */}
+        <FloorReflection
+          source={startersList}
+          className="px-4 pb-8"
+          style={{ paddingTop: `calc(${underTicker})` }}
+          rise={{ delayMs: 500, ms: 500 }}
+          sinkMs={redZoneFull ? 500 : undefined}
+          ease="ease-in-out"
+          risesAtFirst={false}
+        />
         {redZoneStage}
         {mapShown ? <FloorMapTags fit={stand.fit} games={games} top={stand.landTop} camera={floorCamera} /> : null}
         {/* Red Zone plays acted out on the floor, across the whole screen. */}

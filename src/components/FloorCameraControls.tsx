@@ -225,24 +225,26 @@ export function FloorCameraControls({
     store.glide(HOME_CAMERA, true);
     follow(true);
   };
-  // The floor slid toward you a whole number of squares (so its lines end up where they were), the map's far edge
-  // past the screen's bottom.
-  const toggleRedZone = () => {
-    if (!redZone) return;
+  const toggleRedZone = () => redZone?.onChange(!redZoneUp);
+  // The Red Zone coming up (switched on here, or on its own as the week's first game kicks off): the floor slid toward
+  // you a whole number of squares (so its lines end up where they were), the map's far edge past the screen's bottom.
+  // Going back down: once it's sunk, the floor back home. (Up already when these first show: slid all the same.)
+  const wasUp = useRef(false);
+  useEffect(() => {
+    if (wasUp.current === redZoneUp) return;
+    wasUp.current = redZoneUp;
     if (redZoneUp) {
-      redZone.onChange(false);
-      window.setTimeout(() => {
-        followed.current = null;
-        store.glide(HOME_CAMERA, true);
-        follow(true);
-      }, RED_ZONE_SINK_MS);
+      const far = fit.nearDepth - (MAP_BOUNDS.maxY - MAP_BOUNDS.minY) * fit.k;
+      const bottom = floorDepth(fit.height, fit.height, fit.share);
+      store.glide({ zoom: 1, x: 0, d: Math.ceil((bottom - far + 8) / GRID_PX) * GRID_PX }, false);
       return;
     }
-    const far = fit.nearDepth - (MAP_BOUNDS.maxY - MAP_BOUNDS.minY) * fit.k;
-    const bottom = floorDepth(fit.height, fit.height, fit.share);
-    store.glide({ zoom: 1, x: 0, d: Math.ceil((bottom - far + 8) / GRID_PX) * GRID_PX }, false);
-    redZone.onChange(true);
-  };
+    window.setTimeout(() => {
+      followed.current = null;
+      store.glide(HOME_CAMERA, true);
+      follow(true);
+    }, RED_ZONE_SINK_MS);
+  }, [redZoneUp, fit, store, follow]);
   const zoomBy = (factor: number) => store.glide(keep(zoomCameraAt(store.get().camera, factor, middle)), false);
 
   const plate =

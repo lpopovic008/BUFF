@@ -72,8 +72,52 @@ test("runs, scrambles, sacks, picks, incompletions and kicks", () => {
   assert.deepEqual([kick.kind, kick.returner], ["kickoff", null]);
 });
 
-test("nothing to act out for a penalty with no play", () => {
-  assert.equal(sceneFor(play("PENALTY on KC-J.Smith, False Start, 5 yards, enforced at KC 30 - No Play."), teams), null);
+test("a penalty with no play is a flag thrown before the snap: on whom, for what, how far", () => {
+  const s = sceneFor(play("PENALTY on KC-J.Smith, False Start, 5 yards, enforced at KC 30 - No Play."), teams)!;
+  assert.equal(s.kind, "penalty");
+  assert.deepEqual(s.penalty, { team: "KC", label: "J.Smith", name: "False Start", yards: 5, declined: false, noPlay: true });
+  const stage = stageFor(s);
+  assert.ok(stage.flag);
+  assert.ok(stage.marks.some((m) => m.kind === "word" && m.text === "FLAG · FALSE START"));
+  // On a play that stood, the flag's thrown during it, and named after what happened.
+  const held = stageFor(sceneFor(play("J.Cook left end to KC 23 for 7 yards (N.Bolton). PENALTY on KC-N.Bolton, Defensive Holding, declined.", { offense: "BUF", yards: 7 }), teams)!);
+  assert.ok(held.flag);
+  assert.ok(held.marks.some((m) => m.text === "DECLINED"));
+});
+
+test("kneels, spikes, two-point tries and snaps that get away", () => {
+  const kneel = sceneFor(play("P.Mahomes kneels to KC 29 for -1 yards."), teams)!;
+  assert.deepEqual([kneel.kind, kneel.passer, kneel.yards], ["kneel", "P.Mahomes", -1]);
+  assert.ok(stageFor(kneel).actors[0].keys.some((k) => k.pose === "kneel"));
+  assert.equal(sceneFor(play("P.Mahomes spiked the ball to stop the clock."), teams)!.kind, "spike");
+  const two = sceneFor(play("TWO-POINT CONVERSION ATTEMPT. P.Mahomes pass to T.Kelce is complete. ATTEMPT SUCCEEDS."), teams)!;
+  assert.deepEqual([two.kind, two.target, two.toGoal, two.conversion], ["pass", "T.Kelce", 2, { good: true }]);
+  assert.ok(stageFor(two).marks.some((m) => m.text === "2-PT GOOD" && m.tone === "good"));
+  const miss = sceneFor(play("TWO-POINT CONVERSION ATTEMPT. P.Mahomes pass to T.Kelce is incomplete. ATTEMPT FAILS."), teams)!;
+  assert.deepEqual([miss.kind, miss.conversion], ["incomplete", { good: false }]);
+  const rush = sceneFor(play("TWO-POINT CONVERSION ATTEMPT. I.Pacheco rushes up the middle. ATTEMPT SUCCEEDS."), teams)!;
+  assert.deepEqual([rush.kind, rush.runner], ["run", "I.Pacheco"]);
+  const aborted = sceneFor(play("(Shotgun) P.Mahomes FUMBLES (Aborted) at KC 30, RECOVERED by BUF-G.Rousseau at KC 28."), teams)!;
+  assert.deepEqual([aborted.kind, aborted.defender, aborted.fumbleLost], ["fumble", "G.Rousseau", true]);
+});
+
+test("staged close: a field goal kicked from where its length says; defenders 2 yards off; nothing past the end line", () => {
+  // A 45-yarder snapped from the 27: kicked from 8 yards back, the posts on the end line.
+  const fg = stageFor(sceneFor(play("H.Butker 45 yard field goal is GOOD.", { yardsToEndzone: 27 }), teams)!);
+  const ballAtKick = fg.ball[0] as { at: [number, number] };
+  assert.ok(Math.abs(fg.los - ballAtKick.at[0] - 8) < 1e-9);
+  assert.ok(Math.abs(fg.posts! - (fg.los + 27 + 10)) < 1e-9);
+  // The tackler starts 2 yards from where he makes the tackle.
+  const run = stageFor(sceneFor(play("J.Cook left end to KC 23 for 7 yards (N.Bolton).", { offense: "BUF", yards: 7, yardsToEndzone: 30 }), teams)!);
+  const tackler = run.actors.find((a) => a.role === "defender")!;
+  const [first, last] = [tackler.keys[0], tackler.keys.at(-1)!];
+  assert.ok(Math.abs(Math.hypot(first.x - last.x, first.z - last.z) - 2) < 1);
+  // Thrown deep from the 4: it comes down no more than 5 yards into the end zone, and no one's past the end line.
+  const inc = stageFor(sceneFor(play("P.Mahomes pass incomplete deep right to X.Worthy.", { yardsToEndzone: 4 }), teams)!);
+  const endLine = inc.los + 4 + 10;
+  const resting = inc.ball.at(-1) as { at: [number, number] };
+  assert.ok(resting.at[0] <= inc.los + 4 + 5 + 1e-9);
+  assert.ok(inc.actors.every((a) => a.keys.every((k) => k.x <= endLine)));
 });
 
 test("a play's staged centered on the field: it starts left of the middle and ends as far right", () => {

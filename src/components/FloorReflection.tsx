@@ -11,17 +11,32 @@ const STRENGTH = 0.2;
 const timelines = new Set<string>();
 const publishTimelines = () => document.body.style.setProperty("timeline-scope", [...timelines].join(", ") || "none");
 
+interface Timing {
+  riseAt: number | null;
+  sinkAt: number | null;
+  timed: boolean;
+  rise?: { delayMs: number; ms: number };
+  sinkMs?: number;
+  ease: string;
+}
+
 /** A copy moved as its source comes up out of the floor, or goes down into it (see FloorReflection's rise, sinkMs). */
-function moveCopy(
-  el: HTMLElement,
-  { riseAt, sinkAt, timed, rise, sinkMs }: { riseAt: number | null; sinkAt: number | null; timed: boolean; rise?: { delayMs: number; ms: number }; sinkMs?: number }
-) {
+function moveCopy(el: HTMLElement, { riseAt, sinkAt, timed, rise, sinkMs, ease }: Timing) {
   // A copy moved by its source's scroll timeline is left to it.
   if (timed) return;
   const now = performance.now();
-  if (sinkAt !== null && sinkMs !== undefined) el.style.animation = `reflect-sink ${sinkMs}ms ease-out ${sinkAt - now}ms forwards`;
-  else if (riseAt !== null && rise) el.style.animation = `reflect-rise ${rise.ms}ms ease-out ${riseAt - now}ms backwards`;
+  if (sinkAt !== null && sinkMs !== undefined) el.style.animation = `reflect-sink ${sinkMs}ms ${ease} ${sinkAt - now}ms forwards`;
+  else if (riseAt !== null && rise) el.style.animation = `reflect-rise ${rise.ms}ms ${ease} ${riseAt - now}ms backwards`;
   else el.style.removeProperty("animation");
+}
+
+/** How far down an element's moved by its own transform or translate (what its box would be without, for its foot). */
+function ownShift(el: HTMLElement): number {
+  const style = getComputedStyle(el);
+  let y = 0;
+  if (style.transform && style.transform !== "none") y += new DOMMatrixReadOnly(style.transform).m42;
+  if (style.translate && style.translate !== "none") y += parseFloat(style.translate.split(" ")[1] ?? "0") || 0;
+  return y;
 }
 
 /**
@@ -40,28 +55,36 @@ export function FloorReflection({
   style,
   rise,
   sinkMs,
+  ease = "ease-out",
+  risesAtFirst = true,
 }: {
   source: HTMLElement | null;
   className?: string;
   style?: React.CSSProperties;
-  /** It's coming up out of the floor, after `delayMs`, over `ms` (eased out), from as far down as it's tall. */
+  /** It's coming up out of the floor, after `delayMs`, over `ms`, from as far down as it's tall. */
   rise?: { delayMs: number; ms: number };
-  /** It's going back down into the floor, over this long (eased out), as far down as it's tall. */
+  /** It's going back down into the floor, over this long, as far down as it's tall. */
   sinkMs?: number;
+  /** How its rise and sink are eased, as its source's are. */
+  ease?: string;
+  /** Whether it comes up when it's first drawn too (or only after going down). */
+  risesAtFirst?: boolean;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const copy = useRef<HTMLDivElement>(null);
   const name = `--reflect-${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
   // Its copy's contents (redone as it changes), and when it rises (or sinks): its copy moved to match, mirrored.
   const content = useRef<HTMLDivElement | null>(null);
-  const timing = useRef({ riseAt: null as number | null, sinkAt: null as number | null, timed: false, rise, sinkMs });
+  const timing = useRef<Timing & { first: boolean }>({ riseAt: null, sinkAt: null, timed: false, rise, sinkMs, ease, first: true });
   // Set before anything it's copying changes on the way down (its source's own sink), so that's not copied.
   const sinking = sinkMs !== undefined;
   useLayoutEffect(() => {
     const t = timing.current;
-    Object.assign(t, { rise, sinkMs });
+    Object.assign(t, { rise, sinkMs, ease });
+    const first = t.first;
+    t.first = false;
     if (sinking) t.sinkAt = performance.now();
-    else if (t.sinkAt !== null || t.riseAt === null) {
+    else if (t.sinkAt !== null || (first && risesAtFirst)) {
       // Coming up — again, if it was going down.
       t.sinkAt = null;
       t.riseAt = rise ? performance.now() + rise.delayMs : null;
@@ -98,11 +121,12 @@ export function FloorReflection({
       }
     };
     // Just under it, as wide as it — its copy as tall as it, turned over about its foot.
+    // Where it stands, not where it's slid to on its way into (or out of) the floor.
     const place = () => {
       const r = source.getBoundingClientRect();
       out.style.left = `${r.left}px`;
       out.style.width = `${r.width}px`;
-      out.style.top = `${r.bottom}px`;
+      out.style.top = `${r.bottom - ownShift(source)}px`;
       cp.style.height = `${r.height}px`;
       follow();
     };
