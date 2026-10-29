@@ -832,16 +832,18 @@ export default function DashboardPage() {
       ) : null}
       {/* Its reflection: what's at its foot, in the floor. */}
       <FloorReflection source={startersList} className="pb-16" style={{ paddingTop: `calc(${UNDER_TICKER})` }} />
-      {/* Red Zone plays acted out on the floor over the Red Zone, in the middle of the screen, right across it (the
-          starters list up out of the way); set up for the next, left of the list again (see FloorPlay). */}
+      {/* Red Zone plays acted out right across the floor, the floor's grid their field, in the middle of the screen —
+          behind what stands on it (the starters list up out of the way while one's on; see FloorPlay). */}
       {stand ? (
         <FloorPlay
           width={stand.fit.width}
           height={stand.room}
           share={stand.fit.share}
-          area={{ left: stand.rootPx, right: (playOn || !startersList ? stand.fit.width : startersList.getBoundingClientRect().left) - stand.rootPx }}
-          clear={redZoneOver}
+          area={{ left: 0, right: stand.fit.width }}
+          clear={null}
           onPlaying={setPlayOn}
+          camera={floorCamera}
+          steer={redZoneUp}
         />
       ) : null}
       {redZoneStage}
