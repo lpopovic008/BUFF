@@ -636,9 +636,11 @@ export default function DashboardPage() {
           // Cut off at the line it comes up out of; its top moving up a step at a time as it's stretched — up to the
           // ticker only once the starters list (on a phone) has sunk out of its way.
           className={`fixed z-[5] overflow-hidden transition-[top] duration-500 ease-out ${
-            desktop ? "left-4 md:right-[19rem] lg:right-[21rem]" : "inset-x-0"
+            // From tablet width up, from the screen's left edge right up to the starters list (see right, below).
+            desktop ? "left-0 md:right-[17rem] lg:right-[19rem]" : "inset-x-0"
           } ${redZoneFull && !desktop ? "delay-500" : ""}`}
           style={{
+            ...(desktop && startersList ? { right: stand.fit.width - startersList.getBoundingClientRect().left } : null),
             bottom: stand.room - stand.redZoneLine,
             top:
               redZoneLevel === 2
@@ -782,7 +784,8 @@ export default function DashboardPage() {
           its back, angled in toward the middle (turned on their outer edge, so however wide they are that edge stays on
           the screen), and the starters list on the floor's lowest grid line (--stand). The Red Zone stands on the floor
           between them and the map (see redZoneStage). */}
-      <div data-floor className="flex flex-row items-start gap-8 px-4 pt-2 [perspective:2200px]">
+      {/* The graphs from the screen's left edge right up to the starters list. */}
+      <div data-floor className="flex flex-row items-start pr-4 pt-2 [perspective:2200px]">
         <div
           data-floor
           className="sticky top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] flex min-w-0 flex-1 origin-left flex-col [rotate:y_4deg]"
