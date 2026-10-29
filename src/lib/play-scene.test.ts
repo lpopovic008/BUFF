@@ -77,11 +77,11 @@ test("a penalty with no play is a flag thrown before the snap: on whom, for what
   assert.equal(s.kind, "penalty");
   assert.deepEqual(s.penalty, { team: "KC", label: "J.Smith", name: "False Start", yards: 5, declined: false, noPlay: true });
   const stage = stageFor(s);
-  assert.ok(stage.flag);
+  assert.equal(stage.flags[0].color, "yellow");
   assert.ok(stage.marks.some((m) => m.kind === "word" && m.text === "FLAG · FALSE START"));
   // On a play that stood, the flag's thrown during it, and named after what happened.
   const held = stageFor(sceneFor(play("J.Cook left end to KC 23 for 7 yards (N.Bolton). PENALTY on KC-N.Bolton, Defensive Holding, declined.", { offense: "BUF", yards: 7 }), teams)!);
-  assert.ok(held.flag);
+  assert.equal(held.flags.length, 1);
   assert.ok(held.marks.some((m) => m.text === "DECLINED"));
 });
 
@@ -90,10 +90,13 @@ test("kneels, spikes, two-point tries and snaps that get away", () => {
   assert.deepEqual([kneel.kind, kneel.passer, kneel.yards], ["kneel", "P.Mahomes", -1]);
   assert.ok(stageFor(kneel).actors[0].keys.some((k) => k.pose === "kneel"));
   assert.ok(!stageFor(kneel).actors.some((a) => a.role === "lineman"));
-  assert.equal(sceneFor(play("P.Mahomes spiked the ball to stop the clock."), teams)!.kind, "spike");
+  const spike = sceneFor(play("P.Mahomes spiked the ball to stop the clock."), teams)!;
+  assert.equal(spike.kind, "spike");
+  assert.ok(!stageFor(spike).actors.some((a) => a.role === "lineman"));
   const two = sceneFor(play("TWO-POINT CONVERSION ATTEMPT. P.Mahomes pass to T.Kelce is complete. ATTEMPT SUCCEEDS."), teams)!;
   assert.deepEqual([two.kind, two.target, two.toGoal, two.conversion], ["pass", "T.Kelce", 2, { good: true }]);
-  assert.ok(stageFor(two).marks.some((m) => m.text === "2-PT GOOD" && m.tone === "good"));
+  const twoWords = stageFor(two).marks.filter((m) => m.kind === "word").map((m) => m.text);
+  assert.deepEqual(twoWords, ["2-PT CONVERSION", "SUCCEEDED"]);
   const miss = sceneFor(play("TWO-POINT CONVERSION ATTEMPT. P.Mahomes pass to T.Kelce is incomplete. ATTEMPT FAILS."), teams)!;
   assert.deepEqual([miss.kind, miss.conversion], ["incomplete", { good: false }]);
   const rush = sceneFor(play("TWO-POINT CONVERSION ATTEMPT. I.Pacheco rushes up the middle. ATTEMPT SUCCEEDS."), teams)!;
@@ -174,4 +177,63 @@ test("set up for the next play: the next snap where the ball ended, everyone lin
   // An incompletion: from where it was snapped again.
   const inc = stageFor(sceneFor(play("P.Mahomes pass incomplete deep right to X.Worthy."), teams)!);
   assert.equal(inc.next, inc.los);
+});
+
+test("defenders start 2 yards from their play, but never within 5 of the snap", () => {
+  const stuffed = stageFor(sceneFor(play("J.Cook up the middle to KC 29 for 1 yard (N.Bolton).", { offense: "BUF", yards: 1, yardsToEndzone: 30 }), teams)!);
+  const snap = stuffed.los;
+  for (const a of stuffed.actors.filter((x) => x.team === "KC")) assert.ok(Math.hypot(a.keys[0].x - snap, a.keys[0].z) >= 5 - 1e-9);
+});
+
+test("a touchdown's try, acted out right after it: extra point or two-point try, and how it went", () => {
+  const td = sceneFor(play("J.Allen pass deep middle to D.Kincaid for 28 yards, TOUCHDOWN. T.Bass extra point is GOOD, Center-R.Ferguson.", { offense: "BUF", yards: 28, yardsToEndzone: 28 }), teams)!;
+  assert.equal(td.kind, "pass");
+  assert.equal(td.after?.kind, "extraPoint");
+  const xp = stageFor(td.after!);
+  assert.deepEqual(xp.marks.filter((m) => m.kind === "word").map((m) => m.text), ["EXTRA POINT", "GOOD"]);
+  // The touchdown sets up for the try: 15 yards out.
+  const stage = stageFor(td);
+  assert.ok(Math.abs(stage.los + 28 - 15 - stage.next) < 1e-9);
+  const two = sceneFor(play("J.Cook right end for 2 yards, TOUCHDOWN. TWO-POINT CONVERSION ATTEMPT. J.Cook rushes up the middle. ATTEMPT FAILS.", { offense: "BUF", yardsToEndzone: 2 }), teams)!;
+  assert.equal(two.after?.conversion?.good, false);
+  assert.ok(stageFor(two.after!).marks.some((m) => m.text === "FAILED"));
+});
+
+test("fumbles: the ball comes loose, and whoever falls on it has it", () => {
+  const lost = sceneFor(play("J.Cook up the middle to BUF 30 for 2 yards, FUMBLES (Z.Sieler), RECOVERED by KC-J.Phillips at BUF 30. J.Phillips to BUF 25 for 5 yards (J.Cook).", { offense: "BUF" }), teams)!;
+  assert.deepEqual(lost.fumble, { by: "J.Phillips", lost: true, back: 5 });
+  const stage = stageFor(lost);
+  const picker = stage.actors.findIndex((a) => a.label === "J.Phillips");
+  assert.deepEqual(ballAt(stage, stage.length), { by: picker });
+  assert.deepEqual(stage.nextBall, { team: "KC", dir: -1 });
+  assert.ok(stage.marks.some((m) => m.text === "TURNOVER"));
+  const kept = sceneFor(play("J.Cook up the middle to BUF 30 for 2 yards, FUMBLES (Z.Sieler), and recovers at BUF 30.", { offense: "BUF" }), teams)!;
+  assert.deepEqual(kept.fumble, { by: null, lost: false, back: 0 });
+  const strip = sceneFor(play("J.Allen sacked at BUF 20 for -6 yards (Z.Sieler). FUMBLES (Z.Sieler), RECOVERED by KC-J.Phillips at BUF 18.", { offense: "BUF" }), teams)!;
+  assert.equal(strip.kind, "sack");
+  assert.equal(strip.fumble?.lost, true);
+});
+
+test("laterals, quarterback keepers, and reviews", () => {
+  const pitch = sceneFor(play("J.Allen pass short left to S.Diggs to BUF 40 for 10 yards. S.Diggs lateral to J.Cook to KC 45 for 15 yards (T.Bernard).", { offense: "BUF" }), teams)!;
+  assert.deepEqual([pitch.yards, pitch.lateral], [25, { to: "J.Cook", at: 10 }]);
+  const pitched = stageFor(pitch);
+  const cook = pitched.actors.findIndex((a) => a.label === "J.Cook");
+  assert.deepEqual(ballAt(pitched, pitched.length), { by: cook });
+  // A keeper: the quarterback takes it himself — no one to hand it to.
+  const keeper = stageFor({ ...sceneFor(play("J.Allen up the middle to KC 30 for 4 yards (T.Bernard).", { offense: "BUF", yards: 4 }), teams)!, keeper: true });
+  assert.equal(keeper.actors.filter((a) => a.team === "BUF").length, 1);
+  assert.equal(keeper.actors[0].role, "qb");
+  // Challenged and upheld: the play, the red flag, and the call standing.
+  const upheld = sceneFor(play("J.Cook left end to KC 23 for 7 yards (N.Bolton). Kansas City challenged the runner was down by contact ruling, and the play was Upheld. The ruling on the field stands.", { offense: "BUF", yards: 7 }), teams)!;
+  assert.deepEqual(upheld.review, { booth: false, reversed: false, called: true });
+  const red = stageFor(upheld);
+  assert.equal(red.flags.at(-1)?.color, "red");
+  assert.ok(red.marks.some((m) => m.text === "UPHELD"));
+  // Reversed: the play as called, then as it stands.
+  const reversed = sceneFor(play("J.Allen pass short right to K.Shakir to KC 20 for 15 yards (T.Bernard). Kansas City challenged the pass completion ruling, and the play was REVERSED. J.Allen pass incomplete short right to K.Shakir.", { offense: "BUF" }), teams)!;
+  assert.equal(reversed.kind, "pass");
+  assert.equal(reversed.after?.kind, "incomplete");
+  assert.ok(stageFor(reversed.after!).marks.some((m) => m.text === "REVERSED"));
+  assert.equal(stageFor(reversed).next, stageFor(reversed).los);
 });

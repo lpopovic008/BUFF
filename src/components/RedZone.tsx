@@ -698,7 +698,7 @@ export function RedZone({
         // Down the side, its contents sit inside it, never making the Red Zone taller.
         ref={headRef}
         onPointerUp={onHeadTap}
-        className={`relative shrink-0 touch-manipulation select-none border-border ${across ? "border-b max-md:px-2" : "w-7 border-r"}`}
+        className={`relative shrink-0 touch-manipulation select-none ${across ? "max-md:px-2" : "w-7"}`}
       >
         <div className={across ? `flex items-center gap-2 ${fill ? "py-0.5" : "py-1"}` : "absolute inset-0 flex flex-col items-center gap-1.5 px-0.5 py-1.5"}>
           {/* The title, ⇕ after it (under it, down the side). */}
