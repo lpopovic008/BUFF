@@ -707,7 +707,8 @@ export function RedZone({
         ref={headRef}
         data-rz-head
         onPointerUp={onHeadTap}
-        className={`relative shrink-0 touch-manipulation select-none ${across ? "max-md:px-2" : "w-7"}`}
+        // Dragged to set the Red Zone's height (see the page), so no scrolling or zooming from it.
+        className={`relative shrink-0 cursor-ns-resize touch-none select-none ${across ? "max-md:px-2" : "w-7"}`}
       >
         <div className={across ? `flex items-center gap-2 ${fill ? "py-0.5" : "py-1"}` : "absolute inset-0 flex flex-col items-center gap-1.5 px-0.5 py-1.5"}>
           {/* The title, ⇕ after it (under it, down the side). */}

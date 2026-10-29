@@ -51,6 +51,12 @@ const DESKTOP = "(min-width: 768px)";
 // The Red Zone, up: how far it floats over the floor (a couple of px), and how tall it is at first: a play of three
 // players, under its header (on a tablet or wider, on fewer lines). (It rises once the floor's slid away from under
 // it, see FloorCameraControls.)
+// The Red Zone dragged by its header: how far before it's a drag (not a tap), px; and flung down to put it away — how
+// fast (px/ms, over the last stretch of the drag) and at least how far, px.
+const DRAG_START_PX = 6;
+const FLING_PX_PER_MS = 0.8;
+const FLING_WINDOW_MS = 100;
+const FLING_MIN_PX = 24;
 const RED_ZONE_FLOAT_REM = 0.125;
 const RED_ZONE_REM = 10.5;
 const DESKTOP_RED_ZONE_REM = 8.125;
@@ -235,7 +241,13 @@ export default function DashboardPage() {
   // back from its front line — where it comes up to, there), then up to the ticker (on a phone, the starters list sinking into the floor first, out of its
   // way), then back.
   const [redZoneLevel, setRedZoneLevel] = useState<0 | 1 | 2>(0);
-  const stretchRedZone = () => setRedZoneLevel((level) => ((level + 1) % 3) as 0 | 1 | 2);
+  // Or dragged by its header to as tall as you like (no taller than stretched all the way): its top, while it's set so.
+  const [redZoneDragTop, setRedZoneDragTop] = useState<number | null>(null);
+  const [redZoneDragging, setRedZoneDragging] = useState(false);
+  const stretchRedZone = () => {
+    setRedZoneDragTop(null);
+    setRedZoneLevel((level) => ((level + 1) % 3) as 0 | 1 | 2);
+  };
   const redZoneFull = redZoneLevel === 2;
   // On its way back down into the floor (its reflection along with it, see redZoneStage).
   const [redZoneSinking, setRedZoneSinking] = useState(false);
@@ -243,6 +255,7 @@ export default function DashboardPage() {
     setRedZoneUp(on);
     setRedZoneSinking(!on);
     setRedZoneLevel(on && desktop ? 1 : 0);
+    setRedZoneDragTop(null);
   };
   useEffect(() => {
     if (!redZoneSinking) return;
@@ -342,6 +355,71 @@ export default function DashboardPage() {
       window.removeEventListener("resize", measure);
     };
   }, [room, desktop]);
+  // The Red Zone's header grabbed and dragged (while it's up): its top where it's dragged to, as high as stretched all
+  // the way (under the ticker) and as low as leaves its header — flung down, put away. A drag isn't a tap on what it
+  // started on (its title, its switch).
+  const redZoneDrag = useRef({ up: false, line: 0, away: () => {} });
+  useEffect(() => {
+    redZoneDrag.current = { up: redZoneUp, line: stand?.redZoneLine ?? 0, away: () => switchRedZone(false) };
+  });
+  useEffect(() => {
+    const box = redZoneBox;
+    if (!box) return;
+    let drag: { id: number; y0: number; top0: number; lowest: number; moved: boolean; trail: [number, number][] } | null = null;
+    const highest = () => {
+      const css = getComputedStyle(document.documentElement);
+      const px = (name: string) => parseFloat(css.getPropertyValue(name)) || 0;
+      return px("--header-h") + px("--ticker-h") + 0.625 * (parseFloat(css.fontSize) || 16);
+    };
+    const down = (e: PointerEvent) => {
+      const head = e.target instanceof Element ? e.target.closest<HTMLElement>("[data-rz-head]") : null;
+      if (!redZoneDrag.current.up || !head || e.button > 0) return;
+      const top0 = box.getBoundingClientRect().top;
+      drag = { id: e.pointerId, y0: e.clientY, top0, lowest: redZoneDrag.current.line - head.offsetHeight - 8, moved: false, trail: [[e.timeStamp, e.clientY]] };
+    };
+    const move = (e: PointerEvent) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const dy = e.clientY - drag.y0;
+      if (!drag.moved && Math.abs(dy) < DRAG_START_PX) return;
+      if (!drag.moved) {
+        drag.moved = true;
+        setRedZoneDragging(true);
+      }
+      drag.trail = [...drag.trail.filter(([t]) => e.timeStamp - t < FLING_WINDOW_MS), [e.timeStamp, e.clientY]];
+      setRedZoneDragTop(Math.min(drag.lowest, Math.max(highest(), drag.top0 + dy)));
+    };
+    const up = (e: PointerEvent) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const done = drag;
+      drag = null;
+      if (!done.moved) return;
+      setRedZoneDragging(false);
+      // Not a tap on whatever it started on.
+      const swallow = (c: MouseEvent) => {
+        c.stopPropagation();
+        c.preventDefault();
+      };
+      window.addEventListener("click", swallow, { capture: true, once: true });
+      setTimeout(() => window.removeEventListener("click", swallow, { capture: true }), 0);
+      // Flung down: put away.
+      const [t0, y0] = done.trail[0];
+      const speed = (e.clientY - y0) / Math.max(1, e.timeStamp - t0);
+      if (e.type === "pointerup" && speed > FLING_PX_PER_MS && e.clientY - done.y0 > FLING_MIN_PX) redZoneDrag.current.away();
+    };
+    box.addEventListener("pointerdown", down);
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+    return () => {
+      box.removeEventListener("pointerdown", down);
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+    };
+  }, [redZoneBox]);
+  // Stretched over the horizon (all the way, or dragged there): the starters list (on a phone) and the graphs (wider)
+  // out of its way.
+  const redZoneTall = redZoneFull || (redZoneDragTop !== null && stand !== null && redZoneDragTop < stand.horizon);
   // A play's field on the floor, its grid gone from under it (see FloorPlay) — till it's tapped away.
   const [fieldOn, setFieldOn] = useState(false);
   // The play by the graph's cursor, shown in the Red Zone while the cursor's up.
@@ -634,17 +712,19 @@ export default function DashboardPage() {
           inert={!redZoneUp}
           // Cut off at the line it comes up out of; its top moving up a step at a time as it's stretched — up to the
           // ticker only once the starters list (on a phone) has sunk out of its way.
-          className={`fixed z-[5] overflow-hidden transition-[top] duration-500 ease-out ${
+          className={`fixed z-[5] overflow-hidden ${redZoneDragging ? "" : "transition-[top] duration-500 ease-out"} ${
             // From tablet width up, from the screen's left edge right up to the starters list (see right, below).
             desktop ? "left-0 md:right-[17rem] lg:right-[19rem]" : "inset-x-0"
-          } ${redZoneFull && !desktop ? "delay-500" : ""}`}
+          } ${redZoneFull && !desktop && !redZoneDragging ? "delay-500" : ""}`}
           style={{
             ...(desktop && startersList ? { right: stand.fit.width - startersList.getBoundingClientRect().left } : null),
             bottom: stand.room - stand.redZoneLine,
             top:
-              redZoneLevel === 2
-                ? "calc(var(--header-h, 0px) + var(--ticker-h, 0px) + 0.625rem)"
-                : `${redZoneTop(redZoneLevel)}px`,
+              redZoneDragTop !== null
+                ? `${redZoneDragTop}px`
+                : redZoneLevel === 2
+                  ? "calc(var(--header-h, 0px) + var(--ticker-h, 0px) + 0.625rem)"
+                  : `${redZoneTop(redZoneLevel)}px`,
           }}
         >
           {/* Brought in a step at a time from its switch, and put away the same way (see FloorCameraControls). */}
@@ -726,7 +806,7 @@ export default function DashboardPage() {
               ref={setStartersList}
               data-drag-scroll
               className={`h-full touch-none overflow-y-auto overscroll-none px-4 pb-8 transition-transform duration-500 ease-in-out [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
-                redZoneFull ? "translate-y-full" : "delay-500"
+                redZoneTall ? "translate-y-full" : "delay-500"
               }`}
               style={{ paddingTop: `calc(${underTicker})` }}
             >
@@ -753,7 +833,7 @@ export default function DashboardPage() {
           className="px-4 pb-8"
           style={{ paddingTop: `calc(${underTicker})` }}
           rise={{ delayMs: 500, ms: 500 }}
-          sinkMs={redZoneFull ? 500 : undefined}
+          sinkMs={redZoneTall ? 500 : undefined}
           ease="ease-in-out"
           risesAtFirst={false}
         />
@@ -770,7 +850,7 @@ export default function DashboardPage() {
 
   // From tablet width up, player graphs go up at the back of the room, left of the starters list: from under the
   // ticker down to the horizon, their foot on it — out of the way of the Red Zone stretched (⇕) over them.
-  const graphsBack = graphsView !== null && !redZoneFull;
+  const graphsBack = graphsView !== null && !redZoneTall;
   return (
     // From tablet width up the columns reach the bottom of the screen: the page's own bottom padding is taken back.
     // Nothing scrolls but the starters list (and the Red Zone's plays, within it).
