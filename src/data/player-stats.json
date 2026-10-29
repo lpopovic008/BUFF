@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-28T18:33:02.302Z",
+  "updatedAt": "2026-10-29T18:42:00.509Z",
   "season": "2026",
   "throughWeek": 7,
   "players": [
@@ -5095,9 +5095,9 @@
       "playerId": "SF",
       "position": "DEF",
       "gamesPlayed": 7,
-      "ptsPpr": 49,
-      "ptsHalfPpr": 49,
-      "ptsStd": 49
+      "ptsPpr": 50,
+      "ptsHalfPpr": 50,
+      "ptsStd": 50
     },
     {
       "playerId": "TB",
@@ -5185,9 +5185,9 @@
       "team": "ATL",
       "position": "DEF",
       "games": 7,
-      "ptsPpr": 59,
-      "ptsHalfPpr": 59,
-      "ptsStd": 59
+      "ptsPpr": 60,
+      "ptsHalfPpr": 60,
+      "ptsStd": 60
     },
     {
       "team": "ATL",
