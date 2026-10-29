@@ -39,7 +39,7 @@ export function FloorFade({ id, width, height, share, whole }: { id: string; wid
  * middle, the screen's middle down the middle of a column of boxes. Fading toward the horizon, its far end as faint
  * as it. Moved and zoomed with the floor (`camera`, see floor-camera.ts).
  */
-export function FloorGrid({ share = HORIZON_SHARE, camera: store }: { share?: number; camera?: FloorCameraStore }) {
+export function FloorGrid({ share = HORIZON_SHARE, camera: store, hidden = false }: { share?: number; camera?: FloorCameraStore; hidden?: boolean }) {
   const ref = useRef<SVGSVGElement>(null);
   const camera = useFloorCamera(store).camera;
   const [view, setView] = useState<{ width: number; height: number; dpr: number } | null>(null);
@@ -76,7 +76,8 @@ export function FloorGrid({ share = HORIZON_SHARE, camera: store }: { share?: nu
       lines.columns.map((l) => `M${l.x1.toFixed(1)} ${l.y1.toFixed(1)}L${l.x2.toFixed(1)} ${l.y2.toFixed(1)}`).join("")
     : "";
   return (
-    <svg ref={ref} className="absolute inset-0 h-full w-full" aria-hidden>
+    // Faded away while something else lines the floor (a play's field, see FloorPlay).
+    <svg ref={ref} className={`absolute inset-0 h-full w-full transition-opacity duration-300 ${hidden ? "opacity-0" : ""}`} aria-hidden>
       {view && lines ? (
         <>
           <defs>

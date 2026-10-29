@@ -170,6 +170,7 @@ export function FloorPlay({
   share,
   camera,
   steer = false,
+  onShown,
 }: {
   width: number;
   height: number;
@@ -178,9 +179,15 @@ export function FloorPlay({
   camera?: FloorCameraStore;
   /** Whether the floor may be slid over to center each next play's line of scrimmage (the Red Zone up, the floor ours). */
   steer?: boolean;
+  /** Told when a field comes onto the floor (true) and when it's gone off it again — tapped away. */
+  onShown?: (shown: boolean) => void;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const room = useRef({ width, height, share, camera, steer });
+  const told = useRef(onShown);
+  useEffect(() => {
+    told.current = onShown;
+  }, [onShown]);
   // Drawn again when the room changes under a play that's set up and waiting.
   const redraw = useRef(() => {});
   useEffect(() => {
@@ -293,10 +300,22 @@ export function FloorPlay({
     // How deep the field lies and how big what's on it is (floor px a yard across it), eased as that changes.
     let settledAt: { back: number; base: number } | null = null;
 
+    // Whether there's a field on the floor, as last told.
+    let shown = false;
+    const tell = (now: boolean) => {
+      if (now === shown) return;
+      shown = now;
+      told.current?.(now);
+    };
+
     const draw = (now: number) => {
       looping = false;
       const playing = current;
-      if (!playing) return;
+      if (!playing && !leaving) {
+        clear();
+        return tell(false);
+      }
+      tell(true);
       const { width: w, height: h, share: sh, camera: store, steer } = room.current;
       const cam = store?.get().camera ?? HOME_CAMERA;
       const dpr = window.devicePixelRatio || 1;
@@ -322,11 +341,12 @@ export function FloorPlay({
 
       if (leaving && now - leaving.since > FADE_IN * 1000) leaving = null;
       if (leaving) drawScene(leaving.playing, now, 1 - (now - leaving.since) / (FADE_IN * 1000));
-      drawScene(playing, now, 1);
-      // Moving (or the field easing to where it lies): on to the next frame. Set up and waiting, still: done, until
-      // the next play or the room changes — and the next play, if one's waiting.
-      if (!ready(playing, now) || leaving || !still) loop();
-      else void next();
+      if (playing) drawScene(playing, now, 1);
+      // Moving (or the field easing to where it lies, or fading off): on to the next frame. Set up and waiting, still:
+      // done, until the next play or the room changes — and the next play, if one's waiting.
+      if ((playing && !ready(playing, now)) || leaving || !still) loop();
+      else if (playing) void next();
+      else tell(false);
 
       function drawScene(playing: Playing, now: number, alpha: number) {
         const { stage, sprites, spots } = playing;
@@ -434,8 +454,7 @@ export function FloorPlay({
             }
             ctx.lineWidth = 1;
             if (g % 5 === 0) {
-              // The grid's own lines are these (but for those between its lines, ten or twenty yards a square).
-              ctx.globalAlpha = g % grid.yards === 0 ? 0 : fade * (g % 10 === 0 ? 0.32 : 0.16) * e;
+              ctx.globalAlpha = fade * (g % 10 === 0 ? 0.32 : 0.2) * e;
               line(x, -far, x, hz);
             } else if (yardPx > 5) {
               ctx.globalAlpha = fade * 0.22 * e;
@@ -452,6 +471,10 @@ export function FloorPlay({
               paintBy(n, x, -hz + FIELD_NUMBERS, true);
             }
           }
+          // The far sideline (the near one's the screen's bottom).
+          ctx.globalAlpha = fade * 0.32;
+          ctx.lineWidth = 1;
+          line(Math.max(from0, goal - 110), -hz, Math.min(to0, goal + 10), -hz);
         } else {
           // Where it was snapped from isn't known: lines every five yards from the line of scrimmage.
           ctx.lineWidth = 1;
@@ -648,8 +671,31 @@ export function FloorPlay({
     };
     redraw.current = loop;
 
+    // Tapped on the bare floor (not dragged, nor on anything standing on it): the field faded off it, and whatever was
+    // waiting to come on with it.
+    let down: [number, number] | null = null;
+    const onDown = (e: PointerEvent) => {
+      down = [e.clientX, e.clientY];
+    };
+    const onTap = (e: MouseEvent) => {
+      const moved = down ? Math.hypot(e.clientX - down[0], e.clientY - down[1]) : 0;
+      down = null;
+      if (!current || moved > 6 || e.clientY < room.current.height * room.current.share) return;
+      const on = e.target instanceof Element ? e.target : null;
+      if (on?.closest("button, a, input, select, textarea, label, [role='button'], [data-play], [data-drag-scroll], [data-floor-ui], header, nav")) return;
+      queue.length = 0;
+      following = [];
+      leaving = { playing: current, since: performance.now() };
+      current = null;
+      loop();
+    };
+    window.addEventListener("pointerdown", onDown, true);
+    window.addEventListener("click", onTap);
+
     window.addEventListener(PLAY_EVENT, onPlay);
     return () => {
+      window.removeEventListener("pointerdown", onDown, true);
+      window.removeEventListener("click", onTap);
       window.removeEventListener(PLAY_EVENT, onPlay);
       cancelAnimationFrame(frame);
       current = null;

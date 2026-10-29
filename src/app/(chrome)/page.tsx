@@ -345,6 +345,8 @@ export default function DashboardPage() {
       window.removeEventListener("resize", measure);
     };
   }, [room, desktop]);
+  // A play's field on the floor, its grid gone from under it (see FloorPlay) — till it's tapped away.
+  const [fieldOn, setFieldOn] = useState(false);
   // The play by the graph's cursor, shown in the Red Zone while the cursor's up.
   const [spotlight, setSpotlight] = useState<{ gameId: string; playId: string } | null>(null);
   const unpickGraph = (playerId: string) =>
@@ -568,7 +570,8 @@ export default function DashboardPage() {
       className="grid-room"
       style={{ ["--horizon" as string]: `${horizon * 100}%` }}
     >
-      <FloorGrid share={horizon} camera={floorCamera} />
+      {/* Gone while a play's field lines the floor instead (see FloorPlay). */}
+      <FloorGrid share={horizon} camera={floorCamera} hidden={fieldOn} />
       {mapShown ? <FloorMapLand fit={stand.fit} games={games} camera={floorCamera} /> : null}
     </div>
   );
@@ -628,6 +631,7 @@ export default function DashboardPage() {
       <>
         <div
           ref={setRedZoneBox}
+          data-floor-ui
           inert={!redZoneUp}
           // Cut off at the line it comes up out of; its top moving up a step at a time as it's stretched — up to the
           // ticker only once the starters list (on a phone) has sunk out of its way.
@@ -755,7 +759,9 @@ export default function DashboardPage() {
         {redZoneStage}
         {mapShown ? <FloorMapTags fit={stand.fit} games={games} top={stand.landTop} camera={floorCamera} /> : null}
         {/* Red Zone plays acted out on the floor, across the whole screen. */}
-        {stand ? <FloorPlay width={stand.fit.width} height={stand.room} share={stand.fit.share} camera={floorCamera} steer={redZoneUp} /> : null}
+        {stand ? (
+          <FloorPlay width={stand.fit.width} height={stand.room} share={stand.fit.share} camera={floorCamera} steer={redZoneUp} onShown={setFieldOn} />
+        ) : null}
         {floorControls}
       </div>
     );
@@ -829,6 +835,7 @@ export default function DashboardPage() {
           share={stand.fit.share}
           camera={floorCamera}
           steer={redZoneUp}
+          onShown={setFieldOn}
         />
       ) : null}
       {redZoneStage}
