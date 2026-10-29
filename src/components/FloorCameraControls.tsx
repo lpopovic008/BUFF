@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { FloorCamera, floorAt, floorDepth, floorScale, floorY, GRID_PX, HOME_CAMERA } from "@/lib/grid-room";
 import { FloorMapFit, floorMapFloor, MAP_BOUNDS } from "@/lib/floor-map";
 import { cameraPutting, cameraUnder, FloorCameraStore, FloorPt, keepOnFloor, pinchCamera, zoomCameraAt } from "@/lib/floor-camera";
@@ -16,11 +16,27 @@ const SLOP = 4;
 /** How much of the map's kept on the screen, however far it's moved off it (px). */
 const MAP_MARGIN_PX = 40;
 /** How long the Red Zone takes to sink back into the floor before the floor slides back (ms; see page). */
-export const RED_ZONE_SINK_MS = 400;
-/** How long after it's switched on the Red Zone starts coming up out of the floor (once the floor's slid away from
- * under it), and how long it takes (its rise in the page's redZoneStage: delay-[650ms] duration-500). */
-export const RED_ZONE_RISE_DELAY_MS = 650;
-export const RED_ZONE_RISE_MS = 500;
+export const RED_ZONE_SINK_MS = 1000;
+// The Red Zone coming up, step by step, from its switch (ms from when it's switched on): its switch spells out its
+// whole name; rises to where the Red Zone's header stands, and lands as its title; the rest of the header runs out to
+// the right from there; and the plays fade in under it. Going away, the same backwards.
+const SPELL_STEP_MS = 45;
+const RISE_AT_MS = 380;
+const RISE_MS = 500;
+const LANDED_MS = 100;
+const HEAD_AT_MS = RISE_AT_MS + RISE_MS + 70;
+const HEAD_MS = 450;
+export const RED_ZONE_PLAYS_AT_MS = HEAD_AT_MS + HEAD_MS - 50;
+export const RED_ZONE_PLAYS_MS = 400;
+// Going away: the plays fade out; the header runs back into its title; the switch drops from there back to its corner,
+// and goes back to RZ.
+const AWAY_PLAYS_MS = 250;
+const AWAY_HEAD_AT_MS = 200;
+const AWAY_HEAD_MS = 300;
+const DROP_AT_MS = AWAY_HEAD_AT_MS + AWAY_HEAD_MS - 20;
+const DROP_MS = 520;
+/** The Red Zone's name as its switch spells it out, a letter at a time. */
+const SPELLING = ["RZ", "R", "RE", "RED", "RED Z", "RED ZO", "RED ZON", "RED ZONE"];
 
 /** Bare floor — the page's own wrappers marked data-floor, or nothing at all — not anything standing on it. */
 function onFloor(target: EventTarget | null): boolean {
@@ -249,57 +265,102 @@ export function FloorCameraControls({
       follow(true);
     }, RED_ZONE_SINK_MS);
   }, [redZoneUp, fit, store, follow]);
-  // On a phone its switch flies up into the Red Zone's header as it comes up — the header's title (`data-rz-title`) its
-  // switch from there — and back down to its corner as it goes.
+  // Its switch becoming the Red Zone's header as it comes up (and back), step by step (see RISE_AT_MS and the rest): the
+  // header's title (`data-rz-title`) its switch while it's up; the rest of the header (`data-rz-head`) and its plays
+  // (`data-rz-plays`) brought in after it.
   const switchRef = useRef<HTMLButtonElement>(null);
+  const [spelled, setSpelled] = useState(0);
   const flewUp = useRef(false);
-  useEffect(() => {
+  // (Before it's drawn, so nothing of it shows before its turn.)
+  useLayoutEffect(() => {
     if (flewUp.current === redZoneUp) return;
     flewUp.current = redZoneUp;
     const button = switchRef.current;
     const title = document.querySelector<HTMLElement>("[data-rz-title]");
-    if (desktop || !button || !title || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const from = button.getBoundingClientRect();
-    const to = title.getBoundingClientRect();
-    // Where the title stands once it's up (coming up, it's still down in the floor).
-    const rising = title.closest<HTMLElement>("[data-rz-rise]");
-    const lift = redZoneUp && rising ? new DOMMatrixReadOnly(getComputedStyle(rising).transform).m42 : 0;
-    const there = `translate(${to.left - from.left}px, ${to.top - lift + (to.height - from.height) / 2 - from.top}px)`;
-    if (redZoneUp) {
-      button.animate(
-        [
-          { transform: "none", opacity: 1 },
-          { transform: there, opacity: 1, offset: 0.9 },
-          { transform: there, opacity: 0 },
-        ],
-        { duration: RED_ZONE_RISE_MS, delay: RED_ZONE_RISE_DELAY_MS, easing: "ease-in-out", fill: "backwards" }
-      );
-      title.animate([{ opacity: 0 }, { opacity: 0, offset: 0.9 }, { opacity: 1 }], { duration: RED_ZONE_RISE_DELAY_MS + RED_ZONE_RISE_MS });
-    } else {
-      button.animate(
-        [
-          { transform: there, opacity: 0 },
-          { transform: there, opacity: 1, offset: 0.1 },
-          { transform: "none", opacity: 1 },
-        ],
-        { duration: RED_ZONE_RISE_MS, easing: "ease-in-out" }
-      );
-      title.animate([{ opacity: 1 }, { opacity: 0, offset: 0.1 }, { opacity: 0 }], { duration: RED_ZONE_SINK_MS });
+    const head = document.querySelector<HTMLElement>("[data-rz-head]");
+    const plays = document.querySelector<HTMLElement>("[data-rz-plays]");
+    const timers: number[] = [];
+    const at = (ms: number, fn: () => void) => timers.push(window.setTimeout(fn, ms));
+    const spell = (from: number, to: number, start: number) => {
+      const step = to > from ? 1 : -1;
+      for (let n = from + step, k = 1; step > 0 ? n <= to : n >= to; n += step, k++) {
+        const letters = n;
+        at(start + k * SPELL_STEP_MS, () => setSpelled(letters));
+      }
+    };
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!button || !title || reduced) {
+      at(0, () => setSpelled(redZoneUp ? SPELLING.length - 1 : 0));
+      return () => timers.forEach(clearTimeout);
     }
-  }, [redZoneUp, desktop]);
+    // Whatever was left over from the last time, done with.
+    for (const el of [button, title, head, plays]) el?.getAnimations().forEach((a) => a.cancel());
+    const titleBox = title.getBoundingClientRect();
+    const headBox = head?.getBoundingClientRect();
+    // Clipped to its title alone, from the right.
+    const toTitle = headBox ? `inset(0 ${Math.max(0, headBox.right - titleBox.right)}px 0 0)` : "inset(0)";
+    // Where the switch is, spelled out, against the title — measured once it's spelled out (it grows as it spells).
+    const there = () => {
+      const from = button.getBoundingClientRect();
+      const to = title.getBoundingClientRect();
+      return `translate(${to.left - from.left}px, ${to.top + (to.height - from.height) / 2 - from.top}px)`;
+    };
+    if (redZoneUp) {
+      // Hidden till they come in.
+      title.animate([{ opacity: 0 }, { opacity: 0 }], { duration: RISE_AT_MS + RISE_MS, fill: "backwards" });
+      head?.animate([{ clipPath: toTitle }, { clipPath: "inset(0)" }], { duration: HEAD_MS, delay: HEAD_AT_MS, easing: "ease-out", fill: "backwards" });
+      plays?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: RED_ZONE_PLAYS_MS, delay: RED_ZONE_PLAYS_AT_MS, easing: "ease-out", fill: "backwards" });
+      button.animate([{ opacity: 1 }, { opacity: 1 }], { duration: RISE_AT_MS, fill: "backwards" });
+      spell(0, SPELLING.length - 1, 0);
+      at(RISE_AT_MS, () => {
+        const to = there();
+        button.animate(
+          [
+            { transform: "none", opacity: 1 },
+            { transform: to, opacity: 1, offset: RISE_MS / (RISE_MS + LANDED_MS) },
+            { transform: to, opacity: 0 },
+          ],
+          { duration: RISE_MS + LANDED_MS, easing: "ease-in-out" }
+        );
+        title.animate([{ opacity: 0 }, { opacity: 1 }], { duration: LANDED_MS, delay: RISE_MS });
+      });
+    } else {
+      at(0, () => setSpelled(SPELLING.length - 1));
+      plays?.animate([{ opacity: 1 }, { opacity: 0 }], { duration: AWAY_PLAYS_MS, fill: "forwards" });
+      head?.animate([{ clipPath: "inset(0)" }, { clipPath: toTitle }], { duration: AWAY_HEAD_MS, delay: AWAY_HEAD_AT_MS, easing: "ease-in", fill: "both" });
+      title.animate([{ opacity: 1 }, { opacity: 0 }], { duration: LANDED_MS, delay: DROP_AT_MS, fill: "forwards" });
+      button.animate([{ opacity: 0 }, { opacity: 0 }], { duration: DROP_AT_MS, fill: "backwards" });
+      at(DROP_AT_MS, () => {
+        const to = there();
+        button.animate(
+          [
+            { transform: to, opacity: 0 },
+            { transform: to, opacity: 1, offset: LANDED_MS / (LANDED_MS + DROP_MS) },
+            { transform: "none", opacity: 1 },
+          ],
+          { duration: LANDED_MS + DROP_MS, easing: "ease-in-out" }
+        );
+      });
+      spell(SPELLING.length - 1, 0, DROP_AT_MS + LANDED_MS + DROP_MS);
+    }
+    return () => timers.forEach(clearTimeout);
+  }, [redZoneUp]);
   const zoomBy = (factor: number) => store.glide(keep(zoomCameraAt(store.get().camera, factor, middle)), false);
 
   const plate =
     "pointer-events-auto flex h-7 min-w-7 cursor-pointer items-center justify-center bg-[var(--map-tag)] px-1.5 text-xs font-bold leading-none text-[var(--map-tag-ink)] transition-opacity hover:opacity-90";
+  // The Red Zone's switch and the way home bigger to tap (their text no bigger).
+  const big = "!h-10 !min-w-10 !px-3";
   const home = (
-    <button type="button" aria-label="Back home" title="Back home" onClick={goHome} className={plate}>
+    <button type="button" aria-label="Back home" title="Back home" onClick={goHome} className={`${plate} ${big}`}>
       <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" aria-hidden>
         <path d="M2 7.5 8 2l6 5.5M3.5 6.5V14h3.5v-4h2v4h3.5V6.5" />
       </svg>
     </button>
   );
-  // The Red Zone's switch: its dot, and RZ — turned over while it's up (on a phone, gone up into its header instead).
-  const tucked = redZoneUp && !desktop;
+  // The Red Zone's switch: its dot, and RZ (spelled out as it goes up into the Red Zone's header — gone from here
+  // while it's up, its title its switch).
+  const tucked = redZoneUp;
   const redZoneButton = redZone ? (
     <button
       ref={switchRef}
@@ -310,35 +371,31 @@ export function FloorCameraControls({
       aria-hidden={tucked || undefined}
       tabIndex={tucked ? -1 : undefined}
       onClick={toggleRedZone}
-      className={`${plate} gap-1 ${
-        tucked ? "!pointer-events-none opacity-0" : redZoneUp ? "!bg-[var(--map-tag-ink)] !text-[var(--map-tag)] outline outline-1 outline-[var(--map-tag)]" : ""
-      }`}
+      className={`${plate} ${big} gap-1 whitespace-pre ${tucked ? "!pointer-events-none opacity-0" : ""}`}
     >
       <span className="h-1.5 w-1.5 rounded-full bg-status-critical" aria-hidden />
-      RZ
+      {SPELLING[spelled]}
     </button>
   ) : null;
-  // From tablet width up, zoom buttons too (for a mouse with no pinch); in the screen's bottom-left corner (on a phone,
-  // over the tab bar), the Red Zone's switch first on a phone, last wider. The way home, while it's away.
-  return desktop ? (
-    <div className="pointer-events-none fixed bottom-3 left-4 z-20 flex gap-1">
-      {redZoneUp ? null : (
-        <>
-          <button type="button" aria-label="Zoom out" onClick={() => zoomBy(1 / ZOOM_STEP)} className={plate}>
-            −
-          </button>
-          <button type="button" aria-label="Zoom in" onClick={() => zoomBy(ZOOM_STEP)} className={plate}>
-            +
-          </button>
-        </>
-      )}
-      {following || redZoneUp ? null : home}
-      {redZoneButton}
-    </div>
-  ) : (
-    <div className="pointer-events-none fixed bottom-[calc(var(--tabbar-h,0px)+0.75rem)] left-4 z-20 flex gap-1">
-      {redZoneButton}
-      {following || redZoneUp ? null : home}
-    </div>
+  // The Red Zone's switch in the screen's bottom-left corner; in its bottom-right, the way home while it's away, and
+  // from tablet width up zoom buttons too (for a mouse with no pinch). On a phone, over the tab bar.
+  const corner = desktop ? "bottom-3" : "bottom-[calc(var(--tabbar-h,0px)+0.75rem)]";
+  return (
+    <>
+      <div className={`pointer-events-none fixed left-4 z-20 flex gap-1 ${corner}`}>{redZoneButton}</div>
+      <div className={`pointer-events-none fixed right-4 z-20 flex items-end gap-1 ${corner}`}>
+        {desktop && !redZoneUp ? (
+          <>
+            <button type="button" aria-label="Zoom out" onClick={() => zoomBy(1 / ZOOM_STEP)} className={plate}>
+              −
+            </button>
+            <button type="button" aria-label="Zoom in" onClick={() => zoomBy(ZOOM_STEP)} className={plate}>
+              +
+            </button>
+          </>
+        ) : null}
+        {following || redZoneUp ? null : home}
+      </div>
+    </>
   );
 }

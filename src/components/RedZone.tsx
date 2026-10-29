@@ -705,6 +705,7 @@ export function RedZone({
       <div
         // Down the side, its contents sit inside it, never making the Red Zone taller.
         ref={headRef}
+        data-rz-head
         onPointerUp={onHeadTap}
         className={`relative shrink-0 touch-manipulation select-none ${across ? "max-md:px-2" : "w-7"}`}
       >
@@ -768,7 +769,7 @@ export function RedZone({
       {empty ? (
         feed.loading ? <p className="py-1 text-xs text-ink-muted max-md:px-2">Loading play-by-play…</p> : null
       ) : (
-        <div className={`relative flex min-w-0 flex-1 flex-col gap-2 py-1 ${fill ? "min-h-0" : "md:min-h-0"} ${across ? "max-md:px-2" : "pl-1.5 max-md:pr-2"}`}>
+        <div data-rz-plays className={`relative flex min-w-0 flex-1 flex-col gap-2 py-1 ${fill ? "min-h-0" : "md:min-h-0"} ${across ? "max-md:px-2" : "pl-1.5 max-md:pr-2"}`}>
           {/* The play by a graph's cursor when it isn't among these plays, laid over the top of them (see spotlight). */}
           {pinned ? (
             <ol aria-label="The play by the graph's cursor" className="absolute left-1.5 right-0 top-1 z-20 bg-page shadow-md max-md:right-2">

@@ -8,7 +8,7 @@ import { FloorMapLand, FloorMapTags } from "@/components/FloorMap";
 import { FloorMapFit, fitFloorMap, floorMapTop } from "@/lib/floor-map";
 import { HORIZON_SHARE, gridRows, lowestGridLine } from "@/lib/grid-room";
 import { FloorGrid } from "@/components/FloorGrid";
-import { FloorCameraControls, RED_ZONE_RISE_DELAY_MS, RED_ZONE_RISE_MS, RED_ZONE_SINK_MS } from "@/components/FloorCameraControls";
+import { FloorCameraControls, RED_ZONE_PLAYS_AT_MS, RED_ZONE_PLAYS_MS, RED_ZONE_SINK_MS } from "@/components/FloorCameraControls";
 import { FloorReflection } from "@/components/FloorReflection";
 import { FloorPlay } from "@/components/FloorPlay";
 import { ScrollThumb } from "@/components/ScrollThumb";
@@ -324,8 +324,8 @@ export default function DashboardPage() {
       const landTop = floorMapTop(fit);
       setStand({
         room: height,
-        // Its switch's top: 0.75rem off the bottom (or a phone's tab bar), and 1.75rem tall.
-        redZoneLine: height - (desk ? 0 : tabBar) - 2.5 * rootPx,
+        // Its switch's top: 0.75rem off the bottom (or a phone's tab bar), and 2.5rem tall.
+        redZoneLine: height - (desk ? 0 : tabBar) - 3.25 * rootPx,
         on: height - lowestGridLine(height),
         horizon: height * HORIZON_SHARE,
         fit,
@@ -602,8 +602,8 @@ export default function DashboardPage() {
         spotlight={graphed.length > 0 ? spotlight : null}
         hiddenGames={offMap}
         full={{ on: redZoneFull, toggle: stretchRedZone }}
-        // On a phone its title's its switch, once it's up (its switch flies up into it, see FloorCameraControls).
-        onSwitchOff={desktop ? undefined : () => switchRedZone(false)}
+        // Its title's its switch, once it's up (its switch goes up into it, see FloorCameraControls).
+        onSwitchOff={() => switchRedZone(false)}
         scoringByLeague={scoringByLeague}
       />
     ) : null;
@@ -647,21 +647,17 @@ export default function DashboardPage() {
                 : `${redZoneTop(redZoneLevel)}px`,
           }}
         >
-          <div
-            data-rz-rise
-            className={`absolute inset-x-0 bottom-0.5 top-0 flex flex-col transition-transform ease-out ${
-              redZoneUp ? "translate-y-0 delay-[650ms] duration-500" : "translate-y-[calc(100%+0.125rem)] duration-[400ms]"
-            }`}
-          >
+          {/* Brought in a step at a time from its switch, and put away the same way (see FloorCameraControls). */}
+          <div className={`absolute inset-x-0 bottom-0.5 top-0 flex flex-col ${redZoneUp || redZoneSinking ? "" : "invisible"}`}>
             {redZoneView}
           </div>
         </div>
-        {/* Its reflection coming down out of the floor as it comes up, and going back up as it goes down. */}
+        {/* Its reflection coming down out of the floor as its plays come in, and going back up as they go. */}
         {redZoneUp || redZoneSinking ? (
           <FloorReflection
             source={redZoneBox}
-            rise={{ delayMs: RED_ZONE_RISE_DELAY_MS, ms: RED_ZONE_RISE_MS }}
-            sinkMs={redZoneUp ? undefined : RED_ZONE_SINK_MS}
+            rise={{ delayMs: RED_ZONE_PLAYS_AT_MS, ms: RED_ZONE_PLAYS_MS }}
+            sinkMs={redZoneUp ? undefined : RED_ZONE_PLAYS_MS}
           />
         ) : null}
       </>
@@ -693,7 +689,10 @@ export default function DashboardPage() {
         onViewsChange={setListViews}
       />
     );
-  const standVars = stand ? { ["--room-h" as string]: `${stand.room}px`, ["--stand" as string]: `${stand.on}px` } : undefined;
+  // The room's height; how far up from its bottom the floor's lowest grid line is, and the Red Zone's foot.
+  const standVars = stand
+    ? { ["--room-h" as string]: `${stand.room}px`, ["--stand" as string]: `${stand.on}px`, ["--rz-foot" as string]: `${stand.room - stand.redZoneLine}px` }
+    : undefined;
   // Moving the floor from wherever it's bare (the page's own wrappers, data-floor, touched nowhere else).
   const floorControls = mapShown ? (
     <FloorCameraControls
@@ -782,7 +781,7 @@ export default function DashboardPage() {
 
       {/* Two columns standing in the room with no backgrounds of their own — the room behind them: the player graphs at
           its back, angled in toward the middle (turned on their outer edge, so however wide they are that edge stays on
-          the screen), and the starters list on the floor's lowest grid line (--stand). The Red Zone stands on the floor
+          the screen), and the starters list, its foot level with the Red Zone's (--rz-foot). The Red Zone stands on the floor
           between them and the map (see redZoneStage). */}
       {/* The graphs from the screen's left edge right up to the starters list. */}
       <div data-floor className="flex flex-row items-start pr-4 pt-2 [perspective:2200px]">
@@ -797,12 +796,13 @@ export default function DashboardPage() {
 
         {/* Starters by game, with its own scroll, so a long list here doesn't push the left column around or vice versa.
             As wide as its rows need (in rem, so it shrinks with the text when the browser zooms out), the map's column
-            taking the rest. It stands upright on the floor's lowest grid line (--stand), facing you square on, as
+            taking the rest. It stands upright on the floor, its foot level with the Red Zone's (--rz-foot), facing you square on, as
             something standing on a line across the floor does — from where it sits under the ticker (past the gap and
             the row's padding, 0.625rem), so its foot is on the line whether or not it's stuck. Like a phone's, it runs
             right down to the floor, reflected in it — just what meets the floor, mirrored, as it scrolls — and up behind
             the see-through ticker and header, scrolled up under them. */}
-        <div className="sticky top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] h-[calc(var(--room-h,100vh)-var(--header-h,0px)-var(--ticker-h,0px)-0.625rem-var(--stand,0px))] w-64 shrink-0 lg:w-72">
+        {/* Its foot level with the Red Zone's, so the two are reflected in the floor from the same line. */}
+        <div className="sticky top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] h-[calc(var(--room-h,100vh)-var(--header-h,0px)-var(--ticker-h,0px)-0.625rem-var(--rz-foot,0px))] w-64 shrink-0 lg:w-72">
           {/* Its scrollbar hidden (its reflection's copy has none, so they'd not line up), a thin thumb up as it scrolls;
               scrolled by the page, so its reflection moves with it (see useDragScroll). */}
           <div
