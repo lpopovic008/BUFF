@@ -251,15 +251,21 @@ export default function DashboardPage() {
   const redZoneFull = redZoneLevel === 2;
   // On its way back down into the floor (its reflection along with it, see redZoneStage).
   const [redZoneSinking, setRedZoneSinking] = useState(false);
+  // Put away from wherever it stands (its header where it is, to the end); back to its first step only once it's gone.
   const switchRedZone = (on: boolean) => {
     setRedZoneUp(on);
     setRedZoneSinking(!on);
-    setRedZoneLevel(on && desktop ? 1 : 0);
+    if (!on) return;
+    setRedZoneLevel(desktop ? 1 : 0);
     setRedZoneDragTop(null);
   };
   useEffect(() => {
     if (!redZoneSinking) return;
-    const done = setTimeout(() => setRedZoneSinking(false), RED_ZONE_SINK_MS);
+    const done = setTimeout(() => {
+      setRedZoneSinking(false);
+      setRedZoneLevel(0);
+      setRedZoneDragTop(null);
+    }, RED_ZONE_SINK_MS);
     return () => clearTimeout(done);
   }, [redZoneSinking]);
   // Up out of the floor on its own when the week's first game kicks off — once a week (remembered in this browser),
