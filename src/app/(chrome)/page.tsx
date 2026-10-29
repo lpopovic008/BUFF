@@ -847,7 +847,7 @@ export default function DashboardPage() {
         {mapShown ? <FloorMapTags fit={stand.fit} games={games} top={stand.landTop} camera={floorCamera} /> : null}
         {/* Red Zone plays acted out on the floor, across the whole screen. */}
         {stand ? (
-          <FloorPlay width={stand.fit.width} height={stand.room} share={stand.fit.share} camera={floorCamera} steer={redZoneUp} onShown={setFieldOn} />
+          <FloorPlay width={stand.fit.width} height={stand.room} share={stand.fit.share} camera={floorCamera} onShown={setFieldOn} />
         ) : null}
         {floorControls}
       </div>
@@ -923,7 +923,7 @@ export default function DashboardPage() {
           height={stand.room}
           share={stand.fit.share}
           camera={floorCamera}
-          steer={redZoneUp}
+         
           onShown={setFieldOn}
         />
       ) : null}

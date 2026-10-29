@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { GamePlay } from "@/lib/play-by-play";
 import { labelNames } from "@/lib/play-lines";
-import { actorAt, ballAt, formation, PlayScene, Pose, sceneFor, Stage, StageActor, stageFor } from "@/lib/play-scene";
+import { actorAt, ballAt, PlayScene, Pose, sceneFor, Stage, StageActor, stageFor } from "@/lib/play-scene";
 import { loadRosters, RosterPlayer } from "@/lib/players";
 import { uniformFor, Uniform } from "@/lib/team-colors";
 import { floorDepth, floorPoint, floorScale, GRID_PX, HOME_CAMERA, lowestGridLine } from "@/lib/grid-room";
@@ -34,8 +34,6 @@ const FADE_IN = 0.35;
 // grid five yards of the field, or ten or twenty to fit one that long.
 const PLAY_FIT = 0.8;
 const SQUARE_YARDS = [5, 10, 20];
-// How long the floor takes to slide over to the next line of scrimmage and the players to line up on it (s).
-const RESET = 1.2;
 // The field's markings, where a field's own are (yards): its numbers' feet in from either sideline, and how deep (6
 // feet) and wide (4 feet) they are, and how far off the line beside them; and its hash marks either side of its
 // middle (an NFL field's), and how long.
@@ -152,13 +150,10 @@ interface Playing {
   stage: Stage;
   /** Each player's looks, by frame. */
   sprites: Record<Frame, HTMLCanvasElement>[];
-  /** Where each lines up for the next play (see formation). */
-  spots: [number, number][];
   start: number;
   /** Where it lies on the floor's grid (set as it comes on): how many yards a square of it is, and where across the
-   * floor (px, before the floor's moved) the play's middle is; and whether the floor's been slid over to the next
-   * play's line of scrimmage yet. */
-  grid?: { yards: number; x0: number; slid: boolean };
+   * floor (px, before the floor's moved) the play's middle is. */
+  grid?: { yards: number; x0: number };
 }
 
 /**
@@ -174,7 +169,6 @@ export function FloorPlay({
   height,
   share,
   camera,
-  steer = false,
   onShown,
 }: {
   width: number;
@@ -182,23 +176,21 @@ export function FloorPlay({
   share: number;
   /** The floor's camera: the field's laid on its grid, moved and zoomed with it. */
   camera?: FloorCameraStore;
-  /** Whether the floor may be slid over to center each next play's line of scrimmage (the Red Zone up, the floor ours). */
-  steer?: boolean;
-  /** Told when a field comes onto the floor (true) and when it's gone off it again — tapped away. */
+  /** Told when a field comes onto the floor (true) and when it's gone off it again (its play over, or tapped away). */
   onShown?: (shown: boolean) => void;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
-  const room = useRef({ width, height, share, camera, steer });
+  const room = useRef({ width, height, share, camera });
   const told = useRef(onShown);
   useEffect(() => {
     told.current = onShown;
   }, [onShown]);
-  // Drawn again when the room changes under a play that's set up and waiting.
+  // Drawn again when the room changes under a play that's done and waiting on the next.
   const redraw = useRef(() => {});
   useEffect(() => {
-    room.current = { width, height, share, camera, steer };
+    room.current = { width, height, share, camera };
     redraw.current();
-  }, [width, height, share, camera, steer]);
+  }, [width, height, share, camera]);
   // Drawn again as the floor moves.
   useEffect(() => camera?.subscribe(() => redraw.current()), [camera]);
 
@@ -241,16 +233,15 @@ export function FloorPlay({
           const frames = ["stand", "runA", "runB", "throw", "jump", "kick"] as Frame[];
           return Object.fromEntries(frames.map((f) => [f, paintSprite(uniform, number, f, ink)])) as Record<Frame, HTMLCanvasElement>;
         });
-        return { stage, sprites, spots: formation(stage), start: 0 };
+        return { stage, sprites, start: 0 };
       });
     };
     // Those waiting to follow the one on now, straight after it.
     let following: Playing[] = [];
 
-    // How far along a play is (s, from its snap): before it, during it, then lining up for the next — and once that's
-    // done, set up and waiting.
-    const along = (playing: Playing, now: number) => (reduced ? playing.stage.length + RESET : (now - playing.start) / 1000 - FADE_IN);
-    const ready = (playing: Playing, now: number) => along(playing, now) >= playing.stage.length + RESET;
+    // How far along a play is (s, from its snap) — and whether it's over (held a moment at its end).
+    const along = (playing: Playing, now: number) => (reduced ? playing.stage.length : (now - playing.start) / 1000 - FADE_IN);
+    const ready = (playing: Playing, now: number) => along(playing, now) >= playing.stage.length;
     // The one before, set up where it left off, fading away as the next comes in.
     let leaving: { playing: Playing; since: number } | null = null;
     let looping = false;
@@ -260,7 +251,7 @@ export function FloorPlay({
       frame = requestAnimationFrame(draw);
     };
 
-    // The next play in its turn — after the one on now is over and set up for it; tapped (`force`), straight away.
+    // The next play in its turn — after the one on now is over; tapped (`force`), straight away.
     const next = async (force = false) => {
       if (preparing) return;
       if (!force && current && !ready(current, performance.now())) return;
@@ -321,7 +312,7 @@ export function FloorPlay({
         return tell(false);
       }
       tell(true);
-      const { width: w, height: h, share: sh, camera: store, steer } = room.current;
+      const { width: w, height: h, share: sh, camera: store } = room.current;
       const cam = store?.get().camera ?? HOME_CAMERA;
       const dpr = window.devicePixelRatio || 1;
       if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
@@ -346,42 +337,39 @@ export function FloorPlay({
       const { ink, good } = css();
 
       if (leaving && now - leaving.since > FADE_IN * 1000) leaving = null;
+      // Over (and held a moment, see Stage.length): the next straight on if one's waiting, or faded off the floor.
+      if (playing && ready(playing, now) && !preparing) {
+        if (following.length > 0 || queue.length > 0) void next();
+        else {
+          leaving = { playing, since: now };
+          current = null;
+        }
+      }
       if (leaving) drawScene(leaving.playing, now, 1 - (now - leaving.since) / (FADE_IN * 1000));
-      if (playing) drawScene(playing, now, 1);
-      // Moving (or the field easing to where it lies, or fading off): on to the next frame. Set up and waiting, still:
-      // done, until the next play or the room changes — and the next play, if one's waiting.
-      if ((playing && !ready(playing, now)) || leaving || !still) loop();
-      else if (playing) void next();
-      else tell(false);
+      if (current) drawScene(current, now, 1);
+      // Moving (or the field easing to where it lies, or fading off): on to the next frame; gone, the grid back.
+      if ((current && !ready(current, now)) || leaving || !still) loop();
+      else if (!current) tell(false);
 
       function drawScene(playing: Playing, now: number, alpha: number) {
-        const { stage, sprites, spots } = playing;
+        const { stage, sprites } = playing;
         const t = along(playing, now);
-        // Lining up for the next play: how far through it (eased).
-        const r = Math.min(1, Math.max(0, (t - stage.length) / RESET));
-        const f = r * r * (3 - 2 * r);
         const fade = alpha * (reduced ? 1 : Math.min(1, (now - playing.start) / 1000 / FADE_IN));
-        // What's left of the play itself as it gives way to the next.
-        const gone = fade * (1 - f);
         const back = eased.back;
         const base = eased.base;
         const playReach = Math.max(stage.reach, stage.firstDown !== null ? Math.abs(stage.firstDown) : 0, 1);
         const goal = stage.toGoal !== null ? stage.los + stage.toGoal : null;
         // Laid on the floor's grid, its lines the field's — a square of it five yards (ten, twenty: as many as fit the
         // play across most of the screen): the play's middle on the screen's middle (as near as puts a yard line on
-        // one of the grid's) — and, lining up for the next, the floor slid over to put its line of scrimmage there.
+        // one of the grid's).
         if (!playing.grid) {
           const yards = SQUARE_YARDS.find((y) => ((2 * playReach) / y) * GRID_PX * cam.zoom * floorScale(back) <= PLAY_FIT * w) ?? SQUARE_YARDS.at(-1)!;
           const Y = GRID_PX / yards;
           const ref = goal !== null ? goal - Math.round(goal / yards) * yards : stage.los - Math.round(stage.los / yards) * yards;
           const want = -cam.x / cam.zoom + ref * Y;
-          playing.grid = { yards, x0: (Math.round(want / GRID_PX - 0.5) + 0.5) * GRID_PX - ref * Y, slid: false };
+          playing.grid = { yards, x0: (Math.round(want / GRID_PX - 0.5) + 0.5) * GRID_PX - ref * Y };
         }
         const grid = playing.grid;
-        if (steer && store && alpha === 1 && f > 0 && !grid.slid) {
-          grid.slid = true;
-          store.glide({ ...cam, x: -(grid.x0 + (stage.next * GRID_PX) / grid.yards) * cam.zoom }, false);
-        }
         const yard = (GRID_PX / grid.yards) * cam.zoom;
         const yardPx = yard * floorScale(back);
         // Across the floor (px, as it's been moved) where a point `x` yards along the field lies.
@@ -487,24 +475,19 @@ export function FloorPlay({
         }
 
         // As on television: the line of scrimmage in blue, the line to gain for a first down in yellow — wires, a device
-        // pixel wide like the floor's grid lines — then where the play ended, in the page's ink, once it has. Lining
-        // up for the next play: the next line of scrimmage, blue.
+        // pixel wide like the floor's grid lines — then where the play ended, in the page's ink, once it has.
         ctx.lineWidth = 1 / dpr;
         ctx.strokeStyle = SCRIMMAGE;
-        ctx.globalAlpha = gone;
+        ctx.globalAlpha = fade;
         line(stage.los, -far, stage.los, hz);
-        if (f > 0) {
-          ctx.globalAlpha = fade * f;
-          line(stage.next, -far, stage.next, hz);
-        }
         if (stage.firstDown !== null) {
-          ctx.globalAlpha = gone;
+          ctx.globalAlpha = fade;
           ctx.strokeStyle = FIRST_DOWN;
           line(stage.firstDown, -far, stage.firstDown, hz);
         }
         ctx.strokeStyle = ink;
         if (stage.end && t >= stage.end.t) {
-          ctx.globalAlpha = gone * 0.95;
+          ctx.globalAlpha = fade * 0.95;
           ctx.lineWidth = 2;
           line(stage.end.x, -far, stage.end.x, hz);
         }
@@ -512,7 +495,7 @@ export function FloorPlay({
         // The yards gained, painted on the field by the line where the play ended, as its numbers are.
         for (const m of stage.marks) {
           if (t < m.t || m.kind !== "yards") continue;
-          ctx.globalAlpha = gone * Math.min(1, (t - m.t) / 0.25);
+          ctx.globalAlpha = fade * Math.min(1, (t - m.t) / 0.25);
           ctx.fillStyle = ink;
           paintBy(m.text, m.x, m.z);
         }
@@ -538,20 +521,10 @@ export function FloorPlay({
           seg(up(stage.posts, 3.1, 3.3), up(stage.posts, 3.1, 11));
         }
 
-        // The players, farthest first, each on his shadow; the ball with whoever has it, or in the air. Lining up for
-        // the next play, each up off the ground and over to his spot (see formation), the ball rolled to the new line.
+        // The players, farthest first, each on his shadow; the ball with whoever has it, or in the air.
         ctx.imageSmoothingEnabled = false;
         const playT = Math.min(Math.max(0, t), stage.length);
-        const placed = stage.actors
-          .map((a, i) => {
-            const end = actorAt(a, playT);
-            if (f === 0) return { i, a, ...end };
-            const [sx, sz] = spots[i];
-            const [x, z] = [end.x + (sx - end.x) * f, end.z + (sz - end.z) * f];
-            const far = Math.hypot(sx - end.x, sz - end.z) > 0.5;
-            return { i, a, x, z, pose: (f < 1 && far ? "run" : "stand") as Pose, moving: f < 1 && far };
-          })
-          .sort((p, q) => p.z - q.z);
+        const placed = stage.actors.map((a, i) => ({ i, a, ...actorAt(a, playT) })).sort((p, q) => p.z - q.z);
         const ballNow = ballAt(stage, playT);
         const drawBall = (x: number, z: number, hgt: number) => {
           const unit = body(z) * 0.55;
@@ -570,14 +543,6 @@ export function FloorPlay({
           ctx.fillRect(Math.round(sx - unit * 1.5), Math.round(by - unit), Math.ceil(unit * 3), Math.ceil(unit * 2));
           ctx.fillStyle = "#f2f2f2";
           ctx.fillRect(Math.round(sx - unit * 0.5), Math.round(by - unit), Math.ceil(unit), Math.ceil(unit * 0.6));
-        };
-        // Where the ball was when the play ended (with whoever had it, or where it lay), for rolling it to the new line.
-        const ballEnd = (): [number, number] => {
-          if (ballNow && "by" in ballNow) {
-            const holder = actorAt(stage.actors[ballNow.by], playT);
-            return [holder.x, holder.z];
-          }
-          return ballNow ? [ballNow.x, ballNow.z] : [stage.next, 0];
         };
         for (const p of placed) {
           const unit = body(p.z) * 0.42;
@@ -607,17 +572,14 @@ export function FloorPlay({
             const lift = p.pose === "jump" ? Math.abs(Math.sin(t * 7)) * body(p.z) * 1.4 : look === "runB" ? unit : 0;
             ctx.drawImage(sprite, Math.round(sx - sw / 2), Math.round(sy - shh - lift), sw, shh);
           }
-          if (f === 0 && ballNow && "by" in ballNow && ballNow.by === p.i) {
+          if (ballNow && "by" in ballNow && ballNow.by === p.i) {
             // In his hands: a step off his middle and up at his waist, at his own size (not the field's).
             const own = SQUARE_YARDS[0] / grid.yards;
             const hands = (p.pose === "down" ? 0.4 : 2.4) * own;
             drawBall(p.x + ((p.pose === "down" ? facingOf(p.a) * 2 : 0.9) * base * own) / yard, p.z + 0.3, hands);
           }
         }
-        if (f > 0) {
-          const [bx, bz] = ballEnd();
-          drawBall(bx + (stage.next - bx) * f, bz * (1 - f), 0);
-        } else if (ballNow && !("by" in ballNow)) drawBall(ballNow.x, ballNow.z, ballNow.h);
+        if (ballNow && !("by" in ballNow)) drawBall(ballNow.x, ballNow.z, ballNow.h);
 
         // A flag: thrown in from the side, tumbling, and lying where it lands.
         for (const flag of stage.flags) {
@@ -628,7 +590,7 @@ export function FloorPlay({
           const lift = (2 * (1 - fl) + 12 * fl * (1 - fl)) * body(z);
           const unit = body(z) * 0.5;
           const [sx, sy] = at(x, z);
-          ctx.globalAlpha = gone;
+          ctx.globalAlpha = fade;
           ctx.fillStyle = FLAG[flag.color];
           ctx.save();
           ctx.translate(sx, sy - lift - unit);
@@ -663,7 +625,7 @@ export function FloorPlay({
           const size = wordPx * (0.7 + 0.3 * pop);
           // All over the middle of the play.
           const [sx] = at(0, -far);
-          ctx.globalAlpha = gone * pop;
+          ctx.globalAlpha = fade * pop;
           ctx.fillStyle = m.tone === "good" ? good : ink;
           ctx.font = `700 ${size}px ${type}`;
           ctx.textAlign = "center";
