@@ -74,6 +74,8 @@ export interface PlayScene {
   /** How a kick ended with no one running it back: "TOUCHBACK", "FAIR CATCH", "DOWNED", "OUT OF BOUNDS"... */
   kickResult: string | null;
   onside: boolean;
+  /** Who came up with a loose kick (an onside kick's): their team, and ESPN's shorthand for them when it names one. */
+  recoveredBy: { team: string; label: string | null } | null;
   penalty: Penalty | null;
   /** The ball came loose at the end of it: who fell on it (null — whoever had it), whether the other side did, and how
    * far he ran it back. */
@@ -227,6 +229,7 @@ export function sceneFor(play: GamePlay, teams: [home: string, away: string]): P
     safety: /\bSAFETY\b/i.test(text),
     kickResult: null,
     onside: false,
+    recoveredBy: null,
     penalty,
     fumble: fumbleOf(text, offense),
     lateral: null,
@@ -285,6 +288,9 @@ function readPlay(raw: string, action: string, base: PlayScene, play: GamePlay):
       defender: ran && !touchdown ? inParens(raw, raw.lastIndexOf(ran[1])) : null,
       kickResult,
       onside: /onside/i.test(raw),
+      recoveredBy: ((rec) => (rec ? { team: normalizeTeam(rec[1].toUpperCase()), label: rec[2] } : null))(
+        new RegExp(String.raw`RECOVERED by ([A-Z]{2,3})-${NAME}`, "i").exec(rest)
+      ),
     };
   }
   if ((m = new RegExp(String.raw`^${NAME}\s+punt is BLOCKED by\s+${NAME}`, "i").exec(action))) {
@@ -782,6 +788,44 @@ export function stageFor(scene: PlayScene): Stage {
       nextBall = { team: receivingTeam, dir: -1 };
       const from = punt ? -14 : 0;
       const tk = punt ? SNAP + 0.55 : SNAP + 0.45;
+      if (scene.onside && !punt) {
+        // An onside kick: driven into the ground, a big hop ten yards on, both sides piling in after it — and whoever
+        // comes up with it.
+        const land = Math.max(10, scene.yards);
+        const hop = tk + 0.25;
+        const tc = hop + 0.75;
+        const spot: [number, number] = [land, 1.5];
+        const rec = scene.recoveredBy ?? (scene.returner ? { team: receivingTeam, label: scene.returner } : null);
+        const kept = rec?.team === kickingTeam;
+        add("kicker", kickingTeam, scene.kicker, [key(0, -4, -2, "stand"), key(SNAP, -4, -2, "run"), key(tk, -0.6, -0.4, "kick"), key(tk + 0.35, 0.5, -0.4, "run"), key(tc + 0.4, land - 4, -1, "stand")]);
+        let recoverer = -1;
+        // Two of theirs flying down after it from the line, two of the other side's coming up to meet it; one of
+        // whoever got it on the ball, the rest in a pile round it.
+        const pile = (team: string, starts: [number, number][], ours: boolean) =>
+          starts.forEach(([x, z], i) => {
+            const dives = rec !== null && ours === kept && i === 0;
+            const to: [number, number] = dives ? [spot[0] - 0.4, spot[1]] : [spot[0] + (ours ? -1.6 : 1.6), spot[1] + (i ? 2.2 : -2.2)];
+            const keys = [key(0, x, z, "stand"), key(ours ? tk - 0.1 : hop, x, z, "run"), key(tc, to[0], to[1], "down")];
+            if (dives) keys.push(key(tc + 0.7, to[0], to[1], "down"), key(tc + 1, to[0], to[1], "jump"));
+            const who = add(dives ? "returner" : "lineman", team, dives ? rec.label : null, keys);
+            if (dives) recoverer = who;
+          });
+        pile(kickingTeam, [[-1, -8], [-1, 8]], true);
+        pile(receivingTeam, [[land + 7, 5], [land + 8, -6]], false);
+        ball.push(
+          { from: 0, to: tk, at: [0, 0] },
+          { from: tk, to: hop, arc: { a: [0, 0, 0.2], b: [4, 0.5, 0], apex: 0.3 } },
+          { from: hop, to: tc, arc: { a: [4, 0.5, 0], b: [spot[0], spot[1], 0.3], apex: 3.5 } },
+          recoverer >= 0 ? { from: tc, to: Infinity, by: recoverer } : { from: tc, to: Infinity, at: spot }
+        );
+        word(tk + 0.2, land / 2, "ONSIDE KICK");
+        if (rec) word(tc + 0.3, land / 2, `RECOVERED · ${rec.team}`, kept ? "good" : undefined);
+        else if (scene.kickResult) word(tc + 0.3, land / 2, scene.kickResult);
+        nextBall = kept ? { team: kickingTeam, dir: 1 } : { team: receivingTeam, dir: -1 };
+        end = { x: spot[0], t: tc };
+        length = tc + 1 + HOLD;
+        break;
+      }
       if (scene.blocked) {
         // Blocked: the rusher gets a hand on it right off the punter's foot.
         const kicker = add("kicker", kickingTeam, scene.kicker, [key(0, from, 0, "stand"), key(tk, from, 0, "kick"), key(tk + 0.35, from, 0, "stand")]);
@@ -885,7 +929,8 @@ export function stageFor(scene: PlayScene): Stage {
 
   // Where the next snap is: a touchdown's try, from where it's snapped; a call to be overturned, from where this was.
   let next = end && scene.kind !== "incomplete" && scene.kind !== "spike" ? end.x : los;
-  if (scene.kind === "penalty" && pen) next = los + (pen.team === offense ? -1 : 1) * (pen.yards ?? 0);
+  // A flag that's accepted: its yards on from there (from where it was snapped, when the play doesn't count).
+  if (pen && !pen.declined && pen.yards) next = (scene.kind === "penalty" || pen.noPlay ? los : next) + (pen.team === offense ? -1 : 1) * pen.yards;
   if (scene.toGoal !== null) next = Math.min(scene.toGoal - 1, Math.max(scene.toGoal - 99, next));
   if (scene.after?.review) {
     next = los;

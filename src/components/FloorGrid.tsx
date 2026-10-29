@@ -76,8 +76,7 @@ export function FloorGrid({ share = HORIZON_SHARE, camera: store, hidden = false
       lines.columns.map((l) => `M${l.x1.toFixed(1)} ${l.y1.toFixed(1)}L${l.x2.toFixed(1)} ${l.y2.toFixed(1)}`).join("")
     : "";
   return (
-    // Faded away while something else lines the floor (a play's field, see FloorPlay).
-    <svg ref={ref} className={`absolute inset-0 h-full w-full transition-opacity duration-300 ${hidden ? "opacity-0" : ""}`} aria-hidden>
+    <svg ref={ref} className="absolute inset-0 h-full w-full" aria-hidden>
       {view && lines ? (
         <>
           <defs>
@@ -99,7 +98,14 @@ export function FloorGrid({ share = HORIZON_SHARE, camera: store, hidden = false
             </linearGradient>
           </defs>
           <line x1={0} x2={view.width} y1={snap(horizon)} y2={snap(horizon)} stroke="url(#floor-grid-horizon)" strokeWidth={wire} />
-          <path d={d} stroke="url(#floor-grid-fade)" strokeWidth={wire} fill="none" />
+          {/* Faded away while something else lines the floor (a play's field, see FloorPlay) — the horizon kept. */}
+          <path
+            d={d}
+            stroke="url(#floor-grid-fade)"
+            strokeWidth={wire}
+            fill="none"
+            className={`transition-opacity duration-300 ${hidden ? "opacity-0" : ""}`}
+          />
         </>
       ) : null}
     </svg>

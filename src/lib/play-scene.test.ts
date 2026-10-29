@@ -237,3 +237,24 @@ test("laterals, quarterback keepers, and reviews", () => {
   assert.ok(stageFor(reversed.after!).marks.some((m) => m.text === "REVERSED"));
   assert.equal(stageFor(reversed).next, stageFor(reversed).los);
 });
+
+test("an onside kick: a hop, a pile, whoever comes up with it has it next", () => {
+  const kept = sceneFor(play("H.Butker onside kick 11 yards from KC 35 to KC 46. RECOVERED by KC-J.Watson.", { offense: "BUF" }), teams)!;
+  assert.deepEqual([kept.kind, kept.onside, kept.recoveredBy], ["kickoff", true, { team: "KC", label: "J.Watson" }]);
+  const stage = stageFor(kept);
+  const watson = stage.actors.findIndex((a) => a.label === "J.Watson");
+  assert.deepEqual(ballAt(stage, stage.length), { by: watson });
+  assert.deepEqual(stage.nextBall, { team: "KC", dir: 1 });
+  assert.ok(stage.marks.some((m) => m.text === "RECOVERED · KC"));
+  const lost = stageFor(sceneFor(play("H.Butker onside kick 10 yards from KC 35 to KC 45. RECOVERED by BUF-K.Coleman.", { offense: "BUF" }), teams)!);
+  assert.deepEqual(lost.nextBall, { team: "BUF", dir: -1 });
+});
+
+test("set up for the next play off an accepted flag's yards", () => {
+  const held = stageFor(sceneFor(play("J.Cook left end to KC 23 for 7 yards (N.Bolton). PENALTY on KC-N.Bolton, Defensive Holding, 5 yards, enforced at KC 23.", { offense: "BUF", yards: 7, yardsToEndzone: 30 }), teams)!);
+  assert.ok(Math.abs(held.next - (held.end!.x + 5)) < 1e-9);
+  const noPlay = stageFor(sceneFor(play("J.Cook left end to KC 23 for 7 yards (D.Dawson). PENALTY on BUF-D.Dawson, Offensive Holding, 10 yards, enforced at BUF 30 - No Play.", { offense: "BUF", yards: 0, yardsToEndzone: 70 }), teams)!);
+  assert.ok(Math.abs(noPlay.next - (noPlay.los - 10)) < 1e-9);
+  const declined = stageFor(sceneFor(play("J.Cook left end to KC 23 for 7 yards (N.Bolton). PENALTY on KC-N.Bolton, Defensive Holding, declined.", { offense: "BUF", yards: 7, yardsToEndzone: 30 }), teams)!);
+  assert.ok(Math.abs(declined.next - declined.end!.x) < 1e-9);
+});

@@ -461,20 +461,16 @@ export function FloorPlay({
               line(x, -hz * 0.3 - 0.8, x, -hz * 0.3 + 0.8);
               line(x, hz * 0.3 - 0.8, x, hz * 0.3 + 0.8);
             }
-            // The tens numbered on the field, the line between their digits: near the screen's bottom, and in from the
-            // far sideline the other way up.
+            // The tens numbered on the field, the line between their digits: a square of the floor's grid up from the
+            // screen's bottom, and a square on in from the far sideline the other way up.
             if (g % 10 === 0) {
               ctx.globalAlpha = fade * 0.45 * e;
               ctx.fillStyle = ink;
               const n = String(g <= 50 ? g : 100 - g);
-              paintBy(n, x, (floorDepth(h * NEAR_NUMBERS, h, sh) - back) / base);
-              paintBy(n, x, -hz + FIELD_NUMBERS, true);
+              paintBy(n, x, (floorDepth(h * NEAR_NUMBERS, h, sh) - GRID_PX - back) / base);
+              paintBy(n, x, -hz + FIELD_NUMBERS + GRID_PX / base, true);
             }
           }
-          // The far sideline (the near one's the screen's bottom).
-          ctx.globalAlpha = fade * 0.32;
-          ctx.lineWidth = 1;
-          line(Math.max(from0, goal - 110), -hz, Math.min(to0, goal + 10), -hz);
         } else {
           // Where it was snapped from isn't known: lines every five yards from the line of scrimmage.
           ctx.lineWidth = 1;
