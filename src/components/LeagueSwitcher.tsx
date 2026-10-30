@@ -10,13 +10,20 @@ export interface RoomLeague {
   logo: string | null;
 }
 
-/** A league's logo and name, centred, with whatever goes after them (`after`). */
-export function LeagueTitle({ league, after }: { league: RoomLeague; after?: React.ReactNode }) {
+/**
+ * A league's logo and name, centred, with whatever goes after them (`after`) — `large`, as big as the header's
+ * "Week N".
+ */
+export function LeagueTitle({ league, after, large = false }: { league: RoomLeague; after?: React.ReactNode; large?: boolean }) {
   return (
-    <span className="flex min-w-0 items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-wide">
+    <span
+      className={`flex min-w-0 items-center justify-center uppercase tracking-wide ${
+        large ? "gap-2 text-lg font-extrabold sm:text-3xl" : "gap-1.5 text-xs font-bold"
+      }`}
+    >
       {league.logo ? (
         // eslint-disable-next-line @next/next/no-img-element -- a remote Sleeper avatar on a static export; nothing for next/image to optimize
-        <img src={league.logo} alt="" draggable={false} className="h-4 w-4 shrink-0 rounded-full object-cover" />
+        <img src={league.logo} alt="" draggable={false} className={`shrink-0 rounded-full object-cover ${large ? "h-5 w-5 sm:h-7 sm:w-7" : "h-4 w-4"}`} />
       ) : null}
       <span className="min-w-0 truncate">{league.name}</span>
       {after}
@@ -74,11 +81,12 @@ export function LeagueSwitcher({
               aria-expanded={open}
               aria-label={`${league.name} — pick another league`}
               onClick={() => setOpen((o) => !o)}
-              className="w-full shrink-0 px-1 py-1.5 text-ink-primary"
+              className="w-full shrink-0 px-1 text-ink-primary"
             >
               <LeagueTitle
                 league={league}
-                after={<ChevronDownIcon width={12} height={12} className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />}
+                large
+                after={<ChevronDownIcon width={16} height={16} className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />}
               />
             </button>
           ))}
