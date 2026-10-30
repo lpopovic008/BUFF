@@ -1,43 +1,10 @@
-// Each NFL team's main color, by Sleeper's team abbreviation — tinting its side of a game's header in the starters
-// list (see .team-bar in globals.css, which lifts the darkest toward white on a dark page so they still show).
-const TEAM_COLOR: Record<string, string> = {
-  ARI: "#97233f",
-  ATL: "#a71930",
-  BAL: "#241773",
-  BUF: "#00338d",
-  CAR: "#0085ca",
-  CHI: "#0b162a",
-  CIN: "#fb4f14",
-  CLE: "#311d00",
-  DAL: "#003594",
-  DEN: "#fb4f14",
-  DET: "#0076b6",
-  GB: "#203731",
-  HOU: "#03202f",
-  IND: "#002c5f",
-  JAX: "#006778",
-  KC: "#e31837",
-  LAC: "#0080c6",
-  LAR: "#003594",
-  LV: "#000000",
-  MIA: "#008e97",
-  MIN: "#4f2683",
-  NE: "#002244",
-  NO: "#d3bc8d",
-  NYG: "#0b2265",
-  NYJ: "#125740",
-  PHI: "#004c54",
-  PIT: "#ffb612",
-  SEA: "#002244",
-  SF: "#aa0000",
-  TB: "#d50a0a",
-  TEN: "#0c2340",
-  WAS: "#5a1414",
-};
-
-/** A team's main color — the page's ink, for a team it doesn't know. */
+/**
+ * A team's color — its home jersey's (see HOME), by Sleeper's team abbreviation — tinting its side of a game's header
+ * in the starters list (see .team-bar in globals.css, which lifts the darkest toward white on a dark page so they still
+ * show). The page's ink, for a team it doesn't know.
+ */
 export function teamColor(team: string): string {
-  return TEAM_COLOR[team] ?? "var(--ink-primary)";
+  return HOME[team]?.[1] ?? "var(--ink-primary)";
 }
 
 /** A team's uniform as a pixel player on the floor wears it (see FloorPlay): helmet, jersey, its numbers, pants, socks. */
@@ -49,11 +16,12 @@ export interface Uniform {
   socks: string;
 }
 
-// Each team's home uniform: its helmet, its colored jersey and the numbers on it, and its pants. On the road, the
-// jersey's white and its numbers the team's color.
+// Each team's home uniform as of the 2026 season: its helmet, its colored jersey and the numbers on it, and its pants.
+// On the road, the jersey's white and its numbers the team's color.
 const HOME: Record<string, [helmet: string, jersey: string, numbers: string, pants: string]> = {
   ARI: ["#ffffff", "#97233f", "#ffffff", "#ffffff"],
-  ATL: ["#101820", "#101820", "#ffffff", "#ffffff"],
+  // 2026: back to red at home, under the black helmet.
+  ATL: ["#101820", "#a71930", "#ffffff", "#ffffff"],
   BAL: ["#101820", "#241773", "#ffffff", "#ffffff"],
   BUF: ["#ffffff", "#00338d", "#ffffff", "#ffffff"],
   CAR: ["#a5acaf", "#101820", "#ffffff", "#ffffff"],
@@ -68,7 +36,7 @@ const HOME: Record<string, [helmet: string, jersey: string, numbers: string, pan
   IND: ["#ffffff", "#002c5f", "#ffffff", "#ffffff"],
   JAX: ["#101820", "#006778", "#ffffff", "#ffffff"],
   KC: ["#e31837", "#e31837", "#ffffff", "#ffffff"],
-  LAC: ["#0080c6", "#0080c6", "#ffffff", "#ffffff"],
+  LAC: ["#ffffff", "#0080c6", "#ffffff", "#ffffff"],
   LAR: ["#003594", "#003594", "#ffd100", "#ffffff"],
   LV: ["#a5acaf", "#101820", "#ffffff", "#a5acaf"],
   MIA: ["#ffffff", "#008e97", "#ffffff", "#ffffff"],
@@ -82,7 +50,8 @@ const HOME: Record<string, [helmet: string, jersey: string, numbers: string, pan
   SEA: ["#002244", "#002244", "#ffffff", "#a5acaf"],
   SF: ["#b3995d", "#aa0000", "#ffffff", "#b3995d"],
   TB: ["#34302b", "#d50a0a", "#ffffff", "#34302b"],
-  TEN: ["#0c2340", "#0c2340", "#ffffff", "#ffffff"],
+  // 2026: the Oilers-inspired look — a white helmet, light "Titans blue" at home.
+  TEN: ["#ffffff", "#4b92db", "#ffffff", "#ffffff"],
   WAS: ["#5a1414", "#5a1414", "#ffb612", "#ffb612"],
 };
 
