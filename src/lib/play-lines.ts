@@ -211,8 +211,8 @@ export function statLine(position: string, stats: Record<string, number> | undef
 
 /**
  * The same stat line in pieces, each number this play moved (`did`) marked good or bad: what went its way (a catch,
- * its target, yards gained, a completion — not the attempt, only marked when it fails — a touchdown, a field goal) and
- * what didn't (an incompletion's attempt and target, yards lost, an interception thrown, a miss). Words never.
+ * its target, yards gained, a completion and its attempt, a touchdown, a field goal) and what didn't (an
+ * incompletion's attempt and target, yards lost, an interception thrown, a miss). Words never.
  */
 export function statParts(position: string, stats: Record<string, number> | undefined, did: Record<string, number> | null): StatPart[] {
   if (!stats) return [];
@@ -221,7 +221,7 @@ export function statParts(position: string, stats: Record<string, number> | unde
     if (d(key) === 0) return undefined;
     switch (key) {
       case "pass_att":
-        return d("pass_cmp") > 0 ? undefined : "bad";
+        return d("pass_cmp") > 0 ? "good" : "bad";
       case "rec_tgt":
         return d("rec") > 0 ? "good" : "bad";
       case "rush_att":

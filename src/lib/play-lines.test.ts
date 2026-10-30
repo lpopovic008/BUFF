@@ -218,8 +218,8 @@ test("statParts marks only the numbers a play moved: good for what went its way,
     statParts(position, stats, did)
       .filter((p) => p.tone)
       .map((p) => `${p.text}:${p.tone}`);
-  // A completion: the QB's completions and yards (not his attempts); the catcher's catches, target and yards.
-  assert.deepEqual(marked("QB", { pass_cmp: 3, pass_att: 4, pass_yd: 37 }, { pass_cmp: 1, pass_att: 1, pass_yd: 13 }), ["3:good", "37:good"]);
+  // A completion: the QB's completions, attempts and yards; the catcher's catches, target and yards.
+  assert.deepEqual(marked("QB", { pass_cmp: 3, pass_att: 4, pass_yd: 37 }, { pass_cmp: 1, pass_att: 1, pass_yd: 13 }), ["3:good", "4:good", "37:good"]);
   assert.deepEqual(marked("TE", { rec: 3, rec_tgt: 4, rec_yd: 37 }, { rec: 1, rec_tgt: 1, rec_yd: 13 }), ["3:good", "4:good", "37:good"]);
   // An incompletion: the attempt and the target, bad.
   assert.deepEqual(marked("QB", { pass_cmp: 3, pass_att: 5, pass_yd: 37 }, { pass_att: 1 }), ["5:bad"]);
