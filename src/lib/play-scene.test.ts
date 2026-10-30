@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { GamePlay } from "./play-by-play";
-import { actorAt, ballAt, formation, sceneFor, stageFor } from "./play-scene";
+import { actorAt, ballAt, formation, playSummary, sceneFor, stageFor } from "./play-scene";
 
 function play(text: string, over: Partial<GamePlay> = {}): GamePlay {
   return {
@@ -279,4 +279,14 @@ test("an onside kick however ESPN words it", () => {
     assert.equal(s?.onside, true, text);
     assert.ok(stageFor(s!).marks.some((m) => m.text === "ONSIDE KICK"), text);
   }
+});
+
+test("every play in a few words: a flag's what and how far, or what the play was", () => {
+  const say = (text: string, over: Partial<GamePlay> = {}) => playSummary(play(text, over), teams);
+  assert.equal(say("PENALTY on KC-J.Smith, False Start, 5 yards, enforced at KC 30 - No Play."), "False Start · 5 yards · no play");
+  assert.equal(say("J.Cook left end to KC 23 for 7 yards (N.Bolton). PENALTY on KC-N.Bolton, Defensive Holding, declined.", { offense: "BUF" }), "Defensive Holding · declined");
+  assert.equal(say("M.Araiza punts 48 yards to BUF 20, Center-J.Winchester, fair catch by K.Coleman."), "48 yard punt · fair catch");
+  assert.equal(say("H.Butker kicks onside 11 yards from KC 35 to KC 46. RECOVERED by KC-J.Watson.", { offense: "BUF" }), "Onside kick · recovered by KC");
+  assert.equal(say("P.Mahomes kneels to KC 29 for -1 yards."), "Kneel");
+  assert.equal(say("Timeout #1 by KC at 02:00. Something else happened."), "Timeout #1 by KC at 02:00.");
 });

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { GamePlay } from "./play-by-play";
-import { findPlayer, labelNames, LinePlayer, linePoints, linesForPlays, playAction, statLine } from "./play-lines";
+import { findPlayer, labelNames, LinePlayer, linePoints, linesForPlays, playAction, statLine, statParts } from "./play-lines";
 
 function play(over: Partial<GamePlay>): GamePlay {
   return {
@@ -211,4 +211,24 @@ test("linePoints scores a line under a league's own scoring, from its stats alon
   // Half PPR with a TE premium: 0.5 + 0.5 + 1.2 on the play.
   assert.deepEqual(linePoints(line, { rec: 0.5, rec_yd: 0.1, bonus_rec_te: 0.5 }), { delta: 2.2, total: 4 });
   assert.deepEqual(linePoints(line, { rec: 0.5, rec_yd: 0.1 }), { delta: 1.7, total: 3 });
+});
+
+test("statParts marks only the numbers a play moved: good for what went its way, bad for what didn't", () => {
+  const marked = (position: string, stats: Record<string, number>, did: Record<string, number>) =>
+    statParts(position, stats, did)
+      .filter((p) => p.tone)
+      .map((p) => `${p.text}:${p.tone}`);
+  // A completion: the QB's completions and yards (not his attempts); the catcher's catches, target and yards.
+  assert.deepEqual(marked("QB", { pass_cmp: 3, pass_att: 4, pass_yd: 37 }, { pass_cmp: 1, pass_att: 1, pass_yd: 13 }), ["3:good", "37:good"]);
+  assert.deepEqual(marked("TE", { rec: 3, rec_tgt: 4, rec_yd: 37 }, { rec: 1, rec_tgt: 1, rec_yd: 13 }), ["3:good", "4:good", "37:good"]);
+  // An incompletion: the attempt and the target, bad.
+  assert.deepEqual(marked("QB", { pass_cmp: 3, pass_att: 5, pass_yd: 37 }, { pass_att: 1 }), ["5:bad"]);
+  assert.deepEqual(marked("TE", { rec: 3, rec_tgt: 5, rec_yd: 37 }, { rec_tgt: 1 }), ["5:bad"]);
+  // A run for a loss; a touchdown; a missed field goal; an interception thrown.
+  assert.deepEqual(marked("RB", { rush_att: 5, rush_yd: 20 }, { rush_att: 1, rush_yd: -2 }), ["5:bad", "20:bad"]);
+  assert.deepEqual(marked("RB", { rush_att: 5, rush_yd: 20, rush_td: 1 }, { rush_att: 1, rush_yd: 4, rush_td: 1 }), ["5:good", "20:good", "1:good"]);
+  assert.deepEqual(marked("K", { fgm: 1, fga: 2 }, { fga: 1 }), ["2:bad"]);
+  assert.deepEqual(marked("QB", { pass_cmp: 3, pass_att: 5, pass_yd: 37, pass_int: 1 }, { pass_att: 1, pass_int: 1 }), ["5:bad", "1:bad"]);
+  // The words never; the whole line as it reads.
+  assert.equal(statParts("QB", { pass_cmp: 3, pass_att: 4, pass_yd: 37 }, { pass_cmp: 1 }).map((p) => p.text).join(""), "3/4 37 YDS");
 });

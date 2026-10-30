@@ -6,7 +6,7 @@ import { Ordinals } from "@/components/Ordinals";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { LeagueLegendEntry, LeagueMark } from "@/components/LeagueMark";
 import { showPlayOnFloor } from "@/components/FloorPlay";
-import { sceneFor } from "@/lib/play-scene";
+import { penaltyOf, playSummary, sceneFor } from "@/lib/play-scene";
 import { FeedEntry, FeedScope, RedZoneNow, useRedZoneFeed } from "@/hooks/useRedZoneFeed";
 import { useLiveMode } from "@/hooks/useLiveTick";
 import { useTeamPlayers } from "@/hooks/useTeamPlayers";
@@ -16,7 +16,7 @@ import { GameStarters, GroupedStarter } from "@/lib/my-starters";
 import { gameClock, NFLGame } from "@/lib/nfl-schedule";
 import { formatPlayPoints } from "@/lib/play-points";
 import { yardLineLabel } from "@/lib/play-by-play";
-import { linePoints, playAction, PlayLine, statLine } from "@/lib/play-lines";
+import { linePoints, playAction, PlayLine, statParts } from "@/lib/play-lines";
 import { useFullPlays } from "@/hooks/useFullPlays";
 import { nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
@@ -126,8 +126,8 @@ function PlayerLine({
 }) {
   const defense = line.position === "DEF";
   const scoringByLeague = useContext(ScoringContext);
-  // Their game as it stood once this play was over.
-  const summary = statLine(line.position, line.stats ?? undefined);
+  // Their game as it stood once this play was over — the numbers it moved in green (for the better) or red.
+  const summary = statParts(line.position, line.stats ?? undefined, line.did);
   return (
     <li className="flex items-center gap-2">
       {defense && line.team ? (
@@ -157,8 +157,14 @@ function PlayerLine({
           </span>
         ) : null}
         {/* On phones the stat line always gets a line of its own (kept, empty, for someone without one), so every player is the same height. */}
-        {summary ? (
-          <span className="whitespace-nowrap text-[0.6875rem] tabular-nums text-ink-muted max-md:basis-full max-md:leading-tight">{summary}</span>
+        {summary.length > 0 ? (
+          <span className="whitespace-nowrap text-[0.6875rem] tabular-nums text-ink-muted max-md:basis-full max-md:leading-tight">
+            {summary.map((part, i) => (
+              <span key={i} className={part.tone === "good" ? "font-semibold text-status-good" : part.tone === "bad" ? "font-semibold text-status-critical" : undefined}>
+                {part.text}
+              </span>
+            ))}
+          </span>
         ) : (
           <span className="hidden text-[0.6875rem] max-md:block max-md:basis-full max-md:leading-tight" aria-hidden>
             {"\u00a0"}
@@ -281,10 +287,13 @@ const FeedRow = memo(function FeedRow({ entry, starterById, legendByLeagueId, ar
   const { play, players, lines, game } = entry;
   const hasPoints = lines.some((l) => !!l.delta);
   // Simple descriptions (unless switched to full): each player's line says what he did, and ESPN's description is
-  // left out — kept when no one's line can say anything (a penalty, a punt).
+  // left out — the play said in a few words instead when no one's line can say what happened (a punt), and when
+  // there's a flag, just what it was for and how far (see playSummary).
   const full = useFullPlays();
   const acted = full ? [] : lines.filter((l) => playAction(l.did));
   const simple = acted.length > 0;
+  const flag = full ? null : penaltyOf(play.text);
+  const summary = full || (simple && !flag) ? null : playSummary(play, [game.homeTeam, game.awayTeam]);
   const shown = simple ? lines.filter((l) => playAction(l.did) || l.delta) : hasPoints ? lines : [];
   const good = play.scoring || (play.turnover && players.length > 0 && players.every((p) => p.position === "DEF"));
   const time = clockTime(play.at);
@@ -367,17 +376,17 @@ const FeedRow = memo(function FeedRow({ entry, starterById, legendByLeagueId, ar
           ))}
         </ul>
       ) : null}
-      {/* What happened, led by the team with the ball. */}
-      {simple ? null : (
+      {/* What happened, led by the team with the ball (a flag, by the team it's on): in a few words, or ESPN's own. */}
+      {full || summary ? (
         <span className="break-words text-[0.75rem] leading-snug text-ink-secondary">
-          {play.offense ? (
+          {(flag?.team ?? play.offense) ? (
             <span className="mr-1.5 inline-flex translate-y-[0.15em] align-baseline">
-              <TeamLogo team={play.offense} side={14} />
+              <TeamLogo team={(flag?.team ?? play.offense)!} side={14} />
             </span>
           ) : null}
-          {play.text}
+          {summary ?? play.text}
         </span>
-      )}
+      ) : null}
     </li>
   );
 }, sameRow);

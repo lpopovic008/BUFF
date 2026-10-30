@@ -191,6 +191,12 @@ export function playAction(did: Record<string, number> | null): string {
     .join(", ");
 }
 
+/** A piece of a stat line, and — a number this play moved — whether for the better or the worse. */
+export interface StatPart {
+  text: string;
+  tone?: "good" | "bad";
+}
+
 /**
  * A player's game in a few words: "18/26 214 YDS 2 TD" for a passer,
  * "9 CAR 41 YDS" for a runner, "5/7 REC 63 YDS 1 TD" for a catcher — whichever
@@ -198,33 +204,78 @@ export function playAction(did: Record<string, number> | null): string {
  * and takeaways for a defense. Empty when they've done nothing yet.
  */
 export function statLine(position: string, stats: Record<string, number> | undefined): string {
-  if (!stats) return "";
-  const td = (key: string) => (n(stats, key) > 0 ? ` ${n(stats, key)} TD` : "");
+  return statParts(position, stats, null)
+    .map((p) => p.text)
+    .join("");
+}
+
+/**
+ * The same stat line in pieces, each number this play moved (`did`) marked good or bad: what went its way (a catch,
+ * its target, yards gained, a completion — not the attempt, only marked when it fails — a touchdown, a field goal) and
+ * what didn't (an incompletion's attempt and target, yards lost, an interception thrown, a miss). Words never.
+ */
+export function statParts(position: string, stats: Record<string, number> | undefined, did: Record<string, number> | null): StatPart[] {
+  if (!stats) return [];
+  const d = (key: string) => Math.round(did?.[key] ?? 0);
+  const tone = (key: string): StatPart["tone"] => {
+    if (d(key) === 0) return undefined;
+    switch (key) {
+      case "pass_att":
+        return d("pass_cmp") > 0 ? undefined : "bad";
+      case "rec_tgt":
+        return d("rec") > 0 ? "good" : "bad";
+      case "rush_att":
+        return d("rush_yd") > 0 ? "good" : d("rush_yd") < 0 ? "bad" : undefined;
+      case "fga":
+        return d("fgm") > 0 ? undefined : "bad";
+      case "xpa":
+        return d("xpm") > 0 ? undefined : "bad";
+      case "pass_int":
+        return "bad";
+      case "pass_yd":
+      case "rush_yd":
+      case "rec_yd":
+        return d(key) > 0 ? "good" : "bad";
+      default:
+        return "good";
+    }
+  };
+  const num = (key: string): StatPart => ({ text: String(n(stats, key)), tone: tone(key) });
+  const word = (text: string): StatPart => ({ text });
+  const td = (key: string): StatPart[] => (n(stats, key) > 0 ? [word(" "), num(key), word(" TD")] : []);
+  const joined = (groups: StatPart[][]) => groups.filter((g) => g.length > 0).flatMap((g, i) => (i > 0 ? [word(" · "), ...g] : g));
   if (position === "DEF") {
-    return [
-      n(stats, "sack") > 0 ? `${n(stats, "sack")} SCK` : "",
-      n(stats, "int") > 0 ? `${n(stats, "int")} INT` : "",
-      n(stats, "fum_rec") > 0 ? `${n(stats, "fum_rec")} FR` : "",
-      n(stats, "def_td") > 0 ? `${n(stats, "def_td")} TD` : "",
-      "pts_allow" in stats ? `${n(stats, "pts_allow")} PA` : "",
-    ]
-      .filter(Boolean)
-      .join(" · ");
+    return joined([
+      n(stats, "sack") > 0 ? [num("sack"), word(" SCK")] : [],
+      n(stats, "int") > 0 ? [num("int"), word(" INT")] : [],
+      n(stats, "fum_rec") > 0 ? [num("fum_rec"), word(" FR")] : [],
+      n(stats, "def_td") > 0 ? [num("def_td"), word(" TD")] : [],
+      "pts_allow" in stats ? [{ text: String(n(stats, "pts_allow")) }, word(" PA")] : [],
+    ]);
   }
   // Kicks — a kicker's whole line, and shown for anyone else who has them (someone ESPN's name couldn't be matched to).
   const kicks = [
-    n(stats, "fga") > 0 ? `FG ${n(stats, "fgm")}/${n(stats, "fga")}` : "",
-    n(stats, "xpa") > 0 ? `XP ${n(stats, "xpm")}/${n(stats, "xpa")}` : "",
+    n(stats, "fga") > 0 ? [word("FG "), num("fgm"), word("/"), num("fga")] : [],
+    n(stats, "xpa") > 0 ? [word("XP "), num("xpm"), word("/"), num("xpa")] : [],
   ];
-  if (position === "K") return kicks.filter(Boolean).join(" · ");
+  if (position === "K") return joined(kicks);
   const pass =
     n(stats, "pass_att") > 0
-      ? `${n(stats, "pass_cmp")}/${n(stats, "pass_att")} ${n(stats, "pass_yd")} YDS${td("pass_td")}${n(stats, "pass_int") > 0 ? ` ${n(stats, "pass_int")} INT` : ""}`
-      : "";
-  const rush = n(stats, "rush_att") > 0 ? `${n(stats, "rush_att")} CAR ${n(stats, "rush_yd")} YDS${td("rush_td")}` : "";
+      ? [
+          num("pass_cmp"),
+          word("/"),
+          num("pass_att"),
+          word(" "),
+          num("pass_yd"),
+          word(" YDS"),
+          ...td("pass_td"),
+          ...(n(stats, "pass_int") > 0 ? [word(" "), num("pass_int"), word(" INT")] : []),
+        ]
+      : [];
+  const rush = n(stats, "rush_att") > 0 ? [num("rush_att"), word(" CAR "), num("rush_yd"), word(" YDS"), ...td("rush_td")] : [];
   // Catches out of targets, "4/6 REC", where the targets are known.
-  const catches = n(stats, "rec_tgt") > 0 ? `${n(stats, "rec")}/${n(stats, "rec_tgt")}` : `${n(stats, "rec")}`;
-  const rec = n(stats, "rec") > 0 || n(stats, "rec_tgt") > 0 ? `${catches} REC ${n(stats, "rec_yd")} YDS${td("rec_td")}` : "";
+  const catches = n(stats, "rec_tgt") > 0 ? [num("rec"), word("/"), num("rec_tgt")] : [num("rec")];
+  const rec = n(stats, "rec") > 0 || n(stats, "rec_tgt") > 0 ? [...catches, word(" REC "), num("rec_yd"), word(" YDS"), ...td("rec_td")] : [];
   const order = position === "QB" ? [pass, rush, rec] : position === "RB" ? [rush, rec, pass] : [rec, rush, pass];
-  return [...order, ...kicks].filter(Boolean).join(" · ");
+  return joined([...order, ...kicks]);
 }
