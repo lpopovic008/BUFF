@@ -648,7 +648,7 @@ export function FloorPlay({
       down = null;
       if (!current || moved > 6 || e.clientY < room.current.height * room.current.share) return;
       const on = e.target instanceof Element ? e.target : null;
-      if (on?.closest("button, a, input, select, textarea, label, [role='button'], [data-play], [data-drag-scroll], [data-floor-ui], header, nav")) return;
+      if (on?.closest("button, a, input, select, textarea, label, [role='button'], [data-play], [data-scroll-list], [data-floor-ui], header, nav")) return;
       queue.length = 0;
       following = [];
       leaving = { playing: current, since: performance.now() };

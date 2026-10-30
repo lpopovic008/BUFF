@@ -10,7 +10,6 @@ import { penaltyOf, playSummary, sceneFor } from "@/lib/play-scene";
 import { FeedEntry, FeedScope, RedZoneNow, useRedZoneFeed } from "@/hooks/useRedZoneFeed";
 import { useLiveMode } from "@/hooks/useLiveTick";
 import { useTeamPlayers } from "@/hooks/useTeamPlayers";
-import { useDragScroll } from "@/hooks/useDragScroll";
 import { ScrollThumb } from "@/components/ScrollThumb";
 import { GameStarters, GroupedStarter } from "@/lib/my-starters";
 import { gameClock, NFLGame } from "@/lib/nfl-schedule";
@@ -535,9 +534,8 @@ export function RedZone({
     return () => clearTimeout(id);
   }, [hasEntries, settled]);
   const boxRef = useRef<HTMLDivElement>(null);
-  // Filling its box, its plays are scrolled by the page itself, so its reflection keeps up with them (see useDragScroll).
+  // Filling its box, the plays' scroll thumb follows it.
   const [box, setBox] = useState<HTMLDivElement | null>(null);
-  useDragScroll(fill ? box : null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const topSentinelRef = useRef<HTMLDivElement>(null);
   // Double-tapping the side header (or its ⇕) fits the phone box to the screen — the card's top under the
@@ -809,10 +807,10 @@ export function RedZone({
                   boxRef.current = el;
                   setBox(el);
                 }}
-                data-drag-scroll={fill ? "" : undefined}
+                data-scroll-list={fill ? "" : undefined}
                 className={`relative ${
                   fill
-                    ? "h-full touch-none overflow-y-auto overscroll-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                    ? "h-full touch-pan-y overflow-y-auto overscroll-y-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                     : "md:h-full md:overflow-y-auto md:overscroll-contain"
                 } ${
                   // About a play and a half tall.
@@ -822,7 +820,7 @@ export function RedZone({
               >
                 {/* The start of the plays loaded, when there are more above: coming near it brings in the ones before. */}
                 {range.start > 0 ? <div ref={topSentinelRef} className="h-px" aria-hidden /> : null}
-                <ol className="flex translate-y-[var(--overscroll,0px)] flex-col" aria-label={scope === "mine" ? "Plays your starters were part of" : scope === "vs" ? "Plays your starters or the ones you face were part of" : "Every play"} aria-live="polite">
+                <ol className="flex flex-col" aria-label={scope === "mine" ? "Plays your starters were part of" : scope === "vs" ? "Plays your starters or the ones you face were part of" : "Every play"} aria-live="polite">
                   {entries.slice(range.start, range.end).map((entry, i) => (
                     <FeedRow
                       key={`${entry.game.id}-${entry.play.id}`}

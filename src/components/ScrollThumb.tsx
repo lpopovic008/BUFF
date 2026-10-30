@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { DRAG_SCROLL_EVENT } from "@/hooks/useDragScroll";
 
 /** How long the thumb stays up after the list stops moving (ms). */
 const LINGER_MS = 900;
@@ -24,17 +23,15 @@ export function ScrollThumb({ source }: { source: HTMLElement | null }) {
       if (range <= 1 || track <= 0) return;
       const size = Math.max(24, (track * source.clientHeight) / source.scrollHeight);
       thumb.style.height = `${size}px`;
-      thumb.style.top = `${source.offsetTop + pad + 4 + ((track - size) * source.scrollTop) / range}px`;
+      thumb.style.top = `${source.offsetTop + pad + 4 + ((track - size) * Math.min(range, Math.max(0, source.scrollTop))) / range}px`;
       thumb.style.opacity = "1";
       window.clearTimeout(timer);
       timer = window.setTimeout(() => (thumb.style.opacity = "0"), LINGER_MS);
     };
     source.addEventListener("scroll", show, { passive: true });
-    source.addEventListener(DRAG_SCROLL_EVENT, show);
     return () => {
       window.clearTimeout(timer);
       source.removeEventListener("scroll", show);
-      source.removeEventListener(DRAG_SCROLL_EVENT, show);
     };
   }, [source]);
   return (

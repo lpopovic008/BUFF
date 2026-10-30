@@ -8,8 +8,11 @@ const SLOP = 6;
 const CARRY_MS = 180;
 /** How much of a pull past the first or last page is followed. */
 const PULL = 0.35;
-/** How long the pages take to slide into place (ms). */
-const SLIDE_MS = 320;
+/**
+ * How stiffly the pages spring into place, as iOS's paging does: a critically damped spring (per ms), carrying on
+ * from the finger's speed.
+ */
+const SPRING = 0.02;
 
 /** Slid sideways by `x` px (none: back where it's drawn). */
 function slide(el: HTMLElement | null, x: number | null) {
@@ -62,27 +65,28 @@ export function useSwipePager({
     slide(latest.current.follow, null);
     window.dispatchEvent(new Event("resize"));
   };
-  const slideTo = (page: number, then?: () => void) => {
+  // Into place from where the pages are, moving at `v` (px/ms, the way the pages are slid) to begin with.
+  const slideTo = (page: number, then?: () => void, v = 0) => {
     const s = state.current;
     cancelAnimationFrame(s.frame);
-    const from = s.x;
     const to = page * width();
-    if (Math.abs(to - from) < 0.5) {
+    const x0 = s.x - to;
+    const done = () => {
+      s.frame = 0;
       apply(to);
       settle();
       then?.();
-      return;
-    }
+    };
+    if (Math.abs(x0) < 0.5 && Math.abs(v) < 0.05) return done();
     const start = performance.now();
     const step = (now: number) => {
-      const t = Math.min(1, (now - start) / SLIDE_MS);
-      apply(from + (to - from) * (1 - Math.pow(1 - t, 3)));
-      if (t < 1) s.frame = requestAnimationFrame(step);
-      else {
-        s.frame = 0;
-        settle();
-        then?.();
-      }
+      const t = now - start;
+      const fade = Math.exp(-SPRING * t);
+      const x = (x0 + (v + SPRING * x0) * t) * fade;
+      const speed = (v - SPRING * (v + SPRING * x0) * t) * fade;
+      if (Math.abs(x) < 0.5 && Math.abs(speed) < 0.02) return done();
+      apply(to + x);
+      s.frame = requestAnimationFrame(step);
     };
     s.frame = requestAnimationFrame(step);
   };
@@ -176,9 +180,14 @@ export function useSwipePager({
       const from = Math.round(d.base / w);
       const aimed = Math.round((state.current.x - v * CARRY_MS) / w);
       const target = Math.max(0, from - 1, Math.min(count - 1, from + 1, aimed));
-      slideTo(target, () => {
-        if (target !== index) latest.current.onPick(target);
-      });
+      // On from the finger's speed (the pages move the other way to it).
+      slideTo(
+        target,
+        () => {
+          if (target !== index) latest.current.onPick(target);
+        },
+        -v
+      );
     };
     for (const el of els) {
       el.addEventListener("pointerdown", down);

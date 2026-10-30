@@ -24,8 +24,8 @@ const HIGHLIGHT_MINE = false;
 
 // How fast the ticker drifts on its own, in px per second.
 const DRIFT_PX_PER_S = 40;
-// A flick's speed fades by e every this many ms, and is capped at this many px/s.
-const FLING_DECAY_MS = 450;
+// A flick's speed fades by e every this many ms — iOS's own deceleration (0.998 a ms) — and is capped at this many px/s.
+const FLING_DECAY_MS = 500;
 const MAX_FLING_PX_PER_S = 5000;
 // How far a finger must move before it counts as dragging the ticker (rather than a tap).
 const DRAG_SLOP_PX = 6;

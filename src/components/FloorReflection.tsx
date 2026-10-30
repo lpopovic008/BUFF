@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useId, useLayoutEffect, useRef } from "react";
-import { DRAG_SCROLL_EVENT } from "@/hooks/useDragScroll";
 
 /** How far down the floor a reflection reaches, and how strong it is at its top. */
 const REACH = "5rem";
@@ -43,10 +42,9 @@ function ownShift(el: HTMLElement): number {
  * Something standing on the floor reflected in it (`source`): its bottom part, upside down, fading out a little way
  * down — a list moving as it scrolls. Drawn from a copy of it (-webkit-box-reflect doesn't keep up with a box that
  * scrolls, and some browsers reflect the wrong part of it), laid out as it is (`className`, `style`: a list's padding
- * and fade), redone the moment it changes. A list the page scrolls itself (see useDragScroll, data-drag-scroll)
- * moves its copy with each move it makes, there and then — pulled past its ends too; one the browser scrolls, by a
+ * and fade), redone the moment it changes. A list (scrolled by the browser, as a phone scrolls) moves its copy by a
  * scroll timeline, so the two move in the same frame. Where there's none, and for anything scrolling within it, the
- * copy follows its scroll. Something coming up out of the floor (`rise`), or going back down into it (`sinkMs`),
+ * copy follows its scroll — past its ends too, where a phone's bounce reports it. Something coming up out of the floor (`rise`), or going back down into it (`sinkMs`),
  * has its reflection come down out of the floor's surface, or go back up into it, in step.
  */
 export function FloorReflection({
@@ -98,9 +96,8 @@ export function FloorReflection({
     if (!source || !out || !cp) return;
     const overflow = getComputedStyle(source).overflowY;
     const scrolls = overflow !== "visible";
-    // Scrolled by the page itself (see useDragScroll), its copy's moved with each move; else by its scroll timeline.
-    const driven = source.hasAttribute("data-drag-scroll");
-    const timeline = scrolls && !driven && overflow !== "hidden" && CSS.supports("animation-timeline", "--x") && CSS.supports("timeline-scope", "--x");
+    // Its copy moved by its scroll timeline, where there is one; else with each scroll.
+    const timeline = scrolls && overflow !== "hidden" && CSS.supports("animation-timeline", "--x") && CSS.supports("timeline-scope", "--x");
     timing.current.timed = timeline;
     if (timeline) {
       source.style.setProperty("scroll-timeline", `${name} y`);
@@ -113,12 +110,9 @@ export function FloorReflection({
       const moved = content.current;
       if (moved && scrolls) {
         if (timeline) moved.style.setProperty("--reflect-max", `${source.scrollHeight - source.clientHeight}px`);
-        else moved.style.transform = `translateY(${-source.scrollTop + (parseFloat(source.style.getPropertyValue("--overscroll")) || 0)}px)`;
+        else moved.style.transform = `translateY(${-source.scrollTop}px)`;
       }
-      for (const [from, to] of inner) {
-        to.scrollTop = from.scrollTop;
-        to.style.setProperty("--overscroll", from.style.getPropertyValue("--overscroll"));
-      }
+      for (const [from, to] of inner) to.scrollTop = from.scrollTop;
     };
     // Just under it, as wide as it — its copy as tall as it, turned over about its foot.
     // Where it stands, not where it's slid to on its way into (or out of) the floor.
@@ -151,20 +145,16 @@ export function FloorReflection({
       inner = [...froms].flatMap((from, i) => (from.scrollTop > 0 || from.scrollHeight > from.clientHeight + 1 ? [[from, tos[i]] as [HTMLElement, HTMLElement]] : []));
       place();
     };
-    // Moves past an end (--overscroll on it, or on what scrolls within it) aren't changes to copy.
-    const scrollers = () => new Set<Node>([source, ...inner.map(([from]) => from)]);
     const changed = (records: MutationRecord[]) => {
       // Going down into the floor: kept as it was as it goes.
       if (timing.current.sinkAt !== null) return;
-      const moving = scrollers();
       const left = (r: MutationRecord) => r.target instanceof Element && r.target.closest("[data-no-reflect]") !== null;
-      if (records.some((r) => !left(r) && (r.type !== "attributes" || r.attributeName !== "style" || !moving.has(r.target)))) recopy();
+      // Its own style (its scroll timeline, set here) isn't a change to copy.
+      if (records.some((r) => !left(r) && !(r.target === source && r.attributeName === "style"))) recopy();
     };
     recopy();
     // Scrolls within it don't bubble, so they're caught on their way down.
     source.addEventListener("scroll", follow, { capture: true, passive: true });
-    // Its own moves, and those of anything within it the page scrolls itself, caught on their way down too.
-    source.addEventListener(DRAG_SCROLL_EVENT, follow, { capture: true });
     const mutations = new MutationObserver(changed);
     mutations.observe(source, { subtree: true, childList: true, characterData: true, attributes: true });
     const resize = new ResizeObserver(place);
@@ -174,7 +164,6 @@ export function FloorReflection({
     document.addEventListener("animationend", place, true);
     return () => {
       source.removeEventListener("scroll", follow, { capture: true });
-      source.removeEventListener(DRAG_SCROLL_EVENT, follow, { capture: true });
       mutations.disconnect();
       resize.disconnect();
       window.removeEventListener("resize", place);

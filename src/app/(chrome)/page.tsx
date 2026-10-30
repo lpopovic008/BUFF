@@ -12,7 +12,6 @@ import { FloorCameraControls, RED_ZONE_PLAYS_AT_MS, RED_ZONE_PLAYS_MS, RED_ZONE_
 import { FloorReflection } from "@/components/FloorReflection";
 import { FloorPlay } from "@/components/FloorPlay";
 import { ScrollThumb } from "@/components/ScrollThumb";
-import { useDragScroll } from "@/hooks/useDragScroll";
 import { createFloorCameraStore } from "@/lib/floor-camera";
 import { LeagueTicker, TickerLeague } from "@/components/LeagueTicker";
 import { ByeTeam, LeagueLegendEntry, StartersByGame, viewPlayers } from "@/components/StartersByGame";
@@ -585,9 +584,6 @@ export default function DashboardPage() {
   // The floor moved around and zoomed (see FloorCameraControls), following the starters list while it's home.
   const [floorCamera] = useState(createFloorCameraStore);
   const [startersList, setStartersList] = useState<HTMLDivElement | null>(null);
-  // The page scrolls the starters list itself, so its reflection keeps up with it — pulled past its ends and springing
-  // back included (see useDragScroll).
-  useDragScroll(startersList);
 
   if (!loaded || leagues === null) {
     return (
@@ -797,7 +793,7 @@ export default function DashboardPage() {
     // and the starters list. Scrolled to its top, the graphs fill the room from under the ticker to the horizon, their
     // foot on it, the starters list behind it; with none up, the starters list from under the ticker. Scrolled, it goes
     // up under the see-through ticker and header and comes up from behind the horizon, reflected in the floor there —
-    // scrolled by the page itself (see useDragScroll), so its reflection moves with it, pulled past its ends and all.
+    // scrolled as a phone scrolls (its momentum and its bounce at the ends), its reflection moving with it.
     // The Red Zone comes up out of the floor in front of it (see redZoneStage) — stretched (⇕) up to the ticker, the
     // list sinks into the floor first, out of its way, and comes back up once it's down again.
     const graphsUp = graphsView !== null;
@@ -810,14 +806,13 @@ export default function DashboardPage() {
           <div className="absolute inset-x-0 top-0 overflow-hidden" style={{ height: stand ? stand.horizon : "50%" }}>
             <div
               ref={setStartersList}
-              data-drag-scroll
-              className={`h-full touch-none overflow-y-auto overscroll-none px-4 pb-8 transition-transform duration-500 ease-in-out [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+              data-scroll-list
+              className={`h-full touch-pan-y overflow-y-auto overscroll-y-contain px-4 pb-8 transition-transform duration-500 ease-in-out [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
                 redZoneTall ? "translate-y-full" : "delay-500"
               }`}
               style={{ paddingTop: `calc(${underTicker})` }}
             >
-              {/* Moved down (or up) as far as it's pulled past an end. */}
-              <div className="translate-y-[var(--overscroll,0px)]">
+              <div>
                 {graphsUp && stand ? (
                   <div className="flex flex-col pt-1" style={{ height: `calc(${stand.horizon}px - (${underTicker}))` }}>
                     {graphsView}
@@ -890,15 +885,14 @@ export default function DashboardPage() {
         {/* Its foot level with the Red Zone's, so the two are reflected in the floor from the same line. */}
         <div className="sticky top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] h-[calc(var(--room-h,100vh)-var(--header-h,0px)-var(--ticker-h,0px)-0.625rem-var(--rz-foot,0px))] w-64 shrink-0 lg:w-72">
           {/* Its scrollbar hidden (its reflection's copy has none, so they'd not line up), a thin thumb up as it scrolls;
-              scrolled by the page, so its reflection moves with it (see useDragScroll). */}
+              its reflection moving with its scroll. */}
           <div
             ref={setStartersList}
-            data-drag-scroll
-            className="absolute inset-x-0 bottom-0 touch-none overflow-y-auto overscroll-none pb-16 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            data-scroll-list
+            className="absolute inset-x-0 bottom-0 touch-pan-y overflow-y-auto overscroll-y-contain pb-16 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             style={{ top: `calc(-1 * (${UNDER_TICKER}))`, paddingTop: `calc(${UNDER_TICKER})` }}
           >
-            {/* Moved down (or up) as far as it's pulled past an end. */}
-            <div className="translate-y-[var(--overscroll,0px)]">{startersView}</div>
+            <div>{startersView}</div>
           </div>
           <ScrollThumb source={startersList} />
         </div>

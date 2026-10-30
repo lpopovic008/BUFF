@@ -9,7 +9,6 @@ import { HORIZON_SHARE } from "@/lib/grid-room";
 import { FloorGrid } from "@/components/FloorGrid";
 import { FloorReflection } from "@/components/FloorReflection";
 import { ScrollThumb } from "@/components/ScrollThumb";
-import { useDragScroll } from "@/hooks/useDragScroll";
 import { useSwipePager } from "@/hooks/useSwipePager";
 import { LeagueSwitcher, LeagueTitle, RoomLeague } from "@/components/LeagueSwitcher";
 import { MatchupList, MatchupProviders, MatchupSlide, MatchupStack, useMatchupHeadToHead } from "@/components/LeagueMatchupCarousel";
@@ -277,7 +276,6 @@ function PhoneRoom({ rooms, leagues, index, week, userId, onPick }: RoomProps) {
 function LeaguePane({ league, week, userId, reflections }: { league: RoomLeagueData; week: number | null; userId: string | null | undefined; reflections: HTMLElement | null }) {
   const { leagueId, standings, owners, myRosterId, carousel, allTime, providers } = useLeagueRoom(league, week, userId);
   const [column, setColumn] = useState<HTMLDivElement | null>(null);
-  useDragScroll(column);
   // Another week's lineups start from their top.
   useEffect(() => {
     column?.scrollTo({ top: 0 });
@@ -288,12 +286,11 @@ function LeaguePane({ league, week, userId, reflections }: { league: RoomLeagueD
     <>
       <div
         ref={setColumn}
-        data-drag-scroll
-        className="h-full touch-none overflow-y-auto overscroll-none px-4 pb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        data-scroll-list
+        className="h-full touch-pan-y overflow-y-auto overscroll-y-contain px-4 pb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         style={pad}
       >
-        {/* Moved down (or up) as far as it's pulled past an end. */}
-        <div className="translate-y-[var(--overscroll,0px)] pt-2">
+        <div className="pt-2">
           {!carousel
             ? loadingLineups
             : games.length === 0
@@ -331,28 +328,25 @@ function DesktopRoom({ rooms, leagues, index, week, userId, onPick }: RoomProps)
   const chosen = picked && picked.leagueId === leagueId && picked.week === week ? games.find((g) => g.matchupId === picked.id) : undefined;
   const shownGame = chosen ?? games.find((g) => g.teams.some((t) => t.rosterId === myRosterId)) ?? games[0];
 
-  // The columns, scrolled by the page itself so their reflections keep up with them (see useDragScroll).
+  // The columns, each scrolling on its own.
   const [leagueColumn, setLeagueColumn] = useState<HTMLDivElement | null>(null);
   const [lineupColumn, setLineupColumn] = useState<HTMLDivElement | null>(null);
   const [matchupColumn, setMatchupColumn] = useState<HTMLDivElement | null>(null);
-  useDragScroll(leagueColumn);
-  useDragScroll(lineupColumn);
-  useDragScroll(matchupColumn);
   // Another league's (or week's) lineups start from their top.
   useEffect(() => {
     lineupColumn?.scrollTo({ top: 0 });
     matchupColumn?.scrollTo({ top: 0 });
   }, [leagueId, week, lineupColumn, matchupColumn]);
 
-  const column = "absolute inset-x-0 bottom-0 top-0 touch-none overflow-y-auto overscroll-none pb-16 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
+  const column = "absolute inset-x-0 bottom-0 top-0 touch-pan-y overflow-y-auto overscroll-y-contain pb-16 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
   const columnPad = { paddingTop: `calc(${UNDER_HEADER})` };
   return (
     <>
       <div className="fixed inset-x-0 top-0 flex gap-4 px-4" style={{ height: `calc(var(--room-h, 100vh) - ${FOOT})` }}>
         {/* Your leagues by name, picking the one shown — lit like the header's page tabs. */}
         <div className="relative w-64 shrink-0 2xl:w-72">
-          <div ref={setLeagueColumn} data-drag-scroll className={column} style={columnPad}>
-            <ul className="flex translate-y-[var(--overscroll,0px)] flex-col gap-1" aria-label="Your leagues">
+          <div ref={setLeagueColumn} data-scroll-list className={column} style={columnPad}>
+            <ul className="flex flex-col gap-1" aria-label="Your leagues">
               {leagues.map((league) => {
                 const on = league.leagueId === leagueId;
                 return (
@@ -377,8 +371,8 @@ function DesktopRoom({ rooms, leagues, index, week, userId, onPick }: RoomProps)
 
         {/* The picked matchup's lineups, slot by slot. */}
         <div className="relative min-w-0 flex-1">
-          <div ref={setLineupColumn} data-drag-scroll className={column} style={columnPad}>
-            <div className="mx-auto max-w-3xl translate-y-[var(--overscroll,0px)]">
+          <div ref={setLineupColumn} data-scroll-list className={column} style={columnPad}>
+            <div className="mx-auto max-w-3xl">
               {!carousel
                 ? loadingLineups
                 : !shownGame
@@ -393,8 +387,8 @@ function DesktopRoom({ rooms, leagues, index, week, userId, onPick }: RoomProps)
 
         {/* The league's matchups, picking the one whose lineups are in the middle. */}
         <div className="relative w-64 shrink-0 2xl:w-72">
-          <div ref={setMatchupColumn} data-drag-scroll className={column} style={columnPad}>
-            <div className="translate-y-[var(--overscroll,0px)]">
+          <div ref={setMatchupColumn} data-scroll-list className={column} style={columnPad}>
+            <div>
               {shownGame ? (
                 <MatchupList
                   games={games}
