@@ -207,6 +207,10 @@ export function useRedZoneFeed(
     for (const { game, players } of games) {
       const live = game.live;
       if (game.state !== "in" || !live?.isRedZone || !live.possession) continue;
+      // The drive's over once it's scored (or tried a field goal): not still in the red zone through the try and the
+      // kickoff, as the scoreboard can have it.
+      const last = live.lastPlay;
+      if (last && (last.scoreValue > 0 || /field goal|extra point|two-point|touchdown/i.test(`${last.type} ${last.text}`))) continue;
       const onOffense = players.filter((p) => p.team === live.possession && p.position !== "DEF");
       if (onOffense.length > 0 || scope === "all") out.push({ game, team: live.possession, downDistance: live.downDistance, players: onOffense });
     }
