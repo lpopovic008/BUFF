@@ -17,8 +17,8 @@ function slide(el: HTMLElement | null, x: number | null) {
 }
 
 /**
- * Pages side by side, a screen's width each, swiped through together: every one of `tracks` (rows of `count` pages,
- * each as wide as `surfaces[0]`) slid along as one by a sideways drag on any of `surfaces`, coming to rest on the
+ * Pages side by side, swiped through together: every one of `tracks` (rows of `count` pages, each as wide as the
+ * track — the first surface's width, or narrower, moved in proportion) slid along as one by a sideways drag on any of `surfaces`, coming to rest on the
  * page it's let go nearest (carried on a little by its speed, never more than one page over) — then `onPick(page)`.
  * Slides there too when `index` changes from elsewhere. Up-and-down drags are left alone.
  *
@@ -51,7 +51,8 @@ export function useSwipePager({
   const apply = (x: number) => {
     const s = state.current;
     s.x = x;
-    for (const t of latest.current.tracks) slide(t, -x);
+    // Each track's pages as wide as it is (the swiped surface's may be wider), slid as far through them.
+    for (const t of latest.current.tracks) slide(t, t ? (-x * t.clientWidth) / s.width : 0);
     slide(latest.current.follow, s.placedAt - x);
   };
   // At rest: what follows the pages placed again where they now stand.
@@ -97,6 +98,8 @@ export function useSwipePager({
       settle();
       return;
     }
+    // A track that's new (or redrawn) put where the others are.
+    apply(s.x);
     if (!s.frame && Math.abs(s.x - index * s.width) > 0.5) slideTo(index);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- when the page changes, or the tracks do
   }, [index, count, tracks[0], tracks[1], follow]);

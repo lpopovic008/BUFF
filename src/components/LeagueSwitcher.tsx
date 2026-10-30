@@ -25,10 +25,9 @@ export function LeagueTitle({ league, after }: { league: RoomLeague; after?: Rea
 }
 
 /**
- * On a phone, the league you're looking at along the top of the screen, right under the header, where the home page's
- * ticker runs: its name, centred — swiped sideways to the next league (or back) along with its lineups under it (see
- * useSwipePager: `bar` is swiped, `track` slides), or tapped to drop down every league to pick from. It publishes its
- * height as --ticker-h, as the ticker does, so what's under it starts below it.
+ * On a phone, the league you're looking at in the middle of the page header (see header-slot.ts): its name, centred —
+ * swiped sideways to the next league (or back) along with its lineups under it (see useSwipePager: `bar` is swiped,
+ * `track` slides), or tapped to drop down every league to pick from, right across the screen under the header.
  */
 export function LeagueSwitcher({
   leagues,
@@ -45,20 +44,6 @@ export function LeagueSwitcher({
 }) {
   const own = useRef<HTMLElement | null>(null);
   const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    const el = own.current;
-    if (!el) return;
-    const root = document.documentElement.style;
-    const publish = () => root.setProperty("--ticker-h", `${el.getBoundingClientRect().height}px`);
-    publish();
-    const observer = new ResizeObserver(publish);
-    observer.observe(el);
-    return () => {
-      observer.disconnect();
-      root.removeProperty("--ticker-h");
-    };
-  }, []);
 
   // A tap anywhere else puts the list away.
   useEffect(() => {
@@ -78,7 +63,7 @@ export function LeagueSwitcher({
         bar(el);
       }}
       aria-label="Your leagues"
-      className="fixed inset-x-0 top-[var(--header-h,0px)] z-40 touch-none select-none bg-page/70 backdrop-blur-[3px]"
+      className="touch-none select-none"
     >
       <div className="overflow-hidden">
         <div ref={track} className="flex will-change-transform">
@@ -89,7 +74,7 @@ export function LeagueSwitcher({
               aria-expanded={open}
               aria-label={`${league.name} — pick another league`}
               onClick={() => setOpen((o) => !o)}
-              className="w-full shrink-0 px-4 py-2.5 text-ink-primary"
+              className="w-full shrink-0 px-1 py-1.5 text-ink-primary"
             >
               <LeagueTitle
                 league={league}
@@ -99,7 +84,7 @@ export function LeagueSwitcher({
           ))}
         </div>
       </div>
-      {/* Every league, to pick one from. */}
+      {/* Every league, to pick one from — under the header, right across it (its row is what it's placed against). */}
       {open ? (
         <ul className="absolute inset-x-0 top-full max-h-[50svh] overflow-y-auto bg-page">
           {leagues.map((league) => {

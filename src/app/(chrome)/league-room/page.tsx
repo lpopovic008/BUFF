@@ -20,6 +20,7 @@ import { useLineupDetails } from "@/hooks/useLineupDetails";
 import { getLeagueSummary, LeagueSummary, teamStandings } from "@/lib/league-data";
 import { avatarUrl, getCurrentWeek } from "@/lib/sleeper";
 import { setHeaderWeek } from "@/lib/header-week";
+import { setHeaderBare, useHeaderSlot } from "@/lib/header-slot";
 import { visibleLeagues } from "@/lib/localStore";
 
 /** The NFL regular season's weeks, all of which the header's week picker offers. */
@@ -33,9 +34,9 @@ const onDesktopChange = (listener: () => void) => {
   query.addEventListener("change", listener);
   return () => query.removeEventListener("change", listener);
 };
-// Where the columns' first rows sit: under the header (and on a phone the league switcher), and a gap.
+// Where the columns' first rows sit: under the header (the league switcher in it, on a phone), and a gap.
 const UNDER_HEADER = "var(--header-h, 0px) + 0.625rem";
-const UNDER_SWITCHER = "var(--header-h, 0px) + var(--ticker-h, 0px) + 0.25rem";
+const UNDER_SWITCHER = "var(--header-h, 0px) + 0.25rem";
 // The line on the floor the columns stand on, up from the room's bottom: the home page's starters list's.
 const FOOT = "3.25rem";
 
@@ -88,9 +89,8 @@ const noMatchups = <p className="text-sm text-ink-secondary">No matchups this we
  * The league page in the room (for now beside the old one, see /league): your leagues, the lineups and the league's
  * matchups standing on the floor. From laptop width up, three columns facing you square on, their feet on one line
  * across the floor, reflected in it — your leagues on the left, picking the one shown; its matchups on the right,
- * picking the one whose lineups are in the middle (yours, until another's picked). On a phone, the league's name along
- * the top, where the home page's ticker runs, and its matchups' lineups under it at the back of the room, above the
- * horizon, where the home page's starters list is — swiped sideways together to the next league (or tapped for the list).
+ * picking the one whose lineups are in the middle (yours, until another's picked). On a phone, the league's name in
+ * the header, and its matchups' lineups right under it at the back of the room, above the horizon, where the home page's starters list is — swiped sideways together to the next league (or tapped for the list).
  */
 function LeagueRoomContent() {
   const { config, loaded } = useConfig();
@@ -221,8 +221,9 @@ interface RoomProps {
 }
 
 /**
- * A phone: one scene that doesn't scroll, standing in the room — the league's name along its top (see LeagueSwitcher),
- * and under it each league's lineups side by side, the one picked on screen. A sideways swipe anywhere slides the
+ * A phone: one scene that doesn't scroll, standing in the room — the header cleared down to a back button, the
+ * league's name (see LeagueSwitcher) and the app's logo, and under it each league's lineups side by side, the one
+ * picked on screen. A sideways swipe anywhere slides the
  * names and the lineups along together to the next league (see useSwipePager).
  */
 function PhoneRoom({ rooms, leagues, index, week, userId, onPick }: RoomProps) {
@@ -240,6 +241,12 @@ function PhoneRoom({ rooms, leagues, index, week, userId, onPick }: RoomProps) {
     index,
     onPick: (page) => onPick(leagues[page].leagueId),
   });
+  // The header taken over: the league's name in its middle.
+  useEffect(() => {
+    setHeaderBare(true);
+    return () => setHeaderBare(false);
+  }, []);
+  const slot = useHeaderSlot();
   return (
     <>
       <div ref={setScene} className="fixed inset-0 touch-none">
@@ -255,14 +262,16 @@ function PhoneRoom({ rooms, leagues, index, week, userId, onPick }: RoomProps) {
         </div>
       </div>
       <div ref={setReflections} className="pointer-events-none fixed inset-0 will-change-transform" />
-      <LeagueSwitcher leagues={leagues} selectedId={leagues[index].leagueId} onSelect={onPick} bar={setBar} track={setNames} />
+      {slot
+        ? createPortal(<LeagueSwitcher leagues={leagues} selectedId={leagues[index].leagueId} onSelect={onPick} bar={setBar} track={setNames} />, slot)
+        : null}
     </>
   );
 }
 
 /**
  * A league's lineups on a phone: every matchup stacked, yours open (see MatchupStack), scrolling as one list at the
- * back of the room, above the horizon — up under the see-through switcher and header and coming up from behind the
+ * back of the room, above the horizon — up under the see-through header and coming up from behind the
  * horizon, reflected in the floor there (into `reflections`).
  */
 function LeaguePane({ league, week, userId, reflections }: { league: RoomLeagueData; week: number | null; userId: string | null | undefined; reflections: HTMLElement | null }) {

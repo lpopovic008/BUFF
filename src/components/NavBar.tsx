@@ -2,12 +2,14 @@
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useNFLState } from "@/hooks/useNFLState";
 import { useCombinedRecord } from "@/hooks/useCombinedRecord";
 import { appPages } from "@/components/TabBar";
 import { useHeaderWeek } from "@/lib/header-week";
 import { WeekPicker, weekLabel } from "@/components/WeekPicker";
+import { setHeaderSlot, useHeaderBare } from "@/lib/header-slot";
+import { ChevronLeftIcon } from "@/components/ui/Icon";
 
 /** The app's walkie-talkie on its own, no tile — flat, in the text's color, its speaker grille cut through. */
 function Logo({ className }: { className?: string }) {
@@ -46,6 +48,9 @@ export function NavBar() {
   const ref = useRef<HTMLElement>(null);
   // From tablet width up, the app's pages: Profile as an icon by your record, the rest as text tabs by the wordmark.
   const [profile, ...tabs] = appPages(usePathname());
+  // A page that's taken the header over (see header-slot.ts).
+  const bare = useHeaderBare();
+  const router = useRouter();
 
   useEffect(() => {
     const el = ref.current;
@@ -61,6 +66,27 @@ export function NavBar() {
     // Padded down by the safe area, so on a phone its background fills the strip around the camera and
     // its contents start just under it — and no lower: a little less padding of its own on a phone.
     <header ref={ref} className="sticky top-0 z-50 border-b border-border bg-page/70 pt-[env(safe-area-inset-top)] backdrop-blur-[3px]">
+      {bare ? (
+        // Cleared by the page: back on the left, the page's own content in the middle, the app's icon (home) on the
+        // right — the ends as wide as each other, so the middle's centred on the screen.
+        <div className="relative grid grid-cols-[2.25rem_minmax(0,1fr)_2.25rem] items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 md:px-1">
+          <button
+            type="button"
+            aria-label="Back"
+            title="Back"
+            // Back where you came from — or, with nowhere to go back to (opened from a link), home.
+            onClick={() => (window.history.length > 1 ? router.back() : router.push("/"))}
+            className={HEADER_BUTTON}
+          >
+            <ChevronLeftIcon width={18} height={18} />
+          </button>
+          <div ref={setHeaderSlot} className="min-w-0" />
+          <Link href="/" aria-label="Commi$h — home" title="Commi$h" className="justify-self-end text-ink-primary transition-transform active:scale-90">
+            <Logo className="block h-7 sm:h-9" />
+          </Link>
+        </div>
+      ) : (
+      <>
       {/* The week centered — unless one side's too wide for that (the page tabs beside a long week, on a tablet), then just clear of it. */}
       <div className="relative grid grid-cols-[minmax(max-content,1fr)_auto_minmax(max-content,1fr)] items-center gap-2 px-4 py-2 sm:gap-3 sm:px-6 sm:py-3 md:px-1">
         {/* The app's icon, home — and from tablet width up the pages as text tabs, the one you're on lit like a map
@@ -123,6 +149,8 @@ export function NavBar() {
           </Link>
         </div>
       </div>
+      </>
+      )}
     </header>
   );
 }
