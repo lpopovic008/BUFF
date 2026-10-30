@@ -106,7 +106,7 @@ function LinePoints({ line, mine, at, scoring }: { line: PlayLine; mine: boolean
 
 /**
  * One person in a play: their photo (a defense's logo), position and name,
- * the leagues you start them in, how their game is going, and what the play
+ * the leagues you start them in (in full), how their game is going, and what the play
  * was worth to them.
  */
 function PlayerLine({
@@ -115,10 +115,13 @@ function PlayerLine({
   legendByLeagueId,
   at,
   action,
+  leagues = true,
 }: {
   line: PlayLine;
   /** What he did on the play, said beside his name (simple descriptions) — none in full. */
   action?: string;
+  /** Whether the leagues you start him in are marked by his name (in full, not with simple descriptions). */
+  leagues?: boolean;
   /** Set when they're one of your starters. */
   starter: GroupedStarter | undefined;
   legendByLeagueId: Map<string, LeagueLegendEntry>;
@@ -149,7 +152,7 @@ function PlayerLine({
           {line.name}
         </span>
         {action ? <span className="text-[0.75rem] font-semibold text-ink-secondary">{action}</span> : null}
-        {starter && starter.leagueIds.length > 0 ? (
+        {leagues && starter && starter.leagueIds.length > 0 ? (
           <span className="flex shrink-0 items-center gap-0.5 self-center">
             {starter.leagueIds.map((id) => (
               <LeagueMark key={id} league={legendByLeagueId.get(id)} className="h-3 w-3" />
@@ -372,6 +375,7 @@ const FeedRow = memo(function FeedRow({ entry, starterById, legendByLeagueId, ar
               legendByLeagueId={legendByLeagueId}
               at={play.at ?? 0}
               action={simple ? playAction(line.did) : undefined}
+              leagues={full}
             />
           ))}
         </ul>
