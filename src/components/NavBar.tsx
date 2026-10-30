@@ -31,9 +31,10 @@ function Logo({ className }: { className?: string }) {
   );
 }
 
-// The header's square buttons, styled like the map's own controls.
-const HEADER_BUTTON =
-  "flex h-7 w-7 shrink-0 items-center justify-center border border-grid bg-page text-ink-secondary transition-colors hover:text-ink-primary active:scale-90 disabled:opacity-30 disabled:hover:text-ink-secondary sm:h-9 sm:w-9";
+// The header's square buttons: bare (the profile button, just its icon), or outlined like the map's own controls.
+const BARE_HEADER_BUTTON =
+  "flex h-7 w-7 shrink-0 items-center justify-center text-ink-secondary transition-colors hover:text-ink-primary active:scale-90 disabled:opacity-30 disabled:hover:text-ink-secondary sm:h-9 sm:w-9";
+const HEADER_BUTTON = `${BARE_HEADER_BUTTON} border border-grid bg-page`;
 
 /**
  * The page header, pinned to the top of the screen. It publishes its own
@@ -91,14 +92,14 @@ export function NavBar() {
       <div className="relative grid grid-cols-[minmax(max-content,1fr)_auto_minmax(max-content,1fr)] items-center gap-2 px-4 py-2 sm:gap-3 sm:px-6 sm:py-3 md:px-1">
         {/* The app's icon, home — and from tablet width up the pages as text tabs, the one you're on lit like a map
             tag. (Back and forward sit just under the header: see HistoryButtons.) */}
-        <div className="flex min-w-0 items-center gap-2 justify-self-start sm:gap-3 lg:gap-5">
-          {/* From tablet width up, centered in a box the size of the profile button across the header, the same way in
-              from its edge, so the two ends mirror each other. */}
+        <div className="flex min-w-0 items-center gap-2 justify-self-start sm:gap-3 md:gap-0">
+          {/* From tablet width up, in a box the size of the profile button, halfway between the screen's edge and the
+              first tab's word (past the tab's own padding). */}
           <Link
             href="/"
             aria-label="Commi$h — home"
             title="Commi$h"
-            className="shrink-0 text-ink-primary transition-transform active:scale-90 md:flex md:h-9 md:w-9 md:items-center md:justify-center"
+            className="shrink-0 text-ink-primary transition-transform active:scale-90 md:ml-1 md:mr-0.5 md:flex md:h-9 md:w-9 md:items-center md:justify-center lg:ml-3 lg:mr-2.5"
           >
             <Logo className="block h-7 sm:h-9" />
           </Link>
@@ -134,7 +135,8 @@ export function NavBar() {
           <span />
         )}
 
-        <div className="flex items-center justify-self-end gap-2 sm:gap-4">
+        {/* From tablet width up, the profile button's icon halfway between your record and the screen's edge. */}
+        <div className="flex items-center justify-self-end gap-2 sm:gap-4 md:gap-2.5">
           {/* Your record across the leagues you show (those hidden in Settings left out). */}
           {record ? <span className="text-sm font-bold tabular-nums tracking-wide text-ink-primary sm:text-lg">{record}</span> : null}
           <Link
@@ -143,7 +145,7 @@ export function NavBar() {
             title={profile.label}
             aria-current={profile.active ? "page" : undefined}
             // On a phone it's in the tab bar along the bottom (see TabBar).
-            className={`${HEADER_BUTTON} max-md:hidden ${profile.active ? "border-[var(--map-tag)] bg-[var(--map-tag)] text-[var(--map-tag-ink)] hover:text-[var(--map-tag-ink)]" : ""}`}
+            className={`${BARE_HEADER_BUTTON} max-md:hidden md:mr-1.5 ${profile.active ? "bg-[var(--map-tag)] text-[var(--map-tag-ink)] hover:text-[var(--map-tag-ink)]" : ""}`}
           >
             <profile.icon width={18} height={18} />
           </Link>
