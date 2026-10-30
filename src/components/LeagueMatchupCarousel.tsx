@@ -452,7 +452,7 @@ function MatchupHeader({
 
 /**
  * The matchup's header outlined rather than lit (the League Room's): each team's rank and name on top, its record,
- * streak, PF/PA ranks and all-time head-to-head under them — and its score inside them, right over its column of
+ * streak and PF/PA ranks under them (no all-time head-to-head) — and its score inside them, right over its column of
  * player points, its projected total under it as each starter's projection is under their points.
  */
 function OutlinedMatchupHeader({
@@ -460,17 +460,16 @@ function OutlinedMatchupHeader({
   left,
   right,
   standings,
-  headToHead,
 }: {
   leagueId: string;
   left: MatchupTeam;
   right: MatchupTeam | undefined;
   standings: Map<number, TeamStanding>;
+  /** Taken as MatchupHeader's is, but not shown. */
   headToHead: Map<number, AllTimeRecord> | null;
 }) {
   const half = (t: MatchupTeam, side: "left" | "right") => {
     const { rank, record, streak, pointsRanks } = standings.get(t.rosterId) ?? {};
-    const rec = right ? headToHead?.get(t.rosterId) : undefined;
     const end = side === "right" ? "justify-end" : "";
     return (
       <div className={`grid min-w-0 gap-x-2 gap-y-0.5 ${side === "left" ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-[auto_minmax(0,1fr)]"}`}>
@@ -489,7 +488,6 @@ function OutlinedMatchupHeader({
           {record ? <span className="text-xs font-semibold tabular-nums text-ink-secondary">{formatRecord(record.wins, record.losses, record.ties)}</span> : null}
           <StreakBadge streak={streak} />
           <PointsRankBadges pointsRanks={pointsRanks} leagueSize={standings.size} />
-          {rec ? <HeadToHeadBadge wins={rec.wins} losses={rec.losses} /> : null}
         </span>
       </div>
     );
