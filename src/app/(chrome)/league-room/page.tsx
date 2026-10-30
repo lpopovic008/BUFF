@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
@@ -9,15 +10,14 @@ import { FloorGrid } from "@/components/FloorGrid";
 import { FloorReflection } from "@/components/FloorReflection";
 import { ScrollThumb } from "@/components/ScrollThumb";
 import { useDragScroll } from "@/hooks/useDragScroll";
-import { TickerLeague } from "@/components/LeagueTicker";
-import { LeagueLines, LeagueSwitcher } from "@/components/LeagueSwitcher";
+import { useSwipePager } from "@/hooks/useSwipePager";
+import { LeagueSwitcher, LeagueTitle, RoomLeague } from "@/components/LeagueSwitcher";
 import { MatchupList, MatchupProviders, MatchupSlide, MatchupStack, useMatchupHeadToHead } from "@/components/LeagueMatchupCarousel";
 import { useConfig } from "@/hooks/useConfig";
-import { useDashboardMatchups } from "@/hooks/useDashboardMatchups";
-import { useAsItStands, usePendingMatchups, useSummariesAsItStands } from "@/hooks/useAsItStands";
+import { PendingMatchups, usePendingMatchups, useSummariesAsItStands } from "@/hooks/useAsItStands";
 import { useLeagueMatchupCarousel } from "@/hooks/useLeagueMatchupCarousel";
 import { useLineupDetails } from "@/hooks/useLineupDetails";
-import { getLeagueSummary, lastFinishedWeek, LeagueSummary, teamStandings } from "@/lib/league-data";
+import { getLeagueSummary, LeagueSummary, teamStandings } from "@/lib/league-data";
 import { avatarUrl, getCurrentWeek } from "@/lib/sleeper";
 import { setHeaderWeek } from "@/lib/header-week";
 import { visibleLeagues } from "@/lib/localStore";
@@ -39,13 +39,58 @@ const UNDER_SWITCHER = "var(--header-h, 0px) + var(--ticker-h, 0px) + 0.25rem";
 // The line on the floor the columns stand on, up from the room's bottom: the home page's starters list's.
 const FOOT = "3.25rem";
 
+/** One league as the room shows it: its official summary, as it stands (see useSummariesAsItStands), and its unfinished weeks' matchups. */
+interface RoomLeagueData {
+  official: LeagueSummary;
+  shown: LeagueSummary;
+  pending: PendingMatchups | null;
+}
+
+/**
+ * A league's lineups for a week, and all that's shown around them: its matchups, each
+ * team's standing, owner and all-time head-to-head, each starter's tone and note, and each team's projected total.
+ */
+function useLeagueRoom(league: RoomLeagueData, week: number | null, userId: string | null | undefined) {
+  const { official, shown, pending } = league;
+  const leagueId = official.league.league_id;
+  const standings = useMemo(() => teamStandings(shown), [shown]);
+  // Who owns each roster, for the all-time head-to-head beside each matchup's PF/PA.
+  const owners = useMemo(
+    () => new Map((official.rosters ?? []).filter((r) => r.owner_id).map((r) => [r.roster_id, r.owner_id as string])),
+    [official]
+  );
+  const myRosterId = official.standings.find((r) => r.ownerId === userId)?.rosterId ?? null;
+  const carousel = useLeagueMatchupCarousel(leagueId, week);
+  const season = official.league.season ?? null;
+  const scoring = official.league.scoring_settings;
+  const { projected, lineTones, lineNotes } = useLineupDetails(carousel, season, week, scoring);
+  const allTime = useMatchupHeadToHead(leagueId, pending, owners);
+  const providers = (children: React.ReactNode) => (
+    <MatchupProviders
+      projected={projected}
+      lineTones={lineTones}
+      lineNotes={lineNotes}
+      dynasty={carousel?.dynasty}
+      positions={carousel?.positions}
+      season={season}
+      scoring={scoring}
+    >
+      {children}
+    </MatchupProviders>
+  );
+  return { leagueId, standings, owners, myRosterId, carousel, allTime, providers };
+}
+
+const loadingLineups = <p className="text-sm text-ink-secondary">Loading lineups…</p>;
+const noMatchups = <p className="text-sm text-ink-secondary">No matchups this week.</p>;
+
 /**
  * The league page in the room (for now beside the old one, see /league): your leagues, the lineups and the league's
  * matchups standing on the floor. From laptop width up, three columns facing you square on, their feet on one line
  * across the floor, reflected in it — your leagues on the left, picking the one shown; its matchups on the right,
- * picking the one whose lineups are in the middle (yours, until another's picked). On a phone, the league along the
- * top, where the home page's ticker runs (swiped to another, or tapped for the list), and its matchups' lineups
- * under it at the back of the room, above the horizon, where the home page's starters list is.
+ * picking the one whose lineups are in the middle (yours, until another's picked). On a phone, the league's name along
+ * the top, where the home page's ticker runs, and its matchups' lineups under it at the back of the room, above the
+ * horizon, where the home page's starters list is — swiped sideways together to the next league (or tapped for the list).
  */
 function LeagueRoomContent() {
   const { config, loaded } = useConfig();
@@ -102,73 +147,26 @@ function LeagueRoomContent() {
   }, [loaded, ids]);
 
   // Standings counting the week being played, when "as it stands" is on — as on the home page.
-  const asItStands = useAsItStands();
   const shownSummaries = useSummariesAsItStands(summaries);
   const pendingByLeague = usePendingMatchups(summaries);
-  const targets = useMemo(
+  const rooms = useMemo<RoomLeagueData[]>(
     () =>
-      (summaries ?? []).flatMap((s) => {
-        const me = s.standings.find((r) => r.ownerId === config.sleeperUserId);
-        return me ? [{ leagueId: s.league.league_id, myRosterId: me.rosterId }] : [];
-      }),
-    [summaries, config.sleeperUserId]
+      (summaries ?? []).map((official, i) => ({
+        official,
+        shown: shownSummaries?.[i] ?? official,
+        pending: pendingByLeague?.get(official.league.league_id) ?? null,
+      })),
+    [summaries, shownSummaries, pendingByLeague]
   );
-  const matchups = useDashboardMatchups(targets, shownWeek);
-  // Each league as the ticker shows it: your matchup this week and the standings around it.
-  const leagues = useMemo<TickerLeague[]>(
-    () =>
-      (summaries ?? []).map((official, i) => {
-        const summary = shownSummaries?.[i] ?? official;
-        const leagueId = official.league.league_id;
-        const myRow = summary.standings.find((r) => r.ownerId === config.sleeperUserId);
-        const matchup = matchups[leagueId];
-        const standings = teamStandings(summary);
-        const standingOf = (rosterId: number) => standings.get(rosterId) ?? {};
-        return {
-          leagueId,
-          name: official.league.name,
-          logo: avatarUrl(official.league.avatar, "full"),
-          matchup,
-          my: myRow ? standingOf(myRow.rosterId) : null,
-          opponent: matchup?.opponent ? standingOf(matchup.opponent.rosterId) : undefined,
-          leagueSize: summary.standings.length,
-          // The winner once the week's official — or, with "as it stands" on, whoever's ahead now.
-          winner:
-            matchup?.opponent && matchup.my.points !== matchup.opponent.points && (asItStands || (shownWeek != null && shownWeek <= lastFinishedWeek(official.league)))
-              ? matchup.my.points > matchup.opponent.points
-                ? "my"
-                : "opponent"
-              : null,
-        };
-      }),
-    [summaries, shownSummaries, matchups, config.sleeperUserId, asItStands, shownWeek]
+  const leagues = useMemo<RoomLeague[]>(
+    () => rooms.map(({ official }) => ({ leagueId: official.league.league_id, name: official.league.name, logo: avatarUrl(official.league.avatar, "full") })),
+    [rooms]
   );
 
   // The league shown: the one in the address (?id=), else your first.
   const asked = useSearchParams().get("id");
-  const index = Math.max(0, (summaries ?? []).findIndex((s) => s.league.league_id === asked));
-  const official = summaries?.[index] ?? null;
-  const summary = shownSummaries?.[index] ?? official;
-  const leagueId = official?.league.league_id ?? null;
+  const index = Math.max(0, leagues.findIndex((l) => l.leagueId === asked));
   const pickLeague = (id: string) => window.history.replaceState(null, "", `?id=${id}`);
-
-  const standings = useMemo(() => (summary ? teamStandings(summary) : new Map()), [summary]);
-  // Who owns each roster, for the all-time head-to-head beside each matchup's PF/PA.
-  const owners = useMemo(
-    () => new Map((official?.rosters ?? []).filter((r) => r.owner_id).map((r) => [r.roster_id, r.owner_id as string])),
-    [official]
-  );
-  const myRosterId = official?.standings.find((r) => r.ownerId === config.sleeperUserId)?.rosterId ?? null;
-  const carousel = useLeagueMatchupCarousel(leagueId, shownWeek);
-  const season = official?.league.season ?? null;
-  const scoring = official?.league.scoring_settings;
-  const { projected, lineTones, lineNotes } = useLineupDetails(carousel, season, shownWeek, scoring);
-  const allTime = useMatchupHeadToHead(leagueId ?? "", leagueId ? pendingByLeague?.get(leagueId) : null, owners);
-  // The matchup whose lineups are in the middle (from laptop width up): yours, until another's picked — in that league, that week.
-  const [picked, setPicked] = useState<{ leagueId: string | null; week: number | null; id: number } | null>(null);
-  const games = carousel?.games ?? [];
-  const chosen = picked && picked.leagueId === leagueId && picked.week === shownWeek ? games.find((g) => g.matchupId === picked.id) : undefined;
-  const shownGame = chosen ?? games.find((g) => g.teams.some((t) => t.rosterId === myRosterId)) ?? games[0];
 
   // The room's height as it's drawn (not 100vh, which a browser's toolbars can make taller than the screen).
   const [room, setRoom] = useState<HTMLDivElement | null>(null);
@@ -182,23 +180,10 @@ function LeagueRoomContent() {
     return () => observer.disconnect();
   }, [room]);
 
-  // The columns, scrolled by the page itself so their reflections keep up with them (see useDragScroll).
-  const [leagueColumn, setLeagueColumn] = useState<HTMLDivElement | null>(null);
-  const [lineupColumn, setLineupColumn] = useState<HTMLDivElement | null>(null);
-  const [matchupColumn, setMatchupColumn] = useState<HTMLDivElement | null>(null);
-  useDragScroll(leagueColumn);
-  useDragScroll(lineupColumn);
-  useDragScroll(matchupColumn);
-  // Another league's (or week's) lineups start from their top.
-  useEffect(() => {
-    lineupColumn?.scrollTo({ top: 0 });
-    matchupColumn?.scrollTo({ top: 0 });
-  }, [leagueId, shownWeek, lineupColumn, matchupColumn]);
-
   if (!loaded || summaries === null) {
     return <Card className="p-12 text-center text-sm text-ink-secondary">{error ?? "Loading your leagues…"}</Card>;
   }
-  if (summaries.length === 0 || !official || !leagueId) {
+  if (rooms.length === 0) {
     return (
       <Card className="flex flex-col items-center gap-3 p-12 text-center">
         <h1 className="text-xl font-semibold text-ink-primary">No leagues tracked yet</h1>
@@ -210,101 +195,168 @@ function LeagueRoomContent() {
     );
   }
 
-  const horizon = HORIZON_SHARE;
-  const roomView = (
-    <div ref={setRoom} aria-hidden className="grid-room" style={{ ["--horizon" as string]: `${horizon * 100}%` }}>
-      <FloorGrid share={horizon} />
+  const roomVars = roomHeight ? { ["--room-h" as string]: `${roomHeight}px` } : undefined;
+  return (
+    <div style={roomVars}>
+      <h1 className="sr-only">{leagues[index].name}</h1>
+      <div ref={setRoom} aria-hidden className="grid-room" style={{ ["--horizon" as string]: `${HORIZON_SHARE * 100}%` }}>
+        <FloorGrid share={HORIZON_SHARE} />
+      </div>
+      {desktop ? (
+        <DesktopRoom rooms={rooms} leagues={leagues} index={index} week={shownWeek} userId={config.sleeperUserId} onPick={pickLeague} />
+      ) : (
+        <PhoneRoom rooms={rooms} leagues={leagues} index={index} week={shownWeek} userId={config.sleeperUserId} onPick={pickLeague} />
+      )}
     </div>
   );
-  const roomVars = roomHeight ? { ["--room-h" as string]: `${roomHeight}px` } : undefined;
-  const loading = <p className="text-sm text-ink-secondary">Loading lineups…</p>;
-  const providers = (children: React.ReactNode) => (
-    <MatchupProviders
-      projected={projected}
-      lineTones={lineTones}
-      lineNotes={lineNotes}
-      dynasty={carousel?.dynasty}
-      positions={carousel?.positions}
-      season={season}
-      scoring={scoring}
-    >
-      {children}
-    </MatchupProviders>
-  );
+}
 
-  if (!desktop) {
-    // A phone: one scene that doesn't scroll, standing in the room — the league along its top, and under it, at the
-    // back of the room above the horizon, every matchup's lineups (yours open), scrolling as one list up under the
-    // see-through switcher and header and coming up from behind the horizon, reflected in the floor there.
-    const lineups = !carousel ? (
-      loading
-    ) : games.length === 0 ? (
-      <p className="text-sm text-ink-secondary">No matchups this week.</p>
-    ) : (
-      providers(
-        <MatchupStack
-          // Fresh for each league and week, so it opens on your matchup.
-          key={`${leagueId}-${shownWeek}`}
-          leagueId={leagueId}
-          games={games}
-          myRosterId={myRosterId}
-          standings={standings}
-          owners={owners}
-          allTime={allTime}
-        />
-      )
-    );
-    return (
-      <div style={roomVars}>
-        <h1 className="sr-only">{official.league.name}</h1>
-        {roomView}
-        <div className="fixed inset-0 touch-none">
-          <div className="absolute inset-x-0 top-0 overflow-hidden" style={{ height: `calc(var(--room-h, 100svh) * ${horizon})` }}>
-            <div
-              ref={setLineupColumn}
-              data-drag-scroll
-              className="h-full touch-none overflow-y-auto overscroll-none px-4 pb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-              style={{ paddingTop: `calc(${UNDER_SWITCHER})` }}
-            >
-              {/* Moved down (or up) as far as it's pulled past an end. */}
-              <div className="translate-y-[var(--overscroll,0px)] pt-2">{lineups}</div>
-            </div>
-            <ScrollThumb source={lineupColumn} />
+interface RoomProps {
+  rooms: RoomLeagueData[];
+  leagues: RoomLeague[];
+  index: number;
+  week: number | null;
+  userId: string | null | undefined;
+  onPick: (leagueId: string) => void;
+}
+
+/**
+ * A phone: one scene that doesn't scroll, standing in the room — the league's name along its top (see LeagueSwitcher),
+ * and under it each league's lineups side by side, the one picked on screen. A sideways swipe anywhere slides the
+ * names and the lineups along together to the next league (see useSwipePager).
+ */
+function PhoneRoom({ rooms, leagues, index, week, userId, onPick }: RoomProps) {
+  const [scene, setScene] = useState<HTMLDivElement | null>(null);
+  const [panes, setPanes] = useState<HTMLDivElement | null>(null);
+  const [bar, setBar] = useState<HTMLElement | null>(null);
+  const [names, setNames] = useState<HTMLDivElement | null>(null);
+  // The lineups' reflections, slid along with them.
+  const [reflections, setReflections] = useState<HTMLDivElement | null>(null);
+  useSwipePager({
+    surfaces: [scene, bar],
+    tracks: [panes, names],
+    follow: reflections,
+    count: rooms.length,
+    index,
+    onPick: (page) => onPick(leagues[page].leagueId),
+  });
+  return (
+    <>
+      <div ref={setScene} className="fixed inset-0 touch-none">
+        <div className="absolute inset-x-0 top-0 overflow-hidden" style={{ height: `calc(var(--room-h, 100svh) * ${HORIZON_SHARE})` }}>
+          <div ref={setPanes} className="flex h-full will-change-transform">
+            {rooms.map((r, i) => (
+              <div key={r.official.league.league_id} className="relative h-full w-full shrink-0">
+                {/* Only the league on screen and those either side of it, ready to be swiped to. */}
+                {Math.abs(i - index) <= 1 ? <LeaguePane league={r} week={week} userId={userId} reflections={reflections} /> : null}
+              </div>
+            ))}
           </div>
         </div>
-        {/* Reflected in the floor from the horizon, as it scrolls. */}
-        <FloorReflection source={lineupColumn} className="px-4 pb-8" style={{ paddingTop: `calc(${UNDER_SWITCHER})` }} />
-        <LeagueSwitcher leagues={leagues} selectedId={leagueId} onSelect={pickLeague} />
       </div>
-    );
-  }
+      <div ref={setReflections} className="pointer-events-none fixed inset-0 will-change-transform" />
+      <LeagueSwitcher leagues={leagues} selectedId={leagues[index].leagueId} onSelect={onPick} bar={setBar} track={setNames} />
+    </>
+  );
+}
 
-  // From laptop width up: three columns with no backgrounds of their own, standing upright on one line across the floor
-  // and reflected in it — each scrolling on its own, up behind the see-through header.
+/**
+ * A league's lineups on a phone: every matchup stacked, yours open (see MatchupStack), scrolling as one list at the
+ * back of the room, above the horizon — up under the see-through switcher and header and coming up from behind the
+ * horizon, reflected in the floor there (into `reflections`).
+ */
+function LeaguePane({ league, week, userId, reflections }: { league: RoomLeagueData; week: number | null; userId: string | null | undefined; reflections: HTMLElement | null }) {
+  const { leagueId, standings, owners, myRosterId, carousel, allTime, providers } = useLeagueRoom(league, week, userId);
+  const [column, setColumn] = useState<HTMLDivElement | null>(null);
+  useDragScroll(column);
+  // Another week's lineups start from their top.
+  useEffect(() => {
+    column?.scrollTo({ top: 0 });
+  }, [week, column]);
+  const games = carousel?.games ?? [];
+  const pad = { paddingTop: `calc(${UNDER_SWITCHER})` };
+  return (
+    <>
+      <div
+        ref={setColumn}
+        data-drag-scroll
+        className="h-full touch-none overflow-y-auto overscroll-none px-4 pb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        style={pad}
+      >
+        {/* Moved down (or up) as far as it's pulled past an end. */}
+        <div className="translate-y-[var(--overscroll,0px)] pt-2">
+          {!carousel
+            ? loadingLineups
+            : games.length === 0
+              ? noMatchups
+              : providers(
+                  <MatchupStack
+                    // Fresh for each week, so it opens on your matchup.
+                    key={week ?? 0}
+                    leagueId={leagueId}
+                    games={games}
+                    myRosterId={myRosterId}
+                    standings={standings}
+                    owners={owners}
+                    allTime={allTime}
+                    outlined
+                  />
+                )}
+        </div>
+      </div>
+      <ScrollThumb source={column} />
+      {reflections ? createPortal(<FloorReflection source={column} className="px-4 pb-8" style={pad} />, reflections) : null}
+    </>
+  );
+}
+
+/**
+ * From laptop width up: three columns with no backgrounds of their own, standing upright on one line across the floor
+ * and reflected in it — each scrolling on its own, up behind the see-through header.
+ */
+function DesktopRoom({ rooms, leagues, index, week, userId, onPick }: RoomProps) {
+  const { leagueId, standings, owners, myRosterId, carousel, allTime, providers } = useLeagueRoom(rooms[index], week, userId);
+  // The matchup whose lineups are in the middle: yours, until another's picked — in that league, that week.
+  const [picked, setPicked] = useState<{ leagueId: string; week: number | null; id: number } | null>(null);
+  const games = carousel?.games ?? [];
+  const chosen = picked && picked.leagueId === leagueId && picked.week === week ? games.find((g) => g.matchupId === picked.id) : undefined;
+  const shownGame = chosen ?? games.find((g) => g.teams.some((t) => t.rosterId === myRosterId)) ?? games[0];
+
+  // The columns, scrolled by the page itself so their reflections keep up with them (see useDragScroll).
+  const [leagueColumn, setLeagueColumn] = useState<HTMLDivElement | null>(null);
+  const [lineupColumn, setLineupColumn] = useState<HTMLDivElement | null>(null);
+  const [matchupColumn, setMatchupColumn] = useState<HTMLDivElement | null>(null);
+  useDragScroll(leagueColumn);
+  useDragScroll(lineupColumn);
+  useDragScroll(matchupColumn);
+  // Another league's (or week's) lineups start from their top.
+  useEffect(() => {
+    lineupColumn?.scrollTo({ top: 0 });
+    matchupColumn?.scrollTo({ top: 0 });
+  }, [leagueId, week, lineupColumn, matchupColumn]);
+
   const column = "absolute inset-x-0 bottom-0 top-0 touch-none overflow-y-auto overscroll-none pb-16 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
   const columnPad = { paddingTop: `calc(${UNDER_HEADER})` };
   return (
-    <div style={roomVars}>
-      <h1 className="sr-only">{official.league.name}</h1>
-      {roomView}
+    <>
       <div className="fixed inset-x-0 top-0 flex gap-4 px-4" style={{ height: `calc(var(--room-h, 100vh) - ${FOOT})` }}>
-        {/* Your leagues, picking the one shown. */}
+        {/* Your leagues by name, picking the one shown — lit like the header's page tabs. */}
         <div className="relative w-64 shrink-0 2xl:w-72">
           <div ref={setLeagueColumn} data-drag-scroll className={column} style={columnPad}>
-            <ul className="flex translate-y-[var(--overscroll,0px)] flex-col gap-2" aria-label="Your leagues">
-              {leagues.map((league, i) => {
+            <ul className="flex translate-y-[var(--overscroll,0px)] flex-col gap-1" aria-label="Your leagues">
+              {leagues.map((league) => {
                 const on = league.leagueId === leagueId;
                 return (
                   <li key={league.leagueId}>
                     <button
                       type="button"
                       aria-current={on || undefined}
-                      onClick={() => pickLeague(league.leagueId)}
-                      className={`w-full border px-3 py-2 text-left transition-colors ${
-                        on ? "border-ink-primary bg-[color-mix(in_srgb,var(--map-tag)_7%,transparent)]" : "border-border hover:border-ink-primary/40"
+                      onClick={() => onPick(league.leagueId)}
+                      className={`w-full px-3 py-2 transition-colors ${
+                        on ? "bg-[var(--map-tag)] text-[var(--map-tag-ink)]" : "text-ink-secondary hover:text-ink-primary"
                       }`}
                     >
-                      <LeagueLines league={league} position={i + 1} />
+                      <LeagueTitle league={league} />
                     </button>
                   </li>
                 );
@@ -318,13 +370,13 @@ function LeagueRoomContent() {
         <div className="relative min-w-0 flex-1">
           <div ref={setLineupColumn} data-drag-scroll className={column} style={columnPad}>
             <div className="mx-auto max-w-3xl translate-y-[var(--overscroll,0px)]">
-              {!carousel ? (
-                loading
-              ) : !shownGame ? (
-                <p className="text-sm text-ink-secondary">No matchups this week.</p>
-              ) : (
-                providers(<MatchupSlide leagueId={leagueId} game={shownGame} myRosterId={myRosterId} standings={standings} owners={owners} allTime={allTime} />)
-              )}
+              {!carousel
+                ? loadingLineups
+                : !shownGame
+                  ? noMatchups
+                  : providers(
+                      <MatchupSlide leagueId={leagueId} game={shownGame} myRosterId={myRosterId} standings={standings} owners={owners} allTime={allTime} outlined />
+                    )}
             </div>
           </div>
           <ScrollThumb source={lineupColumn} />
@@ -340,7 +392,7 @@ function LeagueRoomContent() {
                   myRosterId={myRosterId}
                   standings={standings}
                   pickedId={shownGame.matchupId}
-                  onPick={(id) => setPicked({ leagueId, week: shownWeek, id })}
+                  onPick={(id) => setPicked({ leagueId, week, id })}
                 />
               ) : null}
             </div>
@@ -352,7 +404,7 @@ function LeagueRoomContent() {
       <FloorReflection source={leagueColumn} className="pb-16" style={columnPad} />
       <FloorReflection source={lineupColumn} className="pb-16" style={columnPad} />
       <FloorReflection source={matchupColumn} className="pb-16" style={columnPad} />
-    </div>
+    </>
   );
 }
 

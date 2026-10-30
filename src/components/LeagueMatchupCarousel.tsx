@@ -1,14 +1,15 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { ResolvedMatchupGame, ResolvedSlot } from "@/hooks/useLeagueMatchupCarousel";
-import { HeadToHeadBadge, PointsRankBadges, TeamNameLabel } from "@/components/DashboardMatchupCard";
+import { HeadToHeadBadge, PointsRankBadges, StreakBadge, TeamNameLabel } from "@/components/DashboardMatchupCard";
 import { AllTimeRecord, headToHeadAsItStands, headToHeadKey, useAllTimeHeadToHead } from "@/hooks/useAllTimeHeadToHead";
 import { PendingMatchups } from "@/hooks/useAsItStands";
 import { TeamStanding } from "@/lib/league-data";
 import { MatchupRows } from "@/components/LeagueTicker";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
-import { abbreviateFirstName, formatPoints } from "@/lib/format";
+import { abbreviateFirstName, formatPoints, formatRecord } from "@/lib/format";
 import { getHomeView, saveHomeView } from "@/lib/localStore";
 import { ResolvedPlayer } from "@/lib/players";
 import { PlayerCareer } from "@/components/PlayerCareer";
@@ -449,6 +450,59 @@ function MatchupHeader({
   );
 }
 
+/**
+ * The matchup's header outlined rather than lit (the League Room's): each team's rank and name on top, its record,
+ * streak, PF/PA ranks and all-time head-to-head under them — and its score inside them, right over its column of
+ * player points, its projected total under it as each starter's projection is under their points.
+ */
+function OutlinedMatchupHeader({
+  leagueId,
+  left,
+  right,
+  standings,
+  headToHead,
+}: {
+  leagueId: string;
+  left: MatchupTeam;
+  right: MatchupTeam | undefined;
+  standings: Map<number, TeamStanding>;
+  headToHead: Map<number, AllTimeRecord> | null;
+}) {
+  const half = (t: MatchupTeam, side: "left" | "right") => {
+    const { rank, record, streak, pointsRanks } = standings.get(t.rosterId) ?? {};
+    const rec = right ? headToHead?.get(t.rosterId) : undefined;
+    const end = side === "right" ? "justify-end" : "";
+    return (
+      <div className={`grid min-w-0 gap-x-2 gap-y-0.5 ${side === "left" ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-[auto_minmax(0,1fr)]"}`}>
+        <span className={`row-span-2 flex flex-col tabular-nums ${side === "left" ? "col-start-2 items-end" : "col-start-1 row-start-1 items-start"}`}>
+          <span className="text-[0.9375rem] font-semibold leading-tight text-ink-primary sm:text-lg sm:leading-tight">{formatPoints(t.points)}</span>
+          <Projected rosterId={t.rosterId} align={side === "left" ? "right" : "left"} />
+        </span>
+        {/* Its rank on the left of its name, whichever side it's on. */}
+        <span className={`flex min-w-0 items-baseline gap-1.5 ${end} ${side === "left" ? "col-start-1 row-start-1" : "col-start-2 row-start-1"}`}>
+          {rank != null ? <span className="shrink-0 text-xs font-bold tabular-nums text-series-4">{rank}</span> : null}
+          <Link href={`/team?league=${leagueId}&roster=${t.rosterId}`} className="min-w-0 truncate text-sm font-bold text-ink-primary hover:underline sm:text-base">
+            {t.teamName}
+          </Link>
+        </span>
+        <span className={`flex flex-wrap items-center gap-x-1.5 gap-y-0.5 ${end} ${side === "left" ? "col-start-1 row-start-2" : "col-start-2 row-start-2"}`}>
+          {record ? <span className="text-xs font-semibold tabular-nums text-ink-secondary">{formatRecord(record.wins, record.losses, record.ties)}</span> : null}
+          <StreakBadge streak={streak} />
+          <PointsRankBadges pointsRanks={pointsRanks} leagueSize={standings.size} />
+          {rec ? <HeadToHeadBadge wins={rec.wins} losses={rec.losses} /> : null}
+        </span>
+      </div>
+    );
+  };
+  return (
+    <div className={`grid ${SLOT_COLS} items-start gap-1 border border-ink-primary px-2 py-2 sm:gap-2`}>
+      {half(left, "left")}
+      <span />
+      {right ? half(right, "right") : <div />}
+    </div>
+  );
+}
+
 /** A matchup's lineups, slot by slot: yours (or the first team's) on the left — and when it's yours, your bench under them. */
 function MatchupLineup({ game, myRosterId }: { game: ResolvedMatchupGame; myRosterId: number | null }) {
   const [mine, other] = sides(game, myRosterId);
@@ -470,6 +524,7 @@ export function MatchupSlide({
   standings,
   owners,
   allTime,
+  outlined = false,
 }: {
   leagueId: string;
   game: ResolvedMatchupGame;
@@ -477,11 +532,14 @@ export function MatchupSlide({
   standings: Map<number, TeamStanding>;
   owners: Map<number, string>;
   allTime: Map<string, Map<string, AllTimeRecord>> | null;
+  /** Its header outlined, not lit (see OutlinedMatchupHeader). */
+  outlined?: boolean;
 }) {
   const [mine, other] = sides(game, myRosterId);
+  const Header = outlined ? OutlinedMatchupHeader : MatchupHeader;
   return (
     <div className="flex flex-col gap-3">
-      <MatchupHeader
+      <Header
         leagueId={leagueId}
         left={mine}
         right={other}
@@ -498,10 +556,12 @@ export function MatchupSlide({
  * score, the scores meeting in the middle — on the same plate as the full
  * header it opens into.
  */
-function CompactHeader({ left, right }: { left: MatchupTeam; right: MatchupTeam | undefined }) {
+function CompactHeader({ left, right, outlined = false }: { left: MatchupTeam; right: MatchupTeam | undefined; outlined?: boolean }) {
   return (
     <div
-      className={`grid ${SLOT_COLS} items-baseline gap-1 bg-[var(--title-plate)] px-2 py-2 text-[0.8125rem] text-[var(--map-tag-ink)] sm:gap-2`}
+      className={`grid ${SLOT_COLS} items-baseline gap-1 px-2 py-2 text-[0.8125rem] sm:gap-2 ${
+        outlined ? "border border-border text-ink-primary" : "bg-[var(--title-plate)] text-[var(--map-tag-ink)]"
+      }`}
     >
       <span className="flex min-w-0 items-baseline gap-2">
         <span className="min-w-0 flex-1 truncate font-semibold">{left.teamName}</span>
@@ -540,6 +600,7 @@ export function MatchupStack({
   owners,
   allTime,
   onOpen,
+  outlined = false,
 }: {
   leagueId: string;
   games: ResolvedMatchupGame[];
@@ -549,7 +610,10 @@ export function MatchupStack({
   allTime: Map<string, Map<string, AllTimeRecord>> | null;
   /** Told whenever a matchup is opened. */
   onOpen?: (matchupId: number) => void;
+  /** Its headers outlined, not lit (see OutlinedMatchupHeader). */
+  outlined?: boolean;
 }) {
+  const Header = outlined ? OutlinedMatchupHeader : MatchupHeader;
   const myGame = games.find((g) => g.teams.some((t) => t.rosterId === myRosterId));
   const stacked = myGame ? [myGame, ...games.filter((g) => g !== myGame)] : games;
   // Undefined until something's tapped: then yours is the one open.
@@ -600,7 +664,7 @@ export function MatchupStack({
             >
               {/* Open, the full header; shut, just the names and scores. */}
               {open ? (
-                <MatchupHeader
+                <Header
                   leagueId={leagueId}
                   left={mine}
                   right={other}
@@ -608,7 +672,7 @@ export function MatchupStack({
                   headToHead={headToHeadFor(mine, other, owners, allTime)}
                 />
               ) : (
-                <CompactHeader left={mine} right={other} />
+                <CompactHeader left={mine} right={other} outlined={outlined} />
               )}
             </div>
             {/* Folds open and shut by its height (0fr to 1fr). */}
