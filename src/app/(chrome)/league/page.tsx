@@ -23,6 +23,7 @@ import { defenseRanks, PlayerStatsSnapshot } from "@/lib/player-stats";
 import { GAME_MS, useLiveNow } from "@/components/PointsGraph";
 import { useGamePlays } from "@/hooks/useRedZoneFeed";
 import { onPace, paceShare } from "@/lib/live-play-points";
+import { periodBreak } from "@/lib/nfl-schedule";
 import { liveProjection } from "@/lib/matchup-timeline";
 import { setHeaderWeek } from "@/lib/header-week";
 import { TitleWithHistory } from "@/components/HistoryButtons";
@@ -198,7 +199,7 @@ function LeagueDetailContent() {
           }
           const stats = projectionStats?.[p.playerId];
           const weighed = stats ? weighProjection(stats, scoring) : undefined;
-          const share = nfl.state === "post" ? 1 : now === null ? undefined : paceShare(new Date(nfl.kickoff).getTime(), playsByGame[nfl.id] ?? [], now, GAME_MS);
+          const share = nfl.state === "post" ? 1 : now === null ? undefined : paceShare(new Date(nfl.kickoff).getTime(), playsByGame[nfl.id] ?? [], now, GAME_MS, periodBreak(nfl.statusDetail) === 2);
           const pace = onPace(slot.livePoints, typeof weighed === "number" ? weighed : null, share);
           out.set(p.playerId, pace === null ? null : pace ? "good" : "bad");
         }

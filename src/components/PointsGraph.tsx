@@ -6,6 +6,7 @@ import { NFLGame } from "@/lib/nfl-schedule";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import { LeagueLegendEntry, LeagueMark } from "./LeagueMark";
 import { halftimeSpan, pacePieces, periodStarts, pointsTimeline } from "@/lib/live-play-points";
+import { periodBreak } from "@/lib/nfl-schedule";
 import { useGamePlays, withScoreboardPlay } from "@/hooks/useRedZoneFeed";
 
 // Room around the plot for its labels, in px.
@@ -125,10 +126,14 @@ export function PointsGraph({
     [plays, player.playerId, player.name, player.position, player.team, scoring, game.homeTeam, game.awayTeam]
   );
   const quarters = useMemo(() => periodStarts(plays), [plays]);
-  const halftime = useMemo(() => halftimeSpan(plays), [plays]);
-  const etchId = `etch-${useId().replace(/:/g, "")}`;
   const live = game.state === "in";
   const now = useLiveNow(live);
+  // Between quarters (the scoreboard saying one's just ended, or it's halftime): the quarter that's over — its end
+  // marked, and its minutes shown, from then; halftime, from the moment it starts.
+  const paused = live ? periodBreak(game.statusDetail) : null;
+  const pausedAfter = paused !== null && !quarters.some((q) => q.period > paused) ? paused : null;
+  const halftime = useMemo(() => halftimeSpan(plays, pausedAfter === 2 ? now : null), [plays, pausedAfter, now]);
+  const etchId = `etch-${useId().replace(/:/g, "")}`;
 
   const plotRef = useRef<HTMLDivElement>(null);
   const size = useSize(plotRef);
@@ -222,8 +227,11 @@ export function PointsGraph({
     const quarterMarks = quarters
       .filter((q) => q.period > 1)
       .map((q) => ({ at: q.at, label: clock(q.at), rank: q.period === 3 ? 2 : 3 }));
+    // A quarter just over, the next not begun: its end (its last play), so its minutes are there now.
+    const endedAt = pausedAfter === null ? null : Math.max(-Infinity, ...plays.filter((p) => p.period === pausedAfter && p.at !== null).map((p) => p.at!));
+    const breakMarks = endedAt !== null && Number.isFinite(endedAt) ? [{ at: endedAt, label: clock(endedAt), rank: 2 }] : [];
     // Placed in order of standing, each only where it won't crowd one already placed.
-    for (const m of [kickoffMark, endMark, ...quarterMarks].sort((p, q) => p.rank - q.rank)) {
+    for (const m of [kickoffMark, endMark, ...quarterMarks, ...breakMarks].sort((p, q) => p.rank - q.rank)) {
       if (marks.some((placed) => Math.abs(x(placed.at) - x(m.at)) < 40)) continue;
       marks.push({ at: m.at, label: m.label });
     }
@@ -420,6 +428,12 @@ export function PointsGraph({
                   </pattern>
                 </defs>
                 <rect x={x(ht.from)} y={PAD.top} width={htWidth} height={plot.h} fill={`url(#${etchId})`} className="stroke-ink-muted" strokeOpacity={0.35} strokeWidth={0.75} />
+                {/* Under way (the 3rd quarter not begun): said so, where the 3rd's name will go. */}
+                {pausedAfter === 2 ? (
+                  <text x={x(ht.from) + 3} y={PAD.top - 4} className="fill-ink-muted text-[0.5625rem] font-semibold uppercase">
+                    Half
+                  </text>
+                ) : null}
               </g>
             ) : null}
             {/* The points axis: a faint rule at each step, 0 a little stronger. */}

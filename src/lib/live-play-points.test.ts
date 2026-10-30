@@ -82,6 +82,10 @@ test("halftimeSpan runs from the 2nd quarter's last play to the 3rd's first", ()
   const at = (seq: number, period: number, ms: number | null): GamePlay => ({ ...play(String(seq), "x"), sequence: seq, period, at: ms });
   assert.deepEqual(halftimeSpan([at(1, 2, 1000), at(2, 2, 2000), at(3, 3, 5000), at(4, 3, 6000), at(5, 2, null)]), { from: 2000, to: 5000 });
   assert.equal(halftimeSpan([at(1, 2, 1000)]), null);
+  // The half over (the scoreboard says so), the 3rd quarter not begun: halftime from the 2nd's last play to now.
+  assert.deepEqual(halftimeSpan([at(1, 2, 1000), at(2, 2, 2000)], 4000), { from: 2000, to: 4000 });
+  // Once the 3rd's begun, its first play ends it, whatever now is.
+  assert.deepEqual(halftimeSpan([at(1, 2, 2000), at(2, 3, 5000)], 9000), { from: 2000, to: 5000 });
 });
 
 test("pointsTimeline scores each play under a league's own rules, bonuses on the play that earns them", () => {
@@ -131,6 +135,8 @@ test("paceShare runs from kickoff to about the end, halftime left out", () => {
   const plays = [play("1", 2, 80 * MIN), play("2", 3, 100 * MIN)];
   assert.equal(paceShare(0, plays, 100 * MIN, 180 * MIN), 80 / 160);
   assert.equal(paceShare(0, plays, 90 * MIN, 180 * MIN), 80 / 160);
+  // At halftime (the scoreboard says the half's over), the clock stops counting from the half's last play.
+  assert.equal(paceShare(0, [play("1", 2, 80 * MIN)], 95 * MIN, 180 * MIN, true), 80 / 165);
   // Past the expected end, the game's simply as far along as it can be.
   assert.equal(paceShare(0, [], 200 * MIN, 180 * MIN), 1);
 });

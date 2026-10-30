@@ -269,6 +269,17 @@ function scoreOf(competitor: unknown): number {
 const PERIODS: Record<string, string> = { "1st": "1Q", "2nd": "2Q", "3rd": "3Q", "4th": "4Q", ot: "OT" };
 
 /**
+ * The quarter that's just ended, while the game's paused between it and the next: ESPN's "End of 1st Quarter" as 1,
+ * "End of 2nd Quarter" and "Halftime" as 2. Null while one's being played (or the game isn't on).
+ */
+export function periodBreak(detail: string | null | undefined): number | null {
+  const text = detail?.trim() ?? "";
+  if (/^half/i.test(text)) return 2;
+  const ended = /^End of (1st|2nd|3rd|4th)/i.exec(text);
+  return ended ? ["1st", "2nd", "3rd", "4th"].indexOf(ended[1].toLowerCase()) + 1 : null;
+}
+
+/**
  * A game's clock the short way, quarter first: ESPN's "12:43 - 2nd" as
  * "2Q 12:43", "End of 2nd Quarter" as "End 2Q", "Halftime" as "Half",
  * overtime as "OT". Anything else as ESPN has it.

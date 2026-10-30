@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalS
 import { formatCountdown } from "@/lib/format";
 import { totalChars, typedSlices } from "@/hooks/useTyped";
 import { formatKickoffTime, GameStarters, groupGamesByTimeBlock, GroupedStarter, PlayerSide } from "@/lib/my-starters";
-import { gameClock, NFLGame } from "@/lib/nfl-schedule";
+import { gameClock, NFLGame, periodBreak } from "@/lib/nfl-schedule";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import { nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import { LeagueLegendEntry } from "./LeagueMark";
@@ -1287,7 +1287,8 @@ export function StartersByGame({
   // How far along each game on now is, for whether its players are on pace.
   const paces: Record<string, number> = {};
   for (const g of followed) {
-    if (g.game.state === "in" && now !== null) paces[g.game.id] = paceShare(new Date(g.game.kickoff).getTime(), playsByGame[g.game.id] ?? [], now, GAME_MS);
+    if (g.game.state === "in" && now !== null)
+      paces[g.game.id] = paceShare(new Date(g.game.kickoff).getTime(), playsByGame[g.game.id] ?? [], now, GAME_MS, periodBreak(g.game.statusDetail) === 2);
   }
   const nothingToShow = games.length === 0 && byes.every((b) => b.everyone.length === 0);
   // A block's header, and the bye's: styled like the map's game tags, the same solid contrasting fill and ink.

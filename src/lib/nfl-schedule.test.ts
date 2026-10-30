@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { ballSpot, gameClock, isOutsideUS, parseScoreboard } from "./nfl-schedule";
+import { ballSpot, gameClock, isOutsideUS, parseScoreboard, periodBreak } from "./nfl-schedule";
 
 function competitor(homeAway: "home" | "away", abbreviation: string, score: string) {
   return { homeAway, team: { abbreviation }, score };
@@ -204,4 +204,13 @@ test("ballSpot reads ESPN's spot of the ball as yards to the end zone for the te
   assert.equal(ballSpot("50", "KC"), 50);
   assert.equal(ballSpot("", "KC"), null);
   assert.equal(ballSpot("DET 4", null), null);
+});
+
+test("periodBreak: the quarter just over, while the game's paused before the next", () => {
+  assert.equal(periodBreak("End of 1st Quarter"), 1);
+  assert.equal(periodBreak("End of 2nd Quarter"), 2);
+  assert.equal(periodBreak("Halftime"), 2);
+  assert.equal(periodBreak("End of 3rd Quarter"), 3);
+  assert.equal(periodBreak("4:31 - 2nd"), null);
+  assert.equal(periodBreak(null), null);
 });
