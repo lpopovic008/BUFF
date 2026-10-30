@@ -463,7 +463,7 @@ function MatchupLineup({ game, myRosterId }: { game: ResolvedMatchupGame; myRost
   );
 }
 
-function MatchupSlide({
+export function MatchupSlide({
   leagueId,
   game,
   myRosterId,
@@ -532,7 +532,7 @@ const FOLD_MS = 450;
  * it). Opens on yours. The tapped header holds still on screen while the one
  * above it folds shut, rather than jumping up with it.
  */
-function MatchupStack({
+export function MatchupStack({
   leagueId,
   games,
   myRosterId,
@@ -660,6 +660,104 @@ function sides(game: ResolvedMatchupGame, myRosterId: number | null) {
   return other ? [mine, other] : [mine];
 }
 
+/** Every team's all-time record against each other in a league, by manager — counting the unfinished weeks' `pending` matchups when given; null until loaded. */
+export function useMatchupHeadToHead(leagueId: string, pending: PendingMatchups | null | undefined, owners: Map<number, string>) {
+  const allTimeOfficial = useAllTimeHeadToHead(leagueId);
+  const allTimeByOwner = useMemo(
+    () => (pending && allTimeOfficial.size > 0 ? headToHeadAsItStands(allTimeOfficial, pending, owners) : allTimeOfficial),
+    [allTimeOfficial, pending, owners]
+  );
+  // Empty until every season's matchups have loaded.
+  return allTimeByOwner.size > 0 ? allTimeByOwner : null;
+}
+
+/** What the lineups inside show around each starter and team (see LeagueMatchupCarousel's props), and the career card a player's tap opens. */
+export function MatchupProviders({
+  projected = null,
+  lineTones,
+  lineNotes,
+  dynasty = false,
+  positions = NO_POSITIONS,
+  season = null,
+  scoring,
+  children,
+}: {
+  projected?: Map<number, number> | null;
+  lineTones?: Map<string, LineTone>;
+  lineNotes?: Map<string, LineNote>;
+  dynasty?: boolean;
+  positions?: string[];
+  season?: string | null;
+  scoring?: Record<string, number>;
+  children: React.ReactNode;
+}) {
+  // The player whose career card is open.
+  const [card, setCard] = useState<ResolvedPlayer | null>(null);
+  return (
+    <ProjectedContext.Provider value={projected}>
+    <LineToneContext.Provider value={lineTones ?? EMPTY_TONES}>
+    <LineNoteContext.Provider value={lineNotes ?? EMPTY_NOTES}>
+    <DynastyContext.Provider value={dynasty}>
+    <PositionsContext.Provider value={positions}>
+    <PlayerCardContext.Provider value={season ? setCard : null}>
+      {card && season ? <PlayerCareer player={card} season={Number(season)} scoring={scoring} onClose={() => setCard(null)} /> : null}
+      {children}
+    </PlayerCardContext.Provider>
+    </PositionsContext.Provider>
+    </DynastyContext.Provider>
+    </LineNoteContext.Provider>
+    </LineToneContext.Provider>
+    </ProjectedContext.Provider>
+  );
+}
+
+/** Every matchup down a column, each a box in the league ticker's format (yours first in its box), to pick the one shown (`pickedId`). */
+export function MatchupList({
+  games,
+  myRosterId,
+  standings,
+  pickedId,
+  onPick,
+}: {
+  games: ResolvedMatchupGame[];
+  myRosterId: number | null;
+  standings: Map<number, TeamStanding>;
+  pickedId: number;
+  onPick: (matchupId: number) => void;
+}) {
+  return (
+    <ul className="flex flex-col gap-2" aria-label="This week's matchups">
+      {games.map((g) => {
+        const active = g.matchupId === pickedId;
+        return (
+          <li key={g.matchupId}>
+            <button
+              type="button"
+              aria-current={active || undefined}
+              onClick={() => onPick(g.matchupId)}
+              className={`w-full border px-3 py-2 text-left transition-colors ${
+                active
+                  ? "border-ink-primary bg-[color-mix(in_srgb,var(--map-tag)_7%,transparent)]"
+                  : "border-border hover:border-ink-primary/40"
+              }`}
+            >
+              <MatchupRows
+                fitWidth
+                teams={sides(g, myRosterId).map((t) => ({
+                  name: t.teamName,
+                  points: t.points,
+                  standing: standings.get(t.rosterId),
+                  mine: t.rosterId === myRosterId,
+                }))}
+              />
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 /**
  * Sleeper-style matchup view: full lineup, slot by slot, for the league's
  * current week. On a phone every matchup's header is stacked, and tapping one
@@ -708,30 +806,24 @@ export function LeagueMatchupCarousel({
   season?: string | null;
   scoring?: Record<string, number>;
 }) {
-  // The player whose career card is open.
-  const [card, setCard] = useState<ResolvedPlayer | null>(null);
   // The matchup shown large beside the list (tablet and up): yours until another is picked.
   const [pickedId, setPickedId] = useState<number | null>(null);
-  const allTimeOfficial = useAllTimeHeadToHead(leagueId);
-  const allTimeByOwner = useMemo(
-    () => (pending && allTimeOfficial.size > 0 ? headToHeadAsItStands(allTimeOfficial, pending, owners) : allTimeOfficial),
-    [allTimeOfficial, pending, owners]
-  );
-  // Empty until every season's matchups have loaded.
-  const allTime = allTimeByOwner.size > 0 ? allTimeByOwner : null;
+  const allTime = useMatchupHeadToHead(leagueId, pending, owners);
 
   if (games.length === 0) return null;
   const myGame = games.find((g) => g.teams.some((t) => t.rosterId === myRosterId));
   const picked = games.find((g) => g.matchupId === pickedId) ?? myGame ?? games[0];
 
   return (
-    <ProjectedContext.Provider value={projected}>
-    <LineToneContext.Provider value={lineTones ?? EMPTY_TONES}>
-    <LineNoteContext.Provider value={lineNotes ?? EMPTY_NOTES}>
-    <DynastyContext.Provider value={dynasty}>
-    <PositionsContext.Provider value={positions}>
-    <PlayerCardContext.Provider value={season ? setCard : null}>
-      {card && season ? <PlayerCareer player={card} season={Number(season)} scoring={scoring} onClose={() => setCard(null)} /> : null}
+    <MatchupProviders
+      projected={projected}
+      lineTones={lineTones}
+      lineNotes={lineNotes}
+      dynasty={dynasty}
+      positions={positions}
+      season={season}
+      scoring={scoring}
+    >
       {/* Phones: every matchup's header stacked; tap one for its lineup. */}
       <div className="md:hidden">
         <MatchupStack
@@ -749,45 +841,18 @@ export function LeagueMatchupCarousel({
       <div className="hidden md:grid md:grid-cols-[minmax(0,1fr)_15rem] lg:grid-cols-[minmax(0,1fr)_18rem] md:items-start md:gap-3">
         <MatchupSlide leagueId={leagueId} game={picked} myRosterId={myRosterId} standings={standings} owners={owners} allTime={allTime} />
         <div className="flex flex-col gap-2">
-        <ul className="flex flex-col gap-2" aria-label="This week's matchups">
-          {games.map((g) => {
-            const active = g.matchupId === picked.matchupId;
-            return (
-              <li key={g.matchupId}>
-                <button
-                  type="button"
-                  aria-current={active || undefined}
-                  onClick={() => {
-                    setPickedId(g.matchupId);
-                    onShowMatchup?.(g.matchupId);
-                  }}
-                  className={`w-full border px-3 py-2 text-left transition-colors ${
-                    active
-                      ? "border-ink-primary bg-[color-mix(in_srgb,var(--map-tag)_7%,transparent)]"
-                      : "border-border hover:border-ink-primary/40"
-                  }`}
-                >
-                  <MatchupRows
-                    fitWidth
-                    teams={sides(g, myRosterId).map((t) => ({
-                      name: t.teamName,
-                      points: t.points,
-                      standing: standings.get(t.rosterId),
-                      mine: t.rosterId === myRosterId,
-                    }))}
-                  />
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+          <MatchupList
+            games={games}
+            myRosterId={myRosterId}
+            standings={standings}
+            pickedId={picked.matchupId}
+            onPick={(id) => {
+              setPickedId(id);
+              onShowMatchup?.(id);
+            }}
+          />
         </div>
       </div>
-    </PlayerCardContext.Provider>
-    </PositionsContext.Provider>
-    </DynastyContext.Provider>
-    </LineNoteContext.Provider>
-    </LineToneContext.Provider>
-    </ProjectedContext.Provider>
+    </MatchupProviders>
   );
 }

@@ -189,6 +189,18 @@ export function StandingsIcon(props: IconProps) {
   );
 }
 
+/** The standings' bars standing on a floor running back to the horizon — the league room. */
+export function LeagueRoomIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <rect x="4.5" y="6.5" width="2.5" height="5.5" />
+      <rect x="8.75" y="3.5" width="2.5" height="8.5" />
+      <rect x="13" y="5" width="2.5" height="7" />
+      <path d="M2.5 12h15M10 12v5M6.5 12l-3 5M13.5 12l3 5" strokeWidth={1.25} />
+    </svg>
+  );
+}
+
 export function DocumentIcon(props: IconProps) {
   return (
     <svg {...base(props)}>
