@@ -409,8 +409,9 @@ function GameLine({
       className={`flex items-center gap-1.5 py-[3px] text-[0.8125rem] leading-tight ${onSelect ? "cursor-pointer" : ""}`}
       title={leagueNames.length > 0 ? `${player.name} — ${leagueNames.join(", ")}` : player.name}
     >
-      {/* Just wide enough for "12:59" since their latest play, the name tucked in close after it — never touching. */}
-      <span className="-mr-0.5 w-[2.6em] shrink-0 text-[0.6875rem] tabular-nums text-ink-muted">{time}</span>
+      {/* Just wide enough for "12:59" since their latest play, the name tucked in close after it — never touching. Only
+          while their game's on: before it (or on a bye) and after, no room kept for it. */}
+      {phase === "live" ? <span className="-mr-0.5 w-[2.6em] shrink-0 text-[0.6875rem] tabular-nums text-ink-muted">{time}</span> : null}
       <span className="flex min-w-0 flex-1 items-center gap-1">
         <span
           className={`min-w-0 truncate ${SIDE_NAME_COLOR[side]} ${
