@@ -394,29 +394,24 @@ const FeedRow = memo(function FeedRow({ entry, starterById, legendByLeagueId, ar
   );
 }, sameRow);
 
-/** Who on your side has the ball inside the 20 right now. */
-function RedZoneAlert({ alert }: { alert: RedZoneNow }) {
+/**
+ * A team with the ball inside the 20 right now, where your side has players: its logo and name on the red zone's
+ * pulsing red, in the middle of the header (`compact`: just its logo, down the side).
+ */
+function RedZoneTeam({ alert, compact = false }: { alert: RedZoneNow; compact?: boolean }) {
+  const label = `${alert.team} in the red zone${alert.downDistance ? `, ${alert.downDistance}` : ""}${
+    alert.players.length > 0 ? ` — ${alert.players.map(displayName).join(", ")}` : ""
+  }`;
   return (
     <li
-      className="flex items-center gap-2 bg-[color-mix(in_srgb,var(--status-critical)_12%,transparent)] py-1.5 pl-3 pr-2 animate-[rz-pulse_1.6s_ease-in-out_infinite]"
-      aria-label={`${alert.team} in the red zone${alert.downDistance ? `, ${alert.downDistance}` : ""}`}
+      aria-label={label}
+      title={label}
+      className={`flex shrink-0 items-center gap-1 bg-[color-mix(in_srgb,var(--status-critical)_12%,transparent)] animate-[rz-pulse_1.6s_ease-in-out_infinite] ${
+        compact ? "p-0.5" : "px-1.5 py-0.5"
+      }`}
     >
-      <TeamLogo team={alert.team} side={18} />
-      <span className="min-w-0 flex-1">
-        <span className="block text-[0.6875rem] font-bold uppercase tracking-wide text-status-critical">
-          {alert.downDistance ? <Ordinals text={alert.downDistance} /> : `${alert.team} in the red zone`}
-        </span>
-        <span className="block break-words text-[0.75rem] text-ink-primary">
-          {alert.players.length > 0 ? alert.players.map(displayName).join(", ") : `${alert.game.awayTeam} @ ${alert.game.homeTeam}`}
-        </span>
-      </span>
-      <span className="flex shrink-0 -space-x-2">
-        {alert.players.slice(0, 4).map((p) => (
-          <span key={p.playerId} className="rounded-full ring-2 ring-surface-raised">
-            <PlayerHeadshot playerId={p.playerId} size={24} />
-          </span>
-        ))}
-      </span>
+      <TeamLogo team={alert.team} side={compact ? 14 : 16} />
+      {compact ? null : <span className="text-[0.6875rem] font-bold uppercase leading-none tracking-wide text-status-critical">{alert.team}</span>}
     </li>
   );
 }
@@ -702,8 +697,8 @@ export function RedZone({
   const live = mode === "live";
   const stretched = phone && !fill ? boxHeight !== null : !!full?.on;
   // With no game on, the header runs across the top instead of down the side — and with no plays, it's just
-  // the header, across the top, no room kept for them.
-  const empty = entries.length === 0 && feed.redZone.length === 0 && !pinned;
+  // the header (any teams in the red zone in it), across the top, no room kept for them.
+  const empty = entries.length === 0 && !pinned;
   const across = !live || empty || fill;
   useEffect(() => onEmptyChange?.(empty), [empty, onEmptyChange]);
   return (
@@ -758,9 +753,18 @@ export function RedZone({
               <ExpandVerticalIcon inward={stretched} width={14} height={14} />
             </button>
           </div>
+          {/* The teams in the red zone now, in the middle (down the side, under the title). */}
+          <ul
+            aria-label="In the red zone now"
+            className={across ? "flex min-w-0 flex-1 flex-wrap items-center justify-center gap-1" : "flex flex-col items-center gap-1"}
+          >
+            {feed.redZone.map((alert) => (
+              <RedZoneTeam key={alert.game.id} alert={alert} compact={!across} />
+            ))}
+          </ul>
           {/* Which plays, at the end. */}
           <div
-            className={`flex shrink-0 border border-border font-semibold ${across ? "ml-auto flex-row text-[0.625rem]" : "mt-auto w-full flex-col text-[0.5625rem]"}`}
+            className={`flex shrink-0 border border-border font-semibold ${across ? "flex-row text-[0.625rem]" : "mt-auto w-full flex-col text-[0.5625rem]"}`}
             role="group"
             aria-label="Which plays"
           >
@@ -790,14 +794,6 @@ export function RedZone({
             <ol aria-label="The play by the graph's cursor" className="absolute left-1.5 right-0 top-1 z-20 bg-page shadow-md max-md:right-2">
               <FeedRow key="pinned" entry={pinned} starterById={starterById} legendByLeagueId={legendByLeagueId} arrivedLive={false} index={0} spotlit />
             </ol>
-          ) : null}
-
-          {feed.redZone.length > 0 ? (
-            <ul className="flex shrink-0 flex-col gap-1" aria-label="In the red zone now">
-              {feed.redZone.map((alert) => (
-                <RedZoneAlert key={alert.game.id} alert={alert} />
-              ))}
-            </ul>
           ) : null}
 
           {entries.length > 0 ? (
