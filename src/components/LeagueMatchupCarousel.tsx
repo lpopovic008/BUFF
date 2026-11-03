@@ -1,7 +1,6 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { ResolvedMatchupGame, ResolvedSlot } from "@/hooks/useLeagueMatchupCarousel";
 import { HeadToHeadBadge, PointsRankBadges, StreakBadge, TeamNameLabel } from "@/components/DashboardMatchupCard";
 import { AllTimeRecord, headToHeadAsItStands, headToHeadKey, useAllTimeHeadToHead } from "@/hooks/useAllTimeHeadToHead";
@@ -458,12 +457,12 @@ function MatchupHeader({
  * streak between the two, nearer the score.
  */
 function OutlinedMatchupHeader({
-  leagueId,
   left,
   right,
   standings,
   headToHead,
 }: {
+  /** Taken as MatchupHeader's is, though its names lead nowhere. */
   leagueId: string;
   left: MatchupTeam;
   right: MatchupTeam | undefined;
@@ -478,9 +477,8 @@ function OutlinedMatchupHeader({
       // Centred between the header's edge and the head-to-head in the middle (kept clear of it).
       <span className={`flex min-w-0 items-baseline justify-center gap-1.5 ${side === "right" ? "pl-3" : "pr-3"}`}>
         {rank != null ? <span className="shrink-0 text-xs font-bold tabular-nums text-series-4">{rank}</span> : null}
-        <Link href={`/team?league=${leagueId}&roster=${t.rosterId}`} className="min-w-0 truncate text-sm font-bold text-ink-primary hover:underline sm:text-base">
-          {t.teamName}
-        </Link>
+        {/* Just its name: not a way to its roster (that's to come elsewhere). */}
+        <span className="min-w-0 truncate text-sm font-bold text-ink-primary sm:text-base">{t.teamName}</span>
       </span>
     );
   };
