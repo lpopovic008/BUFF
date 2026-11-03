@@ -451,10 +451,11 @@ function MatchupHeader({
 }
 
 /**
- * The matchup's header outlined rather than lit (the League Room's): each team's rank and name on top, the all-time
- * head-to-head (the left team's) between them in the middle; under each name, innermost, its score over its projected
- * total — right over its column of player points, as each starter's projection is under their points — its PF over
- * its PA beside them, row for row, and its record and streak outermost, halfway between the two rows.
+ * The matchup's header outlined rather than lit (the League Room's): each team's rank and name on top, centred in its
+ * half, the all-time head-to-head (the left team's) between them in the middle; under each name, innermost, its score
+ * over its projected total — right over its column of player points, as each starter's projection is under their
+ * points — its PF over its PA against the header's edge, as far apart as the score and projection, and its record and
+ * streak between the two, nearer the score.
  */
 function OutlinedMatchupHeader({
   leagueId,
@@ -474,7 +475,8 @@ function OutlinedMatchupHeader({
   const name = (t: MatchupTeam, side: "left" | "right") => {
     const rank = standings.get(t.rosterId)?.rank;
     return (
-      <span className={`flex min-w-0 items-baseline gap-1.5 ${side === "right" ? "justify-end pl-3" : "pr-3"}`}>
+      // Centred between the header's edge and the head-to-head in the middle (kept clear of it).
+      <span className={`flex min-w-0 items-baseline justify-center gap-1.5 ${side === "right" ? "pl-3" : "pr-3"}`}>
         {rank != null ? <span className="shrink-0 text-xs font-bold tabular-nums text-series-4">{rank}</span> : null}
         <Link href={`/team?league=${leagueId}&roster=${t.rosterId}`} className="min-w-0 truncate text-sm font-bold text-ink-primary hover:underline sm:text-base">
           {t.teamName}
@@ -485,34 +487,39 @@ function OutlinedMatchupHeader({
   const below = (t: MatchupTeam, side: "left" | "right") => {
     const { record, streak, pointsRanks } = standings.get(t.rosterId) ?? {};
     const l = side === "left";
-    return (
-      // Two rows: the score's and the projection's — the PF and PA in them too, the record across both.
-      <div className={`grid grid-rows-[auto_auto] items-center gap-x-2 ${l ? "grid-cols-[auto_auto_minmax(0,1fr)_auto]" : "grid-cols-[auto_minmax(0,1fr)_auto_auto]"}`}>
-        <span className={`row-span-2 row-start-1 flex items-center gap-1.5 ${l ? "col-start-1" : "col-start-4 justify-end"}`}>
-          {record ? <span className="text-xs font-semibold tabular-nums text-ink-secondary">{formatRecord(record.wins, record.losses, record.ties)}</span> : null}
-          <StreakBadge streak={streak} />
-        </span>
-        <span className={`row-start-1 ${l ? "col-start-2" : "col-start-3"}`}>
-          <PointsRankBadges pointsRanks={pointsRanks} leagueSize={standings.size} only="for" />
-        </span>
-        <span className={`row-start-2 ${l ? "col-start-2" : "col-start-3"}`}>
-          <PointsRankBadges pointsRanks={pointsRanks} leagueSize={standings.size} only="against" />
-        </span>
-        <span
-          className={`row-start-1 text-[0.9375rem] font-semibold leading-tight tabular-nums text-ink-primary sm:text-lg sm:leading-tight ${
-            l ? "col-start-4 text-right" : "col-start-1"
-          }`}
-        >
-          {formatPoints(t.points)}
-        </span>
-        <span className={`row-start-2 flex min-h-[1.1em] ${l ? "col-start-4 justify-end" : "col-start-1"}`}>
+    // Its PF over its PA against the header's edge, as far apart as its score and projection are.
+    const ranks = (
+      <span className="flex flex-col gap-1.5 leading-none [&>*]:leading-none">
+        <PointsRankBadges pointsRanks={pointsRanks} leagueSize={standings.size} only="for" />
+        <PointsRankBadges pointsRanks={pointsRanks} leagueSize={standings.size} only="against" />
+      </span>
+    );
+    // Its score over its projection, innermost.
+    const score = (
+      <span className={`flex flex-col tabular-nums ${l ? "items-end" : "items-start"}`}>
+        <span className="text-[0.9375rem] font-semibold leading-tight text-ink-primary sm:text-lg sm:leading-tight">{formatPoints(t.points)}</span>
+        <span className="flex min-h-[1.1em]">
           <Projected rosterId={t.rosterId} align={l ? "right" : "left"} />
         </span>
+      </span>
+    );
+    // Its record and streak between them, nearer the score.
+    const standing = (
+      <span className="flex items-center justify-center gap-1.5">
+        {record ? <span className="text-xs font-semibold tabular-nums text-ink-secondary">{formatRecord(record.wins, record.losses, record.ties)}</span> : null}
+        <StreakBadge streak={streak} />
+      </span>
+    );
+    return (
+      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2">
+        {l ? ranks : score}
+        <span className={l ? "pl-2" : "pr-2"}>{standing}</span>
+        {l ? score : ranks}
       </div>
     );
   };
   return (
-    <div className="flex flex-col gap-1 border border-ink-primary px-2 py-2">
+    <div className="flex flex-col gap-0.5 border border-ink-primary px-2 py-2">
       <div className={`grid ${SLOT_COLS} items-baseline gap-1 sm:gap-2`}>
         {name(left, "left")}
         <span className="justify-self-center">{rec ? <HeadToHeadBadge wins={rec.wins} losses={rec.losses} className="text-xs sm:text-sm" /> : null}</span>

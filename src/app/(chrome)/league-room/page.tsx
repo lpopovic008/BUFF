@@ -36,7 +36,7 @@ const onDesktopChange = (listener: () => void) => {
 };
 // Where the columns' first rows sit: under the header (the league switcher in it, on a phone), and a gap.
 const UNDER_HEADER = "var(--header-h, 0px) + 0.625rem";
-const UNDER_SWITCHER = "var(--header-h, 0px) + 0.25rem";
+const UNDER_SWITCHER = "var(--header-h, 0px) + 0.5rem";
 // The line on the floor the columns stand on, up from the room's bottom: the home page's starters list's.
 const FOOT = "3.25rem";
 
@@ -290,10 +290,10 @@ function LeaguePane({ league, week, userId, reflections }: { league: RoomLeagueD
       <div
         ref={setColumn}
         data-scroll-list
-        className="h-full touch-none overflow-y-auto overscroll-none px-4 pb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="h-full touch-none overflow-y-auto overscroll-none px-2 pb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         style={pad}
       >
-        <div className="pt-2">
+        <div>
           {!carousel
             ? loadingLineups
             : games.length === 0
@@ -314,7 +314,7 @@ function LeaguePane({ league, week, userId, reflections }: { league: RoomLeagueD
         </div>
       </div>
       <ScrollThumb source={column} />
-      {reflections ? createPortal(<FloorReflection source={column} className="px-4 pb-8" style={pad} />, reflections) : null}
+      {reflections ? createPortal(<FloorReflection source={column} className="px-2 pb-8" style={pad} />, reflections) : null}
     </>
   );
 }
