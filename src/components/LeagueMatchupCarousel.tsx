@@ -451,52 +451,78 @@ function MatchupHeader({
 }
 
 /**
- * The matchup's header outlined rather than lit (the League Room's): each team's rank and name on top, its record,
- * streak and PF/PA ranks under them (no all-time head-to-head) — and its score inside them, right over its column of
- * player points, its projected total under it as each starter's projection is under their points.
+ * The matchup's header outlined rather than lit (the League Room's): each team's rank and name on top, the all-time
+ * head-to-head (the left team's) between them in the middle; under each name, innermost, its score over its projected
+ * total — right over its column of player points, as each starter's projection is under their points — its PF over
+ * its PA beside them, row for row, and its record and streak outermost, halfway between the two rows.
  */
 function OutlinedMatchupHeader({
   leagueId,
   left,
   right,
   standings,
+  headToHead,
 }: {
   leagueId: string;
   left: MatchupTeam;
   right: MatchupTeam | undefined;
   standings: Map<number, TeamStanding>;
-  /** Taken as MatchupHeader's is, but not shown. */
   headToHead: Map<number, AllTimeRecord> | null;
 }) {
-  const half = (t: MatchupTeam, side: "left" | "right") => {
-    const { rank, record, streak, pointsRanks } = standings.get(t.rosterId) ?? {};
-    const end = side === "right" ? "justify-end" : "";
+  const rec = right ? headToHead?.get(left.rosterId) : undefined;
+  // Its rank on the left of its name, whichever side it's on — clear of the head-to-head in the middle.
+  const name = (t: MatchupTeam, side: "left" | "right") => {
+    const rank = standings.get(t.rosterId)?.rank;
     return (
-      <div className={`grid min-w-0 gap-x-2 gap-y-0.5 ${side === "left" ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-[auto_minmax(0,1fr)]"}`}>
-        <span className={`row-span-2 flex flex-col tabular-nums ${side === "left" ? "col-start-2 items-end" : "col-start-1 row-start-1 items-start"}`}>
-          <span className="text-[0.9375rem] font-semibold leading-tight text-ink-primary sm:text-lg sm:leading-tight">{formatPoints(t.points)}</span>
-          <Projected rosterId={t.rosterId} align={side === "left" ? "right" : "left"} />
-        </span>
-        {/* Its rank on the left of its name, whichever side it's on. */}
-        <span className={`flex min-w-0 items-baseline gap-1.5 ${end} ${side === "left" ? "col-start-1 row-start-1" : "col-start-2 row-start-1"}`}>
-          {rank != null ? <span className="shrink-0 text-xs font-bold tabular-nums text-series-4">{rank}</span> : null}
-          <Link href={`/team?league=${leagueId}&roster=${t.rosterId}`} className="min-w-0 truncate text-sm font-bold text-ink-primary hover:underline sm:text-base">
-            {t.teamName}
-          </Link>
-        </span>
-        <span className={`flex flex-wrap items-center gap-x-1.5 gap-y-0.5 ${end} ${side === "left" ? "col-start-1 row-start-2" : "col-start-2 row-start-2"}`}>
+      <span className={`flex min-w-0 items-baseline gap-1.5 ${side === "right" ? "justify-end pl-3" : "pr-3"}`}>
+        {rank != null ? <span className="shrink-0 text-xs font-bold tabular-nums text-series-4">{rank}</span> : null}
+        <Link href={`/team?league=${leagueId}&roster=${t.rosterId}`} className="min-w-0 truncate text-sm font-bold text-ink-primary hover:underline sm:text-base">
+          {t.teamName}
+        </Link>
+      </span>
+    );
+  };
+  const below = (t: MatchupTeam, side: "left" | "right") => {
+    const { record, streak, pointsRanks } = standings.get(t.rosterId) ?? {};
+    const l = side === "left";
+    return (
+      // Two rows: the score's and the projection's — the PF and PA in them too, the record across both.
+      <div className={`grid grid-rows-[auto_auto] items-center gap-x-2 ${l ? "grid-cols-[auto_auto_minmax(0,1fr)_auto]" : "grid-cols-[auto_minmax(0,1fr)_auto_auto]"}`}>
+        <span className={`row-span-2 row-start-1 flex items-center gap-1.5 ${l ? "col-start-1" : "col-start-4 justify-end"}`}>
           {record ? <span className="text-xs font-semibold tabular-nums text-ink-secondary">{formatRecord(record.wins, record.losses, record.ties)}</span> : null}
           <StreakBadge streak={streak} />
-          <PointsRankBadges pointsRanks={pointsRanks} leagueSize={standings.size} />
+        </span>
+        <span className={`row-start-1 ${l ? "col-start-2" : "col-start-3"}`}>
+          <PointsRankBadges pointsRanks={pointsRanks} leagueSize={standings.size} only="for" />
+        </span>
+        <span className={`row-start-2 ${l ? "col-start-2" : "col-start-3"}`}>
+          <PointsRankBadges pointsRanks={pointsRanks} leagueSize={standings.size} only="against" />
+        </span>
+        <span
+          className={`row-start-1 text-[0.9375rem] font-semibold leading-tight tabular-nums text-ink-primary sm:text-lg sm:leading-tight ${
+            l ? "col-start-4 text-right" : "col-start-1"
+          }`}
+        >
+          {formatPoints(t.points)}
+        </span>
+        <span className={`row-start-2 flex min-h-[1.1em] ${l ? "col-start-4 justify-end" : "col-start-1"}`}>
+          <Projected rosterId={t.rosterId} align={l ? "right" : "left"} />
         </span>
       </div>
     );
   };
   return (
-    <div className={`grid ${SLOT_COLS} items-start gap-1 border border-ink-primary px-2 py-2 sm:gap-2`}>
-      {half(left, "left")}
-      <span />
-      {right ? half(right, "right") : <div />}
+    <div className="flex flex-col gap-1 border border-ink-primary px-2 py-2">
+      <div className={`grid ${SLOT_COLS} items-baseline gap-1 sm:gap-2`}>
+        {name(left, "left")}
+        <span className="justify-self-center">{rec ? <HeadToHeadBadge wins={rec.wins} losses={rec.losses} className="text-xs sm:text-sm" /> : null}</span>
+        {right ? name(right, "right") : <span />}
+      </div>
+      <div className={`grid ${SLOT_COLS} gap-1 sm:gap-2`}>
+        {below(left, "left")}
+        <span />
+        {right ? below(right, "right") : <div />}
+      </div>
     </div>
   );
 }

@@ -64,13 +64,14 @@ export function NavBar() {
   }, []);
 
   return (
-    // Padded down by the safe area, so on a phone its background fills the strip around the camera and
-    // its contents start just under it — and no lower: a little less padding of its own on a phone.
-    <header ref={ref} className="sticky top-0 z-50 border-b border-border bg-page/70 pt-[env(safe-area-inset-top)] backdrop-blur-[3px]">
+    // Padded down by the safe area, so on a phone its background fills the strip around the camera. On a phone its
+    // contents start right under the camera — the safe area reaches a little lower than the camera does, so a little
+    // into it, with no padding of their own above them (a phone with no safe area, just that little padding).
+    <header ref={ref} className="sticky top-0 z-50 border-b border-border bg-page/70 pt-[max(0.5rem,calc(env(safe-area-inset-top)-0.375rem))] backdrop-blur-[3px] sm:pt-[env(safe-area-inset-top)]">
       {bare ? (
         // Cleared by the page: back on the left, the page's own content in the middle, the app's icon (home) on the
         // right — the ends as wide as each other, so the middle's centred on the screen.
-        <div className="relative grid grid-cols-[2.25rem_minmax(0,1fr)_2.25rem] items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 md:px-1">
+        <div className="relative grid grid-cols-[2.25rem_minmax(0,1fr)_2.25rem] items-center gap-2 px-4 pb-2 sm:px-6 sm:py-3 md:px-1">
           <button
             type="button"
             aria-label="Back"
@@ -89,7 +90,7 @@ export function NavBar() {
       ) : (
       <>
       {/* The week centered — unless one side's too wide for that (the page tabs beside a long week, on a tablet), then just clear of it. */}
-      <div className="relative grid grid-cols-[minmax(max-content,1fr)_auto_minmax(max-content,1fr)] items-center gap-2 px-4 py-2 sm:gap-3 sm:px-6 sm:py-3 md:px-1">
+      <div className="relative grid grid-cols-[minmax(max-content,1fr)_auto_minmax(max-content,1fr)] items-center gap-2 px-4 pb-2 sm:gap-3 sm:px-6 sm:py-3 md:px-1">
         {/* The app's icon, home — and from tablet width up the pages as text tabs, the one you're on lit like a map
             tag. (Back and forward sit just under the header: see HistoryButtons.) */}
         <div className="flex min-w-0 items-center gap-2 justify-self-start sm:gap-3 md:gap-0">
