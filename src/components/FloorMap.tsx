@@ -78,8 +78,8 @@ function useWire(): number {
  * color (no grid lines across it), its borders and coast wires like the grid's, the states with a game outlined
  * solid in ink (white, or black in light mode), and each game's ring on it. Drawn in the room,
  * behind everything; the games' stems and tags stand up in front (see FloorMapTags). Moved with the floor
- * (`camera`), none of it past the horizon: moved back past where its back edge lies at most, it fades toward the
- * horizon, as the floor's lines do. Zoomed in, its coast and borders finer (see floor-map-detail.ts).
+ * (`camera`), none of it past the horizon: moved back past where its back edge lies at most, it fades into a fog,
+ * gone altogether by the horizon. Zoomed in, its coast and borders finer (see floor-map-detail.ts).
  */
 export function FloorMapLand({ fit: lying, games, camera }: { fit: FloorMapFit; games: MappedGame[]; camera?: FloorCameraStore }) {
   const fit = useMovedFit(lying, camera);
@@ -109,7 +109,8 @@ export function FloorMapLand({ fit: lying, games, camera }: { fit: FloorMapFit; 
   return (
     <svg className="absolute inset-0 h-full w-full" aria-hidden>
       <defs>
-        <FloorFade id="floor-map-fade" width={fit.width} height={fit.height} share={fit.share} whole={whole} />
+        {/* Into a fog: gone altogether by the horizon. */}
+        <FloorFade id="floor-map-fade" width={fit.width} height={fit.height} share={fit.share} whole={whole} far={0} />
         <clipPath id="floor-map-floor">
           <rect x={0} y={fit.height * fit.share} width={fit.width} height={fit.height * (1 - fit.share)} />
         </clipPath>
@@ -139,7 +140,8 @@ export function FloorMapLand({ fit: lying, games, camera }: { fit: FloorMapFit; 
  * The week's games standing up off the map on the floor, in front of everything (the starters list sinks into the
  * floor behind them): each game's stem from its ring, taller the more players it counts, with the matchup's tag
  * hung off its top on the left (on Mountain or Pacific time, the right) — and, set over them, `overhead` (the kickoff countdown), above the map's middle as
- * it lies. Moved with the floor (`camera`), those on the floor still on the screen.
+ * it lies. Moved with the floor (`camera`), those on the floor still on the screen — fading into the
+ * fog with the map toward the horizon.
  */
 export function FloorMapTags({
   fit: lying,
@@ -167,7 +169,13 @@ export function FloorMapTags({
     .sort((a, b) => a.y - b.y);
   // Graded from the nearest of them (whole) back to the farthest (faintest), however near or far they all are.
   const [farthest, nearest] = [shown[0]?.y ?? 0, shown.at(-1)?.y ?? 0];
-  const placed = shown.map((s) => ({ ...s, fade: nearest > farthest ? FARTHEST_TAG + (1 - FARTHEST_TAG) * ((s.y - farthest) / (nearest - farthest)) : 1 }));
+  // And into the fog with the map: moved back past where its back edge lies at most, fading to nothing at the horizon.
+  const whole = fadeFrom(lying);
+  const fog = (y: number) => Math.min(1, Math.max(0, (y - horizon) / Math.max(1, whole - horizon)));
+  const placed = shown.map((s) => ({
+    ...s,
+    fade: (nearest > farthest ? FARTHEST_TAG + (1 - FARTHEST_TAG) * ((s.y - farthest) / (nearest - farthest)) : 1) * fog(s.y),
+  }));
   const [midX] = floorMapPoint(lying, 160, 200);
   return (
     <div className="pointer-events-none fixed inset-0 z-10" aria-hidden>

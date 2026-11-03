@@ -14,15 +14,29 @@ const FULL_DEPTH_SHARE = 0.6;
 const FADE_STOPS = 8;
 
 /**
- * A mask (`id`) fading what's on the floor back toward the horizon: whole from screen y `whole` down, as faint as the
- * grid's far end (FAR_OPACITY) at the horizon.
+ * A mask (`id`) fading what's on the floor back toward the horizon: whole from screen y `whole` down, as faint as `far`
+ * at the horizon (the grid's far end, FAR_OPACITY, unless given).
  */
-export function FloorFade({ id, width, height, share, whole }: { id: string; width: number; height: number; share: number; whole: number }) {
+export function FloorFade({
+  id,
+  width,
+  height,
+  share,
+  whole,
+  far = FAR_OPACITY,
+}: {
+  id: string;
+  width: number;
+  height: number;
+  share: number;
+  whole: number;
+  far?: number;
+}) {
   const horizon = height * share;
   return (
     <>
       <linearGradient id={`${id}-fade`} gradientUnits="userSpaceOnUse" x1="0" y1={horizon} x2="0" y2={whole}>
-        <stop offset="0" stopColor="white" stopOpacity={FAR_OPACITY} />
+        <stop offset="0" stopColor="white" stopOpacity={far} />
         <stop offset="1" stopColor="white" stopOpacity="1" />
       </linearGradient>
       <mask id={id} maskUnits="userSpaceOnUse" x="0" y="0" width={width} height={height}>

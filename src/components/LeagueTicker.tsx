@@ -257,7 +257,7 @@ function TickerItem({
       tabIndex={copy ? -1 : undefined}
       draggable={false}
       // Just as wide as it needs, a little padding at either end.
-      className="relative flex w-max shrink-0 flex-col justify-center gap-0.5 border-r border-border px-2.5 py-1.5"
+      className="relative flex w-max shrink-0 flex-col justify-center gap-0.5 px-2.5 py-1.5"
     >
       {/* Its place in your leagues, outlined. */}
       <span className="absolute right-2.5 top-1.5 border border-ink-primary px-1 text-[0.625rem] font-semibold tabular-nums leading-[1.4] text-ink-primary">
@@ -341,7 +341,7 @@ export function LeagueTicker({ leagues }: { leagues: TickerLeague[] }) {
     <nav
       ref={bar}
       aria-label="Your leagues"
-      className="sticky top-[var(--header-h,0px)] z-40 -mx-4 -mt-6 border-b border-border bg-page/70 backdrop-blur-[3px] sm:-mx-6 sm:-mt-8 md:-mx-1"
+      className="sticky top-[var(--header-h,0px)] z-40 -mx-4 -mt-6 bg-page/70 backdrop-blur-[3px] sm:-mx-6 sm:-mt-8 md:-mx-1"
     >
       <div ref={viewport} className="select-none overflow-hidden [touch-action:pan-y]">
         <div ref={track} className="flex w-max will-change-transform">
