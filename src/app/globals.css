@@ -294,8 +294,6 @@ body {
 .grid-room {
   position: fixed;
   inset: 0;
-  /* Down to the screen's real bottom, where a home-screen app's screen is drawn short (see AppScroll). */
-  bottom: calc(-1 * var(--vp-gap, 0px));
   z-index: -1;
   overflow: hidden;
   pointer-events: none;

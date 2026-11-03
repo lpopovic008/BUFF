@@ -399,7 +399,7 @@ export function FloorCameraControls({
   ) : null;
   // The Red Zone's switch in the screen's bottom-left corner; in its bottom-right, the way home while it's away, and
   // from tablet width up zoom buttons too (for a mouse with no pinch). On a phone, over the tab bar.
-  const corner = desktop ? "bottom-3" : "bottom-[calc(var(--tabbar-h,0px)+0.75rem-var(--vp-gap,0px))]";
+  const corner = desktop ? "bottom-3" : "bottom-[calc(var(--tabbar-h,0px)+0.75rem)]";
   return (
     <>
       <div className={`pointer-events-none fixed left-4 z-20 flex gap-1 ${corner}`}>{redZoneButton}</div>

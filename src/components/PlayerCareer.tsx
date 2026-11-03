@@ -98,7 +98,7 @@ export function PlayerCareer({
   const cell = "px-2 py-1.5 text-right tabular-nums whitespace-nowrap";
 
   return (
-    <div className="fixed inset-0 bottom-[calc(-1*var(--vp-gap,0px))] z-[60] flex items-end justify-center bg-black/60 sm:items-center sm:p-6" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 sm:items-center sm:p-6" onClick={onClose}>
       <div
         role="dialog"
         aria-modal="true"

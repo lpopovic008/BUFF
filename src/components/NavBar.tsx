@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useNFLState } from "@/hooks/useNFLState";
@@ -28,54 +28,6 @@ function Logo({ className }: { className?: string }) {
       <rect x="26" y="47" width="6" height="17" rx="3" />
       <rect x="31" y="33" width="36" height="55" rx="8" mask="url(#logo-grille)" />
     </svg>
-  );
-}
-
-// The app opened from a phone's home screen runs up behind the status bar, whose clock and battery iOS draws white
-// (see layout.tsx). In the light theme, on a phone with a camera cutout (a status bar that tall), each sits on a black
-// pill of its own, so they still read — the time in the left corner, the signal and battery in the right, each
-// centred in the space between the screen's side and the camera.
-const HOME_SCREEN_PHONE = "(display-mode: standalone) and (max-width: 767px)";
-const TALL_STATUS_BAR_PX = 40;
-let safeTopProbe: HTMLDivElement | null = null;
-function safeTop(): number {
-  if (!safeTopProbe) {
-    safeTopProbe = document.createElement("div");
-    safeTopProbe.style.cssText = "position:fixed;top:0;left:0;width:0;height:env(safe-area-inset-top);visibility:hidden;pointer-events:none";
-    document.body.appendChild(safeTopProbe);
-  }
-  return safeTopProbe.offsetHeight;
-}
-const statusPillsWanted = () => {
-  const homeScreen =
-    window.matchMedia(HOME_SCREEN_PHONE).matches ||
-    ((navigator as Navigator & { standalone?: boolean }).standalone === true && window.matchMedia("(max-width: 767px)").matches);
-  return homeScreen && document.documentElement.dataset.theme !== "dark" && safeTop() >= TALL_STATUS_BAR_PX;
-};
-const onStatusPillsChange = (listener: () => void) => {
-  const query = window.matchMedia(HOME_SCREEN_PHONE);
-  query.addEventListener("change", listener);
-  const theme = new MutationObserver(listener);
-  theme.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-  window.addEventListener("resize", listener);
-  return () => {
-    query.removeEventListener("change", listener);
-    theme.disconnect();
-    window.removeEventListener("resize", listener);
-  };
-};
-
-function StatusBarPills() {
-  const wanted = useSyncExternalStore(onStatusPillsChange, statusPillsWanted, () => false);
-  if (!wanted) return null;
-  // Each pill centred where iOS centres the clock (71px in from the left) and the signal and battery (70px in from the
-  // right), 29px down — with room around them.
-  const pill = "absolute top-[29px] h-[1.875rem] w-[6.75rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-ink-primary";
-  return (
-    <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0">
-      <span className={pill} style={{ left: "71px" }} />
-      <span className={pill} style={{ left: "calc(100% - 70px)" }} />
-    </div>
   );
 }
 
@@ -116,7 +68,6 @@ export function NavBar() {
     // contents sit halfway between the camera's bottom and the header's own (as far below the one as above the other,
     // 0.75rem): the safe area reaches about 11px below the camera. A phone with no safe area, halfway down the header.
     <header ref={ref} className="sticky top-0 z-50 border-b border-border bg-page/70 pt-[max(0.75rem,calc(env(safe-area-inset-top)-11px+0.75rem))] backdrop-blur-[3px] sm:pt-[env(safe-area-inset-top)]">
-      <StatusBarPills />
       {bare ? (
         // Cleared by the page: back on the left, the page's own content in the middle, the app's icon (home) on the
         // right — the ends as wide as each other, so the middle's centred on the screen.

@@ -715,8 +715,7 @@ export default function DashboardPage() {
           } ${redZoneFull && !desktop && !redZoneDragging ? "delay-500" : ""}`}
           style={{
             ...(desktop && startersList ? { right: stand.fit.width - startersList.getBoundingClientRect().left } : null),
-            // (From the screen's real bottom, where a home-screen app's screen is drawn short: see AppScroll.)
-            bottom: `calc(${stand.room - stand.redZoneLine}px - var(--vp-gap, 0px))`,
+            bottom: stand.room - stand.redZoneLine,
             top:
               redZoneDragTop !== null
                 ? `${redZoneDragTop}px`
@@ -798,7 +797,7 @@ export default function DashboardPage() {
       <div data-floor style={standVars}>
         <h1 className="sr-only">Dashboard</h1>
         {roomView}
-        <div data-floor className="fixed inset-0 bottom-[calc(-1*var(--vp-gap,0px))] touch-none">
+        <div data-floor className="fixed inset-0 touch-none">
           <div className="absolute inset-x-0 top-0 overflow-hidden" style={{ height: stand ? stand.horizon : "50%" }}>
             <div
               ref={setStartersList}
