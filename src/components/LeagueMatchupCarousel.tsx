@@ -454,7 +454,7 @@ function MatchupHeader({
  * edge, the all-time head-to-head (the left team's) between them in the middle; under each name, innermost, its score
  * over its projected total — right over its column of player points, as each starter's projection is under their
  * points — its PF over its PA against the header's edge, as far apart as the score and projection, and its record and
- * streak between the two, nearer the score.
+ * streak, as big as the score, beside them with a little room between.
  */
 function OutlinedMatchupHeader({
   left,
@@ -501,18 +501,28 @@ function OutlinedMatchupHeader({
         </span>
       </span>
     );
-    // Its record and streak between them, nearer the score.
+    // Its record and streak as big as its score, beside its PF and PA with a little room between.
     const standing = (
-      <span className="flex items-center justify-center gap-1.5">
-        {record ? <span className="text-xs font-semibold tabular-nums text-ink-secondary">{formatRecord(record.wins, record.losses, record.ties)}</span> : null}
-        <StreakBadge streak={streak} />
+      <span className="flex items-center gap-1.5">
+        {record ? (
+          <span className="text-[0.9375rem] font-semibold tabular-nums text-ink-secondary sm:text-lg">{formatRecord(record.wins, record.losses, record.ties)}</span>
+        ) : null}
+        <StreakBadge streak={streak} large />
       </span>
     );
-    return (
-      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2">
-        {l ? ranks : score}
-        <span className={l ? "pl-2" : "pr-2"}>{standing}</span>
-        {l ? score : ranks}
+    return l ? (
+      <div className="grid grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-x-2">
+        {ranks}
+        <span className="pl-2">{standing}</span>
+        <span />
+        {score}
+      </div>
+    ) : (
+      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-2">
+        {score}
+        <span />
+        <span className="pr-2">{standing}</span>
+        {ranks}
       </div>
     );
   };

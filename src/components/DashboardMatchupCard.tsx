@@ -20,16 +20,16 @@ const toneClass = (onTag: boolean) => (onTag ? ON_TAG_TONE_CLASS : TONE_CLASS);
 /** Secondary text (records, PF/PA labels): bold, a step down from the name — secondary ink on the page, the plate's ink dimmed on a plate. */
 const mutedClass = (onTag: boolean) => (onTag ? "font-semibold text-[var(--map-tag-ink)] opacity-80" : "font-semibold text-ink-secondary");
 
-/** A green up-triangle for a winning streak, red down-triangle for a losing one, then its length. */
-export function StreakBadge({ streak, onTag = false }: { streak?: Streak | null; onTag?: boolean }) {
+/** A green up-triangle for a winning streak, red down-triangle for a losing one, then its length — `large`, as big as a score. */
+export function StreakBadge({ streak, onTag = false, large = false }: { streak?: Streak | null; onTag?: boolean; large?: boolean }) {
   if (!streak) return null;
   const winning = streak.result === "W";
   return (
     <span
-      className={`flex shrink-0 items-center gap-0.5 text-xs font-bold tabular-nums ${toneClass(onTag)[winning ? "good" : "bad"]}`}
+      className={`flex shrink-0 items-center gap-0.5 font-bold tabular-nums ${large ? "text-[0.9375rem] sm:text-lg" : "text-xs"} ${toneClass(onTag)[winning ? "good" : "bad"]}`}
       title={`${streak.length}-game ${winning ? "winning" : "losing"} streak`}
     >
-      <svg viewBox="0 0 10 10" className="h-2 w-2" aria-hidden>
+      <svg viewBox="0 0 10 10" className={large ? "h-2.5 w-2.5 sm:h-3 sm:w-3" : "h-2 w-2"} aria-hidden>
         <path d={winning ? "M5 1 9.5 9h-9z" : "M5 9 .5 1h9z"} fill="currentColor" />
       </svg>
       {streak.length}
