@@ -450,8 +450,8 @@ function MatchupHeader({
 }
 
 /**
- * The matchup's header outlined rather than lit (the League Room's): each team's rank and name on top, centred in its
- * half, the all-time head-to-head (the left team's) between them in the middle; under each name, innermost, its score
+ * The matchup's header outlined rather than lit (the League Room's): each team's rank and name on top, against its
+ * edge, the all-time head-to-head (the left team's) between them in the middle; under each name, innermost, its score
  * over its projected total — right over its column of player points, as each starter's projection is under their
  * points — its PF over its PA against the header's edge, as far apart as the score and projection, and its record and
  * streak between the two, nearer the score.
@@ -474,8 +474,8 @@ function OutlinedMatchupHeader({
   const name = (t: MatchupTeam, side: "left" | "right") => {
     const rank = standings.get(t.rosterId)?.rank;
     return (
-      // Centred between the header's edge and the head-to-head in the middle (kept clear of it).
-      <span className={`flex min-w-0 items-baseline justify-center gap-1.5 ${side === "right" ? "pl-3" : "pr-3"}`}>
+      // Against the header's edge (kept clear of the head-to-head in the middle).
+      <span className={`flex min-w-0 items-baseline gap-1.5 ${side === "right" ? "justify-end pl-3" : "pr-3"}`}>
         {rank != null ? <span className="shrink-0 text-xs font-bold tabular-nums text-series-4">{rank}</span> : null}
         {/* Just its name: not a way to its roster (that's to come elsewhere). */}
         <span className="min-w-0 truncate text-sm font-bold text-ink-primary sm:text-base">{t.teamName}</span>
