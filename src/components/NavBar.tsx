@@ -33,7 +33,7 @@ function Logo({ className }: { className?: string }) {
 
 // The header's square buttons: bare (the profile button, just its icon), or outlined like the map's own controls.
 const BARE_HEADER_BUTTON =
-  "flex h-9 w-9 shrink-0 items-center justify-center text-ink-secondary transition-colors hover:text-ink-primary active:scale-90 disabled:opacity-30 disabled:hover:text-ink-secondary sm:h-9 sm:w-9";
+  "flex h-7 w-7 shrink-0 items-center justify-center text-ink-secondary transition-colors hover:text-ink-primary active:scale-90 disabled:opacity-30 disabled:hover:text-ink-secondary sm:h-9 sm:w-9";
 const HEADER_BUTTON = `${BARE_HEADER_BUTTON} border border-grid bg-page`;
 
 /**
@@ -64,14 +64,13 @@ export function NavBar() {
   }, []);
 
   return (
-    // Padded down by the safe area, so on a phone its background fills the strip around the camera. On a phone its
-    // contents sit halfway between the camera's bottom and the header's own (as far below the one as above the other,
-    // 0.75rem): the safe area reaches about 11px below the camera. A phone with no safe area, halfway down the header.
-    <header ref={ref} className="sticky top-0 z-50 border-b border-border bg-page/70 pt-[max(0.75rem,calc(env(safe-area-inset-top)-11px+0.75rem))] backdrop-blur-[3px] sm:pt-[env(safe-area-inset-top)]">
+    // Padded down by the safe area, so on a phone its background fills the strip around the camera and
+    // its contents start just under it — and no lower: a little less padding of its own on a phone.
+    <header ref={ref} className="sticky top-0 z-50 border-b border-border bg-page/70 pt-[env(safe-area-inset-top)] backdrop-blur-[3px]">
       {bare ? (
         // Cleared by the page: back on the left, the page's own content in the middle, the app's icon (home) on the
         // right — the ends as wide as each other, so the middle's centred on the screen.
-        <div className="relative grid grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-2 px-4 pb-3 sm:px-6 sm:py-3 md:px-1">
+        <div className="relative grid grid-cols-[2.25rem_minmax(0,1fr)_2.25rem] items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 md:px-1">
           <button
             type="button"
             aria-label="Back"
@@ -84,13 +83,13 @@ export function NavBar() {
           </button>
           <div ref={setHeaderSlot} className="min-w-0" />
           <Link href="/" aria-label="Commi$h — home" title="Commi$h" className="justify-self-end text-ink-primary transition-transform active:scale-90">
-            <Logo className="block h-9" />
+            <Logo className="block h-7 sm:h-9" />
           </Link>
         </div>
       ) : (
       <>
       {/* The week centered — unless one side's too wide for that (the page tabs beside a long week, on a tablet), then just clear of it. */}
-      <div className="relative grid grid-cols-[minmax(max-content,1fr)_auto_minmax(max-content,1fr)] items-center gap-2 px-4 pb-3 sm:gap-3 sm:px-6 sm:py-3 md:px-1">
+      <div className="relative grid grid-cols-[minmax(max-content,1fr)_auto_minmax(max-content,1fr)] items-center gap-2 px-4 py-2 sm:gap-3 sm:px-6 sm:py-3 md:px-1">
         {/* The app's icon, home — and from tablet width up the pages as text tabs, the one you're on lit like a map
             tag. (Back and forward sit just under the header: see HistoryButtons.) */}
         <div className="flex min-w-0 items-center gap-2 justify-self-start sm:gap-3 md:gap-0">
@@ -102,7 +101,7 @@ export function NavBar() {
             title="Commi$h"
             className="shrink-0 text-ink-primary transition-transform active:scale-90 md:ml-1 md:mr-0.5 md:flex md:h-9 md:w-9 md:items-center md:justify-center lg:ml-3 lg:mr-2.5"
           >
-            <Logo className="block h-8 sm:h-9" />
+            <Logo className="block h-7 sm:h-9" />
           </Link>
           <nav aria-label="Pages" className="flex items-center gap-1 max-md:hidden lg:gap-2">
             {tabs.map((tab) => (
@@ -129,7 +128,7 @@ export function NavBar() {
                 label={pickable.week === phase.week && pickable.week > 0 ? phase.label : weekLabel(pickable.week)}
               />
             ) : (
-              <span className="text-2xl font-extrabold uppercase tracking-wide text-ink-primary sm:text-3xl">{phase.label}</span>
+              <span className="text-lg font-extrabold uppercase tracking-wide text-ink-primary sm:text-3xl">{phase.label}</span>
             )}
           </span>
         ) : (
@@ -139,7 +138,7 @@ export function NavBar() {
         {/* From tablet width up, the profile button's icon halfway between your record and the screen's edge. */}
         <div className="flex items-center justify-self-end gap-2 sm:gap-4 md:gap-2.5">
           {/* Your record across the leagues you show (those hidden in Settings left out). */}
-          {record ? <span className="text-lg font-bold tabular-nums tracking-wide text-ink-primary">{record}</span> : null}
+          {record ? <span className="text-sm font-bold tabular-nums tracking-wide text-ink-primary sm:text-lg">{record}</span> : null}
           <Link
             href={profile.href}
             aria-label={profile.label}

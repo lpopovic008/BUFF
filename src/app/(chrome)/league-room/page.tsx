@@ -11,7 +11,6 @@ import { FloorReflection } from "@/components/FloorReflection";
 import { ScrollThumb } from "@/components/ScrollThumb";
 import { useSwipePager } from "@/hooks/useSwipePager";
 import { useListScroll } from "@/hooks/useListScroll";
-import { lockPageScroll } from "@/lib/page-scroll";
 import { LeagueSwitcher, LeagueTitle, RoomLeague } from "@/components/LeagueSwitcher";
 import { MatchupList, MatchupProviders, MatchupSlide, MatchupStack, useMatchupHeadToHead } from "@/components/LeagueMatchupCarousel";
 import { useConfig } from "@/hooks/useConfig";
@@ -97,7 +96,16 @@ function LeagueRoomContent() {
   const { config, loaded } = useConfig();
   const desktop = useSyncExternalStore(onDesktopChange, () => window.matchMedia(DESKTOP).matches, () => false);
   // The room fits the screen: the page itself never scrolls (only its columns do).
-  useEffect(() => lockPageScroll(), []);
+  useEffect(() => {
+    const [html, body] = [document.documentElement.style, document.body.style];
+    const was = [html.overflow, html.overscrollBehavior, body.overflow, body.overscrollBehavior];
+    html.overflow = body.overflow = "hidden";
+    html.overscrollBehavior = body.overscrollBehavior = "none";
+    window.scrollTo(0, 0);
+    return () => {
+      [html.overflow, html.overscrollBehavior, body.overflow, body.overscrollBehavior] = was;
+    };
+  }, []);
 
   const [summaries, setSummaries] = useState<LeagueSummary[] | null>(null);
   const [week, setWeek] = useState<number | null>(null);

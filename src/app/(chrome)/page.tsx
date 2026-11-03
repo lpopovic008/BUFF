@@ -13,7 +13,6 @@ import { FloorReflection } from "@/components/FloorReflection";
 import { FloorPlay } from "@/components/FloorPlay";
 import { ScrollThumb } from "@/components/ScrollThumb";
 import { useListScroll } from "@/hooks/useListScroll";
-import { lockPageScroll } from "@/lib/page-scroll";
 import { createFloorCameraStore } from "@/lib/floor-camera";
 import { LeagueTicker, TickerLeague } from "@/components/LeagueTicker";
 import { ByeTeam, LeagueLegendEntry, StartersByGame, viewPlayers } from "@/components/StartersByGame";
@@ -75,7 +74,16 @@ export default function DashboardPage() {
   const { config, loaded } = useConfig();
   const desktop = useSyncExternalStore(onDesktopChange, () => window.matchMedia(DESKTOP).matches, () => false);
   // The room fits the screen: the page itself never scrolls (nothing but the starters list and the Red Zone's plays do).
-  useEffect(() => lockPageScroll(), []);
+  useEffect(() => {
+    const [html, body] = [document.documentElement.style, document.body.style];
+    const was = [html.overflow, html.overscrollBehavior, body.overflow, body.overscrollBehavior];
+    html.overflow = body.overflow = "hidden";
+    html.overscrollBehavior = body.overscrollBehavior = "none";
+    window.scrollTo(0, 0);
+    return () => {
+      [html.overflow, html.overscrollBehavior, body.overflow, body.overscrollBehavior] = was;
+    };
+  }, []);
   const [leagues, setLeagues] = useState<LoadedLeague[] | null>(null);
   const [week, setWeek] = useState<number | null>(null);
   // The week shown: the current one, unless another's been picked from the header's "Week N".
