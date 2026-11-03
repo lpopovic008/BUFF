@@ -47,7 +47,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <link rel="apple-touch-icon" href={`${basePath}/icons/apple-touch-icon.png`} sizes="180x180" type="image/png" />
         {/* iOS only ever honored its own prefixed tag for "add to home screen -> full-screen, no Safari chrome" — Next's own metadata API only emits the newer unprefixed mobile-web-app-capable (present too, via generated metadata), which older iOS ignores. */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        {/* Translucent: on the home screen, the app runs up behind the status bar and the camera too — its header's
+            contents right under the camera (see NavBar), not under a strip of status bar of iOS's own. */}
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Commi$h" />
       </head>
       <body className="min-h-full bg-page">

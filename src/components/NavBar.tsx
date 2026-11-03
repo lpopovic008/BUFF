@@ -33,7 +33,7 @@ function Logo({ className }: { className?: string }) {
 
 // The header's square buttons: bare (the profile button, just its icon), or outlined like the map's own controls.
 const BARE_HEADER_BUTTON =
-  "flex h-7 w-7 shrink-0 items-center justify-center text-ink-secondary transition-colors hover:text-ink-primary active:scale-90 disabled:opacity-30 disabled:hover:text-ink-secondary sm:h-9 sm:w-9";
+  "flex h-8 w-8 shrink-0 items-center justify-center text-ink-secondary transition-colors hover:text-ink-primary active:scale-90 disabled:opacity-30 disabled:hover:text-ink-secondary sm:h-9 sm:w-9";
 const HEADER_BUTTON = `${BARE_HEADER_BUTTON} border border-grid bg-page`;
 
 /**
@@ -67,7 +67,7 @@ export function NavBar() {
     // Padded down by the safe area, so on a phone its background fills the strip around the camera. On a phone its
     // contents start right under the camera — the safe area reaches a little lower than the camera does, so a little
     // into it, with no padding of their own above them (a phone with no safe area, just that little padding).
-    <header ref={ref} className="sticky top-0 z-50 border-b border-border bg-page/70 pt-[max(0.5rem,calc(env(safe-area-inset-top)-0.375rem))] backdrop-blur-[3px] sm:pt-[env(safe-area-inset-top)]">
+    <header ref={ref} className="sticky top-0 z-50 border-b border-border bg-page/70 pt-[max(0.5rem,calc(env(safe-area-inset-top)-0.5rem))] backdrop-blur-[3px] sm:pt-[env(safe-area-inset-top)]">
       {bare ? (
         // Cleared by the page: back on the left, the page's own content in the middle, the app's icon (home) on the
         // right — the ends as wide as each other, so the middle's centred on the screen.
@@ -84,7 +84,7 @@ export function NavBar() {
           </button>
           <div ref={setHeaderSlot} className="min-w-0" />
           <Link href="/" aria-label="Commi$h — home" title="Commi$h" className="justify-self-end text-ink-primary transition-transform active:scale-90">
-            <Logo className="block h-7 sm:h-9" />
+            <Logo className="block h-8 sm:h-9" />
           </Link>
         </div>
       ) : (
@@ -102,7 +102,7 @@ export function NavBar() {
             title="Commi$h"
             className="shrink-0 text-ink-primary transition-transform active:scale-90 md:ml-1 md:mr-0.5 md:flex md:h-9 md:w-9 md:items-center md:justify-center lg:ml-3 lg:mr-2.5"
           >
-            <Logo className="block h-7 sm:h-9" />
+            <Logo className="block h-8 sm:h-9" />
           </Link>
           <nav aria-label="Pages" className="flex items-center gap-1 max-md:hidden lg:gap-2">
             {tabs.map((tab) => (
@@ -129,7 +129,7 @@ export function NavBar() {
                 label={pickable.week === phase.week && pickable.week > 0 ? phase.label : weekLabel(pickable.week)}
               />
             ) : (
-              <span className="text-lg font-extrabold uppercase tracking-wide text-ink-primary sm:text-3xl">{phase.label}</span>
+              <span className="text-xl font-extrabold uppercase tracking-wide text-ink-primary sm:text-3xl">{phase.label}</span>
             )}
           </span>
         ) : (
@@ -139,7 +139,7 @@ export function NavBar() {
         {/* From tablet width up, the profile button's icon halfway between your record and the screen's edge. */}
         <div className="flex items-center justify-self-end gap-2 sm:gap-4 md:gap-2.5">
           {/* Your record across the leagues you show (those hidden in Settings left out). */}
-          {record ? <span className="text-sm font-bold tabular-nums tracking-wide text-ink-primary sm:text-lg">{record}</span> : null}
+          {record ? <span className="text-base font-bold tabular-nums tracking-wide text-ink-primary sm:text-lg">{record}</span> : null}
           <Link
             href={profile.href}
             aria-label={profile.label}

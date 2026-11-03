@@ -18,12 +18,12 @@ export function LeagueTitle({ league, after, large = false }: { league: RoomLeag
   return (
     <span
       className={`flex min-w-0 items-center justify-center uppercase tracking-wide ${
-        large ? "gap-2 text-lg font-extrabold sm:text-3xl" : "gap-1.5 text-xs font-bold"
+        large ? "gap-2 text-xl font-extrabold sm:text-3xl" : "gap-1.5 text-xs font-bold"
       }`}
     >
       {league.logo ? (
         // eslint-disable-next-line @next/next/no-img-element -- a remote Sleeper avatar on a static export; nothing for next/image to optimize
-        <img src={league.logo} alt="" draggable={false} className={`shrink-0 rounded-full object-cover ${large ? "h-5 w-5 sm:h-7 sm:w-7" : "h-4 w-4"}`} />
+        <img src={league.logo} alt="" draggable={false} className={`shrink-0 rounded-full object-cover ${large ? "h-6 w-6 sm:h-7 sm:w-7" : "h-4 w-4"}`} />
       ) : null}
       <span className="min-w-0 truncate">{league.name}</span>
       {after}

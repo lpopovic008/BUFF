@@ -63,7 +63,7 @@ export function WeekPicker({
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
         // Underlined, rather than an arrow, to say it opens.
-        className="text-lg font-extrabold uppercase tracking-wide text-ink-primary underline decoration-2 underline-offset-[0.2em] sm:text-3xl sm:decoration-[3px]"
+        className="text-xl font-extrabold uppercase tracking-wide text-ink-primary underline decoration-2 underline-offset-[0.2em] sm:text-3xl sm:decoration-[3px]"
       >
         {label}
       </button>
