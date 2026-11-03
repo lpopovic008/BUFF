@@ -5,6 +5,7 @@ import { PlateCard } from "@/components/ui/PlateCard";
 import { pickAt, RecapBowlPicks } from "@/lib/localStore";
 import { isSectionIncluded, isUpcomingSection, matchupNumber, recapLayout, RecapModel, RecapSectionKey } from "@/lib/recap-model";
 import { addableSections, sectionName } from "./RecapSectionsEditor";
+import { pageScroller } from "@/lib/page-scroll";
 
 interface Entry {
   /** Matches the section's data-recap-section in the editor. */
@@ -112,18 +113,20 @@ export function RecapContents({
         if (el && el.getBoundingClientRect().top <= line) current = key;
       }
       // At the very bottom, the last section is the one in view however short it is.
-      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) current = keys.split(",").at(-1) ?? current;
+      const page = pageScroller();
+      if (page.clientHeight + page.scrollTop >= page.scrollHeight - 2) current = keys.split(",").at(-1) ?? current;
       setActive(current ?? keys.split(",")[0]);
     };
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(update);
     };
     queueMicrotask(update);
-    window.addEventListener("scroll", onScroll, { passive: true });
+    // The page's scroll, wherever it scrolls (caught on its way down).
+    window.addEventListener("scroll", onScroll, { passive: true, capture: true });
     window.addEventListener("resize", onScroll);
     return () => {
       cancelAnimationFrame(raf);
-      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("scroll", onScroll, { capture: true });
       window.removeEventListener("resize", onScroll);
     };
   }, [keys]);
@@ -132,7 +135,8 @@ export function RecapContents({
     const el = sectionEl(key);
     if (!el) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - topOffset(), behavior: reduced ? "auto" : "smooth" });
+    const page = pageScroller();
+    page.scrollTo({ top: el.getBoundingClientRect().top + page.scrollTop - topOffset(), behavior: reduced ? "auto" : "smooth" });
   };
 
   return (

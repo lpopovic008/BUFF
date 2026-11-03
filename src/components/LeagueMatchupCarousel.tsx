@@ -13,6 +13,7 @@ import { abbreviateFirstName, formatPoints, formatRecord } from "@/lib/format";
 import { getHomeView, saveHomeView } from "@/lib/localStore";
 import { ResolvedPlayer } from "@/lib/players";
 import { PlayerCareer } from "@/components/PlayerCareer";
+import { pageScroller } from "@/lib/page-scroll";
 
 /**
  * How a starter's points read, by player id: "pre" before they've played (a dash), "good" on pace for
@@ -652,11 +653,13 @@ export function MatchupStack({
     // Keep the tapped header where it is while everything around it folds.
     cancelAnimationFrame(hold.current);
     const top = header.getBoundingClientRect().top;
+    // Whatever it scrolls in: a list of its own, or the page.
+    const scroller = header.closest<HTMLElement>("[data-scroll-list]") ?? pageScroller();
     let start: number | null = null;
     const follow = (now: number) => {
       start ??= now;
       const drift = header.getBoundingClientRect().top - top;
-      if (Math.abs(drift) >= 1) window.scrollBy(0, drift);
+      if (Math.abs(drift) >= 1) scroller.scrollBy(0, drift);
       if (now - start < FOLD_MS + 100) hold.current = requestAnimationFrame(follow);
     };
     hold.current = requestAnimationFrame(follow);

@@ -115,9 +115,9 @@ export function NavBar() {
 
   return (
     // Padded down by the safe area, so on a phone its background fills the strip around the camera. On a phone its
-    // contents start right under the camera — the safe area reaches a little lower than the camera does, so a little
-    // into it, with no padding of their own above them (a phone with no safe area, just that little padding).
-    <header ref={ref} className="sticky top-0 z-50 border-b border-border bg-page/70 pt-[max(0.5rem,calc(env(safe-area-inset-top)-0.5rem))] backdrop-blur-[3px] sm:pt-[env(safe-area-inset-top)]">
+    // contents sit halfway between the camera's bottom and the header's own (as far below the one as above the other,
+    // 0.5rem): the safe area reaches about 11px below the camera. A phone with no safe area, halfway down the header.
+    <header ref={ref} className="sticky top-0 z-50 border-b border-border bg-page/70 pt-[max(0.5rem,calc(env(safe-area-inset-top)-11px+0.5rem))] backdrop-blur-[3px] sm:pt-[env(safe-area-inset-top)]">
       <StatusBarPills />
       {bare ? (
         // Cleared by the page: back on the left, the page's own content in the middle, the app's icon (home) on the
