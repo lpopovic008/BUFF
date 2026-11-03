@@ -11,6 +11,7 @@ import { FeedEntry, FeedScope, RedZoneNow, useRedZoneFeed } from "@/hooks/useRed
 import { useLiveMode } from "@/hooks/useLiveTick";
 import { useTeamPlayers } from "@/hooks/useTeamPlayers";
 import { ScrollThumb } from "@/components/ScrollThumb";
+import { useListScroll } from "@/hooks/useListScroll";
 import { GameStarters, GroupedStarter } from "@/lib/my-starters";
 import { gameClock, NFLGame } from "@/lib/nfl-schedule";
 import { formatPlayPoints } from "@/lib/play-points";
@@ -529,8 +530,9 @@ export function RedZone({
     return () => clearTimeout(id);
   }, [hasEntries, settled]);
   const boxRef = useRef<HTMLDivElement>(null);
-  // Filling its box, the plays' scroll thumb follows it.
+  // Filling its box, its plays are scrolled by the page, so its reflection moves with them exactly (see useListScroll).
   const [box, setBox] = useState<HTMLDivElement | null>(null);
+  useListScroll(fill ? box : null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const topSentinelRef = useRef<HTMLDivElement>(null);
   // Double-tapping the side header (or its ⇕) fits the phone box to the screen — the card's top under the
@@ -806,7 +808,7 @@ export function RedZone({
                 data-scroll-list={fill ? "" : undefined}
                 className={`relative ${
                   fill
-                    ? "h-full touch-pan-y overflow-y-auto overscroll-y-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                    ? "h-full touch-none overflow-y-auto overscroll-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                     : "md:h-full md:overflow-y-auto md:overscroll-contain"
                 } ${
                   // About a play and a half tall.
@@ -814,6 +816,8 @@ export function RedZone({
                 }`}
                 style={boxHeight !== null ? ({ "--rz-user-h": `${boxHeight}px` } as React.CSSProperties) : undefined}
               >
+                {/* All in one, what's moved as the box is pulled past its ends (see useListScroll). */}
+                <div>
                 {/* The start of the plays loaded, when there are more above: coming near it brings in the ones before. */}
                 {range.start > 0 ? <div ref={topSentinelRef} className="h-px" aria-hidden /> : null}
                 <ol className="flex flex-col" aria-label={scope === "mine" ? "Plays your starters were part of" : scope === "vs" ? "Plays your starters or the ones you face were part of" : "Every play"} aria-live="polite">
@@ -832,6 +836,7 @@ export function RedZone({
                 </ol>
                 {/* The end of the plays shown: coming within a screen or so of it brings in the next ones. */}
                 {entries.length > range.end ? <div ref={sentinelRef} className="h-px" aria-hidden /> : null}
+                </div>
               </div>
               {fill ? <ScrollThumb source={box} /> : null}
             </div>

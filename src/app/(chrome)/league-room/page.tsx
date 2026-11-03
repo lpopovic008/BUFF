@@ -10,6 +10,7 @@ import { FloorGrid } from "@/components/FloorGrid";
 import { FloorReflection } from "@/components/FloorReflection";
 import { ScrollThumb } from "@/components/ScrollThumb";
 import { useSwipePager } from "@/hooks/useSwipePager";
+import { useListScroll } from "@/hooks/useListScroll";
 import { LeagueSwitcher, LeagueTitle, RoomLeague } from "@/components/LeagueSwitcher";
 import { MatchupList, MatchupProviders, MatchupSlide, MatchupStack, useMatchupHeadToHead } from "@/components/LeagueMatchupCarousel";
 import { useConfig } from "@/hooks/useConfig";
@@ -276,6 +277,8 @@ function PhoneRoom({ rooms, leagues, index, week, userId, onPick }: RoomProps) {
 function LeaguePane({ league, week, userId, reflections }: { league: RoomLeagueData; week: number | null; userId: string | null | undefined; reflections: HTMLElement | null }) {
   const { leagueId, standings, owners, myRosterId, carousel, allTime, providers } = useLeagueRoom(league, week, userId);
   const [column, setColumn] = useState<HTMLDivElement | null>(null);
+  // Scrolled as an iPhone scrolls, by the page, so its reflection moves with it exactly (see useListScroll).
+  useListScroll(column);
   // Another week's lineups start from their top.
   useEffect(() => {
     column?.scrollTo({ top: 0 });
@@ -287,7 +290,7 @@ function LeaguePane({ league, week, userId, reflections }: { league: RoomLeagueD
       <div
         ref={setColumn}
         data-scroll-list
-        className="h-full touch-pan-y overflow-y-auto overscroll-y-contain px-4 pb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="h-full touch-none overflow-y-auto overscroll-none px-4 pb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         style={pad}
       >
         <div className="pt-2">
@@ -332,13 +335,17 @@ function DesktopRoom({ rooms, leagues, index, week, userId, onPick }: RoomProps)
   const [leagueColumn, setLeagueColumn] = useState<HTMLDivElement | null>(null);
   const [lineupColumn, setLineupColumn] = useState<HTMLDivElement | null>(null);
   const [matchupColumn, setMatchupColumn] = useState<HTMLDivElement | null>(null);
+  // Each scrolled as an iPhone scrolls, by the page, so its reflection moves with it exactly (see useListScroll).
+  useListScroll(leagueColumn);
+  useListScroll(lineupColumn);
+  useListScroll(matchupColumn);
   // Another league's (or week's) lineups start from their top.
   useEffect(() => {
     lineupColumn?.scrollTo({ top: 0 });
     matchupColumn?.scrollTo({ top: 0 });
   }, [leagueId, week, lineupColumn, matchupColumn]);
 
-  const column = "absolute inset-x-0 bottom-0 top-0 touch-pan-y overflow-y-auto overscroll-y-contain pb-16 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
+  const column = "absolute inset-x-0 bottom-0 top-0 touch-none overflow-y-auto overscroll-none pb-16 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
   const columnPad = { paddingTop: `calc(${UNDER_HEADER})` };
   return (
     <>

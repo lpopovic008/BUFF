@@ -232,21 +232,17 @@ body {
 /* A floor reflection's copy of a list, moved up with the list's scroll (see FloorReflection). */
 /* A floor reflection fading in once what it reflects is up (see FloorReflection). */
 /* Something coming up out of the floor, reflected: its copy coming down out of the floor's surface (it's upside down). */
+/* A reflection's copy coming down out of the floor's surface, or going back up into it — by translate, so its
+   scroll (its transform, see FloorReflection) carries on as it goes. */
 @keyframes reflect-rise {
   from {
-    transform: translateY(100%);
+    translate: 0 100%;
   }
 }
 
 @keyframes reflect-sink {
   to {
-    transform: translateY(100%);
-  }
-}
-
-@keyframes reflect-scroll {
-  to {
-    transform: translateY(calc(-1 * var(--reflect-max, 0px)));
+    translate: 0 100%;
   }
 }
 
