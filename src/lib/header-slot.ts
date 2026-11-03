@@ -36,3 +36,17 @@ export function setHeaderSlot(el: HTMLElement | null): void {
 export function useHeaderSlot(): HTMLElement | null {
   return useSyncExternalStore(subscribe, () => slot, () => null);
 }
+
+let back: (() => void) | null = null;
+
+/** What the cleared header's back button does instead of going back a page (null: going back a page). */
+export function setHeaderBack(fn: (() => void) | null): void {
+  if (fn === back) return;
+  back = fn;
+  notify();
+}
+
+/** What the cleared header's back button does, if a page has said (else it goes back a page). */
+export function useHeaderBack(): (() => void) | null {
+  return useSyncExternalStore(subscribe, () => back, () => null);
+}

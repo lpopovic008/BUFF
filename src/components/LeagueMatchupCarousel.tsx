@@ -285,7 +285,7 @@ const BENCH_FIT = { phone: { least: 2, min: 9 }, wide: { least: 2, min: 12.5 } }
  * chosen), each laid out as a starter is, every number alike. Every player in a row shows whole: two across on a
  * phone, three or as many more as fit wider.
  */
-function Bench({ bench }: { bench: ResolvedSlot[] }) {
+export function Bench({ bench }: { bench: ResolvedSlot[] }) {
   const leaguePositions = useContext(PositionsContext);
   const notes = useContext(LineNoteContext);
   const dynasty = useContext(DynastyContext);
