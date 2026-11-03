@@ -241,7 +241,7 @@ function PhoneRoom({ rooms, leagues, index, week, userId, onPick }: RoomProps) {
   const slot = useHeaderSlot();
   return (
     <>
-      <div ref={setScene} className="fixed inset-0 touch-none">
+      <div ref={setScene} className="fixed inset-0 bottom-[calc(-1*var(--vp-gap,0px))] touch-none">
         <div className="absolute inset-x-0 top-0 overflow-hidden" style={{ height: `calc(var(--room-h, 100svh) * ${HORIZON_SHARE})` }}>
           <div ref={setPanes} className="flex h-full will-change-transform">
             {rooms.map((r, i) => (
@@ -253,7 +253,7 @@ function PhoneRoom({ rooms, leagues, index, week, userId, onPick }: RoomProps) {
           </div>
         </div>
       </div>
-      <div ref={setReflections} className="pointer-events-none fixed inset-0 will-change-transform" />
+      <div ref={setReflections} className="pointer-events-none fixed inset-0 bottom-[calc(-1*var(--vp-gap,0px))] will-change-transform" />
       {slot
         ? createPortal(<LeagueSwitcher leagues={leagues} selectedId={leagues[index].leagueId} onSelect={onPick} bar={setBar} track={setNames} />, slot)
         : null}

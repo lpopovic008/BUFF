@@ -170,7 +170,7 @@ export function FloorMapTags({
   const placed = shown.map((s) => ({ ...s, fade: nearest > farthest ? FARTHEST_TAG + (1 - FARTHEST_TAG) * ((s.y - farthest) / (nearest - farthest)) : 1 }));
   const [midX] = floorMapPoint(lying, 160, 200);
   return (
-    <div className="pointer-events-none fixed inset-0 z-10" aria-hidden>
+    <div className="pointer-events-none fixed inset-0 bottom-[calc(-1*var(--vp-gap,0px))] z-10" aria-hidden>
       {overhead ? (
         <div className="absolute -translate-x-1/2 -translate-y-full" style={{ left: midX, top }}>
           {overhead}
