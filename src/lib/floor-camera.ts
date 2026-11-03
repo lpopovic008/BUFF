@@ -90,7 +90,7 @@ export function isHome(camera: FloorCamera): boolean {
 
 /**
  * The floor's camera, shared by what's drawn on the floor without the page re-rendering as it moves: where it is, and
- * whether it's "home" — following the starters list (see FloorCameraControls) — or wherever you've moved it.
+ * whether it's "home" — on the next games to kick off (see FloorCameraControls) — or wherever you've moved it.
  */
 export interface FloorCameraStore {
   get: () => { camera: FloorCamera; following: boolean };

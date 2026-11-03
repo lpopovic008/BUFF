@@ -581,7 +581,7 @@ export default function DashboardPage() {
     () => mappedGames.filter((g) => !hiddenBlocks.has(kickoffBlockLabel(g.game)) && !offMap.has(g.game.id)),
     [mappedGames, hiddenBlocks, offMap]
   );
-  // The floor moved around and zoomed (see FloorCameraControls), following the starters list while it's home.
+  // The floor moved around and zoomed (see FloorCameraControls), at home on the next games to kick off.
   const [floorCamera] = useState(createFloorCameraStore);
   const [startersList, setStartersList] = useState<HTMLDivElement | null>(null);
 
@@ -781,8 +781,8 @@ export default function DashboardPage() {
       store={floorCamera}
       fit={stand.fit}
       games={games}
-      list={startersList}
       desktop={desktop}
+      clearTo={desktop && startersList ? startersList.getBoundingClientRect().left : undefined}
       redZone={redZoneView ? { on: redZoneUp, onChange: switchRedZone } : undefined}
     />
   ) : null;

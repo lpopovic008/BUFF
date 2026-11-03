@@ -1,15 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { FloorCamera, floorAt, floorDepth, floorScale, floorY, GRID_PX, HOME_CAMERA } from "@/lib/grid-room";
+import { FloorCamera, floorAt, floorDepth, floorPoint, floorScale, floorY, GRID_PX, HOME_CAMERA } from "@/lib/grid-room";
 import { FloorMapFit, floorMapFloor, MAP_BOUNDS } from "@/lib/floor-map";
-import { cameraPutting, cameraUnder, FloorCameraStore, FloorPt, keepOnFloor, pinchCamera, zoomCameraAt } from "@/lib/floor-camera";
+import { cameraPutting, cameraShows, cameraUnder, FloorCameraStore, FloorPt, keepOnFloor, MIN_ZOOM, pinchCamera, zoomCameraAt } from "@/lib/floor-camera";
 import { mapSites } from "./FloorMap";
 import { useFloorCamera } from "./FloorGrid";
 import type { MappedGame } from "./GameMap";
 
-/** How far in the floor zooms on the game it glides to, and how much a button zooms it by. */
-const FOCUS_ZOOM = 1.6;
+/** How far in the floor zooms on the next game, at most (several at once, as far as fits them all), and how much a button zooms it by. */
+const FOCUS_ZOOM = 2.4;
 const ZOOM_STEP = 1.25;
 /** How far a finger or the mouse goes before it's moving the floor, not tapping it (px). */
 const SLOP = 4;
@@ -47,10 +47,10 @@ function onFloor(target: EventTarget | null): boolean {
 /**
  * The home page's floor, moved around and zoomed: dragged (a finger, or the mouse) and pinched (two fingers, or a
  * trackpad) wherever it's bare below the horizon, a trackpad's two-finger scroll sliding it — a pinch zooming just
- * it, never the page, and leaving it where it's put. At home it follows the
- * starters list (`list`): scrolled down it, it glides to the map's game at the list's top, zoomed in a little — and
- * back to the whole map scrolled back to the top. Moved by you, it stays where you put it, the list scrolling on its
- * own, until its home button takes it back. Its Red Zone button slides the floor toward you, whole squares at a time,
+ * it, never the page, and leaving it where it's put. At home it's zoomed in on the week's next game to kick off — or,
+ * several kicking off at once, on all of them, as close as fits them all on the screen (none still to come, the
+ * whole map) — and moves on to the next as each kicks off. Moved by you, it stays where you put it until its home
+ * button takes it back. Its Red Zone button slides the floor toward you, whole squares at a time,
  * till the map's gone off the screen's bottom — and the Red Zone comes up out of it (see page); again, it sinks
  * back, and the floor slides back home. The floor holds still while it's up.
  */
@@ -58,22 +58,23 @@ export function FloorCameraControls({
   store,
   fit,
   games,
-  list,
   desktop,
+  clearTo,
   redZone,
 }: {
   store: FloorCameraStore;
   /** The map as it lies on the floor. */
   fit: FloorMapFit;
   games: MappedGame[];
-  list: HTMLElement | null;
   desktop: boolean;
+  /** The screen x the floor's in the clear up to (from tablet width up, the starters list's left edge): the next games are kept left of it. */
+  clearTo?: number;
   /** Whether the Red Zone's up out of the floor, and its switch. */
   redZone?: { on: boolean; onChange: (on: boolean) => void };
 }) {
   const redZoneUp = redZone?.on ?? false;
   const { following } = useFloorCamera(store);
-  // Where the map's middle lies on the floor: where a game it glides to is put, and what the buttons zoom about.
+  // Where the map's middle lies on the floor: what the buttons zoom about.
   const middle = useMemo<FloorPt>(
     () => floorMapFloor(fit, (MAP_BOUNDS.minX + MAP_BOUNDS.maxX) / 2, (MAP_BOUNDS.minY + MAP_BOUNDS.maxY) / 2),
     [fit]
@@ -203,47 +204,64 @@ export function FloorCameraControls({
     };
   }, [store, fit, redZoneUp, keep]);
 
-  // At home, following the starters list: the game at its top (the first on the map from there down), or, at the
-  // list's top, the whole map.
-  const followed = useRef<string | null>(null);
-  const follow = useCallback(
-    (force = false) => {
-      if (!store.get().following) return;
-      let target: string | null = null;
-      if (list && list.scrollTop > 4) {
-        // The top of what's seen of it: under its padding (on a phone, under the ticker).
-        const top = list.getBoundingClientRect().top + (parseFloat(getComputedStyle(list).paddingTop) || 0) + 12;
-        for (const box of list.querySelectorAll<HTMLElement>("[data-game]")) {
-          const id = box.dataset.game!;
-          if (box.getBoundingClientRect().bottom > top && sites.has(id)) {
-            target = id;
-            break;
-          }
-        }
+  // Home: the next game to kick off (or those kicking off together), on the screen between a little in from its sides
+  // and from the floor's front edge, and far enough below the horizon that their stems and tags stand clear of it — as
+  // zoomed in as fits them all, no more than FOCUS_ZOOM. With none still to come, the whole map.
+  const nextGames = useMemo(() => {
+    const upcoming = games.filter((g) => g.game.state === "pre" && sites.has(g.game.id));
+    const kickoff = (g: MappedGame) => new Date(g.game.kickoff).getTime();
+    const first = Math.min(...upcoming.map(kickoff));
+    const next = upcoming.filter((g) => kickoff(g) === first).map((g) => g.game.id);
+    const key = `${next.join(",")}|${fit.width}x${fit.height}|${Math.round(clearTo ?? 0)}`;
+    if (next.length === 0) return { key, camera: HOME_CAMERA };
+    const { width, height, share } = fit;
+    const rootPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    const horizon = height * share;
+    const box = {
+      left: width * 0.15,
+      right: Math.min(width * 0.85, (clearTo ?? width) - width * 0.08),
+      top: horizon + Math.min(8 * rootPx, (height - horizon) * 0.45),
+      bottom: floorY(fit.nearDepth, height, share) - MAP_MARGIN_PX,
+    };
+    const points = next.map((id) => sites.get(id)!);
+    const center: FloorPt = [
+      (Math.min(...points.map((p) => p[0])) + Math.max(...points.map((p) => p[0]))) / 2,
+      (Math.min(...points.map((p) => p[1])) + Math.max(...points.map((p) => p[1]))) / 2,
+    ];
+    // The middle of that part of the screen, where it lies on the floor at home.
+    const at = floorAt((box.left + box.right) / 2, (box.top + box.bottom) / 2, width, height, share);
+    const fits = (zoom: number) =>
+      points.every((p) => {
+        const [x, y] = floorPoint(...cameraShows(cameraPutting(center, at, zoom), p), width, height, share);
+        return x >= box.left && x <= box.right && y >= box.top && y <= box.bottom;
+      });
+    let zoom = FOCUS_ZOOM;
+    if (!fits(zoom)) {
+      let [lo, hi] = [MIN_ZOOM, FOCUS_ZOOM];
+      for (let i = 0; i < 30; i++) {
+        const mid = (lo + hi) / 2;
+        if (fits(mid)) lo = mid;
+        else hi = mid;
       }
-      if (!force && target === followed.current) return;
-      followed.current = target;
-      const site = target ? sites.get(target) : undefined;
-      store.glide(site ? cameraPutting(site, middle, FOCUS_ZOOM) : HOME_CAMERA, true);
-    },
-    [store, list, sites, middle]
-  );
+      zoom = lo;
+    }
+    return { key, camera: keep(cameraPutting(center, at, zoom)) };
+  }, [games, sites, fit, keep, clearTo]);
+  // At home, it goes to the next games whenever they change (one kicks off) — not otherwise, live scores and all.
+  const atHome = useRef<string | null>(null);
   useEffect(() => {
-    if (!list) return;
-    const onScroll = () => follow();
-    list.addEventListener("scroll", onScroll, { passive: true });
-    return () => list.removeEventListener("scroll", onScroll);
-  }, [list, follow]);
-  // Its games or the screen changed: where it's following, again.
-  useEffect(() => {
-    if (store.get().following) follow(true);
-  }, [follow, store]);
+    if (!store.get().following || atHome.current === nextGames.key) return;
+    atHome.current = nextGames.key;
+    store.glide(nextGames.camera, true);
+  }, [nextGames, store]);
+  const goToNextGames = useCallback(() => {
+    atHome.current = nextGames.key;
+    store.glide(nextGames.camera, true);
+  }, [nextGames, store]);
 
   const goHome = () => {
     if (redZoneUp) return toggleRedZone();
-    followed.current = null;
-    store.glide(HOME_CAMERA, true);
-    follow(true);
+    goToNextGames();
   };
   const toggleRedZone = () => redZone?.onChange(!redZoneUp);
   // The Red Zone coming up (switched on here, or on its own as the week's first game kicks off): the floor slid toward
@@ -259,12 +277,8 @@ export function FloorCameraControls({
       store.glide({ zoom: 1, x: 0, d: Math.ceil((bottom - far + 8) / GRID_PX) * GRID_PX }, false);
       return;
     }
-    window.setTimeout(() => {
-      followed.current = null;
-      store.glide(HOME_CAMERA, true);
-      follow(true);
-    }, RED_ZONE_SINK_MS);
-  }, [redZoneUp, fit, store, follow]);
+    window.setTimeout(goToNextGames, RED_ZONE_SINK_MS);
+  }, [redZoneUp, fit, store, goToNextGames]);
   // Its switch becoming the Red Zone's header as it comes up (and back), step by step (see RISE_AT_MS and the rest): the
   // header's title (`data-rz-title`) its switch while it's up; the rest of the header (`data-rz-head`) and its plays
   // (`data-rz-plays`) brought in after it.

@@ -3,9 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { isOutsideUS } from "@/lib/nfl-schedule";
 import { gameMapPosition, gameState, internationalSlotPosition } from "@/lib/game-map";
-import { US_SIMPLE_OUTLINE_PATH, US_SIMPLE_STATE_LINES_PATH } from "@/lib/team-cities";
-import { US_STATE_SHAPES } from "@/lib/us-states";
-import { FloorMapFit, floorMapPath, floorMapPoint, floorMapRing, MAP_BOUNDS } from "@/lib/floor-map";
+import { FloorMapFit, floorMapPoint, floorMapRing, MAP_BOUNDS } from "@/lib/floor-map";
+import { floorDetailLoaded, floorDetailWanted, floorMapDetailPaths, loadFloorDetail } from "@/lib/floor-map-detail";
 import { gridRows } from "@/lib/grid-room";
 
 /** The screen y the map's back edge reaches at most where it lies (the third grid line from the front): moved further back, it fades. */
@@ -80,7 +79,7 @@ function useWire(): number {
  * solid in ink (white, or black in light mode), and each game's ring on it. Drawn in the room,
  * behind everything; the games' stems and tags stand up in front (see FloorMapTags). Moved with the floor
  * (`camera`), none of it past the horizon: moved back past where its back edge lies at most, it fades toward the
- * horizon, as the floor's lines do.
+ * horizon, as the floor's lines do. Zoomed in, its coast and borders finer (see floor-map-detail.ts).
  */
 export function FloorMapLand({ fit: lying, games, camera }: { fit: FloorMapFit; games: MappedGame[]; camera?: FloorCameraStore }) {
   const fit = useMovedFit(lying, camera);
@@ -89,14 +88,24 @@ export function FloorMapLand({ fit: lying, games, camera }: { fit: FloorMapFit; 
   const whole = fadeFrom(lying);
   const fades = floorMapPoint(fit, MAP_BOUNDS.minX, MAP_BOUNDS.minY)[1] < whole;
   const active = useMemo(() => [...new Set(games.map(({ game }) => gameState(game)).filter((c) => c !== null))], [games]);
-  const paths = useMemo(
-    () => ({
-      outline: floorMapPath(fit, US_SIMPLE_OUTLINE_PATH),
-      lines: floorMapPath(fit, US_SIMPLE_STATE_LINES_PATH),
-      active: active.flatMap((code) => (US_STATE_SHAPES[code] ? [floorMapPath(fit, US_STATE_SHAPES[code])] : [])),
-    }),
-    [fit, active]
-  );
+  // The finer levels loaded the first time they're wanted; till then, the finest there is.
+  const wanted = floorDetailWanted(fit.camera?.zoom ?? 1);
+  const [loaded, setLoaded] = useState(floorDetailLoaded);
+  useEffect(() => {
+    if (wanted < loaded) return;
+    let live = true;
+    loadFloorDetail().then(() => {
+      if (live) setLoaded(floorDetailLoaded());
+    });
+    return () => {
+      live = false;
+    };
+  }, [wanted, loaded]);
+  const level = Math.min(wanted, loaded - 1);
+  const paths = useMemo(() => {
+    const p = floorMapDetailPaths(fit, level, active);
+    return { outline: p.outline, lines: p.lines, active: p.states };
+  }, [fit, active, level]);
   return (
     <svg className="absolute inset-0 h-full w-full" aria-hidden>
       <defs>
