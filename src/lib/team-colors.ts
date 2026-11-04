@@ -7,10 +7,46 @@ export function teamColor(team: string): string {
   return HOME[team]?.[1] ?? "var(--ink-primary)";
 }
 
-/** A team's home jersey's colors: the jersey's own (`fill`), and its numbers' (`outline`) — none for a team it doesn't know. */
+// Each team's primary and secondary colors, as the team itself lists them.
+const PRIMARY_SECONDARY: Record<string, [primary: string, secondary: string]> = {
+  ARI: ["#97233f", "#000000"],
+  ATL: ["#a71930", "#000000"],
+  BAL: ["#241773", "#000000"],
+  BUF: ["#00338d", "#c60c30"],
+  CAR: ["#0085ca", "#101820"],
+  CHI: ["#0b162a", "#c83803"],
+  CIN: ["#fb4f14", "#000000"],
+  CLE: ["#311d00", "#ff3c00"],
+  DAL: ["#041e42", "#869397"],
+  DEN: ["#fb4f14", "#002244"],
+  DET: ["#0076b6", "#b0b7bc"],
+  GB: ["#203731", "#ffb612"],
+  HOU: ["#03202f", "#a71930"],
+  IND: ["#002c5f", "#a2aaad"],
+  JAX: ["#101820", "#d7a22a"],
+  KC: ["#e31837", "#ffb81c"],
+  LAC: ["#0080c6", "#ffc20e"],
+  LAR: ["#003594", "#ffa300"],
+  LV: ["#000000", "#a5acaf"],
+  MIA: ["#008e97", "#fc4c02"],
+  MIN: ["#4f2683", "#ffc62f"],
+  NE: ["#002244", "#c60c30"],
+  NO: ["#d3bc8d", "#101820"],
+  NYG: ["#0b2265", "#a71930"],
+  NYJ: ["#125740", "#000000"],
+  PHI: ["#004c54", "#a5acaf"],
+  PIT: ["#ffb612", "#101820"],
+  SF: ["#aa0000", "#b3995d"],
+  SEA: ["#002244", "#69be28"],
+  TB: ["#d50a0a", "#ff7900"],
+  TEN: ["#0c2340", "#4b92db"],
+  WAS: ["#5a1414", "#ffb612"],
+};
+
+/** A team's primary color (`fill`) and secondary (`outline`) — none for a team it doesn't know. */
 export function jerseyNumberColors(team: string): { fill: string; outline: string } | null {
-  const home = HOME[team];
-  return home ? { fill: home[1], outline: home[2] } : null;
+  const colors = PRIMARY_SECONDARY[team];
+  return colors ? { fill: colors[0], outline: colors[1] } : null;
 }
 
 /** A team's uniform as a pixel player on the floor wears it (see FloorPlay): helmet, jersey, its numbers, pants, socks. */
