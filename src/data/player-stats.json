@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-03T19:53:19.686Z",
+  "updatedAt": "2026-11-04T20:07:15.801Z",
   "season": "2026",
   "throughWeek": 8,
   "players": [
@@ -818,6 +818,14 @@
       "ptsPpr": 39.2,
       "ptsHalfPpr": 34.7,
       "ptsStd": 30.2
+    },
+    {
+      "playerId": "11649",
+      "position": "RB",
+      "gamesPlayed": 1,
+      "ptsPpr": 0,
+      "ptsHalfPpr": 0,
+      "ptsStd": 0
     },
     {
       "playerId": "11650",
