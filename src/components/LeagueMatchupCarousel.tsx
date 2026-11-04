@@ -160,12 +160,12 @@ function PlayerName({ name }: { name: string }) {
 }
 
 /** A starter's photo, square (see PlayerHeadshot), bigger than their row — spilling into the gaps above and below it, never making the row taller. */
-/** Whether a starter is shown by their jersey number rather than their photo (see SlotPhoto). */
+/** Whether a starter is shown by a little jersey with their number rather than their photo (see SlotPhoto). */
 const JerseyNumbersContext = createContext(false);
 
 /**
- * A starter's photo — or (`JerseyNumbersContext`), as big as it, their jersey number in the app's type: the team's
- * jersey color, outlined in its numbers' color, as on the jersey itself. Their photo still, with no number to show.
+ * A starter's photo — or (`JerseyNumbersContext`), in the same square, a little jersey: their team's home jersey, its
+ * number on it in the jersey's numbers' color, the collar trimmed in it too. Their photo still, with no number to show.
  */
 function SlotPhoto({ player }: { player: ResolvedPlayer }) {
   const numbers = useContext(JerseyNumbersContext);
@@ -174,20 +174,26 @@ function SlotPhoto({ player }: { player: ResolvedPlayer }) {
     return (
       <span className="-my-1 flex justify-center">
         <svg viewBox="0 0 100 100" className="h-[1.875rem] w-[1.875rem] sm:h-[2.125rem] sm:w-[2.125rem]" role="img" aria-label={`#${player.number}`}>
+          {/* The shirt: shoulders out into short sleeves, a V at the collar — edged faintly, so a dark one still shows on a dark page. */}
+          <path
+            d="M31,7 L41,7 Q50,21 59,7 L69,7 L95,21 L86,44 L76,39 L76,95 L24,95 L24,39 L14,44 L5,21 Z"
+            fill={colors.fill}
+            stroke="var(--ink-primary)"
+            strokeOpacity={0.35}
+            strokeWidth={2.5}
+            strokeLinejoin="round"
+          />
+          <path d="M41,7 Q50,21 59,7" fill="none" stroke={colors.outline} strokeWidth={4} strokeLinecap="round" />
           <text
             x="50"
-            y="50"
+            y="63"
             textAnchor="middle"
             dominantBaseline="central"
             fontFamily="var(--font-sans)"
             fontWeight={800}
-            fontSize={player.number.length > 1 ? 88 : 96}
-            letterSpacing={player.number.length > 1 ? -6 : 0}
-            fill={colors.fill}
-            stroke={colors.outline}
-            strokeWidth={7}
-            strokeLinejoin="round"
-            paintOrder="stroke"
+            fontSize={player.number.length > 1 ? 40 : 46}
+            letterSpacing={player.number.length > 1 ? -2 : 0}
+            fill={colors.outline}
           >
             {player.number}
           </text>
@@ -828,7 +834,7 @@ export function MatchupProviders({
   positions?: string[];
   season?: string | null;
   scoring?: Record<string, number>;
-  /** Starters shown by their jersey numbers, not their photos (see SlotPhoto). */
+  /** Starters shown by little jerseys with their numbers, not their photos (see SlotPhoto). */
   jerseyNumbers?: boolean;
   children: React.ReactNode;
 }) {
