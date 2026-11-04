@@ -12,7 +12,6 @@ import { abbreviateFirstName, formatPoints, formatRecord } from "@/lib/format";
 import { getHomeView, saveHomeView } from "@/lib/localStore";
 import { ResolvedPlayer } from "@/lib/players";
 import { PlayerCareer } from "@/components/PlayerCareer";
-import { jerseyNumberColors } from "@/lib/team-colors";
 
 /**
  * How a starter's points read, by player id: "pre" before they've played (a dash), "good" on pace for
@@ -165,13 +164,12 @@ const JerseyNumbersContext = createContext(false);
 
 /**
  * A starter's photo — or (`JerseyNumbersContext`), in its square, their jersey number in the app's type, about as tall
- * as the two lines of their name and notes beside it: outlined in their team's primary color, filled with the page's
- * own (black, or white in light mode). Their photo still, with no number to show.
+ * as the two lines of their name and notes beside it: outlined in the page's ink (white, or black in light mode),
+ * filled with the page's own color. Their photo still, with no number to show.
  */
 function SlotPhoto({ player }: { player: ResolvedPlayer }) {
   const numbers = useContext(JerseyNumbersContext);
-  const colors = player.team ? jerseyNumberColors(player.team) : null;
-  if (numbers && player.number && colors) {
+  if (numbers && player.number) {
     return (
       <span className="-my-1 flex justify-center">
         <svg viewBox="0 0 100 100" className="h-[1.875rem] w-[1.875rem] sm:h-[2.125rem] sm:w-[2.125rem]" role="img" aria-label={`#${player.number}`}>
@@ -185,7 +183,7 @@ function SlotPhoto({ player }: { player: ResolvedPlayer }) {
             fontSize={player.number.length > 1 ? 74 : 80}
             letterSpacing={player.number.length > 1 ? -5 : 0}
             fill="var(--page)"
-            stroke={colors.fill}
+            stroke="var(--ink-primary)"
             strokeWidth={6}
             strokeLinejoin="round"
             paintOrder="stroke"
