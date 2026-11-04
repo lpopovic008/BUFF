@@ -164,8 +164,8 @@ function PlayerName({ name }: { name: string }) {
 const JerseyNumbersContext = createContext(false);
 
 /**
- * A starter's photo — or (`JerseyNumbersContext`), as big as it, their jersey number in the app's type: their team's
- * primary color, outlined in its secondary. Their photo still, with no number to show.
+ * A starter's photo — or (`JerseyNumbersContext`), in its square, their jersey number in the app's type, about as tall
+ * as the two lines of their name and notes beside it: their team's primary color, outlined in its secondary. Their photo still, with no number to show.
  */
 function SlotPhoto({ player }: { player: ResolvedPlayer }) {
   const numbers = useContext(JerseyNumbersContext);
@@ -181,11 +181,11 @@ function SlotPhoto({ player }: { player: ResolvedPlayer }) {
             dominantBaseline="central"
             fontFamily="var(--font-sans)"
             fontWeight={800}
-            fontSize={player.number.length > 1 ? 88 : 96}
-            letterSpacing={player.number.length > 1 ? -6 : 0}
+            fontSize={player.number.length > 1 ? 74 : 80}
+            letterSpacing={player.number.length > 1 ? -5 : 0}
             fill={colors.fill}
             stroke={colors.outline}
-            strokeWidth={7}
+            strokeWidth={6}
             strokeLinejoin="round"
             paintOrder="stroke"
           >
