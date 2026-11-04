@@ -7,6 +7,12 @@ export function teamColor(team: string): string {
   return HOME[team]?.[1] ?? "var(--ink-primary)";
 }
 
+/** The colors of a team's home jersey numbers: the jersey's own color, and the numbers' (an outline around them) — none for a team it doesn't know. */
+export function jerseyNumberColors(team: string): { fill: string; outline: string } | null {
+  const home = HOME[team];
+  return home ? { fill: home[1], outline: home[2] } : null;
+}
+
 /** A team's uniform as a pixel player on the floor wears it (see FloorPlay): helmet, jersey, its numbers, pants, socks. */
 export interface Uniform {
   helmet: string;

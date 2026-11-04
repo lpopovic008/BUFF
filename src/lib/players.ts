@@ -89,6 +89,8 @@ export interface ResolvedPlayer {
   name: string;
   position: string;
   team: string | null;
+  /** Their jersey number, where they have one. */
+  number?: string | null;
 }
 
 /** Same lookup as resolvePlayerNames but keeps name/position/team separate for cross-referencing against other sources (e.g. KTC values by name). */
@@ -102,6 +104,7 @@ export async function resolvePlayers(playerIds: string[]): Promise<ResolvedPlaye
       name: record?.full_name || `Player ${id}`,
       position: record?.position ?? "UNK",
       team: record?.team ?? null,
+      number: record?.number == null || record.number === "" ? null : String(record.number),
     };
   });
 }

@@ -12,6 +12,7 @@ import { abbreviateFirstName, formatPoints, formatRecord } from "@/lib/format";
 import { getHomeView, saveHomeView } from "@/lib/localStore";
 import { ResolvedPlayer } from "@/lib/players";
 import { PlayerCareer } from "@/components/PlayerCareer";
+import { jerseyNumberColors } from "@/lib/team-colors";
 
 /**
  * How a starter's points read, by player id: "pre" before they've played (a dash), "good" on pace for
@@ -159,10 +160,44 @@ function PlayerName({ name }: { name: string }) {
 }
 
 /** A starter's photo, square (see PlayerHeadshot), bigger than their row — spilling into the gaps above and below it, never making the row taller. */
-function SlotPhoto({ playerId }: { playerId: string }) {
+/** Whether a starter is shown by their jersey number rather than their photo (see SlotPhoto). */
+const JerseyNumbersContext = createContext(false);
+
+/**
+ * A starter's photo — or (`JerseyNumbersContext`), as big as it, their jersey number in the app's type: the team's
+ * jersey color, outlined in its numbers' color, as on the jersey itself. Their photo still, with no number to show.
+ */
+function SlotPhoto({ player }: { player: ResolvedPlayer }) {
+  const numbers = useContext(JerseyNumbersContext);
+  const colors = player.team ? jerseyNumberColors(player.team) : null;
+  if (numbers && player.number && colors) {
+    return (
+      <span className="-my-1 flex justify-center">
+        <svg viewBox="0 0 100 100" className="h-[1.875rem] w-[1.875rem] sm:h-[2.125rem] sm:w-[2.125rem]" role="img" aria-label={`#${player.number}`}>
+          <text
+            x="50"
+            y="50"
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontFamily="var(--font-sans)"
+            fontWeight={800}
+            fontSize={player.number.length > 1 ? 88 : 96}
+            letterSpacing={player.number.length > 1 ? -6 : 0}
+            fill={colors.fill}
+            stroke={colors.outline}
+            strokeWidth={7}
+            strokeLinejoin="round"
+            paintOrder="stroke"
+          >
+            {player.number}
+          </text>
+        </svg>
+      </span>
+    );
+  }
   return (
     <span className="-my-1 flex justify-center">
-      <PlayerHeadshot playerId={playerId} sizeClass="h-[1.875rem] w-[1.875rem] sm:h-[2.125rem] sm:w-[2.125rem]" square />
+      <PlayerHeadshot playerId={player.playerId} sizeClass="h-[1.875rem] w-[1.875rem] sm:h-[2.125rem] sm:w-[2.125rem]" square />
     </span>
   );
 }
@@ -214,7 +249,7 @@ function MySlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
   return (
     <div className={`grid ${MY_ROW_COLS} items-center gap-0.5 sm:gap-1`}>
       <OpensCareer player={resolved.player}>
-        <SlotPhoto playerId={resolved.player.playerId} />
+        <SlotPhoto player={resolved.player} />
       </OpensCareer>
       <RankedName resolved={resolved} align="left" />
       <SlotPoints resolved={resolved} align="right" />
@@ -237,7 +272,7 @@ function TheirSlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
       <SlotPoints resolved={resolved} align="left" />
       <RankedName resolved={resolved} align="right" />
       <OpensCareer player={resolved.player}>
-        <SlotPhoto playerId={resolved.player.playerId} />
+        <SlotPhoto player={resolved.player} />
       </OpensCareer>
     </div>
   );
@@ -783,6 +818,7 @@ export function MatchupProviders({
   positions = NO_POSITIONS,
   season = null,
   scoring,
+  jerseyNumbers = false,
   children,
 }: {
   projected?: Map<number, number> | null;
@@ -792,6 +828,8 @@ export function MatchupProviders({
   positions?: string[];
   season?: string | null;
   scoring?: Record<string, number>;
+  /** Starters shown by their jersey numbers, not their photos (see SlotPhoto). */
+  jerseyNumbers?: boolean;
   children: React.ReactNode;
 }) {
   // The player whose career card is open.
@@ -803,8 +841,10 @@ export function MatchupProviders({
     <DynastyContext.Provider value={dynasty}>
     <PositionsContext.Provider value={positions}>
     <PlayerCardContext.Provider value={season ? setCard : null}>
+    <JerseyNumbersContext.Provider value={jerseyNumbers}>
       {card && season ? <PlayerCareer player={card} season={Number(season)} scoring={scoring} onClose={() => setCard(null)} /> : null}
       {children}
+    </JerseyNumbersContext.Provider>
     </PlayerCardContext.Provider>
     </PositionsContext.Provider>
     </DynastyContext.Provider>

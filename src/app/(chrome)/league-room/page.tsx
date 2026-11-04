@@ -85,6 +85,7 @@ function useLeagueRoom(league: RoomLeagueData, week: number | null, userId: stri
       positions={carousel?.positions}
       season={season}
       scoring={scoring}
+      jerseyNumbers
     >
       {children}
     </MatchupProviders>
