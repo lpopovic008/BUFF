@@ -37,6 +37,12 @@ export interface LineNote {
 const EMPTY_NOTES = new Map<string, LineNote>();
 const LineNoteContext = createContext<Map<string, LineNote>>(EMPTY_NOTES);
 
+/**
+ * Where a player's career card comes up out of the floor (see PlayerCareer's `stage`) — the League Room's, on a phone;
+ * null, over the page.
+ */
+export const CareerStageContext = createContext<{ top: number; bottom: number } | null>(null);
+
 /** Opens a player's career card (see PlayerCareer), with what their lineup numbers mean — null where there's none to open. */
 const PlayerCardContext = createContext<((player: ResolvedPlayer, numbers: LineupNumbers) => void) | null>(null);
 
@@ -1041,6 +1047,7 @@ export function MatchupProviders({
 }) {
   // The player whose career card is open.
   const [card, setCard] = useState<{ player: ResolvedPlayer; numbers: LineupNumbers } | null>(null);
+  const stage = useContext(CareerStageContext);
   return (
     <ProjectedContext.Provider value={projected}>
     <LineToneContext.Provider value={lineTones ?? EMPTY_TONES}>
@@ -1052,7 +1059,17 @@ export function MatchupProviders({
     <JerseyNumbersContext.Provider value={jerseyNumbers}>
       {/* Over the page, not inside the list it was opened from (whose reflection would copy it). */}
       {card && season
-        ? createPortal(<PlayerCareer player={card.player} numbers={card.numbers} season={Number(season)} scoring={scoring} onClose={() => setCard(null)} />, document.body)
+        ? createPortal(
+            <PlayerCareer
+              player={card.player}
+              numbers={card.numbers}
+              season={Number(season)}
+              scoring={scoring}
+              stage={stage ?? undefined}
+              onClose={() => setCard(null)}
+            />,
+            document.body
+          )
         : null}
       {children}
     </JerseyNumbersContext.Provider>

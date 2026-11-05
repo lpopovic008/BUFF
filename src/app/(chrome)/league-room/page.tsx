@@ -12,7 +12,7 @@ import { ScrollThumb } from "@/components/ScrollThumb";
 import { useSwipePager } from "@/hooks/useSwipePager";
 import { LIST_MOVE, useListScroll } from "@/hooks/useListScroll";
 import { LeagueSwitcher, LeagueTitle, RoomLeague } from "@/components/LeagueSwitcher";
-import { Bench, BriefMatchups, MatchupList, MatchupProviders, MatchupSlide, MatchupStack, useMatchupHeadToHead } from "@/components/LeagueMatchupCarousel";
+import { Bench, BriefMatchups, CareerStageContext, MatchupList, MatchupProviders, MatchupSlide, MatchupStack, useMatchupHeadToHead } from "@/components/LeagueMatchupCarousel";
 import { WriteupsPanel } from "@/components/LeagueRoomWriteups";
 import { FLOOR_ACTIONS, FloorAction, FloorButtons, FrontPanel } from "@/components/LeagueRoomFloor";
 import { MatchupGraph, MatchupSide } from "@/components/MatchupGraph";
@@ -339,8 +339,10 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
     return () => setHeaderBare(false);
   }, []);
   const slot = useHeaderSlot();
+  // A player's card comes up out of the floor in front (where the home page's Red Zone does), not over the lineups.
+  const cardStage = room ? { top: room.height * HORIZON_SHARE + PANEL_GAP_PX, bottom: room.height - tabBar - PANEL_GAP_PX } : null;
   return (
-    <>
+    <CareerStageContext.Provider value={cardStage}>
       <div ref={setScene} className="fixed inset-0 touch-none">
         <div className="absolute inset-x-0 top-0 overflow-hidden" style={{ height: `calc(var(--room-h, 100svh) * ${HORIZON_SHARE})` }}>
           <div ref={setPanes} className="flex h-full will-change-transform">
@@ -391,7 +393,7 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
           </FrontPanel>
         </>
       ) : null}
-    </>
+    </CareerStageContext.Provider>
   );
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { CareerSeason, careerColumns, careerTotals, getCareer, seasonPoints, seasonRank } from "@/lib/career-stats";
 import { getPlayerBio, PlayerBio, ResolvedPlayer } from "@/lib/players";
@@ -32,6 +32,9 @@ function bioLine(player: ResolvedPlayer, bio: PlayerBio | null): string {
     .filter(Boolean)
     .join(" · ");
 }
+
+/** How long the card takes to come up out of the floor, or go back down into it, on a stage (ms) — as the League Room's panels do. */
+const STAGE_RISE_MS = 450;
 
 /** A headline number over its label. */
 function Figure({ label, value, sub }: { label: string; value: string; sub?: string }) {
@@ -108,6 +111,7 @@ export function PlayerCareer({
   scoring,
   onClose,
   numbers,
+  stage,
 }: {
   player: ResolvedPlayer;
   /** The season to count through — the league's. */
@@ -116,7 +120,28 @@ export function PlayerCareer({
   onClose: () => void;
   /** Their numbers in the lineup it was opened from, spelled out. */
   numbers?: LineupNumbers;
+  /**
+   * Up out of the floor between these screen y's (the League Room on a phone, where the home page's Red Zone comes
+   * up), the page around it left as it is — rather than over the page, dimmed.
+   */
+  stage?: { top: number; bottom: number };
 }) {
+  // Up out of the floor (on a stage): on its way up once it's drawn, back down before it's gone.
+  const [up, setUp] = useState(false);
+  useEffect(() => {
+    if (!stage) return;
+    const show = requestAnimationFrame(() => requestAnimationFrame(() => setUp(true)));
+    return () => cancelAnimationFrame(show);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, as it's drawn
+  }, []);
+  const leaving = useRef(0);
+  useEffect(() => () => window.clearTimeout(leaving.current), []);
+  const close = useCallback(() => {
+    if (!stage) return onClose();
+    setUp(false);
+    window.clearTimeout(leaving.current);
+    leaving.current = window.setTimeout(onClose, STAGE_RISE_MS);
+  }, [stage, onClose]);
   const [career, setCareer] = useState<CareerSeason[] | null>(null);
   const [bio, setBio] = useState<PlayerBio | null>(null);
 
@@ -133,7 +158,7 @@ export function PlayerCareer({
 
   // Escape closes it; the page under it holds still.
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && close();
     window.addEventListener("keydown", onKey);
     const overflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -141,7 +166,7 @@ export function PlayerCareer({
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = overflow;
     };
-  }, [onClose]);
+  }, [close]);
 
   const groups = careerColumns(player.position);
   const rows = (career ?? []).map((s) => ({ ...s, points: seasonPoints(s.stats, scoring), rank: seasonRank(s.stats, scoring) })).reverse();
@@ -152,15 +177,20 @@ export function PlayerCareer({
   const ppgBest = Math.max(0, ...rows.map((r) => (r.stats.gp ? r.points / r.stats.gp : 0)));
   const cell = "px-2 py-1.5 text-right tabular-nums whitespace-nowrap";
 
-  return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 sm:items-center sm:p-6" onClick={onClose}>
+  const card = (
       <div
         role="dialog"
-        aria-modal="true"
+        aria-modal={stage ? undefined : "true"}
         aria-label={`${player.name}'s career`}
         onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[88dvh] w-full flex-col border border-border bg-surface-raised sm:max-w-4xl"
-        style={{ animation: "rise 0.25s ease-out" }}
+        className={`flex w-full flex-col border border-border bg-surface-raised ${
+          stage ? "h-full transition-transform ease-out" : "max-h-[88dvh] sm:max-w-4xl"
+        }`}
+        style={
+          stage
+            ? { transform: up ? "translateY(0)" : "translateY(100%)", transitionDuration: `${STAGE_RISE_MS}ms` }
+            : { animation: "rise 0.25s ease-out" }
+        }
       >
         {/* Who he is, on the plate. */}
         <div className="flex items-center gap-3 bg-[var(--title-plate)] px-3 py-2 text-[var(--map-tag-ink)]">
@@ -171,7 +201,7 @@ export function PlayerCareer({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={close}
             aria-label="Close"
             className="flex h-8 w-8 shrink-0 items-center justify-center border border-current text-lg font-bold leading-none active:scale-90"
           >
@@ -278,6 +308,18 @@ export function PlayerCareer({
           )}
         </div>
       </div>
+  );
+  // On a stage: cut off at the floor it comes up out of.
+  if (stage) {
+    return (
+      <div data-floor-ui className="fixed inset-x-2 z-[7] overflow-hidden" style={{ top: stage.top, height: Math.max(0, stage.bottom - stage.top) }}>
+        {card}
+      </div>
+    );
+  }
+  return (
+    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 sm:items-center sm:p-6" onClick={close}>
+      {card}
     </div>
   );
 }
