@@ -7,6 +7,7 @@ import { getPlayerBio, PlayerBio, ResolvedPlayer } from "@/lib/players";
 import { nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import { ordinal } from "@/lib/format";
+import { CareerStage, FloorCareer, FLOOR_RISE_MS } from "@/components/FloorCareer";
 
 function TeamLogo({ team, side = 16 }: { team: string; side?: number }) {
   return (
@@ -32,9 +33,6 @@ function bioLine(player: ResolvedPlayer, bio: PlayerBio | null): string {
     .filter(Boolean)
     .join(" · ");
 }
-
-/** How long the card takes to come up out of the floor, or go back down into it, on a stage (ms) — as the League Room's panels do. */
-const STAGE_RISE_MS = 450;
 
 /** A headline number over its label. */
 function Figure({ label, value, sub }: { label: string; value: string; sub?: string }) {
@@ -121,10 +119,10 @@ export function PlayerCareer({
   /** Their numbers in the lineup it was opened from, spelled out. */
   numbers?: LineupNumbers;
   /**
-   * Up out of the floor between these screen y's (the League Room on a phone, where the home page's Red Zone comes
-   * up), the page around it left as it is — rather than over the page, dimmed.
+   * Up out of the room's floor in front (the League Room's, where the home page's Red Zone comes up), his seasons
+   * standing on it (see FloorCareer) — the page around it left as it is, rather than over the page, dimmed.
    */
-  stage?: { top: number; bottom: number };
+  stage?: CareerStage;
 }) {
   // Up out of the floor (on a stage): on its way up once it's drawn, back down before it's gone.
   const [up, setUp] = useState(false);
@@ -140,7 +138,7 @@ export function PlayerCareer({
     if (!stage) return onClose();
     setUp(false);
     window.clearTimeout(leaving.current);
-    leaving.current = window.setTimeout(onClose, STAGE_RISE_MS);
+    leaving.current = window.setTimeout(onClose, FLOOR_RISE_MS);
   }, [stage, onClose]);
   const [career, setCareer] = useState<CareerSeason[] | null>(null);
   const [bio, setBio] = useState<PlayerBio | null>(null);
@@ -177,38 +175,8 @@ export function PlayerCareer({
   const ppgBest = Math.max(0, ...rows.map((r) => (r.stats.gp ? r.points / r.stats.gp : 0)));
   const cell = "px-2 py-1.5 text-right tabular-nums whitespace-nowrap";
 
-  const card = (
-      <div
-        role="dialog"
-        aria-modal={stage ? undefined : "true"}
-        aria-label={`${player.name}'s career`}
-        onClick={(e) => e.stopPropagation()}
-        className={`flex w-full flex-col border border-border bg-surface-raised ${
-          stage ? "h-full transition-transform ease-out" : "max-h-[88dvh] sm:max-w-4xl"
-        }`}
-        style={
-          stage
-            ? { transform: up ? "translateY(0)" : "translateY(100%)", transitionDuration: `${STAGE_RISE_MS}ms` }
-            : { animation: "rise 0.25s ease-out" }
-        }
-      >
-        {/* Who he is, on the plate. */}
-        <div className="flex items-center gap-3 bg-[var(--title-plate)] px-3 py-2 text-[var(--map-tag-ink)]">
-          <PlayerHeadshot playerId={player.playerId} sizeClass="h-11 w-11" square />
-          <div className="min-w-0 flex-1">
-            <h2 className="truncate text-base font-extrabold uppercase tracking-wide sm:text-lg">{player.name}</h2>
-            <p className="truncate text-[0.6875rem] font-semibold uppercase opacity-80">{bioLine(player, bio)}</p>
-          </div>
-          <button
-            type="button"
-            onClick={close}
-            aria-label="Close"
-            className="flex h-8 w-8 shrink-0 items-center justify-center border border-current text-lg font-bold leading-none active:scale-90"
-          >
-            ×
-          </button>
-        </div>
-
+  // Everything about him, to read down: what his lineup numbers mean, his career's headline numbers, every season.
+  const details = (
         <div className="flex min-h-0 flex-col gap-3 overflow-y-auto p-3 sm:p-4">
           {numbers ? <LineupLine position={player.position} numbers={numbers} /> : null}
           {career === null ? (
@@ -307,14 +275,55 @@ export function PlayerCareer({
             </>
           )}
         </div>
+  );
+  const card = (
+      <div
+        role="dialog"
+        aria-modal={stage ? undefined : "true"}
+        aria-label={`${player.name}'s career`}
+        onClick={(e) => e.stopPropagation()}
+        className={`flex w-full flex-col border border-border bg-surface-raised ${
+          stage ? "h-full transition-transform ease-out" : "max-h-[88dvh] sm:max-w-4xl"
+        }`}
+        style={
+          stage
+            ? { transform: up ? "translateY(0)" : "translateY(100%)", transitionDuration: `${FLOOR_RISE_MS}ms` }
+            : { animation: "rise 0.25s ease-out" }
+        }
+      >
+        {/* Who he is, on the plate. */}
+        <div className="flex items-center gap-3 bg-[var(--title-plate)] px-3 py-2 text-[var(--map-tag-ink)]">
+          <PlayerHeadshot playerId={player.playerId} sizeClass="h-11 w-11" square />
+          <div className="min-w-0 flex-1">
+            <h2 className="truncate text-base font-extrabold uppercase tracking-wide sm:text-lg">{player.name}</h2>
+            <p className="truncate text-[0.6875rem] font-semibold uppercase opacity-80">{bioLine(player, bio)}</p>
+          </div>
+          <button
+            type="button"
+            onClick={close}
+            aria-label="Close"
+            className="flex h-8 w-8 shrink-0 items-center justify-center border border-current text-lg font-bold leading-none active:scale-90"
+          >
+            ×
+          </button>
+        </div>
+
+        {details}
       </div>
   );
   // On a stage: cut off at the floor it comes up out of.
   if (stage) {
     return (
-      <div data-floor-ui className="fixed inset-x-2 z-[7] overflow-hidden" style={{ top: stage.top, height: Math.max(0, stage.bottom - stage.top) }}>
-        {card}
-      </div>
+      <FloorCareer
+        player={player}
+        bio={bioLine(player, bio)}
+        seasons={career === null ? null : [...rows].reverse()}
+        numbers={numbers}
+        details={details}
+        stage={stage}
+        up={up}
+        onClose={close}
+      />
     );
   }
   return (

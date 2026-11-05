@@ -13,6 +13,7 @@ import { abbreviateFirstName, formatPoints, formatRecord } from "@/lib/format";
 import { getHomeView, saveHomeView } from "@/lib/localStore";
 import { ResolvedPlayer } from "@/lib/players";
 import { LineupNumbers, PlayerCareer } from "@/components/PlayerCareer";
+import type { CareerStage } from "@/components/FloorCareer";
 
 /**
  * How a starter's points read, by player id: "pre" before they've played (a dash), "good" on pace for
@@ -38,10 +39,10 @@ const EMPTY_NOTES = new Map<string, LineNote>();
 const LineNoteContext = createContext<Map<string, LineNote>>(EMPTY_NOTES);
 
 /**
- * Where a player's career card comes up out of the floor (see PlayerCareer's `stage`) — the League Room's, on a phone;
- * null, over the page.
+ * Where a player's career card comes up out of the floor (see PlayerCareer's `stage`) — the League Room's; null, over
+ * the page.
  */
-export const CareerStageContext = createContext<{ top: number; bottom: number } | null>(null);
+export const CareerStageContext = createContext<CareerStage | null>(null);
 
 /** Opens a player's career card (see PlayerCareer), with what their lineup numbers mean — null where there's none to open. */
 const PlayerCardContext = createContext<((player: ResolvedPlayer, numbers: LineupNumbers) => void) | null>(null);
@@ -1048,6 +1049,14 @@ export function MatchupProviders({
   // The player whose career card is open.
   const [card, setCard] = useState<{ player: ResolvedPlayer; numbers: LineupNumbers } | null>(null);
   const stage = useContext(CareerStageContext);
+  // The floor told while a card's up on it.
+  const onShow = stage?.onShow;
+  const shown = card !== null;
+  useEffect(() => {
+    if (!onShow || !shown) return;
+    onShow(true);
+    return () => onShow(false);
+  }, [onShow, shown]);
   return (
     <ProjectedContext.Provider value={projected}>
     <LineToneContext.Provider value={lineTones ?? EMPTY_TONES}>

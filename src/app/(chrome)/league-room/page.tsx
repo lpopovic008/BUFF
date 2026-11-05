@@ -302,6 +302,8 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
   // The write-ups up: the matchups in brief, the write-up up to just under them (where they end on screen).
   const writeups = action === "writeups";
   const [briefEnd, setBriefEnd] = useState<number | null>(null);
+  // A player's card up on the floor (see cardStage): the floor's buttons make way.
+  const [cardUp, setCardUp] = useState(false);
   // The header's back button closes the floor's panel while one's up.
   useEffect(() => {
     setHeaderBack(action ? close : null);
@@ -340,7 +342,9 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
   }, []);
   const slot = useHeaderSlot();
   // A player's card comes up out of the floor in front (where the home page's Red Zone does), not over the lineups.
-  const cardStage = room ? { top: room.height * HORIZON_SHARE + PANEL_GAP_PX, bottom: room.height - tabBar - PANEL_GAP_PX } : null;
+  const cardStage = room
+    ? { top: room.height * HORIZON_SHARE + PANEL_GAP_PX, bottom: room.height - tabBar - PANEL_GAP_PX, className: "inset-x-2", room, onShow: setCardUp }
+    : null;
   return (
     <CareerStageContext.Provider value={cardStage}>
       <div ref={setScene} className="fixed inset-0 touch-none">
@@ -371,7 +375,7 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
       {/* The floor's buttons at the front of the room, and the panel one brings up there. */}
       {room ? (
         <>
-          <FloorButtons width={room.width} height={room.height} bottom={room.height - tabBar} hidden={action !== null} onPick={pick} />
+          <FloorButtons width={room.width} height={room.height} bottom={room.height - tabBar} hidden={action !== null || cardUp} onPick={pick} />
           {/* The write-ups: up to just under the matchups, the rest of the screen. */}
           <WriteupsPanel
             open={writeups}
@@ -481,6 +485,8 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
   // The write-ups up: every matchup in brief in the middle, the write-up under them across the middle column to the
   // screen's bottom, and its contents in the right-hand column in place of the matchups.
   const writeups = action === "writeups";
+  // A player's card up on the floor (see cardStage): the floor's buttons make way.
+  const [cardUp, setCardUp] = useState(false);
   const [middle, setMiddle] = useState<HTMLDivElement | null>(null);
   const [middleBox, setMiddleBox] = useState<{ left: number; width: number } | null>(null);
   useEffect(() => {
@@ -521,8 +527,18 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
 
   const column = "absolute inset-x-0 bottom-0 top-0 touch-none overflow-y-auto overscroll-none pb-16 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
   const columnPad = { paddingTop: `calc(${UNDER_HEADER})` };
+  // A player's card comes up out of the floor in front, between the columns (where the floor's panels do).
+  const cardStage = room
+    ? {
+        top: room.height * HORIZON_SHARE + PANEL_GAP_PX,
+        bottom: room.height - 12,
+        className: "left-[18rem] right-[18rem] 2xl:left-[19rem] 2xl:right-[19rem]",
+        room,
+        onShow: setCardUp,
+      }
+    : null;
   return (
-    <>
+    <CareerStageContext.Provider value={cardStage}>
       <div className="fixed inset-x-0 top-0 flex gap-4 px-4" style={{ height: `calc(var(--room-h, 100vh) - ${FOOT})` }}>
         {/* Your leagues by name, picking the one shown — lit like the header's page tabs. */}
         <div className="relative w-64 shrink-0 2xl:w-72">
@@ -611,7 +627,7 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
       {/* The floor's buttons at the front of the room between the columns, and the panel one brings up there. */}
       {room ? (
         <>
-          <FloorButtons width={room.width} height={room.height} bottom={room.height - FOOT_PX} hidden={action !== null} onPick={pick} />
+          <FloorButtons width={room.width} height={room.height} bottom={room.height - FOOT_PX} hidden={action !== null || cardUp} onPick={pick} />
           {/* The write-ups: under the matchups in the middle, down to the screen's bottom. */}
           {middleBox ? (
             <WriteupsPanel
@@ -639,7 +655,7 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
           </FrontPanel>
         </>
       ) : null}
-    </>
+    </CareerStageContext.Provider>
   );
 }
 

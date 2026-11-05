@@ -330,3 +330,24 @@ body {
 .floor-reflect {
   -webkit-box-reflect: below 0 linear-gradient(transparent calc(100% - 5rem), rgb(0 0 0 / 0.2));
 }
+
+/* A player's seasons as bars on the League Room's floor (see FloorCareer): each rising out of the floor, its points
+   coming in once it's up. */
+.floor-bar {
+  transform-box: view-box;
+  animation: floor-bar-rise 700ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.floor-bar-label {
+  animation: fade-in 300ms ease-out both;
+}
+@keyframes floor-bar-rise {
+  from {
+    transform: scaleY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .floor-bar,
+  .floor-bar-label {
+    animation: none;
+  }
+}
