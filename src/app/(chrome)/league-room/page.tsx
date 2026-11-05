@@ -538,7 +538,7 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
                         on ? "bg-[var(--map-tag)] text-[var(--map-tag-ink)]" : "text-ink-secondary hover:text-ink-primary"
                       }`}
                     >
-                      <LeagueTitle league={league} />
+                      <LeagueTitle league={league} start />
                     </button>
                   </li>
                 );

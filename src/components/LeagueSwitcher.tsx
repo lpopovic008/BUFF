@@ -11,13 +11,23 @@ export interface RoomLeague {
 }
 
 /**
- * A league's logo and name, centred, with whatever goes after them (`after`) — `large`, as big as the header's
- * "Week N".
+ * A league's logo and name, centred (or `start`, against the left edge), with whatever goes after them (`after`) —
+ * `large`, as big as the header's "Week N".
  */
-export function LeagueTitle({ league, after, large = false }: { league: RoomLeague; after?: React.ReactNode; large?: boolean }) {
+export function LeagueTitle({
+  league,
+  after,
+  large = false,
+  start = false,
+}: {
+  league: RoomLeague;
+  after?: React.ReactNode;
+  large?: boolean;
+  start?: boolean;
+}) {
   return (
     <span
-      className={`flex min-w-0 items-center justify-center uppercase tracking-wide ${
+      className={`flex min-w-0 items-center ${start ? "justify-start" : "justify-center"} uppercase tracking-wide ${
         large ? "gap-2 text-lg font-extrabold sm:text-3xl" : "gap-1.5 text-xs font-bold"
       }`}
     >
