@@ -22,6 +22,11 @@ export const viewport: Viewport = {
   // by the safe area: see NavBar). The status bar's color — its theme color — is set to match the page's
   // background in the theme in use, before first paint, by THEME_INIT_SCRIPT.
   viewportFit: "cover",
+  width: "device-width",
+  initialScale: 1,
+  // A text box under 16px tapped on an iPhone would otherwise zoom the page in on it, and leave it zoomed in once the
+  // keyboard's gone. (Pinching to zoom still works there: iOS keeps that whatever this says.)
+  maximumScale: 1,
 };
 
 // Same basePath Next.js itself is built with (see next.config.ts) — GitHub
