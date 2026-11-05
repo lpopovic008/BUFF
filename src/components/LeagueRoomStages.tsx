@@ -2,11 +2,14 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ChevronLeftIcon } from "@/components/ui/Icon";
-import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { CloseButton, FloorTile, FloorTiles } from "@/components/LeagueRoomFloor";
 import { FloorBar, FloorBars, LineupTiles, seasonBars, SeasonLine } from "@/components/FloorCareer";
 import { MatchupGraph, MatchupSide } from "@/components/MatchupGraph";
-import { bioLine, LineupNumbers } from "@/components/PlayerCareer";
+import type { LineupNumbers } from "@/components/PlayerCareer";
+import { collegeLogo } from "@/lib/college-logos";
+import { nflLogoUrl } from "@/lib/nfl-logos";
+import { ordinal } from "@/lib/format";
+import { playerHeadshotUrl } from "@/lib/sleeper";
 import { CareerWeek, getCareer, getSeasonWeeks, seasonPoints, seasonRank } from "@/lib/career-stats";
 import { getPlayerBio, PlayerBio, ResolvedPlayer } from "@/lib/players";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
@@ -171,6 +174,77 @@ export function RoomGraph({
   );
 }
 
+/** "6'2\"" from inches. */
+const feet = (inches: number) => `${Math.floor(inches / 12)}'${inches % 12}"`;
+
+/** His college's logo (see collegeLogo) — its name instead, small, if there's none to show. */
+function CollegeMark({ college }: { college: string | null }) {
+  const [logo, setLogo] = useState<{ college: string; src: string | null } | null>(null);
+  const [failed, setFailed] = useState<string | null>(null);
+  useEffect(() => {
+    if (!college) return;
+    let cancelled = false;
+    collegeLogo(college).then((src) => !cancelled && setLogo({ college, src }));
+    return () => {
+      cancelled = true;
+    };
+  }, [college]);
+  if (!college) return null;
+  const src = logo?.college === college ? logo.src : null;
+  if (src && failed !== src) {
+    // eslint-disable-next-line @next/next/no-img-element -- a remote ESPN logo on a static export
+    return <img src={src} alt={college} title={college} onError={() => setFailed(src)} className="h-10 w-10 shrink-0 object-contain sm:h-12 sm:w-12" />;
+  }
+  return <span className="max-w-[5rem] shrink-0 text-right text-[0.625rem] font-bold uppercase leading-tight text-ink-secondary">{college}</span>;
+}
+
+/**
+ * Who a player is, across the top of his stage: his photo in front of his team's logo; his name, his position beside
+ * it in its color, and under them his height and weight (then his team and number); his age over his years in the
+ * league on the right, and his college's logo at the right edge.
+ */
+function PlayerHeader({ player, bio }: { player: ResolvedPlayer; bio: PlayerBio | null }) {
+  const [photoFailed, setPhotoFailed] = useState(false);
+  const size = bio?.height && bio.weight ? `${feet(bio.height)} ${bio.weight} lb` : null;
+  const under = [size, player.team, bio?.number ? `#${bio.number}` : null].filter(Boolean).join(" · ");
+  const years = bio?.yearsExp != null ? (bio.yearsExp === 0 ? "Rookie" : `${ordinal(bio.yearsExp + 1)} season`) : null;
+  return (
+    <div className="flex items-center gap-2.5">
+      {/* His photo in front of his team's logo. */}
+      <div className="relative h-14 w-[4.5rem] shrink-0 sm:h-16 sm:w-20">
+        {player.team ? (
+          // eslint-disable-next-line @next/next/no-img-element -- a static SVG on a static export
+          <img src={nflLogoUrl(player.team)} alt={player.team} className="absolute left-0 top-1/2 h-12 w-12 -translate-y-1/2 object-contain opacity-90 sm:h-14 sm:w-14" />
+        ) : null}
+        {photoFailed ? null : (
+          // eslint-disable-next-line @next/next/no-img-element -- a remote Sleeper photo on a static export
+          <img
+            src={playerHeadshotUrl(player.playerId)}
+            alt=""
+            onError={() => setPhotoFailed(true)}
+            className="absolute bottom-0 right-0 h-12 w-12 object-cover object-top sm:h-14 sm:w-14"
+          />
+        )}
+      </div>
+      <div className="min-w-0 flex-1 leading-tight">
+        <h3 className="flex min-w-0 items-baseline gap-1.5 text-ink-primary">
+          <span className="truncate text-lg font-extrabold uppercase tracking-wide sm:text-xl">{player.name}</span>
+          <span className={`shrink-0 text-sm font-extrabold ${POSITION_TEXT_COLOR[player.position] ?? "text-ink-secondary"}`}>{player.position}</span>
+        </h3>
+        {under ? <p className="truncate text-[0.6875rem] font-semibold uppercase text-ink-secondary">{under}</p> : null}
+      </div>
+      {/* His age over his years in the league. */}
+      {bio?.age || years ? (
+        <div className="flex shrink-0 flex-col items-end text-[0.6875rem] font-semibold uppercase leading-tight text-ink-secondary">
+          {bio?.age ? <span>{bio.age} yrs old</span> : null}
+          {years ? <span>{years}</span> : null}
+        </div>
+      ) : null}
+      <CollegeMark college={bio?.college ?? null} />
+    </div>
+  );
+}
+
 /** A week of a player's as a bar on the floor: as tall as his points, the week and who he played in front. */
 function weekBars(weeks: CareerWeek[], scoring?: Record<string, number>): FloorBar[] {
   return weeks.map((w) => {
@@ -296,13 +370,7 @@ export function PlayerStage({
       >
         {picker}
         <section aria-label={player.name} className="flex flex-col gap-2">
-          <div className="flex items-center gap-2.5">
-            <PlayerHeadshot playerId={player.playerId} sizeClass="h-12 w-12" square />
-            <div className="min-w-0 leading-tight">
-              <h3 className="truncate text-lg font-extrabold uppercase tracking-wide text-ink-primary sm:text-xl">{player.name}</h3>
-              <p className="text-[0.6875rem] font-semibold uppercase text-ink-secondary">{bioLine(player, bio)}</p>
-            </div>
-          </div>
+          <PlayerHeader player={player} bio={bio} />
           {numbers ? <LineupTiles position={player.position} numbers={numbers} /> : null}
           <div className="flex flex-col gap-1">
             <span className="text-[0.625rem] font-bold uppercase tracking-wide text-ink-muted">Seasons played</span>
