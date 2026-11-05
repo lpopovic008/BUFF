@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ResolvedMatchupGame, ResolvedSlot } from "@/hooks/useLeagueMatchupCarousel";
 import { HeadToHeadBadge, PointsRankBadges, StreakBadge, TeamNameLabel } from "@/components/DashboardMatchupCard";
 import { AllTimeRecord, headToHeadAsItStands, headToHeadKey, useAllTimeHeadToHead } from "@/hooks/useAllTimeHeadToHead";
@@ -581,9 +581,70 @@ function OutlinedMatchupHeader({
   );
 }
 
-/** A matchup's lineups, slot by slot: yours (or the first team's) on the left — and when it's yours, your bench under them. */
-function MatchupLineup({ game, myRosterId }: { game: ResolvedMatchupGame; myRosterId: number | null }) {
+/** The least room between a fitted lineup's rows (px), before they're shrunk to fit (see FitRows). */
+const FIT_MIN_GAP = 6;
+
+/**
+ * Rows spread evenly down a box (`style`, `className` giving its height): first at its top, last at its bottom — or,
+ * with too many to fit with a little room between, all shrunk together until they do. Never scrolls.
+ */
+function FitRows({ className = "", style, children }: { className?: string; style?: React.CSSProperties; children: React.ReactNode }) {
+  const outer = useRef<HTMLDivElement>(null);
+  const inner = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+  useLayoutEffect(() => {
+    const box = outer.current;
+    const rows = inner.current;
+    if (!box || !rows) return;
+    // Their own heights (a transform doesn't change them), and the least room between.
+    const measure = () => {
+      const kids = [...rows.children] as HTMLElement[];
+      const natural = kids.reduce((sum, k) => sum + k.offsetHeight, 0) + FIT_MIN_GAP * Math.max(0, kids.length - 1);
+      const room = box.clientHeight;
+      const next = room > 0 && natural > room ? room / natural : 1;
+      setScale((was) => (Math.abs(was - next) < 0.002 ? was : next));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(box);
+    for (const k of rows.children) observer.observe(k);
+    return () => observer.disconnect();
+  });
+  return (
+    <div ref={outer} className={className} style={style}>
+      <div
+        ref={inner}
+        className="flex flex-col justify-between"
+        style={{
+          height: `${100 / scale}%`,
+          width: `${100 / scale}%`,
+          transform: scale < 1 ? `scale(${scale})` : undefined,
+          transformOrigin: "top left",
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A matchup's lineups, slot by slot: yours (or the first team's) on the left — and when it's yours, your bench under
+ * them. Or (`fit`) just the starters and what their numbers are, spread down the box it's given to fill it, shrunk if
+ * they'd not fit (see FitRows) — never scrolled.
+ */
+function MatchupLineup({ game, myRosterId, fit }: { game: ResolvedMatchupGame; myRosterId: number | null; fit?: { className?: string; style?: React.CSSProperties } }) {
   const [mine, other] = sides(game, myRosterId);
+  if (fit) {
+    return (
+      <FitRows className={`px-2 ${fit.className ?? ""}`} style={fit.style}>
+        {mine.slots.map((slot, i) => (
+          <SlotRow key={i} slot={slot.slot} my={slot} their={other?.slots[i]} />
+        ))}
+        <LineLegend />
+      </FitRows>
+    );
+  }
   return (
     <div className="flex flex-col gap-2.5 px-2">
       {mine.slots.map((slot, i) => (
@@ -603,6 +664,7 @@ export function MatchupSlide({
   owners,
   allTime,
   outlined = false,
+  fitHeight,
 }: {
   leagueId: string;
   game: ResolvedMatchupGame;
@@ -612,11 +674,13 @@ export function MatchupSlide({
   allTime: Map<string, Map<string, AllTimeRecord>> | null;
   /** Its header outlined, not lit (see OutlinedMatchupHeader). */
   outlined?: boolean;
+  /** How tall it all is (CSS), its starters spread down what's under the header to fill it (see MatchupLineup) — else as tall as they are. */
+  fitHeight?: string;
 }) {
   const [mine, other] = sides(game, myRosterId);
   const Header = outlined ? OutlinedMatchupHeader : MatchupHeader;
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3" style={fitHeight ? { height: fitHeight } : undefined}>
       <Header
         leagueId={leagueId}
         left={mine}
@@ -624,7 +688,7 @@ export function MatchupSlide({
         standings={standings}
         headToHead={headToHeadFor(mine, other, owners, allTime)}
       />
-      <MatchupLineup game={game} myRosterId={myRosterId} />
+      <MatchupLineup game={game} myRosterId={myRosterId} fit={fitHeight ? { className: "min-h-0 flex-1" } : undefined} />
     </div>
   );
 }
@@ -680,6 +744,7 @@ export function MatchupStack({
   allTime,
   onOpen,
   outlined = false,
+  fitHeight,
 }: {
   leagueId: string;
   games: ResolvedMatchupGame[];
@@ -691,6 +756,11 @@ export function MatchupStack({
   onOpen?: (matchupId: number) => void;
   /** Its headers outlined, not lit (see OutlinedMatchupHeader). */
   outlined?: boolean;
+  /**
+   * How tall an open matchup is (CSS): its header, and its starters spread down the rest to fill it (see
+   * MatchupLineup) — and one opened is brought up to the top of the list it's scrolled in. Else as tall as they are.
+   */
+  fitHeight?: string;
 }) {
   const Header = outlined ? OutlinedMatchupHeader : MatchupHeader;
   const myGame = games.find((g) => g.teams.some((t) => t.rosterId === myRosterId));
@@ -700,12 +770,45 @@ export function MatchupStack({
   const openId = chosen === undefined ? (myGame?.matchupId ?? null) : chosen;
   const hold = useRef(0);
   useEffect(() => () => cancelAnimationFrame(hold.current), []);
+  // A header's height (all alike), for what's left under it for the lineup when it fits a height.
+  const [aHeader, setAHeader] = useState<HTMLElement | null>(null);
+  const [headerH, setHeaderH] = useState(0);
+  useEffect(() => {
+    if (!aHeader) return;
+    const measure = () => setHeaderH(aHeader.getBoundingClientRect().height);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(aHeader);
+    return () => observer.disconnect();
+  }, [aHeader]);
+  // Under the header, the lineup's padding above and below (pt-3, pb-2) taken out too.
+  const lineupHeight = fitHeight ? `calc(${fitHeight} - ${headerH}px - 1.25rem)` : undefined;
 
   function toggle(matchupId: number, header: HTMLElement) {
     setChosen(openId === matchupId ? null : matchupId);
     if (openId !== matchupId) onOpen?.(matchupId);
-    // Keep the tapped header where it is while everything around it folds.
     cancelAnimationFrame(hold.current);
+    const list = fitHeight ? header.closest<HTMLElement>("[data-scroll-list]") : null;
+    if (list) {
+      // Opened, brought up to the list's top as everything around it folds (shut, left where it is).
+      if (openId === matchupId) return;
+      const from = list.scrollTop;
+      let start: number | null = null;
+      const bring = (now: number) => {
+        start ??= now;
+        const f = Math.min(1, (now - start) / FOLD_MS);
+        const eased = 1 - Math.pow(1 - f, 3);
+        const top = list.getBoundingClientRect().top + (parseFloat(getComputedStyle(list).paddingTop) || 0);
+        const to = list.scrollTop + header.getBoundingClientRect().top - top;
+        list.scrollTop = from + (to - from) * eased;
+        if (f < 1 || Math.abs(header.getBoundingClientRect().top - top) >= 1) {
+          if (now - start < FOLD_MS + 200) hold.current = requestAnimationFrame(bring);
+        }
+      };
+      hold.current = requestAnimationFrame(bring);
+      return;
+    }
+    // Keep the tapped header where it is while everything around it folds.
     const top = header.getBoundingClientRect().top;
     let start: number | null = null;
     const follow = (now: number) => {
@@ -719,13 +822,14 @@ export function MatchupStack({
 
   return (
     <ul className="flex flex-col gap-2 [overflow-anchor:none]" aria-label="This week's matchups">
-      {stacked.map((g) => {
+      {stacked.map((g, i) => {
         const [mine, other] = sides(g, myRosterId);
         const open = g.matchupId === openId;
         return (
           <li key={g.matchupId}>
             {/* The whole header toggles its lineup — except the team names, which still go to each team's page. */}
             <div
+              ref={i === 0 ? setAHeader : undefined}
               role="button"
               tabIndex={0}
               aria-expanded={open}
@@ -763,7 +867,7 @@ export function MatchupStack({
             >
               <div className="min-h-0 overflow-hidden">
                 <div className="pb-2 pt-3">
-                  <MatchupLineup game={g} myRosterId={myRosterId} />
+                  <MatchupLineup game={g} myRosterId={myRosterId} fit={lineupHeight ? { style: { height: lineupHeight } } : undefined} />
                 </div>
               </div>
             </div>

@@ -46,6 +46,8 @@ const onDesktopChange = (listener: () => void) => {
 // Where the columns' first rows sit: under the header (the league switcher in it, on a phone), and a gap.
 const UNDER_HEADER = "var(--header-h, 0px) + 0.625rem";
 const UNDER_SWITCHER = "var(--header-h, 0px) + 0.5rem";
+// How far above the horizon a lineup fitted to the space ends.
+const OVER_HORIZON = "0.5rem";
 // The line on the floor the columns stand on, up from the room's bottom: the home page's starters list's.
 const FOOT = "3.25rem";
 const FOOT_PX = 52;
@@ -364,7 +366,7 @@ function LeaguePane({ league, week, userId, reflections }: { league: RoomLeagueD
       <div
         ref={setColumn}
         data-scroll-list
-        className="h-full touch-none overflow-y-auto overscroll-none px-2 pb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="h-full touch-none overflow-y-auto overscroll-none px-2 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         style={pad}
       >
         <div>
@@ -383,12 +385,14 @@ function LeaguePane({ league, week, userId, reflections }: { league: RoomLeagueD
                     owners={owners}
                     allTime={allTime}
                     outlined
+                    // An open matchup fills the pane under the header, down to just over the horizon: no scrolling to see its lineup.
+                    fitHeight={`calc(var(--room-h, 100svh) * ${HORIZON_SHARE} - (${UNDER_SWITCHER}) - ${OVER_HORIZON})`}
                   />
                 )}
         </div>
       </div>
       <ScrollThumb source={column} />
-      {reflections ? createPortal(<FloorReflection source={column} className="px-2 pb-8" style={pad} />, reflections) : null}
+      {reflections ? createPortal(<FloorReflection source={column} className="px-2 pb-2" style={pad} />, reflections) : null}
     </>
   );
 }
@@ -454,14 +458,24 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
         {/* The picked matchup's lineups, slot by slot — down to the horizon, the floor in front of it left for its
             buttons. */}
         <div className="relative min-w-0 flex-1 self-start" style={{ height: `calc(var(--room-h, 100vh) * ${HORIZON_SHARE})` }}>
-          <div ref={setLineupColumn} data-scroll-list className={column} style={columnPad}>
+          <div ref={setLineupColumn} data-scroll-list className={`${column} !pb-0`} style={columnPad}>
             <div className="mx-auto max-w-3xl">
               {!carousel
                 ? loadingLineups
                 : !shownGame
                   ? noMatchups
                   : providers(
-                      <MatchupSlide leagueId={leagueId} game={shownGame} myRosterId={myRosterId} standings={standings} owners={owners} allTime={allTime} outlined />
+                      <MatchupSlide
+                        leagueId={leagueId}
+                        game={shownGame}
+                        myRosterId={myRosterId}
+                        standings={standings}
+                        owners={owners}
+                        allTime={allTime}
+                        outlined
+                        // Down to just over the horizon, its starters spread to fill it: no scrolling to see them.
+                        fitHeight={`calc(var(--room-h, 100vh) * ${HORIZON_SHARE} - (${UNDER_HEADER}) - ${OVER_HORIZON})`}
+                      />
                     )}
             </div>
           </div>
@@ -488,7 +502,7 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
       </div>
       {/* Each column's reflection: what's at its foot, in the floor. */}
       <FloorReflection source={leagueColumn} className="pb-16" style={columnPad} />
-      <FloorReflection source={lineupColumn} className="pb-16" style={columnPad} />
+      <FloorReflection source={lineupColumn} style={columnPad} />
       <FloorReflection source={matchupColumn} className="pb-16" style={columnPad} />
       {/* The floor's buttons at the front of the room between the columns, and the panel one brings up there. */}
       {room ? (
