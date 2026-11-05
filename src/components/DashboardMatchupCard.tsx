@@ -21,12 +21,23 @@ const toneClass = (onTag: boolean) => (onTag ? ON_TAG_TONE_CLASS : TONE_CLASS);
 const mutedClass = (onTag: boolean) => (onTag ? "font-semibold text-[var(--map-tag-ink)] opacity-80" : "font-semibold text-ink-secondary");
 
 /** A green up-triangle for a winning streak, red down-triangle for a losing one, then its length — `large`, as big as a score. */
-export function StreakBadge({ streak, onTag = false, large = false }: { streak?: Streak | null; onTag?: boolean; large?: boolean }) {
+export function StreakBadge({
+  streak,
+  onTag = false,
+  large = false,
+  sizeClass,
+}: {
+  streak?: Streak | null;
+  onTag?: boolean;
+  large?: boolean;
+  /** Its text size, in place of the usual. */
+  sizeClass?: string;
+}) {
   if (!streak) return null;
   const winning = streak.result === "W";
   return (
     <span
-      className={`flex shrink-0 items-center gap-0.5 font-bold tabular-nums ${large ? "text-[0.9375rem] sm:text-lg" : "text-xs"} ${toneClass(onTag)[winning ? "good" : "bad"]}`}
+      className={`flex shrink-0 items-center gap-0.5 font-bold tabular-nums ${sizeClass ?? (large ? "text-[0.9375rem] sm:text-lg" : "text-xs")} ${toneClass(onTag)[winning ? "good" : "bad"]}`}
       title={`${streak.length}-game ${winning ? "winning" : "losing"} streak`}
     >
       <svg viewBox="0 0 10 10" className={large ? "h-2.5 w-2.5 sm:h-3 sm:w-3" : "h-2 w-2"} aria-hidden>
@@ -136,16 +147,19 @@ export function PointsRankBadges({
   leagueSize,
   onTag = false,
   only,
+  sizeClass = "text-[0.625rem] lg:text-[0.6875rem]",
 }: {
   pointsRanks?: PointsRanks;
   leagueSize: number;
   onTag?: boolean;
   only?: "for" | "against";
+  /** Its text size, in place of the usual. */
+  sizeClass?: string;
 }) {
   if (!pointsRanks) return null;
   const tones = toneClass(onTag);
   return (
-    <span className="flex items-baseline gap-1 whitespace-nowrap text-[0.625rem] font-normal lg:gap-2 lg:text-[0.6875rem]">
+    <span className={`flex items-baseline gap-1 whitespace-nowrap font-normal lg:gap-2 ${sizeClass}`}>
       {only === "against" ? null : <span title="Points for — rank in the league (1st = most)">
         <span className={mutedClass(onTag)}>PF</span>
         <span className={`${LABEL_GAP} font-bold tabular-nums ${tones[rankTone(pointsRanks.pointsFor, leagueSize)]}`}>{pointsRanks.pointsFor}</span>

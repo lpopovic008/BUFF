@@ -94,6 +94,7 @@ export function RecapEditor({
   playerNames,
   onRemoveSection,
   onAddSection,
+  room = false,
 }: {
   model: RecapModel | null;
   onModelChange: (model: RecapModel) => void;
@@ -118,6 +119,8 @@ export function RecapEditor({
   /** Take a section out of the recap's layout, or add one (see RecapModel.layout). */
   onRemoveSection?: (key: RecapSectionKey) => void;
   onAddSection?: (key: RecapSectionKey) => void;
+  /** In the League Room's write-ups panel (see RecapSectionsEditor's `room`). */
+  room?: boolean;
 }) {
   if (!model) {
     return (
@@ -171,6 +174,7 @@ export function RecapEditor({
           playerNames={playerNames}
           onRemoveSection={onRemoveSection}
           onAddSection={onAddSection}
+          room={room}
         />
       </ScaleToFit>
     </div>

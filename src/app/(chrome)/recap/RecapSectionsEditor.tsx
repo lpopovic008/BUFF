@@ -561,6 +561,7 @@ export function RecapSectionsEditor({
   maxMatchups = 2,
   onRemoveSection,
   onAddSection,
+  room = false,
 }: {
   model: RecapModel;
   onChange: (model: RecapModel) => void;
@@ -580,6 +581,11 @@ export function RecapSectionsEditor({
   /** Take a section out of the layout (see RecapModel.layout), or add one — the contents down the side do the same. */
   onRemoveSection?: (key: RecapSectionKey) => void;
   onAddSection?: (key: RecapSectionKey) => void;
+  /**
+   * In the League Room's write-ups panel: see-through, its sections side by side as many as fit (up to three) and on
+   * onto the next row, and a section to add at the bottom on any screen (there's no contents down the side there).
+   */
+  room?: boolean;
 }) {
   const set = <K extends FieldKey>(key: K, value: RecapModel[K]) => onChange({ ...model, [key]: value });
   const toggleIncluded = (key: RecapSectionKey) =>
@@ -791,7 +797,7 @@ export function RecapSectionsEditor({
   const missing = addableSections(layout, maxMatchups);
 
   return (
-    <div className="recap-neon app-theme">
+    <div className={`recap-neon app-theme ${room ? "rn-room" : ""}`}>
       <span className="rn-badge">Commi$h</span>
       <div data-recap-section="title" className="rn-title-row">
         <TitleField value={model.title} onChange={(v) => set("title", v)} />
@@ -813,7 +819,7 @@ export function RecapSectionsEditor({
 
       {/* On a phone, where there's no contents down the side: a section to add. */}
       {onAddSection && missing.length > 0 ? (
-        <label className="rn-add-section md:hidden">
+        <label className={`rn-add-section ${room ? "" : "md:hidden"}`}>
           <span>+ Add a section</span>
           <select
             value=""

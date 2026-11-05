@@ -581,6 +581,100 @@ function OutlinedMatchupHeader({
   );
 }
 
+/** Every line of a matchup in brief (see BriefMatchupHeader), one size. */
+const BRIEF_TEXT = "text-[0.6875rem] sm:text-xs";
+
+/**
+ * A matchup in brief, in two lines (the League Room's, with its write-ups up): each team's rank and name against its
+ * edge, the all-time head-to-head in the middle; under each, its PF and PA side by side against the edge, its
+ * projected total innermost, and its record and streak halfway between — all one size, in the full header's colors.
+ */
+function BriefMatchupHeader({
+  left,
+  right,
+  standings,
+  headToHead,
+}: {
+  left: MatchupTeam;
+  right: MatchupTeam | undefined;
+  standings: Map<number, TeamStanding>;
+  headToHead: Map<number, AllTimeRecord> | null;
+}) {
+  const projected = useContext(ProjectedContext);
+  const rec = right ? headToHead?.get(left.rosterId) : undefined;
+  const name = (t: MatchupTeam, side: "left" | "right") => {
+    const rank = standings.get(t.rosterId)?.rank;
+    return (
+      <span className={`flex min-w-0 items-baseline gap-1.5 ${side === "right" ? "justify-end pl-3" : "pr-3"}`}>
+        {rank != null ? <span className="shrink-0 font-bold tabular-nums text-series-4">{rank}</span> : null}
+        <span className="min-w-0 truncate font-bold text-ink-primary">{t.teamName}</span>
+      </span>
+    );
+  };
+  const below = (t: MatchupTeam, side: "left" | "right") => {
+    const { record, streak, pointsRanks } = standings.get(t.rosterId) ?? {};
+    const total = projected?.get(t.rosterId);
+    // From the edge in: PF and PA, the record and streak, the projected total — evenly apart.
+    const pieces = [
+      <span key="ranks" className="flex">
+        <PointsRankBadges pointsRanks={pointsRanks} leagueSize={standings.size} sizeClass={BRIEF_TEXT} />
+      </span>,
+      <span key="standing" className="flex items-baseline gap-1">
+        {record ? <span className="font-semibold tabular-nums text-ink-secondary">{formatRecord(record.wins, record.losses, record.ties)}</span> : null}
+        <StreakBadge streak={streak} sizeClass={BRIEF_TEXT} />
+      </span>,
+      <span key="projected" className="tabular-nums text-ink-primary opacity-70" title="Projected">
+        {total !== undefined ? formatPoints(total) : ""}
+      </span>,
+    ];
+    return <div className="flex min-w-0 items-baseline justify-between gap-2">{side === "left" ? pieces : pieces.reverse()}</div>;
+  };
+  return (
+    <div className={`flex flex-col gap-0.5 border border-ink-primary px-2 py-1 leading-tight ${BRIEF_TEXT}`}>
+      <div className={`grid ${SLOT_COLS} items-baseline gap-1 sm:gap-2`}>
+        {name(left, "left")}
+        <span className="justify-self-center">{rec ? <HeadToHeadBadge wins={rec.wins} losses={rec.losses} className={BRIEF_TEXT} /> : null}</span>
+        {right ? name(right, "right") : <span />}
+      </div>
+      <div className={`grid ${SLOT_COLS} gap-1 sm:gap-2`}>
+        {below(left, "left")}
+        <span />
+        {right ? below(right, "right") : <div />}
+      </div>
+    </div>
+  );
+}
+
+/** Every matchup of the week in brief (see BriefMatchupHeader), yours on top — the League Room's, with its write-ups up. */
+export function BriefMatchups({
+  games,
+  myRosterId,
+  standings,
+  owners,
+  allTime,
+}: {
+  games: ResolvedMatchupGame[];
+  myRosterId: number | null;
+  standings: Map<number, TeamStanding>;
+  owners: Map<number, string>;
+  allTime: Map<string, Map<string, AllTimeRecord>> | null;
+}) {
+  const myGame = games.find((g) => g.teams.some((t) => t.rosterId === myRosterId));
+  const stacked = myGame ? [myGame, ...games.filter((g) => g !== myGame)] : games;
+  return (
+    <ul className="flex flex-col gap-1.5" aria-label="This week's matchups">
+      {stacked.map((g) => {
+        const [mine, other] = sides(g, myRosterId);
+        return (
+          <li key={g.matchupId}>
+            <BriefMatchupHeader left={mine} right={other} standings={standings} headToHead={headToHeadFor(mine, other, owners, allTime)} />
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 /** The least room between a fitted lineup's rows (px), before they're shrunk to fit (see FitRows). */
 const FIT_MIN_GAP = 6;
 

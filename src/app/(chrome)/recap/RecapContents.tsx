@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { LIST_MOVE } from "@/hooks/useListScroll";
 import { PlateCard } from "@/components/ui/PlateCard";
 import { pickAt, RecapBowlPicks } from "@/lib/localStore";
 import { isSectionIncluded, isUpcomingSection, matchupNumber, recapLayout, RecapModel, RecapSectionKey } from "@/lib/recap-model";
@@ -86,6 +87,7 @@ export function RecapContents({
   onMove,
   onRemove,
   onAdd,
+  scroller = null,
 }: {
   entries: Entry[];
   /** The heading over next week's sections in the list to add: "Upcoming week 5". */
@@ -95,43 +97,56 @@ export function RecapContents({
   onMove?: (key: RecapSectionKey, by: -1 | 1) => void;
   onRemove?: (key: RecapSectionKey) => void;
   onAdd?: (key: RecapSectionKey) => void;
+  /** What the write-up's scrolled in, when it isn't the page (the League Room's write-ups panel). */
+  scroller?: HTMLElement | null;
 }) {
   const [adding, setAdding] = useState(false);
   const [active, setActive] = useState<string | null>(null);
   const keys = entries.map((e) => e.key).join(",");
 
-  // The section you're reading: the last whose top has passed under the header.
+  // The section you're reading: the last whose top has passed under the header (or its box's top).
   useEffect(() => {
     let raf = 0;
     const update = () => {
       raf = 0;
-      const line = topOffset() + 40;
+      const line = (scroller ? scroller.getBoundingClientRect().top : topOffset()) + 40;
       let current: string | null = null;
       for (const key of keys.split(",")) {
         const el = sectionEl(key);
         if (el && el.getBoundingClientRect().top <= line) current = key;
       }
       // At the very bottom, the last section is the one in view however short it is.
-      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) current = keys.split(",").at(-1) ?? current;
+      const atBottom = scroller
+        ? scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 2
+        : window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+      if (atBottom) current = keys.split(",").at(-1) ?? current;
       setActive(current ?? keys.split(",")[0]);
     };
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(update);
     };
     queueMicrotask(update);
-    window.addEventListener("scroll", onScroll, { passive: true });
+    const source: EventTarget = scroller ?? window;
+    source.addEventListener("scroll", onScroll, { passive: true });
+    scroller?.addEventListener(LIST_MOVE, onScroll);
     window.addEventListener("resize", onScroll);
     return () => {
       cancelAnimationFrame(raf);
-      window.removeEventListener("scroll", onScroll);
+      source.removeEventListener("scroll", onScroll);
+      scroller?.removeEventListener(LIST_MOVE, onScroll);
       window.removeEventListener("resize", onScroll);
     };
-  }, [keys]);
+  }, [keys, scroller]);
 
   const jump = (key: string) => {
     const el = sectionEl(key);
     if (!el) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (scroller) {
+      const top = scroller.scrollTop + el.getBoundingClientRect().top - scroller.getBoundingClientRect().top - 8;
+      scroller.scrollTo({ top, behavior: reduced ? "auto" : "smooth" });
+      return;
+    }
     window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - topOffset(), behavior: reduced ? "auto" : "smooth" });
   };
 

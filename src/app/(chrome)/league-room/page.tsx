@@ -10,9 +10,10 @@ import { FloorGrid } from "@/components/FloorGrid";
 import { FloorReflection } from "@/components/FloorReflection";
 import { ScrollThumb } from "@/components/ScrollThumb";
 import { useSwipePager } from "@/hooks/useSwipePager";
-import { useListScroll } from "@/hooks/useListScroll";
+import { LIST_MOVE, useListScroll } from "@/hooks/useListScroll";
 import { LeagueSwitcher, LeagueTitle, RoomLeague } from "@/components/LeagueSwitcher";
-import { Bench, MatchupList, MatchupProviders, MatchupSlide, MatchupStack, useMatchupHeadToHead } from "@/components/LeagueMatchupCarousel";
+import { Bench, BriefMatchups, MatchupList, MatchupProviders, MatchupSlide, MatchupStack, useMatchupHeadToHead } from "@/components/LeagueMatchupCarousel";
+import { WriteupsPanel } from "@/components/LeagueRoomWriteups";
 import { FLOOR_ACTIONS, FloorAction, FloorButtons, FrontPanel } from "@/components/LeagueRoomFloor";
 import { MatchupGraph, MatchupSide } from "@/components/MatchupGraph";
 import { MoneyBoard } from "@/components/MoneyBoard";
@@ -260,6 +261,33 @@ function useFloorAction() {
   return { action, last, pick, close };
 }
 
+/**
+ * Tells `onBottom` where an element's bottom is on screen (y) — no lower than the bottom of the list it's scrolled in
+ * — as it changes size, or its list scrolls.
+ */
+function useBottom(el: HTMLElement | null, onBottom: ((y: number) => void) | undefined) {
+  useEffect(() => {
+    if (!el || !onBottom) return;
+    const list = el.closest<HTMLElement>("[data-scroll-list]");
+    const report = () => {
+      const bottom = el.getBoundingClientRect().bottom;
+      onBottom(list ? Math.min(bottom, list.getBoundingClientRect().bottom) : bottom);
+    };
+    report();
+    const observer = new ResizeObserver(report);
+    observer.observe(el);
+    list?.addEventListener(LIST_MOVE, report);
+    list?.addEventListener("scroll", report);
+    window.addEventListener("resize", report);
+    return () => {
+      observer.disconnect();
+      list?.removeEventListener(LIST_MOVE, report);
+      list?.removeEventListener("scroll", report);
+      window.removeEventListener("resize", report);
+    };
+  }, [el, onBottom]);
+}
+
 /** How far the panels up out of the floor stand from the horizon (px). */
 const PANEL_GAP_PX = 8;
 
@@ -271,6 +299,9 @@ const PANEL_GAP_PX = 8;
  */
 function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, room }: RoomProps) {
   const { action, last, pick, close } = useFloorAction();
+  // The write-ups up: the matchups in brief, the write-up up to just under them (where they end on screen).
+  const writeups = action === "writeups";
+  const [briefEnd, setBriefEnd] = useState<number | null>(null);
   // The header's back button closes the floor's panel while one's up.
   useEffect(() => {
     setHeaderBack(action ? close : null);
@@ -316,7 +347,16 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
             {rooms.map((r, i) => (
               <div key={r.official.league.league_id} className="relative h-full w-full shrink-0">
                 {/* Only the league on screen and those either side of it, ready to be swiped to. */}
-                {Math.abs(i - index) <= 1 ? <LeaguePane league={r} week={week} userId={userId} reflections={reflections} /> : null}
+                {Math.abs(i - index) <= 1 ? (
+                  <LeaguePane
+                    league={r}
+                    week={week}
+                    userId={userId}
+                    reflections={reflections}
+                    brief={writeups}
+                    onBriefEnd={i === index ? setBriefEnd : undefined}
+                  />
+                ) : null}
               </div>
             ))}
           </div>
@@ -330,8 +370,18 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
       {room ? (
         <>
           <FloorButtons width={room.width} height={room.height} bottom={room.height - tabBar} hidden={action !== null} onPick={pick} />
+          {/* The write-ups: up to just under the matchups, the rest of the screen. */}
+          <WriteupsPanel
+            open={writeups}
+            leagueId={leagues[index].leagueId}
+            week={week}
+            top={(briefEnd ?? room.height * HORIZON_SHARE) + PANEL_GAP_PX}
+            bottom={room.height - tabBar}
+            className="inset-x-2"
+            onClose={close}
+          />
           <FrontPanel
-            open={action !== null}
+            open={action !== null && !writeups}
             title={FLOOR_ACTIONS.find((a) => a.id === last)!.label}
             top={room.height * HORIZON_SHARE + PANEL_GAP_PX}
             bottom={room.height - tabBar - PANEL_GAP_PX}
@@ -350,9 +400,26 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
  * back of the room, above the horizon — up under the see-through header and coming up from behind the
  * horizon, reflected in the floor there (into `reflections`).
  */
-function LeaguePane({ league, week, userId, reflections }: { league: RoomLeagueData; week: number | null; userId: string | null | undefined; reflections: HTMLElement | null }) {
+function LeaguePane({
+  league,
+  week,
+  userId,
+  reflections,
+  brief = false,
+  onBriefEnd,
+}: {
+  league: RoomLeagueData;
+  week: number | null;
+  userId: string | null | undefined;
+  reflections: HTMLElement | null;
+  /** Every matchup in brief, no lineups (the write-ups are up) — and told where they end on screen. */
+  brief?: boolean;
+  onBriefEnd?: (y: number) => void;
+}) {
   const { leagueId, standings, owners, myRosterId, carousel, allTime, providers } = useLeagueRoom(league, week, userId);
   const [column, setColumn] = useState<HTMLDivElement | null>(null);
+  const [briefList, setBriefList] = useState<HTMLDivElement | null>(null);
+  useBottom(brief ? briefList : null, onBriefEnd);
   // Scrolled as an iPhone scrolls, by the page, so its reflection moves with it exactly (see useListScroll).
   useListScroll(column);
   // Another week's lineups start from their top.
@@ -374,7 +441,13 @@ function LeaguePane({ league, week, userId, reflections }: { league: RoomLeagueD
             ? loadingLineups
             : games.length === 0
               ? noMatchups
-              : providers(
+              : brief
+                ? providers(
+                    <div ref={setBriefList}>
+                      <BriefMatchups games={games} myRosterId={myRosterId} standings={standings} owners={owners} allTime={allTime} />
+                    </div>
+                  )
+                : providers(
                   <MatchupStack
                     // Fresh for each week, so it opens on your matchup.
                     key={week ?? 0}
@@ -403,6 +476,26 @@ function LeaguePane({ league, week, userId, reflections }: { league: RoomLeagueD
  */
 function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, room }: RoomProps) {
   const { action, last, pick, close } = useFloorAction();
+  // The write-ups up: every matchup in brief in the middle, the write-up under them across the middle column to the
+  // screen's bottom, and its contents in the right-hand column in place of the matchups.
+  const writeups = action === "writeups";
+  const [middle, setMiddle] = useState<HTMLDivElement | null>(null);
+  const [middleBox, setMiddleBox] = useState<{ left: number; width: number } | null>(null);
+  useEffect(() => {
+    if (!middle) return;
+    const measure = () => {
+      const r = middle.getBoundingClientRect();
+      setMiddleBox((was) => (was && was.left === r.left && was.width === r.width ? was : { left: r.left, width: r.width }));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(middle);
+    return () => observer.disconnect();
+  }, [middle]);
+  const [briefList, setBriefList] = useState<HTMLDivElement | null>(null);
+  const [briefEnd, setBriefEnd] = useState<number | null>(null);
+  useBottom(writeups ? briefList : null, setBriefEnd);
+  const [contentsSlot, setContentsSlot] = useState<HTMLDivElement | null>(null);
   const { leagueId, standings, owners, myRosterId, carousel, allTime, providers } = useLeagueRoom(rooms[index], week, userId);
   // The matchup whose lineups are in the middle: yours, until another's picked — in that league, that week.
   const [picked, setPicked] = useState<{ leagueId: string; week: number | null; id: number } | null>(null);
@@ -457,14 +550,20 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
 
         {/* The picked matchup's lineups, slot by slot — down to the horizon, the floor in front of it left for its
             buttons. */}
-        <div className="relative min-w-0 flex-1 self-start" style={{ height: `calc(var(--room-h, 100vh) * ${HORIZON_SHARE})` }}>
+        <div ref={setMiddle} className="relative min-w-0 flex-1 self-start" style={{ height: `calc(var(--room-h, 100vh) * ${HORIZON_SHARE})` }}>
           <div ref={setLineupColumn} data-scroll-list className={`${column} !pb-0`} style={columnPad}>
-            <div className="mx-auto max-w-3xl">
+            <div className={writeups ? "" : "mx-auto max-w-3xl"}>
               {!carousel
                 ? loadingLineups
                 : !shownGame
                   ? noMatchups
-                  : providers(
+                  : writeups
+                    ? providers(
+                        <div ref={setBriefList}>
+                          <BriefMatchups games={games} myRosterId={myRosterId} standings={standings} owners={owners} allTime={allTime} />
+                        </div>
+                      )
+                    : providers(
                       <MatchupSlide
                         leagueId={leagueId}
                         game={shownGame}
@@ -486,7 +585,10 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
         <div className="relative w-64 shrink-0 2xl:w-72">
           <div ref={setMatchupColumn} data-scroll-list className={column} style={columnPad}>
             <div>
-              {shownGame ? (
+              {writeups ? (
+                // The write-up's contents (see WriteupsPanel).
+                <div ref={setContentsSlot} />
+              ) : shownGame ? (
                 <MatchupList
                   games={games}
                   myRosterId={myRosterId}
@@ -508,8 +610,23 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
       {room ? (
         <>
           <FloorButtons width={room.width} height={room.height} bottom={room.height - FOOT_PX} hidden={action !== null} onPick={pick} />
+          {/* The write-ups: under the matchups in the middle, down to the screen's bottom. */}
+          {middleBox ? (
+            <WriteupsPanel
+              open={writeups}
+              leagueId={leagueId}
+              week={week}
+              top={(briefEnd ?? room.height * HORIZON_SHARE) + PANEL_GAP_PX}
+              bottom={room.height - 12}
+              left={middleBox.left}
+              width={middleBox.width}
+              onClose={close}
+              back
+              contentsSlot={contentsSlot}
+            />
+          ) : null}
           <FrontPanel
-            open={action !== null}
+            open={action !== null && !writeups}
             title={FLOOR_ACTIONS.find((a) => a.id === last)!.label}
             top={room.height * HORIZON_SHARE + PANEL_GAP_PX}
             bottom={room.height - 12}

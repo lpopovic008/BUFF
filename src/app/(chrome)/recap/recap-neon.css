@@ -810,3 +810,30 @@
   border-color: var(--border);
   color: var(--ink-secondary);
 }
+
+/* ---------- in the League Room's write-ups panel ----------
+   See-through over the room (as the Red Zone is): the cards a little of the
+   page's color, the room showing through them. The sections side by side, as
+   many as fit at the editor's authored width (see RecapEditor) up to three,
+   the rest on the next rows; the title, the upcoming week's heading and the
+   section to add right across. */
+.recap-neon.app-theme.rn-room {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(max(440px, calc((100% - 2 * var(--rn-gap)) / 3)), 1fr));
+  align-items: start;
+}
+.recap-neon.app-theme.rn-room > .rn-badge {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+.recap-neon.app-theme.rn-room > .rn-title-row,
+.recap-neon.app-theme.rn-room .rn-divider,
+.recap-neon.app-theme.rn-room .rn-upcoming-title,
+.recap-neon.app-theme.rn-room > .rn-add-section {
+  grid-column: 1 / -1;
+}
+.recap-neon.app-theme.rn-room .rn-card,
+.recap-neon.app-theme.rn-room .rn-poster-card {
+  background: color-mix(in srgb, var(--surface-raised) 55%, transparent);
+  backdrop-filter: blur(3px);
+}
