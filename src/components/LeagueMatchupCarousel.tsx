@@ -660,7 +660,8 @@ const FOLD_MS = 450;
 
 /**
  * Phones: every matchup stacked, yours on top — the open one with its full
- * header and lineup, the rest down to a line each (names and scores).
+ * header and lineup, the rest down to a line each (names and scores), or
+ * (`outlined`, the League Room's) each with its full header still.
  * Tapping one opens it and shuts whichever was open (tapping the open one shuts
  * it). Opens on yours. The tapped header holds still on screen while the one
  * above it folds shut, rather than jumping up with it.
@@ -735,8 +736,8 @@ export function MatchupStack({
               }}
               className="cursor-pointer"
             >
-              {/* Open, the full header; shut, just the names and scores. */}
-              {open ? (
+              {/* Open, the full header; shut, just the names and scores — or, outlined, the full header still. */}
+              {open || outlined ? (
                 <Header
                   leagueId={leagueId}
                   left={mine}
