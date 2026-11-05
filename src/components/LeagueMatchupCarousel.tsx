@@ -526,7 +526,7 @@ function OutlinedMatchupHeader({
     const l = side === "left";
     // Its PF over its PA against the header's edge, as far apart as its score and projection are.
     const ranks = (
-      <span className="flex flex-col gap-1.5 leading-none [&>*]:leading-none">
+      <span className="flex flex-col gap-1 leading-none [&>*]:leading-none">
         <PointsRankBadges pointsRanks={pointsRanks} leagueSize={standings.size} only="for" />
         <PointsRankBadges pointsRanks={pointsRanks} leagueSize={standings.size} only="against" />
       </span>
@@ -534,8 +534,8 @@ function OutlinedMatchupHeader({
     // Its score over its projection, innermost.
     const score = (
       <span className={`flex flex-col tabular-nums ${l ? "items-end" : "items-start"}`}>
-        <span className="text-[0.9375rem] font-semibold leading-tight text-ink-primary sm:text-lg sm:leading-tight">{formatPoints(t.points)}</span>
-        <span className="flex min-h-[1.1em]">
+        <span className="text-[0.9375rem] font-semibold leading-none text-ink-primary sm:text-lg sm:leading-none">{formatPoints(t.points)}</span>
+        <span className="mt-0.5 flex min-h-[1.1em] leading-none [&>*]:leading-none">
           <Projected rosterId={t.rosterId} align={l ? "right" : "left"} />
         </span>
       </span>
@@ -552,7 +552,7 @@ function OutlinedMatchupHeader({
     return l ? (
       <div className="grid grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-x-2">
         {ranks}
-        <span className="pl-2">{standing}</span>
+        <span className="pl-4">{standing}</span>
         <span />
         {score}
       </div>
@@ -560,13 +560,13 @@ function OutlinedMatchupHeader({
       <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-2">
         {score}
         <span />
-        <span className="pr-2">{standing}</span>
+        <span className="pr-4">{standing}</span>
         {ranks}
       </div>
     );
   };
   return (
-    <div className="flex flex-col gap-0.5 border border-ink-primary px-2 py-2">
+    <div className="flex flex-col border border-ink-primary px-2 py-1.5">
       <div className={`grid ${SLOT_COLS} items-baseline gap-1 sm:gap-2`}>
         {name(left, "left")}
         <span className="justify-self-center">{rec ? <HeadToHeadBadge wins={rec.wins} losses={rec.losses} className="text-xs sm:text-sm" /> : null}</span>
