@@ -544,7 +544,7 @@ function OutlinedMatchupHeader({
     const standing = (
       <span className="flex items-center gap-1.5">
         {record ? (
-          <span className="text-[0.9375rem] font-semibold tabular-nums text-ink-secondary sm:text-lg">{formatRecord(record.wins, record.losses, record.ties)}</span>
+          <span className="text-[0.9375rem] font-bold tabular-nums text-ink-primary sm:text-lg">{formatRecord(record.wins, record.losses, record.ties)}</span>
         ) : null}
         <StreakBadge streak={streak} large />
       </span>
@@ -620,7 +620,7 @@ function BriefMatchupHeader({
         <PointsRankBadges pointsRanks={pointsRanks} leagueSize={standings.size} sizeClass={BRIEF_TEXT} />
       </span>,
       <span key="standing" className="flex items-baseline gap-1">
-        {record ? <span className="font-semibold tabular-nums text-ink-secondary">{formatRecord(record.wins, record.losses, record.ties)}</span> : null}
+        {record ? <span className="font-bold tabular-nums text-ink-primary">{formatRecord(record.wins, record.losses, record.ties)}</span> : null}
         <StreakBadge streak={streak} sizeClass={BRIEF_TEXT} />
       </span>,
       <span key="projected" className="tabular-nums text-ink-primary opacity-70" title="Projected">
