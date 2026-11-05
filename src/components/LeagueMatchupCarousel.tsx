@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ResolvedMatchupGame, ResolvedSlot } from "@/hooks/useLeagueMatchupCarousel";
 import { HeadToHeadBadge, PointsRankBadges, StreakBadge, TeamNameLabel } from "@/components/DashboardMatchupCard";
 import { AllTimeRecord, headToHeadAsItStands, headToHeadKey, useAllTimeHeadToHead } from "@/hooks/useAllTimeHeadToHead";
@@ -11,7 +12,7 @@ import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { abbreviateFirstName, formatPoints, formatRecord } from "@/lib/format";
 import { getHomeView, saveHomeView } from "@/lib/localStore";
 import { ResolvedPlayer } from "@/lib/players";
-import { PlayerCareer } from "@/components/PlayerCareer";
+import { LineupNumbers, PlayerCareer } from "@/components/PlayerCareer";
 
 /**
  * How a starter's points read, by player id: "pre" before they've played (a dash), "good" on pace for
@@ -36,15 +37,29 @@ export interface LineNote {
 const EMPTY_NOTES = new Map<string, LineNote>();
 const LineNoteContext = createContext<Map<string, LineNote>>(EMPTY_NOTES);
 
-/** Opens a player's career card (see PlayerCareer) — null where there's none to open. */
-const PlayerCardContext = createContext<((player: ResolvedPlayer) => void) | null>(null);
+/** Opens a player's career card (see PlayerCareer), with what their lineup numbers mean — null where there's none to open. */
+const PlayerCardContext = createContext<((player: ResolvedPlayer, numbers: LineupNumbers) => void) | null>(null);
 
-/** A player's photo or name, opening his career card when tapped. */
-function OpensCareer({ player, className = "", children }: { player: ResolvedPlayer; className?: string; children: React.ReactNode }) {
+/** A starter's photo or name, opening their career card when tapped — what their numbers in the lineup mean first. */
+function OpensCareer({ resolved, className = "", children }: { resolved: ResolvedSlot; className?: string; children: React.ReactNode }) {
   const open = useContext(PlayerCardContext);
-  if (!open) return <>{children}</>;
+  const notes = useContext(LineNoteContext);
+  const dynasty = useContext(DynastyContext);
+  const player = resolved.player;
+  if (!open || !player) return <>{children}</>;
+  const note = notes.get(player.playerId);
+  const numbers: LineupNumbers = {
+    valueRank: resolved.valueRank,
+    dynasty,
+    seasonRank: resolved.seasonRank,
+    ppg: resolved.ppg,
+    opponent: note?.opponent ?? null,
+    bye: note?.bye ?? false,
+    defenseRank: note?.rank ?? null,
+    opponentColor: note?.share != null ? matchupColor(note.share) : undefined,
+  };
   return (
-    <button type="button" onClick={() => open(player)} title={`${player.name}'s career`} className={`cursor-pointer text-inherit ${className}`}>
+    <button type="button" onClick={() => open(player, numbers)} title={`${player.name}'s career`} className={`cursor-pointer text-inherit ${className}`}>
       {children}
     </button>
   );
@@ -99,18 +114,6 @@ function OpponentNote({ playerId }: { playerId: string }) {
 
 /** Whether the league's a dynasty league, for what the starters' value ranks are by. */
 const DynastyContext = createContext(false);
-
-/** What the numbers on each starter's second line are, under the lineup's middle — each in its own color. */
-function LineLegend() {
-  const dynasty = useContext(DynastyContext);
-  return (
-    <p className={`flex flex-wrap justify-center gap-x-2 gap-y-0.5 font-semibold ${NOTE_TEXT}`}>
-      <span className="text-series-4">{dynasty ? "Dynasty" : "Redraft"} rank</span>
-      <span className="text-series-1">Season rank</span>
-      <span className="text-ink-muted">Points per game</span>
-    </p>
-  );
-}
 
 /** Each team's live projected total, by roster (see liveProjection) — none until the projections load. */
 const ProjectedContext = createContext<Map<number, number> | null>(null);
@@ -229,7 +232,7 @@ function RankedName({ resolved, align }: { resolved: ResolvedSlot; align: "left"
   ];
   return (
     <span className={`flex min-w-0 flex-col ${align === "right" ? "items-end" : "items-start"}`}>
-      <OpensCareer player={player!} className={`block max-w-full truncate ${ROW_TEXT} font-bold leading-tight text-ink-primary hover:underline ${align === "right" ? "text-right" : "text-left"}`}>
+      <OpensCareer resolved={resolved} className={`block max-w-full truncate ${ROW_TEXT} font-bold leading-tight text-ink-primary hover:underline ${align === "right" ? "text-right" : "text-left"}`}>
         <PlayerName name={player!.name} />
       </OpensCareer>
       {/* Kept a line tall even with nothing on it. */}
@@ -252,7 +255,7 @@ function MySlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
   }
   return (
     <div className={`grid ${MY_ROW_COLS} items-center gap-0.5 sm:gap-1`}>
-      <OpensCareer player={resolved.player}>
+      <OpensCareer resolved={resolved}>
         <SlotPhoto player={resolved.player} />
       </OpensCareer>
       <RankedName resolved={resolved} align="left" />
@@ -275,7 +278,7 @@ function TheirSlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
     <div className={`grid ${THEIR_ROW_COLS} items-center gap-0.5 sm:gap-1`}>
       <SlotPoints resolved={resolved} align="left" />
       <RankedName resolved={resolved} align="right" />
-      <OpensCareer player={resolved.player}>
+      <OpensCareer resolved={resolved}>
         <SlotPhoto player={resolved.player} />
       </OpensCareer>
     </div>
@@ -724,7 +727,7 @@ function FitRows({ className = "", style, children }: { className?: string; styl
 
 /**
  * A matchup's lineups, slot by slot: yours (or the first team's) on the left — and when it's yours, your bench under
- * them. Or (`fit`) just the starters and what their numbers are, spread down the box it's given to fill it, shrunk if
+ * them. Or (`fit`) just the starters, spread down the box it's given to fill it, shrunk if
  * they'd not fit (see FitRows) — never scrolled.
  */
 function MatchupLineup({ game, myRosterId, fit }: { game: ResolvedMatchupGame; myRosterId: number | null; fit?: { className?: string; style?: React.CSSProperties } }) {
@@ -735,7 +738,6 @@ function MatchupLineup({ game, myRosterId, fit }: { game: ResolvedMatchupGame; m
         {mine.slots.map((slot, i) => (
           <SlotRow key={i} slot={slot.slot} my={slot} their={other?.slots[i]} />
         ))}
-        <LineLegend />
       </FitRows>
     );
   }
@@ -744,7 +746,6 @@ function MatchupLineup({ game, myRosterId, fit }: { game: ResolvedMatchupGame; m
       {mine.slots.map((slot, i) => (
         <SlotRow key={i} slot={slot.slot} my={slot} their={other?.slots[i]} />
       ))}
-      <LineLegend />
       {mine.rosterId === myRosterId ? <Bench bench={mine.bench} /> : null}
     </div>
   );
@@ -1039,17 +1040,20 @@ export function MatchupProviders({
   children: React.ReactNode;
 }) {
   // The player whose career card is open.
-  const [card, setCard] = useState<ResolvedPlayer | null>(null);
+  const [card, setCard] = useState<{ player: ResolvedPlayer; numbers: LineupNumbers } | null>(null);
   return (
     <ProjectedContext.Provider value={projected}>
     <LineToneContext.Provider value={lineTones ?? EMPTY_TONES}>
     <LineNoteContext.Provider value={lineNotes ?? EMPTY_NOTES}>
     <DynastyContext.Provider value={dynasty}>
     <PositionsContext.Provider value={positions}>
-    <PlayerCardContext.Provider value={season ? setCard : null}>
+    <PlayerCardContext.Provider value={season ? (player: ResolvedPlayer, numbers: LineupNumbers) => setCard({ player, numbers }) : null}>
     <FullNamesContext.Provider value={fullNames}>
     <JerseyNumbersContext.Provider value={jerseyNumbers}>
-      {card && season ? <PlayerCareer player={card} season={Number(season)} scoring={scoring} onClose={() => setCard(null)} /> : null}
+      {/* Over the page, not inside the list it was opened from (whose reflection would copy it). */}
+      {card && season
+        ? createPortal(<PlayerCareer player={card.player} numbers={card.numbers} season={Number(season)} scoring={scoring} onClose={() => setCard(null)} />, document.body)
+        : null}
       {children}
     </JerseyNumbersContext.Provider>
     </FullNamesContext.Provider>

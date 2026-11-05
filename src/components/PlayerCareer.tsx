@@ -44,23 +44,78 @@ function Figure({ label, value, sub }: { label: string; value: string; sub?: str
   );
 }
 
+/** What a starter's numbers in a lineup are (see LeagueMatchupCarousel's RankedName), for their card to spell out. */
+export interface LineupNumbers {
+  /** Their rank at their position by trade value — dynasty values in a dynasty league, redraft otherwise. */
+  valueRank: number | null;
+  dynasty: boolean;
+  /** Their rank at their position by this season's points, and their points a game. */
+  seasonRank: number | null;
+  ppg: number | null;
+  /** Who they're playing this week (or a bye), that defense's rank against the position, and its color in the lineup. */
+  opponent: string | null;
+  bye: boolean;
+  defenseRank: number | null;
+  opponentColor?: string;
+}
+
+/** A starter's lineup numbers, each in its lineup color, with what it means. */
+function LineupLine({ position, numbers }: { position: string; numbers: LineupNumbers }) {
+  const { valueRank, dynasty, seasonRank, ppg, opponent, bye, defenseRank, opponentColor } = numbers;
+  const items: { value: string; className?: string; style?: React.CSSProperties; text: string }[] = [];
+  if (valueRank !== null)
+    items.push({ value: String(valueRank), className: "text-series-4", text: `${dynasty ? "Dynasty" : "Redraft"} rank — ${ordinal(valueRank)} among ${position}s by trade value` });
+  if (seasonRank !== null) items.push({ value: String(seasonRank), className: "text-series-1", text: `Season rank — ${ordinal(seasonRank)} among ${position}s in points this season` });
+  if (ppg !== null) items.push({ value: ppg.toFixed(1), className: "text-ink-muted", text: "Points per game this season" });
+  if (bye) items.push({ value: "BYE", className: "text-ink-muted", text: "On a bye this week" });
+  else if (opponent)
+    items.push({
+      value: defenseRank !== null ? `${opponent} (${defenseRank})` : opponent,
+      style: opponentColor ? { color: opponentColor } : undefined,
+      text:
+        defenseRank !== null
+          ? `This week's opponent — ${ordinal(defenseRank)} defense against ${position}s (1st allows the fewest points; red toughest, green easiest)`
+          : "This week's opponent",
+    });
+  if (items.length === 0) return null;
+  return (
+    <div className="flex flex-col gap-1 border border-border bg-page px-2 py-1.5">
+      <span className="text-[0.625rem] font-bold uppercase tracking-wide text-ink-muted">In this lineup</span>
+      <ul className="grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-2">
+        {items.map((item) => (
+          <li key={item.text} className="flex items-baseline gap-2 text-xs">
+            <span className={`w-16 shrink-0 text-right font-bold tabular-nums ${item.className ?? ""}`} style={item.style}>
+              {item.value}
+            </span>
+            <span className="min-w-0 text-ink-secondary">{item.text}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 /**
  * A player's career, over the page: who he is, his career's fantasy points, points a game and best finish, and a
  * table of every season — his team, games, his fantasy points under the league's scoring, a game, and where he
  * finished at his position, then the stats of his job (passing, rushing, receiving…) — newest first, the career
- * added up at the foot. Closed with its button, Escape, or a tap outside it.
+ * added up at the foot — opened from a lineup, what its numbers on them mean first (`numbers`). Closed with its button,
+ * Escape, or a tap outside it.
  */
 export function PlayerCareer({
   player,
   season,
   scoring,
   onClose,
+  numbers,
 }: {
   player: ResolvedPlayer;
   /** The season to count through — the league's. */
   season: number;
   scoring?: Record<string, number>;
   onClose: () => void;
+  /** Their numbers in the lineup it was opened from, spelled out. */
+  numbers?: LineupNumbers;
 }) {
   const [career, setCareer] = useState<CareerSeason[] | null>(null);
   const [bio, setBio] = useState<PlayerBio | null>(null);
@@ -125,6 +180,7 @@ export function PlayerCareer({
         </div>
 
         <div className="flex min-h-0 flex-col gap-3 overflow-y-auto p-3 sm:p-4">
+          {numbers ? <LineupLine position={player.position} numbers={numbers} /> : null}
           {career === null ? (
             <p className="py-8 text-center text-xs font-bold uppercase tracking-wide text-ink-muted">Loading career…</p>
           ) : rows.length === 0 ? (
