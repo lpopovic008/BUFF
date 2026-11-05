@@ -37,10 +37,11 @@ export function StreakBadge({
   const winning = streak.result === "W";
   return (
     <span
-      className={`flex shrink-0 items-center gap-0.5 font-bold tabular-nums ${sizeClass ?? (large ? "text-[0.9375rem] sm:text-lg" : "text-xs")} ${toneClass(onTag)[winning ? "good" : "bad"]}`}
+      className={`flex shrink-0 items-baseline gap-0.5 font-bold tabular-nums ${sizeClass ?? (large ? "text-[0.9375rem] sm:text-lg" : "text-xs")} ${toneClass(onTag)[winning ? "good" : "bad"]}`}
       title={`${streak.length}-game ${winning ? "winning" : "losing"} streak`}
     >
-      <svg viewBox="0 0 10 10" className={large ? "h-2.5 w-2.5 sm:h-3 sm:w-3" : "h-2 w-2"} aria-hidden>
+      {/* Sized to the text, its middle at the middle of the number's digits (the app font's stand 0.64em tall) — at any size. */}
+      <svg viewBox="0 0 10 10" className="relative bottom-[0.045em] h-[0.55em] w-[0.55em] shrink-0" aria-hidden>
         <path d={winning ? "M5 1 9.5 9h-9z" : "M5 9 .5 1h9z"} fill="currentColor" />
       </svg>
       {streak.length}
