@@ -342,12 +342,9 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
     return () => setHeaderBare(false);
   }, []);
   const slot = useHeaderSlot();
-  // A player's card comes up out of the floor in front (where the home page's Red Zone does), not over the lineups.
-  const cardStage = room
-    ? { top: room.height * HORIZON_SHARE + PANEL_GAP_PX, bottom: room.height - tabBar - PANEL_GAP_PX, className: "inset-x-2", room, onShow: setCardUp }
-    : null;
   // The bench's and the score graph's stages: on the back wall where the lineups were (they step aside), and the floor.
-  const fullStage = action === "bench" || action === "graph";
+  // A player's card too: a stage of his own (see PlayerStage).
+  const fullStage = action === "bench" || action === "graph" || cardUp;
   const stagePlaces: StagePlaces | null = room
     ? {
         wall: {
@@ -358,6 +355,17 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
         },
         floor: { top: room.height * HORIZON_SHARE + PANEL_GAP_PX, bottom: room.height - tabBar - PANEL_GAP_PX, left: PANEL_GAP_PX, width: room.width - 2 * PANEL_GAP_PX },
         room,
+      }
+    : null;
+  // A player's card: his own stage, the lineups stepping aside.
+  const cardStage = room
+    ? {
+        top: room.height * HORIZON_SHARE + PANEL_GAP_PX,
+        bottom: room.height - tabBar - PANEL_GAP_PX,
+        className: "inset-x-2",
+        room,
+        onShow: setCardUp,
+        places: stagePlaces ?? undefined,
       }
     : null;
   return (
@@ -532,7 +540,8 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
   const [contentsSlot, setContentsSlot] = useState<HTMLDivElement | null>(null);
   // The bench's and the score graph's stages: on the back wall in the middle (the lineups step aside), and the floor
   // in front of it.
-  const fullStage = action === "bench" || action === "graph";
+  // A player's card too: a stage of his own (see PlayerStage).
+  const fullStage = action === "bench" || action === "graph" || cardUp;
   const stagePlaces: StagePlaces | null =
     room && middleBox
       ? {
@@ -577,6 +586,8 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
         className: "left-[18rem] right-[18rem] 2xl:left-[19rem] 2xl:right-[19rem]",
         room,
         onShow: setCardUp,
+        places: stagePlaces ?? undefined,
+        back: true,
       }
     : null;
   return (

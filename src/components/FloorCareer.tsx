@@ -7,6 +7,7 @@ import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import { ordinal } from "@/lib/format";
 import type { ResolvedPlayer } from "@/lib/players";
 import type { LineupNumbers } from "@/components/PlayerCareer";
+import type { StagePlaces } from "@/components/LeagueRoomStages";
 
 /**
  * Where a player's card comes up out of the floor (see PlayerCareer's `stage`): between these screen y's, placed
@@ -19,6 +20,10 @@ export interface CareerStage {
   room: { width: number; height: number };
   /** Told when a card comes up, and when it's gone — so what's on the floor there can make way. */
   onShow?: (up: boolean) => void;
+  /** Where a player stage goes, wall and floor (see PlayerStage) — the card's one, the lineups stepping aside for it. */
+  places?: StagePlaces;
+  /** Its own back button too (from laptop width up, where the header has none). */
+  back?: boolean;
 }
 
 /** A season of his, as his card shows it: his team, stats, fantasy points under the league's scoring, and finish. */

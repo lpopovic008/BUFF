@@ -8,6 +8,7 @@ import { nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import { ordinal } from "@/lib/format";
 import { CareerStage, FloorCareer, FLOOR_RISE_MS } from "@/components/FloorCareer";
+import { PlayerStage } from "@/components/LeagueRoomStages";
 
 function TeamLogo({ team, side = 16 }: { team: string; side?: number }) {
   return (
@@ -312,6 +313,23 @@ export function PlayerCareer({
       </div>
   );
   // On a stage: cut off at the floor it comes up out of.
+  // In the room: a stage of his own, the lineups stepping aside (see PlayerStage).
+  if (stage?.places) {
+    return (
+      <PlayerStage
+        places={stage.places}
+        up={up}
+        onClose={close}
+        back={stage.back}
+        title="Player"
+        player={player}
+        numbers={numbers ?? null}
+        season={season}
+        scoring={scoring}
+        details={details}
+      />
+    );
+  }
   if (stage) {
     return (
       <FloorCareer

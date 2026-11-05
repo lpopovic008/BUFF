@@ -8,7 +8,7 @@ import { FloorBar, FloorBars, LineupTiles, seasonBars, SeasonLine } from "@/comp
 import { MatchupGraph, MatchupSide } from "@/components/MatchupGraph";
 import { bioLine, LineupNumbers } from "@/components/PlayerCareer";
 import { CareerWeek, getCareer, getSeasonWeeks, seasonPoints, seasonRank } from "@/lib/career-stats";
-import { getPlayerBio, PlayerBio } from "@/lib/players";
+import { getPlayerBio, PlayerBio, ResolvedPlayer } from "@/lib/players";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import type { ResolvedSlot } from "@/hooks/useLeagueMatchupCarousel";
 import type { NFLGame } from "@/lib/nfl-schedule";
@@ -50,7 +50,7 @@ export function useStageShown(open: boolean) {
 }
 
 /** A stage's title on the floor, upright across its top: what it is, what's shown, and its way out (and back). */
-function FloorTitle({ title, sub, onClose, back }: { title: string; sub?: string; onClose: () => void; back?: boolean }) {
+function FloorTitle({ title, sub, onClose, back, extra }: { title: string; sub?: string; onClose: () => void; back?: boolean; extra?: React.ReactNode }) {
   return (
     <div className="flex shrink-0 items-center gap-1 border border-ink-primary bg-page/70 px-1.5 py-1 backdrop-blur-[3px]">
       {back ? (
@@ -62,7 +62,10 @@ function FloorTitle({ title, sub, onClose, back }: { title: string; sub?: string
         {title}
         {sub ? <span className="font-semibold text-ink-secondary"> · {sub}</span> : null}
       </h2>
-      <CloseButton onClose={onClose} label={`Close ${title.toLowerCase()}`} />
+      {extra}
+      <span className={extra ? "flex" : "ml-auto flex"}>
+        <CloseButton onClose={onClose} label={`Close ${title.toLowerCase()}`} />
+      </span>
     </div>
   );
 }
@@ -183,72 +186,73 @@ function weekBars(weeks: CareerWeek[], scoring?: Record<string, number>): FloorB
 }
 
 /**
- * Your bench as a stage: on the back wall, your bench players to pick from, and the one picked — who he is (every bit
- * of his bio), his numbers in the lineup, and the seasons he's played, to pick from. On the floor in front, his
- * career as bars standing on it (see FloorBars), a season's each; a season picked (on the wall, or its bar), that
- * season's weeks instead, a bar each.
+ * A player as a stage: on the back wall (under `picker`, if there is one), who he is — every bit of his bio — his
+ * numbers in the lineup, and the seasons he's played to pick from (his latest, at first, or his whole career). On the
+ * floor in front, the season picked as bars standing on it, a week's each (see FloorBars) — or his career, a season's
+ * each (a season's bar picks that season). With `details`, a Table button swaps the bars for every number there is.
  */
-export function RoomBench({
+export function PlayerStage({
   places,
   up,
   onClose,
   back,
-  bench,
-  numbersOf,
+  title,
+  player,
+  numbers,
   season,
   scoring,
+  picker,
+  details,
 }: {
   places: StagePlaces;
   up: boolean;
   onClose: () => void;
   back?: boolean;
-  bench: ResolvedSlot[];
-  numbersOf: (resolved: ResolvedSlot) => LineupNumbers;
+  /** What the stage is called, on the floor ("Bench", "Player"). */
+  title: string;
+  player: ResolvedPlayer;
+  numbers: LineupNumbers | null;
   /** The league's season, counted through. */
   season: number;
   scoring?: Record<string, number>;
+  picker?: React.ReactNode;
+  details?: React.ReactNode;
 }) {
-  const players = bench.filter((b) => b.player);
-  const [pickedId, setPickedId] = useState<string | null>(null);
-  const slot = players.find((b) => b.player!.playerId === pickedId) ?? players[0];
-  const player = slot?.player ?? null;
-
   // His bio and his seasons, as they load.
-  const [bio, setBio] = useState<{ id: string; bio: PlayerBio | null } | null>(null);
-  const [career, setCareer] = useState<{ id: string; seasons: SeasonLine[] } | null>(null);
+  const [bio, setBio] = useState<PlayerBio | null>(null);
+  const [seasons, setSeasons] = useState<SeasonLine[] | null>(null);
   useEffect(() => {
-    if (!player) return;
     let cancelled = false;
-    const id = player.playerId;
-    getPlayerBio(id).then((b) => !cancelled && setBio({ id, bio: b }));
-    getCareer(id, season)
-      .then((c) => !cancelled && setCareer({ id, seasons: c.map((s) => ({ ...s, points: seasonPoints(s.stats, scoring), rank: seasonRank(s.stats, scoring) })) }))
-      .catch(() => !cancelled && setCareer({ id, seasons: [] }));
+    getPlayerBio(player.playerId).then((b) => !cancelled && setBio(b));
+    getCareer(player.playerId, season)
+      .then((c) => !cancelled && setSeasons(c.map((s) => ({ ...s, points: seasonPoints(s.stats, scoring), rank: seasonRank(s.stats, scoring) }))))
+      .catch(() => !cancelled && setSeasons([]));
     return () => {
       cancelled = true;
     };
-  }, [player, season, scoring]);
-  const seasons = career && player && career.id === player.playerId ? career.seasons : null;
+  }, [player.playerId, season, scoring]);
 
-  // The season looked into (none: his career), and its weeks as they load.
-  const [into, setInto] = useState<{ id: string; season: string } | null>(null);
-  const openSeason = player && into?.id === player.playerId ? into.season : null;
-  const [weeks, setWeeks] = useState<{ key: string; weeks: CareerWeek[] } | null>(null);
+  // The season looked into — his latest until another's picked — or his career; and that season's weeks as they load.
+  const [chosen, setChosen] = useState<string | null>(null);
+  const latest = seasons?.at(-1)?.season ?? null;
+  const shown = chosen ?? latest;
+  const openSeason = shown === "career" ? null : shown;
+  const [weeks, setWeeks] = useState<{ season: string; weeks: CareerWeek[] } | null>(null);
   useEffect(() => {
-    if (!player || !openSeason) return;
+    if (!openSeason) return;
     let cancelled = false;
-    const key = `${player.playerId}-${openSeason}`;
-    getSeasonWeeks(player.playerId, Number(openSeason)).then((w) => !cancelled && setWeeks({ key, weeks: w }));
+    getSeasonWeeks(player.playerId, Number(openSeason)).then((w) => !cancelled && setWeeks({ season: openSeason, weeks: w }));
     return () => {
       cancelled = true;
     };
-  }, [player, openSeason]);
-  const seasonWeeks = player && openSeason && weeks?.key === `${player.playerId}-${openSeason}` ? weeks.weeks : null;
+  }, [player.playerId, openSeason]);
+  const seasonWeeks = openSeason && weeks?.season === openSeason ? weeks.weeks : null;
+  const [table, setTable] = useState(false);
 
   // The bar read out: the last, until another's picked — in whatever's shown.
   const [pickedBar, setPickedBar] = useState<{ view: string; i: number } | null>(null);
-  const view = `${player?.playerId}-${openSeason ?? "career"}`;
-  const bars = openSeason ? (seasonWeeks ? weekBars(seasonWeeks, scoring) : null) : seasons && player ? seasonBars(seasons, player.position) : null;
+  const view = shown ?? "loading";
+  const bars = seasons === null ? null : openSeason ? (seasonWeeks ? weekBars(seasonWeeks, scoring) : null) : seasonBars(seasons, player.position);
   const pick = pickedBar?.view === view && bars && pickedBar.i < bars.length ? pickedBar.i : (bars?.length ?? 0) - 1;
   const readout = (() => {
     if (!bars) return "Loading…";
@@ -261,18 +265,18 @@ export function RoomBench({
     const s = seasons![pick];
     return `${s.season}${s.team ? ` · ${s.team}` : ""} · ${Math.round(s.stats.gp ?? 0)} GP · ${s.points.toFixed(1)} pts · ${
       s.stats.gp ? (s.points / s.stats.gp).toFixed(1) : "–"
-    } a game${s.rank ? ` · ${player!.position}${s.rank}` : ""}`;
+    } a game${s.rank ? ` · ${player.position}${s.rank}` : ""}`;
   })();
 
   const [barsEl, setBarsEl] = useState<HTMLDivElement | null>(null);
   const box = useScreenBox(barsEl);
   const { floor, room } = places;
-  const seasonButton = (key: string, label: string, on: boolean, onPick: () => void, title?: string) => (
+  const seasonButton = (key: string, label: string, on: boolean, onPick: () => void, buttonTitle?: string) => (
     <button
       key={key}
       type="button"
       aria-pressed={on}
-      title={title}
+      title={buttonTitle}
       onClick={onPick}
       className={`shrink-0 border px-2 py-1 text-[0.6875rem] font-bold tabular-nums transition-colors ${
         on ? "border-ink-primary bg-ink-primary text-page" : "border-border bg-page/60 text-ink-secondary hover:text-ink-primary"
@@ -284,102 +288,139 @@ export function RoomBench({
 
   return (
     <>
-      {/* The bench and the one picked, on the back wall. */}
+      {/* Who he is and his seasons, on the back wall. */}
       <div
         data-floor-ui
         className={`fixed z-[6] flex flex-col gap-2 overflow-y-auto transition-[opacity,transform] ease-out [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${up ? "opacity-100" : "translate-y-2 opacity-0"}`}
         style={{ ...places.wall, transitionDuration: `${STAGE_MS}ms` }}
       >
-        {players.length === 0 ? (
-          <p className="text-sm text-ink-secondary">No one&rsquo;s on your bench.</p>
+        {picker}
+        <section aria-label={player.name} className="flex flex-col gap-2">
+          <div className="flex items-center gap-2.5">
+            <PlayerHeadshot playerId={player.playerId} sizeClass="h-12 w-12" square />
+            <div className="min-w-0 leading-tight">
+              <h3 className="truncate text-lg font-extrabold uppercase tracking-wide text-ink-primary sm:text-xl">{player.name}</h3>
+              <p className="text-[0.6875rem] font-semibold uppercase text-ink-secondary">{bioLine(player, bio)}</p>
+            </div>
+          </div>
+          {numbers ? <LineupTiles position={player.position} numbers={numbers} /> : null}
+          <div className="flex flex-col gap-1">
+            <span className="text-[0.625rem] font-bold uppercase tracking-wide text-ink-muted">Seasons played</span>
+            <div className="flex flex-wrap gap-1">
+              {seasons === null ? (
+                <span className="text-xs text-ink-muted">Loading…</span>
+              ) : seasons.length === 0 ? (
+                <span className="text-xs text-ink-muted">None yet</span>
+              ) : (
+                <>
+                  {seasonButton("career", "Career", shown === "career", () => setChosen("career"), "Every season he's played")}
+                  {[...seasons].reverse().map((s) => seasonButton(s.season, s.season, shown === s.season, () => setChosen(s.season), `His ${s.season} week by week`))}
+                </>
+              )}
+            </div>
+          </div>
+        </section>
+      </div>
+      {/* The season picked (or his career) standing on the floor. */}
+      <div
+        data-floor-ui
+        className={`fixed z-[7] flex flex-col gap-1 transition-opacity ease-out ${up ? "opacity-100" : "pointer-events-none opacity-0"}`}
+        style={{ top: floor.top, left: floor.left, width: floor.width, height: Math.max(0, floor.bottom - floor.top), transitionDuration: `${STAGE_MS}ms` }}
+      >
+        <FloorTitle
+          title={title}
+          sub={`${player.name} · ${table ? "Table" : openSeason ?? "Career"}`}
+          onClose={onClose}
+          back={back}
+          extra={
+            details ? (
+              <button
+                type="button"
+                onClick={() => setTable((t) => !t)}
+                aria-pressed={table}
+                className="ml-auto shrink-0 border border-ink-primary px-2 py-1 text-[0.625rem] font-bold uppercase tracking-wide text-ink-primary transition-colors hover:bg-ink-primary hover:text-page"
+              >
+                {table ? "Floor" : "Table"}
+              </button>
+            ) : null
+          }
+        />
+        {table && details ? (
+          <div className="min-h-0 flex-1 overflow-y-auto border border-border bg-surface-raised/90 backdrop-blur-[3px]">{details}</div>
         ) : (
           <>
-            <ul className="flex flex-wrap gap-1" aria-label="Your bench">
-              {players.map((b) => {
-                const p = b.player!;
-                const on = p.playerId === player?.playerId;
-                return (
-                  <li key={p.playerId}>
-                    <button
-                      type="button"
-                      aria-pressed={on}
-                      onClick={() => setPickedId(p.playerId)}
-                      className={`flex items-baseline gap-1 border px-1.5 py-1 text-[0.6875rem] font-bold transition-colors ${
-                        on ? "border-ink-primary bg-ink-primary text-page" : "border-border bg-page/60 text-ink-primary hover:border-ink-primary"
-                      }`}
-                    >
-                      <span className={on ? "" : (POSITION_TEXT_COLOR[p.position] ?? "text-ink-secondary")}>{p.position}</span>
-                      <span className="max-w-[9rem] truncate">{p.name}</span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-            {player ? (
-              <section aria-label={player.name} className="flex flex-col gap-2">
-                {/* Who he is. */}
-                <div className="flex items-center gap-2.5">
-                  <PlayerHeadshot playerId={player.playerId} sizeClass="h-12 w-12" square />
-                  <div className="min-w-0 leading-tight">
-                    <h3 className="truncate text-lg font-extrabold uppercase tracking-wide text-ink-primary sm:text-xl">{player.name}</h3>
-                    <p className="text-[0.6875rem] font-semibold uppercase text-ink-secondary">{bioLine(player, bio?.id === player.playerId ? bio.bio : null)}</p>
-                  </div>
-                </div>
-                {slot ? <LineupTiles position={player.position} numbers={numbersOf(slot)} /> : null}
-                {/* The seasons he's played, to look into — or his whole career. */}
-                <div className="flex flex-col gap-1">
-                  <span className="text-[0.625rem] font-bold uppercase tracking-wide text-ink-muted">Seasons played</span>
-                  <div className="flex flex-wrap gap-1">
-                    {seasons === null ? (
-                      <span className="text-xs text-ink-muted">Loading…</span>
-                    ) : seasons.length === 0 ? (
-                      <span className="text-xs text-ink-muted">None yet</span>
-                    ) : (
-                      <>
-                        {seasonButton("career", "Career", !openSeason, () => setInto(null), "Every season he's played")}
-                        {[...seasons].reverse().map((s) => seasonButton(s.season, s.season, openSeason === s.season, () => setInto({ id: player.playerId, season: s.season }), `His ${s.season} week by week`))}
-                      </>
-                    )}
-                  </div>
-                </div>
-              </section>
-            ) : null}
+            <p aria-live="polite" className="truncate text-center text-[0.6875rem] font-semibold tabular-nums text-ink-secondary">
+              {readout}
+            </p>
+            <div ref={setBarsEl} className="relative min-h-0 flex-1">
+              {box && bars && bars.length > 0 ? (
+                <FloorBars
+                  key={view}
+                  bars={bars}
+                  label={openSeason ? `${player.name}'s ${openSeason}, week by week` : `${player.name}'s fantasy points by season`}
+                  room={room}
+                  box={box}
+                  reserve={0}
+                  picked={pick}
+                  slotMin={openSeason ? 18 : 30}
+                  most={openSeason ? 18 : 12}
+                  onPick={(i) => {
+                    setPickedBar({ view, i });
+                    // A season's bar looks into that season.
+                    if (!openSeason && seasons?.[i]) setChosen(seasons[i].season);
+                  }}
+                />
+              ) : null}
+            </div>
           </>
         )}
       </div>
-      {/* His career, or a season's weeks, standing on the floor. */}
-      {player ? (
-        <div
-          data-floor-ui
-          className={`fixed z-[7] flex flex-col gap-1 transition-opacity ease-out ${up ? "opacity-100" : "pointer-events-none opacity-0"}`}
-          style={{ top: floor.top, left: floor.left, width: floor.width, height: Math.max(0, floor.bottom - floor.top), transitionDuration: `${STAGE_MS}ms` }}
-        >
-          <FloorTitle title="Bench" sub={`${player.name} · ${openSeason ?? "Career"}`} onClose={onClose} back={back} />
-          <p aria-live="polite" className="truncate text-center text-[0.6875rem] font-semibold tabular-nums text-ink-secondary">
-            {readout}
-          </p>
-          <div ref={setBarsEl} className="relative min-h-0 flex-1">
-            {box && bars && bars.length > 0 ? (
-              <FloorBars
-                key={view}
-                bars={bars}
-                label={openSeason ? `${player.name}'s ${openSeason}, week by week` : `${player.name}'s fantasy points by season`}
-                room={room}
-                box={box}
-                reserve={0}
-                picked={pick}
-                slotMin={openSeason ? 18 : 30}
-                most={openSeason ? 18 : 12}
-                onPick={(i) => {
-                  setPickedBar({ view, i });
-                  // A season's bar looks into that season.
-                  if (!openSeason && seasons?.[i]) setInto({ id: player.playerId, season: seasons[i].season });
-                }}
-              />
-            ) : null}
-          </div>
-        </div>
-      ) : null}
     </>
   );
+}
+
+/** Your bench as a stage: your bench players to pick from across the top of the wall, the one picked a PlayerStage. */
+export function RoomBench({
+  bench,
+  numbersOf,
+  ...stage
+}: Omit<React.ComponentProps<typeof PlayerStage>, "title" | "player" | "numbers" | "picker" | "details"> & {
+  bench: ResolvedSlot[];
+  numbersOf: (resolved: ResolvedSlot) => LineupNumbers;
+}) {
+  const players = bench.filter((b) => b.player);
+  const [pickedId, setPickedId] = useState<string | null>(null);
+  const slot = players.find((b) => b.player!.playerId === pickedId) ?? players[0];
+  if (!slot) {
+    return (
+      <div data-floor-ui className="fixed z-[7] flex items-center gap-2 text-sm text-ink-secondary" style={{ top: stage.places.floor.top, left: stage.places.floor.left, width: stage.places.floor.width }}>
+        <span className="min-w-0 flex-1">No one&rsquo;s on your bench.</span>
+        <CloseButton onClose={stage.onClose} />
+      </div>
+    );
+  }
+  const picker = (
+    <ul className="flex flex-wrap gap-1" aria-label="Your bench">
+      {players.map((b) => {
+        const p = b.player!;
+        const on = p.playerId === slot.player!.playerId;
+        return (
+          <li key={p.playerId}>
+            <button
+              type="button"
+              aria-pressed={on}
+              onClick={() => setPickedId(p.playerId)}
+              className={`flex items-baseline gap-1 border px-1.5 py-1 text-[0.6875rem] font-bold transition-colors ${
+                on ? "border-ink-primary bg-ink-primary text-page" : "border-border bg-page/60 text-ink-primary hover:border-ink-primary"
+              }`}
+            >
+              <span className={on ? "" : (POSITION_TEXT_COLOR[p.position] ?? "text-ink-secondary")}>{p.position}</span>
+              <span className="max-w-[9rem] truncate">{p.name}</span>
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+  );
+  return <PlayerStage key={slot.player!.playerId} {...stage} title="Bench" player={slot.player!} numbers={numbersOf(slot)} picker={picker} />;
 }
