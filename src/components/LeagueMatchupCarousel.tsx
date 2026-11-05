@@ -48,23 +48,31 @@ export const CareerStageContext = createContext<CareerStage | null>(null);
 const PlayerCardContext = createContext<((player: ResolvedPlayer, numbers: LineupNumbers) => void) | null>(null);
 
 /** A starter's photo or name, opening their career card when tapped — what their numbers in the lineup mean first. */
-function OpensCareer({ resolved, className = "", children }: { resolved: ResolvedSlot; className?: string; children: React.ReactNode }) {
-  const open = useContext(PlayerCardContext);
+/** What a player's numbers in the lineup are (see PlayerCareer's LineupNumbers) — from inside MatchupProviders. */
+export function useLineupNumbers(): (resolved: ResolvedSlot) => LineupNumbers {
   const notes = useContext(LineNoteContext);
   const dynasty = useContext(DynastyContext);
+  return (resolved) => {
+    const note = resolved.player ? notes.get(resolved.player.playerId) : undefined;
+    return {
+      valueRank: resolved.valueRank,
+      dynasty,
+      seasonRank: resolved.seasonRank,
+      ppg: resolved.ppg,
+      opponent: note?.opponent ?? null,
+      bye: note?.bye ?? false,
+      defenseRank: note?.rank ?? null,
+      opponentColor: note?.share != null ? matchupColor(note.share) : undefined,
+    };
+  };
+}
+
+function OpensCareer({ resolved, className = "", children }: { resolved: ResolvedSlot; className?: string; children: React.ReactNode }) {
+  const open = useContext(PlayerCardContext);
+  const numbersOf = useLineupNumbers();
   const player = resolved.player;
   if (!open || !player) return <>{children}</>;
-  const note = notes.get(player.playerId);
-  const numbers: LineupNumbers = {
-    valueRank: resolved.valueRank,
-    dynasty,
-    seasonRank: resolved.seasonRank,
-    ppg: resolved.ppg,
-    opponent: note?.opponent ?? null,
-    bye: note?.bye ?? false,
-    defenseRank: note?.rank ?? null,
-    opponentColor: note?.share != null ? matchupColor(note.share) : undefined,
-  };
+  const numbers = numbersOf(resolved);
   return (
     <button type="button" onClick={() => open(player, numbers)} title={`${player.name}'s career`} className={`cursor-pointer text-inherit ${className}`}>
       {children}

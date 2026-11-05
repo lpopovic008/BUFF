@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { floorPoint, floorScale, floorY, GRID_PX, HORIZON_SHARE } from "@/lib/grid-room";
+import { floorDepth, floorPoint, floorScale, floorY, GRID_PX, HORIZON_SHARE } from "@/lib/grid-room";
 import { ChevronLeftIcon } from "@/components/ui/Icon";
 
 /** What the League Room's floor offers, each a button lying on a square of its grid. */
@@ -165,6 +165,137 @@ export function FloorButtons({
   );
 }
 
+/** A panel's ×, at the right of its title row. */
+export function CloseButton({ onClose, label = "Close" }: { onClose: () => void; label?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClose}
+      aria-label={label}
+      title={label}
+      className="ml-auto flex h-7 w-7 shrink-0 items-center justify-center border border-ink-primary text-base font-bold leading-none text-ink-primary transition-transform active:scale-90"
+    >
+      ×
+    </button>
+  );
+}
+
+/** A tile on the floor (see FloorTiles): what it says, what it's for, whether it's lit. */
+export interface FloorTile {
+  key: string;
+  label: string;
+  /** Read out for it, when its label's short. */
+  title?: string;
+  on?: boolean;
+  disabled?: boolean;
+  onPick: () => void;
+}
+
+/**
+ * Buttons lying on the room's floor in its perspective, in rows (`rows`, nearest last) down from screen y `top` (no
+ * further than `bottom`), each about a finger's height on the screen: each row's tiles side by side across what of
+ * the floor shows (in from the screen's sides, and within `left`..`right`), each a quad of the floor with its label
+ * upright on it — lit when it's on.
+ */
+export function FloorTiles({
+  rows,
+  room,
+  top,
+  bottom,
+  left = 0,
+  right,
+  label,
+}: {
+  rows: FloorTile[][];
+  room: { width: number; height: number };
+  top: number;
+  bottom: number;
+  left?: number;
+  right?: number;
+  label: string;
+}) {
+  const { width: W, height: H } = room;
+  const r = right ?? W;
+  const rowsShown = rows.filter((row) => row.length > 0);
+  if (rowsShown.length === 0 || bottom <= top) return null;
+  // Rows from the top down, each about a finger's height on the screen (no taller than shares the room), a gap between.
+  const ROW_GAP = 6;
+  const rowH = Math.min(TILE_ROW_PX, (bottom - top - ROW_GAP * (rowsShown.length - 1)) / rowsShown.length);
+  const GAP = 3;
+  return (
+    <svg className="pointer-events-none fixed inset-0 z-[7] h-full w-full" role="group" aria-label={label}>
+      {rowsShown.map((row, ri) => {
+        const y0 = top + ri * (rowH + ROW_GAP);
+        const a = floorDepthAt(y0, H);
+        const b = floorDepthAt(y0 + rowH, H);
+        const mid = (a + b) / 2;
+        // What of the floor shows across at the row's near edge (where it's widest): within the screen's sides and
+        // left..right.
+        const s = floorScale(b);
+        const from = Math.max((left + SIDE_MARGIN - W / 2) / s, -(W / 2 - SIDE_MARGIN) / s);
+        const to = Math.min((r - SIDE_MARGIN - W / 2) / s, (W / 2 - SIDE_MARGIN) / s);
+        const each = (to - from) / row.length;
+        return row.map((tile, i) => {
+          const t0 = from + each * i + GAP;
+          const t1 = from + each * (i + 1) - GAP;
+          const corners = [floorPoint(t0, a, W, H), floorPoint(t1, a, W, H), floorPoint(t1, b, W, H), floorPoint(t0, b, W, H)];
+          const d = corners.map(([x, y], j) => `${j ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`).join("") + "Z";
+          const [cx, cy] = floorPoint((t0 + t1) / 2, mid, W, H);
+          const height = corners[2][1] - corners[0][1];
+          const size = Math.max(10, Math.min(15, height * 0.42));
+          return (
+            <g
+              key={tile.key}
+              role="button"
+              tabIndex={tile.disabled ? -1 : 0}
+              aria-label={tile.title ?? tile.label}
+              aria-pressed={tile.on}
+              aria-disabled={tile.disabled || undefined}
+              className={`group outline-none ${tile.disabled ? "opacity-35" : "pointer-events-auto cursor-pointer"}`}
+              onClick={() => !tile.disabled && tile.onPick()}
+              onKeyDown={(e) => {
+                if ((e.key === "Enter" || e.key === " ") && !tile.disabled) {
+                  e.preventDefault();
+                  tile.onPick();
+                }
+              }}
+            >
+              <title>{tile.title ?? tile.label}</title>
+              <path
+                d={d}
+                fill={tile.on ? "var(--ink-primary)" : "var(--page)"}
+                fillOpacity={tile.on ? 1 : 0.55}
+                stroke="var(--ink-primary)"
+                strokeOpacity={tile.on ? 1 : 0.6}
+                strokeWidth={1.25}
+                className="transition-[fill-opacity] group-hover:[fill-opacity:0.85] group-focus-visible:[stroke-width:2.5]"
+              />
+              <text
+                x={cx}
+                y={cy}
+                dy="0.35em"
+                textAnchor="middle"
+                className={`font-bold uppercase tabular-nums ${tile.on ? "fill-[var(--page)]" : "fill-[var(--ink-primary)]"}`}
+                style={{ fontSize: size, letterSpacing: "0.04em" }}
+              >
+                {tile.label}
+              </text>
+            </g>
+          );
+        });
+      })}
+    </svg>
+  );
+}
+
+/** How tall a row of floor tiles is on the screen, at most (px). */
+const TILE_ROW_PX = 48;
+
+/** How far back on the floor (floor px from the hinge) screen y `y` is. */
+function floorDepthAt(y: number, height: number): number {
+  return floorDepth(Math.max(y, height * HORIZON_SHARE + 1), height, HORIZON_SHARE);
+}
+
 /** How long a panel takes to come up out of the floor, or go back down into it (ms). */
 const RISE_MS = 450;
 
@@ -181,6 +312,7 @@ export function FrontPanel({
   bottom,
   className = "",
   back,
+  onClose,
   children,
 }: {
   open: boolean;
@@ -189,6 +321,8 @@ export function FrontPanel({
   bottom: number;
   className?: string;
   back?: () => void;
+  /** Its × in the top right. */
+  onClose?: () => void;
   children: React.ReactNode;
 }) {
   // Up (or on its way), and drawn at all: kept drawn while it sinks.
@@ -224,6 +358,7 @@ export function FrontPanel({
             </button>
           ) : null}
           {title}
+          {onClose ? <CloseButton onClose={onClose} label={`Close ${title}`} /> : null}
         </h2>
         <div className="min-h-0 flex-1">{children}</div>
       </section>

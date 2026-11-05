@@ -64,11 +64,20 @@ export function MatchupGraph({
   theirs,
   weekGames,
   scoring,
+  focus = null,
+  onBlocks,
+  stepRef,
 }: {
   mine: MatchupSide;
   theirs: MatchupSide | null;
   weekGames: NFLGame[];
   scoring?: Record<string, number>;
+  /** Just this stretch of the week (a kickoff block), spread across the graph — its plays marked, clock times under it. */
+  focus?: Span | null;
+  /** Told the week's kickoff blocks, as they're worked out: when each begins and ends, and its name ("Sun 1:00"). */
+  onBlocks?: (blocks: (Span & { label: string })[]) => void;
+  /** Given a way to step the cursor a play back (-1) or on (1) — within `focus`, when there is one. */
+  stepRef?: React.MutableRefObject<((by: -1 | 1) => void) | null>;
 }) {
   const sides = useMemo(() => (theirs ? [mine, theirs] : [mine]), [mine, theirs]);
   // Every starter's game, and the games to follow plays in.
@@ -148,13 +157,20 @@ export function MatchupGraph({
   // The lines run to now while games are on, to the last game's end once they're all over.
   const lineEnd = start === null || end === null || !started ? null : over ? end : Math.min(end, Math.max(start, now ?? start, ...model.lines.flatMap((l) => l.steps.map((s) => s.at))));
 
+  // What's shown along the graph: the week's windows — or just the focused stretch of them.
+  const shown = useMemo(
+    () => (focus ? windows.map((w) => ({ from: Math.max(w.from, focus.from), to: Math.min(w.to, focus.to) })).filter((w) => w.to > w.from) : windows),
+    [windows, focus]
+  );
+  const domainFrom = shown[0]?.from ?? start;
+  const domainTo = shown[shown.length - 1]?.to ?? end;
   const plotW = size && start !== null && end !== null ? Math.max(0, size.width - PAD.left - PAD.right) : null;
-  const playing = windows.reduce((sum, w) => sum + (w.to - w.from), 0);
+  const playing = shown.reduce((sum, w) => sum + (w.to - w.from), 0);
   const perMs = plotW !== null && playing > 0 ? plotW / playing : 0;
   // Along the screen: the game windows back to back, the time between them cut out.
   const x = (at: number) => {
     let px = PAD.left;
-    for (const w of windows) {
+    for (const w of shown) {
       if (at <= w.to) return px + Math.max(0, at - w.from) * perMs;
       px += (w.to - w.from) * perMs;
     }
@@ -162,32 +178,46 @@ export function MatchupGraph({
   };
   const timeAt = (px: number) => {
     let left = PAD.left;
-    for (let i = 0; i < windows.length; i++) {
-      const w = windows[i];
+    for (let i = 0; i < shown.length; i++) {
+      const w = shown[i];
       const width = (w.to - w.from) * perMs;
-      if (px <= left + width || i === windows.length - 1) return Math.min(w.to, w.from + Math.max(0, px - left) / (perMs || 1));
+      if (px <= left + width || i === shown.length - 1) return Math.min(w.to, w.from + Math.max(0, px - left) / (perMs || 1));
       left += width;
     }
-    return start ?? 0;
+    return domainFrom ?? 0;
   };
 
   const myLine = useMemo(() => model.lines[0]?.steps ?? [], [model]);
   const theirLine = useMemo(() => model.lines[1]?.steps ?? [], [model]);
   const finals = [mine.points, theirs?.points ?? 0];
   const paceEnds = model.lines.map((l) => l.paces.reduce((sum, p) => sum + p.projected, 0));
-  const values = [0, ...myLine.map((s) => s.total), ...theirLine.map((s) => s.total), ...finals, ...paceEnds];
-  const step = niceStep(Math.max(10, Math.max(...values) - Math.min(...values)));
+  const totalAt = (steps: TeamStep[], t: number) => {
+    let v = 0;
+    for (const st of steps) if (st.at <= t) v = st.total;
+    return v;
+  };
+  // Focused: just what the lines and paces go through in that stretch.
+  const values =
+    focus && domainFrom !== null && domainTo !== null
+      ? [
+          ...[myLine, theirLine].flatMap((steps) => [totalAt(steps, domainFrom), ...steps.filter((st) => st.at >= domainFrom && st.at <= domainTo).map((st) => st.total)]),
+          ...model.lines.flatMap((l) => (l.paces.length ? [teamPace(l.paces, domainFrom), teamPace(l.paces, domainTo)] : [])),
+        ]
+      : [0, ...myLine.map((s) => s.total), ...theirLine.map((s) => s.total), ...finals, ...paceEnds];
+  const step = niceStep(Math.max(focus ? 5 : 10, Math.max(...values) - Math.min(...values)));
   const lo = Math.floor(Math.min(...values) / step) * step;
-  const hi = Math.max(lo + step, Math.ceil(Math.max(...values, 10) / step) * step);
+  const hi = Math.max(lo + step, Math.ceil(Math.max(...values, focus ? lo + step : 10) / step) * step);
   const y = (v: number) => PAD.top + (plot ? (1 - (v - lo) / (hi - lo)) * plot.h : 0);
   const yTicks: number[] = [];
   for (let v = lo; v <= hi + 1e-9; v += step) yTicks.push(Math.round(v * 100) / 100);
 
   const linePath = (steps: TeamStep[]) => {
-    if (!plot || lineEnd === null || start === null) return "";
-    let d = `M${x(start)},${y(0)}`;
-    for (const s of steps) if (s.at <= lineEnd) d += ` H${x(s.at)} V${y(s.total)}`;
-    return `${d} H${x(lineEnd)}`;
+    if (!plot || lineEnd === null || start === null || domainFrom === null || domainTo === null) return "";
+    const until = Math.min(lineEnd, domainTo);
+    if (until < domainFrom) return "";
+    let d = `M${x(domainFrom)},${y(totalAt(steps, domainFrom))}`;
+    for (const s of steps) if (s.at > domainFrom && s.at <= until) d += ` H${x(s.at)} V${y(s.total)}`;
+    return `${d} H${x(until)}`;
   };
   // A pace line, through every starter's kickoff and finish.
   const pacePath = (paces: StarterPace[]) => {
@@ -219,20 +249,41 @@ export function MatchupGraph({
     const starts = [...new Set([...windows.map((w) => w.from), ...model.blockStarts])].filter((t) => t >= start && t < end).sort((p, q) => p - q);
     return starts.map((from, i) => ({ from, to: starts[i + 1] ?? end }));
   })();
+  // The blocks, told to whoever asked (each named by its first kickoff), once they change.
+  const blockKey = bands.map((b) => `${b.from}-${b.to}`).join(",");
+  const onBlocksLatest = useRef(onBlocks);
+  useEffect(() => {
+    onBlocksLatest.current = onBlocks;
+  });
+  useEffect(() => {
+    if (!blockKey) return;
+    onBlocksLatest.current?.(blockKey.split(",").map((k) => {
+      const [from, to] = k.split("-").map(Number);
+      return { from, to, label: `${new Date(from).toLocaleDateString("en-US", { weekday: "short" })} ${clock(from)}` };
+    }));
+  }, [blockKey]);
   type Mark = { at: number; day: string; time: string; anchor: "start" | "middle" | "end" };
   const weekday = (at: number) => new Date(at).toLocaleDateString("en-US", { weekday: "short" });
-  const allMarks: Mark[] = [
-    ...bands.map((b, i): Mark => ({ at: b.from, day: weekday(b.from), time: clock(b.from), anchor: i === 0 ? "start" : "middle" })),
-  ];
+  // Focused: the clock every quarter or half hour along it instead.
+  const ticks = (() => {
+    if (!focus || domainFrom === null || domainTo === null) return [];
+    const every = domainTo - domainFrom > 3 * 3_600_000 ? 30 * 60_000 : 15 * 60_000;
+    const out: number[] = [];
+    for (let t = Math.ceil(domainFrom / every) * every; t <= domainTo; t += every) if (shown.some((w) => t >= w.from && t <= w.to)) out.push(t);
+    return out;
+  })();
+  const allMarks: Mark[] = focus
+    ? ticks.map((t, i): Mark => ({ at: t, day: weekday(t), time: clock(t), anchor: i === 0 && x(t) - PAD.left < 12 ? "start" : "middle" }))
+    : bands.map((b, i): Mark => ({ at: b.from, day: weekday(b.from), time: clock(b.from), anchor: i === 0 ? "start" : "middle" }));
   // Each label's reach along the axis — about 5.6px a character — one line ("Sun 1:00") or two (the day over the time).
   const reach = (m: Mark, stacked: boolean) => {
-    const w = (stacked ? Math.max(m.day.length, m.time.length) : m.day.length + 1 + m.time.length) * 5.6;
+    const w = (focus ? m.time.length : stacked ? Math.max(m.day.length, m.time.length) : m.day.length + 1 + m.time.length) * 5.6;
     const at = x(m.at);
     return m.anchor === "start" ? [at, at + w] : m.anchor === "end" ? [at - w, at] : [at - w / 2, at + w / 2];
   };
   const collides = (marks: Mark[], stacked: boolean) => marks.some((m, i) => i > 0 && reach(m, stacked)[0] - reach(marks[i - 1], stacked)[1] < 6);
   // Any two crowding each other on one line: every label goes to two, the day over the time.
-  const stacked = plotW !== null && collides(allMarks, false);
+  const stacked = !focus && plotW !== null && collides(allMarks, false);
   // Still crowded on two lines: the later one gives way.
   const marks: Mark[] = [];
   if (plotW !== null) {
@@ -248,8 +299,11 @@ export function MatchupGraph({
 
   // Every scoring moment, both teams', in order — for the cursor and the arrow keys.
   const events = useMemo(
-    () => [...myLine.map((s) => ({ ...s, mine: true })), ...theirLine.map((s) => ({ ...s, mine: false }))].sort((a, b) => a.at - b.at),
-    [myLine, theirLine]
+    () =>
+      [...myLine.map((s) => ({ ...s, mine: true })), ...theirLine.map((s) => ({ ...s, mine: false }))]
+        .filter((e) => !focus || (e.at >= focus.from && e.at <= focus.to))
+        .sort((a, b) => a.at - b.at),
+    [myLine, theirLine, focus]
   );
   // Before any drag, the latest play — not a starter's unaccounted-for remainder.
   const latestPlay = [...events].reverse().find((e) => !e.playId.endsWith(":rest")) ?? events[events.length - 1] ?? null;
@@ -259,26 +313,42 @@ export function MatchupGraph({
       : ((cursor.playId ? events.find((e) => `${e.mine}-${e.playId}` === cursor.playId) : undefined) ??
         [...events].reverse().find((e) => e.at <= cursor.at) ??
         null);
+  // A play back or on from the one shown.
+  const stepBy = (by: -1 | 1) => {
+    if (events.length === 0) return;
+    const i = shownEvent ? events.indexOf(shownEvent) : -1;
+    const onEvent = cursor === null || (shownEvent !== null && (cursor.playId === `${shownEvent.mine}-${shownEvent.playId}` || cursor.at === shownEvent.at));
+    const next =
+      by < 0
+        ? i < 0
+          ? null
+          : events[onEvent ? Math.max(0, i - 1) : i]
+        : cursor === null
+          ? events[i < 0 ? 0 : events.length - 1]
+          : events[Math.min(events.length - 1, i + 1)];
+    if (next) setCursor({ at: next.at, playId: `${next.mine}-${next.playId}` });
+  };
+  const stepLatest = useRef(stepBy);
+  useEffect(() => {
+    stepLatest.current = stepBy;
+  });
+  useEffect(() => {
+    if (!stepRef) return;
+    stepRef.current = (by) => stepLatest.current(by);
+    return () => {
+      stepRef.current = null;
+    };
+  }, [stepRef]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.key !== "ArrowLeft" && e.key !== "ArrowRight") || events.length === 0) return;
+      if ((e.key !== "ArrowLeft" && e.key !== "ArrowRight") || e.defaultPrevented) return;
       if ((e.target as HTMLElement | null)?.closest("input, textarea, select, [contenteditable]")) return;
       e.preventDefault();
-      const i = shownEvent ? events.indexOf(shownEvent) : -1;
-      const onEvent = cursor === null || (shownEvent !== null && (cursor.playId === `${shownEvent.mine}-${shownEvent.playId}` || cursor.at === shownEvent.at));
-      const next =
-        e.key === "ArrowLeft"
-          ? i < 0
-            ? null
-            : events[onEvent ? Math.max(0, i - 1) : i]
-          : cursor === null
-            ? events[events.length - 1]
-            : events[Math.min(events.length - 1, i + 1)];
-      if (next) setCursor({ at: next.at, playId: `${next.mine}-${next.playId}` });
+      stepLatest.current(e.key === "ArrowLeft" ? -1 : 1);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [events, cursor, shownEvent]);
+  }, []);
   const follow = (e: React.PointerEvent<HTMLDivElement>) => {
     const el = plotRef.current;
     if (!el || !plot) return;
@@ -383,7 +453,7 @@ export function MatchupGraph({
               )
             )}
             {/* Every time block a band of its own, a line where each begins. */}
-            {bands.slice(1).map((band) => (
+            {bands.slice(1).filter((band) => !focus || (band.from > domainFrom! && band.from < domainTo!)).map((band) => (
               <line key={`band${band.from}`} x1={x(band.from)} x2={x(band.from)} y1={PAD.top} y2={PAD.top + plot.h} className="stroke-ink-muted" strokeOpacity={0.35} />
             ))}
             {/* The points axis. */}
@@ -398,7 +468,9 @@ export function MatchupGraph({
             {/* Each time block named along the bottom: "Sun 1:00", or — crowded — the day over the time. */}
             {marks.map((m) => (
               <text key={`x${m.at}`} x={x(m.at)} y={PAD.top + plot.h + 17} textAnchor={m.anchor} className="fill-ink-muted text-[0.625rem] tabular-nums">
-                {stacked ? (
+                {focus ? (
+                  m.time
+                ) : stacked ? (
                   <>
                     <tspan x={x(m.at)}>{m.day}</tspan>
                     <tspan x={x(m.at)} dy="1.15em">
@@ -432,6 +504,20 @@ export function MatchupGraph({
                 <circle cx={x(lineEnd)} cy={y(myLine[myLine.length - 1]?.total ?? 0)} r={2.5} className="animate-pulse fill-ink-primary" />
               </>
             ) : null}
+            {/* Focused: every scoring play a dot on its team's line, the one shown bigger. */}
+            {focus
+              ? events.map((e) => (
+                  <circle
+                    key={`dot-${e.mine}-${e.playId}`}
+                    cx={x(e.at)}
+                    cy={y(e.total)}
+                    r={e === shownEvent ? 3.5 : 2}
+                    className={e.mine ? "fill-ink-primary" : "fill-ink-muted"}
+                    stroke="var(--page)"
+                    strokeWidth={e === shownEvent ? 1.5 : 0}
+                  />
+                ))
+              : null}
             {/* How much of the week you've led (green) and trailed (red). */}
             {share ? (
               <g className="text-[0.625rem] font-semibold tabular-nums" paintOrder="stroke" stroke="var(--page)" strokeWidth={3}>

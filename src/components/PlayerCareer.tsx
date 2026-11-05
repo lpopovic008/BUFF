@@ -20,7 +20,7 @@ function TeamLogo({ team, side = 16 }: { team: string; side?: number }) {
 const feet = (inches: number) => `${Math.floor(inches / 12)}'${inches % 12}"`;
 
 /** Who he is in a line: position, team, number, age, years in, size, college — whatever Sleeper knows. */
-function bioLine(player: ResolvedPlayer, bio: PlayerBio | null): string {
+export function bioLine(player: ResolvedPlayer, bio: PlayerBio | null): string {
   return [
     player.position,
     player.team,

@@ -34,7 +34,7 @@ export interface SeasonLine {
 export const FLOOR_RISE_MS = 450;
 
 /** A starter's numbers in the lineup, each on a tile: what it is, the number in its lineup color, and what it's out of. */
-function LineupTiles({ position, numbers }: { position: string; numbers: LineupNumbers }) {
+export function LineupTiles({ position, numbers }: { position: string; numbers: LineupNumbers }) {
   const { valueRank, dynasty, seasonRank, ppg, opponent, bye, defenseRank, opponentColor } = numbers;
   const tiles: { label: string; value: string; sub: string; className?: string; style?: React.CSSProperties; said: string }[] = [];
   if (valueRank !== null)
@@ -95,35 +95,54 @@ const MOST_SEASONS = 12;
 /** How deep a bar stands on the floor (floor px). */
 const BAR_DEPTH = 8;
 
+/** A bar on the floor (see FloorBars): what it's called, how tall, what's under it on the floor. */
+export interface FloorBar {
+  key: string;
+  value: number;
+  /** On the floor in front of it: its name ("'24", "W5"), and under that, if there's room, a note ("QB3"). */
+  foot: string;
+  note?: string;
+  noteClassName?: string;
+  /** Read out for it, as a button. */
+  label: string;
+}
+
 /**
- * His seasons standing on the room's floor as bars, in its perspective — each as tall as his fantasy points that
- * season, its year and finish on the floor in front of it, its points on top; the one picked lit, the rest glass.
- * They rise out of the floor one after another, reflected in it as the room's columns are. Each is a button: picked,
- * its season's line reads across the top. `box` is where it's drawn on the screen.
+ * Bars standing on the room's floor, in its perspective — each as tall as its value, its name (and a note) on the
+ * floor in front of it, its value on top, the tallest starred; the one picked lit, the rest glass. They rise out of the
+ * floor one after another, reflected in it as the room's columns are. Each is a button (the arrow keys move along
+ * them). As many as fit (`slotMin` px a bar), the last of them. `box` is where it's drawn on the screen, `reserve` px
+ * kept clear across its top (for a readout).
  */
-function SeasonBars({
-  seasons,
-  position,
+export function FloorBars({
+  bars: all,
   room,
   box,
   picked,
   onPick,
+  label,
+  slotMin = SLOT_MIN_PX,
+  most = MOST_SEASONS,
+  reserve = 18,
 }: {
-  seasons: SeasonLine[];
-  position: string;
+  bars: FloorBar[];
   room: { width: number; height: number };
   box: { left: number; top: number; width: number; height: number };
   picked: number;
   onPick: (i: number) => void;
+  label: string;
+  slotMin?: number;
+  most?: number;
+  reserve?: number;
 }) {
   const id = useId().replace(/:/g, "");
   const { width: W, height: H } = room;
-  const n = Math.max(1, Math.min(seasons.length, MOST_SEASONS, Math.floor(box.width / SLOT_MIN_PX)));
-  const first = seasons.length - n;
-  const shown = seasons.slice(first);
+  const n = Math.max(1, Math.min(all.length, most, Math.floor(box.width / slotMin)));
+  const first = all.length - n;
+  const shown = all.slice(first);
   const narrow = box.width / n < 34;
-  // Their foot on the floor, with room in front for the years and finishes; their tops up to under the points.
-  const LABELS = narrow ? 14 : 26;
+  // Their foot on the floor, with room in front for the names and notes; their tops up to under the values.
+  const LABELS = narrow && !shown.some((b) => b.note) ? 14 : 26;
   const yBase = box.top + box.height - LABELS;
   const dFront = floorDepth(yBase, H);
   const dBack = Math.max(0, dFront - BAR_DEPTH);
@@ -134,37 +153,35 @@ function SeasonBars({
   const span = (box.width - 12) / sF;
   const slot = span / n;
   const half = (slot * 0.6) / 2;
-  // Under the readout across the top (see FloorCareer), and the tallest's points.
-  const READOUT = 18;
-  const most = Math.max(1, ...shown.map((s) => s.points));
+  const top = Math.max(1, ...shown.map((b) => b.value));
   // Screen x of a floor point `a` across at the bar's front or back, in the box.
   const xAt = (a: number, s: number) => W / 2 + a * s - box.left;
   const yF = yBase - box.top;
   const yB = yBack - box.top;
-  // As tall as leaves the tallest's points (over its top's far edge too) clear of the readout.
-  const clear = READOUT + 14;
+  // As tall as leaves the tallest's value (over its top's far edge too) clear of what's kept across the top.
+  const clear = reserve + 14;
   const tallest = Math.max(4, Math.min(yF - clear, (yB - clear) / (sB / sF)));
-  const bars = shown.map((s, i) => {
+  const bars = shown.map((bar, i) => {
     const mid = across - span / 2 + slot * (i + 0.5);
     const [fl, fr, bl, br] = [xAt(mid - half, sF), xAt(mid + half, sF), xAt(mid - half, sB), xAt(mid + half, sB)];
-    const hF = Math.max(2, (tallest * Math.max(0, s.points)) / most);
+    const hF = Math.max(2, (tallest * Math.max(0, bar.value)) / top);
     const hB = (hF * sB) / sF;
     const pts = (ps: [number, number][]) => ps.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
-    const top = pts([[bl, yB - hB], [br, yB - hB], [fr, yF - hF], [fl, yF - hF]]);
+    const topFace = pts([[bl, yB - hB], [br, yB - hB], [fr, yF - hF], [fl, yF - hF]]);
     const front = pts([[fl, yF], [fr, yF], [fr, yF - hF], [fl, yF - hF]]);
     // The side facing the middle of the room (where the viewer stands).
     const right = (fl + fr) / 2 < W / 2 - box.left;
     const side = right ? pts([[fr, yF], [br, yB], [br, yB - hB], [fr, yF - hF]]) : pts([[fl, yF], [bl, yB], [bl, yB - hB], [fl, yF - hF]]);
-    // Its points over the whole of it, its top's far edge too.
+    // Its value over the whole of it, its top's far edge too.
     const labelY = Math.min(yF - hF, yB - hB) - 4;
-    return { s, i: first + i, cx: (fl + fr) / 2, labelY, top, front, side, slotL: xAt(mid - slot / 2, sF), slotR: xAt(mid + slot / 2, sF) };
+    return { bar, i: first + i, cx: (fl + fr) / 2, labelY, top: topFace, front, side, slotL: xAt(mid - slot / 2, sF), slotR: xAt(mid + slot / 2, sF) };
   });
-  const best = Math.max(...shown.map((s) => s.points));
+  const best = Math.max(...shown.map((b) => b.value));
 
   const drawBar = (b: (typeof bars)[number], k: number, mirrored: boolean) => {
     const lit = b.i === picked;
     return (
-      <g key={`${mirrored ? "m" : "b"}${b.s.season}`} className="floor-bar" style={{ transformOrigin: `${b.cx}px ${yF}px`, animationDelay: `${FLOOR_RISE_MS * 0.6 + k * 70}ms` }}>
+      <g key={`${mirrored ? "m" : "b"}${b.bar.key}`} className="floor-bar" style={{ transformOrigin: `${b.cx}px ${yF}px`, animationDelay: `${FLOOR_RISE_MS * 0.6 + k * 70}ms` }}>
         <polygon points={b.side} fill={lit ? "var(--ink-primary)" : "var(--ink-secondary)"} fillOpacity={lit ? 0.55 : 0.18} />
         <polygon points={b.top} fill={lit ? "var(--ink-primary)" : "var(--ink-secondary)"} fillOpacity={lit ? 0.8 : 0.3} />
         <polygon
@@ -180,11 +197,7 @@ function SeasonBars({
   };
 
   return (
-    <svg
-      className="absolute inset-0 h-full w-full overflow-visible"
-      role="group"
-      aria-label={`Fantasy points by season${shown.length < seasons.length ? `, his last ${shown.length}` : ""}`}
-    >
+    <svg className="absolute inset-0 h-full w-full overflow-visible" role="group" aria-label={label}>
       <defs>
         <radialGradient id={`${id}-glow`}>
           <stop offset="0" stopColor="var(--ink-primary)" stopOpacity="0.16" />
@@ -206,13 +219,12 @@ function SeasonBars({
       </g>
       {bars.map((b, k) => {
         const lit = b.i === picked;
-        const label = `${b.s.season}: ${b.s.points.toFixed(1)} points${b.s.rank ? `, ${position}${b.s.rank}` : ""}`;
         return (
           <g
-            key={b.s.season}
+            key={b.bar.key}
             role="button"
             tabIndex={0}
-            aria-label={label}
+            aria-label={b.bar.label}
             aria-pressed={lit}
             className="group cursor-pointer outline-none"
             onClick={() => onPick(b.i)}
@@ -222,7 +234,8 @@ function SeasonBars({
                 onPick(b.i);
               } else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
                 e.preventDefault();
-                const next = Math.min(seasons.length - 1, Math.max(first, b.i + (e.key === "ArrowLeft" ? -1 : 1)));
+                e.stopPropagation();
+                const next = Math.min(all.length - 1, Math.max(first, b.i + (e.key === "ArrowLeft" ? -1 : 1)));
                 onPick(next);
                 (e.currentTarget.parentElement?.querySelectorAll<SVGGElement>("[role=button]")[next - first])?.focus();
               }
@@ -249,16 +262,15 @@ function SeasonBars({
               className={`floor-bar-label tabular-nums ${lit ? "fill-[var(--ink-primary)] font-extrabold" : "fill-[var(--ink-secondary)] font-semibold"}`}
               style={{ fontSize: narrow ? "0.5625rem" : "0.625rem", animationDelay: `${FLOOR_RISE_MS * 0.6 + k * 70 + 450}ms` }}
             >
-              {b.s.points === best ? "★" : ""}
-              {barPoints(b.s.points)}
+              {b.bar.value === best && b.bar.value > 0 ? "★" : ""}
+              {narrow && b.bar.value >= 10 ? String(Math.round(b.bar.value)) : barPoints(b.bar.value)}
             </text>
             <text x={b.cx} y={yF + 11} textAnchor="middle" className={lit ? "fill-[var(--ink-primary)] font-bold" : "fill-[var(--ink-muted)] font-semibold"} style={{ fontSize: "0.5625rem" }}>
-              &apos;{b.s.season.slice(-2)}
+              {b.bar.foot}
             </text>
-            {!narrow && b.s.rank ? (
-              <text x={b.cx} y={yF + 22} textAnchor="middle" className={`fill-current font-bold ${POSITION_TEXT_COLOR[position] ?? "text-ink-secondary"}`} style={{ fontSize: "0.5625rem" }}>
-                {position}
-                {b.s.rank}
+            {LABELS > 14 && b.bar.note ? (
+              <text x={b.cx} y={yF + 22} textAnchor="middle" className={`fill-current font-bold ${b.bar.noteClassName ?? "text-ink-secondary"}`} style={{ fontSize: "0.5625rem" }}>
+                {b.bar.note}
               </text>
             ) : null}
           </g>
@@ -268,10 +280,22 @@ function SeasonBars({
   );
 }
 
+/** His seasons as bars on the floor (see FloorBars): each as tall as his fantasy points, its year and finish in front. */
+export function seasonBars(seasons: SeasonLine[], position: string): FloorBar[] {
+  return seasons.map((s) => ({
+    key: s.season,
+    value: s.points,
+    foot: `'${s.season.slice(-2)}`,
+    note: s.rank ? `${position}${s.rank}` : undefined,
+    noteClassName: POSITION_TEXT_COLOR[position],
+    label: `${s.season}: ${s.points.toFixed(1)} points${s.rank ? `, ${position}${s.rank}` : ""}`,
+  }));
+}
+
 /**
  * A player's card in the room: up out of the floor (see CareerStage), not over the page — a see-through plate with
  * who he is, his numbers in the lineup it came from on tiles, and his seasons standing on the floor as bars (see
- * SeasonBars), the one picked (his latest, at first) read out across the top. "Table" swaps the bars for every number
+ * FloorBars), the one picked (his latest, at first) read out across the top. "Table" swaps the bars for every number
  * there is (`details`, PlayerCareer's own), to scroll through.
  */
 export function FloorCareer({
@@ -391,7 +415,15 @@ export function FloorCareer({
                 )}
               </p>
               {box && list.length > 0 ? (
-                <SeasonBars key={player.playerId} seasons={list} position={player.position} room={stage.room} box={box} picked={pick} onPick={(i) => setPicked({ playerId: player.playerId, i })} />
+                <FloorBars
+                  key={player.playerId}
+                  bars={seasonBars(list, player.position)}
+                  label="Fantasy points by season"
+                  room={stage.room}
+                  box={box}
+                  picked={pick}
+                  onPick={(i) => setPicked({ playerId: player.playerId, i })}
+                />
               ) : null}
             </div>
           </>

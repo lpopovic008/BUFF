@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronLeftIcon } from "@/components/ui/Icon";
+import { CloseButton } from "@/components/LeagueRoomFloor";
 import { ScrollThumb } from "@/components/ScrollThumb";
 import { useListScroll } from "@/hooks/useListScroll";
 import { useRecapWriteup } from "@/app/(chrome)/recap/useRecapWriteup";
@@ -152,6 +153,9 @@ function PanelBody({ leagueId, week, top, bottom, left, width, className = "", o
             <h2 className="text-xs font-bold uppercase tracking-wide text-ink-primary">Write-ups</h2>
             <span className="ml-auto text-[0.625rem] text-ink-muted">
               {actions.lastSavedAt ? `Saved ${new Date(actions.lastSavedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : ready ? "Not saved yet" : ""}
+            </span>
+            <span className="ml-1 flex">
+              <CloseButton onClose={onClose} label="Close the write-ups" />
             </span>
           </div>
           <div className="relative min-h-0 flex-1">

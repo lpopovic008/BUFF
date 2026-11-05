@@ -143,3 +143,49 @@ export function careerTotals(seasons: CareerSeason[]): Record<string, number> {
   }
   return out;
 }
+
+/** One week of a player's season: who he played, for whom, and his stat line that week in Sleeper's stat keys. */
+export interface CareerWeek {
+  week: number;
+  team: string | null;
+  opponent: string | null;
+  stats: Record<string, number>;
+}
+
+interface WeekEntry {
+  week?: number | string | null;
+  team?: string | null;
+  opponent?: string | null;
+  stats?: Record<string, number> | null;
+}
+
+const weeksCache = new Map<string, Promise<CareerWeek[]>>();
+
+/**
+ * A player's regular season week by week (the same endpoint as his seasons, grouped by week) — the weeks he played,
+ * in order. Sleeper answers with the weeks keyed by number (null on a bye), or a list of them; either's read. Empty on
+ * any failure. Fetched once a tab.
+ */
+export function getSeasonWeeks(playerId: string, season: number): Promise<CareerWeek[]> {
+  const key = `${playerId}-${season}`;
+  if (!weeksCache.has(key)) {
+    const promise = (async () => {
+      try {
+        const res = await fetch(`${STATS_BASE}/${encodeURIComponent(playerId)}?season_type=regular&season=${season}&grouping=week`);
+        if (!res.ok) return [];
+        const data = (await res.json()) as Record<string, WeekEntry | null> | WeekEntry[] | null;
+        const entries: [number, WeekEntry | null][] = Array.isArray(data)
+          ? data.map((e) => [Number(e?.week), e])
+          : Object.entries(data ?? {}).map(([k, e]) => [Number(e?.week ?? k), e]);
+        return entries
+          .filter(([week, e]) => Number.isFinite(week) && week > 0 && e?.stats && (e.stats.gp ?? 1) > 0)
+          .map(([week, e]) => ({ week, team: e!.team ?? null, opponent: e!.opponent ?? null, stats: e!.stats! }))
+          .sort((a, b) => a.week - b.week);
+      } catch {
+        return [];
+      }
+    })();
+    weeksCache.set(key, promise);
+  }
+  return weeksCache.get(key)!;
+}

@@ -12,10 +12,11 @@ import { ScrollThumb } from "@/components/ScrollThumb";
 import { useSwipePager } from "@/hooks/useSwipePager";
 import { LIST_MOVE, useListScroll } from "@/hooks/useListScroll";
 import { LeagueSwitcher, LeagueTitle, RoomLeague } from "@/components/LeagueSwitcher";
-import { Bench, BriefMatchups, CareerStageContext, MatchupList, MatchupProviders, MatchupSlide, MatchupStack, useMatchupHeadToHead } from "@/components/LeagueMatchupCarousel";
+import { BriefMatchups, CareerStageContext, MatchupList, MatchupProviders, MatchupSlide, MatchupStack, useLineupNumbers, useMatchupHeadToHead } from "@/components/LeagueMatchupCarousel";
+import { RoomBench, RoomGraph, StagePlaces, useStageShown } from "@/components/LeagueRoomStages";
 import { WriteupsPanel } from "@/components/LeagueRoomWriteups";
-import { FLOOR_ACTIONS, FloorAction, FloorButtons, FrontPanel } from "@/components/LeagueRoomFloor";
-import { MatchupGraph, MatchupSide } from "@/components/MatchupGraph";
+import { CloseButton, FLOOR_ACTIONS, FloorAction, FloorButtons, FrontPanel } from "@/components/LeagueRoomFloor";
+import type { MatchupSide } from "@/components/MatchupGraph";
 import { MoneyBoard } from "@/components/MoneyBoard";
 import type { ResolvedMatchupGame } from "@/hooks/useLeagueMatchupCarousel";
 import { useAsItStands } from "@/hooks/useAsItStands";
@@ -345,10 +346,28 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
   const cardStage = room
     ? { top: room.height * HORIZON_SHARE + PANEL_GAP_PX, bottom: room.height - tabBar - PANEL_GAP_PX, className: "inset-x-2", room, onShow: setCardUp }
     : null;
+  // The bench's and the score graph's stages: on the back wall where the lineups were (they step aside), and the floor.
+  const fullStage = action === "bench" || action === "graph";
+  const stagePlaces: StagePlaces | null = room
+    ? {
+        wall: {
+          top: `calc(${UNDER_SWITCHER})`,
+          height: `calc(${room.height * HORIZON_SHARE - PANEL_GAP_PX}px - (${UNDER_SWITCHER}))`,
+          left: PANEL_GAP_PX,
+          width: room.width - 2 * PANEL_GAP_PX,
+        },
+        floor: { top: room.height * HORIZON_SHARE + PANEL_GAP_PX, bottom: room.height - tabBar - PANEL_GAP_PX, left: PANEL_GAP_PX, width: room.width - 2 * PANEL_GAP_PX },
+        room,
+      }
+    : null;
   return (
     <CareerStageContext.Provider value={cardStage}>
       <div ref={setScene} className="fixed inset-0 touch-none">
-        <div className="absolute inset-x-0 top-0 overflow-hidden" style={{ height: `calc(var(--room-h, 100svh) * ${HORIZON_SHARE})` }}>
+        <div
+          className={`absolute inset-x-0 top-0 overflow-hidden transition-opacity duration-300 ${fullStage ? "pointer-events-none opacity-0" : ""}`}
+          inert={fullStage}
+          style={{ height: `calc(var(--room-h, 100svh) * ${HORIZON_SHARE})` }}
+        >
           <div ref={setPanes} className="flex h-full will-change-transform">
             {rooms.map((r, i) => (
               <div key={r.official.league.league_id} className="relative h-full w-full shrink-0">
@@ -368,7 +387,7 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
           </div>
         </div>
       </div>
-      <div ref={setReflections} className="pointer-events-none fixed inset-0 will-change-transform" />
+      <div ref={setReflections} className={`pointer-events-none fixed inset-0 will-change-transform transition-opacity duration-300 ${fullStage ? "opacity-0" : ""}`} />
       {slot
         ? createPortal(<LeagueSwitcher leagues={leagues} selectedId={leagues[index].leagueId} onSelect={onPick} bar={setBar} track={setNames} />, slot)
         : null}
@@ -386,14 +405,21 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
             className="inset-x-2"
             onClose={close}
           />
+          {stagePlaces ? (
+            <>
+              <RoomStagePanel kind="bench" open={action === "bench"} places={stagePlaces} onClose={close} league={rooms[index]} week={week} userId={userId} />
+              <RoomStagePanel kind="graph" open={action === "graph"} places={stagePlaces} onClose={close} league={rooms[index]} week={week} userId={userId} />
+            </>
+          ) : null}
           <FrontPanel
-            open={action !== null && !writeups}
+            open={action !== null && !writeups && !fullStage}
             title={FLOOR_ACTIONS.find((a) => a.id === last)!.label}
             top={room.height * HORIZON_SHARE + PANEL_GAP_PX}
             bottom={room.height - tabBar - PANEL_GAP_PX}
             className="inset-x-2"
+            onClose={close}
           >
-            <ActionPanel action={last} league={rooms[index]} week={week} currentWeek={currentWeek} userId={userId} />
+            <ActionPanel action={last} league={rooms[index]} currentWeek={currentWeek} />
           </FrontPanel>
         </>
       ) : null}
@@ -504,6 +530,22 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
   const [briefEnd, setBriefEnd] = useState<number | null>(null);
   useBottom(writeups ? briefList : null, setBriefEnd);
   const [contentsSlot, setContentsSlot] = useState<HTMLDivElement | null>(null);
+  // The bench's and the score graph's stages: on the back wall in the middle (the lineups step aside), and the floor
+  // in front of it.
+  const fullStage = action === "bench" || action === "graph";
+  const stagePlaces: StagePlaces | null =
+    room && middleBox
+      ? {
+          wall: {
+            top: `calc(${UNDER_HEADER})`,
+            height: `calc(${room.height * HORIZON_SHARE - PANEL_GAP_PX}px - (${UNDER_HEADER}))`,
+            left: middleBox.left,
+            width: middleBox.width,
+          },
+          floor: { top: room.height * HORIZON_SHARE + PANEL_GAP_PX, bottom: room.height - 12, left: middleBox.left, width: middleBox.width },
+          room,
+        }
+      : null;
   const { leagueId, standings, owners, myRosterId, carousel, allTime, providers } = useLeagueRoom(rooms[index], week, userId);
   // The matchup whose lineups are in the middle: yours, until another's picked — in that league, that week.
   const [picked, setPicked] = useState<{ leagueId: string; week: number | null; id: number } | null>(null);
@@ -568,7 +610,12 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
 
         {/* The picked matchup's lineups, slot by slot — down to the horizon, the floor in front of it left for its
             buttons. */}
-        <div ref={setMiddle} className="relative min-w-0 flex-1 self-start" style={{ height: `calc(var(--room-h, 100vh) * ${HORIZON_SHARE})` }}>
+        <div
+          ref={setMiddle}
+          className={`relative min-w-0 flex-1 self-start transition-opacity duration-300 ${fullStage ? "pointer-events-none opacity-0" : ""}`}
+          inert={fullStage}
+          style={{ height: `calc(var(--room-h, 100vh) * ${HORIZON_SHARE})` }}
+        >
           <div ref={setLineupColumn} data-scroll-list className={`${column} !pb-0`} style={columnPad}>
             <div className={writeups ? "" : "mx-auto max-w-3xl"}>
               {!carousel
@@ -622,7 +669,7 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
       </div>
       {/* Each column's reflection: what's at its foot, in the floor. */}
       <FloorReflection source={leagueColumn} className="pb-16" style={columnPad} />
-      <FloorReflection source={lineupColumn} style={columnPad} />
+      {fullStage ? null : <FloorReflection source={lineupColumn} style={columnPad} />}
       <FloorReflection source={matchupColumn} className="pb-16" style={columnPad} />
       {/* The floor's buttons at the front of the room between the columns, and the panel one brings up there. */}
       {room ? (
@@ -643,15 +690,32 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
               contentsSlot={contentsSlot}
             />
           ) : null}
+          {stagePlaces ? (
+            <>
+              <RoomStagePanel kind="bench" open={action === "bench"} places={stagePlaces} onClose={close} back league={rooms[index]} week={week} userId={userId} />
+              <RoomStagePanel
+                kind="graph"
+                open={action === "graph"}
+                places={stagePlaces}
+                onClose={close}
+                back
+                league={rooms[index]}
+                week={week}
+                userId={userId}
+                matchupId={shownGame?.matchupId}
+              />
+            </>
+          ) : null}
           <FrontPanel
-            open={action !== null && !writeups}
+            open={action !== null && !writeups && !fullStage}
             title={FLOOR_ACTIONS.find((a) => a.id === last)!.label}
             top={room.height * HORIZON_SHARE + PANEL_GAP_PX}
             bottom={room.height - 12}
             className="left-[18rem] right-[18rem] 2xl:left-[19rem] 2xl:right-[19rem]"
             back={close}
+            onClose={close}
           >
-            <ActionPanel action={last} league={rooms[index]} week={week} currentWeek={currentWeek} userId={userId} matchupId={shownGame?.matchupId} />
+            <ActionPanel action={last} league={rooms[index]} currentWeek={currentWeek} />
           </FrontPanel>
         </>
       ) : null}
@@ -699,65 +763,79 @@ const panelLink = (href: string, text: string) => (
 );
 
 /**
- * What a floor button's panel shows, for the league picked and the week shown: your bench; the score graph of your
- * matchup (from laptop width up, the one whose lineups are shown, `matchupId`); the season's payouts; the way to its
- * write-ups and its history; and a spot kept for something else.
+ * What a floor button's panel shows (the bench and the score graph have stages of their own, see RoomStagePanel, and
+ * the write-ups a panel, see WriteupsPanel): the season's payouts; the way to its history; and a spot kept for
+ * something else.
  */
 function ActionPanel({
   action,
   league,
-  week,
   currentWeek,
-  userId,
-  matchupId,
 }: {
   action: FloorAction;
   league: RoomLeagueData;
-  week: number | null;
   currentWeek: number | null;
-  userId: string | null | undefined;
-  matchupId?: number;
 }) {
   const leagueId = league.official.league.league_id;
   if (action === "payouts") return <PayoutsPanel leagueId={leagueId} currentWeek={currentWeek} />;
   if (action === "writeups") return panelLink(`/recap?id=${leagueId}`, "Open the write-ups");
   if (action === "history") return panelLink(`/league/history?id=${leagueId}`, "Open the league's history");
   if (action === "more") return panelNote("Something else is coming here.");
-  return <MatchupPanel action={action} league={league} week={week} userId={userId} matchupId={matchupId} />;
+  return null;
 }
 
-/** Your bench, or a matchup's score graph. */
-function MatchupPanel({
-  action,
-  league,
-  week,
-  userId,
-  matchupId,
-}: {
-  action: "bench" | "graph";
+/**
+ * The bench's or the score graph's stage (see RoomBench, RoomGraph), for the league picked and the week shown — in
+ * once it's opened, out once it's closed. The score graph's is your matchup's (from laptop width up, the one whose
+ * lineups are shown, `matchupId`).
+ */
+function RoomStagePanel(props: StageProps & { open: boolean }) {
+  const { up, drawn } = useStageShown(props.open);
+  if (!drawn) return null;
+  return <RoomStageContent {...props} up={up} />;
+}
+
+interface StageProps {
+  kind: "bench" | "graph";
+  places: StagePlaces;
+  onClose: () => void;
+  back?: boolean;
   league: RoomLeagueData;
   week: number | null;
   userId: string | null | undefined;
   matchupId?: number;
-}) {
+}
+
+function RoomStageContent({ kind, places, onClose, back, league, week, userId, matchupId, up }: StageProps & { up: boolean }) {
   const { myRosterId, carousel, providers, weekGames, projectionStats, scoring } = useLeagueRoom(league, week, userId);
   const games = carousel?.games ?? [];
   const game =
     (matchupId !== undefined ? games.find((g) => g.matchupId === matchupId) : undefined) ?? games.find((g) => g.teams.some((t) => t.rosterId === myRosterId)) ?? games[0];
-  if (!carousel) return loadingLineups;
-  if (!game) return noMatchups;
-  if (action === "bench") {
-    const mine = game.teams.find((t) => t.rosterId === myRosterId);
-    if (!mine) return panelNote("You've no team in this league.");
-    if (mine.bench.length === 0) return panelNote("No one's on your bench.");
-    return <PanelScroll>{providers(<Bench bench={mine.bench} />)}</PanelScroll>;
-  }
-  const { mine, theirs } = graphSides(game, myRosterId, projectionStats, scoring);
-  return (
-    <div className="h-full">
-      <MatchupGraph key={`${week}-${game.matchupId}`} mine={mine} theirs={theirs} weekGames={weekGames} scoring={scoring} />
+  const note = (text: string) => (
+    <div data-floor-ui className="fixed z-[7] text-sm text-ink-secondary" style={{ top: places.floor.top, left: places.floor.left, width: places.floor.width }}>
+      <div className="flex items-center gap-2">
+        <span className="min-w-0 flex-1">{text}</span>
+        <CloseButton onClose={onClose} />
+      </div>
     </div>
   );
+  if (!carousel) return note("Loading lineups…");
+  if (!game) return note("No matchups this week.");
+  if (kind === "graph") {
+    const { mine, theirs } = graphSides(game, myRosterId, projectionStats, scoring);
+    return <RoomGraph key={`${week}-${game.matchupId}`} places={places} up={up} onClose={onClose} back={back} mine={mine} theirs={theirs} weekGames={weekGames} scoring={scoring} />;
+  }
+  const mine = game.teams.find((t) => t.rosterId === myRosterId);
+  if (!mine) return note("You've no team in this league.");
+  return providers(
+    <BenchStage places={places} up={up} onClose={onClose} back={back} bench={mine.bench} season={Number(league.official.league.season) || new Date().getFullYear()} scoring={scoring} />
+  );
+}
+
+/** The bench's stage, inside the lineups' providers (for what each player's numbers in the lineup are). */
+function BenchStage(props: Omit<React.ComponentProps<typeof RoomBench>, "numbersOf">) {
+  const numbersOf = useLineupNumbers();
+  return <RoomBench {...props} numbersOf={numbersOf} />;
 }
 
 /** The season's payouts, played against the league's payout setup (as the league page shows them). */
