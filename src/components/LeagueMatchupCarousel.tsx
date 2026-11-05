@@ -148,8 +148,13 @@ const ROW_TEXT = "text-[0.6875rem] sm:text-[0.8125rem]";
 // A starter's second line, under their name and points: smaller, set tight, so the two lines take about the photo's height.
 const NOTE_TEXT = "text-[0.5625rem] leading-none sm:text-[0.625rem] sm:leading-none";
 
-/** "J. Allen" on a phone, "Josh Allen" from sm up. */
+/** Whether starters' names are written out in full on a phone too (see PlayerName). */
+const FullNamesContext = createContext(false);
+
+/** "J. Allen" on a phone, "Josh Allen" from sm up — or "Josh Allen" everywhere (`FullNamesContext`). */
 function PlayerName({ name }: { name: string }) {
+  const full = useContext(FullNamesContext);
+  if (full) return <>{name}</>;
   return (
     <>
       <span className="sm:hidden">{abbreviateFirstName(name)}</span>
@@ -819,6 +824,7 @@ export function MatchupProviders({
   season = null,
   scoring,
   jerseyNumbers = false,
+  fullNames = false,
   children,
 }: {
   projected?: Map<number, number> | null;
@@ -830,6 +836,8 @@ export function MatchupProviders({
   scoring?: Record<string, number>;
   /** Starters shown by their jersey numbers, not their photos (see SlotPhoto). */
   jerseyNumbers?: boolean;
+  /** Starters' names in full on a phone too, not "J. Allen" (the League Room's). */
+  fullNames?: boolean;
   children: React.ReactNode;
 }) {
   // The player whose career card is open.
@@ -841,10 +849,12 @@ export function MatchupProviders({
     <DynastyContext.Provider value={dynasty}>
     <PositionsContext.Provider value={positions}>
     <PlayerCardContext.Provider value={season ? setCard : null}>
+    <FullNamesContext.Provider value={fullNames}>
     <JerseyNumbersContext.Provider value={jerseyNumbers}>
       {card && season ? <PlayerCareer player={card} season={Number(season)} scoring={scoring} onClose={() => setCard(null)} /> : null}
       {children}
     </JerseyNumbersContext.Provider>
+    </FullNamesContext.Provider>
     </PlayerCardContext.Provider>
     </PositionsContext.Provider>
     </DynastyContext.Provider>
