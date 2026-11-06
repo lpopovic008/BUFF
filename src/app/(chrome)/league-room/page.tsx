@@ -749,6 +749,7 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
               title={{ top: `calc(${UNDER_HEADER})`, left: middleBox.left, width: middleBox.width }}
               floor={{ bottom: room.height - 12, left: 16, width: room.width - 32 }}
               back
+              atBottom
               onClose={close}
               onAway={onFloorAway}
             />

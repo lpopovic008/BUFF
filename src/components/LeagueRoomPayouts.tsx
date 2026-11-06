@@ -118,6 +118,7 @@ export function PayoutStage({
   title,
   floor,
   back,
+  atBottom,
   onClose,
   onAway,
 }: {
@@ -128,6 +129,8 @@ export function PayoutStage({
   title: { top: string; left: number; width: number };
   floor: { bottom: number; left: number; width: number };
   back?: boolean;
+  /** The board and what's under it kept down at the floor's foot (see FloorPayouts). */
+  atBottom?: boolean;
   onClose: () => void;
   onAway: (away: boolean) => void;
 }) {
@@ -169,6 +172,7 @@ export function PayoutStage({
       title={title}
       floor={floor}
       back={back}
+      atBottom={atBottom}
       onClose={onClose}
       currentWeek={currentWeek}
       data={shown && plan && ledger ? { season: shown, plan, ledger, onPlanChange } : null}
@@ -183,6 +187,7 @@ function FloorPayouts({
   title,
   floor,
   back,
+  atBottom = false,
   onClose,
   currentWeek,
   data,
@@ -193,6 +198,7 @@ function FloorPayouts({
   title: { top: string; left: number; width: number };
   floor: { bottom: number; left: number; width: number };
   back?: boolean;
+  atBottom?: boolean;
   onClose: () => void;
   currentWeek: number | null;
   data: { season: LeagueSeason; plan: PayoutPlan; ledger: ReturnType<typeof computePlanLedger>; onPlanChange: (plan: PayoutPlan) => void } | null;
@@ -245,9 +251,25 @@ function FloorPayouts({
   // drawn at the zoom (floor px per board px) that shows its near edge at its own size.
   const { W, depth, tray } = layout;
   const finalP = Math.max(LEAST_PERSPECTIVE, PERSPECTIVE_PER_DEPTH * depth);
-  const zoom = finalP / (finalP + depth * VIEW_SIN);
+  const fullZoom = finalP / (finalP + depth * VIEW_SIN);
+  // Kept to the bottom (`atBottom`): what's under the board down at the floor's foot, the board just over it — made
+  // smaller to fit there, between it and the title, and across the floor — and whatever room's left over above it.
+  const VIEW_COS = Math.cos((VIEW_TILT * Math.PI) / 180);
+  const fullDeep = depth * fullZoom;
+  const highest = titleBottom + UNDER_TITLE;
+  const boardFoot = floor.bottom - infoH - INFO_GAP;
+  let fit = 1;
+  if (atBottom) {
+    // How tall (and wide) the board shows at fit m: its near edge m * fullDeep back, seen under finalP.
+    const room = Math.max(40, boardFoot - highest);
+    const byHeight = room / (fullDeep * VIEW_COS + (room * fullDeep * VIEW_SIN) / finalP);
+    const byWidth = floor.width / (W * fullZoom + (floor.width * fullDeep * VIEW_SIN) / finalP);
+    fit = Math.max(0.45, Math.min(1, byHeight, byWidth));
+  }
+  const zoom = fullZoom * fit;
   const deep = depth * zoom;
-  const finalPose: Pose = { tilt: VIEW_TILT, P: finalP, hinge: titleBottom + UNDER_TITLE };
+  const boardTall = (deep * VIEW_COS * finalP) / (finalP - deep * VIEW_SIN);
+  const finalPose: Pose = { tilt: VIEW_TILT, P: finalP, hinge: atBottom ? Math.max(highest, boardFoot - boardTall) : highest };
   const pose: Pose = { tilt: lerp(FLOOR_TILT, finalPose.tilt, look), P: lerp(PERSPECTIVE_PX, finalPose.P, look), hinge: lerp(RH * HORIZON_SHARE, finalPose.hinge, look) };
   const clipTop = lerp(RH * HORIZON_SHARE, finalPose.hinge - OVER_HINGE, look);
 
@@ -264,11 +286,12 @@ function FloorPayouts({
   const limits = useMemo(() => {
     const minX = fits ? 0 : -(onScreen - floor.width) / near;
     const want = depthAt(finalPose, floor.bottom - 8 - INFO_GAP - infoH);
-    const minD = want == null ? -deep : Math.max(-deep - 200, Math.min(0, want - deep));
+    // Kept to the bottom, it's all on screen already: nothing to move it back for.
+    const minD = atBottom ? 0 : want == null ? -deep : Math.max(-deep - 200, Math.min(0, want - deep));
     return { minX, minD };
     // finalPose is made fresh each render from the values listed.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fits, onScreen, floor.width, floor.bottom, near, infoH, deep, finalPose.P, finalPose.hinge]);
+  }, [fits, onScreen, floor.width, floor.bottom, near, infoH, deep, finalPose.P, finalPose.hinge, atBottom]);
   const clampPan = useCallback(
     (x: number, d: number) => ({ x: Math.min(0, Math.max(limits.minX, x)), d: Math.min(0, Math.max(limits.minD, d)) }),
     [limits]
@@ -486,7 +509,10 @@ function FloorPayouts({
           <div
             ref={setInfo}
             className="absolute inset-x-0 flex flex-col gap-4 bg-page/80 px-1 py-2 backdrop-blur-[2px]"
-            style={{ top: nearY + INFO_GAP - (finalPose.hinge - OVER_HINGE), transform: `translateY(${(1 - labels) * 8}px)` }}
+            style={{
+              ...(atBottom ? { bottom: 0 } : { top: nearY + INFO_GAP - (finalPose.hinge - OVER_HINGE) }),
+              transform: `translateY(${(1 - labels) * 8}px)`,
+            }}
           >
             <PayoutLegend ledger={data.ledger} plan={data.plan} regularSeasonWeeks={data.season.results.regularSeasonWeeks} />
             <div className="border-t border-grid pt-3">
