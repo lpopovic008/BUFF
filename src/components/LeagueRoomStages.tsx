@@ -55,7 +55,7 @@ export function useStageShown(open: boolean) {
 }
 
 /** A stage's title on the floor, upright across its top: what it is, what's shown, and its way out (and back). */
-function FloorTitle({ title, sub, onClose, back, extra }: { title: string; sub?: string; onClose: () => void; back?: boolean; extra?: React.ReactNode }) {
+export function FloorTitle({ title, sub, onClose, back, extra }: { title: string; sub?: string; onClose: () => void; back?: boolean; extra?: React.ReactNode }) {
   return (
     <div className="flex shrink-0 items-center gap-1 border border-ink-primary bg-page/70 px-1.5 py-1 backdrop-blur-[3px]">
       {back ? (

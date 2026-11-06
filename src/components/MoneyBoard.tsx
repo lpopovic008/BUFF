@@ -78,41 +78,28 @@ function LegendLine({ rule, ledger, regularSeasonWeeks }: { rule: PayoutRule; le
   );
 }
 
-/**
- * The week grid, drawn as a board in 3D (see PayoutBoard): rows are managers,
- * columns are the season's weeks (regular season, then playoffs, per
- * Sleeper's schedule) and the season-end awards; every payout is a cube
- * with its amount on top, and each manager's cubes stack into a bar. The week
- * in progress, when it's counted ("as it stands"), is shaded: its amounts
- * update live as games are scored, but aren't settled until the week is over.
- * Under it, the legend: each rule, with what one of its cubes is worth.
- */
-function WeekGrid({
+/** What the week grid's board needs (see PayoutBoard), from the ledger: a row per manager, the weeks across. */
+export function boardData({
   ledger,
   plan,
-  regularSeasonWeeks,
   lastWeek,
   currentWeek,
   finishedThrough,
   teamNames,
-  stacked,
 }: {
   ledger: PlanLedger;
   plan: PayoutPlan;
-  regularSeasonWeeks: number;
   lastWeek: number;
   currentWeek: number | null;
   /** The last week Sleeper has made official. */
   finishedThrough: number;
   /** Team names by roster; each manager's row shows the team name over the username. */
   teamNames: Map<number, string>;
-  /** Each manager's payouts piled into one bar (see PayoutBoard). */
-  stacked: boolean;
-}) {
+}): { rows: BoardRow[]; weeks: number[]; hasSeason: boolean } {
   const ruleText = new Map(plan.rules.map((r) => [r.id, describeRecipients(r)]));
   const breakdown = (payments: RulePayment[] | undefined) =>
     (payments ?? []).map((p) => `${money(p.amount)} for ${ruleText.get(p.ruleId) ?? "a rule"}`).join("; ");
-  const hasSeasonRules = plan.rules.some((r) => awardInfo(r.award).timing === "season");
+  const hasSeason = plan.rules.some((r) => awardInfo(r.award).timing === "season");
   const seasonDecided = ledger.seasonOver || ledger.regularSeasonOver;
 
   const weeks = Array.from({ length: Math.max(lastWeek, ...ledger.weeks) }, (_, i) => i + 1);
@@ -139,7 +126,7 @@ function WeekGrid({
           : `Week ${w}${w === live ? " (in progress, not final)" : ""}: ${amount > 0 ? breakdown(detail) : "nothing"}`,
       };
     }),
-    season: hasSeasonRules
+    season: hasSeason
       ? {
           amount: mgr.seasonEnd,
           pending: mgr.seasonEnd <= 0 && !seasonDecided,
@@ -149,54 +136,55 @@ function WeekGrid({
     total: mgr.total,
     net: mgr.net,
   }));
+  return { rows, weeks, hasSeason };
+}
 
+/** The legend: each rule, with what one of its cubes is worth, under when it pays. */
+export function PayoutLegend({ ledger, plan, regularSeasonWeeks }: { ledger: PlanLedger; plan: PayoutPlan; regularSeasonWeeks: number }) {
+  if (!plan.rules.length) return <p className="text-xs text-ink-secondary">No payout rules yet. Use Edit rules below to set them up.</p>;
   return (
-    <div>
-      <PayoutBoard rows={rows} weeks={weeks} regularSeasonWeeks={regularSeasonWeeks} hasSeason={hasSeasonRules} stacked={stacked} />
-      {plan.rules.length ? (
-        <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-3 md:grid-cols-3">
-          {RULE_GROUPS.map((group) => {
-            const rules = plan.rules.filter((r) => ruleGroup(r, regularSeasonWeeks) === group);
-            return (
-              <div key={group} className={`min-w-0 ${rules.length ? "" : "max-md:hidden"}`}>
-                <h4 className="mb-1 text-[0.625rem] font-semibold uppercase tracking-wider text-ink-muted">{group}</h4>
-                {rules.length ? (
-                  <ol className="flex flex-col gap-1.5">
-                    {rules.map((r) => (
-                      <LegendLine key={r.id} rule={r} ledger={ledger} regularSeasonWeeks={regularSeasonWeeks} />
-                    ))}
-                  </ol>
-                ) : (
-                  <p className="text-xs text-ink-muted">None</p>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <p className="mt-4 text-xs text-ink-secondary">No payout rules yet. Use Edit rules below to set them up.</p>
-      )}
+    <div className="grid grid-cols-1 gap-x-6 gap-y-3 md:grid-cols-3">
+      {RULE_GROUPS.map((group) => {
+        const rules = plan.rules.filter((r) => ruleGroup(r, regularSeasonWeeks) === group);
+        return (
+          <div key={group} className={`min-w-0 ${rules.length ? "" : "max-md:hidden"}`}>
+            <h4 className="mb-1 text-[0.625rem] font-semibold uppercase tracking-wider text-ink-muted">{group}</h4>
+            {rules.length ? (
+              <ol className="flex flex-col gap-1.5">
+                {rules.map((r) => (
+                  <LegendLine key={r.id} rule={r} ledger={ledger} regularSeasonWeeks={regularSeasonWeeks} />
+                ))}
+              </ol>
+            ) : (
+              <p className="text-xs text-ink-muted">None</p>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-export function MoneyBoard({
+/**
+ * Under the board: the pot's totals, a button to stack (or spread) the board's cubes over one to edit the rules,
+ * a word when the rules don't pay out the pot exactly, and the rules' editor when it's open.
+ */
+export function PayoutTotals({
   season,
   plan,
   ledger,
-  currentWeek,
+  stacked,
+  onStack,
   onPlanChange,
 }: {
   season: LeagueSeason;
   plan: PayoutPlan;
-  /** The NFL week in progress, shaded in the grid as not final yet. */
-  currentWeek: number | null;
-  /** computePlanLedger(plan, season.results), computed by the page. */
   ledger: PlanLedger;
+  stacked: boolean;
+  onStack: () => void;
   onPlanChange: (plan: PayoutPlan) => void;
 }) {
   const [editing, setEditing] = useState(false);
-  const [stacked, setStacked] = useState(false);
   const balanced = Math.abs(ledger.unallocated) < 0.005;
   const stillToPay = Math.max(0, ledger.committed - ledger.paidToDate);
   const seasonPrizes = ledger.budgets
@@ -209,21 +197,9 @@ export function MoneyBoard({
     ["Still to pay", stillToPay],
     ["Season prizes", seasonPrizes],
   ];
-
   return (
-    <Card className="p-5">
-      <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-muted">Payouts</h2>
-      <WeekGrid
-        ledger={ledger}
-        plan={plan}
-        regularSeasonWeeks={season.results.regularSeasonWeeks}
-        lastWeek={season.results.lastWeek}
-        currentWeek={currentWeek}
-        finishedThrough={season.finishedThrough}
-        teamNames={season.teamNames}
-        stacked={stacked}
-      />
-      <div className="mt-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-t border-grid pt-4">
+    <>
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <dl className="grid grid-cols-2 gap-x-6 gap-y-2 sm:flex sm:flex-wrap sm:gap-x-8">
           {totals.map(([label, amount]) => (
             <div key={label}>
@@ -236,7 +212,7 @@ export function MoneyBoard({
         <div className="flex flex-col items-stretch gap-2">
           <button
             type="button"
-            onClick={() => setStacked((s) => !s)}
+            onClick={onStack}
             aria-pressed={stacked}
             className="border border-[var(--map-tag)] px-3 py-1.5 text-sm font-semibold text-ink-primary hover:opacity-90"
           >
@@ -264,6 +240,52 @@ export function MoneyBoard({
           <PayoutSetup plan={plan} season={season.results} ledger={ledger} onChange={onPlanChange} embedded />
         </div>
       ) : null}
+    </>
+  );
+}
+
+/**
+ * The season's payouts in a card: the week grid, drawn as a board in 3D (see PayoutBoard) — rows are managers,
+ * columns are the season's weeks (regular season, then playoffs, per Sleeper's schedule) and the season-end awards;
+ * every payout is a cube with its amount on top, and each manager's cubes stack into a bar. The week in progress,
+ * when it's counted ("as it stands"), is shaded: its amounts update live as games are scored, but aren't settled
+ * until the week is over. Under it, the legend (each rule, with what one of its cubes is worth), then the totals.
+ */
+export function MoneyBoard({
+  season,
+  plan,
+  ledger,
+  currentWeek,
+  onPlanChange,
+}: {
+  season: LeagueSeason;
+  plan: PayoutPlan;
+  /** The NFL week in progress, shaded in the grid as not final yet. */
+  currentWeek: number | null;
+  /** computePlanLedger(plan, season.results), computed by the page. */
+  ledger: PlanLedger;
+  onPlanChange: (plan: PayoutPlan) => void;
+}) {
+  const [stacked, setStacked] = useState(false);
+  const regularSeasonWeeks = season.results.regularSeasonWeeks;
+  const { rows, weeks, hasSeason } = boardData({
+    ledger,
+    plan,
+    lastWeek: season.results.lastWeek,
+    currentWeek,
+    finishedThrough: season.finishedThrough,
+    teamNames: season.teamNames,
+  });
+  return (
+    <Card className="p-5">
+      <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-muted">Payouts</h2>
+      <PayoutBoard rows={rows} weeks={weeks} regularSeasonWeeks={regularSeasonWeeks} hasSeason={hasSeason} stacked={stacked} />
+      <div className="mt-4">
+        <PayoutLegend ledger={ledger} plan={plan} regularSeasonWeeks={regularSeasonWeeks} />
+      </div>
+      <div className="mt-4 border-t border-grid pt-4">
+        <PayoutTotals season={season} plan={plan} ledger={ledger} stacked={stacked} onStack={() => setStacked((s) => !s)} onPlanChange={onPlanChange} />
+      </div>
     </Card>
   );
 }

@@ -17,12 +17,8 @@ import { RoomBench, RoomGraph, StagePlaces, useStageShown } from "@/components/L
 import { WriteupsPanel } from "@/components/LeagueRoomWriteups";
 import { CloseButton, FLOOR_ACTIONS, FloorAction, FloorButtons, FrontPanel } from "@/components/LeagueRoomFloor";
 import type { MatchupSide } from "@/components/MatchupGraph";
-import { MoneyBoard } from "@/components/MoneyBoard";
+import { PayoutStage } from "@/components/LeagueRoomPayouts";
 import type { ResolvedMatchupGame } from "@/hooks/useLeagueMatchupCarousel";
-import { useAsItStands } from "@/hooks/useAsItStands";
-import { finishedWeeksOnly, loadLeagueSeason, LeagueSeason, startingPlan } from "@/lib/league-money";
-import { computePlanLedger, PayoutPlan } from "@/lib/payout-plan";
-import { savePayoutPlan } from "@/lib/localStore";
 import { weighProjection } from "@/lib/sleeper";
 import { useConfig } from "@/hooks/useConfig";
 import { PendingMatchups, usePendingMatchups, useSummariesAsItStands } from "@/hooks/useAsItStands";
@@ -188,6 +184,8 @@ function LeagueRoomContent() {
   const [room, setRoom] = useState<HTMLDivElement | null>(null);
   const [roomSize, setRoomSize] = useState<{ width: number; height: number } | null>(null);
   const roomHeight = roomSize?.height ?? null;
+  // The room's floor grid put away while the payouts draw the floor themselves (see PayoutStage).
+  const [floorAway, setFloorAway] = useState(false);
   useEffect(() => {
     if (!room) return;
     const measure = () => setRoomSize({ width: room.clientWidth || window.innerWidth, height: room.clientHeight || window.innerHeight });
@@ -217,12 +215,12 @@ function LeagueRoomContent() {
     <div style={roomVars}>
       <h1 className="sr-only">{leagues[index].name}</h1>
       <div ref={setRoom} aria-hidden className="grid-room" style={{ ["--horizon" as string]: `${HORIZON_SHARE * 100}%` }}>
-        <FloorGrid share={HORIZON_SHARE} />
+        <FloorGrid share={HORIZON_SHARE} away={floorAway} />
       </div>
       {desktop ? (
-        <DesktopRoom rooms={rooms} leagues={leagues} index={index} week={shownWeek} currentWeek={week} userId={config.sleeperUserId} onPick={pickLeague} room={roomSize} />
+        <DesktopRoom rooms={rooms} leagues={leagues} index={index} week={shownWeek} currentWeek={week} userId={config.sleeperUserId} onPick={pickLeague} room={roomSize} floorAway={floorAway} onFloorAway={setFloorAway} />
       ) : (
-        <PhoneRoom rooms={rooms} leagues={leagues} index={index} week={shownWeek} currentWeek={week} userId={config.sleeperUserId} onPick={pickLeague} room={roomSize} />
+        <PhoneRoom rooms={rooms} leagues={leagues} index={index} week={shownWeek} currentWeek={week} userId={config.sleeperUserId} onPick={pickLeague} room={roomSize} floorAway={floorAway} onFloorAway={setFloorAway} />
       )}
     </div>
   );
@@ -239,6 +237,10 @@ interface RoomProps {
   onPick: (leagueId: string) => void;
   /** The room's size as it's drawn. */
   room: { width: number; height: number } | null;
+  /** The payouts have the floor (see PayoutStage): the room's own grid is put away, and it's kept clear until they've
+   * gone again. */
+  floorAway: boolean;
+  onFloorAway: (away: boolean) => void;
 }
 
 /** The floor's button that's open (its panel up), closed again by Escape. */
@@ -298,7 +300,7 @@ const PANEL_GAP_PX = 8;
  * picked on screen. A sideways swipe anywhere slides the
  * names and the lineups along together to the next league (see useSwipePager).
  */
-function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, room }: RoomProps) {
+function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, room, floorAway, onFloorAway }: RoomProps) {
   const { action, last, pick, close } = useFloorAction();
   // The write-ups up: the matchups in brief, the write-up up to just under them (where they end on screen).
   const writeups = action === "writeups";
@@ -344,7 +346,7 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
   const slot = useHeaderSlot();
   // The bench's and the score graph's stages: on the back wall where the lineups were (they step aside), and the floor.
   // A player's card too: a stage of his own (see PlayerStage).
-  const fullStage = action === "bench" || action === "graph" || cardUp;
+  const fullStage = action === "bench" || action === "graph" || action === "payouts" || floorAway || cardUp;
   const stagePlaces: StagePlaces | null = room
     ? {
         wall: {
@@ -402,7 +404,7 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
       {/* The floor's buttons at the front of the room, and the panel one brings up there. */}
       {room ? (
         <>
-          <FloorButtons width={room.width} height={room.height} bottom={room.height - tabBar} hidden={action !== null || cardUp} onPick={pick} />
+          <FloorButtons width={room.width} height={room.height} bottom={room.height - tabBar} hidden={action !== null || cardUp || floorAway} onPick={pick} />
           {/* The write-ups: up to just under the matchups, the rest of the screen. */}
           <WriteupsPanel
             open={writeups}
@@ -419,6 +421,16 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
               <RoomStagePanel kind="graph" open={action === "graph"} places={stagePlaces} onClose={close} league={rooms[index]} week={week} userId={userId} />
             </>
           ) : null}
+          <PayoutStage
+            open={action === "payouts"}
+            leagueId={leagues[index].leagueId}
+            currentWeek={currentWeek}
+            room={room}
+            title={{ top: `calc(${UNDER_SWITCHER})`, left: PANEL_GAP_PX, width: room.width - 2 * PANEL_GAP_PX }}
+            floor={{ bottom: room.height - tabBar - PANEL_GAP_PX, left: PANEL_GAP_PX, width: room.width - 2 * PANEL_GAP_PX }}
+            onClose={close}
+            onAway={onFloorAway}
+          />
           <FrontPanel
             open={action !== null && !writeups && !fullStage}
             title={FLOOR_ACTIONS.find((a) => a.id === last)!.label}
@@ -427,7 +439,7 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
             className="inset-x-2"
             onClose={close}
           >
-            <ActionPanel action={last} league={rooms[index]} currentWeek={currentWeek} />
+            <ActionPanel action={last} league={rooms[index]} />
           </FrontPanel>
         </>
       ) : null}
@@ -514,7 +526,7 @@ function LeaguePane({
  * From laptop width up: three columns with no backgrounds of their own, standing upright on one line across the floor
  * and reflected in it — each scrolling on its own, up behind the see-through header.
  */
-function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, room }: RoomProps) {
+function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, room, floorAway, onFloorAway }: RoomProps) {
   const { action, last, pick, close } = useFloorAction();
   // The write-ups up: every matchup in brief in the middle, the write-up under them across the middle column to the
   // screen's bottom, and its contents in the right-hand column in place of the matchups.
@@ -541,7 +553,7 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
   // The bench's and the score graph's stages: on the back wall in the middle (the lineups step aside), and the floor
   // in front of it.
   // A player's card too: a stage of his own (see PlayerStage).
-  const fullStage = action === "bench" || action === "graph" || cardUp;
+  const fullStage = action === "bench" || action === "graph" || action === "payouts" || floorAway || cardUp;
   const stagePlaces: StagePlaces | null =
     room && middleBox
       ? {
@@ -657,8 +669,12 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
           <ScrollThumb source={lineupColumn} />
         </div>
 
-        {/* The league's matchups, picking the one whose lineups are in the middle. */}
-        <div className="relative w-64 shrink-0 2xl:w-72">
+        {/* The league's matchups, picking the one whose lineups are in the middle — stepping aside while the payouts
+            have the floor, to give the board room. */}
+        <div
+          className={`relative w-64 shrink-0 transition-opacity duration-300 2xl:w-72 ${floorAway ? "pointer-events-none opacity-0" : ""}`}
+          inert={floorAway}
+        >
           <div ref={setMatchupColumn} data-scroll-list className={column} style={columnPad}>
             <div>
               {writeups ? (
@@ -679,13 +695,16 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
         </div>
       </div>
       {/* Each column's reflection: what's at its foot, in the floor. */}
-      <FloorReflection source={leagueColumn} className="pb-16" style={columnPad} />
+      {/* The side columns' too, but not while the payouts have the room looking down at the floor. */}
+      <div className={`transition-opacity duration-300 ${floorAway ? "opacity-0" : ""}`}>
+        <FloorReflection source={leagueColumn} className="pb-16" style={columnPad} />
+        <FloorReflection source={matchupColumn} className="pb-16" style={columnPad} />
+      </div>
       {fullStage ? null : <FloorReflection source={lineupColumn} style={columnPad} />}
-      <FloorReflection source={matchupColumn} className="pb-16" style={columnPad} />
       {/* The floor's buttons at the front of the room between the columns, and the panel one brings up there. */}
       {room ? (
         <>
-          <FloorButtons width={room.width} height={room.height} bottom={room.height - FOOT_PX} hidden={action !== null || cardUp} onPick={pick} />
+          <FloorButtons width={room.width} height={room.height} bottom={room.height - FOOT_PX} hidden={action !== null || cardUp || floorAway} onPick={pick} />
           {/* The write-ups: under the matchups in the middle, down to the screen's bottom. */}
           {middleBox ? (
             <WriteupsPanel
@@ -717,6 +736,19 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
               />
             </>
           ) : null}
+          {middleBox ? (
+            <PayoutStage
+              open={action === "payouts"}
+              leagueId={leagueId}
+              currentWeek={currentWeek}
+              room={room}
+              title={{ top: `calc(${UNDER_HEADER})`, left: middleBox.left, width: room.width - 16 - middleBox.left }}
+              floor={{ bottom: room.height - 12, left: middleBox.left, width: room.width - 16 - middleBox.left }}
+              back
+              onClose={close}
+              onAway={onFloorAway}
+            />
+          ) : null}
           <FrontPanel
             open={action !== null && !writeups && !fullStage}
             title={FLOOR_ACTIONS.find((a) => a.id === last)!.label}
@@ -726,25 +758,11 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
             back={close}
             onClose={close}
           >
-            <ActionPanel action={last} league={rooms[index]} currentWeek={currentWeek} />
+            <ActionPanel action={last} league={rooms[index]} />
           </FrontPanel>
         </>
       ) : null}
     </CareerStageContext.Provider>
-  );
-}
-
-/** A scrolling box in a floor panel, scrolled as the room's lists are (see useListScroll). */
-function PanelScroll({ children }: { children: React.ReactNode }) {
-  const [box, setBox] = useState<HTMLDivElement | null>(null);
-  useListScroll(box);
-  return (
-    <div className="relative h-full">
-      <div ref={setBox} className="h-full touch-none overflow-y-auto overscroll-none pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div>{children}</div>
-      </div>
-      <ScrollThumb source={box} />
-    </div>
   );
 }
 
@@ -774,21 +792,18 @@ const panelLink = (href: string, text: string) => (
 );
 
 /**
- * What a floor button's panel shows (the bench and the score graph have stages of their own, see RoomStagePanel, and
- * the write-ups a panel, see WriteupsPanel): the season's payouts; the way to its history; and a spot kept for
- * something else.
+ * What a floor button's panel shows (the bench and the score graph have stages of their own, see RoomStagePanel, the
+ * payouts the floor itself, see PayoutStage, and the write-ups a panel, see WriteupsPanel): the way to the league's
+ * history; and a spot kept for something else.
  */
 function ActionPanel({
   action,
   league,
-  currentWeek,
 }: {
   action: FloorAction;
   league: RoomLeagueData;
-  currentWeek: number | null;
 }) {
   const leagueId = league.official.league.league_id;
-  if (action === "payouts") return <PayoutsPanel leagueId={leagueId} currentWeek={currentWeek} />;
   if (action === "writeups") return panelLink(`/recap?id=${leagueId}`, "Open the write-ups");
   if (action === "history") return panelLink(`/league/history?id=${leagueId}`, "Open the league's history");
   if (action === "more") return panelNote("Something else is coming here.");
@@ -847,45 +862,6 @@ function RoomStageContent({ kind, places, onClose, back, league, week, userId, m
 function BenchStage(props: Omit<React.ComponentProps<typeof RoomBench>, "numbersOf">) {
   const numbersOf = useLineupNumbers();
   return <RoomBench {...props} numbersOf={numbersOf} />;
-}
-
-/** The season's payouts, played against the league's payout setup (as the league page shows them). */
-function PayoutsPanel({ leagueId, currentWeek }: { leagueId: string; currentWeek: number | null }) {
-  const [money, setMoney] = useState<{ leagueId: string; season: LeagueSeason } | null>(null);
-  const [planned, setPlanned] = useState<{ leagueId: string; plan: PayoutPlan } | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    loadLeagueSeason(leagueId)
-      .then((m) => {
-        if (cancelled || !m) return;
-        setMoney({ leagueId, season: m });
-        setPlanned({ leagueId, plan: startingPlan(leagueId, m) });
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [leagueId]);
-  const asItStands = useAsItStands();
-  const season = money?.leagueId === leagueId ? money.season : null;
-  const plan = planned?.leagueId === leagueId ? planned.plan : null;
-  const shown = useMemo(() => (season && !asItStands ? finishedWeeksOnly(season) : season), [season, asItStands]);
-  const ledger = useMemo(() => (shown && plan ? computePlanLedger(plan, shown.results) : null), [shown, plan]);
-  if (!shown || !plan || !ledger) return panelNote("Loading payouts…");
-  return (
-    <PanelScroll>
-      <MoneyBoard
-        season={shown}
-        plan={plan}
-        ledger={ledger}
-        currentWeek={currentWeek}
-        onPlanChange={(next) => {
-          setPlanned({ leagueId, plan: next });
-          savePayoutPlan(leagueId, next);
-        }}
-      />
-    </PanelScroll>
-  );
 }
 
 export default function LeagueRoomPage() {

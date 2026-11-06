@@ -8,9 +8,9 @@ import type { FloorCameraStore } from "@/lib/floor-camera";
 // hinge to all of it FULL_DEPTH_SHARE of the screen's height back on the floor.
 export const LINE_OPACITY = 0.22;
 // The horizon: as faint as the grid's far end, which runs up to it, fading out toward the screen's sides.
-const HORIZON_OPACITY = LINE_OPACITY * 0.4;
-const FAR_OPACITY = 0.4;
-const FULL_DEPTH_SHARE = 0.6;
+export const HORIZON_OPACITY = LINE_OPACITY * 0.4;
+export const FAR_OPACITY = 0.4;
+export const FULL_DEPTH_SHARE = 0.6;
 const FADE_STOPS = 8;
 
 /**
@@ -53,7 +53,18 @@ export function FloorFade({
  * middle, the screen's middle down the middle of a column of boxes. Fading toward the horizon, its far end as faint
  * as it. Moved and zoomed with the floor (`camera`, see floor-camera.ts).
  */
-export function FloorGrid({ share = HORIZON_SHARE, camera: store, hidden = false }: { share?: number; camera?: FloorCameraStore; hidden?: boolean }) {
+export function FloorGrid({
+  share = HORIZON_SHARE,
+  camera: store,
+  hidden = false,
+  away = false,
+}: {
+  share?: number;
+  camera?: FloorCameraStore;
+  hidden?: boolean;
+  /** Not drawn at all, the horizon too, at once: something else draws the floor for now (see LeagueRoomPayouts). */
+  away?: boolean;
+}) {
   const ref = useRef<SVGSVGElement>(null);
   const camera = useFloorCamera(store).camera;
   const [view, setView] = useState<{ width: number; height: number; dpr: number } | null>(null);
@@ -90,7 +101,7 @@ export function FloorGrid({ share = HORIZON_SHARE, camera: store, hidden = false
       lines.columns.map((l) => `M${l.x1.toFixed(1)} ${l.y1.toFixed(1)}L${l.x2.toFixed(1)} ${l.y2.toFixed(1)}`).join("")
     : "";
   return (
-    <svg ref={ref} className="absolute inset-0 h-full w-full" aria-hidden>
+    <svg ref={ref} className="absolute inset-0 h-full w-full" style={away ? { visibility: "hidden" } : undefined} aria-hidden>
       {view && lines ? (
         <>
           <defs>
