@@ -605,8 +605,12 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
   return (
     <CareerStageContext.Provider value={cardStage}>
       <div className="fixed inset-x-0 top-0 flex gap-4 px-4" style={{ height: `calc(var(--room-h, 100vh) - ${FOOT})` }}>
-        {/* Your leagues by name, picking the one shown — lit like the header's page tabs. */}
-        <div className="relative w-64 shrink-0 2xl:w-72">
+        {/* Your leagues by name, picking the one shown — lit like the header's page tabs. Stepping aside while the payouts
+            have the floor, so their board can lie in the middle of it. */}
+        <div
+          className={`relative w-64 shrink-0 transition-opacity duration-300 2xl:w-72 ${floorAway ? "pointer-events-none opacity-0" : ""}`}
+          inert={floorAway}
+        >
           <div ref={setLeagueColumn} data-scroll-list className={column} style={columnPad}>
             <ul className="flex flex-col gap-1" aria-label="Your leagues">
               {leagues.map((league) => {
@@ -670,7 +674,7 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
         </div>
 
         {/* The league's matchups, picking the one whose lineups are in the middle — stepping aside while the payouts
-            have the floor, to give the board room. */}
+            have the floor, as the leagues do. */}
         <div
           className={`relative w-64 shrink-0 transition-opacity duration-300 2xl:w-72 ${floorAway ? "pointer-events-none opacity-0" : ""}`}
           inert={floorAway}
@@ -742,8 +746,8 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
               leagueId={leagueId}
               currentWeek={currentWeek}
               room={room}
-              title={{ top: `calc(${UNDER_HEADER})`, left: middleBox.left, width: room.width - 16 - middleBox.left }}
-              floor={{ bottom: room.height - 12, left: middleBox.left, width: room.width - 16 - middleBox.left }}
+              title={{ top: `calc(${UNDER_HEADER})`, left: middleBox.left, width: middleBox.width }}
+              floor={{ bottom: room.height - 12, left: 16, width: room.width - 32 }}
               back
               onClose={close}
               onAway={onFloorAway}
