@@ -169,6 +169,7 @@ export function FloorPlay({
   height,
   share,
   camera,
+  active,
   onShown,
 }: {
   width: number;
@@ -176,6 +177,9 @@ export function FloorPlay({
   share: number;
   /** The floor's camera: the field's laid on its grid, moved and zoomed with it. */
   camera?: FloorCameraStore;
+  /** Whether the Red Zone's up: only then are its plays acted out — put away, whatever's on fades off the floor and
+   * what's waiting is dropped, and plays coming in meanwhile are let go by. */
+  active: boolean;
   /** Told when a field comes onto the floor (true) and when it's gone off it again (its play over, or tapped away). */
   onShown?: (shown: boolean) => void;
 }) {
@@ -187,6 +191,13 @@ export function FloorPlay({
   }, [onShown]);
   // Drawn again when the room changes under a play that's done and waiting on the next.
   const redraw = useRef(() => {});
+  // The Red Zone's up (see `active`), and how to take a play off the floor when it's put away.
+  const on = useRef(active);
+  const stop = useRef(() => {});
+  useEffect(() => {
+    on.current = active;
+    if (!active) stop.current();
+  }, [active]);
   useEffect(() => {
     room.current = { width, height, share, camera };
     redraw.current();
@@ -253,7 +264,7 @@ export function FloorPlay({
 
     // The next play in its turn — after the one on now is over; tapped (`force`), straight away.
     const next = async (force = false) => {
-      if (preparing) return;
+      if (preparing || !on.current) return;
       if (!force && current && !ready(current, performance.now())) return;
       let playing = following.shift();
       if (!playing) {
@@ -262,6 +273,11 @@ export function FloorPlay({
         preparing = true;
         [playing, ...following] = await prepare(detail);
         preparing = false;
+        // Put away while it was getting ready: not acted out after all.
+        if (!on.current) {
+          following = [];
+          return;
+        }
         if (!playing) return next(force);
       }
       const now = performance.now();
@@ -272,6 +288,7 @@ export function FloorPlay({
     };
 
     const onPlay = (e: Event) => {
+      if (!on.current) return;
       const detail = (e as CustomEvent<PlayDetail>).detail;
       if (detail.now) {
         queue.length = 0;
@@ -647,14 +664,20 @@ export function FloorPlay({
       const moved = down ? Math.hypot(e.clientX - down[0], e.clientY - down[1]) : 0;
       down = null;
       if (!current || moved > 6 || e.clientY < room.current.height * room.current.share) return;
-      const on = e.target instanceof Element ? e.target : null;
-      if (on?.closest("button, a, input, select, textarea, label, [role='button'], [data-play], [data-scroll-list], [data-floor-ui], header, nav")) return;
+      const target = e.target instanceof Element ? e.target : null;
+      if (target?.closest("button, a, input, select, textarea, label, [role='button'], [data-play], [data-scroll-list], [data-floor-ui], header, nav")) return;
+      takeOff();
+    };
+    // The field faded off the floor, and whatever was waiting to come on with it dropped.
+    const takeOff = () => {
       queue.length = 0;
       following = [];
+      if (!current) return;
       leaving = { playing: current, since: performance.now() };
       current = null;
       loop();
     };
+    stop.current = takeOff;
     window.addEventListener("pointerdown", onDown, true);
     window.addEventListener("click", onTap);
 
@@ -666,6 +689,7 @@ export function FloorPlay({
       cancelAnimationFrame(frame);
       current = null;
       redraw.current = () => {};
+      stop.current = () => {};
     };
   }, []);
 
