@@ -45,6 +45,10 @@ const NET_COL = 56;
 /** The header strip at the back (week numbers, and the regular season/playoffs labels over them), and each manager's row. */
 const HEADER_DEPTH = 46;
 const ROW_DEPTH = 44;
+/** On the room's floor, seen lower down, each manager's row is deeper, so it still shows tall enough to read. */
+const FLOOR_ROW_DEPTH = 66;
+/** On the floor, its words stand a little bigger than they'd lie in a box, to read from further off. */
+const FLOOR_TEXT = 1.15;
 /** The room a cube leaves to the edges of its square, so the biggest a cube can be. */
 const CUBE_GAP = 4;
 const MAX_CUBE = ROW_DEPTH - 2 * CUBE_GAP;
@@ -279,7 +283,8 @@ export function PayoutBoard({
   const seasonX = managerCol + weeks.length * weekCol;
   const totalX = seasonX + seasonCol;
   const netX = totalX + TOTAL_COL;
-  const depth = HEADER_DEPTH + rows.length * ROW_DEPTH;
+  const rowDepth = onFloor ? FLOOR_ROW_DEPTH : ROW_DEPTH;
+  const depth = HEADER_DEPTH + rows.length * rowDepth;
   const project = onFloor ? onFloor.projector(W, depth) : boardProjector(W, depth, TILT);
   const rise = onFloor ? 1 : ownRise;
   /** The paper the board lies on: the room's floor, or its card. */
@@ -287,7 +292,7 @@ export function PayoutBoard({
   const halo = { ...HALO, stroke: paper };
   const center = onFloor ? onFloor.cameraX(W) : W / 2;
   const clipId = `tray-${useId().replace(/:/g, "")}`;
-  const rowY = (i: number) => HEADER_DEPTH + i * ROW_DEPTH;
+  const rowY = (i: number) => HEADER_DEPTH + i * rowDepth;
   const cellX = (k: number) => (k >= weeks.length ? seasonX + seasonCol / 2 : weekX(k) + weekCol / 2);
 
   // Each stretch's scale: as big as its squares leave room for, never smaller than its amounts need.
@@ -319,7 +324,7 @@ export function PayoutBoard({
   const close = stage(stack, 0.63, 1);
   // Where each cube is now: its middle, its length across, its depth and its height.
   const geometry = paid.map((cells, i) => {
-    const y = rowY(i) + ROW_DEPTH / 2;
+    const y = rowY(i) + rowDepth / 2;
     const lengths = cells.map(({ c }) => c.amount * perDollar);
     // Room to lengthen in: each piece as near its own square as the ones before it allow, then pulled back in from the tray's far wall.
     const starts: number[] = [];
@@ -352,16 +357,29 @@ export function PayoutBoard({
     return `${sx.toFixed(1)},${sy.toFixed(1)}`;
   };
   const quad = (...corners: [number, number, number][]) => corners.map(([x, y, h]) => pt(x, y, h)).join(" ");
-  /** Text standing upright at a board point, sized by its distance. */
+  /**
+   * Text at a board point, sized by its distance: in a box of its own, upright on the screen, centred on the point; on
+   * the room's floor, standing up off it there (`lift` px over it), foreshortened as anything upright on it is.
+   */
   const label = (
     x: number,
     y: number,
     h: number,
     text: string,
     size: number,
-    props: React.SVGProps<SVGTextElement> = {}
+    props: React.SVGProps<SVGTextElement> = {},
+    lift = 0
   ) => {
     const [sx, sy, s] = project(x, y, h);
+    if (onFloor) {
+      // How far up the screen a px up off the floor shows here.
+      const up = Math.max(0.05, sy - project(x, y, h + 1)[1]);
+      return (
+        <text transform={`translate(${sx.toFixed(1)} ${sy.toFixed(1)}) scale(${s.toFixed(4)} ${up.toFixed(4)})`} x={0} y={-lift * FLOOR_TEXT} fontSize={size * FLOOR_TEXT} {...props}>
+          {text}
+        </text>
+      );
+    }
     return (
       <text x={sx} y={sy} fontSize={size * s} dominantBaseline="middle" {...props}>
         {text}
@@ -427,7 +445,8 @@ export function PayoutBoard({
           style={{ fill: "color-mix(in srgb, var(--map-tag) 9%, transparent)" }}
         />
       ) : null}
-      <g style={{ fill: "none", stroke: "var(--color-grid)", strokeWidth: 1, strokeLinejoin: "round" }}>
+      {/* On the room's floor, only the floor's own grid lines: none of the board's. */}
+      <g style={{ fill: "none", stroke: "var(--color-grid)", strokeWidth: 1, strokeLinejoin: "round", display: onFloor ? "none" : undefined }}>
         {/* A line under the header and between managers, and the tray's edges. */}
         {rows.map((_, i) => (
           <polyline key={i} points={across(rowY(i))} />
@@ -455,6 +474,20 @@ export function PayoutBoard({
   const amountsShown = 1 - clamp01((stack - 0.3) / 0.1);
   const weeksShown = clamp01((stack - 0.4) / 0.1);
   const onTop = (text: string, room: number) => Math.min(CUBE_FONT, (room - 2 * FACE_PAD) / textWidth(text, 1));
+  // A cube's words: on its top in a box of its own; on the floor, upright across its front face.
+  const onCube = (
+    p: { x: number; y: number; d: number },
+    bottom: number,
+    h: number,
+    text: string,
+    size: number,
+    props: React.SVGProps<SVGTextElement>
+  ) => {
+    if (!onFloor) return label(p.x, p.y, bottom + h, text, size, props);
+    // As big as the face leaves room for, centred up it (label scales both by FLOOR_TEXT).
+    const shown = Math.min(size, h * 0.62);
+    return label(p.x, p.y + p.d / 2, bottom, text, shown / FLOOR_TEXT, props, (h - shown * 0.72) / 2 / FLOOR_TEXT);
+  };
   const standing = rows.map((r, i) => {
     const order = [...geometry[i].pieces].sort((a, b) => Math.abs(b.x - center) - Math.abs(a.x - center));
     return (
@@ -472,7 +505,7 @@ export function PayoutBoard({
               <title>{p.c.title}</title>
               <Cube faces={blockFaces(project, p.x - p.len / 2, p.x + p.len / 2, p.y - p.d / 2, p.y + p.d / 2, h, center, bottom)} paper={paper} />
               {amountsShown > 0 && grown > 0.6
-                ? label(p.x, p.y, bottom + h, money(p.c.amount), onTop(money(p.c.amount), p.side), {
+                ? onCube(p, bottom, h, money(p.c.amount), onTop(money(p.c.amount), p.side), {
                     textAnchor: "middle",
                     fontWeight: 700,
                     className: "tabular-nums",
@@ -480,7 +513,7 @@ export function PayoutBoard({
                   })
                 : null}
               {weeksShown > 0
-                ? label(p.x, p.y, bottom + h, won, onTop(won, p.len), {
+                ? onCube(p, bottom, h, won, onTop(won, p.len), {
                     textAnchor: "middle",
                     fontWeight: 700,
                     style: { fill: "var(--map-tag-ink)", fontStyle: p.c.live ? "italic" : undefined, opacity: weeksShown * clamp01(grown) * (onFloor ? onFloor.labels : 1) },
@@ -495,34 +528,52 @@ export function PayoutBoard({
 
   // Over everything, outlined in the card's color: the headings, each manager's name, total and net, and once stacked, each bar's total at its end.
   const totalShown = clamp01((stack - 0.9) / 0.1);
+  // Where the words stand: on the floor, the headings just behind the first row (what's over them stacked up on them)
+  // and each row's words at its front, standing up over the row.
+  const headY = onFloor ? HEADER_DEPTH - 4 : 21;
+  const stretchY = onFloor ? headY : 6;
+  const stretchLift = onFloor ? 24 : 0;
+  const FRONT = 0.78;
+  const mid = onFloor ? FRONT : 0.5;
   const overlay = (
     <g style={onFloor ? { opacity: onFloor.labels } : undefined}>
       <g className="uppercase" style={{ fill: "var(--color-ink-muted)", letterSpacing: "0.05em", ...halo }}>
-        {firstPlayoff !== 0 ? label(weekX(0) + ((firstPlayoff > 0 ? firstPlayoff : weeks.length) * weekCol) / 2, 6, 0, "Regular season", 9, { textAnchor: "middle" }) : null}
-        {firstPlayoff > 0 ? label(weekX(firstPlayoff) + ((weeks.length - firstPlayoff) * weekCol) / 2, 6, 0, "Playoffs", 9, { textAnchor: "middle" }) : null}
-        {label(4, 21, 0, "Manager", FONT.header, { fontWeight: 500 })}
+        {firstPlayoff !== 0 ? label(weekX(0) + ((firstPlayoff > 0 ? firstPlayoff : weeks.length) * weekCol) / 2, stretchY, 0, "Regular season", 9, { textAnchor: "middle" }, stretchLift) : null}
+        {firstPlayoff > 0 ? label(weekX(firstPlayoff) + ((weeks.length - firstPlayoff) * weekCol) / 2, stretchY, 0, "Playoffs", 9, { textAnchor: "middle" }, stretchLift) : null}
+        {label(4, headY, 0, "Manager", FONT.header, { fontWeight: 500 })}
         {weeks.map((w, i) =>
           i === live ? (
             <g key={w} style={{ fill: "var(--color-ink-primary)" }}>
-              {label(weekX(i) + weekCol / 2, 21, 0, String(w), FONT.header, { textAnchor: "middle", fontWeight: 700 })}
-              {label(weekX(i) + weekCol / 2, 30, 0, "Live", 8, { textAnchor: "middle", fontWeight: 600 })}
+              {label(weekX(i) + weekCol / 2, headY, 0, String(w), FONT.header, { textAnchor: "middle", fontWeight: 700 })}
+              {onFloor
+                ? label(weekX(i) + weekCol / 2, headY, 0, "Live", 8, { textAnchor: "middle", fontWeight: 600 }, 12)
+                : label(weekX(i) + weekCol / 2, 30, 0, "Live", 8, { textAnchor: "middle", fontWeight: 600 })}
             </g>
           ) : (
-            <g key={w}>{label(weekX(i) + weekCol / 2, 21, 0, String(w), FONT.header, { textAnchor: "middle", fontWeight: 500 })}</g>
+            <g key={w}>{label(weekX(i) + weekCol / 2, headY, 0, String(w), FONT.header, { textAnchor: "middle", fontWeight: 500 })}</g>
           )
         )}
-        {hasSeason ? label(seasonX + seasonCol / 2, 21, 0, "Season", FONT.header, { textAnchor: "middle", fontWeight: 500 }) : null}
-        {label(totalX + TOTAL_COL / 2, 21, 0, "Total", FONT.header, { textAnchor: "middle", fontWeight: 500 })}
-        {label(netX + NET_COL - 2, 21, 0, "Net", FONT.header, { textAnchor: "end", fontWeight: 500 })}
+        {hasSeason ? label(seasonX + seasonCol / 2, headY, 0, "Season", FONT.header, { textAnchor: "middle", fontWeight: 500 }) : null}
+        {label(totalX + TOTAL_COL / 2, headY, 0, "Total", FONT.header, { textAnchor: "middle", fontWeight: 500 })}
+        {label(netX + NET_COL - 2, headY, 0, "Net", FONT.header, { textAnchor: "end", fontWeight: 500 })}
       </g>
       {rows.map((r, i) => {
         const y = rowY(i);
         const { pieces, end } = geometry[i];
         return (
           <g key={r.key}>
-            {label(4, y + ROW_DEPTH * 0.36, 0, r.name, FONT.name, { fontWeight: 600, style: { fill: "var(--color-ink-primary)", ...halo } })}
-            {label(4, y + ROW_DEPTH * 0.72, 0, r.username, FONT.username, { style: { fill: "var(--color-ink-muted)", ...halo } })}
-            {label(totalX + TOTAL_COL / 2, y + ROW_DEPTH / 2, 0, money(r.total), FONT.label, {
+            {onFloor ? (
+              <>
+                {label(4, y + rowDepth * FRONT, 0, r.name, FONT.name, { fontWeight: 600, style: { fill: "var(--color-ink-primary)", ...halo } }, FONT.username + 2)}
+                {label(4, y + rowDepth * FRONT, 0, r.username, FONT.username, { style: { fill: "var(--color-ink-muted)", ...halo } })}
+              </>
+            ) : (
+              <>
+                {label(4, y + rowDepth * 0.36, 0, r.name, FONT.name, { fontWeight: 600, style: { fill: "var(--color-ink-primary)", ...halo } })}
+                {label(4, y + rowDepth * 0.72, 0, r.username, FONT.username, { style: { fill: "var(--color-ink-muted)", ...halo } })}
+              </>
+            )}
+            {label(totalX + TOTAL_COL / 2, y + rowDepth * mid, 0, money(r.total), FONT.label, {
               textAnchor: "middle",
               fontWeight: 700,
               className: "tabular-nums",
@@ -530,7 +581,7 @@ export function PayoutBoard({
             })}
             <g>
               <title>Total won, less the buy-in</title>
-              {label(netX + NET_COL - 2, y + ROW_DEPTH / 2, 0, `${r.net > 0 ? "+" : r.net < 0 ? "−" : ""}${money(Math.abs(r.net))}`, FONT.label, {
+              {label(netX + NET_COL - 2, y + rowDepth * mid, 0, `${r.net > 0 ? "+" : r.net < 0 ? "−" : ""}${money(Math.abs(r.net))}`, FONT.label, {
                 textAnchor: "end",
                 className: "tabular-nums",
                 style: { fill: r.net > 0 ? "var(--color-status-good)" : r.net < 0 ? "var(--color-status-critical)" : "var(--color-ink-muted)", ...halo },
@@ -539,7 +590,7 @@ export function PayoutBoard({
             {totalShown > 0 && pieces.length ? (
               <g style={{ opacity: totalShown }}>
                 <title>{`${r.name}: ${money(r.total)} won`}</title>
-                {label(end + 6, y + ROW_DEPTH / 2, onFloor ? -base / 2 : D + (base * rise) / 2, money(r.total), FONT.label + 0.5, {
+                {label(end + 6, y + rowDepth / 2, onFloor ? -base : D + (base * rise) / 2, money(r.total), FONT.label + 0.5, {
                   fontWeight: 700,
                   className: "tabular-nums",
                   style: { fill: "var(--color-ink-primary)", ...halo },

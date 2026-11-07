@@ -29,13 +29,15 @@ const CLOSE_MS = 1400;
 const LOOKED = 0.4;
 /** How far the floor's laid back from upright once it's looked down (the room's is FLOOR_TILT): angled well back,
  * not seen flat on. */
-const VIEW_TILT = 45;
+const VIEW_TILT = 62;
 const VIEW_SIN = Math.sin((VIEW_TILT * Math.PI) / 180);
 /** The perspective once it's looked down, for the board's depth (board px) — no weaker than the least. */
 const PERSPECTIVE_PER_DEPTH = 1.5;
 const LEAST_PERSPECTIVE = 700;
 /** The widest the board's drawn (its own px, at its near edge) — wider screens leave floor either side of it. */
 const BOARD_MOST_PX = 1000;
+/** Kept to the bottom, how much bigger than its own size the board's drawn at most, where there's room. */
+const MOST_FIT = 1.35;
 /** The room's horizon below its title, once it's looked down (px) — and the room it leaves the floor above it. */
 const UNDER_TITLE = 18;
 const OVER_HINGE = 14;
@@ -264,7 +266,8 @@ function FloorPayouts({
     const room = Math.max(40, boardFoot - highest);
     const byHeight = room / (fullDeep * VIEW_COS + (room * fullDeep * VIEW_SIN) / finalP);
     const byWidth = floor.width / (W * fullZoom + (floor.width * fullDeep * VIEW_SIN) / finalP);
-    fit = Math.max(0.45, Math.min(1, byHeight, byWidth));
+    // Bigger than its own size, too, where there's the room for it.
+    fit = Math.max(0.45, Math.min(MOST_FIT, byHeight, byWidth));
   }
   const zoom = fullZoom * fit;
   const deep = depth * zoom;
