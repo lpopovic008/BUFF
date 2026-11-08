@@ -5,7 +5,7 @@ import { GameStarters, GroupedStarter } from "@/lib/my-starters";
 import { NFLGame } from "@/lib/nfl-schedule";
 import { LIVE_TTL_SECONDS } from "@/lib/live-clock";
 import { FeedCandidate, GamePlay, getGamePlays, noteScoreboardSnap, playFirstSeenAt, playFromLastPlay, playersInPlay, runningClock } from "@/lib/play-by-play";
-import { LinePlayer, linesForPlays, PlayLine } from "@/lib/play-lines";
+import { checkAgainstOfficial, LinePlayer, linesForPlays, PlayLine } from "@/lib/play-lines";
 
 /** A play — with whichever of your starters were part of it (none, in the all-plays view, for most) — and everyone in it, a line each. */
 export interface FeedEntry {
@@ -150,7 +150,9 @@ export function useRedZoneFeed(
   weekGames: NFLGame[],
   scope: FeedScope,
   /** Who a play's names can be matched to, by team, likeliest first. */
-  teamPlayers: Map<string, LinePlayer[]>
+  teamPlayers: Map<string, LinePlayer[]>,
+  /** Sleeper's official stat lines so far this week, by player id — each player's running line checked against it. */
+  official?: Record<string, Record<string, number>>
 ): RedZoneFeed {
   const games = useMemo<GameStarters[]>(() => {
     if (scope === "mine") return starters.filter((g) => g.players.length > 0);
@@ -159,6 +161,14 @@ export function useRedZoneFeed(
   }, [starters, weekGames, scope]);
 
   const playsByGame = useGamePlays(games);
+  // The minute it is (plays age into Sleeper's official count — see checkAgainstOfficial).
+  const [minute, setMinute] = useState(0);
+  useEffect(() => {
+    const update = () => setMinute(Math.floor(Date.now() / 60_000));
+    update();
+    const id = window.setInterval(update, 15_000);
+    return () => window.clearInterval(id);
+  }, []);
   // Each game's entries as last worked out, kept while nothing they're made from has changed — so a new
   // play works out only its own game's again, not the thousands of plays in the rest by late Sunday.
   const [byGame] = useState(() => new Map<string, { key: unknown[]; entries: FeedEntry[] }>());
@@ -170,7 +180,8 @@ export function useRedZoneFeed(
       const fetched = playsByGame[game.id] ?? [];
       const plays = withScoreboardPlay(game, fetched);
       const added = plays === fetched ? null : JSON.stringify(plays[plays.length - 1]);
-      const key = [fetched, added, players.map((p) => p.playerId).join(), teamPlayers, scope, game.homeTeam, game.awayTeam];
+      // Worked out again as Sleeper's official lines change, and each minute (as plays age into its count).
+      const key = [fetched, added, players.map((p) => p.playerId).join(), teamPlayers, scope, game.homeTeam, game.awayTeam, official, minute];
       const kept = byGame.get(game.id);
       if (kept && kept.key.every((k, i) => k === key[i])) {
         // The game itself as it stands now (its status, for a play between quarters).
@@ -187,6 +198,8 @@ export function useRedZoneFeed(
       const pool: LinePlayer[] = [...players, ...(teamPlayers.get(game.homeTeam) ?? []), ...(teamPlayers.get(game.awayTeam) ?? [])];
       const myDefenses = new Set(players.filter((p) => p.position === "DEF" && p.team).map((p) => p.team!));
       const lines = linesForPlays(plays, [game.homeTeam, game.awayTeam], pool, myDefenses);
+      // Each player's running line kept to Sleeper's official one (a call overturned after it came in).
+      checkAgainstOfficial(plays, lines, official, minute * 60_000, (p) => playFirstSeenAt(p.id));
       for (const play of plays) {
         const matched = playersInPlay(play, candidates);
         if (matched.length === 0 && scope === "mine") continue;
@@ -200,7 +213,7 @@ export function useRedZoneFeed(
       const byTime = (b.play.at ?? 0) - (a.play.at ?? 0);
       return byTime !== 0 ? byTime : b.play.sequence - a.play.sequence;
     });
-  }, [games, playsByGame, scope, teamPlayers, byGame]);
+  }, [games, playsByGame, scope, teamPlayers, byGame, official, minute]);
 
   const redZone = useMemo(() => {
     const out: RedZoneNow[] = [];

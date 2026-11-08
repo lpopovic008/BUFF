@@ -516,7 +516,7 @@ export function RedZone({
   const shownFollowed = useMemo(() => followed.filter((g) => !hiddenGames.has(g.game.id)), [followed, hiddenGames]);
   const shownGames = useMemo(() => weekGames.filter((g) => !hiddenGames.has(g.id)), [weekGames, hiddenGames]);
   const feedScope: FeedScope = scope === "all" ? "all" : "mine";
-  const feed = useRedZoneFeed(shownFollowed, shownGames, feedScope, teamPlayers);
+  const feed = useRedZoneFeed(shownFollowed, shownGames, feedScope, teamPlayers, weekStats);
   const starterById = useMemo(() => new Map(starters.flatMap((g) => g.players.map((p) => [p.playerId, p] as const))), [starters]);
   // The plays loaded: from the top, a page more as the end comes near — or, around a graph cursor's play far down
   // them, a page either side of it, a page more as either end comes near (see play-window.ts).
@@ -582,7 +582,7 @@ export function RedZone({
     () => (spotlight && spotIndex < 0 ? weekGames.filter((g) => g.id === spotlight.gameId) : []),
     [spotlight, spotIndex, weekGames]
   );
-  const spotFeed = useRedZoneFeed(starters, spotGame, "all", teamPlayers);
+  const spotFeed = useRedZoneFeed(starters, spotGame, "all", teamPlayers, weekStats);
   const spotEntry = spotlight
     ? spotIndex >= 0
       ? feed.entries[spotIndex]

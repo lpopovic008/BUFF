@@ -65,12 +65,21 @@ const SHORT_NAMES = String.raw`${SHORT_NAME}(?:(?:,\s*(?:and\s+)?|\s+and\s+)${SH
 const PRE_SNAP = new RegExp(String.raw`^(?:\s*(?:${SHORT_NAMES} report(?:s|ed)? in as (?:an )?eligible(?: receivers?)?|Direct snap to ${SHORT_NAME})\.)+\s*`, "i");
 
 /**
+ * A play's line as it stands after any replay review: a call that was reversed is told first as it was ruled on the
+ * field, then "...and the play was REVERSED." and the play again as it stands — only that last part counts.
+ */
+export function afterReview(text: string): string {
+  const m = /\bplay was REVERSED\b[^.]*\.\s*/i.exec(text) ?? /\bREVERSED\.\s*/.exec(text);
+  return m ? text.slice(m.index + m[0].length) : text;
+}
+
+/**
  * A play's line from where the play itself starts: the formation notes ("(Shotgun)") and tacklers in
  * parentheses blanked, and the pre-snap notes it can open with dropped, so the line starts with whoever
  * ran, passed or kicked — the lineman who reported in as eligible isn't taken for the runner.
  */
 export function playAction(text: string): string {
-  return text
+  return afterReview(text)
     .replace(/\([^)]*\)|\[[^\]]*\]/g, " ")
     .replace(/\s+/g, " ")
     .trim()

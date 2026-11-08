@@ -51,8 +51,8 @@ const unrubber = (f: number, d: number) => Math.sign(f) * ((Math.abs(f) * d) / (
  * trackpad. The page moves it, not the browser, so that everything drawn from it moves in the very same frame
  * (LIST_MOVE). Within its ends it's the box's own scroll (scrollTop, scroll events, scrolling it from code all as
  * usual); past them, its contents are moved that far, on the graphics card. Drags that start sideways, or on
- * something that takes the finger itself (touch-action none, or data-own-touch), or a mouse's in a text box, are
- * left alone.
+ * something that takes the finger itself (touch-action none, or data-own-touch — but for one marked
+ * data-sideways-only, its up-and-down drags), or a mouse's in a text box, are left alone.
  */
 export function useListScroll(el: HTMLElement | null) {
   useEffect(() => {
@@ -140,7 +140,9 @@ export function useListScroll(el: HTMLElement | null) {
     const down = (e: PointerEvent) => {
       if (e.pointerType === "mouse" && e.button !== 0) return;
       const own = (e.target as Element).closest(".touch-none, [data-own-touch]");
-      if (own && own !== el && el.contains(own)) return;
+      // Something that takes the finger itself — unless it only takes sideways drags (a graph's cursor), whose
+      // up-and-down ones still scroll the list.
+      if (own && own !== el && el.contains(own) && !own.hasAttribute("data-sideways-only")) return;
       // A mouse in a text box selects its text, as ever.
       if (e.pointerType === "mouse" && (e.target as Element).closest("input, textarea, select, [contenteditable='true']")) return;
       // A touch on a gliding list stops it, and is no tap on what's under it.

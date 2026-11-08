@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { GamePlay } from "./play-by-play";
-import { findPlayer, labelNames, LinePlayer, linePoints, linesForPlays, playAction, statLine, statParts } from "./play-lines";
+import { checkAgainstOfficial, findPlayer, labelNames, LinePlayer, linePoints, linesForPlays, OFFICIAL_LAG_MS, playAction, statLine, statParts } from "./play-lines";
 
 function play(over: Partial<GamePlay>): GamePlay {
   return {
@@ -231,4 +231,37 @@ test("statParts marks only the numbers a play moved: good for what went its way,
   assert.deepEqual(marked("QB", { pass_cmp: 3, pass_att: 5, pass_yd: 37, pass_int: 1 }, { pass_att: 1, pass_int: 1 }), ["5:bad", "1:bad"]);
   // The words never; the whole line as it reads.
   assert.equal(statParts("QB", { pass_cmp: 3, pass_att: 4, pass_yd: 37 }, { pass_cmp: 1 }).map((p) => p.text).join(""), "3/4 37 YDS");
+});
+
+test("a call reversed on review counts as it stands, not as it was first ruled", () => {
+  const reversed = play({
+    id: "r",
+    type: "Pass Reception",
+    text:
+      "(Shotgun) J.Allen pass short left to D.Kincaid to BUF 45 for 12 yards (D.Ward). The Replay Official reviewed the pass completion ruling, and the play was REVERSED. (Shotgun) J.Allen pass incomplete short left to D.Kincaid (D.Ward).",
+  });
+  const line = linesForPlays([reversed], ["BUF", "MIA"], pool).get("r")!.find((l) => l.name === "Dalton Kincaid");
+  assert.equal(line?.stats?.rec_yd ?? 0, 0);
+  assert.equal(line?.stats?.rec ?? 0, 0);
+});
+
+test("a player's running line is kept to Sleeper's official one once it's had time to count the plays", () => {
+  const now = 10 * 60_000 + OFFICIAL_LAG_MS;
+  const plays = [
+    // A catch that was later taken away (ESPN still has it).
+    play({ id: "a", sequence: 1, at: 60_000, type: "Pass Reception", text: "J.Allen pass short left to D.Kincaid to BUF 33 for 8 yards (J.Phillips)." }),
+    play({ id: "b", sequence: 2, at: 2 * 60_000, type: "Pass Reception", text: "J.Allen pass short right to D.Kincaid to BUF 43 for 10 yards (J.Phillips)." }),
+    // Too new for Sleeper to have counted.
+    play({ id: "c", sequence: 3, at: now - 30_000, type: "Pass Reception", text: "J.Allen pass short right to D.Kincaid to MIA 47 for 10 yards (J.Phillips)." }),
+  ];
+  const lines = linesForPlays(plays, ["BUF", "MIA"], pool);
+  const kincaidLine = (id: string) => lines.get(id)!.find((l) => l.name === "Dalton Kincaid")!;
+  checkAgainstOfficial(plays, lines, { [kincaid.playerId]: { rec: 1, rec_tgt: 1, rec_yd: 10 } }, now, () => 0);
+  // The counted plays end where Sleeper's line is; the new play goes on top of it.
+  assert.equal(kincaidLine("b").stats!.rec, 1);
+  assert.equal(kincaidLine("b").stats!.rec_yd, 10);
+  assert.equal(kincaidLine("c").stats!.rec, 2);
+  assert.equal(kincaidLine("c").stats!.rec_yd, 20);
+  // What a play itself did is left alone.
+  assert.equal(kincaidLine("c").did!.rec_yd, 10);
 });

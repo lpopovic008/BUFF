@@ -279,3 +279,61 @@ export function statParts(position: string, stats: Record<string, number> | unde
   const order = position === "QB" ? [pass, rush, rec] : position === "RB" ? [rush, rec, pass] : [rec, rush, pass];
   return joined([...order, ...kicks]);
 }
+
+/** The stats a play's line keeps a running count of that Sleeper's official stat line counts the same way. */
+const CHECKED_STATS = [
+  "pass_att", "pass_cmp", "pass_yd", "pass_td", "pass_int", "pass_2pt",
+  "rush_att", "rush_yd", "rush_td", "rush_2pt",
+  "rec", "rec_tgt", "rec_yd", "rec_td", "rec_2pt",
+  "fum_lost", "fgm", "fga", "xpm", "xpa",
+];
+
+/** How long after a play Sleeper's official stats are taken to have counted it (ms). */
+export const OFFICIAL_LAG_MS = 3 * 60_000;
+
+/**
+ * Each player's running stat line checked against Sleeper's official one (`official`, by player id), so a call
+ * overturned or changed after it came in doesn't throw his line off for the rest of the game. Plays from at least
+ * `OFFICIAL_LAG_MS` ago (by ESPN's time for them, or `seenAt`) are Sleeper's to have counted: where its line says
+ * otherwise than they add up to, the difference is made up from the latest of them on — every line of his from there
+ * carrying it, its points worked out again — and the plays since go on top. Lines are changed in place; `plays` in
+ * game order.
+ */
+export function checkAgainstOfficial(
+  plays: GamePlay[],
+  lines: Map<string, PlayLine[]>,
+  official: Record<string, Record<string, number>> | undefined,
+  now: number,
+  seenAt: (play: GamePlay) => number
+): void {
+  if (!official) return;
+  // Each player's lines in game order, and the last of them from a play Sleeper's had time to count.
+  const byPlayer = new Map<string, { lines: PlayLine[]; counted: number }>();
+  for (const play of plays) {
+    const counted = (play.at ?? seenAt(play)) <= now - OFFICIAL_LAG_MS;
+    for (const line of lines.get(play.id) ?? []) {
+      if (!line.playerId || !line.stats || line.position === "DEF" || !official[line.playerId]) continue;
+      const entry = byPlayer.get(line.playerId) ?? { lines: [], counted: -1 };
+      entry.lines.push(line);
+      if (counted) entry.counted = entry.lines.length - 1;
+      byPlayer.set(line.playerId, entry);
+    }
+  }
+  for (const [playerId, { lines: his, counted }] of byPlayer) {
+    if (counted < 0) continue;
+    const theirs = official[playerId];
+    const ours = his[counted].stats!;
+    const off: Record<string, number> = {};
+    for (const key of CHECKED_STATS) {
+      const d = Math.round(((theirs[key] ?? 0) - (ours[key] ?? 0)) * 100) / 100;
+      if (d !== 0) off[key] = d;
+    }
+    if (Object.keys(off).length === 0) continue;
+    for (const line of his.slice(counted)) {
+      const fixed: PlayStats = { ...line.stats };
+      for (const [key, d] of Object.entries(off)) fixed[key] = Math.max(0, (fixed[key] ?? 0) + d);
+      line.stats = fixed;
+      line.total = pprPoints(fixed);
+    }
+  }
+}

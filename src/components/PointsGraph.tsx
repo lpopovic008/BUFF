@@ -257,32 +257,45 @@ export function PointsGraph({
     setCursor({ at: timeAt(e.clientX - el.getBoundingClientRect().left) });
   };
   // A press on the graph: with the cursor up, a tap (no drag) takes it away; a drag moves it. A mouse
-  // just hovering moves it too — but not straight back after a tap took it away, until it leaves and returns.
-  const press = useRef<{ x: number; y: number; clearing: boolean; moved: boolean } | null>(null);
+  // just hovering moves it too — but not straight back after a tap took it away, until it leaves and returns. A
+  // finger's drag only moves it sideways: one that sets off up or down is the list scrolling under it (see
+  // useListScroll's data-sideways-only), and a finger only puts the cursor down once it's lifted (a tap) or moving
+  // sideways — so scrolling past never jolts it.
+  const press = useRef<{ x: number; y: number; clearing: boolean; moved: boolean; scrolling: boolean; touch: boolean } | null>(null);
   const hoverOff = useRef(false);
   const plotHandlers = compact
     ? {}
     : {
         onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => {
           hoverOff.current = false;
-          press.current = { x: e.clientX, y: e.clientY, clearing: cursor !== null, moved: false };
-          if (cursor === null) follow(e);
+          const touch = e.pointerType !== "mouse";
+          press.current = { x: e.clientX, y: e.clientY, clearing: cursor !== null, moved: false, scrolling: false, touch };
+          if (cursor === null && !touch) follow(e);
         },
         onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => {
           const p = press.current;
           if (p) {
-            if (!p.moved && Math.hypot(e.clientX - p.x, e.clientY - p.y) < 6) return;
+            if (p.scrolling) return;
+            const dx = e.clientX - p.x;
+            const dy = e.clientY - p.y;
+            if (!p.moved && Math.hypot(dx, dy) < 6) return;
+            // A finger setting off up or down: the list's, not the cursor's.
+            if (!p.moved && p.touch && Math.abs(dy) > Math.abs(dx)) {
+              p.scrolling = true;
+              return;
+            }
             p.moved = true;
             follow(e);
           } else if (e.pointerType === "mouse" && !hoverOff.current) follow(e);
         },
-        onPointerUp: () => {
+        onPointerUp: (e: React.PointerEvent<HTMLDivElement>) => {
           const p = press.current;
           press.current = null;
-          if (p?.clearing && !p.moved) {
+          if (!p || p.scrolling || p.moved) return;
+          if (p.clearing) {
             setCursor(null);
             hoverOff.current = true;
-          }
+          } else if (p.touch) follow(e);
         },
         onPointerCancel: () => {
           press.current = null;
@@ -401,7 +414,9 @@ export function PointsGraph({
 
       <div
         ref={plotRef}
-        // touch-none: a finger on the graph moves its cursor and nothing else — the page doesn't scroll under it.
+        // touch-none: the page itself never scrolls under a finger on the graph — a sideways drag moves its cursor, and
+        // an up-and-down one scrolls the list it's in (data-sideways-only, see useListScroll).
+        data-sideways-only={compact ? undefined : ""}
         className={`relative flex-1 select-none ${compact ? "min-h-0" : "min-h-[8rem] touch-none"}`}
         {...plotHandlers}
       >
