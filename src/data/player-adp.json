@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-08T18:19:26.165Z",
+  "updatedAt": "2026-11-09T22:58:08.648Z",
   "source": "yafsb",
   "dynastyOneQB": [
     {
@@ -1569,12 +1569,6 @@
       "adp": 240.7
     },
     {
-      "name": "Kendre Miller",
-      "position": "RB",
-      "team": "NO",
-      "adp": 241.1
-    },
-    {
       "name": "Kirk Cousins",
       "position": "QB",
       "team": "LV",
@@ -1625,7 +1619,7 @@
     {
       "name": "Jacoby Brissett",
       "position": "QB",
-      "team": "ARI",
+      "team": "BAL",
       "adp": 244.7
     },
     {
@@ -2869,7 +2863,7 @@
     {
       "name": "Jacoby Brissett",
       "position": "QB",
-      "team": "ARI",
+      "team": "BAL",
       "adp": 166.2
     },
     {
@@ -3749,12 +3743,6 @@
       "adp": 279.6
     },
     {
-      "name": "Kendre Miller",
-      "position": "RB",
-      "team": "NO",
-      "adp": 280
-    },
-    {
       "name": "Isaiah Bond",
       "position": "WR",
       "team": "CLE",
@@ -3949,7 +3937,7 @@
     {
       "name": "Robert Henry Jr.",
       "position": "RB",
-      "team": "SEA",
+      "team": "WAS",
       "adp": 301.7
     },
     {
@@ -6305,7 +6293,7 @@
     {
       "name": "Jacoby Brissett",
       "position": "QB",
-      "team": "ARI",
+      "team": "BAL",
       "adp": 138.9
     },
     {
