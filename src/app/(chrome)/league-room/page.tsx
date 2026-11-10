@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -15,7 +15,7 @@ import { LeagueSwitcher, LeagueTitle, RoomLeague } from "@/components/LeagueSwit
 import { BriefMatchups, CareerStageContext, MatchupList, MatchupProviders, MatchupSlide, MatchupStack, useLineupNumbers, useMatchupHeadToHead } from "@/components/LeagueMatchupCarousel";
 import { RoomBench, RoomGraph, StagePlaces, useStageShown } from "@/components/LeagueRoomStages";
 import { WriteupsPanel } from "@/components/LeagueRoomWriteups";
-import { CloseButton, FLOOR_ACTIONS, FloorAction, FloorButtons, FrontPanel } from "@/components/LeagueRoomFloor";
+import { CloseButton, FLOOR_ACTIONS, FloorAction, FloorButtons, floorButtonRow, FrontPanel } from "@/components/LeagueRoomFloor";
 import type { MatchupSide } from "@/components/MatchupGraph";
 import { PayoutStage } from "@/components/LeagueRoomPayouts";
 import type { ResolvedMatchupGame } from "@/hooks/useLeagueMatchupCarousel";
@@ -49,6 +49,8 @@ const OVER_HORIZON = "0.5rem";
 // The line on the floor the columns stand on, up from the room's bottom: the home page's starters list's.
 const FOOT = "3.25rem";
 const FOOT_PX = 52;
+// How far in from each side the side columns (and the gap to them) reach (px): the floor's buttons stand between.
+const SIDE_COLUMN_PX = 18 * 16;
 
 /** One league as the room shows it: its official summary, as it stands (see useSummariesAsItStands), and its unfinished weeks' matchups. */
 interface RoomLeagueData {
@@ -92,6 +94,37 @@ function useLeagueRoom(league: RoomLeagueData, week: number | null, userId: stri
     </MatchupProviders>
   );
   return { leagueId, standings, owners, myRosterId, carousel, allTime, providers, weekGames, projectionStats, scoring };
+}
+
+/** How long the room takes to look from the lineups to a stage on its floor, or back (ms). */
+const LOOK_MS = 500;
+
+/**
+ * Where the room's horizon is (a share of its height), eased to `target` as it changes — straight there the first
+ * time. With the lineups up, low, the room seen nearly straight on, the floor's buttons standing just in front; with a
+ * stage on the floor (the bench, the score graph, the payouts, a player's card), up where the home page's is.
+ */
+function useRoomShare(target: number | null): number {
+  const [shown, setShown] = useState<number | null>(null);
+  const last = useRef<number | null>(null);
+  useEffect(() => {
+    last.current = shown;
+  });
+  useEffect(() => {
+    if (target === null) return;
+    const from = last.current;
+    let start: number | null = null;
+    let frame = requestAnimationFrame(function step(now) {
+      if (from === null || Math.abs(from - target) < 1e-4) return setShown(target);
+      start ??= now;
+      const t = Math.min(1, (now - start) / LOOK_MS);
+      const eased = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      setShown(from + (target - from) * eased);
+      if (t < 1) frame = requestAnimationFrame(step);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [target]);
+  return shown ?? target ?? HORIZON_SHARE;
 }
 
 const loadingLineups = <p className="text-sm text-ink-secondary">Loading lineups…</p>;
@@ -184,6 +217,9 @@ function LeagueRoomContent() {
   const [room, setRoom] = useState<HTMLDivElement | null>(null);
   const [roomSize, setRoomSize] = useState<{ width: number; height: number } | null>(null);
   const roomHeight = roomSize?.height ?? null;
+  // Where the room's horizon is: told by the room (see RoomProps' onShare), eased there.
+  const [shareTarget, setShareTarget] = useState<number | null>(null);
+  const share = useRoomShare(shareTarget);
   // The room's floor grid put away while the payouts draw the floor themselves (see PayoutStage).
   const [floorAway, setFloorAway] = useState(false);
   useEffect(() => {
@@ -214,13 +250,13 @@ function LeagueRoomContent() {
   return (
     <div style={roomVars}>
       <h1 className="sr-only">{leagues[index].name}</h1>
-      <div ref={setRoom} aria-hidden className="grid-room" style={{ ["--horizon" as string]: `${HORIZON_SHARE * 100}%` }}>
-        <FloorGrid share={HORIZON_SHARE} away={floorAway} />
+      <div ref={setRoom} aria-hidden className="grid-room" style={{ ["--horizon" as string]: `${share * 100}%` }}>
+        <FloorGrid share={share} away={floorAway} />
       </div>
       {desktop ? (
-        <DesktopRoom rooms={rooms} leagues={leagues} index={index} week={shownWeek} currentWeek={week} userId={config.sleeperUserId} onPick={pickLeague} room={roomSize} floorAway={floorAway} onFloorAway={setFloorAway} />
+        <DesktopRoom rooms={rooms} leagues={leagues} index={index} week={shownWeek} currentWeek={week} userId={config.sleeperUserId} onPick={pickLeague} room={roomSize} floorAway={floorAway} onFloorAway={setFloorAway} onShare={setShareTarget} />
       ) : (
-        <PhoneRoom rooms={rooms} leagues={leagues} index={index} week={shownWeek} currentWeek={week} userId={config.sleeperUserId} onPick={pickLeague} room={roomSize} floorAway={floorAway} onFloorAway={setFloorAway} />
+        <PhoneRoom rooms={rooms} leagues={leagues} index={index} week={shownWeek} currentWeek={week} userId={config.sleeperUserId} onPick={pickLeague} room={roomSize} floorAway={floorAway} onFloorAway={setFloorAway} onShare={setShareTarget} />
       )}
     </div>
   );
@@ -241,6 +277,16 @@ interface RoomProps {
    * gone again. */
   floorAway: boolean;
   onFloorAway: (away: boolean) => void;
+  /** Where the room's horizon should be (a share of its height): low under the lineups, to show more of them, the floor's
+   * buttons just in front of it (see floorButtonRow) — up where the home page's is while a stage has the floor. */
+  onShare: (share: number) => void;
+}
+
+/** The room's horizon for what's up: the lineups' (`lineups`, see floorButtonRow), else the stages'. */
+function useShareFor(onShare: (share: number) => void, lineups: number, stage: boolean) {
+  useEffect(() => {
+    onShare(stage ? HORIZON_SHARE : lineups);
+  }, [onShare, lineups, stage]);
 }
 
 /** The floor's button that's open (its panel up), closed again by Escape. */
@@ -300,7 +346,7 @@ const PANEL_GAP_PX = 8;
  * picked on screen. A sideways swipe anywhere slides the
  * names and the lineups along together to the next league (see useSwipePager).
  */
-function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, room, floorAway, onFloorAway }: RoomProps) {
+function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, room, floorAway, onFloorAway, onShare }: RoomProps) {
   const { action, last, pick, close } = useFloorAction();
   // The write-ups up: the matchups in brief, the write-up up to just under them (where they end on screen).
   const writeups = action === "writeups";
@@ -347,6 +393,10 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
   // The bench's and the score graph's stages: on the back wall where the lineups were (they step aside), and the floor.
   // A player's card too: a stage of his own (see PlayerStage).
   const fullStage = action === "bench" || action === "graph" || action === "payouts" || floorAway || cardUp;
+  // The floor's buttons in a row across the floor in front, the horizon just high enough over the tab bar to show them.
+  const buttons = room ? floorButtonRow(room.width, room.height, room.height - tabBar, room.width - 2 * PANEL_GAP_PX) : null;
+  const lineupShare = buttons?.share ?? HORIZON_SHARE;
+  useShareFor(onShare, lineupShare, (action !== null && !writeups) || cardUp || floorAway);
   const stagePlaces: StagePlaces | null = room
     ? {
         wall: {
@@ -376,7 +426,7 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
         <div
           className={`absolute inset-x-0 top-0 overflow-hidden transition-opacity duration-300 ${fullStage ? "pointer-events-none opacity-0" : ""}`}
           inert={fullStage}
-          style={{ height: `calc(var(--room-h, 100svh) * ${HORIZON_SHARE})` }}
+          style={{ height: `calc(var(--room-h, 100svh) * ${lineupShare})` }}
         >
           <div ref={setPanes} className="flex h-full will-change-transform">
             {rooms.map((r, i) => (
@@ -389,6 +439,7 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
                     userId={userId}
                     reflections={reflections}
                     brief={writeups}
+                    share={lineupShare}
                     onBriefEnd={i === index ? setBriefEnd : undefined}
                   />
                 ) : null}
@@ -404,7 +455,7 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
       {/* The floor's buttons at the front of the room, and the panel one brings up there. */}
       {room ? (
         <>
-          <FloorButtons width={room.width} height={room.height} bottom={room.height - tabBar} hidden={action !== null || cardUp || floorAway} onPick={pick} />
+          {buttons ? <FloorButtons width={room.width} height={room.height} row={buttons} hidden={action !== null || cardUp || floorAway} onPick={pick} /> : null}
           {/* The write-ups: up to just under the matchups, the rest of the screen. */}
           <WriteupsPanel
             open={writeups}
@@ -458,6 +509,7 @@ function LeaguePane({
   userId,
   reflections,
   brief = false,
+  share,
   onBriefEnd,
 }: {
   league: RoomLeagueData;
@@ -466,6 +518,8 @@ function LeaguePane({
   reflections: HTMLElement | null;
   /** Every matchup in brief, no lineups (the write-ups are up) — and told where they end on screen. */
   brief?: boolean;
+  /** Where the room's horizon is under the lineups (a share of its height). */
+  share: number;
   onBriefEnd?: (y: number) => void;
 }) {
   const { leagueId, standings, owners, myRosterId, carousel, allTime, providers } = useLeagueRoom(league, week, userId);
@@ -510,8 +564,9 @@ function LeaguePane({
                     owners={owners}
                     allTime={allTime}
                     outlined
-                    // An open matchup fills the pane under the header, down to just over the horizon: no scrolling to see its lineup.
-                    fitHeight={`calc(var(--room-h, 100svh) * ${HORIZON_SHARE} - (${UNDER_SWITCHER}) - ${OVER_HORIZON})`}
+                    // An open matchup fills the pane under the header, down to just over the horizon — scrolling to the rest of
+                    // its lineup, if there's more.
+                    fitHeight={`calc(var(--room-h, 100svh) * ${share} - (${UNDER_SWITCHER}) - ${OVER_HORIZON})`}
                   />
                 )}
         </div>
@@ -526,7 +581,7 @@ function LeaguePane({
  * From laptop width up: three columns with no backgrounds of their own, standing upright on one line across the floor
  * and reflected in it — each scrolling on its own, up behind the see-through header.
  */
-function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, room, floorAway, onFloorAway }: RoomProps) {
+function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, room, floorAway, onFloorAway, onShare }: RoomProps) {
   const { action, last, pick, close } = useFloorAction();
   // The write-ups up: every matchup in brief in the middle, the write-up under them across the middle column to the
   // screen's bottom, and its contents in the right-hand column in place of the matchups.
@@ -554,6 +609,11 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
   // in front of it.
   // A player's card too: a stage of his own (see PlayerStage).
   const fullStage = action === "bench" || action === "graph" || action === "payouts" || floorAway || cardUp;
+  // The floor's buttons in a row across the floor in front, between the side columns, the horizon just high enough over
+  // the columns' foot to show them.
+  const buttons = room ? floorButtonRow(room.width, room.height, room.height - FOOT_PX, room.width - 2 * SIDE_COLUMN_PX) : null;
+  const lineupShare = buttons?.share ?? HORIZON_SHARE;
+  useShareFor(onShare, lineupShare, (action !== null && !writeups) || cardUp || floorAway);
   const stagePlaces: StagePlaces | null =
     room && middleBox
       ? {
@@ -641,7 +701,7 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
           ref={setMiddle}
           className={`relative min-w-0 flex-1 self-start transition-opacity duration-300 ${fullStage ? "pointer-events-none opacity-0" : ""}`}
           inert={fullStage}
-          style={{ height: `calc(var(--room-h, 100vh) * ${HORIZON_SHARE})` }}
+          style={{ height: `calc(var(--room-h, 100vh) * ${lineupShare})` }}
         >
           <div ref={setLineupColumn} data-scroll-list className={`${column} !pb-0`} style={columnPad}>
             <div className={writeups ? "" : "mx-auto max-w-3xl"}>
@@ -664,8 +724,8 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
                         owners={owners}
                         allTime={allTime}
                         outlined
-                        // Down to just over the horizon, its starters spread to fill it: no scrolling to see them.
-                        fitHeight={`calc(var(--room-h, 100vh) * ${HORIZON_SHARE} - (${UNDER_HEADER}) - ${OVER_HORIZON})`}
+                        // Down to just over the horizon, its starters spread to fill it — scrolling to the rest, if there's more.
+                        fitHeight={`calc(var(--room-h, 100vh) * ${lineupShare} - (${UNDER_HEADER}) - ${OVER_HORIZON})`}
                       />
                     )}
             </div>
@@ -708,7 +768,7 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
       {/* The floor's buttons at the front of the room between the columns, and the panel one brings up there. */}
       {room ? (
         <>
-          <FloorButtons width={room.width} height={room.height} bottom={room.height - FOOT_PX} hidden={action !== null || cardUp || floorAway} onPick={pick} />
+          {buttons ? <FloorButtons width={room.width} height={room.height} row={buttons} hidden={action !== null || cardUp || floorAway} onPick={pick} /> : null}
           {/* The write-ups: under the matchups in the middle, down to the screen's bottom. */}
           {middleBox ? (
             <WriteupsPanel

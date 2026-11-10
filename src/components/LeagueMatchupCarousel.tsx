@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ResolvedMatchupGame, ResolvedSlot } from "@/hooks/useLeagueMatchupCarousel";
 import { HeadToHeadBadge, PointsRankBadges, StreakBadge, TeamNameLabel } from "@/components/DashboardMatchupCard";
@@ -693,47 +693,18 @@ export function BriefMatchups({
   );
 }
 
-/** The least room between a fitted lineup's rows (px), before they're shrunk to fit (see FitRows). */
+/** The least room between a fitted lineup's rows (px): any more than fit with it, and the lineup scrolls (see FitRows). */
 const FIT_MIN_GAP = 6;
 
 /**
- * Rows spread evenly down a box (`style`, `className` giving its height): first at its top, last at its bottom — or,
- * with too many to fit with a little room between, all shrunk together until they do. Never scrolls.
+ * Rows spread evenly down a box (`style`, `className` giving its least height): first at its top, last at its bottom —
+ * or, with too many to fit with a little room between, as tall as they are, the box growing to hold them (the list
+ * it's in scrolls to the rest). Never shrunk: they're the size they are anywhere else.
  */
 function FitRows({ className = "", style, children }: { className?: string; style?: React.CSSProperties; children: React.ReactNode }) {
-  const outer = useRef<HTMLDivElement>(null);
-  const inner = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(1);
-  useLayoutEffect(() => {
-    const box = outer.current;
-    const rows = inner.current;
-    if (!box || !rows) return;
-    // Their own heights (a transform doesn't change them), and the least room between.
-    const measure = () => {
-      const kids = [...rows.children] as HTMLElement[];
-      const natural = kids.reduce((sum, k) => sum + k.offsetHeight, 0) + FIT_MIN_GAP * Math.max(0, kids.length - 1);
-      const room = box.clientHeight;
-      const next = room > 0 && natural > room ? room / natural : 1;
-      setScale((was) => (Math.abs(was - next) < 0.002 ? was : next));
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(box);
-    for (const k of rows.children) observer.observe(k);
-    return () => observer.disconnect();
-  });
   return (
-    <div ref={outer} className={className} style={style}>
-      <div
-        ref={inner}
-        className="flex flex-col justify-between"
-        style={{
-          height: `${100 / scale}%`,
-          width: `${100 / scale}%`,
-          transform: scale < 1 ? `scale(${scale})` : undefined,
-          transformOrigin: "top left",
-        }}
-      >
+    <div className={`flex flex-col ${className}`} style={style}>
+      <div className="flex flex-1 flex-col justify-between" style={{ gap: FIT_MIN_GAP }}>
         {children}
       </div>
     </div>
@@ -742,8 +713,8 @@ function FitRows({ className = "", style, children }: { className?: string; styl
 
 /**
  * A matchup's lineups, slot by slot: yours (or the first team's) on the left — and when it's yours, your bench under
- * them. Or (`fit`) just the starters, spread down the box it's given to fill it, shrunk if
- * they'd not fit (see FitRows) — never scrolled.
+ * them. Or (`fit`) just the starters, spread down the box it's given to fill it — or, too many for it, as tall as
+ * they are, to scroll to (see FitRows).
  */
 function MatchupLineup({ game, myRosterId, fit }: { game: ResolvedMatchupGame; myRosterId: number | null; fit?: { className?: string; style?: React.CSSProperties } }) {
   const [mine, other] = sides(game, myRosterId);
@@ -790,7 +761,7 @@ export function MatchupSlide({
   const [mine, other] = sides(game, myRosterId);
   const Header = outlined ? OutlinedMatchupHeader : MatchupHeader;
   return (
-    <div className="flex flex-col gap-3" style={fitHeight ? { height: fitHeight } : undefined}>
+    <div className="flex flex-col gap-3" style={fitHeight ? { minHeight: fitHeight } : undefined}>
       <Header
         leagueId={leagueId}
         left={mine}
@@ -798,7 +769,7 @@ export function MatchupSlide({
         standings={standings}
         headToHead={headToHeadFor(mine, other, owners, allTime)}
       />
-      <MatchupLineup game={game} myRosterId={myRosterId} fit={fitHeight ? { className: "min-h-0 flex-1" } : undefined} />
+      <MatchupLineup game={game} myRosterId={myRosterId} fit={fitHeight ? { className: "flex-1" } : undefined} />
     </div>
   );
 }
@@ -977,7 +948,7 @@ export function MatchupStack({
             >
               <div className="min-h-0 overflow-hidden">
                 <div className="pb-2 pt-3">
-                  <MatchupLineup game={g} myRosterId={myRosterId} fit={lineupHeight ? { style: { height: lineupHeight } } : undefined} />
+                  <MatchupLineup game={g} myRosterId={myRosterId} fit={lineupHeight ? { style: { minHeight: lineupHeight } } : undefined} />
                 </div>
               </div>
             </div>

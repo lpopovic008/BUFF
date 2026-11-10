@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { floorDepth, floorPoint, floorScale, floorY, GRID_PX, HORIZON_SHARE } from "@/lib/grid-room";
+import { FLOOR_TILT, floorDepth, floorPoint, floorScale, HORIZON_SHARE, PERSPECTIVE_PX } from "@/lib/grid-room";
 import { ChevronLeftIcon } from "@/components/ui/Icon";
 
 /** What the League Room's floor offers, each a button lying on a square of its grid. */
@@ -15,152 +15,262 @@ const arc = (cx: number, cy: number, r: number, a0: number, a1: number, n = 16):
   Array.from({ length: n + 1 }, (_, i) => [cx + r * Math.cos(a0 + ((a1 - a0) * i) / n), cy + r * Math.sin(a0 + ((a1 - a0) * i) / n)]);
 
 /**
- * Each button: what it's for, and its icon — lines in a unit square, across it left to right and back to front (0 the
- * far side, as it lies on the floor), drawn lying on its square.
+ * Each button: what it's for, and its icon — lines in a unit square on the button's upright face, across it left to
+ * right and down it top to bottom.
  */
 export const FLOOR_ACTIONS: { id: FloorAction; label: string; icon: Pt[][] }[] = [
   {
     id: "bench",
     label: "Bench",
-    // Two players on a bench.
-    icon: [ring(0.32, 0.3, 0.11), ring(0.68, 0.3, 0.11), arc(0.32, 0.72, 0.2, Math.PI, 2 * Math.PI), arc(0.68, 0.72, 0.2, Math.PI, 2 * Math.PI), [[0.06, 0.86], [0.94, 0.86]]],
+    // Two players sat on a bench.
+    icon: [
+      ring(0.3, 0.24, 0.1),
+      ring(0.7, 0.24, 0.1),
+      arc(0.3, 0.6, 0.19, Math.PI, 2 * Math.PI),
+      arc(0.7, 0.6, 0.19, Math.PI, 2 * Math.PI),
+      [[0.04, 0.62], [0.96, 0.62]],
+      [[0.14, 0.62], [0.14, 0.9]],
+      [[0.86, 0.62], [0.86, 0.9]],
+    ],
   },
   {
     id: "graph",
     label: "Score graph",
-    // Two teams' points climbing over the week.
+    // Two teams' points climbing over the week, each to where it's got to.
     icon: [
-      [[0.1, 0.08], [0.1, 0.9], [0.92, 0.9]],
-      [[0.16, 0.78], [0.38, 0.52], [0.58, 0.62], [0.88, 0.18]],
-      [[0.16, 0.84], [0.42, 0.7], [0.62, 0.44], [0.88, 0.4]],
+      [[0.08, 0.06], [0.08, 0.92], [0.94, 0.92]],
+      [[0.18, 0.76], [0.38, 0.52], [0.56, 0.6], [0.8, 0.2]],
+      [[0.18, 0.84], [0.42, 0.72], [0.6, 0.44], [0.8, 0.48]],
+      ring(0.8, 0.2, 0.045, 12),
+      ring(0.8, 0.48, 0.045, 12),
     ],
   },
   {
     id: "payouts",
     label: "Payouts",
-    // A coin with a dollar sign.
+    // A banknote.
     icon: [
-      ring(0.5, 0.5, 0.42),
-      [[0.66, 0.33], [0.6, 0.27], [0.5, 0.25], [0.4, 0.27], [0.35, 0.34], [0.38, 0.43], [0.5, 0.48], [0.62, 0.53], [0.66, 0.62], [0.62, 0.71], [0.5, 0.75], [0.4, 0.73], [0.34, 0.67]],
-      [[0.5, 0.17], [0.5, 0.83]],
+      [[0.04, 0.24], [0.96, 0.24], [0.96, 0.76], [0.04, 0.76], [0.04, 0.24]],
+      [[0.1, 0.3], [0.9, 0.3], [0.9, 0.7], [0.1, 0.7], [0.1, 0.3]],
+      ring(0.5, 0.5, 0.13),
+      ring(0.22, 0.5, 0.03, 10),
+      ring(0.78, 0.5, 0.03, 10),
     ],
   },
   {
     id: "writeups",
     label: "Write-ups",
-    // A page with its corner folded, written on.
+    // A page with its corner folded, written on, and the pencil writing it.
     icon: [
-      [[0.22, 0.08], [0.62, 0.08], [0.8, 0.26], [0.8, 0.92], [0.22, 0.92], [0.22, 0.08]],
-      [[0.62, 0.08], [0.62, 0.26], [0.8, 0.26]],
-      [[0.34, 0.44], [0.68, 0.44]],
-      [[0.34, 0.58], [0.68, 0.58]],
-      [[0.34, 0.72], [0.58, 0.72]],
+      [[0.14, 0.06], [0.54, 0.06], [0.72, 0.24], [0.72, 0.94], [0.14, 0.94], [0.14, 0.06]],
+      [[0.54, 0.06], [0.54, 0.24], [0.72, 0.24]],
+      [[0.26, 0.42], [0.6, 0.42]],
+      [[0.26, 0.56], [0.6, 0.56]],
+      [[0.26, 0.7], [0.44, 0.7]],
+      [[0.6, 0.86], [0.88, 0.46], [0.96, 0.52], [0.68, 0.92], [0.58, 0.96], [0.6, 0.86]],
     ],
   },
   {
     id: "history",
     label: "League history",
-    // A clock.
-    icon: [ring(0.5, 0.5, 0.42), [[0.5, 0.22], [0.5, 0.5], [0.7, 0.62]]],
+    // A clock's face turned back.
+    icon: [arc(0.5, 0.5, 0.4, -0.6 * Math.PI, 1.05 * Math.PI, 28), [[0.02, 0.36], [0.105, 0.47], [0.22, 0.38]], [[0.5, 0.28], [0.5, 0.52], [0.66, 0.62]]],
   },
   {
     id: "more",
     label: "More to come",
     // Kept for something else.
-    icon: [
-      [[0.5, 0.24], [0.5, 0.76]],
-      [[0.24, 0.5], [0.76, 0.5]],
-    ],
+    icon: [ring(0.22, 0.5, 0.06, 14), ring(0.5, 0.5, 0.06, 14), ring(0.78, 0.5, 0.06, 14)],
   },
 ];
 
-/** How much of its square an icon takes. */
-const ICON_SHARE = 0.6;
-/** How far in from the screen's sides a square's still counted (px). */
-const SIDE_MARGIN = 8;
+const SIN = Math.sin((FLOOR_TILT * Math.PI) / 180);
+const COS = Math.cos((FLOOR_TILT * Math.PI) / 180);
+
+/** Where on the screen the room's floor point (`across`, `d` back from the hinge) shows, `h` up off it — the hinge at screen y `hinge`. */
+function standing(across: number, d: number, h: number, width: number, hinge: number): [number, number] {
+  const toward = Math.min(d * SIN + h * COS, PERSPECTIVE_PX * 0.97);
+  const s = PERSPECTIVE_PX / (PERSPECTIVE_PX - toward);
+  return [width / 2 + across * s, hinge + (d * COS - h * SIN) * s];
+}
+
+/** A button's shape, for its width: how tall it stands, how thick it is, and the gap to the next. */
+const BLOCK = { height: 0.78, thick: 0.42, gap: 0.16 };
+/** The widest a button's face is drawn on the screen (px). */
+const MOST_FACE_PX = 112;
+/** How far in front of where its top would be level with the horizon a button stands (floor px): its top just shows. */
+const CLEAR = 8;
+/** How much of the buttons' reflection the floor shows under them, and the room left under that (px). */
+const REFLECTION_SHOWN = 0.6;
+const UNDER_PX = 8;
+/** The horizon's lowest (a share of the screen's height), however short the buttons. */
+const LOWEST_SHARE = 0.86;
+
+/** The floor's buttons, standing in a row: how wide each is, how tall, how thick, the gap between, where their faces stand (floor px). */
+export interface FloorButtonRow {
+  /** Where the horizon is (a share of the screen's height) for the floor to show them, and no more. */
+  share: number;
+  width: number;
+  height: number;
+  thick: number;
+  gap: number;
+  depth: number;
+}
 
 /**
- * The League Room's buttons lying on its floor: two rows of three squares of the floor's grid — the middle column and
- * those either side of it, in the last two rows before `bottom` (screen y: a phone's tab bar, or the columns' foot) —
- * each an icon drawn flat on its square, as the floor's own lines are, foreshortened toward the horizon. A square
- * partly off the screen keeps its icon on the part that shows. Gone (`hidden`) while a panel's up over them.
+ * The floor's buttons as a row of six standing upright across it, as wide together as `span` (px, across the screen's
+ * middle) allows: just in front of where their tops would rise past the horizon, so they never stand over what's above
+ * it — and the horizon (`share`) just high enough over `bottom` (screen y) for the floor to show them and their
+ * reflections: the room looked at as straight on as they allow.
+ */
+export function floorButtonRow(screenW: number, screenH: number, bottom: number, span: number): FloorButtonRow {
+  const n = FLOOR_ACTIONS.length;
+  const units = n + (n - 1) * BLOCK.gap;
+  const wanted = Math.min(span, units * MOST_FACE_PX);
+  const depthFor = (w: number) => (w * BLOCK.height * SIN) / COS + w * BLOCK.thick + CLEAR;
+  const scaleAt = (d: number) => PERSPECTIVE_PX / (PERSPECTIVE_PX - Math.min(d * SIN, PERSPECTIVE_PX * 0.97));
+  // As wide as fits: a wider button stands nearer, and so shows bigger still.
+  let [lo, hi] = [2, 200];
+  for (let i = 0; i < 40; i++) {
+    const w = (lo + hi) / 2;
+    if (depthFor(w) * SIN < PERSPECTIVE_PX * 0.9 && w * units * scaleAt(depthFor(w)) <= wanted) lo = w;
+    else hi = w;
+  }
+  const width = lo;
+  const height = width * BLOCK.height;
+  const depth = depthFor(width);
+  const front = standing(0, depth, 0, screenW, 0)[1];
+  const reflected = standing(0, depth, -height, screenW, 0)[1];
+  const below = front + (reflected - front) * REFLECTION_SHOWN + UNDER_PX;
+  const share = Math.min(LOWEST_SHARE, Math.max(HORIZON_SHARE, (bottom - below) / screenH));
+  return { share, width, height, thick: width * BLOCK.thick, gap: width * BLOCK.gap, depth };
+}
+
+const path = (pts: [number, number][], close = true) => pts.map(([x, y], j) => `${j ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`).join("") + (close ? "Z" : "");
+
+/** A button's faces, lit from above: its top palest, its sides between, its front darkest. */
+const FACE = {
+  front: "color-mix(in srgb, var(--ink-primary) 8%, var(--page))",
+  frontLit: "color-mix(in srgb, var(--ink-primary) 15%, var(--page))",
+  side: "color-mix(in srgb, var(--ink-primary) 13%, var(--page))",
+  top: "color-mix(in srgb, var(--ink-primary) 22%, var(--page))",
+};
+
+/**
+ * The League Room's buttons: six blocks standing upright on its floor in a row across it (see floorButtonRow), seen in
+ * the room's perspective — each its icon on its face, the floor's own lines hidden behind it, and reflected in the
+ * floor under it. Pressed in a little when pressed. Gone (`hidden`) while a panel's up over them.
  */
 export function FloorButtons({
   width,
   height,
-  bottom,
+  row,
   hidden,
   onPick,
 }: {
   width: number;
   height: number;
-  bottom: number;
+  row: FloorButtonRow;
   hidden: boolean;
   onPick: (action: FloorAction) => void;
 }) {
-  // The last grid line above the bottom, and the two rows before it.
-  let last = 0;
-  while (floorY((last + 1) * GRID_PX, height, HORIZON_SHARE) <= bottom && last < 40) last++;
-  if (last < 2) return null;
-  const at = (across: number, depth: number) => floorPoint(across, depth, width, height, HORIZON_SHARE);
-  const cells = FLOOR_ACTIONS.map((action, i) => {
-    const row = i < 3 ? last - 2 : last - 1;
-    const column = (i % 3) - 1;
-    const [d0, d1] = [row * GRID_PX, (row + 1) * GRID_PX];
-    // The part of the square that shows, across, at its middle depth.
-    const seen = (width / 2 - SIDE_MARGIN) / floorScale((d0 + d1) / 2);
-    const a0 = Math.max(column * GRID_PX - GRID_PX / 2, -seen);
-    const a1 = Math.min(column * GRID_PX + GRID_PX / 2, seen);
-    if (a1 - a0 < 8) return null;
-    const side = Math.min(a1 - a0, GRID_PX) * ICON_SHARE;
-    const [ca, cd] = [(a0 + a1) / 2, (d0 + d1) / 2];
-    const lines = action.icon.map((line) =>
-      line.map(([u, v], j) => {
-        const [x, y] = at(ca + (u - 0.5) * side, cd + (v - 0.5) * side);
-        return `${j ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`;
-      }).join("")
-    );
-    const corners = [at(a0, d0), at(a1, d0), at(a1, d1), at(a0, d1)];
-    const hit = corners.map(([x, y], j) => `${j ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`).join("") + "Z";
-    return { action, lines, hit };
+  const hinge = height * row.share;
+  const at = (across: number, d: number, h: number) => standing(across, d, h, width, hinge);
+  const n = FLOOR_ACTIONS.length;
+  const total = n * row.width + (n - 1) * row.gap;
+  const [d1, d0] = [row.depth, row.depth - row.thick];
+  const side = Math.min(row.width, row.height) * 0.62;
+  const blocks = FLOOR_ACTIONS.map((action, i) => {
+    const x0 = -total / 2 + i * (row.width + row.gap);
+    const x1 = x0 + row.width;
+    const cx = (x0 + x1) / 2;
+    // Up (h > 0) as it stands, or down (h < 0) as it shows in the floor.
+    const faces = (up: number) => {
+      const h = row.height * up;
+      const front = path([at(x0, d1, 0), at(x1, d1, 0), at(x1, d1, h), at(x0, d1, h)]);
+      const top = path([at(x0, d1, h), at(x1, d1, h), at(x1, d0, h), at(x0, d0, h)]);
+      // The sides that face the middle, where you stand.
+      const sides = [x0 > 0 ? path([at(x0, d1, 0), at(x0, d0, 0), at(x0, d0, h), at(x0, d1, h)]) : null, x1 < 0 ? path([at(x1, d1, 0), at(x1, d0, 0), at(x1, d0, h), at(x1, d1, h)]) : null].filter(
+        (f): f is string => f !== null
+      );
+      const icon = action.icon.map((line) => path(line.map(([u, v]) => at(cx + (u - 0.5) * side, d1, up * (row.height / 2 + (0.5 - v) * side))), false));
+      return { front, top, sides, icon };
+    };
+    return { action, up: faces(1), down: faces(-1) };
   });
+  const iconWidth = Math.max(1.25, Math.min(2, side * 0.05 * (at(0, d1, 0)[0] - at(-1, d1, 0)[0])));
+  const reflectTop = at(0, d1, 0)[1];
+  const reflectBottom = at(0, d1, -row.height)[1];
+  const fade = "floor-buttons-fade";
   return (
     <svg
       className={`pointer-events-none fixed inset-0 z-[3] h-full w-full transition-opacity duration-300 ${hidden ? "opacity-0" : ""}`}
       aria-hidden={hidden || undefined}
     >
-      {cells.map((cell) =>
-        cell ? (
-          <g
-            key={cell.action.id}
-            role="button"
-            tabIndex={hidden ? -1 : 0}
-            aria-label={cell.action.label}
-            className={`group cursor-pointer outline-none ${hidden ? "" : "pointer-events-auto"}`}
-            onClick={() => onPick(cell.action.id)}
-            onKeyDown={(e) => {
-              if (e.key !== "Enter" && e.key !== " ") return;
-              e.preventDefault();
-              onPick(cell.action.id);
-            }}
-          >
-            <title>{cell.action.label}</title>
-            {/* The square itself, to tap — lit faintly under a pointer or focus. */}
-            <path
-              d={cell.hit}
-              fill="var(--ink-primary)"
-              fillOpacity={0}
-              stroke="none"
-              className="transition-[fill-opacity] group-hover:[fill-opacity:0.06] group-focus-visible:[fill-opacity:0.1] group-active:[fill-opacity:0.12]"
-            />
-            <g fill="none" stroke="var(--ink-primary)" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="opacity-80 transition-opacity group-hover:opacity-100">
-              {cell.lines.map((d, j) => (
+      <defs>
+        <linearGradient id={`${fade}-g`} gradientUnits="userSpaceOnUse" x1="0" x2="0" y1={reflectTop} y2={reflectBottom}>
+          <stop offset="0" stopColor="white" stopOpacity="0.3" />
+          <stop offset="0.75" stopColor="white" stopOpacity="0" />
+        </linearGradient>
+        <mask id={fade} maskUnits="userSpaceOnUse" x="0" y="0" width={width} height={height}>
+          <rect x="0" y={reflectTop} width={width} height={Math.max(0, reflectBottom - reflectTop)} fill={`url(#${fade}-g)`} />
+        </mask>
+      </defs>
+      {/* Their reflections in the floor, upside down under them, fading out as they go. */}
+      <g mask={`url(#${fade})`}>
+        {blocks.map(({ action, down }) => (
+          <g key={action.id}>
+            {down.sides.map((d, j) => (
+              <path key={j} d={d} fill={FACE.side} />
+            ))}
+            <path d={down.front} fill={FACE.front} stroke="var(--ink-primary)" strokeOpacity={0.5} strokeWidth={1} />
+            <g fill="none" stroke="var(--ink-primary)" strokeWidth={iconWidth} strokeLinecap="round" strokeLinejoin="round">
+              {down.icon.map((d, j) => (
                 <path key={j} d={d} />
               ))}
             </g>
           </g>
-        ) : null
-      )}
+        ))}
+      </g>
+      {blocks.map(({ action, up }) => (
+        <g
+          key={action.id}
+          role="button"
+          tabIndex={hidden ? -1 : 0}
+          aria-label={action.label}
+          className={`group cursor-pointer outline-none ${hidden ? "" : "pointer-events-auto"}`}
+          onClick={() => onPick(action.id)}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter" && e.key !== " ") return;
+            e.preventDefault();
+            onPick(action.id);
+          }}
+        >
+          <title>{action.label}</title>
+          {/* Pressed, it gives a little, down into the floor. */}
+          <g className="transition-transform duration-75 group-active:translate-y-[2px]">
+            {up.sides.map((d, j) => (
+              <path key={j} d={d} fill={FACE.side} stroke="var(--ink-primary)" strokeOpacity={0.35} strokeWidth={1} strokeLinejoin="round" />
+            ))}
+            <path d={up.top} fill={FACE.top} stroke="var(--ink-primary)" strokeOpacity={0.45} strokeWidth={1} strokeLinejoin="round" />
+            <path
+              d={up.front}
+              fill={FACE.front}
+              stroke="var(--ink-primary)"
+              strokeOpacity={0.7}
+              strokeWidth={1.25}
+              strokeLinejoin="round"
+              className="transition-[fill] group-hover:[fill:var(--floor-button-lit)] group-focus-visible:[stroke-width:2.5]"
+              style={{ ["--floor-button-lit" as string]: FACE.frontLit }}
+            />
+            <g fill="none" stroke="var(--ink-primary)" strokeWidth={iconWidth} strokeLinecap="round" strokeLinejoin="round" className="opacity-85 transition-opacity group-hover:opacity-100">
+              {up.icon.map((d, j) => (
+                <path key={j} d={d} />
+              ))}
+            </g>
+          </g>
+        </g>
+      ))}
     </svg>
   );
 }
@@ -287,6 +397,9 @@ export function FloorTiles({
     </svg>
   );
 }
+
+/** How far in from the screen's sides a floor tile's still drawn (px). */
+const SIDE_MARGIN = 8;
 
 /** How tall a row of floor tiles is on the screen, at most (px). */
 const TILE_ROW_PX = 48;
