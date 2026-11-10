@@ -48,8 +48,9 @@ const UNDER_SWITCHER = "var(--header-h, 0px) + 0.5rem";
 const OVER_HORIZON = "0.5rem";
 // What of the floor's kept clear at the room's bottom, under the floor's buttons (px).
 const FOOT_PX = 52;
-// How far in from each side the side columns (and the gap to them) reach (px): the floor's buttons stand between.
-const SIDE_COLUMN_PX = 18 * 16;
+// From laptop width up, how wide each side column is against the middle one: the middle wider, not dominating.
+const SIDE_SHARE = 1;
+const MIDDLE_SHARE = 1.6;
 
 /** One league as the room shows it: its official summary, as it stands (see useSummariesAsItStands), and its unfinished weeks' matchups. */
 interface RoomLeagueData {
@@ -624,7 +625,7 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
   const fullStage = action === "bench" || action === "graph" || action === "payouts" || floorAway || cardUp;
   // The floor's buttons in a row across the floor in front, between the side columns, the horizon just high enough over
   // the columns' foot to show them.
-  const buttons = room ? floorButtonRow(room.width, room.height, room.height - FOOT_PX, room.width - 2 * SIDE_COLUMN_PX) : null;
+  const buttons = room && middleBox ? floorButtonRow(room.width, room.height, room.height - FOOT_PX, middleBox.width) : null;
   const lineupShare = buttons?.share ?? HORIZON_SHARE;
   useShareFor(onShare, lineupShare, (action !== null && !writeups) || cardUp || floorAway);
   const stagePlaces: StagePlaces | null =
@@ -668,7 +669,8 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
     ? {
         top: room.height * HORIZON_SHARE + PANEL_GAP_PX,
         bottom: room.height - 12,
-        className: "left-[18rem] right-[18rem] 2xl:left-[19rem] 2xl:right-[19rem]",
+        left: middleBox?.left,
+        width: middleBox?.width,
         room,
         onShow: setCardUp,
         places: stagePlaces ?? undefined,
@@ -683,7 +685,8 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
             write-up's contents instead). Stepping aside while the payouts have the floor, so their board can lie in the
             middle of it. */}
         <div
-          className={`relative w-64 shrink-0 transition-opacity duration-300 2xl:w-72 ${floorAway ? "pointer-events-none opacity-0" : ""}`}
+          className={`relative min-w-0 transition-opacity duration-300 ${floorAway ? "pointer-events-none opacity-0" : ""}`}
+          style={{ flex: `${SIDE_SHARE} 1 0%` }}
           inert={floorAway}
         >
           <div ref={setLeagueColumn} data-scroll-list className={column} style={columnPad}>
@@ -719,12 +722,12 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
             buttons. Nothing, with the write-ups up over it. */}
         <div
           ref={setMiddle}
-          className={`relative min-w-0 flex-1 self-start transition-opacity duration-300 ${fullStage ? "pointer-events-none opacity-0" : ""}`}
+          className={`relative min-w-0 self-start transition-opacity duration-300 ${fullStage ? "pointer-events-none opacity-0" : ""}`}
           inert={fullStage}
-          style={{ height: `calc(var(--room-h, 100vh) * ${lineupShare})` }}
+          style={{ flex: `${MIDDLE_SHARE} 1 0%`, height: `calc(var(--room-h, 100vh) * ${lineupShare})` }}
         >
           <div ref={setLineupColumn} data-scroll-list className={`${column} !pb-0`} style={columnPad}>
-            <div className="mx-auto max-w-3xl">
+            <div>
               {writeups
                 ? null
                 : !carousel
@@ -752,7 +755,8 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
         {/* The league's matchups, picking the one whose lineups are in the middle (with the write-ups up, each in brief,
             its teams stacked) — stepping aside while the payouts have the floor, as the leagues do. */}
         <div
-          className={`relative w-64 shrink-0 transition-opacity duration-300 2xl:w-72 ${floorAway ? "pointer-events-none opacity-0" : ""}`}
+          className={`relative min-w-0 transition-opacity duration-300 ${floorAway ? "pointer-events-none opacity-0" : ""}`}
+          style={{ flex: `${SIDE_SHARE} 1 0%` }}
           inert={floorAway}
         >
           <div ref={setMatchupColumn} data-scroll-list className={column} style={columnPad}>
@@ -836,7 +840,8 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
             title={FLOOR_ACTIONS.find((a) => a.id === last)!.label}
             top={room.height * HORIZON_SHARE + PANEL_GAP_PX}
             bottom={room.height - 12}
-            className="left-[18rem] right-[18rem] 2xl:left-[19rem] 2xl:right-[19rem]"
+            left={middleBox?.left}
+            width={middleBox?.width}
             back={close}
             onClose={close}
           >

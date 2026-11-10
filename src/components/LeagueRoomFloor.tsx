@@ -424,6 +424,8 @@ export function FrontPanel({
   top,
   bottom,
   className = "",
+  left,
+  width,
   back,
   onClose,
   children,
@@ -433,6 +435,9 @@ export function FrontPanel({
   top: number;
   bottom: number;
   className?: string;
+  /** Across the screen: its left edge and width (px) — else `className` places it. */
+  left?: number;
+  width?: number;
   back?: () => void;
   /** Its × in the top right. */
   onClose?: () => void;
@@ -458,7 +463,7 @@ export function FrontPanel({
   }, [open]);
   if (!drawn && !open) return null;
   return (
-    <div data-floor-ui className={`fixed z-[6] overflow-hidden ${className}`} style={{ top, height: Math.max(0, bottom - top) }}>
+    <div data-floor-ui className={`fixed z-[6] overflow-hidden ${className}`} style={{ top, height: Math.max(0, bottom - top), left, width }}>
       <section
         aria-label={title}
         className="flex h-full flex-col gap-2 transition-transform ease-out"

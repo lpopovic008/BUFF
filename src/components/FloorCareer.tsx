@@ -17,6 +17,9 @@ export interface CareerStage {
   top: number;
   bottom: number;
   className?: string;
+  /** Across the screen: its left edge and width (px) — else `className` places it. */
+  left?: number;
+  width?: number;
   room: { width: number; height: number };
   /** Told when a card comes up, and when it's gone — so what's on the floor there can make way. */
   onShow?: (up: boolean) => void;
@@ -357,7 +360,7 @@ export function FloorCareer({
   }, [boxEl, stage.top, stage.bottom]);
 
   return (
-    <div ref={outer} data-floor-ui className={`fixed z-[7] overflow-hidden ${stage.className ?? ""}`} style={{ top: stage.top, height: Math.max(0, stage.bottom - stage.top) }}>
+    <div ref={outer} data-floor-ui className={`fixed z-[7] overflow-hidden ${stage.className ?? ""}`} style={{ top: stage.top, height: Math.max(0, stage.bottom - stage.top), left: stage.left, width: stage.width }}>
       <div
         role="dialog"
         aria-label={`${player.name}'s career`}
