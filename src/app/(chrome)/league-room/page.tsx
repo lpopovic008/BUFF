@@ -51,6 +51,12 @@ const FOOT_PX = 52;
 // From laptop width up, how wide each side column is against the middle one: the middle wider, not dominating.
 const SIDE_SHARE = 1;
 const MIDDLE_SHARE = 1.6;
+// What's in each column is made for a side column this wide, and a middle one this wide (px): wider, it's all drawn
+// bigger to fit (CSS zoom), up to so much bigger — never smaller.
+const SIDE_MADE_FOR = 300;
+const MIDDLE_MADE_FOR = 640;
+const SIDE_MOST_ZOOM = 1.5;
+const MIDDLE_MOST_ZOOM = 1.35;
 
 /** One league as the room shows it: its official summary, as it stands (see useSummariesAsItStands), and its unfinished weeks' matchups. */
 interface RoomLeagueData {
@@ -662,6 +668,10 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
     matchupColumn?.scrollTo({ top: 0 });
   }, [leagueId, week, lineupColumn, matchupColumn]);
 
+  // Each column's contents drawn bigger to fit it as it's wider than they're made for (inside what its list moves, so
+  // its scrolling, and its reflection's copy, go on as they were).
+  const sideZoom = middleBox ? Math.min(SIDE_MOST_ZOOM, Math.max(1, (middleBox.left - 32) / SIDE_MADE_FOR)) : 1;
+  const middleZoom = middleBox ? Math.min(MIDDLE_MOST_ZOOM, Math.max(1, middleBox.width / MIDDLE_MADE_FOR)) : 1;
   const column = "absolute inset-x-0 bottom-0 top-0 touch-none overflow-y-auto overscroll-none pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
   const columnPad = { paddingTop: `calc(${UNDER_HEADER})` };
   // A player's card comes up out of the floor in front, between the columns (where the floor's panels do).
@@ -690,6 +700,8 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
           inert={floorAway}
         >
           <div ref={setLeagueColumn} data-scroll-list className={column} style={columnPad}>
+            <div>
+            <div style={{ zoom: sideZoom }}>
             {writeups ? (
               // The write-up's contents (see WriteupsPanel).
               <div ref={setContentsSlot} />
@@ -714,6 +726,8 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
               })}
             </ul>
             )}
+            </div>
+            </div>
           </div>
           <ScrollThumb source={leagueColumn} />
         </div>
@@ -728,6 +742,7 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
         >
           <div ref={setLineupColumn} data-scroll-list className={`${column} !pb-0`} style={columnPad}>
             <div>
+            <div style={{ zoom: middleZoom }}>
               {writeups
                 ? null
                 : !carousel
@@ -744,9 +759,11 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
                         allTime={allTime}
                         outlined
                         // Down to just over the horizon, its starters spread to fill it — scrolling to the rest, if there's more.
-                        fitHeight={`calc(var(--room-h, 100vh) * ${lineupShare} - (${UNDER_HEADER}) - ${OVER_HORIZON})`}
+                        // (In its own px, drawn bigger by its zoom.)
+                        fitHeight={`calc((var(--room-h, 100vh) * ${lineupShare} - (${UNDER_HEADER}) - ${OVER_HORIZON}) / ${middleZoom})`}
                       />
                     )}
+            </div>
             </div>
           </div>
           <ScrollThumb source={lineupColumn} />
@@ -761,6 +778,7 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
         >
           <div ref={setMatchupColumn} data-scroll-list className={column} style={columnPad}>
             <div>
+            <div style={{ zoom: sideZoom }}>
               {writeups ? (
                 carousel && games.length > 0 ? (
                   providers(<BriefMatchups games={games} myRosterId={myRosterId} standings={standings} owners={owners} allTime={allTime} stacked />)
@@ -774,6 +792,7 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
                   onPick={(id) => setPicked({ leagueId, week, id })}
                 />
               ) : null}
+            </div>
             </div>
           </div>
           <ScrollThumb source={matchupColumn} />
