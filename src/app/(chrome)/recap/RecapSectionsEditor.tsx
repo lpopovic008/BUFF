@@ -595,13 +595,18 @@ export function RecapSectionsEditor({
     if (!room || !el) return;
     const measure = () => {
       el.style.setProperty("--rn-card-h", "0px");
-      const most = Math.ceil(Math.max(0, ...[...el.querySelectorAll<HTMLElement>(".rn-card")].map((card) => card.getBoundingClientRect().height)));
+      // In its own px: the editor's scaled down to fit where it's narrower than it's made for (see RecapEditor).
+      const scale = el.getBoundingClientRect().width / (el.offsetWidth || 1) || 1;
+      // (A px over, so the tallest is held to it too, whatever the rounding.)
+      const most = Math.ceil(Math.max(0, ...[...el.querySelectorAll<HTMLElement>(".rn-card")].map((card) => card.getBoundingClientRect().height / scale))) + 1;
       el.style.setProperty("--rn-card-h", `${most}px`);
     };
     measure();
-    // Their insides, whose size doesn't follow the boxes' own.
+    // Everything in them, whose size doesn't follow the boxes' own (the boxes themselves do) — and the whole, which
+    // grows as a section's added, or one drawn by a part of its own grows.
     const observer = new ResizeObserver(measure);
-    for (const body of el.querySelectorAll(".rn-card-body")) observer.observe(body);
+    observer.observe(el);
+    for (const card of el.querySelectorAll(".rn-card")) for (const part of card.children) observer.observe(part);
     return () => observer.disconnect();
   });
   const set = <K extends FieldKey>(key: K, value: RecapModel[K]) => onChange({ ...model, [key]: value });
