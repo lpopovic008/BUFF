@@ -43,10 +43,10 @@ interface PanelProps {
 
 /**
  * The League Room's write-ups: the league's write-up for the week (as the Write-ups page edits it, auto-saved) in a
- * panel up out of the floor to just under the week's matchups, the rest of the screen, see-through as the home
- * page's Red Zone is — its sections side by side as many as fit, scrolling within it, a section to add at the bottom.
- * Dragged up or down by its header (flung down, put away). From laptop width up, the write-up's contents go in
- * `contentsSlot`. Sinks back down when it's closed, then leaves.
+ * panel up out of the floor (on a phone to just under the week's matchups, from laptop width up the whole middle
+ * column), see-through as the home page's Red Zone is — its sections one over another, every one the same size,
+ * scrolling within it, a section to add at the bottom. Dragged up or down by its header (flung down, put away). From
+ * laptop width up, the write-up's contents go in `contentsSlot`. Sinks back down when it's closed, then leaves.
  */
 export function WriteupsPanel(props: PanelProps) {
   const { open } = props;

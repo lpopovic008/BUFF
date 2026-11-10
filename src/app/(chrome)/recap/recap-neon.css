@@ -813,14 +813,17 @@
 
 /* ---------- in the League Room's write-ups panel ----------
    See-through over the room (as the Red Zone is): the cards a little of the
-   page's color, the room showing through them. The sections side by side, as
-   many as fit at the editor's authored width (see RecapEditor) up to three,
-   the rest on the next rows; the title, the upcoming week's heading and the
-   section to add right across. */
+   page's color, the room showing through them. The sections one over
+   another in a single column, every box as tall as the tallest
+   (--rn-card-h, measured by RecapSectionsEditor); the title, the upcoming
+   week's heading and the section to add across it too. */
 .recap-neon.app-theme.rn-room {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(max(440px, calc((100% - 2 * var(--rn-gap)) / 3)), 1fr));
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
+}
+.recap-neon.app-theme.rn-room .rn-card {
+  min-height: var(--rn-card-h, 0px);
 }
 .recap-neon.app-theme.rn-room > .rn-badge {
   grid-column: 1 / -1;

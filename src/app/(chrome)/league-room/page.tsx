@@ -583,9 +583,25 @@ function LeaguePane({
  */
 function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, room, floorAway, onFloorAway, onShare, share = HORIZON_SHARE }: RoomProps) {
   const { action, last, pick, close } = useFloorAction();
-  // The write-ups up: every matchup in brief in the middle, the write-up under them across the middle column to the
-  // screen's bottom, and its contents in the right-hand column in place of the matchups.
+  // The write-ups up: the write-up the whole middle column, from under the header to the screen's bottom; every
+  // matchup in brief in the right-hand column, each team over the other; and its contents in the left-hand column in
+  // place of your leagues.
   const writeups = action === "writeups";
+  // Where the header ends (and a gap under it): the write-up's top.
+  const [underHeader, setUnderHeader] = useState(0);
+  useEffect(() => {
+    const read = () => {
+      const css = getComputedStyle(document.documentElement);
+      setUnderHeader((parseFloat(css.getPropertyValue("--header-h")) || 0) + 0.625 * (parseFloat(css.fontSize) || 16));
+    };
+    read();
+    window.addEventListener("resize", read);
+    const late = window.setTimeout(read, 500);
+    return () => {
+      window.removeEventListener("resize", read);
+      window.clearTimeout(late);
+    };
+  }, []);
   // A player's card up on the floor (see cardStage): the floor's buttons make way.
   const [cardUp, setCardUp] = useState(false);
   const [middle, setMiddle] = useState<HTMLDivElement | null>(null);
@@ -601,9 +617,6 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
     observer.observe(middle);
     return () => observer.disconnect();
   }, [middle]);
-  const [briefList, setBriefList] = useState<HTMLDivElement | null>(null);
-  const [briefEnd, setBriefEnd] = useState<number | null>(null);
-  useBottom(writeups ? briefList : null, setBriefEnd);
   const [contentsSlot, setContentsSlot] = useState<HTMLDivElement | null>(null);
   // The bench's and the score graph's stages: on the back wall in the middle (the lineups step aside), and the floor
   // in front of it.
@@ -666,13 +679,18 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
     <CareerStageContext.Provider value={cardStage}>
       {/* On the back wall, down to just over the horizon wherever it is — each column scrolling to what's below. */}
       <div className="fixed inset-x-0 top-0 flex gap-4 px-4" style={{ height: `calc(var(--room-h, 100vh) * ${share} - ${OVER_HORIZON})` }}>
-        {/* Your leagues by name, picking the one shown — lit like the header's page tabs. Stepping aside while the payouts
-            have the floor, so their board can lie in the middle of it. */}
+        {/* Your leagues by name, picking the one shown — lit like the header's page tabs (with the write-ups up, the
+            write-up's contents instead). Stepping aside while the payouts have the floor, so their board can lie in the
+            middle of it. */}
         <div
           className={`relative w-64 shrink-0 transition-opacity duration-300 2xl:w-72 ${floorAway ? "pointer-events-none opacity-0" : ""}`}
           inert={floorAway}
         >
           <div ref={setLeagueColumn} data-scroll-list className={column} style={columnPad}>
+            {writeups ? (
+              // The write-up's contents (see WriteupsPanel).
+              <div ref={setContentsSlot} />
+            ) : (
             <ul className="flex flex-col gap-1" aria-label="Your leagues">
               {leagues.map((league) => {
                 const on = league.leagueId === leagueId;
@@ -692,12 +710,13 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
                 );
               })}
             </ul>
+            )}
           </div>
           <ScrollThumb source={leagueColumn} />
         </div>
 
         {/* The picked matchup's lineups, slot by slot — down to the horizon, the floor in front of it left for its
-            buttons. */}
+            buttons. Nothing, with the write-ups up over it. */}
         <div
           ref={setMiddle}
           className={`relative min-w-0 flex-1 self-start transition-opacity duration-300 ${fullStage ? "pointer-events-none opacity-0" : ""}`}
@@ -705,17 +724,13 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
           style={{ height: `calc(var(--room-h, 100vh) * ${lineupShare})` }}
         >
           <div ref={setLineupColumn} data-scroll-list className={`${column} !pb-0`} style={columnPad}>
-            <div className={writeups ? "" : "mx-auto max-w-3xl"}>
-              {!carousel
-                ? loadingLineups
-                : !shownGame
-                  ? noMatchups
-                  : writeups
-                    ? providers(
-                        <div ref={setBriefList}>
-                          <BriefMatchups games={games} myRosterId={myRosterId} standings={standings} owners={owners} allTime={allTime} />
-                        </div>
-                      )
+            <div className="mx-auto max-w-3xl">
+              {writeups
+                ? null
+                : !carousel
+                  ? loadingLineups
+                  : !shownGame
+                    ? noMatchups
                     : providers(
                       <MatchupSlide
                         leagueId={leagueId}
@@ -734,8 +749,8 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
           <ScrollThumb source={lineupColumn} />
         </div>
 
-        {/* The league's matchups, picking the one whose lineups are in the middle — stepping aside while the payouts
-            have the floor, as the leagues do. */}
+        {/* The league's matchups, picking the one whose lineups are in the middle (with the write-ups up, each in brief,
+            its teams stacked) — stepping aside while the payouts have the floor, as the leagues do. */}
         <div
           className={`relative w-64 shrink-0 transition-opacity duration-300 2xl:w-72 ${floorAway ? "pointer-events-none opacity-0" : ""}`}
           inert={floorAway}
@@ -743,8 +758,9 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
           <div ref={setMatchupColumn} data-scroll-list className={column} style={columnPad}>
             <div>
               {writeups ? (
-                // The write-up's contents (see WriteupsPanel).
-                <div ref={setContentsSlot} />
+                carousel && games.length > 0 ? (
+                  providers(<BriefMatchups games={games} myRosterId={myRosterId} standings={standings} owners={owners} allTime={allTime} stacked />)
+                ) : null
               ) : shownGame ? (
                 <MatchupList
                   games={games}
@@ -770,13 +786,13 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
       {room ? (
         <>
           {buttons ? <FloorButtons width={room.width} height={room.height} row={buttons} hidden={action !== null || cardUp || floorAway} onPick={pick} /> : null}
-          {/* The write-ups: under the matchups in the middle, down to the screen's bottom. */}
+          {/* The write-ups: the whole middle column, from under the header down to the screen's bottom. */}
           {middleBox ? (
             <WriteupsPanel
               open={writeups}
               leagueId={leagueId}
               currentWeek={currentWeek}
-              top={(briefEnd ?? room.height * HORIZON_SHARE) + PANEL_GAP_PX}
+              top={underHeader}
               bottom={room.height - 12}
               left={middleBox.left}
               width={middleBox.width}

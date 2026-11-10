@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import "./recap-neon.css";
 import {
   RecapModel,
@@ -582,11 +582,28 @@ export function RecapSectionsEditor({
   onRemoveSection?: (key: RecapSectionKey) => void;
   onAddSection?: (key: RecapSectionKey) => void;
   /**
-   * In the League Room's write-ups panel: see-through, its sections side by side as many as fit (up to three) and on
-   * onto the next row, and a section to add at the bottom on any screen (there's no contents down the side there).
+   * In the League Room's write-ups panel: see-through, its sections one over another, every one as tall as the
+   * tallest, and a section to add at the bottom on any screen (there's no contents down the side there).
    */
   room?: boolean;
 }) {
+  // In the League Room, every section's box as tall as the tallest (see .rn-room in recap-neon.css): each measured at
+  // its own height, whenever what's in one changes.
+  const root = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const el = root.current;
+    if (!room || !el) return;
+    const measure = () => {
+      el.style.setProperty("--rn-card-h", "0px");
+      const most = Math.ceil(Math.max(0, ...[...el.querySelectorAll<HTMLElement>(".rn-card")].map((card) => card.getBoundingClientRect().height)));
+      el.style.setProperty("--rn-card-h", `${most}px`);
+    };
+    measure();
+    // Their insides, whose size doesn't follow the boxes' own.
+    const observer = new ResizeObserver(measure);
+    for (const body of el.querySelectorAll(".rn-card-body")) observer.observe(body);
+    return () => observer.disconnect();
+  });
   const set = <K extends FieldKey>(key: K, value: RecapModel[K]) => onChange({ ...model, [key]: value });
   const toggleIncluded = (key: RecapSectionKey) =>
     onChange({ ...model, include: { ...model.include, [key]: !isSectionIncluded(model, key) } });
@@ -797,7 +814,7 @@ export function RecapSectionsEditor({
   const missing = addableSections(layout, maxMatchups);
 
   return (
-    <div className={`recap-neon app-theme ${room ? "rn-room" : ""}`}>
+    <div ref={root} className={`recap-neon app-theme ${room ? "rn-room" : ""}`}>
       <span className="rn-badge">Commi$h</span>
       <div data-recap-section="title" className="rn-title-row">
         <TitleField value={model.title} onChange={(v) => set("title", v)} />

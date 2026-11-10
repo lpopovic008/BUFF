@@ -645,19 +645,71 @@ function BriefMatchupHeader({
   );
 }
 
-/** Every matchup of the week in brief (see BriefMatchupHeader), yours on top — the League Room's, with its write-ups up. */
+/**
+ * A matchup in brief with its teams stacked, one over the other (the League Room's on a laptop, in a column at the
+ * side, with its write-ups up): each team's rank and name, under it its PF and PA, its record and streak and its
+ * projected total — the all-time head-to-head against the first team's name. One size, in the full header's colors.
+ */
+function StackedBriefMatchup({
+  teams,
+  standings,
+  headToHead,
+}: {
+  teams: MatchupTeam[];
+  standings: Map<number, TeamStanding>;
+  headToHead: Map<number, AllTimeRecord> | null;
+}) {
+  const projected = useContext(ProjectedContext);
+  const rec = teams.length > 1 ? headToHead?.get(teams[0].rosterId) : undefined;
+  return (
+    <div className={`flex flex-col gap-1 border border-ink-primary px-2 py-1 leading-tight ${BRIEF_TEXT}`}>
+      {teams.map((t, i) => {
+        const { rank, record, streak, pointsRanks } = standings.get(t.rosterId) ?? {};
+        const total = projected?.get(t.rosterId);
+        return (
+          <div key={t.rosterId} className="flex min-w-0 flex-col gap-0.5">
+            <span className="flex min-w-0 items-baseline gap-1.5">
+              {rank != null ? <span className="shrink-0 font-bold tabular-nums text-series-4">{rank}</span> : null}
+              <span className="min-w-0 flex-1 truncate font-bold text-ink-primary">{t.teamName}</span>
+              {i === 0 && rec ? <HeadToHeadBadge wins={rec.wins} losses={rec.losses} className={BRIEF_TEXT} /> : null}
+            </span>
+            <span className="flex min-w-0 items-baseline justify-between gap-2">
+              <span className="flex">
+                <PointsRankBadges pointsRanks={pointsRanks} leagueSize={standings.size} sizeClass={BRIEF_TEXT} />
+              </span>
+              <span className="flex items-baseline gap-1">
+                {record ? <span className="font-bold tabular-nums text-ink-primary">{formatRecord(record.wins, record.losses, record.ties)}</span> : null}
+                <StreakBadge streak={streak} sizeClass={BRIEF_TEXT} />
+              </span>
+              <span className="tabular-nums text-ink-primary opacity-70" title="Projected">
+                {total !== undefined ? formatPoints(total) : ""}
+              </span>
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * Every matchup of the week in brief (see BriefMatchupHeader), yours on top — the League Room's, with its write-ups
+ * up. Or (`stacked`) each with its teams one over the other, for a narrow column (see StackedBriefMatchup).
+ */
 export function BriefMatchups({
   games,
   myRosterId,
   standings,
   owners,
   allTime,
+  stacked: stackTeams = false,
 }: {
   games: ResolvedMatchupGame[];
   myRosterId: number | null;
   standings: Map<number, TeamStanding>;
   owners: Map<number, string>;
   allTime: Map<string, Map<string, AllTimeRecord>> | null;
+  stacked?: boolean;
 }) {
   const myGame = games.find((g) => g.teams.some((t) => t.rosterId === myRosterId));
   const stacked = myGame ? [myGame, ...games.filter((g) => g !== myGame)] : games;
@@ -667,7 +719,11 @@ export function BriefMatchups({
         const [mine, other] = sides(g, myRosterId);
         return (
           <li key={g.matchupId}>
-            <BriefMatchupHeader left={mine} right={other} standings={standings} headToHead={headToHeadFor(mine, other, owners, allTime)} />
+            {stackTeams ? (
+              <StackedBriefMatchup teams={other ? [mine, other] : [mine]} standings={standings} headToHead={headToHeadFor(mine, other, owners, allTime)} />
+            ) : (
+              <BriefMatchupHeader left={mine} right={other} standings={standings} headToHead={headToHeadFor(mine, other, owners, allTime)} />
+            )}
           </li>
         );
       })}
