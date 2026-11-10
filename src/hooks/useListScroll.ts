@@ -33,9 +33,13 @@ const MOVING = 0.1;
 /** How much of a finger's last moves its speed is taken from (ms), and how long it may have held still before letting go and still fling (ms). */
 const FLING_WINDOW_MS = 80;
 const STILL_MS = 50;
-/** A wheel's step bigger than this (px) is a mouse's notch, eased into; smaller, a trackpad's, followed as it comes. */
+/**
+ * A wheel's step bigger than this (px) is a mouse's notch, eased into; smaller, a trackpad's, followed as it comes. A
+ * notch goes this much further than the browser's own step, eased toward with this time constant (ms).
+ */
 const NOTCH_PX = 40;
-const NOTCH_MS = 220;
+const NOTCH_GAIN = 1.25;
+const NOTCH_EASE_MS = 70;
 /** How long after a trackpad stops pushing past an end the list springs back (ms). */
 const WHEEL_SETTLE_MS = 120;
 
@@ -203,6 +207,8 @@ export function useListScroll(el: HTMLElement | null) {
     // end, on the rubber band, until it's let go a moment and springs back.
     let pushed: number | null = null;
     let settle = 0;
+    // Where a mouse's notches are headed.
+    let notchTarget: number | null = null;
     const wheel = (e: WheelEvent) => {
       if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
       e.preventDefault();
@@ -210,12 +216,22 @@ export function useListScroll(el: HTMLElement | null) {
       window.clearTimeout(settle);
       if (Math.abs(delta) >= NOTCH_PX) {
         pushed = null;
-        const from = at;
-        const to = Math.min(maxTop, Math.max(0, (frame ? at : from) + delta));
+        // Notches in a row add up: each goes on from where the last was headed, not from where it's got to.
+        const base = frame && notchTarget !== null ? notchTarget : at;
+        const target = Math.min(maxTop, Math.max(0, base + delta * NOTCH_GAIN));
+        notchTarget = target;
+        let last = 0;
+        // Eased toward it, a little of the way left each frame — so it glides on and settles, however fast the notches.
         return run((t) => {
-          const f = Math.min(1, t / NOTCH_MS);
-          show(from + (to - from) * (1 - Math.pow(1 - f, 3)));
-          return f < 1;
+          const next = at + (target - at) * (1 - Math.exp(-(t - last) / NOTCH_EASE_MS));
+          last = t;
+          if (Math.abs(target - next) < 0.5) {
+            show(target);
+            notchTarget = null;
+            return false;
+          }
+          show(next);
+          return true;
         });
       }
       stop();

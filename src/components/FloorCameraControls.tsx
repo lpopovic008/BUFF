@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { FloorCamera, floorAt, floorDepth, floorPoint, floorScale, floorY, GRID_PX, HOME_CAMERA } from "@/lib/grid-room";
 import { FloorMapFit, floorMapFloor, MAP_BOUNDS } from "@/lib/floor-map";
-import { cameraPutting, cameraShows, cameraUnder, FloorCameraStore, FloorPt, keepOnFloor, MIN_ZOOM, pinchCamera, zoomCameraAt } from "@/lib/floor-camera";
+import { cameraBetween, cameraPutting, cameraShows, cameraUnder, FloorCameraStore, FloorPt, keepOnFloor, MIN_ZOOM, pinchCamera, zoomCameraAt } from "@/lib/floor-camera";
 import { mapSites } from "./FloorMap";
 import { useFloorCamera } from "./FloorGrid";
 import type { MappedGame } from "./GameMap";
@@ -39,6 +39,10 @@ const DROP_MS = 520;
 const SPELLING = ["RZ", "R", "RE", "RED", "RED Z", "RED ZO", "RED ZON", "RED ZONE"];
 
 /** Bare floor — the page's own wrappers marked data-floor, or nothing at all — not anything standing on it. */
+/** A mouse wheel's zoom: how much a px of its scroll zooms the floor, and how quickly it eases there (ms). */
+const WHEEL_ZOOM_PER_PX = 0.0025;
+const WHEEL_EASE_MS = 90;
+
 function onFloor(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) return false;
   return target.hasAttribute("data-floor") || target === document.body || target === document.documentElement || target.tagName === "MAIN";
@@ -117,6 +121,8 @@ export function FloorCameraControls({
     const down = (e: PointerEvent) => {
       if (!onFloor(e.target) || e.clientY <= horizon + 2 || (e.pointerType === "mouse" && e.button !== 0)) return;
       if (e.pointerType === "mouse") e.preventDefault();
+      // Grabbed: a wheel's zoom on its way stops where it is.
+      wheelTarget = null;
       pointers.set(e.pointerId, { at: [e.clientX, e.clientY], grab: [0, 0] });
       moving = pointers.size > 1 && moving;
       regrab();
@@ -143,8 +149,33 @@ export function FloorCameraControls({
       if (pointers.size === 0) moving = pinched = false;
       regrab();
     };
+    // A mouse's wheel zooms it smoothly about the pointer, notch on notch — each going on from where the last was
+    // headed, eased toward a little of the way each frame.
+    let wheelTarget: FloorCamera | null = null;
+    let wheelFrame = 0;
+    let wheelLast = 0;
+    const wheelZoom = (factor: number, at: FloorPt) => {
+      wheelTarget = keep(zoomCameraAt(wheelFrame && wheelTarget ? wheelTarget : store.get().camera, factor, at));
+      zoomedAt = performance.now();
+      if (wheelFrame) return;
+      wheelLast = performance.now();
+      const step = (now: number) => {
+        const target = wheelTarget;
+        if (!target) return void (wheelFrame = 0);
+        const t = 1 - Math.exp(-(now - wheelLast) / WHEEL_EASE_MS);
+        wheelLast = now;
+        const next = cameraBetween(store.get().camera, target, t);
+        const done = Math.abs(next.zoom - target.zoom) < 0.002 && Math.abs(next.x - target.x) < 0.5 && Math.abs(next.d - target.d) < 0.5;
+        store.move(done ? target : next);
+        if (done) {
+          wheelTarget = null;
+          wheelFrame = 0;
+        } else wheelFrame = requestAnimationFrame(step);
+      };
+      wheelFrame = requestAnimationFrame(step);
+    };
     // A pinch on a trackpad (or Ctrl/⌘ + scroll) anywhere over the floor zooms it, about the pointer, and never the
-    // page; a two-finger scroll on the bare floor slides it.
+    // page; so does a wheel (or a trackpad's two-finger scroll) over the bare floor, as a map's does — it's dragged to slide.
     const wheel = (e: WheelEvent) => {
       if (e.clientY <= horizon + 2) return;
       const zoom = e.ctrlKey || e.metaKey;
@@ -158,7 +189,7 @@ export function FloorCameraControls({
         zoomedAt = performance.now();
         store.move(keep(zoomCameraAt(camera, Math.exp(-e.deltaY * px * 0.01), at)));
       } else if (performance.now() - zoomedAt > 300) {
-        store.move(keep(cameraPutting(cameraUnder(camera, at), toFloor(e.clientX - e.deltaX * px, e.clientY - e.deltaY * px), camera.zoom)));
+        wheelZoom(Math.exp(-e.deltaY * px * WHEEL_ZOOM_PER_PX), at);
       }
     };
     // Safari's own pinch (a Mac's trackpad, or two fingers on an iPhone): never the page's zoom while it's on the
@@ -193,6 +224,7 @@ export function FloorCameraControls({
     document.addEventListener("gesturechange", gestureChange, { passive: false });
     document.addEventListener("gestureend", gestureEnd, { passive: false });
     return () => {
+      cancelAnimationFrame(wheelFrame);
       document.removeEventListener("pointerdown", down);
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
