@@ -9,6 +9,7 @@ import { PendingMatchups } from "@/hooks/useAsItStands";
 import { TeamStanding } from "@/lib/league-data";
 import { MatchupRows } from "@/components/LeagueTicker";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
+import { nflLogoUrl } from "@/lib/nfl-logos";
 import { abbreviateFirstName, formatPoints, formatRecord } from "@/lib/format";
 import { getHomeView, saveHomeView } from "@/lib/localStore";
 import { ResolvedPlayer } from "@/lib/players";
@@ -181,45 +182,26 @@ function PlayerName({ name }: { name: string }) {
   );
 }
 
-/** A starter's photo, square (see PlayerHeadshot), bigger than their row — spilling into the gaps above and below it, never making the row taller. */
-/** Whether a starter is shown by their jersey number rather than their photo (see SlotPhoto). */
-const JerseyNumbersContext = createContext(false);
-
 /**
- * A starter's photo — or (`JerseyNumbersContext`), in its square, their jersey number in the app's type, about as tall
- * as the two lines of their name and notes beside it: outlined in the page's ink (white, or black in light mode),
- * filled with the page's own color. Their photo still, with no number to show.
+ * A starter's photo, square (see PlayerHeadshot), bigger than their row — spilling into the gaps above and below it,
+ * never making the row taller. A defense, its team's logo.
  */
 function SlotPhoto({ player }: { player: ResolvedPlayer }) {
-  const numbers = useContext(JerseyNumbersContext);
-  if (numbers && player.number) {
+  const sizeClass = "h-[1.875rem] w-[1.875rem] sm:h-[2.125rem] sm:w-[2.125rem]";
+  if (player.position === "DEF") {
+    const team = player.team ?? player.playerId;
     return (
       <span className="-my-1 flex justify-center">
-        <svg viewBox="0 0 100 100" className="h-[1.875rem] w-[1.875rem] sm:h-[2.125rem] sm:w-[2.125rem]" role="img" aria-label={`#${player.number}`}>
-          <text
-            x="50"
-            y="50"
-            textAnchor="middle"
-            dominantBaseline="central"
-            fontFamily="var(--font-sans)"
-            fontWeight={800}
-            fontSize={player.number.length > 1 ? 74 : 80}
-            letterSpacing={player.number.length > 1 ? -5 : 0}
-            fill="var(--page)"
-            stroke="var(--ink-primary)"
-            strokeWidth={6}
-            strokeLinejoin="round"
-            paintOrder="stroke"
-          >
-            {player.number}
-          </text>
-        </svg>
+        <span className={`relative shrink-0 ${sizeClass}`}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={nflLogoUrl(team)} alt="" loading="lazy" className="absolute inset-[10%] h-[80%] w-[80%] object-contain" />
+        </span>
       </span>
     );
   }
   return (
     <span className="-my-1 flex justify-center">
-      <PlayerHeadshot playerId={player.playerId} sizeClass="h-[1.875rem] w-[1.875rem] sm:h-[2.125rem] sm:w-[2.125rem]" square />
+      <PlayerHeadshot playerId={player.playerId} sizeClass={sizeClass} square />
     </span>
   );
 }
@@ -1008,7 +990,6 @@ export function MatchupProviders({
   positions = NO_POSITIONS,
   season = null,
   scoring,
-  jerseyNumbers = false,
   fullNames = false,
   children,
 }: {
@@ -1019,8 +1000,6 @@ export function MatchupProviders({
   positions?: string[];
   season?: string | null;
   scoring?: Record<string, number>;
-  /** Starters shown by their jersey numbers, not their photos (see SlotPhoto). */
-  jerseyNumbers?: boolean;
   /** Starters' names in full on a phone too, not "J. Allen" (the League Room's). */
   fullNames?: boolean;
   children: React.ReactNode;
@@ -1044,7 +1023,6 @@ export function MatchupProviders({
     <PositionsContext.Provider value={positions}>
     <PlayerCardContext.Provider value={season ? (player: ResolvedPlayer, numbers: LineupNumbers) => setCard({ player, numbers }) : null}>
     <FullNamesContext.Provider value={fullNames}>
-    <JerseyNumbersContext.Provider value={jerseyNumbers}>
       {/* Over the page, not inside the list it was opened from (whose reflection would copy it). */}
       {card && season
         ? createPortal(
@@ -1060,7 +1038,6 @@ export function MatchupProviders({
           )
         : null}
       {children}
-    </JerseyNumbersContext.Provider>
     </FullNamesContext.Provider>
     </PlayerCardContext.Provider>
     </PositionsContext.Provider>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { BOARD_TILT, BlockFace, blockFaces, BoardProjector, boardProjector } from "@/lib/board-3d";
 import { formatMoney as money } from "@/lib/payout-plan";
 
@@ -81,12 +81,6 @@ const FACE: Record<BlockFace["side"], string> = {
 /** A cube's top, where its amount sits (the legend's amounts sit on the same). */
 export const CUBE_TOP = FACE.top;
 
-/** On the room's floor, the tray's walls: shaded in the floor's ink, as a hole in it would be. */
-const FLOOR_WALL = {
-  back: "color-mix(in srgb, var(--ink-primary) 9%, transparent)",
-  side: "color-mix(in srgb, var(--ink-primary) 5%, transparent)",
-};
-
 /** The tray's faces: its floor faintly, the walls a little more, the board's front edge most. */
 const TRAY = {
   floor: "color-mix(in srgb, var(--map-tag) 4%, transparent)",
@@ -127,32 +121,26 @@ type Stretch = "regular" | "playoffs" | "season";
 /**
  * The board drawn on the League Room's floor rather than in a box of its own (see LeagueRoomPayouts): as wide as
  * `width` (at least), projected where it lies on the floor now (`projector`, for the board's own width and depth),
- * the camera over board x `cameraX`. No board of its own: the floor itself is sunk into a tray, `sink` of the way
- * down — the cubes left where they were, their tops level with the floor, so once it's sunk past them they float
- * over the tray's bottom — and its words come in `labels` of the way. Drawn into the room's own SVG, the floor's grid
- * (the room's) drawn by the room: it's told where the tray is.
+ * the camera over board x `cameraX`. No board of its own, and nothing sunk into the floor: the cubes stand on it,
+ * each row's in line with its team's name, risen `rise` of the way up out of it, a dot on every square no cube
+ * stands on — and its words come in `labels` of the way, the team names reflected in the floor. Drawn into the room's
+ * own SVG, the floor's grid (the room's) drawn by the room.
  */
 export interface BoardOnFloor {
   width: number;
   projector: (width: number, depth: number) => BoardProjector;
   cameraX: (width: number) => number;
-  sink: number;
+  rise: number;
   labels: number;
-  /** Told the board's width and depth, and its tray (`deep`: how far down it sinks), in its own px, as they change. */
-  onLayout?: (width: number, depth: number, tray: BoardTray) => void;
+  /** Told the board's width and depth, and how high its headings stand up off the back of it, in its own px, as they change. */
+  onLayout?: (width: number, depth: number, over: number) => void;
 }
 
-/** The tray sunk into the board, in the board's own px: across it, back to front, and how deep it goes. */
-export interface BoardTray {
-  x0: number;
-  x1: number;
-  y0: number;
-  y1: number;
-  deep: number;
-}
-
-/** On the floor, the tray's this much deeper than the biggest cube, so every cube floats over its bottom. */
-const FLOOR_TRAY_DEEPER = 1.7;
+/** On the floor, a dot where a cube would stand: its radius (board px). */
+const DOT_R = 1.8;
+/** How strong the team names' reflections in the floor are, and how far down they reach (a share of the name's height). */
+const NAME_REFLECTION = 0.2;
+const REFLECTION_REACH = 0.75;
 
 export function PayoutBoard({
   rows,
@@ -291,7 +279,6 @@ export function PayoutBoard({
   const paper = onFloor ? "var(--page)" : "var(--color-surface-raised)";
   const halo = { ...HALO, stroke: paper };
   const center = onFloor ? onFloor.cameraX(W) : W / 2;
-  const clipId = `tray-${useId().replace(/:/g, "")}`;
   const rowY = (i: number) => HEADER_DEPTH + i * rowDepth;
   const cellX = (k: number) => (k >= weeks.length ? seasonX + seasonCol / 2 : weekX(k) + weekCol / 2);
 
@@ -323,8 +310,12 @@ export function PayoutBoard({
   const grow = stage(stack, 0.3, 0.66);
   const close = stage(stack, 0.63, 1);
   // Where each cube is now: its middle, its length across, its depth and its height.
+  // On the floor, every cube's front face on its row's line — where its team's name stands — so its amount reads in
+  // line with the name; in a box of its own, each in the middle of its row.
+  const FRONT = 0.78;
+  const frontY = (i: number) => rowY(i) + rowDepth * FRONT;
   const geometry = paid.map((cells, i) => {
-    const y = rowY(i) + rowDepth / 2;
+    const y = onFloor ? frontY(i) : rowY(i) + rowDepth / 2;
     const lengths = cells.map(({ c }) => c.amount * perDollar);
     // Room to lengthen in: each piece as near its own square as the ones before it allow, then pulled back in from the tray's far wall.
     const starts: number[] = [];
@@ -347,7 +338,7 @@ export function PayoutBoard({
       const thick = lerp(side, base, grow);
       const x = close > 0 ? lerp(roomy, stacked, close) : lerp(cellX(k), roomy, apart);
       along += len;
-      return { k, c, side, x, y, len: lerp(side, len, grow), d: thick, h: thick };
+      return { k, c, side, x, y: onFloor ? y - thick / 2 : y, len: lerp(side, len, grow), d: thick, h: thick };
     });
     return { pieces, y, end: along };
   });
@@ -368,12 +359,14 @@ export function PayoutBoard({
     text: string,
     size: number,
     props: React.SVGProps<SVGTextElement> = {},
-    lift = 0
+    lift = 0,
+    /** On the floor, its reflection in it: upside down under where it stands. */
+    reflected = false
   ) => {
     const [sx, sy, s] = project(x, y, h);
     if (onFloor) {
-      // How far up the screen a px up off the floor shows here.
-      const up = Math.max(0.05, sy - project(x, y, h + 1)[1]);
+      // How far up the screen a px up off the floor shows here (down it, reflected).
+      const up = Math.max(0.05, sy - project(x, y, h + 1)[1]) * (reflected ? -REFLECTION_REACH : 1);
       return (
         <text transform={`translate(${sx.toFixed(1)} ${sy.toFixed(1)}) scale(${s.toFixed(4)} ${up.toFixed(4)})`} x={0} y={-lift * FLOOR_TEXT} fontSize={size * FLOOR_TEXT} {...props}>
           {text}
@@ -396,15 +389,17 @@ export function PayoutBoard({
 
   const firstPlayoff = weeks.indexOf(regularSeasonWeeks + 1);
   const live = weeks.findIndex((_, i) => rows.some((r) => r.weeks[i]?.live));
-  // On the floor, the tray goes down past every cube, and the cubes keep their tops level with the floor.
-  const trayDeep = onFloor ? sunk * FLOOR_TRAY_DEEPER : sunk;
-  const D = -trayDeep * (onFloor ? onFloor.sink : 1);
+  // In a box of its own, the tray goes down as deep as the biggest cube; on the floor, nothing's sunk.
+  const D = onFloor ? 0 : -sunk;
+  // On the floor the headings stand up over the tallest cube, a sign along the back, so the first row's cubes never
+  // hide them — the stretches' names over them.
+  const headLift = onFloor ? sunk + 4 : 0;
+  const stretchLift = onFloor ? headLift + 20 : 0;
+  const over = onFloor ? stretchLift + 14 : 0;
   const onLayout = onFloor?.onLayout;
   useEffect(() => {
-    if (width > 0) onLayout?.(W, depth, { x0: trayX0, x1: trayX1, y0: HEADER_DEPTH, y1: depth, deep: trayDeep });
-  }, [onLayout, W, depth, width, trayX0, trayX1, trayDeep]);
-  /** The tray's opening in the floor: what's sunk shows only through it. */
-  const opening = quad([trayX0, HEADER_DEPTH, 0], [trayX1, HEADER_DEPTH, 0], [trayX1, depth, 0], [trayX0, depth, 0]);
+    if (width > 0) onLayout?.(W, depth, over);
+  }, [onLayout, W, depth, width, over]);
   /** A line along the board at `y`, dipping into the tray across it. */
   const across = (y: number) => [pt(0, y), pt(trayX0, y), pt(trayX0, y, D), pt(trayX1, y, D), pt(trayX1, y), pt(W, y)].join(" ");
   /** A line down the board at `x` inside the tray: over the header, down the tray's back wall, along its floor. */
@@ -412,18 +407,14 @@ export function PayoutBoard({
 
   const walls = (
     <>
-      {/* The tray: its floor, its back and side walls (their insides, facing the camera), and — in a box of its own — the
-          board's front edge either side (on the floor, the floor runs on past it). */}
-      <polygon points={quad([trayX0, HEADER_DEPTH, D], [trayX1, HEADER_DEPTH, D], [trayX1, depth, D], [trayX0, depth, D])} style={{ fill: onFloor ? "none" : TRAY.floor }} />
-      <polygon points={quad([trayX0, HEADER_DEPTH, 0], [trayX1, HEADER_DEPTH, 0], [trayX1, HEADER_DEPTH, D], [trayX0, HEADER_DEPTH, D])} style={{ fill: onFloor ? FLOOR_WALL.back : TRAY.back }} />
-      <polygon points={quad([trayX0, HEADER_DEPTH, 0], [trayX0, depth, 0], [trayX0, depth, D], [trayX0, HEADER_DEPTH, D])} style={{ fill: onFloor ? FLOOR_WALL.side : TRAY.side }} />
-      <polygon points={quad([trayX1, HEADER_DEPTH, 0], [trayX1, depth, 0], [trayX1, depth, D], [trayX1, HEADER_DEPTH, D])} style={{ fill: onFloor ? FLOOR_WALL.side : TRAY.side }} />
-      {onFloor ? null : (
-        <>
-          <polygon points={quad([0, depth, 0], [trayX0, depth, 0], [trayX0, depth, D], [0, depth, D])} style={{ fill: TRAY.edge }} />
-          <polygon points={quad([trayX1, depth, 0], [W, depth, 0], [W, depth, D], [trayX1, depth, D])} style={{ fill: TRAY.edge }} />
-        </>
-      )}
+      {/* The tray (in a box of its own; on the floor, nothing's sunk): its floor, its back and side walls (their insides,
+          facing the camera), and the board's front edge either side. */}
+      <polygon points={quad([trayX0, HEADER_DEPTH, D], [trayX1, HEADER_DEPTH, D], [trayX1, depth, D], [trayX0, depth, D])} style={{ fill: TRAY.floor }} />
+      <polygon points={quad([trayX0, HEADER_DEPTH, 0], [trayX1, HEADER_DEPTH, 0], [trayX1, HEADER_DEPTH, D], [trayX0, HEADER_DEPTH, D])} style={{ fill: TRAY.back }} />
+      <polygon points={quad([trayX0, HEADER_DEPTH, 0], [trayX0, depth, 0], [trayX0, depth, D], [trayX0, HEADER_DEPTH, D])} style={{ fill: TRAY.side }} />
+      <polygon points={quad([trayX1, HEADER_DEPTH, 0], [trayX1, depth, 0], [trayX1, depth, D], [trayX1, HEADER_DEPTH, D])} style={{ fill: TRAY.side }} />
+      <polygon points={quad([0, depth, 0], [trayX0, depth, 0], [trayX0, depth, D], [0, depth, D])} style={{ fill: TRAY.edge }} />
+      <polygon points={quad([trayX1, depth, 0], [W, depth, 0], [W, depth, D], [trayX1, depth, D])} style={{ fill: TRAY.edge }} />
     </>
   );
   const floor = (
@@ -493,11 +484,10 @@ export function PayoutBoard({
     return (
       <g key={r.key}>
         {order.map((p) => {
-          // On the floor, its top stays level with the floor while the floor sinks away from under it: as much of it
-          // shows as the floor's gone down past, up to all of it.
-          const h = onFloor ? Math.min(p.h, -D) : p.h * rise;
+          // Rising up out of the floor (or the tray's bottom), as far as it's risen.
+          const h = p.h * (onFloor ? onFloor.rise : rise);
           if (h <= 0.01) return null;
-          const bottom = onFloor ? -h : D;
+          const bottom = D;
           const grown = onFloor ? 1 : rise;
           const won = p.k >= weeks.length ? "Season" : `W${weeks[p.k]}`;
           return (
@@ -532,30 +522,28 @@ export function PayoutBoard({
   // and each row's words at its front, standing up over the row.
   const headY = onFloor ? HEADER_DEPTH - 4 : 21;
   const stretchY = onFloor ? headY : 6;
-  const stretchLift = onFloor ? 24 : 0;
-  const FRONT = 0.78;
   const mid = onFloor ? FRONT : 0.5;
   const overlay = (
     <g style={onFloor ? { opacity: onFloor.labels } : undefined}>
       <g className="uppercase" style={{ fill: "var(--color-ink-muted)", letterSpacing: "0.05em", ...halo }}>
         {firstPlayoff !== 0 ? label(weekX(0) + ((firstPlayoff > 0 ? firstPlayoff : weeks.length) * weekCol) / 2, stretchY, 0, "Regular season", 9, { textAnchor: "middle" }, stretchLift) : null}
         {firstPlayoff > 0 ? label(weekX(firstPlayoff) + ((weeks.length - firstPlayoff) * weekCol) / 2, stretchY, 0, "Playoffs", 9, { textAnchor: "middle" }, stretchLift) : null}
-        {label(4, headY, 0, "Manager", FONT.header, { fontWeight: 500 })}
+        {label(4, headY, 0, "Manager", FONT.header, { fontWeight: 500 }, headLift)}
         {weeks.map((w, i) =>
           i === live ? (
             <g key={w} style={{ fill: "var(--color-ink-primary)" }}>
-              {label(weekX(i) + weekCol / 2, headY, 0, String(w), FONT.header, { textAnchor: "middle", fontWeight: 700 })}
+              {label(weekX(i) + weekCol / 2, headY, 0, String(w), FONT.header, { textAnchor: "middle", fontWeight: 700 }, headLift)}
               {onFloor
-                ? label(weekX(i) + weekCol / 2, headY, 0, "Live", 8, { textAnchor: "middle", fontWeight: 600 }, 12)
+                ? label(weekX(i) + weekCol / 2, headY, 0, "Live", 8, { textAnchor: "middle", fontWeight: 600 }, headLift + 12)
                 : label(weekX(i) + weekCol / 2, 30, 0, "Live", 8, { textAnchor: "middle", fontWeight: 600 })}
             </g>
           ) : (
-            <g key={w}>{label(weekX(i) + weekCol / 2, headY, 0, String(w), FONT.header, { textAnchor: "middle", fontWeight: 500 })}</g>
+            <g key={w}>{label(weekX(i) + weekCol / 2, headY, 0, String(w), FONT.header, { textAnchor: "middle", fontWeight: 500 }, headLift)}</g>
           )
         )}
-        {hasSeason ? label(seasonX + seasonCol / 2, headY, 0, "Season", FONT.header, { textAnchor: "middle", fontWeight: 500 }) : null}
-        {label(totalX + TOTAL_COL / 2, headY, 0, "Total", FONT.header, { textAnchor: "middle", fontWeight: 500 })}
-        {label(netX + NET_COL - 2, headY, 0, "Net", FONT.header, { textAnchor: "end", fontWeight: 500 })}
+        {hasSeason ? label(seasonX + seasonCol / 2, headY, 0, "Season", FONT.header, { textAnchor: "middle", fontWeight: 500 }, headLift) : null}
+        {label(totalX + TOTAL_COL / 2, headY, 0, "Total", FONT.header, { textAnchor: "middle", fontWeight: 500 }, headLift)}
+        {label(netX + NET_COL - 2, headY, 0, "Net", FONT.header, { textAnchor: "end", fontWeight: 500 }, headLift)}
       </g>
       {rows.map((r, i) => {
         const y = rowY(i);
@@ -564,6 +552,10 @@ export function PayoutBoard({
           <g key={r.key}>
             {onFloor ? (
               <>
+                {/* The team's name reflected in the floor, upside down just under where it stands. */}
+                <g style={{ opacity: NAME_REFLECTION }}>
+                  {label(4, y + rowDepth * FRONT, 0, r.name, FONT.name, { fontWeight: 600, style: { fill: "var(--color-ink-primary)" } }, 0, true)}
+                </g>
                 {label(4, y + rowDepth * FRONT, 0, r.name, FONT.name, { fontWeight: 600, style: { fill: "var(--color-ink-primary)", ...halo } }, FONT.username + 2)}
                 {label(4, y + rowDepth * FRONT, 0, r.username, FONT.username, { style: { fill: "var(--color-ink-muted)", ...halo } })}
               </>
@@ -590,7 +582,7 @@ export function PayoutBoard({
             {totalShown > 0 && pieces.length ? (
               <g style={{ opacity: totalShown }}>
                 <title>{`${r.name}: ${money(r.total)} won`}</title>
-                {label(end + 6, y + rowDepth / 2, onFloor ? -base : D + (base * rise) / 2, money(r.total), FONT.label + 0.5, {
+                {label(end + 6, onFloor ? frontY(i) : y + rowDepth / 2, onFloor ? 0 : D + (base * rise) / 2, money(r.total), FONT.label + 0.5, {
                   fontWeight: 700,
                   className: "tabular-nums",
                   style: { fill: "var(--color-ink-primary)", ...halo },
@@ -604,18 +596,22 @@ export function PayoutBoard({
   );
 
   if (onFloor) {
+    // A dot on the floor where a cube would stand on every square none does — where the middle of one its row's
+    // smallest size would be — gone as the cubes stack.
+    const dotBack = (sides.length ? Math.min(...sides) : MAX_CUBE / 2) / 2;
+    const dots = rows.flatMap((r, i) =>
+      [...r.weeks, ...(r.season ? [r.season] : [])].flatMap((c, k) => {
+        if (c.amount > 0) return [];
+        const [cx, cy] = [cellX(k), frontY(i) - dotBack];
+        const ring = Array.from({ length: 12 }, (_, n) => pt(cx + DOT_R * Math.cos((n / 12) * 2 * Math.PI), cy + DOT_R * Math.sin((n / 12) * 2 * Math.PI)));
+        return [<polygon key={`${r.key}-${k}`} points={ring.join(" ")} />];
+      })
+    );
     return width > 0 ? (
       <g role="img" aria-label="Payouts by week for each manager: every payout a cube on its square, its face as big as the amount">
-        <defs>
-          <clipPath id={clipId}>
-            <polygon points={opening} />
-          </clipPath>
-        </defs>
-        {/* What's sunk into the floor, seen through the tray's opening: its walls, the board's lines (once it's begun
-            to sink), then the cubes over them. */}
-        <g clipPath={`url(#${clipId})`}>{walls}</g>
-        <g style={{ opacity: clamp01(onFloor.sink * 3) }}>{floor}</g>
-        <g clipPath={`url(#${clipId})`}>{standing}</g>
+        <g style={{ opacity: clamp01(onFloor.rise * 3) }}>{floor}</g>
+        <g style={{ fill: "var(--color-ink-muted)", opacity: onFloor.rise * (1 - grow) }}>{dots}</g>
+        {standing}
         {overlay}
       </g>
     ) : null;

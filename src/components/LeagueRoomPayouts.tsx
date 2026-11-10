@@ -4,17 +4,16 @@ import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useSta
 import { FAR_OPACITY, FULL_DEPTH_SHARE, HORIZON_OPACITY, LINE_OPACITY } from "@/components/FloorGrid";
 import { FloorTitle } from "@/components/LeagueRoomStages";
 import { PayoutLegend, PayoutTotals, boardData } from "@/components/MoneyBoard";
-import { BoardTray, PayoutBoard } from "@/components/PayoutBoard";
+import { PayoutBoard } from "@/components/PayoutBoard";
 import { useAsItStands } from "@/hooks/useAsItStands";
 import { FLOOR_TILT, GRID_PX, HORIZON_SHARE, PERSPECTIVE_PX } from "@/lib/grid-room";
 import { finishedWeeksOnly, loadLeagueSeason, LeagueSeason, startingPlan } from "@/lib/league-money";
 import { savePayoutPlan } from "@/lib/localStore";
 import { computePlanLedger, PayoutPlan } from "@/lib/payout-plan";
 
-// The payouts as part of the League Room's floor. Opened, the room looks down at its floor; the floor then sinks in
-// where the payout board's tray is (see PayoutBoard), leaving the cubes where they were — their tops level with the
-// floor, floating over the tray's bottom once it's gone down past them — and then the board's words and amounts come
-// in. Closed, it all goes back the way it came.
+// The payouts as part of the League Room's floor. Opened, the room looks down at its floor; the payout board's cubes
+// then rise up out of it, each row's in line with its team's name (see PayoutBoard), and then the board's words and
+// amounts come in. Closed, it all goes back the way it came.
 //
 // The room's floor (grid-room.ts) is hinged at the horizon and laid back FLOOR_TILT under a perspective of
 // PERSPECTIVE_PX. Looking down is that same floor swung up about its hinge to VIEW_TILT, the perspective easing to
@@ -29,7 +28,7 @@ const CLOSE_MS = 1400;
 const LOOKED = 0.4;
 /** How far the floor's laid back from upright once it's looked down (the room's is FLOOR_TILT): angled well back,
  * not seen flat on. */
-const VIEW_TILT = 62;
+const VIEW_TILT = 68;
 const VIEW_SIN = Math.sin((VIEW_TILT * Math.PI) / 180);
 /** The perspective once it's looked down, for the board's depth (board px) — no weaker than the least. */
 const PERSPECTIVE_PER_DEPTH = 1.5;
@@ -207,9 +206,9 @@ function FloorPayouts({
 }) {
   const id = useId().replace(/:/g, "");
   const { width: RW, height: RH } = room;
-  // Each step in turn: looking down, the floor sinking in (leaving the cubes), the words and amounts coming in.
+  // Each step in turn: looking down, the cubes rising up out of the floor, the words and amounts coming in.
   const look = easeInOut(clamp01(p / LOOKED));
-  const sink = easeInOut(clamp01((p - 0.42) / 0.36));
+  const rise = easeInOut(clamp01((p - 0.42) / 0.36));
   const labels = clamp01((p - 0.78) / 0.22);
   const titleIn = clamp01((p - 0.15) / 0.2);
 
@@ -230,12 +229,9 @@ function FloorPayouts({
   }, [titleBox]);
 
   // The board's size, in its own px, once it's laid out; and what's under it, on the screen.
-  const [layout, setLayout] = useState<{ W: number; depth: number; tray: BoardTray | null }>({ W: Math.min(floor.width, BOARD_MOST_PX), depth: 500, tray: null });
+  const [layout, setLayout] = useState<{ W: number; depth: number; over: number }>({ W: Math.min(floor.width, BOARD_MOST_PX), depth: 500, over: 0 });
   const onLayout = useCallback(
-    (W: number, depth: number, tray: BoardTray) =>
-      setLayout((was) =>
-        was.W === W && was.depth === depth && was.tray && (["x0", "x1", "y0", "y1", "deep"] as const).every((k) => was.tray![k] === tray[k]) ? was : { W, depth, tray }
-      ),
+    (W: number, depth: number, over: number) => setLayout((was) => (was.W === W && was.depth === depth && was.over === over ? was : { W, depth, over })),
     []
   );
   const [info, setInfo] = useState<HTMLDivElement | null>(null);
@@ -251,14 +247,15 @@ function FloorPayouts({
 
   // Looked down: laid back VIEW_TILT under a perspective for the board's size, hinged just under the title — the board
   // drawn at the zoom (floor px per board px) that shows its near edge at its own size.
-  const { W, depth, tray } = layout;
+  const { W, depth, over } = layout;
   const finalP = Math.max(LEAST_PERSPECTIVE, PERSPECTIVE_PER_DEPTH * depth);
   const fullZoom = finalP / (finalP + depth * VIEW_SIN);
   // Kept to the bottom (`atBottom`): what's under the board down at the floor's foot, the board just over it — made
   // smaller to fit there, between it and the title, and across the floor — and whatever room's left over above it.
   const VIEW_COS = Math.cos((VIEW_TILT * Math.PI) / 180);
   const fullDeep = depth * fullZoom;
-  const highest = titleBottom + UNDER_TITLE;
+  // The board's headings stand up off its back (see PayoutBoard): room left for them under the title.
+  const highest = titleBottom + UNDER_TITLE + over * fullZoom * VIEW_SIN;
   const boardFoot = floor.bottom - infoH - INFO_GAP;
   let fit = 1;
   if (atBottom) {
@@ -370,8 +367,6 @@ function FloorPayouts({
       .join("") + columns.join("");
   const hingeRow = rows.find((r) => r.first);
 
-  // Where a board point (its own px) is on the floor.
-  const onFloorAt = (x: number, y: number, h = 0) => [(x - W / 2) * zoom + boardX, y * zoom + offD, h * zoom] as const;
   const projector = useCallback(
     (bw: number) =>
       (x: number, y: number, h = 0): [number, number, number] => {
@@ -384,36 +379,6 @@ function FloorPayouts({
   );
   const cameraX = useCallback((bw: number) => bw / 2 - boardX / zoom, [boardX, zoom]);
   const nearY = seen(pose, RW, 0, deep + offD)[1];
-
-  // The floor sunk in where the board's tray is: its opening cut out of the floor's grid, and the grid carried on down
-  // inside it — down the back and side walls, and across its bottom.
-  const hole = tray && sink > 0 ? tray : null;
-  const pt = (across: number, d: number, h = 0) => {
-    const [x, y] = seen(pose, RW, across, d, h);
-    return `${x.toFixed(1)} ${y.toFixed(1)}`;
-  };
-  let opening = "";
-  let sunkPath = "";
-  if (hole) {
-    const [a0, d0] = onFloorAt(hole.x0, hole.y0);
-    const [a1, d1] = onFloorAt(hole.x1, hole.y1);
-    const h = -hole.deep * sink * zoom;
-    opening = `M${pt(a0, d0)}L${pt(a1, d0)}L${pt(a1, d1)}L${pt(a0, d1)}Z`;
-    const parts: string[] = [];
-    // Across: on each side wall, then over the bottom.
-    for (let n = Math.ceil((d0 - offD) / GRID_PX); n * GRID_PX + offD <= d1; n++) {
-      const d = n * GRID_PX + offD;
-      parts.push(`M${pt(a0, d)}L${pt(a0, d, h)}L${pt(a1, d, h)}L${pt(a1, d)}`);
-    }
-    // Back: down the back wall, then along the bottom.
-    for (let k = Math.ceil((a0 - offX) / GRID_PX - 0.5); (k + 0.5) * GRID_PX + offX <= a1; k++) {
-      const a = (k + 0.5) * GRID_PX + offX;
-      parts.push(`M${pt(a, d0)}L${pt(a, d0, h)}L${pt(a, d1, h)}`);
-    }
-    // The bottom's edges.
-    parts.push(`M${pt(a0, d0, h)}L${pt(a1, d0, h)}M${pt(a0, d0, h)}L${pt(a0, d1, h)}M${pt(a1, d0, h)}L${pt(a1, d1, h)}`);
-    sunkPath = parts.join("");
-  }
 
   const [stacked, setStacked] = useState(false);
   const board = data
@@ -438,17 +403,6 @@ function FloorPayouts({
           <clipPath id={`${id}-clip`}>
             <rect x={0} y={clipTop} width={RW} height={Math.max(0, RH - clipTop)} />
           </clipPath>
-          {hole ? (
-            <>
-              <mask id={`${id}-hole`} maskUnits="userSpaceOnUse" x={0} y={0} width={RW} height={RH}>
-                <rect x={0} y={0} width={RW} height={RH} fill="white" />
-                <path d={opening} fill="black" />
-              </mask>
-              <clipPath id={`${id}-in`}>
-                <path d={opening} />
-              </clipPath>
-            </>
-          ) : null}
           <linearGradient id={`${id}-fade`} gradientUnits="userSpaceOnUse" x1="0" y1={clipTop} x2="0" y2={RH}>
             {fadeStops.map((s, i) => (
               <stop key={i} offset={s.offset} stopColor="var(--ink-primary)" stopOpacity={s.opacity} />
@@ -466,11 +420,13 @@ function FloorPayouts({
         {/* The horizon, gone as the room looks down past it; the line across the hinge taking its place. */}
         <line x1={0} x2={RW} y1={snap(pose.hinge)} y2={snap(pose.hinge)} stroke={`url(#${id}-horizon)`} strokeWidth={wire} opacity={1 - look} />
         <g clipPath={`url(#${id}-clip)`}>
-          <path d={path} stroke={`url(#${id}-fade)`} strokeWidth={wire} fill="none" mask={hole ? `url(#${id}-hole)` : undefined} />
-          {hole ? <path d={sunkPath} stroke={`url(#${id}-fade)`} strokeWidth={wire} fill="none" clipPath={`url(#${id}-in)`} /> : null}
+          <path d={path} stroke={`url(#${id}-fade)`} strokeWidth={wire} fill="none" />
           {hingeRow ? (
             <line x1={0} x2={RW} y1={snap(hingeRow.y)} y2={snap(hingeRow.y)} stroke="var(--ink-primary)" strokeOpacity={LINE_OPACITY * far} strokeWidth={wire} opacity={look} />
           ) : null}
+        </g>
+        {/* The board over the floor, unclipped: its headings stand up past the line it's hinged on. */}
+        <g>
           {data && board ? (
             <PayoutBoard
               rows={board.rows}
@@ -478,7 +434,7 @@ function FloorPayouts({
               regularSeasonWeeks={data.season.results.regularSeasonWeeks}
               hasSeason={board.hasSeason}
               stacked={stacked}
-              onFloor={{ width: Math.min(floor.width, BOARD_MOST_PX), projector, cameraX, sink, labels, onLayout }}
+              onFloor={{ width: Math.min(floor.width, BOARD_MOST_PX), projector, cameraX, rise, labels, onLayout }}
             />
           ) : null}
         </g>

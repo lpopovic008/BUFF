@@ -46,8 +46,7 @@ const UNDER_HEADER = "var(--header-h, 0px) + 0.625rem";
 const UNDER_SWITCHER = "var(--header-h, 0px) + 0.5rem";
 // How far above the horizon a lineup fitted to the space ends.
 const OVER_HORIZON = "0.5rem";
-// The line on the floor the columns stand on, up from the room's bottom: the home page's starters list's.
-const FOOT = "3.25rem";
+// What of the floor's kept clear at the room's bottom, under the floor's buttons (px).
 const FOOT_PX = 52;
 // How far in from each side the side columns (and the gap to them) reach (px): the floor's buttons stand between.
 const SIDE_COLUMN_PX = 18 * 16;
@@ -87,7 +86,6 @@ function useLeagueRoom(league: RoomLeagueData, week: number | null, userId: stri
       positions={carousel?.positions}
       season={season}
       scoring={scoring}
-      jerseyNumbers
       fullNames
     >
       {children}
@@ -132,8 +130,8 @@ const noMatchups = <p className="text-sm text-ink-secondary">No matchups this we
 
 /**
  * The league page in the room (for now beside the old one, see /league): your leagues, the lineups and the league's
- * matchups standing on the floor. From laptop width up, three columns facing you square on, their feet on one line
- * across the floor, reflected in it — your leagues on the left, picking the one shown; its matchups on the right,
+ * matchups at the back of the room. From laptop width up, three columns facing you square on, on the back wall down
+ * to the horizon, reflected in the floor — your leagues on the left, picking the one shown; its matchups on the right,
  * picking the one whose lineups are in the middle (yours, until another's picked). On a phone, the league's name in
  * the header, and its matchups' lineups right under it at the back of the room, above the horizon, where the home page's starters list is — swiped sideways together to the next league (or tapped for the list).
  */
@@ -254,7 +252,7 @@ function LeagueRoomContent() {
         <FloorGrid share={share} away={floorAway} />
       </div>
       {desktop ? (
-        <DesktopRoom rooms={rooms} leagues={leagues} index={index} week={shownWeek} currentWeek={week} userId={config.sleeperUserId} onPick={pickLeague} room={roomSize} floorAway={floorAway} onFloorAway={setFloorAway} onShare={setShareTarget} />
+        <DesktopRoom rooms={rooms} leagues={leagues} index={index} week={shownWeek} currentWeek={week} userId={config.sleeperUserId} onPick={pickLeague} room={roomSize} floorAway={floorAway} onFloorAway={setFloorAway} onShare={setShareTarget} share={share} />
       ) : (
         <PhoneRoom rooms={rooms} leagues={leagues} index={index} week={shownWeek} currentWeek={week} userId={config.sleeperUserId} onPick={pickLeague} room={roomSize} floorAway={floorAway} onFloorAway={setFloorAway} onShare={setShareTarget} />
       )}
@@ -280,6 +278,8 @@ interface RoomProps {
   /** Where the room's horizon should be (a share of its height): low under the lineups, to show more of them, the floor's
    * buttons just in front of it (see floorButtonRow) — up where the home page's is while a stage has the floor. */
   onShare: (share: number) => void;
+  /** Where the room's horizon is now (a share of its height), on its way to what it was told. */
+  share?: number;
 }
 
 /** The room's horizon for what's up: the lineups' (`lineups`, see floorButtonRow), else the stages'. */
@@ -578,10 +578,10 @@ function LeaguePane({
 }
 
 /**
- * From laptop width up: three columns with no backgrounds of their own, standing upright on one line across the floor
- * and reflected in it — each scrolling on its own, up behind the see-through header.
+ * From laptop width up: three columns with no backgrounds of their own, on the back wall down to the horizon and
+ * reflected in the floor — each scrolling on its own, up behind the see-through header.
  */
-function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, room, floorAway, onFloorAway, onShare }: RoomProps) {
+function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, room, floorAway, onFloorAway, onShare, share = HORIZON_SHARE }: RoomProps) {
   const { action, last, pick, close } = useFloorAction();
   // The write-ups up: every matchup in brief in the middle, the write-up under them across the middle column to the
   // screen's bottom, and its contents in the right-hand column in place of the matchups.
@@ -648,7 +648,7 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
     matchupColumn?.scrollTo({ top: 0 });
   }, [leagueId, week, lineupColumn, matchupColumn]);
 
-  const column = "absolute inset-x-0 bottom-0 top-0 touch-none overflow-y-auto overscroll-none pb-16 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
+  const column = "absolute inset-x-0 bottom-0 top-0 touch-none overflow-y-auto overscroll-none pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
   const columnPad = { paddingTop: `calc(${UNDER_HEADER})` };
   // A player's card comes up out of the floor in front, between the columns (where the floor's panels do).
   const cardStage = room
@@ -664,7 +664,8 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
     : null;
   return (
     <CareerStageContext.Provider value={cardStage}>
-      <div className="fixed inset-x-0 top-0 flex gap-4 px-4" style={{ height: `calc(var(--room-h, 100vh) - ${FOOT})` }}>
+      {/* On the back wall, down to just over the horizon wherever it is — each column scrolling to what's below. */}
+      <div className="fixed inset-x-0 top-0 flex gap-4 px-4" style={{ height: `calc(var(--room-h, 100vh) * ${share} - ${OVER_HORIZON})` }}>
         {/* Your leagues by name, picking the one shown — lit like the header's page tabs. Stepping aside while the payouts
             have the floor, so their board can lie in the middle of it. */}
         <div
@@ -761,8 +762,8 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
       {/* Each column's reflection: what's at its foot, in the floor. */}
       {/* The side columns' too, but not while the payouts have the room looking down at the floor. */}
       <div className={`transition-opacity duration-300 ${floorAway ? "opacity-0" : ""}`}>
-        <FloorReflection source={leagueColumn} className="pb-16" style={columnPad} />
-        <FloorReflection source={matchupColumn} className="pb-16" style={columnPad} />
+        <FloorReflection source={leagueColumn} className="pb-2" style={columnPad} />
+        <FloorReflection source={matchupColumn} className="pb-2" style={columnPad} />
       </div>
       {fullStage ? null : <FloorReflection source={lineupColumn} style={columnPad} />}
       {/* The floor's buttons at the front of the room between the columns, and the panel one brings up there. */}
