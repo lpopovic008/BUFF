@@ -825,6 +825,37 @@
 .recap-neon.app-theme.rn-room .rn-card {
   min-height: var(--rn-card-h, 0px);
 }
+/* What a section shows fills its box: a list of rows spread down it, a text
+   box grown to it, anything else in the middle of it. (Elsewhere what it
+   shows is laid out as part of the card's body, as it always was.) */
+.recap-neon .rn-card-main {
+  display: contents;
+}
+.recap-neon.app-theme.rn-room .rn-card-body {
+  flex: 1 1 auto;
+}
+.recap-neon.app-theme.rn-room .rn-card-main {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: space-evenly;
+  gap: 16px;
+}
+.recap-neon.app-theme.rn-room .rn-card-main > .rn-lastweek-rows,
+.recap-neon.app-theme.rn-room .rn-card-main > .rn-records-rows,
+.recap-neon.app-theme.rn-room .rn-card-main > .rn-ai-body,
+.recap-neon.app-theme.rn-room .rn-card-main > .rn-detail-textarea {
+  flex: 1 1 auto;
+}
+.recap-neon.app-theme.rn-room .rn-card-main > .rn-lastweek-rows,
+.recap-neon.app-theme.rn-room .rn-card-main > .rn-records-rows {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.recap-neon.app-theme.rn-room .rn-ai-body > textarea {
+  flex: 1 1 auto;
+}
 .recap-neon.app-theme.rn-room > .rn-badge {
   grid-column: 1 / -1;
   justify-self: start;

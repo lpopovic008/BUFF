@@ -402,7 +402,7 @@ function AiRecapBody({
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="rn-ai-body flex flex-col gap-2">
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -476,6 +476,10 @@ function ExtraBody({ value, onChange, section }: { value: string; onChange: (v: 
   );
 }
 
+/** In the League Room, what in a section stretches to fill its box (see .rn-room): anything else is drawn bigger to, up to so much bigger. */
+const STRETCHES = ".rn-lastweek-rows, .rn-records-rows, .rn-ai-body, .rn-detail-textarea";
+const MOST_FILL = 1.8;
+
 /** Every section's shared shell: a translucent card matching the graphic's own, an include/exclude checkbox pinned to the top-right corner (unchecked greys the whole box out and leaves it out of both the copied text and the graphic), and a "+"/"–" button pinned to the bottom-right that shows or hides `detail`. `poster` switches to the wider-padded gradient-tinted card the two decided/preview matchups use in the graphic. */
 function SectionBox({
   section,
@@ -513,7 +517,8 @@ function SectionBox({
       </label>
       <div className="rn-card-body" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {header}
-        {children}
+        {/* What it shows (laid out as part of the body, except in the League Room, where it fills the box: see .rn-room). */}
+        <div className="rn-card-main">{children}</div>
         {detail && detailShown ? detail : null}
       </div>
       {detail && onToggleDetail ? (
@@ -588,18 +593,46 @@ export function RecapSectionsEditor({
   room?: boolean;
 }) {
   // In the League Room, every section's box as tall as the tallest (see .rn-room in recap-neon.css): each measured at
-  // its own height, whenever what's in one changes.
+  // its own height, whenever what's in one changes — and what's in a box that doesn't stretch to fill it (a list of
+  // rows, a text box) drawn as big as fits it.
   const root = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const el = root.current;
     if (!room || !el) return;
     const measure = () => {
+      const mains = [...el.querySelectorAll<HTMLElement>(".rn-card-main")];
+      const zoomed = (main: HTMLElement) => [...main.children] as HTMLElement[];
+      for (const main of mains) for (const part of zoomed(main)) part.style.removeProperty("zoom");
       el.style.setProperty("--rn-card-h", "0px");
       // In its own px: the editor's scaled down to fit where it's narrower than it's made for (see RecapEditor).
       const scale = el.getBoundingClientRect().width / (el.offsetWidth || 1) || 1;
       // (A px over, so the tallest is held to it too, whatever the rounding.)
       const most = Math.ceil(Math.max(0, ...[...el.querySelectorAll<HTMLElement>(".rn-card")].map((card) => card.getBoundingClientRect().height / scale))) + 1;
       el.style.setProperty("--rn-card-h", `${most}px`);
+      for (const main of mains) {
+        const parts = zoomed(main);
+        const card = main.closest<HTMLElement>(".rn-card");
+        if (!card || parts.length === 0 || main.querySelector(STRETCHES)) continue;
+        // Its box no taller than the rest, nothing in it wider than it, and no row of it wrapping onto another (a
+        // sentence may).
+        const natural = parts.map((part) => part.getBoundingClientRect().height);
+        const fits = (z: number) => {
+          for (const part of parts) part.style.zoom = String(z);
+          return (
+            card.getBoundingClientRect().height / scale <= most + 0.5 &&
+            parts.every((part, i) => part.scrollWidth <= part.clientWidth + 1 && (part.tagName === "P" || part.getBoundingClientRect().height <= natural[i] * z * 1.04 + 1))
+          );
+        };
+        let [lo, hi] = [1, MOST_FILL];
+        if (fits(hi)) lo = hi;
+        else
+          for (let i = 0; i < 7; i++) {
+            const mid = (lo + hi) / 2;
+            if (fits(mid)) lo = mid;
+            else hi = mid;
+          }
+        fits(lo);
+      }
     };
     measure();
     // Everything in them, whose size doesn't follow the boxes' own (the boxes themselves do) — and the whole, which
