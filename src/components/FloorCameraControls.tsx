@@ -64,6 +64,7 @@ export function FloorCameraControls({
   games,
   desktop,
   clearTo,
+  clearFrom,
   redZone,
 }: {
   store: FloorCameraStore;
@@ -73,6 +74,8 @@ export function FloorCameraControls({
   desktop: boolean;
   /** The screen x the floor's in the clear up to (from tablet width up, the starters list's left edge): the next games are kept left of it. */
   clearTo?: number;
+  /** And the screen x it's in the clear from (from tablet width up, the Red Zone's column's right edge, while it's up): kept right of it. */
+  clearFrom?: number;
   /** Whether the Red Zone's up out of the floor, and its switch. */
   redZone?: { on: boolean; onChange: (on: boolean) => void };
 }) {
@@ -244,13 +247,13 @@ export function FloorCameraControls({
     const kickoff = (g: MappedGame) => new Date(g.game.kickoff).getTime();
     const first = Math.min(...upcoming.map(kickoff));
     const next = upcoming.filter((g) => kickoff(g) === first).map((g) => g.game.id);
-    const key = `${next.join(",")}|${fit.width}x${fit.height}|${Math.round(clearTo ?? 0)}`;
+    const key = `${next.join(",")}|${fit.width}x${fit.height}|${Math.round(clearTo ?? 0)}|${Math.round(clearFrom ?? 0)}`;
     if (next.length === 0) return { key, camera: HOME_CAMERA };
     const { width, height, share } = fit;
     const rootPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
     const horizon = height * share;
     const box = {
-      left: width * 0.15,
+      left: Math.max(width * 0.15, (clearFrom ?? 0) + width * 0.08),
       right: Math.min(width * 0.85, (clearTo ?? width) - width * 0.08),
       top: horizon + Math.min(8 * rootPx, (height - horizon) * 0.45),
       bottom: floorY(fit.nearDepth, height, share) - MAP_MARGIN_PX,
@@ -278,7 +281,7 @@ export function FloorCameraControls({
       zoom = lo;
     }
     return { key, camera: keep(cameraPutting(center, at, zoom)) };
-  }, [games, sites, fit, keep, clearTo]);
+  }, [games, sites, fit, keep, clearTo, clearFrom]);
   // At home, it goes to the next games whenever they change (one kicks off) — not otherwise, live scores and all.
   const atHome = useRef<string | null>(null);
   useEffect(() => {

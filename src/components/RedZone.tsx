@@ -330,7 +330,8 @@ const FeedRow = memo(function FeedRow({ entry, starterById, legendByLeagueId, ar
       }}
     >
       <MarkColumn marks={playMarks(entry)} />
-      <span className="flex items-center justify-between gap-2 text-[0.6875rem] leading-none">
+      {/* Too narrow for it all on a line (a column of its own), the snap goes under the rest, still at the right. */}
+      <span className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[0.6875rem] leading-none">
         <span className="flex min-w-0 items-center gap-1.5 whitespace-nowrap">
           {time ? <span className="tabular-nums text-ink-muted">{time}</span> : null}
           {/* The matchup and its score after the play — and on its game's latest play, "Latest" after it, lit like a map tag. */}
@@ -348,7 +349,7 @@ const FeedRow = memo(function FeedRow({ entry, starterById, legendByLeagueId, ar
           ) : null}
         </span>
         {/* The snap: down and distance, where on the field, then when. */}
-        <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap tabular-nums text-ink-muted">
+        <span className="ml-auto flex shrink-0 items-center gap-1.5 whitespace-nowrap tabular-nums text-ink-muted">
           {play.downDistance ? (
             <span className="font-semibold text-ink-secondary">
               <Ordinals text={play.downDistance} />
@@ -698,6 +699,8 @@ export function RedZone({
   }
   const live = mode === "live";
   const stretched = phone && !fill ? boxHeight !== null : !!full?.on;
+  // Whether it can be stretched (⇕) or dragged taller at all: not standing as a column of its own (no `full`).
+  const resizable = (phone && !fill) || !!full;
   // With no game on, the header runs across the top instead of down the side — and with no plays, it's just
   // the header (any teams in the red zone in it), across the top, no room kept for them.
   const empty = entries.length === 0 && !pinned;
@@ -718,7 +721,7 @@ export function RedZone({
         // Dragged to set the Red Zone's height (see the page), so no scrolling or zooming from it.
         // Across the top, its title just where the Red Zone's switch stands below it (1rem in, and the switch's own
         // 0.75rem), so the switch turns into it where it stands (see FloorCameraControls).
-        className={`relative shrink-0 cursor-ns-resize touch-none select-none ${across ? "pl-7 max-md:pr-2" : "w-7"}`}
+        className={`relative shrink-0 touch-none select-none ${resizable ? "cursor-ns-resize" : ""} ${across ? "pl-7 max-md:pr-2" : "w-7"}`}
       >
         <div className={across ? `flex items-center gap-2 ${fill ? "py-0.5" : "py-1"}` : "absolute inset-0 flex flex-col items-center gap-1.5 px-0.5 py-1.5"}>
           {/* The title, ⇕ after it (under it, down the side). */}
@@ -744,6 +747,7 @@ export function RedZone({
               </TitleSwitch>
             </h2>
             {/* ⇕: the box as tall as the screen (on a phone, fit under the header; wider, the map's whole column) — and back. */}
+            {resizable ? (
             <button
               type="button"
               onClick={() => (phone && !fill ? toggleFit() : full?.toggle())}
@@ -754,6 +758,7 @@ export function RedZone({
             >
               <ExpandVerticalIcon inward={stretched} width={14} height={14} />
             </button>
+            ) : null}
           </div>
           {/* The teams in the red zone now, in the middle (down the side, under the title). */}
           <ul
