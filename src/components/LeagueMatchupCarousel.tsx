@@ -645,71 +645,19 @@ function BriefMatchupHeader({
   );
 }
 
-/**
- * A matchup in brief with its teams stacked, one over the other (the League Room's on a laptop, in a column at the
- * side, with its write-ups up): each team's rank and name, under it its PF and PA, its record and streak and its
- * projected total — the all-time head-to-head against the first team's name. One size, in the full header's colors.
- */
-function StackedBriefMatchup({
-  teams,
-  standings,
-  headToHead,
-}: {
-  teams: MatchupTeam[];
-  standings: Map<number, TeamStanding>;
-  headToHead: Map<number, AllTimeRecord> | null;
-}) {
-  const projected = useContext(ProjectedContext);
-  const rec = teams.length > 1 ? headToHead?.get(teams[0].rosterId) : undefined;
-  return (
-    <div className={`flex flex-col gap-1 border border-ink-primary px-2 py-1 leading-tight ${BRIEF_TEXT}`}>
-      {teams.map((t, i) => {
-        const { rank, record, streak, pointsRanks } = standings.get(t.rosterId) ?? {};
-        const total = projected?.get(t.rosterId);
-        return (
-          <div key={t.rosterId} className="flex min-w-0 flex-col gap-0.5">
-            <span className="flex min-w-0 items-baseline gap-1.5">
-              {rank != null ? <span className="shrink-0 font-bold tabular-nums text-series-4">{rank}</span> : null}
-              <span className="min-w-0 flex-1 truncate font-bold text-ink-primary">{t.teamName}</span>
-              {i === 0 && rec ? <HeadToHeadBadge wins={rec.wins} losses={rec.losses} className={BRIEF_TEXT} /> : null}
-            </span>
-            <span className="flex min-w-0 items-baseline justify-between gap-2">
-              <span className="flex">
-                <PointsRankBadges pointsRanks={pointsRanks} leagueSize={standings.size} sizeClass={BRIEF_TEXT} />
-              </span>
-              <span className="flex items-baseline gap-1">
-                {record ? <span className="font-bold tabular-nums text-ink-primary">{formatRecord(record.wins, record.losses, record.ties)}</span> : null}
-                <StreakBadge streak={streak} sizeClass={BRIEF_TEXT} />
-              </span>
-              <span className="tabular-nums text-ink-primary opacity-70" title="Projected">
-                {total !== undefined ? formatPoints(total) : ""}
-              </span>
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-/**
- * Every matchup of the week in brief (see BriefMatchupHeader), yours on top — the League Room's, with its write-ups
- * up. Or (`stacked`) each with its teams one over the other, for a narrow column (see StackedBriefMatchup).
- */
+/** Every matchup of the week in brief (see BriefMatchupHeader), yours on top — the League Room's, with its write-ups up. */
 export function BriefMatchups({
   games,
   myRosterId,
   standings,
   owners,
   allTime,
-  stacked: stackTeams = false,
 }: {
   games: ResolvedMatchupGame[];
   myRosterId: number | null;
   standings: Map<number, TeamStanding>;
   owners: Map<number, string>;
   allTime: Map<string, Map<string, AllTimeRecord>> | null;
-  stacked?: boolean;
 }) {
   const myGame = games.find((g) => g.teams.some((t) => t.rosterId === myRosterId));
   const stacked = myGame ? [myGame, ...games.filter((g) => g !== myGame)] : games;
@@ -719,11 +667,7 @@ export function BriefMatchups({
         const [mine, other] = sides(g, myRosterId);
         return (
           <li key={g.matchupId}>
-            {stackTeams ? (
-              <StackedBriefMatchup teams={other ? [mine, other] : [mine]} standings={standings} headToHead={headToHeadFor(mine, other, owners, allTime)} />
-            ) : (
-              <BriefMatchupHeader left={mine} right={other} standings={standings} headToHead={headToHeadFor(mine, other, owners, allTime)} />
-            )}
+            <BriefMatchupHeader left={mine} right={other} standings={standings} headToHead={headToHeadFor(mine, other, owners, allTime)} />
           </li>
         );
       })}
@@ -1111,13 +1055,21 @@ export function MatchupList({
   standings,
   pickedId,
   onPick,
+  opened,
 }: {
   games: ResolvedMatchupGame[];
   myRosterId: number | null;
   standings: Map<number, TeamStanding>;
   pickedId: number;
   onPick: (matchupId: number) => void;
+  /**
+   * Its boxes opened a little, or shut again (the League Room's, with its write-ups up): each team's all-time wins
+   * over the other at its left, and under it, from where its name starts, its PF and PA ranks (in the places' color)
+   * and its projected total under its score — coming in and going again as they open and shut.
+   */
+  opened?: { open: boolean; owners: Map<number, string>; allTime: Map<string, Map<string, AllTimeRecord>> | null };
 }) {
+  const projected = useContext(ProjectedContext);
   return (
     <ul className="flex flex-col gap-2" aria-label="This week's matchups">
       {games.map((g) => {
@@ -1128,7 +1080,8 @@ export function MatchupList({
               type="button"
               aria-current={active || undefined}
               onClick={() => onPick(g.matchupId)}
-              className={`w-full border px-3 py-2 text-left transition-colors ${
+              // Opened, it gives up some of its padding at the left to the all-time wins coming in there.
+              className={`w-full border py-2 pr-3 text-left transition-[color,background-color,border-color,padding] duration-500 ${opened?.open ? "pl-1.5" : "pl-3"} ${
                 active
                   ? "border-ink-primary bg-[color-mix(in_srgb,var(--map-tag)_7%,transparent)]"
                   : "border-border hover:border-ink-primary/40"
@@ -1136,12 +1089,27 @@ export function MatchupList({
             >
               <MatchupRows
                 fitWidth
-                teams={sides(g, myRosterId).map((t) => ({
-                  name: t.teamName,
-                  points: t.points,
-                  standing: standings.get(t.rosterId),
-                  mine: t.rosterId === myRosterId,
-                }))}
+                open={opened?.open}
+                teams={sides(g, myRosterId).map((t, i, both) => {
+                  const other = both[1 - i];
+                  const record = opened && other ? headToHeadFor(t, other, opened.owners, opened.allTime)?.get(t.rosterId) : undefined;
+                  const total = projected?.get(t.rosterId);
+                  return {
+                    name: t.teamName,
+                    points: t.points,
+                    standing: standings.get(t.rosterId),
+                    mine: t.rosterId === myRosterId,
+                    wins: record ? record.wins : null,
+                    below: opened ? (
+                      <span className="flex items-baseline justify-between gap-2">
+                        <PointsRankBadges pointsRanks={standings.get(t.rosterId)?.pointsRanks} leagueSize={standings.size} sizeClass="text-[0.6875rem]" rankClass="text-series-4" />
+                        <span className="text-[0.6875rem] tabular-nums text-ink-primary opacity-70" title="Projected">
+                          {total !== undefined ? formatPoints(total) : ""}
+                        </span>
+                      </span>
+                    ) : undefined,
+                  };
+                })}
               />
             </button>
           </li>

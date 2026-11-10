@@ -590,9 +590,9 @@ function LeaguePane({
  */
 function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, room, floorAway, onFloorAway, onShare, share = HORIZON_SHARE }: RoomProps) {
   const { action, last, pick, close } = useFloorAction();
-  // The write-ups up: the write-up the whole middle column, from under the header to the screen's bottom; every
-  // matchup in brief in the right-hand column, each team over the other; and its contents in the left-hand column in
-  // place of your leagues.
+  // The write-ups up: the write-up the whole middle column, from under the header to the screen's bottom; the matchups
+  // in the right-hand column opened a little (see MatchupList); and its contents in the left-hand column in place of
+  // your leagues.
   const writeups = action === "writeups";
   // Where the header ends (and a gap under it): the write-up's top.
   const [underHeader, setUnderHeader] = useState(0);
@@ -769,8 +769,8 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
           <ScrollThumb source={lineupColumn} />
         </div>
 
-        {/* The league's matchups, picking the one whose lineups are in the middle (with the write-ups up, each in brief,
-            its teams stacked) — stepping aside while the payouts have the floor, as the leagues do. */}
+        {/* The league's matchups, picking the one whose lineups are in the middle (with the write-ups up, each box opened
+            a little, see MatchupList) — stepping aside while the payouts have the floor, as the leagues do. */}
         <div
           className={`relative min-w-0 transition-opacity duration-300 ${floorAway ? "pointer-events-none opacity-0" : ""}`}
           style={{ flex: `${SIDE_SHARE} 1 0%` }}
@@ -779,19 +779,19 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
           <div ref={setMatchupColumn} data-scroll-list className={column} style={columnPad}>
             <div>
             <div style={{ zoom: sideZoom }}>
-              {writeups ? (
-                carousel && games.length > 0 ? (
-                  providers(<BriefMatchups games={games} myRosterId={myRosterId} standings={standings} owners={owners} allTime={allTime} stacked />)
-                ) : null
-              ) : shownGame ? (
-                <MatchupList
-                  games={games}
-                  myRosterId={myRosterId}
-                  standings={standings}
-                  pickedId={shownGame.matchupId}
-                  onPick={(id) => setPicked({ leagueId, week, id })}
-                />
-              ) : null}
+              {shownGame
+                ? providers(
+                    <MatchupList
+                      games={games}
+                      myRosterId={myRosterId}
+                      standings={standings}
+                      pickedId={shownGame.matchupId}
+                      onPick={(id) => setPicked({ leagueId, week, id })}
+                      // With the write-ups up, each box opened a little: the all-time wins, PF and PA, and projected.
+                      opened={{ open: writeups, owners, allTime }}
+                    />
+                  )
+                : null}
             </div>
             </div>
           </div>

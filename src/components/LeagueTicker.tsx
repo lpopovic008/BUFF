@@ -167,6 +167,10 @@ export interface MatchupRowTeam {
   mine?: boolean;
   /** The matchup's winner (or, as it stands, its leader): its name and score lit like a map tag. */
   winning?: boolean;
+  /** How many times it's beaten the other team, all time — at its row's left while the box is opened (see MatchupRows). */
+  wins?: number | null;
+  /** A line under its row while the box is opened, starting where its name does. */
+  below?: React.ReactNode;
 }
 
 /**
@@ -176,7 +180,39 @@ export interface MatchupRowTeam {
  * never cut short — the entry grows to fit them; in a fixed-width box
  * (`fitWidth`) a name too long for it ends in an ellipsis.
  */
-function TickerTeamRow({ team, fitWidth, dense }: { team: MatchupRowTeam; fitWidth: boolean; dense: boolean }) {
+function TickerTeamRow({ team, fitWidth, dense, open }: { team: MatchupRowTeam; fitWidth: boolean; dense: boolean; open?: boolean }) {
+  const row = <TeamLine team={team} fitWidth={fitWidth} dense={dense} tight={open} />;
+  if (open === undefined) return row;
+  // Opened (see MatchupRows): its all-time wins over the other team coming in at its left, and its line under it
+  // opening — both going again as it shuts.
+  return (
+    <div className="flex items-baseline">
+      <span
+        className={`shrink-0 overflow-hidden whitespace-nowrap text-right text-xs font-bold tabular-nums text-ink-primary transition-[width,margin-right,opacity] duration-500 ease-out ${
+          open ? "mr-1.5 w-[2ch] opacity-100" : "mr-0 w-0 opacity-0"
+        }`}
+        title="Times it's beaten the other team, all time"
+      >
+        {team.wins ?? ""}
+      </span>
+      <div className="min-w-0 flex-1">
+        {row}
+        <div className={`grid transition-[grid-template-rows,opacity] duration-500 ease-out ${open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
+          <div className="min-h-0 overflow-hidden">
+            {/* Past the place's column, so it starts where the name does. */}
+            <div className="flex items-baseline gap-1.5 pt-0.5">
+              <span aria-hidden className="w-[2ch] shrink-0 text-xs" />
+              <div className="min-w-0 flex-1">{team.below}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** `tight`: its standing and score closer together (its box opened, the all-time wins taking some of its room). */
+function TeamLine({ team, fitWidth, dense, tight = false }: { team: MatchupRowTeam; fitWidth: boolean; dense: boolean; tight?: boolean }) {
   const { name, points, standing, mine = false, winning = false } = team;
   const { rank, record, streak } = standing ?? {};
   // A plain flex row, standing and score pushed apart: it sizes to its own content in every browser, so
@@ -184,7 +220,7 @@ function TickerTeamRow({ team, fitWidth, dense }: { team: MatchupRowTeam; fitWid
   // through score — is one unbroken plate, like a map tag.
   return (
     <div
-      className={`flex items-center justify-between gap-4 ${dense ? "[&_span]:leading-tight" : ""} ${
+      className={`flex items-center justify-between transition-[column-gap] duration-500 ${tight ? "gap-2" : "gap-4"} ${dense ? "[&_span]:leading-tight" : ""} ${
         winning ? "-mx-1.5 bg-[var(--map-tag)] px-1.5 text-[var(--map-tag-ink)]" : ""
       }`}
     >
@@ -223,11 +259,23 @@ function TickerTeamRow({ team, fitWidth, dense }: { team: MatchupRowTeam; fitWid
  * as wide as its box, a name too long for it ending in an ellipsis. `dense` (the ticker) sets the rows
  * close, no space between them.
  */
-export function MatchupRows({ teams, fitWidth = false, dense = false }: { teams: MatchupRowTeam[]; fitWidth?: boolean; dense?: boolean }) {
+export function MatchupRows({
+  teams,
+  fitWidth = false,
+  dense = false,
+  open,
+}: {
+  teams: MatchupRowTeam[];
+  fitWidth?: boolean;
+  dense?: boolean;
+  /** Opened, or shut (or, left out, neither): each team's all-time wins over the other at its left and its line
+   * (`below`) under it, coming in and going again as it opens and shuts. */
+  open?: boolean;
+}) {
   return (
     <div className={`flex flex-col ${dense ? "" : "gap-y-1"} ${fitWidth ? "min-w-0" : ""}`}>
       {teams.map((team, i) => (
-        <TickerTeamRow key={i} team={team} fitWidth={fitWidth} dense={dense} />
+        <TickerTeamRow key={i} team={team} fitWidth={fitWidth} dense={dense} open={open} />
       ))}
     </div>
   );

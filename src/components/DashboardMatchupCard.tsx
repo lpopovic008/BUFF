@@ -149,6 +149,7 @@ export function PointsRankBadges({
   onTag = false,
   only,
   sizeClass = "text-[0.625rem] lg:text-[0.6875rem]",
+  rankClass,
 }: {
   pointsRanks?: PointsRanks;
   leagueSize: number;
@@ -156,9 +157,12 @@ export function PointsRankBadges({
   only?: "for" | "against";
   /** Its text size, in place of the usual. */
   sizeClass?: string;
+  /** Each rank in this color, in place of its tone. */
+  rankClass?: string;
 }) {
   if (!pointsRanks) return null;
-  const tones = toneClass(onTag);
+  const toned = toneClass(onTag);
+  const tones = rankClass ? { good: rankClass, bad: rankClass, mid: rankClass } : toned;
   return (
     <span className={`flex items-baseline gap-1 whitespace-nowrap font-normal lg:gap-2 ${sizeClass}`}>
       {only === "against" ? null : <span title="Points for — rank in the league (1st = most)">
