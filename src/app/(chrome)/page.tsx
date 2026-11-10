@@ -643,6 +643,8 @@ export default function DashboardPage() {
   // The map lies on the floor at the front (see FloorMapLand), its games standing up off it in front of everything
   // (FloorMapTags) — out of the way while the Red Zone takes the screen (⇕).
   const mapShown = stand !== null && weekGames.length > 0;
+  // The map's only out between weeks: till the week's first game kicks off, and again once they're all over.
+  const mapOut = mapShown && (weekGames.every((g) => g.state === "pre") || weekGames.every((g) => g.state === "post"));
   const roomView = (
     <div
       ref={setRoom}
@@ -652,7 +654,7 @@ export default function DashboardPage() {
     >
       {/* Gone while a play's field lines the floor instead (see FloorPlay). */}
       <FloorGrid share={horizon} camera={floorCamera} hidden={fieldOn} />
-      {mapShown ? <FloorMapLand fit={stand.fit} games={games} camera={floorCamera} /> : null}
+      {mapOut ? <FloorMapLand fit={stand.fit} games={games} camera={floorCamera} /> : null}
     </div>
   );
   // One graph in full; two side by side; three or four, one to a corner.
@@ -788,6 +790,7 @@ export default function DashboardPage() {
       clearTo={desktop && startersList ? startersList.getBoundingClientRect().left : undefined}
       clearFrom={desktop && redZoneUp && redZoneBox ? redZoneBox.getBoundingClientRect().right : undefined}
       redZone={redZoneView ? { on: redZoneUp, onChange: switchRedZone } : undefined}
+      map={mapOut}
     />
   ) : null;
 
@@ -843,7 +846,7 @@ export default function DashboardPage() {
           risesAtFirst={false}
         />
         {redZoneStage}
-        {mapShown ? <FloorMapTags fit={stand.fit} games={games} top={stand.landTop} camera={floorCamera} /> : null}
+        {mapOut ? <FloorMapTags fit={stand.fit} games={games} top={stand.landTop} camera={floorCamera} /> : null}
         {/* Red Zone plays acted out on the floor, across the whole screen. */}
         {stand ? (
           <FloorPlay width={stand.fit.width} height={stand.room} share={stand.fit.share} camera={floorCamera} active={redZoneUp} onShown={setFieldOn} />
@@ -904,7 +907,7 @@ export default function DashboardPage() {
           <ScrollThumb source={startersList} />
         </div>
       </div>
-      {mapShown ? (
+      {mapOut ? (
         <FloorMapTags
           fit={stand.fit}
           games={games}

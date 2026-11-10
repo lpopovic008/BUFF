@@ -66,6 +66,7 @@ export function FloorCameraControls({
   clearTo,
   clearFrom,
   redZone,
+  map = true,
 }: {
   store: FloorCameraStore;
   /** The map as it lies on the floor. */
@@ -78,6 +79,9 @@ export function FloorCameraControls({
   clearFrom?: number;
   /** Whether the Red Zone's up out of the floor, and its switch. */
   redZone?: { on: boolean; onChange: (on: boolean) => void };
+  /** Whether the map's out on the floor (between weeks): without it, the floor stays home — nothing to move, zoom or
+   * follow — and only the Red Zone's switch is here. */
+  map?: boolean;
 }) {
   const redZoneUp = redZone?.on ?? false;
   const { following } = useFloorCamera(store);
@@ -99,9 +103,9 @@ export function FloorCameraControls({
     return (camera: FloorCamera) => keepOnFloor(camera, { minX, maxX, minD, maxD }, view, MAP_MARGIN_PX);
   }, [fit]);
 
-  // Dragged and pinched — not while the Red Zone's up.
+  // Dragged and pinched — not while the Red Zone's up, or with no map out.
   useEffect(() => {
-    if (redZoneUp) return;
+    if (redZoneUp || !map) return;
     const { width, height, share } = fit;
     const horizon = height * share;
     const toFloor = (x: number, y: number) => floorAt(x, Math.max(y, horizon + 2), width, height, share);
@@ -237,7 +241,7 @@ export function FloorCameraControls({
       document.removeEventListener("gesturechange", gestureChange);
       document.removeEventListener("gestureend", gestureEnd);
     };
-  }, [store, fit, redZoneUp, keep]);
+  }, [store, fit, redZoneUp, keep, map]);
 
   // Home: the next game to kick off (or those kicking off together), on the screen between a little in from its sides
   // and from the floor's front edge, and far enough below the horizon that their stems and tags stand clear of it — as
@@ -247,8 +251,8 @@ export function FloorCameraControls({
     const kickoff = (g: MappedGame) => new Date(g.game.kickoff).getTime();
     const first = Math.min(...upcoming.map(kickoff));
     const next = upcoming.filter((g) => kickoff(g) === first).map((g) => g.game.id);
-    const key = `${next.join(",")}|${fit.width}x${fit.height}|${Math.round(clearTo ?? 0)}|${Math.round(clearFrom ?? 0)}`;
-    if (next.length === 0) return { key, camera: HOME_CAMERA };
+    const key = `${map ? next.join(",") : "no map"}|${fit.width}x${fit.height}|${Math.round(clearTo ?? 0)}|${Math.round(clearFrom ?? 0)}`;
+    if (!map || next.length === 0) return { key, camera: HOME_CAMERA };
     const { width, height, share } = fit;
     const rootPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
     const horizon = height * share;
@@ -281,7 +285,7 @@ export function FloorCameraControls({
       zoom = lo;
     }
     return { key, camera: keep(cameraPutting(center, at, zoom)) };
-  }, [games, sites, fit, keep, clearTo, clearFrom]);
+  }, [games, sites, fit, keep, clearTo, clearFrom, map]);
   // At home, it goes to the next games whenever they change (one kicks off) — not otherwise, live scores and all.
   const atHome = useRef<string | null>(null);
   useEffect(() => {
@@ -307,13 +311,19 @@ export function FloorCameraControls({
     if (wasUp.current === redZoneUp) return;
     wasUp.current = redZoneUp;
     if (redZoneUp) {
+      // (With no map out, there's nothing to slide out of its way.)
+      if (!map) return;
       const far = fit.nearDepth - (MAP_BOUNDS.maxY - MAP_BOUNDS.minY) * fit.k;
       const bottom = floorDepth(fit.height, fit.height, fit.share);
       store.glide({ zoom: 1, x: 0, d: Math.ceil((bottom - far + 8) / GRID_PX) * GRID_PX }, false);
       return;
     }
     window.setTimeout(goToNextGames, RED_ZONE_SINK_MS);
-  }, [redZoneUp, fit, store, goToNextGames]);
+  }, [redZoneUp, fit, store, goToNextGames, map]);
+  // The map put away (the week's under way): the floor back home, wherever it had been moved.
+  useEffect(() => {
+    if (!map) store.glide(HOME_CAMERA, true);
+  }, [map, store]);
   // Its switch becoming the Red Zone's header as it comes up (and back), step by step (see RISE_AT_MS and the rest): the
   // header's title (`data-rz-title`) its switch while it's up; the rest of the header (`data-rz-head`) and its plays
   // (`data-rz-plays`) brought in after it.
@@ -439,7 +449,7 @@ export function FloorCameraControls({
     <>
       <div className={`pointer-events-none fixed left-4 z-20 flex gap-1 ${corner}`}>{redZoneButton}</div>
       <div className={`pointer-events-none fixed right-4 z-20 flex items-end gap-1 ${corner}`}>
-        {desktop && !redZoneUp ? (
+        {map && desktop && !redZoneUp ? (
           <>
             <button type="button" aria-label="Zoom out" onClick={() => zoomBy(1 / ZOOM_STEP)} className={plate}>
               −
@@ -449,7 +459,7 @@ export function FloorCameraControls({
             </button>
           </>
         ) : null}
-        {following || redZoneUp ? null : home}
+        {following || redZoneUp || !map ? null : home}
       </div>
     </>
   );

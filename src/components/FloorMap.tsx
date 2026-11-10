@@ -139,8 +139,8 @@ export function FloorMapLand({ fit: lying, games, camera }: { fit: FloorMapFit; 
 /**
  * The week's games standing up off the map on the floor, in front of everything (the starters list sinks into the
  * floor behind them): each game's stem from its ring, taller the more players it counts, with the matchup's tag
- * hung off its top on the left (on Mountain or Pacific time, the right) — and, set over them, `overhead` (the kickoff countdown), above the map's middle as
- * it lies. Moved with the floor (`camera`), those on the floor still on the screen — fading into the
+ * hung off its top on the left (on Mountain or Pacific time, the right) — and, set over them, `overhead` (the kickoff countdown), in the middle of the
+ * screen across. Moved with the floor (`camera`), those on the floor still on the screen — fading into the
  * fog with the map toward the horizon.
  */
 export function FloorMapTags({
@@ -176,11 +176,11 @@ export function FloorMapTags({
     ...s,
     fade: (nearest > farthest ? FARTHEST_TAG + (1 - FARTHEST_TAG) * ((s.y - farthest) / (nearest - farthest)) : 1) * fog(s.y),
   }));
-  const [midX] = floorMapPoint(lying, 160, 200);
   return (
     <div className="pointer-events-none fixed inset-0 z-10" aria-hidden>
+      {/* In the middle of the screen, across. */}
       {overhead ? (
-        <div className="absolute -translate-x-1/2 -translate-y-full" style={{ left: midX, top }}>
+        <div className="absolute left-1/2 -translate-x-1/2 -translate-y-full" style={{ top }}>
           {overhead}
         </div>
       ) : null}
