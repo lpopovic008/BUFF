@@ -413,6 +413,15 @@ export async function getCurrentWeek(): Promise<number> {
  * just settled and there's a recap left to write — before advancing to the next
  * week's slot at Wednesday 12am.
  */
+/**
+ * Which week's write-up opens at first, the NFL's week being `currentWeek` and today `day` (0 Sunday … 6 Saturday):
+ * last week's on Tuesday and Wednesday — the days between, while it's being written up — and this week's from
+ * Thursday, once the next games start.
+ */
+export function recapWeekFor(currentWeek: number, day: number): number {
+  return day === 2 || day === 3 ? Math.max(0, currentWeek - 1) : currentWeek;
+}
+
 export async function getRecapWeek(): Promise<number> {
   const state = await getNFLState();
   if (!state) return 0;

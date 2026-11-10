@@ -2,13 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronLeftIcon } from "@/components/ui/Icon";
+import { ChevronDownIcon, ChevronLeftIcon } from "@/components/ui/Icon";
 import { CloseButton } from "@/components/LeagueRoomFloor";
+import { recapWeekFor } from "@/lib/sleeper";
 import { ScrollThumb } from "@/components/ScrollThumb";
 import { useListScroll } from "@/hooks/useListScroll";
 import { useRecapWriteup } from "@/app/(chrome)/recap/useRecapWriteup";
 import { RecapEditor } from "@/app/(chrome)/recap/RecapEditor";
 import { RecapContents } from "@/app/(chrome)/recap/RecapContents";
+
+/** The weeks there's a write-up for to pick from (the preseason's, 0, and the NFL's 18 — more if the league runs on). */
+const RECAP_WEEKS = 18;
 
 /** How long the panel takes to come up out of the floor, or go back down into it (ms). */
 const RISE_MS = 450;
@@ -21,7 +25,8 @@ const FLING_MIN_PX = 24;
 interface PanelProps {
   open: boolean;
   leagueId: string;
-  week: number | null;
+  /** The NFL's week now (see recapWeekFor): which write-up's open at first. */
+  currentWeek: number | null;
   /** Where its top stands (screen y): under the matchups — and its bottom. */
   top: number;
   bottom: number;
@@ -67,7 +72,12 @@ export function WriteupsPanel(props: PanelProps) {
   return <PanelBody {...props} up={up} />;
 }
 
-function PanelBody({ leagueId, week, top, bottom, left, width, className = "", onClose, back, contentsSlot, up }: PanelProps & { up: boolean }) {
+function PanelBody({ leagueId, currentWeek, top, bottom, left, width, className = "", onClose, back, contentsSlot, up }: PanelProps & { up: boolean }) {
+  // The week written up — its own, picked in the header, apart from the week the room's showing. At first, last
+  // week's until Thursday, then this week's (see recapWeekFor).
+  const [picked, setPicked] = useState<number | null>(null);
+  const [today] = useState(() => new Date().getDay());
+  const week = picked ?? (currentWeek === null ? null : recapWeekFor(currentWeek, today));
   const { ready, error, actions, editorProps, contentsProps } = useRecapWriteup(leagueId, week);
   const [list, setList] = useState<HTMLDivElement | null>(null);
   // Scrolled as an iPhone scrolls (see useListScroll).
@@ -91,7 +101,7 @@ function PanelBody({ leagueId, week, top, bottom, left, width, className = "", o
       return (parseFloat(css.getPropertyValue("--header-h")) || 0) + 0.5 * (parseFloat(css.fontSize) || 16);
     };
     const down = (e: PointerEvent) => {
-      if (e.button > 0 || (e.target as Element).closest("button")) return;
+      if (e.button > 0 || (e.target as Element).closest("button, select, label")) return;
       drag = { id: e.pointerId, y0: e.clientY, top0: box.current?.getBoundingClientRect().top ?? 0, moved: false, trail: [[e.timeStamp, e.clientY]] };
     };
     const move = (e: PointerEvent) => {
@@ -151,6 +161,24 @@ function PanelBody({ leagueId, week, top, bottom, left, width, className = "", o
               </button>
             ) : null}
             <h2 className="text-xs font-bold uppercase tracking-wide text-ink-primary">Write-ups</h2>
+            {/* Which week's write-up — its own, apart from the week shown above. */}
+            {week !== null ? (
+              <label className="relative ml-1 flex items-center">
+                <span className="sr-only">Week written up</span>
+                <select
+                  value={week}
+                  onChange={(e) => setPicked(Number(e.target.value))}
+                  className="cursor-pointer appearance-none border border-ink-primary bg-transparent py-0.5 pl-1.5 pr-5 text-xs font-bold uppercase tracking-wide text-ink-primary outline-none"
+                >
+                  {Array.from({ length: Math.max(RECAP_WEEKS, week) + 1 }, (_, w) => (
+                    <option key={w} value={w} className="bg-page text-ink-primary">
+                      {w === 0 ? "Preseason" : `Week ${w}`}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDownIcon width={12} height={12} className="pointer-events-none absolute right-1 text-ink-primary" aria-hidden />
+              </label>
+            ) : null}
             <span className="ml-auto text-[0.625rem] text-ink-muted">
               {actions.lastSavedAt ? `Saved ${new Date(actions.lastSavedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : ready ? "Not saved yet" : ""}
             </span>

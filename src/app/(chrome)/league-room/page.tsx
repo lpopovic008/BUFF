@@ -409,7 +409,7 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
           <WriteupsPanel
             open={writeups}
             leagueId={leagues[index].leagueId}
-            week={week}
+            currentWeek={currentWeek}
             top={(briefEnd ?? room.height * HORIZON_SHARE) + PANEL_GAP_PX}
             bottom={room.height - tabBar}
             className="inset-x-2"
@@ -714,7 +714,7 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
             <WriteupsPanel
               open={writeups}
               leagueId={leagueId}
-              week={week}
+              currentWeek={currentWeek}
               top={(briefEnd ?? room.height * HORIZON_SHARE) + PANEL_GAP_PX}
               bottom={room.height - 12}
               left={middleBox.left}
