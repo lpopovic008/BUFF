@@ -9,6 +9,7 @@ import type { LineupNumbers } from "@/components/PlayerCareer";
 import { collegeLogo } from "@/lib/college-logos";
 import { nflLogoUrl } from "@/lib/nfl-logos";
 import { ordinal } from "@/lib/format";
+import { StatTier, statTier } from "@/lib/stat-tiers";
 import { playerHeadshotUrl } from "@/lib/sleeper";
 import { CareerWeek, getCareer, getSeasonWeeks, seasonPoints, seasonRank } from "@/lib/career-stats";
 import { FLOOR_TILT, floorDepth, floorPoint, floorScale, floorY, HORIZON_SHARE, PERSPECTIVE_PX } from "@/lib/grid-room";
@@ -268,21 +269,31 @@ function PlayerHeader({ player, bio, numbers, onClose }: { player: ResolvedPlaye
   );
 }
 
-/** A stat on the floor: its name, and its value from a game's (or a season's) stats. */
+/** A stat on the floor: its name, and its key in a game's (or a season's) stats — graded by position (see statTier). */
 interface FloorStat {
   label: string;
-  value: (stats: Record<string, number>) => number | undefined;
+  key: string;
 }
-const stat = (label: string, key: string): FloorStat => ({ label, value: (s) => s[key] });
-/** Each position's stats on the floor, a column each. */
+const stat = (label: string, key: string): FloorStat => ({ label, key });
+const PASSING = [stat("Att", "pass_att"), stat("Cmp", "pass_cmp"), stat("PYd", "pass_yd"), stat("PTD", "pass_td"), stat("Int", "pass_int")];
+const RUSHING = [stat("Car", "rush_att"), stat("RYd", "rush_yd"), stat("RTD", "rush_td")];
+const RECEIVING = [stat("Tgt", "rec_tgt"), stat("Rec", "rec"), stat("RcYd", "rec_yd"), stat("RcTD", "rec_td")];
+/** Each position's stats on the floor, a column each: its own first (a back's running, a receiver's catching). */
 const FLOOR_STATS: Record<string, FloorStat[]> = {
-  QB: [stat("Pass", "pass_yd"), stat("TD", "pass_td"), stat("Int", "pass_int"), stat("Rush", "rush_yd")],
-  RB: [stat("Rush", "rush_yd"), stat("Rec", "rec"), stat("Rec yd", "rec_yd"), { label: "TD", value: (s) => (s.rush_td ?? 0) + (s.rec_td ?? 0) }],
-  WR: [stat("Tgt", "rec_tgt"), stat("Rec", "rec"), stat("Yds", "rec_yd"), stat("TD", "rec_td")],
-  TE: [stat("Tgt", "rec_tgt"), stat("Rec", "rec"), stat("Yds", "rec_yd"), stat("TD", "rec_td")],
+  QB: [...PASSING, ...RUSHING],
+  RB: [...RUSHING, ...RECEIVING],
+  WR: [...RECEIVING, ...RUSHING],
+  TE: [...RECEIVING, ...RUSHING],
   K: [stat("FG", "fgm"), stat("FGA", "fga"), stat("XP", "xpm")],
   DEF: [stat("Sack", "sack"), stat("Int", "int"), stat("PA", "pts_allow")],
 };
+/** A stat's value as it's painted, and how good it was (see statTier) — none for a week he didn't play. */
+interface FloorCell {
+  text: string;
+  tier: StatTier | null;
+}
+/** Each tier's color: green, the places' yellow, red. */
+const TIER_CLASS: Record<StatTier, string> = { good: "text-status-good", mid: "text-series-4", bad: "text-status-critical" };
 
 /** A game (or a season) of his — or a gap, a week he didn't play: a column at the back, a row on the floor. */
 interface FloorColumn {
@@ -292,7 +303,7 @@ interface FloorColumn {
   /** Its row on the floor: a team's logo (the opponent's, or his team's that season), its week (or year), and stats. */
   logo: string | null;
   tag: string;
-  cells: string[];
+  cells: FloorCell[];
   /** Read out for it, as a button — and, picked, in short along the floor's front. */
   label: string;
   short: string;
@@ -599,9 +610,13 @@ function FloorTable({
                     <span className={`${cell} ${lit ? "font-extrabold text-ink-primary" : c.value === null ? "text-ink-muted" : "font-bold text-ink-primary"}`}>
                       <span style={lettering}>{c.value === null ? "–" : c.value.toFixed(1)}</span>
                     </span>
+                    {/* Each stat in its tier's color (green, yellow, red), the picked row's bolder. */}
                     {c.cells.map((v, k) => (
-                      <span key={k} className={`${cell} ${lit ? "font-extrabold text-ink-primary" : "font-semibold text-ink-secondary"}`}>
-                        <span style={lettering}>{v}</span>
+                      <span
+                        key={k}
+                        className={`${cell} ${lit ? "font-extrabold" : "font-semibold"} ${v.tier ? TIER_CLASS[v.tier] : lit ? "text-ink-primary" : "text-ink-secondary"}`}
+                      >
+                        <span style={lettering}>{v.text}</span>
                       </span>
                     ))}
                   </div>
@@ -639,6 +654,14 @@ function FloorTable({
 
 /** A stat's value as it's painted: whole (Sleeper leaves a stat out when it's none). */
 const whole = (v: number | undefined) => String(Math.round(v !== undefined && Number.isFinite(v) ? v : 0));
+/**
+ * A stat's cell for a game he played (a stat he didn't have is none — red, where it's graded); or for a season, its
+ * total, graded by what it came to a game (`games`).
+ */
+const gradedCell = (position: string, key: string, stats: Record<string, number>, games = 1): FloorCell => {
+  const value = Number.isFinite(stats[key]) ? stats[key] : 0;
+  return { text: whole(value), tier: games > 0 ? statTier(position, key, value / games) : null };
+};
 
 /**
  * A player as a stage: on the back wall (under `picker`, if there is one), who he is (see PlayerHeader), his numbers
@@ -714,7 +737,7 @@ export function PlayerStage({
         value: s.points,
         logo: s.team ? nflLogoUrl(s.team) : null,
         tag: s.season,
-        cells: [whole(s.stats.gp), ...statRows.map((r) => whole(r.value(s.stats)))],
+        cells: [{ text: whole(s.stats.gp), tier: null }, ...statRows.map((r) => gradedCell(player.position, r.key, s.stats, s.stats.gp ?? 0))],
         label: `${s.season}${s.team ? `, ${s.team}` : ""}: ${s.points.toFixed(1)} points${s.rank ? `, ${player.position}${s.rank}` : ""}`,
         short: `${s.season}${s.team ? ` · ${s.team}` : ""} · ${Math.round(s.stats.gp ?? 0)} GP · ${s.points.toFixed(1)} pts · ${
           s.stats.gp ? (s.points / s.stats.gp).toFixed(1) : "–"
@@ -728,15 +751,16 @@ export function PlayerStage({
     return Array.from({ length }, (_, k) => {
       const week = k + 1;
       const w = byWeek.get(week);
-      if (!w) return { key: `w${week}`, value: null, logo: null, tag: String(week), cells: statRows.map(() => "–"), label: `Week ${week}: didn't play`, short: `Week ${week}` };
+      if (!w)
+        return { key: `w${week}`, value: null, logo: null, tag: String(week), cells: statRows.map(() => ({ text: "–", tier: null })), label: `Week ${week}: didn't play`, short: `Week ${week}` };
       const points = seasonPoints(w.stats, scoring);
       return {
         key: `w${week}`,
         value: points,
         logo: w.opponent ? nflLogoUrl(w.opponent) : null,
         tag: String(week),
-        cells: statRows.map((r) => whole(r.value(w.stats))),
-        label: `Week ${week}${w.opponent ? ` against ${w.opponent}` : ""}: ${points.toFixed(1)} points, ${statRows.map((r) => `${whole(r.value(w.stats))} ${r.label}`).join(", ")}`,
+        cells: statRows.map((r) => gradedCell(player.position, r.key, w.stats)),
+        label: `Week ${week}${w.opponent ? ` against ${w.opponent}` : ""}: ${points.toFixed(1)} points, ${statRows.map((r) => `${whole(w.stats[r.key])} ${r.label}`).join(", ")}`,
         short: `${openSeason} · Week ${week}${w.opponent ? ` · vs ${w.opponent}` : ""} · ${points.toFixed(1)} pts`,
       };
     });
