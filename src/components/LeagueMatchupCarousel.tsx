@@ -1063,9 +1063,10 @@ export function MatchupList({
   pickedId: number;
   onPick: (matchupId: number) => void;
   /**
-   * Its boxes opened a little, or shut again (the League Room's, with its write-ups up): each team's all-time wins
-   * over the other at its left, and under it, from where its name starts, its PF and PA ranks (in the places' color)
-   * and its projected total under its score — coming in and going again as they open and shut.
+   * Its boxes opened, or shut again (the League Room's, with its write-ups up) — never any bigger, what's in them
+   * moving to make room: each team's all-time wins over the other at its left, and under it, from where its name
+   * starts, its PF and PA ranks (in the places' color) and its projected total under its score — coming in and going
+   * again as they open and shut.
    */
   opened?: { open: boolean; owners: Map<number, string>; allTime: Map<string, Map<string, AllTimeRecord>> | null };
 }) {
@@ -1080,8 +1081,11 @@ export function MatchupList({
               type="button"
               aria-current={active || undefined}
               onClick={() => onPick(g.matchupId)}
-              // Opened, it gives up some of its padding at the left to the all-time wins coming in there.
-              className={`w-full border py-2 pr-3 text-left transition-[color,background-color,border-color,padding] duration-500 ${opened?.open ? "pl-1.5" : "pl-3"} ${
+              // Opened or not (see `opened`), always as tall as it is shut — two rows and its padding — what's in it moving
+              // to make room for what comes in: its padding at the top, bottom and left given up, its rows set closer.
+              className={`w-full border pr-3 text-left transition-[color,background-color,border-color,padding] duration-500 ${
+                opened ? "flex h-[calc(4.25rem+2px)] flex-col justify-center overflow-hidden" : ""
+              } ${opened?.open ? "py-0.5 pl-1.5" : "py-2 pl-3"} ${
                 active
                   ? "border-ink-primary bg-[color-mix(in_srgb,var(--map-tag)_7%,transparent)]"
                   : "border-border hover:border-ink-primary/40"
@@ -1102,8 +1106,13 @@ export function MatchupList({
                     wins: record ? record.wins : null,
                     below: opened ? (
                       <span className="flex items-baseline justify-between gap-2">
-                        <PointsRankBadges pointsRanks={standings.get(t.rosterId)?.pointsRanks} leagueSize={standings.size} sizeClass="text-[0.6875rem]" rankClass="text-series-4" />
-                        <span className="text-[0.6875rem] tabular-nums text-ink-primary opacity-70" title="Projected">
+                        <PointsRankBadges
+                          pointsRanks={standings.get(t.rosterId)?.pointsRanks}
+                          leagueSize={standings.size}
+                          sizeClass="text-[0.6875rem] leading-none"
+                          rankClass="text-series-4"
+                        />
+                        <span className="text-[0.6875rem] leading-none tabular-nums text-ink-primary opacity-70" title="Projected">
                           {total !== undefined ? formatPoints(total) : ""}
                         </span>
                       </span>
