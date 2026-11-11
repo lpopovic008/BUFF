@@ -7,81 +7,184 @@ import { ChevronLeftIcon } from "@/components/ui/Icon";
 /** What the League Room's floor offers, each a button lying on a square of its grid. */
 export type FloorAction = "bench" | "graph" | "payouts" | "writeups" | "history" | "more";
 
-type Pt = [number, number];
-/** A ring of points around (cx, cy), radius r, in an icon's unit square. */
-const ring = (cx: number, cy: number, r: number, n = 28): Pt[] => Array.from({ length: n + 1 }, (_, i) => [cx + r * Math.cos((i / n) * 2 * Math.PI), cy + r * Math.sin((i / n) * 2 * Math.PI)]);
-/** Part of a ring, from angle a0 to a1 (radians). */
-const arc = (cx: number, cy: number, r: number, a0: number, a1: number, n = 16): Pt[] =>
-  Array.from({ length: n + 1 }, (_, i) => [cx + r * Math.cos(a0 + ((a1 - a0) * i) / n), cy + r * Math.sin(a0 + ((a1 - a0) * i) / n)]);
-
 /**
- * Each button: what it's for, and its icon — lines in a unit square on the button's upright face, across it left to
- * right and down it top to bottom.
+ * A solid of a floor button's model, in the model's own room: `x` across its slot (0 its left, 1 its right), `f` back
+ * from its front (in slot widths), `y` up off the floor (in slot widths). A closed solid (a prism: `faces` its top and
+ * its sides, convex), or a flat panel, seen from either side; `tone` lighter (or, below 0, darker) than the rest;
+ * `layer` drawn before (lower) or after (higher) the others whatever their depth; `decals`, lines drawn on it after it;
+ * `smooth`, round (its sides one surface, no edges drawn between them).
  */
-export const FLOOR_ACTIONS: { id: FloorAction; label: string; icon: Pt[][] }[] = [
-  {
-    id: "bench",
-    label: "Bench",
-    // Two players sat on a bench.
-    icon: [
-      ring(0.3, 0.24, 0.1),
-      ring(0.7, 0.24, 0.1),
-      arc(0.3, 0.6, 0.19, Math.PI, 2 * Math.PI),
-      arc(0.7, 0.6, 0.19, Math.PI, 2 * Math.PI),
-      [[0.04, 0.62], [0.96, 0.62]],
-      [[0.14, 0.62], [0.14, 0.9]],
-      [[0.86, 0.62], [0.86, 0.9]],
+type V3 = [number, number, number];
+interface Solid {
+  faces: V3[][];
+  closed: boolean;
+  tone: number;
+  layer: number;
+  decals?: V3[][];
+  smooth?: boolean;
+}
+
+/** A prism: `foot` (x, f) extruded from height y0 to y1. */
+function prism(foot: [number, number][], y0: number, y1: number, tone = 0, layer = 0, decals?: V3[][]): Solid {
+  const top = foot.map(([x, f]) => [x, f, y1] as V3);
+  const sides = foot.map(([x, f], i) => {
+    const [x2, f2] = foot[(i + 1) % foot.length];
+    return [
+      [x, f, y0],
+      [x2, f2, y0],
+      [x2, f2, y1],
+      [x, f, y1],
+    ] as V3[];
+  });
+  return { faces: [top, ...sides], closed: true, tone, layer, decals };
+}
+const box = (x0: number, x1: number, f0: number, f1: number, y0: number, y1: number, tone = 0, layer = 0, decals?: V3[][]) =>
+  prism(
+    [
+      [x0, f0],
+      [x1, f0],
+      [x1, f1],
+      [x0, f1],
     ],
-  },
-  {
-    id: "graph",
-    label: "Score graph",
-    // Two teams' points climbing over the week, each to where it's got to.
-    icon: [
-      [[0.08, 0.06], [0.08, 0.92], [0.94, 0.92]],
-      [[0.18, 0.76], [0.38, 0.52], [0.56, 0.6], [0.8, 0.2]],
-      [[0.18, 0.84], [0.42, 0.72], [0.6, 0.44], [0.8, 0.48]],
-      ring(0.8, 0.2, 0.045, 12),
-      ring(0.8, 0.48, 0.045, 12),
-    ],
-  },
-  {
-    id: "payouts",
-    label: "Payouts",
-    // A banknote.
-    icon: [
-      [[0.04, 0.24], [0.96, 0.24], [0.96, 0.76], [0.04, 0.76], [0.04, 0.24]],
-      [[0.1, 0.3], [0.9, 0.3], [0.9, 0.7], [0.1, 0.7], [0.1, 0.3]],
-      ring(0.5, 0.5, 0.13),
-      ring(0.22, 0.5, 0.03, 10),
-      ring(0.78, 0.5, 0.03, 10),
-    ],
-  },
-  {
-    id: "writeups",
-    label: "Write-ups",
-    // A page with its corner folded, written on, and the pencil writing it.
-    icon: [
-      [[0.14, 0.06], [0.54, 0.06], [0.72, 0.24], [0.72, 0.94], [0.14, 0.94], [0.14, 0.06]],
-      [[0.54, 0.06], [0.54, 0.24], [0.72, 0.24]],
-      [[0.26, 0.42], [0.6, 0.42]],
-      [[0.26, 0.56], [0.6, 0.56]],
-      [[0.26, 0.7], [0.44, 0.7]],
-      [[0.6, 0.86], [0.88, 0.46], [0.96, 0.52], [0.68, 0.92], [0.58, 0.96], [0.6, 0.86]],
-    ],
-  },
-  {
-    id: "history",
-    label: "League history",
-    // A clock's face turned back.
-    icon: [arc(0.5, 0.5, 0.4, -0.6 * Math.PI, 1.05 * Math.PI, 28), [[0.02, 0.36], [0.105, 0.47], [0.22, 0.38]], [[0.5, 0.28], [0.5, 0.52], [0.66, 0.62]]],
-  },
-  {
-    id: "more",
-    label: "More to come",
-    // Kept for something else.
-    icon: [ring(0.22, 0.5, 0.06, 14), ring(0.5, 0.5, 0.06, 14), ring(0.78, 0.5, 0.06, 14)],
-  },
+    y0,
+    y1,
+    tone,
+    layer,
+    decals
+  );
+const cylinder = (cx: number, cf: number, r: number, y0: number, y1: number, tone = 0, n = 18): Solid => ({
+  ...prism(
+    Array.from({ length: n }, (_, i) => [cx + r * Math.cos((2 * Math.PI * i) / n), cf + r * Math.sin((2 * Math.PI * i) / n)] as [number, number]),
+    y0,
+    y1,
+    tone
+  ),
+  smooth: true,
+});
+const panel = (pts: V3[], tone = 0): Solid => ({ faces: [pts], closed: false, tone, layer: 0 });
+
+/** A park bench: slats for a seat and a back, its legs, its arms. */
+function benchModel(): Solid[] {
+  const parts: Solid[] = [];
+  // Back posts running up behind the seat, the back legs under them.
+  for (const x of [0.12, 0.83]) parts.push(box(x, x + 0.05, 0.36, 0.42, 0, 0.74, -0.05));
+  // The back's slats.
+  for (const [y0, y1] of [
+    [0.46, 0.53],
+    [0.57, 0.64],
+    [0.67, 0.73],
+  ])
+    parts.push(box(0.05, 0.95, 0.37, 0.41, y0, y1, 0.05));
+  // Front legs.
+  for (const x of [0.12, 0.83]) parts.push(box(x, x + 0.05, 0.1, 0.15, 0, 0.3, -0.05));
+  // The seat's slats.
+  for (const [f0, f1] of [
+    [0.29, 0.36],
+    [0.19, 0.27],
+    [0.09, 0.17],
+  ])
+    parts.push(box(0.05, 0.95, f0, f1, 0.3, 0.34, 0.08));
+  // Arms: a post at the front, a rail back to the back posts.
+  for (const x of [0.08, 0.87]) {
+    parts.push(box(x, x + 0.05, 0.1, 0.14, 0.34, 0.46, -0.05));
+    parts.push(box(x - 0.01, x + 0.06, 0.08, 0.38, 0.46, 0.49, 0.08));
+  }
+  return parts;
+}
+
+/** Two teams' points, a row of bars each, rising — the back row the other team's — on a plinth. */
+function graphModel(): Solid[] {
+  const parts: Solid[] = [box(0.03, 0.97, 0.04, 0.56, 0, 0.035, -0.04, -1)];
+  const columns = [0.08, 0.31, 0.54, 0.77];
+  const back = [0.3, 0.42, 0.5, 0.72];
+  const front = [0.16, 0.29, 0.24, 0.47];
+  columns.forEach((x, i) => parts.push(box(x, x + 0.16, 0.34, 0.5, 0.035, 0.035 + back[i], -0.1)));
+  columns.forEach((x, i) => parts.push(box(x, x + 0.16, 0.1, 0.26, 0.035, 0.035 + front[i], 0.12)));
+  return parts;
+}
+
+/** Stacks of coins. */
+function payoutsModel(): Solid[] {
+  const parts: Solid[] = [];
+  const coin = 0.042;
+  const stacks: [number, number, number][] = [
+    [0.5, 0.38, 10],
+    [0.24, 0.26, 6],
+    [0.77, 0.24, 8],
+  ];
+  for (const [x, f, count] of stacks) {
+    // Each coin a shade apart from the next, and a hair off its size, so they show one by one up the stack.
+    for (let i = 0; i < count; i++) parts.push(cylinder(x, f, i % 2 ? 0.125 : 0.119, i * coin, (i + 1) * coin, i % 2 ? 0.16 : -0.02, 20));
+  }
+  // A coin lying flat in front.
+  parts.push(cylinder(0.5, 0.1, 0.09, 0, 0.03, 0.12, 20));
+  return parts;
+}
+
+/** A stack of written pages, the top one written on, and an inkwell with its quill. */
+function writeupsModel(): Solid[] {
+  const sheet = 0.03;
+  const offsets = [0.02, -0.03, 0.03, -0.01, 0.01, 0];
+  const top = offsets.length * sheet + 0.001;
+  const lines: V3[][] = [0.16, 0.23, 0.3, 0.37, 0.44].map((f, i) => [
+    [0.12, f, top],
+    [i === 0 ? 0.62 : i === 4 ? 0.42 : 0.58, f, top],
+  ]);
+  return [
+    ...offsets.map((dx, i) =>
+      box(0.06 + dx, 0.68 + dx, 0.08 + Math.abs(dx), 0.52 - Math.abs(dx), i * sheet, (i + 1) * sheet, i === offsets.length - 1 ? 0.2 : i % 2 ? 0.02 : 0.08, 0, i === offsets.length - 1 ? lines : undefined)
+    ),
+    cylinder(0.84, 0.3, 0.09, 0, 0.15, -0.14),
+    cylinder(0.84, 0.3, 0.055, 0.15, 0.2, -0.08),
+    // The quill standing in the well, its feather toward you.
+    panel(
+      [
+        [0.84, 0.3, 0.2],
+        [0.8, 0.3, 0.42],
+        [0.85, 0.3, 0.76],
+        [0.95, 0.3, 0.5],
+        [0.88, 0.3, 0.3],
+      ],
+      0.22
+    ),
+  ];
+}
+
+/** A trophy on a stepped base. */
+function historyModel(): Solid[] {
+  return [
+    box(0.26, 0.74, 0.12, 0.5, 0, 0.08, -0.06),
+    box(0.33, 0.67, 0.18, 0.44, 0.08, 0.14, 0.02),
+    cylinder(0.5, 0.31, 0.04, 0.14, 0.3, 0.05),
+    cylinder(0.5, 0.31, 0.09, 0.3, 0.35, 0.1),
+    cylinder(0.5, 0.31, 0.14, 0.35, 0.47, 0.14),
+    cylinder(0.5, 0.31, 0.18, 0.47, 0.62, 0.18),
+    // Its handles.
+    box(0.27, 0.31, 0.29, 0.33, 0.44, 0.58, 0.1),
+    box(0.69, 0.73, 0.29, 0.33, 0.44, 0.58, 0.1),
+  ];
+}
+
+/** A wrapped present: a box, its lid, the ribbon round them and a bow on top. */
+function moreModel(): Solid[] {
+  return [
+    box(0.2, 0.8, 0.1, 0.5, 0, 0.38, -0.02),
+    box(0.46, 0.54, 0.085, 0.1, 0, 0.38, 0.22),
+    box(0.17, 0.83, 0.07, 0.53, 0.38, 0.47, 0.08),
+    box(0.46, 0.54, 0.06, 0.54, 0.47, 0.48, 0.24),
+    box(0.36, 0.47, 0.24, 0.36, 0.48, 0.57, 0.24),
+    box(0.53, 0.64, 0.24, 0.36, 0.48, 0.57, 0.24),
+  ];
+}
+
+/** Each button: what it's for, and what stands on the floor for it (see Solid). */
+export const FLOOR_ACTIONS: { id: FloorAction; label: string; model: () => Solid[] }[] = [
+  { id: "bench", label: "Bench", model: benchModel },
+  { id: "graph", label: "Score graph", model: graphModel },
+  { id: "payouts", label: "Payouts", model: payoutsModel },
+  { id: "writeups", label: "Write-ups", model: writeupsModel },
+  { id: "history", label: "League history", model: historyModel },
+  { id: "more", label: "More to come", model: moreModel },
 ];
 
 const SIN = Math.sin((FLOOR_TILT * Math.PI) / 180);
@@ -94,8 +197,8 @@ function standing(across: number, d: number, h: number, width: number, hinge: nu
   return [width / 2 + across * s, hinge + (d * COS - h * SIN) * s];
 }
 
-/** A button's shape, for its width: how tall it stands, how thick it is, and the gap to the next. */
-const BLOCK = { height: 0.78, thick: 0.42, gap: 0.16 };
+/** A button's room, for its width: how tall it stands at most, how far back it goes, and the gap to the next. */
+const BLOCK = { height: 0.78, thick: 0.58, gap: 0.16 };
 /** The widest a button's face is drawn on the screen (px). */
 const MOST_FACE_PX = 112;
 /** How far in front of where its top would be level with the horizon a button stands (floor px): its top just shows. */
@@ -148,18 +251,87 @@ export function floorButtonRow(screenW: number, screenH: number, bottom: number,
 
 const path = (pts: [number, number][], close = true) => pts.map(([x, y], j) => `${j ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`).join("") + (close ? "Z" : "");
 
-/** A button's faces, lit from above: its top palest, its sides between, its front darkest. */
-const FACE = {
-  front: "color-mix(in srgb, var(--ink-primary) 8%, var(--page))",
-  frontLit: "color-mix(in srgb, var(--ink-primary) 15%, var(--page))",
-  side: "color-mix(in srgb, var(--ink-primary) 13%, var(--page))",
-  top: "color-mix(in srgb, var(--ink-primary) 22%, var(--page))",
-};
+/** The light on the models: from above, a little from the front and the left (screen x right, y down, z toward you). */
+const LIGHT = (() => {
+  const [x, y, z] = [-0.35, -1, 0.55];
+  const n = Math.hypot(x, y, z);
+  return [x / n, y / n, z / n] as const;
+})();
 
 /**
- * The League Room's buttons: six blocks standing upright on its floor in a row across it (see floorButtonRow), seen in
- * the room's perspective — each its icon on its face, the floor's own lines hidden behind it, and reflected in the
- * floor under it. Pressed in a little when pressed. Gone (`hidden`) while a panel's up over them.
+ * A face's fill, in the page's ink over its own color: lit as it faces the light, `tone` lighter (or darker), and
+ * `lit` (pointed at) lighter still.
+ */
+function shade(normal: readonly number[], tone: number, lit = 0): string {
+  const facing = Math.max(0, normal[0] * LIGHT[0] + normal[1] * LIGHT[1] + normal[2] * LIGHT[2]);
+  const pct = Math.min(60, Math.max(3, 7 + facing * 17 + tone * 30 + lit));
+  return `color-mix(in srgb, var(--ink-primary) ${pct.toFixed(1)}%, var(--page))`;
+}
+
+type W3 = [number, number, number];
+const sub = (a: W3, b: W3): W3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const cross = (a: W3, b: W3): W3 => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const dot = (a: W3, b: W3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const mean = (pts: W3[]): W3 => {
+  const n = pts.length;
+  return [pts.reduce((s, p) => s + p[0], 0) / n, pts.reduce((s, p) => s + p[1], 0) / n, pts.reduce((s, p) => s + p[2], 0) / n];
+};
+
+/** A model's faces as they're drawn, back to front: each its outline on the screen and its fill, and lines on it. */
+interface Drawn {
+  faces: { d: string; fill: string; edge: boolean }[];
+  decals: string[];
+}
+
+/**
+ * Draws a model (see Solid) standing in its slot — `x0` its left edge across the floor (floor px from the screen's
+ * middle), `front` how far back from the hinge its front is, `unit` floor px to the model's own unit — upright, or
+ * (`mirrored`) as the floor reflects it. In the room's perspective: the room's 3D (x across, y down the screen from
+ * the hinge, z toward you), you at z = PERSPECTIVE_PX. A closed solid's faces turned away from you are left out, and
+ * the solids drawn farthest first.
+ */
+function drawModel(solids: Solid[], x0: number, front: number, unit: number, width: number, hinge: number, mirrored: boolean, lit: number): Drawn {
+  const world = ([x, f, y]: V3): W3 => {
+    const across = x0 + x * unit;
+    const d = front - f * unit;
+    const h = (mirrored ? -y : y) * unit;
+    return [across, d * COS - h * SIN, d * SIN + h * COS];
+  };
+  const screen = ([X, Y, Z]: W3): [number, number] => {
+    const s = PERSPECTIVE_PX / (PERSPECTIVE_PX - Math.min(Z, PERSPECTIVE_PX * 0.97));
+    return [width / 2 + X * s, hinge + Y * s];
+  };
+  const eye: W3 = [0, 0, PERSPECTIVE_PX];
+  const placed = solids.map((solid) => {
+    const faces = solid.faces.map((face) => face.map(world));
+    return { solid, faces, center: mean(faces.flat()) };
+  });
+  placed.sort((a, b) => a.solid.layer - b.solid.layer || a.center[2] - b.center[2] || a.center[1] - b.center[1]);
+  const drawn: Drawn = { faces: [], decals: [] };
+  for (const { solid, faces, center } of placed) {
+    for (const face of faces) {
+      const mid = mean(face);
+      let normal = cross(sub(face[1], face[0]), sub(face[2], face[0]));
+      const len = Math.hypot(...normal) || 1;
+      normal = [normal[0] / len, normal[1] / len, normal[2] / len];
+      if (solid.closed) {
+        // Facing out of the solid, and toward you — else it's hidden behind the rest of it.
+        if (dot(normal, sub(mid, center)) < 0) normal = [-normal[0], -normal[1], -normal[2]];
+        if (dot(normal, sub(eye, mid)) <= 0) continue;
+      } else if (dot(normal, sub(eye, mid)) < 0) normal = [-normal[0], -normal[1], -normal[2]];
+      // A round solid's sides are one surface: no edges between them (its top's still outlined).
+      drawn.faces.push({ d: path(face.map(screen)), fill: shade(normal, solid.tone, lit), edge: !solid.smooth || face === faces[0] });
+    }
+    for (const line of solid.decals ?? []) drawn.decals.push(path(line.map(world).map(screen), false));
+  }
+  return drawn;
+}
+
+/**
+ * The League Room's buttons: a row of models standing on its floor (see floorButtonRow), each what it's for — a park
+ * bench, two teams' bars of points, stacks of coins, written pages and a quill, a trophy, a present — in the room's
+ * perspective, lit from above, and reflected in the floor under them. Pointed at, lit up; pressed, they give a
+ * little. Gone (`hidden`) while a panel's up over them.
  */
 export function FloorButtons({
   width,
@@ -174,34 +346,32 @@ export function FloorButtons({
   hidden: boolean;
   onPick: (action: FloorAction) => void;
 }) {
+  const [lit, setLit] = useState<FloorAction | null>(null);
   const hinge = height * row.share;
-  const at = (across: number, d: number, h: number) => standing(across, d, h, width, hinge);
   const n = FLOOR_ACTIONS.length;
   const total = n * row.width + (n - 1) * row.gap;
-  const [d1, d0] = [row.depth, row.depth - row.thick];
-  const side = Math.min(row.width, row.height) * 0.62;
-  const blocks = FLOOR_ACTIONS.map((action, i) => {
+  const slots = FLOOR_ACTIONS.map((action, i) => {
     const x0 = -total / 2 + i * (row.width + row.gap);
-    const x1 = x0 + row.width;
-    const cx = (x0 + x1) / 2;
-    // Up (h > 0) as it stands, or down (h < 0) as it shows in the floor.
-    const faces = (up: number) => {
-      const h = row.height * up;
-      const front = path([at(x0, d1, 0), at(x1, d1, 0), at(x1, d1, h), at(x0, d1, h)]);
-      const top = path([at(x0, d1, h), at(x1, d1, h), at(x1, d0, h), at(x0, d0, h)]);
-      // The sides that face the middle, where you stand.
-      const sides = [x0 > 0 ? path([at(x0, d1, 0), at(x0, d0, 0), at(x0, d0, h), at(x0, d1, h)]) : null, x1 < 0 ? path([at(x1, d1, 0), at(x1, d0, 0), at(x1, d0, h), at(x1, d1, h)]) : null].filter(
-        (f): f is string => f !== null
-      );
-      const icon = action.icon.map((line) => path(line.map(([u, v]) => at(cx + (u - 0.5) * side, d1, up * (row.height / 2 + (0.5 - v) * side))), false));
-      return { front, top, sides, icon };
-    };
-    return { action, up: faces(1), down: faces(-1) };
+    const solids = action.model();
+    const glow = lit === action.id ? 8 : 0;
+    const up = drawModel(solids, x0, row.depth, row.width, width, hinge, false, glow);
+    const down = drawModel(solids, x0, row.depth, row.width, width, hinge, true, 0);
+    // What's tapped: the slot's whole box, as it stands.
+    const corners = ([0, 1] as const).flatMap((x) =>
+      ([0, BLOCK.thick] as const).flatMap((f) =>
+        ([0, BLOCK.height] as const).map((y) => standing(x0 + x * row.width, row.depth - f * row.width, y * row.width, width, hinge))
+      )
+    );
+    const [xs, ys] = [corners.map((c) => c[0]), corners.map((c) => c[1])];
+    const hit = { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
+    return { action, up, down, hit };
   });
-  const iconWidth = Math.max(1.25, Math.min(2, side * 0.05 * (at(0, d1, 0)[0] - at(-1, d1, 0)[0])));
-  const reflectTop = at(0, d1, 0)[1];
-  const reflectBottom = at(0, d1, -row.height)[1];
+  const reflectTop = standing(0, row.depth, 0, width, hinge)[1];
+  const reflectBottom = standing(0, row.depth, -row.height, width, hinge)[1];
   const fade = "floor-buttons-fade";
+  const edge = { stroke: "var(--ink-primary)", strokeOpacity: 0.4, strokeWidth: 0.75, strokeLinejoin: "round" as const };
+  // No edge: its own color round it, so no seam shows between it and the next.
+  const seamless = (fill: string) => ({ stroke: fill, strokeWidth: 0.75, strokeLinejoin: "round" as const });
   return (
     <svg
       className={`pointer-events-none fixed inset-0 z-[3] h-full w-full transition-opacity duration-300 ${hidden ? "opacity-0" : ""}`}
@@ -218,21 +388,15 @@ export function FloorButtons({
       </defs>
       {/* Their reflections in the floor, upside down under them, fading out as they go. */}
       <g mask={`url(#${fade})`}>
-        {blocks.map(({ action, down }) => (
+        {slots.map(({ action, down }) => (
           <g key={action.id}>
-            {down.sides.map((d, j) => (
-              <path key={j} d={d} fill={FACE.side} />
+            {down.faces.map((f, j) => (
+              <path key={j} d={f.d} fill={f.fill} {...(f.edge ? edge : seamless(f.fill))} />
             ))}
-            <path d={down.front} fill={FACE.front} stroke="var(--ink-primary)" strokeOpacity={0.5} strokeWidth={1} />
-            <g fill="none" stroke="var(--ink-primary)" strokeWidth={iconWidth} strokeLinecap="round" strokeLinejoin="round">
-              {down.icon.map((d, j) => (
-                <path key={j} d={d} />
-              ))}
-            </g>
           </g>
         ))}
       </g>
-      {blocks.map(({ action, up }) => (
+      {slots.map(({ action, up, hit }) => (
         <g
           key={action.id}
           role="button"
@@ -240,6 +404,8 @@ export function FloorButtons({
           aria-label={action.label}
           className={`group cursor-pointer outline-none ${hidden ? "" : "pointer-events-auto"}`}
           onClick={() => onPick(action.id)}
+          onPointerEnter={() => setLit(action.id)}
+          onPointerLeave={() => setLit((was) => (was === action.id ? null : was))}
           onKeyDown={(e) => {
             if (e.key !== "Enter" && e.key !== " ") return;
             e.preventDefault();
@@ -247,24 +413,15 @@ export function FloorButtons({
           }}
         >
           <title>{action.label}</title>
+          {/* Its whole slot, to tap — outlined when it has the keyboard's focus. */}
+          <rect x={hit.x} y={hit.y} width={hit.w} height={hit.h} fill="transparent" stroke="var(--ink-primary)" strokeOpacity={0} className="group-focus-visible:[stroke-opacity:0.6]" />
           {/* Pressed, it gives a little, down into the floor. */}
           <g className="transition-transform duration-75 group-active:translate-y-[2px]">
-            {up.sides.map((d, j) => (
-              <path key={j} d={d} fill={FACE.side} stroke="var(--ink-primary)" strokeOpacity={0.35} strokeWidth={1} strokeLinejoin="round" />
+            {up.faces.map((f, j) => (
+              <path key={j} d={f.d} fill={f.fill} {...(f.edge ? edge : seamless(f.fill))} />
             ))}
-            <path d={up.top} fill={FACE.top} stroke="var(--ink-primary)" strokeOpacity={0.45} strokeWidth={1} strokeLinejoin="round" />
-            <path
-              d={up.front}
-              fill={FACE.front}
-              stroke="var(--ink-primary)"
-              strokeOpacity={0.7}
-              strokeWidth={1.25}
-              strokeLinejoin="round"
-              className="transition-[fill] group-hover:[fill:var(--floor-button-lit)] group-focus-visible:[stroke-width:2.5]"
-              style={{ ["--floor-button-lit" as string]: FACE.frontLit }}
-            />
-            <g fill="none" stroke="var(--ink-primary)" strokeWidth={iconWidth} strokeLinecap="round" strokeLinejoin="round" className="opacity-85 transition-opacity group-hover:opacity-100">
-              {up.icon.map((d, j) => (
+            <g fill="none" stroke="var(--ink-primary)" strokeOpacity={0.55} strokeWidth={1} strokeLinecap="round">
+              {up.decals.map((d, j) => (
                 <path key={j} d={d} />
               ))}
             </g>
