@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { FLOOR_TILT, floorDepth, floorPoint, floorScale, HORIZON_SHARE, PERSPECTIVE_PX } from "@/lib/grid-room";
 import { ChevronLeftIcon } from "@/components/ui/Icon";
 
@@ -187,6 +187,9 @@ export const FLOOR_ACTIONS: { id: FloorAction; label: string; model: () => Solid
   { id: "more", label: "More to come", model: moreModel },
 ];
 
+/** Each button's model, built once: they never change, only where they're seen from (see FloorButtons). */
+const SOLIDS = FLOOR_ACTIONS.map((action) => action.model());
+
 const SIN = Math.sin((FLOOR_TILT * Math.PI) / 180);
 const COS = Math.cos((FLOOR_TILT * Math.PI) / 180);
 
@@ -258,13 +261,10 @@ const LIGHT = (() => {
   return [x / n, y / n, z / n] as const;
 })();
 
-/**
- * A face's fill, in the page's ink over its own color: lit as it faces the light, `tone` lighter (or darker), and
- * `lit` (pointed at) lighter still.
- */
-function shade(normal: readonly number[], tone: number, lit = 0): string {
+/** A face's fill, in the page's ink over its own color: lit as it faces the light, `tone` lighter (or darker). */
+function shade(normal: readonly number[], tone: number): string {
   const facing = Math.max(0, normal[0] * LIGHT[0] + normal[1] * LIGHT[1] + normal[2] * LIGHT[2]);
-  const pct = Math.min(60, Math.max(3, 7 + facing * 17 + tone * 30 + lit));
+  const pct = Math.min(60, Math.max(3, 7 + facing * 17 + tone * 30));
   return `color-mix(in srgb, var(--ink-primary) ${pct.toFixed(1)}%, var(--page))`;
 }
 
@@ -290,7 +290,7 @@ interface Drawn {
  * the hinge, z toward you), you at z = PERSPECTIVE_PX. A closed solid's faces turned away from you are left out, and
  * the solids drawn farthest first.
  */
-function drawModel(solids: Solid[], x0: number, front: number, unit: number, width: number, hinge: number, mirrored: boolean, lit: number): Drawn {
+function drawModel(solids: Solid[], x0: number, front: number, unit: number, width: number, hinge: number, mirrored: boolean): Drawn {
   const world = ([x, f, y]: V3): W3 => {
     const across = x0 + x * unit;
     const d = front - f * unit;
@@ -320,7 +320,7 @@ function drawModel(solids: Solid[], x0: number, front: number, unit: number, wid
         if (dot(normal, sub(eye, mid)) <= 0) continue;
       } else if (dot(normal, sub(eye, mid)) < 0) normal = [-normal[0], -normal[1], -normal[2]];
       // A round solid's sides are one surface: no edges between them (its top's still outlined).
-      drawn.faces.push({ d: path(face.map(screen)), fill: shade(normal, solid.tone, lit), edge: !solid.smooth || face === faces[0] });
+      drawn.faces.push({ d: path(face.map(screen)), fill: shade(normal, solid.tone), edge: !solid.smooth || face === faces[0] });
     }
     for (const line of solid.decals ?? []) drawn.decals.push(path(line.map(world).map(screen), false));
   }
@@ -332,8 +332,26 @@ function drawModel(solids: Solid[], x0: number, front: number, unit: number, wid
  * bench, two teams' bars of points, stacks of coins, written pages and a quill, a trophy, a present — in the room's
  * perspective, lit from above, and reflected in the floor under them. Pointed at, lit up; pressed, they give a
  * little. Gone (`hidden`) while a panel's up over them.
+ *
+ * The room's still, so they're drawn once for the screen they're on — again only if its size changes. Nothing else
+ * redraws them: pointing at one lights it by the browser alone (a CSS filter, no new drawing), and the page's own
+ * changes pass them by (see FloorButtons' memo).
  */
-export function FloorButtons({
+export const FloorButtons = memo(
+  FloorButtonsDrawn,
+  (a, b) =>
+    a.width === b.width &&
+    a.height === b.height &&
+    a.hidden === b.hidden &&
+    a.onPick === b.onPick &&
+    a.row.share === b.row.share &&
+    a.row.width === b.row.width &&
+    a.row.height === b.row.height &&
+    a.row.gap === b.row.gap &&
+    a.row.depth === b.row.depth
+);
+
+function FloorButtonsDrawn({
   width,
   height,
   row,
@@ -346,26 +364,26 @@ export function FloorButtons({
   hidden: boolean;
   onPick: (action: FloorAction) => void;
 }) {
-  const [lit, setLit] = useState<FloorAction | null>(null);
   const hinge = height * row.share;
-  const n = FLOOR_ACTIONS.length;
-  const total = n * row.width + (n - 1) * row.gap;
-  const slots = FLOOR_ACTIONS.map((action, i) => {
-    const x0 = -total / 2 + i * (row.width + row.gap);
-    const solids = action.model();
-    const glow = lit === action.id ? 8 : 0;
-    const up = drawModel(solids, x0, row.depth, row.width, width, hinge, false, glow);
-    const down = drawModel(solids, x0, row.depth, row.width, width, hinge, true, 0);
-    // What's tapped: the slot's whole box, as it stands.
-    const corners = ([0, 1] as const).flatMap((x) =>
-      ([0, BLOCK.thick] as const).flatMap((f) =>
-        ([0, BLOCK.height] as const).map((y) => standing(x0 + x * row.width, row.depth - f * row.width, y * row.width, width, hinge))
-      )
-    );
-    const [xs, ys] = [corners.map((c) => c[0]), corners.map((c) => c[1])];
-    const hit = { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
-    return { action, up, down, hit };
-  });
+  const { share, width: unit, gap, depth } = row;
+  // Drawn once for the screen they're on.
+  const slots = useMemo(() => {
+    const n = FLOOR_ACTIONS.length;
+    const total = n * unit + (n - 1) * gap;
+    const at = height * share;
+    return FLOOR_ACTIONS.map((action, i) => {
+      const x0 = -total / 2 + i * (unit + gap);
+      const up = drawModel(SOLIDS[i], x0, depth, unit, width, at, false);
+      const down = drawModel(SOLIDS[i], x0, depth, unit, width, at, true);
+      // What's tapped: the slot's whole box, as it stands.
+      const corners = ([0, 1] as const).flatMap((x) =>
+        ([0, BLOCK.thick] as const).flatMap((f) => ([0, BLOCK.height] as const).map((y) => standing(x0 + x * unit, depth - f * unit, y * unit, width, at)))
+      );
+      const [xs, ys] = [corners.map((c) => c[0]), corners.map((c) => c[1])];
+      const hit = { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
+      return { action, up, down, hit };
+    });
+  }, [width, height, share, unit, gap, depth]);
   const reflectTop = standing(0, row.depth, 0, width, hinge)[1];
   const reflectBottom = standing(0, row.depth, -row.height, width, hinge)[1];
   const fade = "floor-buttons-fade";
@@ -404,8 +422,6 @@ export function FloorButtons({
           aria-label={action.label}
           className={`group cursor-pointer outline-none ${hidden ? "" : "pointer-events-auto"}`}
           onClick={() => onPick(action.id)}
-          onPointerEnter={() => setLit(action.id)}
-          onPointerLeave={() => setLit((was) => (was === action.id ? null : was))}
           onKeyDown={(e) => {
             if (e.key !== "Enter" && e.key !== " ") return;
             e.preventDefault();
@@ -415,8 +431,8 @@ export function FloorButtons({
           <title>{action.label}</title>
           {/* Its whole slot, to tap — outlined when it has the keyboard's focus. */}
           <rect x={hit.x} y={hit.y} width={hit.w} height={hit.h} fill="transparent" stroke="var(--ink-primary)" strokeOpacity={0} className="group-focus-visible:[stroke-opacity:0.6]" />
-          {/* Pressed, it gives a little, down into the floor. */}
-          <g className="transition-transform duration-75 group-active:translate-y-[2px]">
+          {/* Pointed at, lit up (the browser's doing, nothing drawn again); pressed, it gives a little, down into the floor. */}
+          <g className="transition-[transform,filter] duration-150 group-hover:[filter:brightness(1.35)] group-active:translate-y-[2px]">
             {up.faces.map((f, j) => (
               <path key={j} d={f.d} fill={f.fill} {...(f.edge ? edge : seamless(f.fill))} />
             ))}
