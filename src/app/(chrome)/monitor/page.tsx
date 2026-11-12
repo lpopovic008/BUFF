@@ -1,12 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { TitleWithHistory } from "@/components/HistoryButtons";
 import { PlateCard } from "@/components/ui/PlateCard";
 import { PickButton } from "@/components/ui/PickButton";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { PlayerCareer } from "@/components/PlayerCareer";
 import { TradeCalculator } from "@/components/TradeCalculator";
+import { RoomColumn, WallRoom, useWideRoom } from "@/components/WallRoom";
 import { useConfig } from "@/hooks/useConfig";
 import { useMyLeagues } from "@/hooks/useMyLeagues";
 import { TradeMonitor, useTradeMonitor } from "@/hooks/useTradeMonitor";
@@ -40,7 +40,7 @@ const games = (n: number) => `${n % 1 ? n.toFixed(1) : n} game${n === 1 ? "" : "
 function PlayoffPicture({ monitor }: { monitor: TradeMonitor }) {
   const byId = new Map(monitor.teams.map((t) => [t.rosterId, t]));
   return (
-    <ol className="flex flex-col">
+    <ol className="@container flex flex-col">
       {monitor.picture.map((s, i) => {
         const t = byId.get(s.rosterId)!;
         const inside = i < monitor.playoffTeams;
@@ -49,7 +49,7 @@ function PlayoffPicture({ monitor }: { monitor: TradeMonitor }) {
         return (
           <li
             key={s.rosterId}
-            className={`grid grid-cols-[1.5rem_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-0.5 py-1.5 sm:grid-cols-[1.5rem_minmax(0,1fr)_5rem_6.5rem_6rem] ${
+            className={`grid grid-cols-[1.5rem_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-0.5 py-1.5 @lg:grid-cols-[1.5rem_minmax(0,1fr)_5rem_6.5rem_6rem] ${
               i === monitor.playoffTeams - 1 ? "border-b-2 border-ink-primary" : "border-b border-border last:border-b-0"
             } ${t.mine ? "bg-[color-mix(in_srgb,var(--map-tag)_7%,transparent)]" : ""}`}
           >
@@ -61,14 +61,14 @@ function PlayoffPicture({ monitor }: { monitor: TradeMonitor }) {
             <span className="justify-self-end">
               <StatusChip standing={s} />
             </span>
-            {/* On a phone, the record and where it stands on one line under the name; wider, each its own column. */}
-            <span className="col-span-2 col-start-2 truncate text-xs tabular-nums text-ink-secondary sm:hidden">
+            {/* In a narrow column, the record and where it stands on one line under the name; wider, each its own column. */}
+            <span className="col-span-2 col-start-2 truncate text-xs tabular-nums text-ink-secondary @lg:hidden">
               {formatRecord(t.wins, t.losses, t.ties)} · {Math.round(t.pointsFor)} PF · {line}
             </span>
-            <span className="text-right text-xs tabular-nums text-ink-secondary max-sm:hidden">
+            <span className="text-right text-xs tabular-nums text-ink-secondary @max-lg:hidden">
               {formatRecord(t.wins, t.losses, t.ties)} · {Math.round(t.pointsFor)} PF
             </span>
-            <span className="text-right text-[0.6875rem] text-ink-muted max-sm:hidden">{line}</span>
+            <span className="text-right text-[0.6875rem] text-ink-muted @max-lg:hidden">{line}</span>
           </li>
         );
       })}
@@ -188,60 +188,101 @@ function Empty({ children }: { children: React.ReactNode }) {
   return <p className="py-4 text-center text-sm text-ink-secondary">{children}</p>;
 }
 
-/** The Trade Monitor: pick a league, then where it stands, where rosters are thin, who to sell and who to target. */
+/**
+ * The Trade Monitor, in a room as the League Room is: the page itself never scrolls; its columns stand on the back
+ * wall, each scrolling on its own and reflected in the floor in front of them. From laptop width up: where the league
+ * stands — its playoff picture and each team's positions — on the left; the trade calculator, who to sell and who to
+ * target in the middle; and your leagues to pick from on the right. Narrower, all of it in one column: your leagues,
+ * then the rest.
+ */
 export default function MonitorPage() {
   const { config } = useConfig();
+  const wide = useWideRoom();
   const leagueIds = useMemo(() => visibleLeagues(config.leagues).map((l) => l.leagueId), [config.leagues]);
   const myLeagues = useMyLeagues(leagueIds, config.sleeperUserId);
   const [pickedId, setPickedId] = useState<string | null>(null);
   const picked = myLeagues?.find((l) => l.leagueId === pickedId) ?? myLeagues?.[0] ?? null;
 
+  const leagues =
+    myLeagues && myLeagues.length > 0 ? (
+      <ul className="grid grid-cols-2 gap-2 xl:grid-cols-1" aria-label="Your leagues">
+        {myLeagues.map((l) => (
+          <li key={l.leagueId}>
+            <PickButton active={picked?.leagueId === l.leagueId} onClick={() => setPickedId(l.leagueId)} title={l.leagueName} note={formatRecord(l.wins, l.losses, l.ties)} />
+          </li>
+        ))}
+      </ul>
+    ) : null;
+  const waiting = myLeagues ? <Empty>Add a Sleeper league in Settings to watch its trade market.</Empty> : <Empty>Loading your leagues…</Empty>;
+
   return (
-    <div className="flex flex-col gap-6 animate-[rise_0.5s_ease-out_backwards]">
-      <TitleWithHistory>
-        <h1 className="text-2xl font-semibold text-ink-primary">Trade Monitor</h1>
-      </TitleWithHistory>
-      {myLeagues && myLeagues.length > 0 ? (
-        <ul className="grid grid-cols-2 gap-2 sm:grid-cols-[repeat(auto-fill,minmax(13rem,1fr))]" aria-label="Your leagues">
-          {myLeagues.map((l) => (
-            <li key={l.leagueId}>
-              <PickButton active={picked?.leagueId === l.leagueId} onClick={() => setPickedId(l.leagueId)} title={l.leagueName} note={formatRecord(l.wins, l.losses, l.ties)} />
-            </li>
-          ))}
-        </ul>
-      ) : null}
+    <WallRoom title="Trade Monitor">
       {picked ? (
-        <LeagueMonitor key={picked.leagueId} leagueId={picked.leagueId} myUserId={config.sleeperUserId} />
-      ) : myLeagues ? (
-        <Empty>Add a Sleeper league in Settings to watch its trade market.</Empty>
+        <LeagueMonitor key={picked.leagueId} leagueId={picked.leagueId} myUserId={config.sleeperUserId} wide={wide} leagues={leagues} />
       ) : (
-        <Empty>Loading your leagues…</Empty>
+        <MonitorColumns wide={wide} leagues={leagues} middle={waiting} />
       )}
-    </div>
+    </WallRoom>
   );
 }
 
-function LeagueMonitor({ leagueId, myUserId }: { leagueId: string; myUserId: string | null }) {
+/**
+ * The room's columns: from laptop width up, the league's standing (`left`) on the left, the middle one wider (as the
+ * League Room's), your leagues on the right; narrower, one column — your leagues, then the middle's, then the left's.
+ */
+function MonitorColumns({ wide, leagues, left, middle }: { wide: boolean; leagues: React.ReactNode; left?: React.ReactNode; middle: React.ReactNode }) {
+  if (!wide) {
+    return (
+      <RoomColumn label="Trade Monitor" className="flex-1">
+        <div className="flex flex-col gap-4">
+          {leagues}
+          {middle}
+          {left}
+        </div>
+      </RoomColumn>
+    );
+  }
+  return (
+    <>
+      <RoomColumn label="Where the league stands" style={{ flex: "1 1 0%" }}>
+        {left}
+      </RoomColumn>
+      <RoomColumn label="Trades" style={{ flex: "1.6 1 0%" }}>
+        {middle}
+      </RoomColumn>
+      <RoomColumn label="Your leagues" style={{ flex: "1 1 0%" }}>
+        {leagues}
+      </RoomColumn>
+    </>
+  );
+}
+
+function LeagueMonitor({ leagueId, myUserId, wide, leagues }: { leagueId: string; myUserId: string | null; wide: boolean; leagues: React.ReactNode }) {
   const monitor = useTradeMonitor(leagueId, myUserId);
   const [card, setCard] = useState<ResolvedPlayer | null>(null);
-  if (monitor === undefined) return <Empty>Reading the league…</Empty>;
-  if (monitor === null) return <Empty>Couldn&rsquo;t load this league from Sleeper.</Empty>;
+  if (monitor === undefined) return <MonitorColumns wide={wide} leagues={leagues} middle={<Empty>Reading the league…</Empty>} />;
+  if (monitor === null) return <MonitorColumns wide={wide} leagues={leagues} middle={<Empty>Couldn&rsquo;t load this league from Sleeper.</Empty>} />;
   const byId = new Map(monitor.teams.map((t) => [t.rosterId, t]));
   const standingOf = new Map(monitor.picture.map((s) => [s.rosterId, s]));
   const open = (p: MonitorPlayer) => setCard({ playerId: p.id, name: p.name, position: p.position, team: p.team });
   const owner = (t: Target) => ({ name: byId.get(t.rosterId)?.name ?? "", standing: standingOf.get(t.rosterId) });
 
-  return (
-    <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
-      {card ? <PlayerCareer player={card} season={Number(monitor.season)} scoring={monitor.scoring} onClose={() => setCard(null)} /> : null}
-      <PlateCard title="Trade calculator" className="lg:col-span-2" bodyClassName="p-3 sm:p-4">
-        <TradeCalculator monitor={monitor} onOpen={open} />
-      </PlateCard>
+  // Where the league stands: every team against the playoff line, then each team's positions.
+  const left = (
+    <div className="flex flex-col gap-4">
       <PlateCard title="Playoff picture" aside={<span>Top {monitor.playoffTeams} make it</span>} bodyClassName="px-3 py-1 sm:px-4">
         <PlayoffPicture monitor={monitor} />
       </PlateCard>
       <PlateCard title="Positional needs" bodyClassName="p-3 sm:p-4">
         <Positions monitor={monitor} />
+      </PlateCard>
+    </div>
+  );
+  // The trade calculator, then who to sell and who to target.
+  const middle = (
+    <div className="flex flex-col gap-4">
+      <PlateCard title="Trade calculator" bodyClassName="p-3 sm:p-4">
+        <TradeCalculator monitor={monitor} onOpen={open} />
       </PlateCard>
       <PlateCard title="Think about selling" aside={<span>{monitor.dynasty ? "Your team" : "Your team · redraft"}</span>} bodyClassName="px-3 py-1 sm:px-4">
         {monitor.sell.length > 0 ? (
@@ -283,5 +324,13 @@ function LeagueMonitor({ leagueId, myUserId }: { leagueId: string; myUserId: str
         </div>
       </PlateCard>
     </div>
+  );
+
+  return (
+    <>
+      <MonitorColumns wide={wide} leagues={leagues} left={left} middle={middle} />
+      {/* Over the room, not in a column (whose contents move as it scrolls). */}
+      {card ? <PlayerCareer player={card} season={Number(monitor.season)} scoring={monitor.scoring} onClose={() => setCard(null)} /> : null}
+    </>
   );
 }

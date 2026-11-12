@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { SearchIcon, CrownIcon, CalendarIcon, SuperflexIcon, OneQBIcon, PlusCircleIcon, DotIcon } from "@/components/ui/Icon";
 import { IconButton } from "@/components/ui/IconButton";
@@ -15,10 +15,7 @@ import { PlayerCard } from "@/components/PlayerCard";
 import { loadPlayerIdIndex } from "@/lib/players";
 import { normalizeName } from "@/lib/name-match";
 import { formatRecord } from "@/lib/format";
-import { FloorGrid } from "@/components/FloorGrid";
-import { FloorReflection } from "@/components/FloorReflection";
-import { ScrollThumb } from "@/components/ScrollThumb";
-import { useListScroll } from "@/hooks/useListScroll";
+import { RoomColumn, WallRoom, useWideRoom } from "@/components/WallRoom";
 
 const snapshot = rawSnapshot as unknown as PlayerValuesSnapshot;
 
@@ -44,19 +41,6 @@ interface Row {
 // KTC's positions as Sleeper names them, for finding a player's photo.
 const SLEEPER_POSITION: Record<string, string> = { PK: "K", DST: "DEF" };
 
-// The room (see .grid-room): its horizon low, the back wall most of the screen — the floor in front of it a strip
-// for what stands on it to be reflected in.
-const VALUES_SHARE = 0.8;
-// From laptop width up, three columns stand in the room (as the League Room's do); narrower, one.
-const DESKTOP = "(min-width: 1280px)";
-const onDesktopChange = (listener: () => void) => {
-  const query = window.matchMedia(DESKTOP);
-  query.addEventListener("change", listener);
-  return () => query.removeEventListener("change", listener);
-};
-// Where the columns' first rows sit: under the header, and a gap; and how far above the horizon they end.
-const UNDER_HEADER = "var(--header-h, 0px) + 0.625rem";
-const OVER_HORIZON = "0.5rem";
 /** How many cards are drawn at most. */
 const MOST_CARDS = 300;
 
@@ -94,49 +78,16 @@ function ToggleGroup({ label, children }: { label: string; children: React.React
   );
 }
 
-/** A column standing in the room: on the back wall down to just over the horizon, scrolling on its own, reflected in the floor. */
-function RoomColumn({
-  label,
-  className = "",
-  style,
-  children,
-}: {
-  label: string;
-  className?: string;
-  style?: React.CSSProperties;
-  children: React.ReactNode;
-}) {
-  const [list, setList] = useState<HTMLDivElement | null>(null);
-  // Scrolled as an iPhone scrolls, by the page, so its reflection moves with it exactly (see useListScroll).
-  useListScroll(list);
-  const pad = { paddingTop: `calc(${UNDER_HEADER})` };
-  return (
-    <section aria-label={label} className={`relative min-w-0 ${className}`} style={style}>
-      <div
-        ref={setList}
-        data-scroll-list
-        className="absolute inset-0 touch-none overflow-y-auto overscroll-none pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        style={pad}
-      >
-        <div>{children}</div>
-      </div>
-      <ScrollThumb source={list} />
-      {/* What's at its foot, in the floor. */}
-      <FloorReflection source={list} className="pb-2" style={pad} />
-    </section>
-  );
-}
-
 /**
  * The values, in a room as the League Room is: the page itself never scrolls; its columns stand on the back wall,
- * each scrolling on its own and reflected in the floor in front of them. From laptop width up: all players and each
- * of your teams to pick from on the left; the players' cards (or, for one of your teams, its trades) in the middle;
- * and what the cards show — the search, the league, QB and TE scoring, the positions — on the right. Narrower, all of
- * it in one column, in that order.
+ * each scrolling on its own and reflected in the floor in front of them. From laptop width up: what the cards show —
+ * the search, the league, QB and TE scoring, the positions — on the left; the players' cards (or, for one of your
+ * teams, its trades) in the middle; and all players and each of your teams to pick from on the right. Narrower, all
+ * of it in one column: what to pick, what the cards show, then the cards.
  */
 export default function ValuesPage() {
   const { config } = useConfig();
-  const desktop = useSyncExternalStore(onDesktopChange, () => window.matchMedia(DESKTOP).matches, () => false);
+  const desktop = useWideRoom();
   const [listType, setListType] = useState<ListType>("dynasty");
   const [leagueFormat, setLeagueFormat] = useState<LeagueFormat>("superflex");
   const [tep, setTep] = useState<TEPremium>("standard");
@@ -144,29 +95,6 @@ export default function ValuesPage() {
   const [query, setQuery] = useState("");
   // All players, or your team in a league (by league id) — All players to start.
   const [pickedId, setPickedId] = useState<string>(ALL_PLAYERS);
-
-  // The room fits the screen: the page itself never scrolls (only its columns do).
-  useEffect(() => {
-    const [html, body] = [document.documentElement.style, document.body.style];
-    const was = [html.overflow, html.overscrollBehavior, body.overflow, body.overscrollBehavior];
-    html.overflow = body.overflow = "hidden";
-    html.overscrollBehavior = body.overscrollBehavior = "none";
-    window.scrollTo(0, 0);
-    return () => {
-      [html.overflow, html.overscrollBehavior, body.overflow, body.overscrollBehavior] = was;
-    };
-  }, []);
-  // The room's height as it's drawn (not 100vh, which a browser's toolbars can make taller than the screen).
-  const [room, setRoom] = useState<HTMLDivElement | null>(null);
-  const [roomHeight, setRoomHeight] = useState<number | null>(null);
-  useEffect(() => {
-    if (!room) return;
-    const measure = () => setRoomHeight(room.clientHeight || window.innerHeight);
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(room);
-    return () => observer.disconnect();
-  }, [room]);
 
   const leagueIds = useMemo(() => visibleLeagues(config.leagues).map((l) => l.leagueId), [config.leagues]);
   const myLeagues = useMyLeagues(leagueIds, config.sleeperUserId);
@@ -304,40 +232,32 @@ export default function ValuesPage() {
     </div>
   );
 
-  // Every column down to just over the horizon.
-  const columnHeight = { height: `calc(var(--room-h, 100vh) * ${VALUES_SHARE} - ${OVER_HORIZON})` };
   return (
-    <div style={roomHeight ? { ["--room-h" as string]: `${roomHeight}px` } : undefined}>
-      <h1 className="sr-only">Values</h1>
-      <div ref={setRoom} aria-hidden className="grid-room" style={{ ["--horizon" as string]: `${VALUES_SHARE * 100}%` }}>
-        <FloorGrid share={VALUES_SHARE} />
-      </div>
+    <WallRoom title="Values">
       {desktop ? (
-        // Three columns, the middle one wider (as the League Room's); a team's trades taking the right one too.
-        <div className="fixed inset-x-0 top-0 flex gap-4 px-4" style={columnHeight}>
-          <RoomColumn label="All players and your teams" style={{ flex: "1 1 0%" }}>
-            {picks}
-          </RoomColumn>
-          <RoomColumn label={picked ? `${picked.leagueName}: trades` : "Players"} style={{ flex: picked ? "2.6 1 0%" : "1.6 1 0%" }}>
-            {main}
-          </RoomColumn>
+        // Three columns, the middle one wider (as the League Room's); a team's trades taking the left one too.
+        <>
           {picked ? null : (
             <RoomColumn label="What the cards show" style={{ flex: "1 1 0%" }}>
               {filters}
             </RoomColumn>
           )}
-        </div>
-      ) : (
-        <div className="fixed inset-x-0 top-0 flex px-4" style={columnHeight}>
-          <RoomColumn label="Values" className="flex-1">
-            <div className="flex flex-col gap-4">
-              {picks}
-              {picked ? null : filters}
-              {main}
-            </div>
+          <RoomColumn label={picked ? `${picked.leagueName}: trades` : "Players"} style={{ flex: picked ? "2.6 1 0%" : "1.6 1 0%" }}>
+            {main}
           </RoomColumn>
-        </div>
+          <RoomColumn label="All players and your teams" style={{ flex: "1 1 0%" }}>
+            {picks}
+          </RoomColumn>
+        </>
+      ) : (
+        <RoomColumn label="Values" className="flex-1">
+          <div className="flex flex-col gap-4">
+            {picks}
+            {picked ? null : filters}
+            {main}
+          </div>
+        </RoomColumn>
       )}
-    </div>
+    </WallRoom>
   );
 }
