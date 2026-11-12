@@ -11,11 +11,12 @@ import { useMyLeagues } from "@/hooks/useMyLeagues";
 import { visibleLeagues } from "@/lib/localStore";
 import rawSnapshot from "@/data/player-values.json";
 import { LeagueFormat, PlayerValue, PlayerValuesSnapshot, TEPremium, valueFor, valueGrade } from "@/lib/player-values";
-import { PlayerCard } from "@/components/PlayerCard";
+import { PlayerCard, teamOf } from "@/components/PlayerCard";
 import { loadPlayerIdIndex } from "@/lib/players";
 import { normalizeName } from "@/lib/name-match";
 import { formatRecord } from "@/lib/format";
-import { RoomColumn, WallRoom, useWideRoom } from "@/components/WallRoom";
+import { RoomCard, RoomColumn, WallRoom, useWideRoom } from "@/components/WallRoom";
+import { getNFLState } from "@/lib/sleeper";
 
 const snapshot = rawSnapshot as unknown as PlayerValuesSnapshot;
 
@@ -45,22 +46,27 @@ const SLEEPER_POSITION: Record<string, string> = { PK: "K", DST: "DEF" };
 const MOST_CARDS = 300;
 
 /** The players as Madden cards, as many to a row as their column fits. */
-function ValueCards({ rows, idIndex }: { rows: Row[]; idIndex: Map<string, string> }) {
+function ValueCards({ rows, idIndex, onOpen }: { rows: Row[]; idIndex: Map<string, string>; onOpen: (row: Row, playerId: string) => void }) {
   if (rows.length === 0) {
     return <p className="py-8 text-center text-sm text-ink-secondary">No players match.</p>;
   }
   return (
     <div className="@container">
       <ul className="grid grid-cols-3 gap-x-2 gap-y-3 @lg:grid-cols-4 @2xl:grid-cols-5 @4xl:grid-cols-6">
-        {rows.map(({ player, grade, rank }) => (
-          <PlayerCard
-            key={`${player.position}-${player.name}`}
-            player={player}
-            grade={grade}
-            rank={rank}
-            playerId={idIndex.get(`${SLEEPER_POSITION[player.position] ?? player.position}-${normalizeName(player.name)}`) ?? null}
-          />
-        ))}
+        {rows.map((row) => {
+          const { player, grade, rank } = row;
+          const playerId = idIndex.get(`${SLEEPER_POSITION[player.position] ?? player.position}-${normalizeName(player.name)}`) ?? null;
+          return (
+            <PlayerCard
+              key={`${player.position}-${player.name}`}
+              player={player}
+              grade={grade}
+              rank={rank}
+              playerId={playerId}
+              onOpen={playerId ? () => onOpen(row, playerId) : undefined}
+            />
+          );
+        })}
       </ul>
     </div>
   );
@@ -128,6 +134,44 @@ export default function ValuesPage() {
       .sort((a, b) => b.grade - a.grade)
       .map((row, i) => ({ ...row, rank: i + 1 }));
   }, [fullList, deselectedPositions, query, leagueFormat, tep]);
+
+  // Each player's rank at his position by value, as the cards are valued (for his player card).
+  const positionRanks = useMemo(() => {
+    const ranks = new Map<PlayerValue, number>();
+    const counts = new Map<string, number>();
+    [...fullList]
+      .sort((a, b) => valueFor(b, leagueFormat, tep) - valueFor(a, leagueFormat, tep))
+      .forEach((p) => {
+        const n = (counts.get(p.position) ?? 0) + 1;
+        counts.set(p.position, n);
+        ranks.set(p, n);
+      });
+    return ranks;
+  }, [fullList, leagueFormat, tep]);
+
+  // The NFL's season now, which a player's card counts his career through.
+  const [season, setSeason] = useState(() => new Date().getFullYear());
+  useEffect(() => {
+    let cancelled = false;
+    void getNFLState().then((state) => {
+      const year = Number(state?.season);
+      if (!cancelled && year) setSeason(year);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  // The player whose card is up (see WallRoom's card), as the League Room's.
+  const [card, setCard] = useState<RoomCard | null>(null);
+  const openCard = (row: Row, playerId: string) => {
+    const p = row.player;
+    const position = SLEEPER_POSITION[p.position] ?? p.position;
+    setCard({
+      player: { playerId, name: p.name, position, team: teamOf(p) },
+      numbers: { valueRank: positionRanks.get(p) ?? null, dynasty: listType === "dynasty", seasonRank: null, ppg: null, opponent: null, bye: false, defenseRank: null },
+      season,
+    });
+  };
 
   const hasData = snapshot.updatedAt !== null;
   const valuesLabel = `${listType === "dynasty" ? "Dynasty" : "Redraft"} · ${leagueFormat === "superflex" ? "Superflex" : "1QB"}${tep === "tep" ? " · TE+" : ""}`;
@@ -227,13 +271,13 @@ export default function ValuesPage() {
         <span>{valuesLabel}</span>
         <span className="tabular-nums text-ink-muted">{rows.length}</span>
       </div>
-      <ValueCards rows={rows.slice(0, MOST_CARDS)} idIndex={idIndex} />
+      <ValueCards rows={rows.slice(0, MOST_CARDS)} idIndex={idIndex} onOpen={openCard} />
       {rows.length > MOST_CARDS ? <p className="mt-1 text-xs text-ink-muted">Top {MOST_CARDS} of {rows.length}</p> : null}
     </div>
   );
 
   return (
-    <WallRoom title="Values">
+    <WallRoom title="Values" card={card} onCloseCard={() => setCard(null)}>
       {desktop ? (
         // Three columns, the middle one wider (as the League Room's); a team's trades taking the left one too.
         <>
@@ -242,7 +286,7 @@ export default function ValuesPage() {
               {filters}
             </RoomColumn>
           )}
-          <RoomColumn label={picked ? `${picked.leagueName}: trades` : "Players"} style={{ flex: picked ? "2.6 1 0%" : "1.6 1 0%" }}>
+          <RoomColumn label={picked ? `${picked.leagueName}: trades` : "Players"} stage style={{ flex: picked ? "2.6 1 0%" : "1.6 1 0%" }}>
             {main}
           </RoomColumn>
           <RoomColumn label="All players and your teams" style={{ flex: "1 1 0%" }}>
@@ -250,7 +294,7 @@ export default function ValuesPage() {
           </RoomColumn>
         </>
       ) : (
-        <RoomColumn label="Values" className="flex-1">
+        <RoomColumn label="Values" className="flex-1" stage>
           <div className="flex flex-col gap-4">
             {picks}
             {picked ? null : filters}

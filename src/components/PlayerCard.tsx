@@ -10,7 +10,7 @@ import { playerHeadshotUrl, playerPhotoUrl } from "@/lib/sleeper";
 const KTC_TEAM: Record<string, string> = { GBP: "GB", JAC: "JAX", KCC: "KC", LVR: "LV", NEP: "NE", NOS: "NO", SFO: "SF", TBB: "TB" };
 
 /** A KTC player's team as the rest of the app writes it — null for a free agent or a draft pick. */
-function teamOf(player: PlayerValue): string | null {
+export function teamOf(player: PlayerValue): string | null {
   return player.team && player.team !== "FA" ? (KTC_TEAM[player.team] ?? player.team) : null;
 }
 
@@ -51,9 +51,24 @@ function CardFace({ player, playerId }: { player: PlayerValue; playerId: string 
  * A player as a Madden card: their photo in the middle, their team top left, their position bottom
  * left, their grade (see valueGrade) bottom right on the app's plate, whole — its decimals, the tie splitter, on hover — and their name under it all.
  */
-export function PlayerCard({ player, grade, rank, playerId }: { player: PlayerValue; grade: number; rank: number; playerId: string | null }) {  const team = teamOf(player);
-  return (
-    <li className="flex min-w-0 flex-col gap-1" title={`${player.name} · ${player.position}${team ? ` · ${team}` : ""} · ${grade.toFixed(2)}`}>
+export function PlayerCard({
+  player,
+  grade,
+  rank,
+  playerId,
+  onOpen,
+}: {
+  player: PlayerValue;
+  grade: number;
+  rank: number;
+  playerId: string | null;
+  /** Opens their player card (see PlayerCareer) — none for a player Sleeper doesn't know. */
+  onOpen?: () => void;
+}) {
+  const team = teamOf(player);
+  const title = `${player.name} · ${player.position}${team ? ` · ${team}` : ""} · ${grade.toFixed(2)}`;
+  const face = (
+    <>
       <div className="relative flex aspect-[4/5] items-center justify-center overflow-hidden border border-border bg-surface-raised">
         {team ? (
           <span className="absolute left-1 top-1 border border-ink-primary px-1 text-[0.625rem] font-bold leading-tight text-ink-primary">{team}</span>
@@ -68,6 +83,17 @@ export function PlayerCard({ player, grade, rank, playerId }: { player: PlayerVa
         </span>
       </div>
       <span className="line-clamp-2 break-words text-center text-[0.75rem] font-semibold leading-tight text-ink-primary">{player.name}</span>
+    </>
+  );
+  return (
+    <li className="min-w-0" title={title}>
+      {onOpen ? (
+        <button type="button" onClick={onOpen} className="flex w-full min-w-0 cursor-pointer flex-col gap-1 text-left transition-transform active:scale-[0.97] [&:hover>div]:border-ink-primary">
+          {face}
+        </button>
+      ) : (
+        <div className="flex min-w-0 flex-col gap-1">{face}</div>
+      )}
     </li>
   );
 }
