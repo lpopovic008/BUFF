@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-15T19:20:45.658Z",
+  "updatedAt": "2026-11-16T22:51:22.973Z",
   "source": "yafsb",
   "dynastyOneQB": [
     {
@@ -2641,7 +2641,7 @@
     {
       "name": "Josh Downs",
       "position": "WR",
-      "team": "IND",
+      "team": "KC",
       "adp": 120.6
     },
     {
@@ -3275,12 +3275,6 @@
       "adp": 227.4
     },
     {
-      "name": "Jaydon Blue",
-      "position": "RB",
-      "team": "PHI",
-      "adp": 227.8
-    },
-    {
       "name": "Ollie Gordon II",
       "position": "RB",
       "team": "MIA",
@@ -3295,7 +3289,7 @@
     {
       "name": "Kirk Cousins",
       "position": "QB",
-      "team": "LV",
+      "team": "MIN",
       "adp": 229.5
     },
     {
@@ -3337,7 +3331,7 @@
     {
       "name": "Keenan Allen",
       "position": "WR",
-      "team": "IND",
+      "team": "SF",
       "adp": 240.5
     },
     {
@@ -3743,6 +3737,12 @@
       "adp": 279.6
     },
     {
+      "name": "Kendre Miller",
+      "position": "RB",
+      "team": "DAL",
+      "adp": 280
+    },
+    {
       "name": "Isaiah Bond",
       "position": "WR",
       "team": "CLE",
@@ -4047,12 +4047,6 @@
       "position": "QB",
       "team": "HOU",
       "adp": 318.6
-    },
-    {
-      "name": "Marquise Brown",
-      "position": "WR",
-      "team": "PHI",
-      "adp": 321.9
     },
     {
       "name": "Luke McCaffrey",
@@ -4773,7 +4767,7 @@
     {
       "name": "Josh Downs",
       "position": "WR",
-      "team": "IND",
+      "team": "KC",
       "adp": 110.7
     },
     {
@@ -5121,7 +5115,7 @@
     {
       "name": "Keenan Allen",
       "position": "WR",
-      "team": "IND",
+      "team": "SF",
       "adp": 160
     },
     {
@@ -5225,6 +5219,12 @@
       "position": "WR",
       "team": "SEA",
       "adp": 165
+    },
+    {
+      "name": "Harrison Mevis",
+      "position": "K",
+      "team": "BAL",
+      "adp": 165.5
     },
     {
       "name": "Harrison Butker",
@@ -6251,7 +6251,7 @@
     {
       "name": "Josh Downs",
       "position": "WR",
-      "team": "IND",
+      "team": "KC",
       "adp": 128.3
     },
     {
@@ -6467,7 +6467,7 @@
     {
       "name": "Kirk Cousins",
       "position": "QB",
-      "team": "LV",
+      "team": "MIN",
       "adp": 159.8
     },
     {
@@ -6633,9 +6633,15 @@
       "adp": 175.2
     },
     {
+      "name": "Harrison Mevis",
+      "position": "K",
+      "team": "BAL",
+      "adp": 175.4
+    },
+    {
       "name": "Keenan Allen",
       "position": "WR",
-      "team": "IND",
+      "team": "SF",
       "adp": 175.6
     },
     {
