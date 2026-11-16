@@ -11,6 +11,7 @@ import { FloorGrid } from "@/components/FloorGrid";
 import { FloorCameraControls, RED_ZONE_PLAYS_AT_MS, RED_ZONE_PLAYS_MS, RED_ZONE_SINK_MS } from "@/components/FloorCameraControls";
 import { FloorReflection } from "@/components/FloorReflection";
 import { FloorFields } from "@/components/FloorFields";
+import { FloorFieldsLab } from "@/components/FloorFieldsLab";
 import { ScrollThumb } from "@/components/ScrollThumb";
 import { useListScroll } from "@/hooks/useListScroll";
 import { createFloorCameraStore } from "@/lib/floor-camera";
@@ -61,6 +62,9 @@ const RED_ZONE_FLOAT_REM = 0.125;
 const RED_ZONE_REM = 10.5;
 // From tablet width up, the player graphs at the back of the room: from under the ticker down to the horizon.
 // From tablet width up, how far down the starters list's first row sits: under the header and ticker, and the gap.
+// TEMPORARY: from tablet width up, nine made-up games' fields in place of the live ones, for trying out every play
+// they act out (see FloorFieldsLab). Set to false to put the live games back.
+const PLAY_TEST = true;
 const UNDER_TICKER = "var(--header-h, 0px) + var(--ticker-h, 0px) + 0.625rem";
 const COLUMN_TO_HORIZON = `(var(--room-h, 100vh) * ${HORIZON_SHARE} - var(--header-h, 0px) - var(--ticker-h, 0px) - 0.625rem)`;
 const onDesktopChange = (listener: () => void) => {
@@ -949,7 +953,11 @@ export default function DashboardPage() {
       <FloorReflection source={startersList} className="pb-16" style={{ paddingTop: `calc(${UNDER_TICKER})` }} />
       {/* The games being played, a field each, on the floor between the Red Zone and the starters list. */}
       {stand && fieldsFloor ? (
-        <FloorFields games={liveGames} width={stand.projector.width} height={stand.room} share={stand.projector.share} floor={fieldsFloor} />
+        PLAY_TEST ? (
+          <FloorFieldsLab width={stand.projector.width} height={stand.room} share={stand.projector.share} floor={fieldsFloor} top={`calc(${UNDER_TICKER})`} />
+        ) : (
+          <FloorFields games={liveGames} width={stand.projector.width} height={stand.room} share={stand.projector.share} floor={fieldsFloor} />
+        )
       ) : null}
       {redZoneStage}
       {floorControls}

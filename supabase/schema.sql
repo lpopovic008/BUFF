@@ -33,3 +33,22 @@ create policy "insert own row" on public.app_data
 
 create policy "update own row" on public.app_data
   for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- Suggestions for the app (Settings → Suggest an improvement). Anyone can
+-- send one, signed in or not; nobody can read them back through the app —
+-- there's no select policy, so only the project owner sees them, in the
+-- dashboard (Table Editor → suggestions). Each is held to 2,000 characters
+-- (as the form is, see src/lib/support.ts), and a signed-in sender's id is
+-- kept with it.
+create table if not exists public.suggestions (
+  id bigint generated always as identity primary key,
+  body text not null check (char_length(body) between 1 and 2000),
+  user_id uuid default auth.uid() references auth.users(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.suggestions enable row level security;
+
+create policy "anyone can send a suggestion" on public.suggestions
+  for insert to anon, authenticated
+  with check (user_id is null or user_id = auth.uid());

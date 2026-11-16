@@ -67,6 +67,7 @@ export function FloorFields({
   share,
   floor,
   focused = false,
+  onPick,
 }: {
   /** The games being played, in order. */
   games: NFLGame[];
@@ -77,6 +78,8 @@ export function FloorFields({
   floor: Omit<FieldFloor, "width" | "height" | "share">;
   /** A phone's floor: one game in view at a time (see layFocused). */
   focused?: boolean;
+  /** Told when a field's tapped (or clicked), and which game's it is. */
+  onPick?: (gameId: string) => void;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const fields = useRef(new Map<string, FieldState>());
@@ -86,6 +89,10 @@ export function FloorFields({
   const order = useRef<string[]>([]);
   // Drawn again (and on, while anything's moving).
   const kick = useRef(() => {});
+  const pick = useRef(onPick);
+  useEffect(() => {
+    pick.current = onPick;
+  }, [onPick]);
 
   // Laid out again: where each field goes for the games on, and the room as it is.
   const relay = useRef(() => {
@@ -448,12 +455,32 @@ export function FloorFields({
       }
     }
 
-    // On a phone: the fields swiped up or down the floor, the next one brought to the front — or one tapped.
+    // The field at screen point (x, y), if any: inside its four corners as they show.
+    const fieldAt = (x: number, y: number): string | null => {
+      const { width: w, height: h, share: sh } = room.current;
+      const half = FIELD_WIDE / 2;
+      for (const [id, f] of fields.current) {
+        const s = f.target;
+        if (!s) continue;
+        const p = (fx: number, z: number) => floorPoint(s.across + (fx - 50) * s.yard, s.near - (half - z) * s.yard, w, h, sh);
+        const corners = [p(-10, -half), p(110, -half), p(110, half), p(-10, half)];
+        const inside = corners.every(([ax, ay], i) => {
+          const [bx, by] = corners[(i + 1) % 4];
+          return (bx - ax) * (y - ay) - (by - ay) * (x - ax) >= 0;
+        });
+        if (inside) return id;
+      }
+      return null;
+    };
+
+    // On a phone: the fields swiped up or down the floor, the next one brought to the front — or one tapped. Anywhere,
+    // a field tapped is told (see onPick).
     let down: { x: number; y: number } | null = null;
     const onDown = (e: PointerEvent) => {
       const { height: h, share: sh, floor: f, focused: phone } = room.current;
       down = null;
-      if (!phone || order.current.length < 2 || e.clientY < h * sh || e.clientY > f.front + 12) return;
+      const swipes = phone && order.current.length > 1;
+      if ((!swipes && !pick.current) || e.clientY < h * sh || e.clientY > f.front + 12) return;
       const target = e.target instanceof Element ? e.target : null;
       if (target?.closest("button, a, input, select, textarea, label, [role='button'], [data-scroll-list], [data-floor-ui], header, nav")) return;
       down = { x: e.clientX, y: e.clientY };
@@ -464,7 +491,8 @@ export function FloorFields({
       down = null;
       const ids = order.current;
       const at = front.current ? ids.indexOf(front.current) : 0;
-      if (Math.abs(dy) > SWIPE_PX && Math.abs(dy) > Math.abs(dx) * 1.2) {
+      const phone = room.current.focused;
+      if (phone && ids.length > 1 && Math.abs(dy) > SWIPE_PX && Math.abs(dy) > Math.abs(dx) * 1.2) {
         // Pulled toward you: the one behind comes to the front (the one there going to the back). Pushed away: back.
         const step = dy > 0 ? 1 : -1;
         front.current = ids[(at + step + ids.length) % ids.length];
@@ -472,20 +500,13 @@ export function FloorFields({
         return;
       }
       if (Math.hypot(dx, dy) > 8) return;
-      // Tapped on a field behind: that one to the front.
-      const { width: w, height: h, share: sh } = room.current;
-      for (const [id, f] of fields.current) {
-        const s = f.target;
-        if (!s || id === front.current) continue;
-        const half = FIELD_WIDE / 2;
-        const p = (x: number, z: number) => floorPoint(s.across + (x - 50) * s.yard, s.near - (half - z) * s.yard, w, h, sh);
-        const [a, b, c] = [p(-10, -half), p(110, -half), p(110, half)];
-        const l = p(-10, half)[0];
-        if (e.clientY >= a[1] && e.clientY <= c[1] && e.clientX >= Math.min(a[0], l) && e.clientX <= Math.max(b[0], c[0])) {
-          front.current = id;
-          relay.current();
-          return;
-        }
+      const id = fieldAt(e.clientX, e.clientY);
+      if (!id) return;
+      pick.current?.(id);
+      // On a phone, a field tapped behind the one in view comes to the front.
+      if (phone && id !== front.current) {
+        front.current = id;
+        relay.current();
       }
     };
     window.addEventListener("pointerdown", onDown, true);

@@ -15,6 +15,7 @@ import { AccountSection } from "./AccountSection";
 import { AppearanceSection } from "./AppearanceSection";
 import { RedZoneSection } from "./RedZoneSection";
 import { ScoresSection } from "./ScoresSection";
+import { SupportSection } from "./SupportSection";
 import { TitleWithHistory } from "@/components/HistoryButtons";
 import { PlateCard } from "@/components/ui/PlateCard";
 
@@ -181,6 +182,10 @@ export default function SettingsPage() {
 
           <Section title="Google Docs">
             <GoogleDocsSection config={config} onChange={refresh} />
+          </Section>
+
+          <Section title="Suggest an improvement">
+            <SupportSection />
           </Section>
         </div>
       </div>
