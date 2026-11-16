@@ -74,8 +74,8 @@ const dateLabel = (at: number, year = true) =>
  * swiped (or scrolled) sideways from year to year — on a phone, one strip across every year instead (see
  * TrackStrip); under it, the trading teams' rosters as they stood, the pieces that changed hands sliding from one
  * to the other; and beside them, the trade's card. Picking a trade on the timeline, or stepping with the arrows,
- * moves them all. In a room with a floor for it (see TradeFloorContext), the rosters play out on the floor instead,
- * and the card has the room here to itself.
+ * moves them all. In a room with a floor for it (see TradeFloorContext), the rosters — and the timeline, at its back —
+ * are on the floor instead, and the card has the room here to itself.
  */
 export function TradeViewer({
   timeline,
@@ -107,7 +107,8 @@ export function TradeViewer({
   // The trade shown from elsewhere, where it's on the timeline; else the one picked here.
   const shownAt = shownId != null ? columns.findIndex((c) => c.tradeId === shownId) : -1;
   const picked = shownAt >= 0 ? shownAt : ownPick;
-  const [sortId, setSortId] = useState(SORTS[0].id);
+  // Most valuable first, to start.
+  const [sortId, setSortId] = useState("value");
   // Bumped to play the picked trade over again.
   const [replays, setReplays] = useState(0);
   // The year on the timeline: the picked trade's, till another's swiped to (while that trade's picked).
@@ -147,6 +148,11 @@ export function TradeViewer({
       people,
       order: (SORTS.find((s) => s.id === sortId) ?? SORTS[0]).order(people),
       teamName: (rosterId) => teams.find((t) => t.rosterId === rosterId)?.name ?? `Team ${rosterId}`,
+      timeline: {
+        trades: columns.map((c, i) => ({ at: c.at, offset: offsets[i] })),
+        picked,
+        onPick: pick,
+      },
     });
     // (The column's the trade's: its key says when it's another.)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -199,7 +205,14 @@ export function TradeViewer({
         <button type="button" onClick={() => step(-1)} disabled={picked === 0} aria-label="Earlier trade" className={STEP}>
           ‹
         </button>
-        {phone ? (
+        {toFloor ? (
+          // The timeline's on the floor (see FloorTradeMove): here, who the trade was between.
+          <span className="min-w-0 flex-1 truncate text-center text-[0.6875rem] font-bold uppercase tracking-wide text-ink-primary">
+            {tradeRosters(column)
+              .map((r) => teamName(r.rosterId))
+              .join(" ⇄ ")}
+          </span>
+        ) : phone ? (
           <TrackStrip
             trades={columns.map((c, i) => ({ i, at: c.at, year: spots[i].year, x: offsets[i], rosters: tradeRosters(c).map((r) => r.rosterId) }))}
             picked={picked}

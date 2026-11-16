@@ -20,9 +20,10 @@ const onWideChange = (listener: () => void) => {
   query.addEventListener("change", listener);
   return () => query.removeEventListener("change", listener);
 };
-// Where the columns' first rows sit: under the header, and a gap; and how far above the horizon they end.
+// Where the columns' first rows sit: under the header, and a gap; and how far above the horizon they end — none, so
+// what's reflected in the floor is mirrored right at the horizon.
 const UNDER_HEADER = "var(--header-h, 0px) + 0.625rem";
-const OVER_HORIZON = "0.5rem";
+const OVER_HORIZON = "0px";
 // How long the horizon takes to move (ms), and how far a player's card stands in from what's around it (px).
 const LOOK_MS = 500;
 const STAGE_GAP_PX = 8;

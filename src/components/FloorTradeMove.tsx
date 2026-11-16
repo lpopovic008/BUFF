@@ -17,6 +17,8 @@ export interface FloorMove {
   /** The order each roster's put in. */
   order: (a: string, b: string) => number;
   teamName: (rosterId: number) => string;
+  /** Every trade on a line across the floor's back, by when (`offset`, as the timeline spaces them), to pick from. */
+  timeline?: { trades: { at: number; offset: number }[]; picked: number; onPick: (i: number) => void };
 }
 
 /**
@@ -33,10 +35,13 @@ const FACE_PX = 30;
 
 /**
  * A trade played out on the room's floor: each of the trading teams' lineups a row across the floor from left to
- * right (its name at its left end), the teams one behind the other, each piece a dot in its position's color — and
+ * right, most valuable first as they're sorted (its name at its left end), the teams one behind the other, each piece
+ * a dot in its position's color — and
  * those that change hands their faces (a ring for a pick), named. As it plays, they go across to their new lineup,
- * the rest closing ranks, a dashed ring left where each stood and an arc from there to where it landed. `room`: the
- * screen it's on, its horizon `share` of the way down, the floor's front edge at screen y `bottom`.
+ * the rest closing ranks, a dashed ring left where each stood and an arc from there to where it landed. Behind them,
+ * at the floor's back, the league's trades on a line across it by when (see FloorTimeline), the one shown marked, any
+ * picked from there. `room`: the screen it's on, its horizon `share` of the way down, the floor's front edge at screen
+ * y `bottom`.
  */
 export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width: number; height: number; share: number; bottom: number } }) {
   const [played, setPlayed] = useState(false);
@@ -52,11 +57,12 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
   // As many places across as the longest lineup, before or after, needs — the same in every row, so they line up.
   const slots = Math.max(1, ...before.map((l) => l.length), ...after.map((l) => l.length));
 
-  // The floor the lineups lie on: from a little in front of the horizon to a little short of the front edge, each
+  // The floor the lineups lie on: in front of the timeline at its back to a little short of its front edge, each
   // team's row a band of it, the first at the back; and as wide across as the screen lets the nearest row be.
   const horizon = height * share;
   const floor = bottom - horizon;
-  const back = floorDepth(horizon + floor * 0.1, height, share);
+  const timelineDepth = floorDepth(horizon + floor * 0.09, height, share);
+  const back = floorDepth(horizon + floor * 0.22, height, share);
   const front = floorDepth(bottom - floor * 0.14, height, share);
   const band = (front - back) / n;
   const rowDepth = (lane: number) => back + band * (lane + 0.5);
@@ -72,34 +78,13 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
   (played ? after : before).forEach((list, lane) => list.forEach((id, i) => spots.set(id, place(lane, i))));
   const ids = [...new Set([...before.flat(), ...after.flat()])];
   const colorOf = (id: string) => (people.get(id)?.position === PICK ? "var(--ink-muted)" : (POSITION_COLOR_VAR[people.get(id)?.position ?? ""] ?? "var(--ink-muted)"));
-  // Each lineup's strip of floor, outlined faintly; its name at its left end.
-  const lanes = rosters.map((r, lane) => {
-    const d = rowDepth(lane);
-    const half = band * 0.3;
-    const [l, rgt] = [-span / 2 - cell * 0.2, span / 2 + cell * 0.2];
-    const corners = [
-      floorPoint(l, d + half, width, height, share),
-      floorPoint(rgt, d + half, width, height, share),
-      floorPoint(rgt, d - half, width, height, share),
-      floorPoint(l, d - half, width, height, share),
-    ];
-    return { rosterId: r.rosterId, corners, label: floorPoint(l, d - half, width, height, share) };
-  });
+  // Each lineup's name, at its left end.
+  const lanes = rosters.map((r, lane) => ({ rosterId: r.rosterId, label: floorPoint(-span / 2 - cell * 0.2, rowDepth(lane) - band * 0.3, width, height, share) }));
 
   return (
-    <div className="pointer-events-none fixed inset-0" aria-hidden>
+    <div className="pointer-events-none fixed inset-0">
+      {move.timeline ? <FloorTimeline timeline={move.timeline} depth={timelineDepth} span={span} room={room} /> : null}
       <svg className="absolute inset-0 h-full w-full overflow-visible">
-        {lanes.map((lane) => (
-          <path
-            key={lane.rosterId}
-            d={`M${lane.corners.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join("L")}Z`}
-            fill="var(--ink-primary)"
-            fillOpacity={0.03}
-            stroke="var(--ink-primary)"
-            strokeOpacity={0.25}
-            strokeWidth={1}
-          />
-        ))}
         {/* Where each piece that went stood, and the arc to where it landed. */}
         {played
           ? before.flatMap((list, lane) =>
@@ -164,5 +149,72 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
         );
       })}
     </div>
+  );
+}
+
+const dateLabel = (at: number) => new Date(at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+/**
+ * The league's trades on a line across the back of the floor, `span` floor px wide `depth` px back: each a mark,
+ * spaced by when (as the timeline spaces them, see trackOffsets), the one shown filled in and its date over it, each
+ * year's start under the line — and each picked by a tap.
+ */
+function FloorTimeline({
+  timeline,
+  depth,
+  span,
+  room,
+}: {
+  timeline: NonNullable<FloorMove["timeline"]>;
+  depth: number;
+  span: number;
+  room: { width: number; height: number; share: number };
+}) {
+  const { width, height, share } = room;
+  const { trades, picked, onPick } = timeline;
+  const last = trades.at(-1)?.offset ?? 0;
+  const at = (offset: number) => floorPoint(last > 0 ? -span / 2 + (offset / last) * span : 0, depth, width, height, share);
+  const [l, r] = [floorPoint(-span / 2, depth, width, height, share), floorPoint(span / 2, depth, width, height, share)];
+  // Where each year starts along it.
+  const years = trades.flatMap((t, i) => {
+    const year = new Date(t.at).getFullYear();
+    return i === 0 || new Date(trades[i - 1].at).getFullYear() !== year ? [{ year, x: at(t.offset)[0] }] : [];
+  });
+  return (
+    <>
+      <svg className="absolute inset-0 h-full w-full overflow-visible">
+        <line x1={l[0]} y1={l[1]} x2={r[0]} y2={r[1]} stroke="var(--ink-primary)" strokeOpacity={0.3} strokeWidth={1} />
+      </svg>
+      {years.map((y) => (
+        <span key={y.year} className="absolute -translate-x-1/2 text-[0.5625rem] font-bold tabular-nums text-ink-muted" style={{ left: y.x, top: l[1] + 6 }}>
+          {y.year}
+        </span>
+      ))}
+      {trades.map((t, i) => {
+        const [x, y] = at(t.offset);
+        const shown = i === picked;
+        return (
+          <button
+            key={i}
+            type="button"
+            onClick={() => onPick(i)}
+            aria-label={`Trade of ${dateLabel(t.at)}`}
+            title={dateLabel(t.at)}
+            className="pointer-events-auto absolute flex h-5 w-5 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center"
+            style={{ left: x, top: y }}
+          >
+            <span className={shown ? "h-2.5 w-2.5 bg-ink-primary" : "h-1.5 w-1.5 border border-ink-primary bg-page"} />
+          </button>
+        );
+      })}
+      {trades[picked] ? (
+        <span
+          className="absolute -translate-x-1/2 -translate-y-full whitespace-nowrap bg-[var(--map-tag)] px-1 text-[0.5625rem] font-bold uppercase leading-[1.35] text-[var(--map-tag-ink)]"
+          style={{ left: at(trades[picked].offset)[0], top: at(trades[picked].offset)[1] - 8 }}
+        >
+          {dateLabel(trades[picked].at)}
+        </span>
+      ) : null}
+    </>
   );
 }

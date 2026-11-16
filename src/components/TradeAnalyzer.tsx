@@ -407,11 +407,11 @@ export function TradeAnalyzer({
     return (
       <>
         {layout({
-          // The timeline, its way to step and replay, and under it the filters.
+          // The trade shown (the timeline's on the room's floor), the way to step and replay, and under it the filters.
           timeline: (
             <div className="flex flex-col gap-3">
               {hasTimeline ? (
-                <PlateCard title="Trade timeline" bodyClassName="p-2">
+                <PlateCard title="Trade" bodyClassName="p-2">
                   <TradeViewer
                     timeline={data!.timeline}
                     people={data!.people}
@@ -439,7 +439,7 @@ export function TradeAnalyzer({
     <div className="flex flex-col gap-3">
     {/* The trades one at a time: a timeline, the rosters they changed, and their cards. */}
     {hasTimeline ? (
-      <PlateCard title="Trade timeline" bodyClassName="p-2 sm:p-3">
+      <PlateCard title="Trade" bodyClassName="p-2 sm:p-3">
         <TradeViewer
           timeline={data!.timeline}
           people={data!.people}
