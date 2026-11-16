@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 /** "Week 4", or "Preseason" for week 0. */
 export function weekLabel(week: number): string {
@@ -9,8 +9,9 @@ export function weekLabel(week: number): string {
 
 /**
  * The header's week, underlined, as a button that opens the season's weeks to pick from —
- * the current one marked, playoff weeks labeled. Closes on a pick, a click
- * elsewhere, or Escape.
+ * the current one marked, playoff weeks labeled. Opens scrolled to put the week
+ * shown in its middle, the weeks either side of it in view. Closes on a pick, a
+ * click elsewhere, or Escape.
  */
 export function WeekPicker({
   label,
@@ -35,6 +36,15 @@ export function WeekPicker({
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+
+  // Opened with the week shown in the list's middle (before it's drawn, so it doesn't jump there).
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    const picked = list?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (!open || !list || !picked) return;
+    list.scrollTop = picked.offsetTop - (list.clientHeight - picked.offsetHeight) / 2;
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -69,6 +79,7 @@ export function WeekPicker({
       </button>
       {open ? (
         <ul
+          ref={listRef}
           role="listbox"
           aria-label="Week"
           className="absolute left-1/2 top-full z-20 mt-2 max-h-72 w-40 -translate-x-1/2 animate-[dropdown_0.12s_ease-out] overflow-y-auto border border-border bg-surface-raised py-1 shadow-lg"
