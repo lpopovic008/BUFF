@@ -87,6 +87,7 @@ export function TradeViewer({
   onShow,
   narrow = false,
   valueAt,
+  season = null,
 }: {
   timeline: TimelineColumn[];
   people: Map<string, TimelinePlayer>;
@@ -101,6 +102,8 @@ export function TradeViewer({
   narrow?: boolean;
   /** A player's or pick's value on a day — on the floor, each piece's as the trade was made. */
   valueAt?: (id: string, at: number) => number | null;
+  /** The season the trades are filtered to: the floor's timeline shows it alone (else the shown trade's). */
+  season?: string | null;
 }) {
   // A column for each trade, oldest first — just after it, and the move it made.
   const columns = useMemo(() => timeline.filter((c) => c.kind === "trade" && c.move), [timeline]);
@@ -139,6 +142,26 @@ export function TradeViewer({
   const phone = usePhone() || narrow;
   const offsets = useMemo(() => trackOffsets(columns.map((c) => c.at), TRACK_GAP_PX), [columns]);
 
+  // The floor's timeline: one season's trades — the one filtered to, else the shown trade's — spaced among themselves;
+  // a swipe steps through them, on into the next season or the last where none's filtered to.
+  const seasonOf = (c: TimelineColumn) => trades.find((t) => t.id === c.tradeId)?.season ?? String(new Date(c.at).getFullYear());
+  const floorSeason = () => {
+    const shown = season ?? (column ? seasonOf(column) : "");
+    const inSeason = columns.flatMap((c, i) => (seasonOf(c) === shown ? [{ c, i }] : []));
+    const spaced = trackOffsets(inSeason.map(({ c }) => c.at), TRACK_GAP_PX);
+    const at = inSeason.findIndex(({ i }) => i === picked);
+    return {
+      season: shown,
+      trades: inSeason.map(({ c }, k) => ({ at: c.at, offset: spaced[k] })),
+      picked: at,
+      onPick: (k: number) => pick(inSeason[k].i),
+      onStep: (by: 1 | -1) => {
+        if (season === null) return pick(picked + by);
+        const next = at < 0 ? (by > 0 ? 0 : inSeason.length - 1) : at + by;
+        if (next >= 0 && next < inSeason.length) pick(inSeason[next].i);
+      },
+    };
+  };
   // On the room's floor, where there's one: the trade shown, played afresh each trade and each replay.
   const toFloor = useContext(TradeFloorContext);
   const tradeKey = column ? `${column.tradeId}-${replays}` : null;
@@ -154,15 +177,11 @@ export function TradeViewer({
       // Each piece's value as the trade was made; each team's color, as the trade's card has it.
       valueOf: (id) => (valueAt ? valueAt(id, column.at) : (people.get(id)?.value ?? null)),
       colors: new Map((trade?.sides ?? []).map((side, i) => [side.rosterId, TRADE_SIDE_COLORS[i % TRADE_SIDE_COLORS.length]])),
-      timeline: {
-        trades: columns.map((c, i) => ({ at: c.at, offset: offsets[i] })),
-        picked,
-        onPick: pick,
-      },
+      timeline: floorSeason(),
     });
     // (The column's the trade's: its key says when it's another.)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [toFloor, tradeKey, sortId, people, teams]);
+  }, [toFloor, tradeKey, sortId, people, teams, season]);
   useEffect(() => (toFloor ? () => toFloor(null) : undefined), [toFloor]);
 
   if (!column) return null;

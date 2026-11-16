@@ -404,6 +404,7 @@ export function TradeAnalyzer({
                     teams={data!.teams}
                     trades={data!.trades}
                     valueAt={data!.valueAt}
+                    season={filter.season}
                     shownId={shownId}
                     onShow={showPicked}
                     narrow
@@ -433,6 +434,7 @@ export function TradeAnalyzer({
           teams={data!.teams}
           trades={data!.trades}
           valueAt={data!.valueAt}
+          season={filter.season}
           renderTrade={(trade) => <TradeCard trade={trade} />}
         />
       </PlateCard>

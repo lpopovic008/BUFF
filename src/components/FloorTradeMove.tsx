@@ -23,7 +23,16 @@ export interface FloorMove {
   /** Each team's color, by roster id: its name, and the arcs of what it got. */
   colors?: Map<number, string>;
   /** Every trade on a line across the floor's back, by when (`offset`, as the timeline spaces them), to pick from. */
-  timeline?: { trades: { at: number; offset: number }[]; picked: number; onPick: (i: number) => void };
+  timeline?: {
+    /** The season shown — one at a time — named at the line's left end. */
+    season: string;
+    trades: { at: number; offset: number }[];
+    /** The one shown, among them (-1, none of them). */
+    picked: number;
+    onPick: (i: number) => void;
+    /** A swipe across the floor: the next trade (1) or the last (-1) — on into the next season or the last, where it goes. */
+    onStep: (by: 1 | -1) => void;
+  };
 }
 
 /**
@@ -194,10 +203,10 @@ const dateLabel = (at: number) => new Date(at).toLocaleDateString("en-US", { mon
 const SWIPE_PX = 40;
 
 /**
- * The league's trades on a line across the front of the floor, nearest you, `depth` px back, as wide as the screen:
- * each a mark, spaced by when (as the timeline spaces them, see trackOffsets), the one shown filled in and its date
- * over it, each year's start under the line — each picked by a tap, and the next or the last by a swipe across the
- * floor.
+ * A season's trades — one at a time — on a line across the front of the floor, nearest you, `depth` px back, as wide
+ * as the screen: each a mark, spaced by when (as the timeline spaces them, see trackOffsets), the one shown filled in
+ * and its date over it, the season named under the line's left end — each picked by a tap, and the next or the last
+ * by a swipe across the floor.
  */
 function FloorTimeline({
   timeline,
@@ -209,7 +218,7 @@ function FloorTimeline({
   room: { width: number; height: number; share: number; bottom: number };
 }) {
   const { width, height, share, bottom } = room;
-  const { trades, picked, onPick } = timeline;
+  const { trades, picked, onPick, onStep, season } = timeline;
   const span = (width * 0.94) / floorScale(depth);
   const horizon = height * share;
   // A swipe across the floor: left for the next trade, right for the last.
@@ -217,11 +226,6 @@ function FloorTimeline({
   const last = trades.at(-1)?.offset ?? 0;
   const at = (offset: number) => floorPoint(last > 0 ? -span / 2 + (offset / last) * span : 0, depth, width, height, share);
   const [l, r] = [floorPoint(-span / 2, depth, width, height, share), floorPoint(span / 2, depth, width, height, share)];
-  // Where each year starts along it.
-  const years = trades.flatMap((t, i) => {
-    const year = new Date(t.at).getFullYear();
-    return i === 0 || new Date(trades[i - 1].at).getFullYear() !== year ? [{ year, x: at(t.offset)[0] }] : [];
-  });
   return (
     <>
       <div
@@ -238,19 +242,17 @@ function FloorTimeline({
           if (!from || from.id !== e.pointerId) return;
           const [dx, dy] = [e.clientX - from.x, e.clientY - from.y];
           if (Math.abs(dx) < SWIPE_PX || Math.abs(dx) < Math.abs(dy)) return;
-          const next = picked + (dx < 0 ? 1 : -1);
-          if (next >= 0 && next < trades.length) onPick(next);
+          onStep(dx < 0 ? 1 : -1);
         }}
         onPointerCancel={() => (swipe.current = null)}
       />
       <svg className="absolute inset-0 h-full w-full overflow-visible">
         <line x1={l[0]} y1={l[1]} x2={r[0]} y2={r[1]} stroke="var(--ink-primary)" strokeOpacity={0.3} strokeWidth={1} />
       </svg>
-      {years.map((y) => (
-        <span key={y.year} className="absolute -translate-x-1/2 text-[0.5625rem] font-bold tabular-nums text-ink-muted" style={{ left: y.x, top: l[1] + 6 }}>
-          {y.year}
-        </span>
-      ))}
+      {/* The season, under the line's left end. */}
+      <span className="absolute text-[0.625rem] font-bold uppercase tracking-wide tabular-nums text-ink-muted" style={{ left: l[0], top: l[1] + 6 }}>
+        {season} season
+      </span>
       {trades.map((t, i) => {
         const [x, y] = at(t.offset);
         const shown = i === picked;
