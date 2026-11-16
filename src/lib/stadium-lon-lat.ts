@@ -1,0 +1,6 @@
+// Each stadium in TEAM_CITIES (team-cities.ts) in longitude and latitude, back from the Albers-USA map units its place
+// there was projected into (geoAlbersUsa().fitSize([320, 200], us-atlas's states), inverted). Generated offline;
+// regenerate rather than edit.
+
+/** Each stadium's longitude and latitude, by TEAM_CITIES' city. */
+export const STADIUM_LON_LAT: Record<string, [number, number]> = {"Glendale, AZ":[-112.26,33.53],"Atlanta, GA":[-84.4,33.76],"Baltimore, MD":[-76.62,39.28],"Orchard Park, NY":[-78.79,42.77],"Charlotte, NC":[-80.85,35.23],"Chicago, IL":[-87.62,41.86],"Cincinnati, OH":[-84.52,39.09],"Cleveland, OH":[-81.7,41.51],"Arlington, TX":[-97.09,32.75],"Denver, CO":[-105.02,39.74],"Detroit, MI":[-83.05,42.34],"Green Bay, WI":[-88.06,44.5],"Houston, TX":[-95.41,29.69],"Indianapolis, IN":[-86.16,39.76],"Jacksonville, FL":[-81.64,30.32],"Kansas City, MO":[-94.48,39.05],"Inglewood, CA":[-118.34,33.95],"Las Vegas, NV":[-115.18,36.09],"Miami Gardens, FL":[-80.24,25.96],"Minneapolis, MN":[-93.26,44.97],"Foxborough, MA":[-71.26,42.09],"New Orleans, LA":[-90.08,29.95],"East Rutherford, NJ":[-74.07,40.81],"Philadelphia, PA":[-75.17,39.9],"Pittsburgh, PA":[-80.01,40.45],"Seattle, WA":[-122.33,47.6],"Santa Clara, CA":[-121.97,37.4],"Tampa, FL":[-82.5,27.98],"Nashville, TN":[-86.77,36.17],"Landover, MD":[-76.86,38.91]};

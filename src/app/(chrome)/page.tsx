@@ -4,9 +4,9 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "reac
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import type { MappedGame } from "@/components/GameMap";
-import { FloorMapLand, FloorMapTags } from "@/components/FloorMap";
-import { FloorMapFit, fitFloorMap, floorMapTop } from "@/lib/floor-map";
-import { HORIZON_SHARE, gridRows, lowestGridLine } from "@/lib/grid-room";
+import { FloorGlobe, FloorGlobeTags } from "@/components/FloorGlobe";
+import { GlobePlace, fitGlobe, globeView } from "@/lib/globe";
+import { HOME_CAMERA, HORIZON_SHARE, lowestGridLine } from "@/lib/grid-room";
 import { FloorGrid } from "@/components/FloorGrid";
 import { FloorCameraControls, RED_ZONE_PLAYS_AT_MS, RED_ZONE_PLAYS_MS, RED_ZONE_SINK_MS } from "@/components/FloorCameraControls";
 import { FloorReflection } from "@/components/FloorReflection";
@@ -304,14 +304,14 @@ export default function DashboardPage() {
   const [redZoneBox, setRedZoneBox] = useState<HTMLDivElement | null>(null);
   // The room's height as it's drawn (not 100vh, which a browser's toolbars can make taller than the screen); how far up
   // from its bottom the floor's lowest grid line is — where the starters list stands from tablet width up, and the Red
-  // Zone comes up; the horizon; the map on the floor (see floor-map.ts) and the top of its land; and the root font
-  // size — screen y's, from the top.
+  // Zone comes up; the horizon; the globe on the floor (see globe.ts) and its top; and the root font size — screen
+  // y's, from the top.
   const [stand, setStand] = useState<{
     room: number;
     on: number;
     horizon: number;
-    fit: FloorMapFit;
-    landTop: number;
+    globe: GlobePlace;
+    globeTop: number;
     /** The line on the floor the Red Zone comes up out of (see redZoneStage). */
     redZoneLine: number;
     rootPx: number;
@@ -326,28 +326,19 @@ export default function DashboardPage() {
       const css = getComputedStyle(document.documentElement);
       const tabBar = parseFloat(css.getPropertyValue("--tabbar-h")) || 0;
       const rootPx = parseFloat(css.fontSize) || 16;
-      // The map lies on the floor at the front, centred across the screen, its near edge on the screen's bottom (a
-      // phone's tab bar), reaching back as far as the third grid line from the front, as wide as that makes it within
-      // the screen.
+      // The globe stands in the middle of the floor, over a spot near its front edge (the screen's bottom, or a
+      // phone's tab bar), as large as fits under the horizon.
       const desk = window.matchMedia(DESKTOP).matches;
-      const rows = gridRows(height);
-      const fit = fitFloorMap({
-        width,
-        height,
-        centerX: width / 2,
-        bottom: desk ? height : height - tabBar,
-        farthest: rows.at(-3) ?? height * HORIZON_SHARE,
-        maxWidth: width - 2 * rootPx,
-      });
-      const landTop = floorMapTop(fit);
+      const globe = fitGlobe({ width, height, share: HORIZON_SHARE, centerX: width / 2, bottom: desk ? height : height - tabBar });
+      const home = globeView(globe, HOME_CAMERA);
       setStand({
         room: height,
         // Its switch's top: 0.75rem off the bottom (or a phone's tab bar), and 2.5rem tall.
         redZoneLine: height - (desk ? 0 : tabBar) - 3.25 * rootPx,
         on: height - lowestGridLine(height),
         horizon: height * HORIZON_SHARE,
-        fit,
-        landTop,
+        globe,
+        globeTop: home.cy - home.R,
         rootPx,
       });
     };
@@ -582,8 +573,10 @@ export default function DashboardPage() {
     () => mappedGames.filter((g) => !hiddenBlocks.has(kickoffBlockLabel(g.game)) && !offMap.has(g.game.id)),
     [mappedGames, hiddenBlocks, offMap]
   );
-  // The floor moved around and zoomed (see FloorCameraControls), at home on the next games to kick off.
+  // The floor, slid toward you for the Red Zone; and the globe on it turned and zoomed (see FloorCameraControls), at
+  // home on the next games to kick off.
   const [floorCamera] = useState(createFloorCameraStore);
+  const [globeCamera] = useState(createFloorCameraStore);
   const [startersList, setStartersList] = useState<HTMLDivElement | null>(null);
   // Scrolled as an iPhone scrolls, by the page, so its reflection moves with it exactly (see useListScroll).
   useListScroll(startersList);
@@ -640,10 +633,10 @@ export default function DashboardPage() {
 
   // The room the dashboard stands in: a grid floor running back to the horizon (see .grid-room).
   const horizon = HORIZON_SHARE;
-  // The map lies on the floor at the front (see FloorMapLand), its games standing up off it in front of everything
-  // (FloorMapTags) — out of the way while the Red Zone takes the screen (⇕).
+  // The globe stands in the middle of the floor (see FloorGlobe), its games standing out of it in front of everything
+  // (FloorGlobeTags) — out of the way while the Red Zone takes the screen (⇕).
   const mapShown = stand !== null && weekGames.length > 0;
-  // The map's only out between weeks: till the week's first game kicks off, and again once they're all over.
+  // The globe's only out between weeks: till the week's first game kicks off, and again once they're all over.
   const mapOut = mapShown && (weekGames.every((g) => g.state === "pre") || weekGames.every((g) => g.state === "post"));
   const roomView = (
     <div
@@ -654,7 +647,7 @@ export default function DashboardPage() {
     >
       {/* Gone while a play's field lines the floor instead (see FloorPlay). */}
       <FloorGrid share={horizon} camera={floorCamera} hidden={fieldOn} />
-      {mapOut ? <FloorMapLand fit={stand.fit} games={games} camera={floorCamera} /> : null}
+      {mapOut ? <FloorGlobe place={stand.globe} games={games} globe={globeCamera} floor={floorCamera} /> : null}
     </div>
   );
   // One graph in full; two side by side; three or four, one to a corner.
@@ -720,7 +713,7 @@ export default function DashboardPage() {
           } ${redZoneFull && !desktop && !redZoneDragging ? "delay-500" : ""}`}
           style={{
             // Its left edge as far in as the starters list's right edge is from the screen's.
-            ...(desktop && startersList ? { left: stand.fit.width - startersList.getBoundingClientRect().right } : null),
+            ...(desktop && startersList ? { left: stand.globe.width - startersList.getBoundingClientRect().right } : null),
             bottom: stand.room - stand.redZoneLine,
             top: desktop
               ? // Up from under the ticker, as the starters list is; down, sunk to the line it stands on.
@@ -784,7 +777,8 @@ export default function DashboardPage() {
   const floorControls = mapShown ? (
     <FloorCameraControls
       store={floorCamera}
-      fit={stand.fit}
+      globe={globeCamera}
+      place={stand.globe}
       games={games}
       desktop={desktop}
       clearTo={desktop && startersList ? startersList.getBoundingClientRect().left : undefined}
@@ -846,10 +840,10 @@ export default function DashboardPage() {
           risesAtFirst={false}
         />
         {redZoneStage}
-        {mapOut ? <FloorMapTags fit={stand.fit} games={games} top={stand.landTop} camera={floorCamera} /> : null}
+        {mapOut ? <FloorGlobeTags place={stand.globe} games={games} top={stand.globeTop} globe={globeCamera} floor={floorCamera} /> : null}
         {/* Red Zone plays acted out on the floor, across the whole screen. */}
         {stand ? (
-          <FloorPlay width={stand.fit.width} height={stand.room} share={stand.fit.share} camera={floorCamera} active={redZoneUp} onShown={setFieldOn} />
+          <FloorPlay width={stand.globe.width} height={stand.room} share={stand.globe.share} camera={floorCamera} active={redZoneUp} onShown={setFieldOn} />
         ) : null}
         {floorControls}
       </div>
@@ -908,13 +902,14 @@ export default function DashboardPage() {
         </div>
       </div>
       {mapOut ? (
-        <FloorMapTags
-          fit={stand.fit}
+        <FloorGlobeTags
+          place={stand.globe}
           games={games}
-          // The countdown over the map's middle, above the horizon — out of the way of graphs.
+          // The countdown over the globe's middle, above the horizon — out of the way of graphs.
           top={stand.horizon - 0.75 * stand.rootPx}
           overhead={graphsBack || redZoneUp ? undefined : <KickoffCountdown kickoffs={kickoffs} />}
-          camera={floorCamera}
+          globe={globeCamera}
+          floor={floorCamera}
         />
       ) : null}
       {/* Its reflection: what's at its foot, in the floor. */}
@@ -923,9 +918,9 @@ export default function DashboardPage() {
           whatever stands on it (see FloorPlay). */}
       {stand ? (
         <FloorPlay
-          width={stand.fit.width}
+          width={stand.globe.width}
           height={stand.room}
-          share={stand.fit.share}
+          share={stand.globe.share}
           camera={floorCamera}
           active={redZoneUp}
           onShown={setFieldOn}

@@ -3,6 +3,7 @@
 
 import { isOutsideUS, NFLGame } from "./nfl-schedule";
 import { TEAM_CITIES, TeamCity } from "./team-cities";
+import { STADIUM_LON_LAT } from "./stadium-lon-lat";
 
 /**
  * A game's [x, y] in the US map's viewBox, or null when it can't be plotted —
@@ -16,6 +17,12 @@ import { TEAM_CITIES, TeamCity } from "./team-cities";
  */
 export function gameMapPosition(game: NFLGame): [number, number] | null {
   return gameStadium(game)?.pos ?? null;
+}
+
+/** A game's stadium in longitude and latitude (see gameMapPosition), or null abroad or when unknown. */
+export function gameLonLat(game: NFLGame): [number, number] | null {
+  const city = gameStadium(game)?.city;
+  return city ? (STADIUM_LON_LAT[city] ?? null) : null;
 }
 
 /**
@@ -76,6 +83,14 @@ export function internationalSlotPosition(index: number): [number, number] {
   const [originX, originY] = [80, 166];
   const [stepX, stepY] = [-6, 7];
   return [originX + index * stepX, originY + index * stepY];
+}
+
+/**
+ * A game played abroad on the globe, in longitude and latitude: as on the flat map (see internationalSlotPosition), off
+ * the coast southwest of Arizona — in the Pacific off Baja, each next a step further out to the southwest.
+ */
+export function internationalSlotLonLat(index: number): [number, number] {
+  return [-118 - index * 2.2, 27 - index * 1.8];
 }
 
 // Kickoff-time gradient tokens (see globals.css) — cool/dark for the week's
