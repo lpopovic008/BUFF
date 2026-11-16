@@ -176,7 +176,14 @@ export function FloorFields({
     const css = () => {
       const s = getComputedStyle(document.documentElement);
       const v = (name: string, fallback: string) => s.getPropertyValue(name).trim() || fallback;
-      return { ink: v("--ink-primary", "#fff"), page: v("--page", "#000"), good: v("--status-good", "#2e7d32"), bad: v("--status-bad", "#d32f2f") };
+      return {
+        ink: v("--ink-primary", "#fff"),
+        page: v("--page", "#000"),
+        good: v("--status-good", "#2e7d32"),
+        bad: v("--status-critical", "#d03b3b"),
+        tag: v("--map-tag", "#1f1f1f"),
+        tagInk: v("--map-tag-ink", "#f4f4f4"),
+      };
     };
     const type = getComputedStyle(document.body).fontFamily;
     let frame = 0;
@@ -324,32 +331,25 @@ export function FloorFields({
           }
         }
 
-        // Each team's name and score, standing in its own end zone — as small as keeps it clear of the field beside it
-        // (just the name, if that's too small).
+        // Each team's name, standing in its own end zone — as small as keeps it clear of the field beside it.
         ctx.textAlign = "center";
         ctx.textBaseline = "alphabetic";
         ctx.fillStyle = colors.ink;
         ctx.globalAlpha = alpha * 0.75;
         const room = 1.7 * Math.abs(at(0, -half * 0.2)[0] - at(-10, -half * 0.2)[0]);
-        for (const [x, team, score] of [
-          [-5, f.game.awayTeam, f.game.awayScore],
-          [105, f.game.homeTeam, f.game.homeScore],
+        for (const [x, team] of [
+          [-5, f.game.awayTeam],
+          [105, f.game.homeTeam],
         ] as const) {
           const [sx, sy] = at(x, -half * 0.2);
-          let text = `${team} ${score}`;
           let font = Math.max(9, Math.min(15, yardPx(0) * 3.2));
           ctx.font = `600 ${font}px ${type}`;
-          const wide = ctx.measureText(text).width;
+          const wide = ctx.measureText(team).width;
           if (wide > room) {
-            const fit = (font * room) / wide;
-            if (fit >= 8) font = fit;
-            else {
-              font = Math.max(7, Math.min(font, (font * room) / ctx.measureText(team).width));
-              text = team;
-            }
+            font = Math.max(7, (font * room) / wide);
             ctx.font = `600 ${font}px ${type}`;
           }
-          ctx.fillText(text, sx, sy - 2);
+          ctx.fillText(team, sx, sy - 2);
         }
 
         if (f.playing) {
@@ -357,8 +357,30 @@ export function FloorFields({
           for (const m of marks) if (m.kind === "flag") drawFlag(m, t);
           const ball = ballAt(f.playing.flight, t);
           if (ball) drawBall(ball.at, ball.alpha, ball.spin, t, f.playing.flight);
+          drawLabel(f.playing.flight, t);
         }
         ctx.restore();
+
+        // What the play was, on a tag over the field's far sideline while it's on — faded in, and out at its end.
+        function drawLabel(flight: Flight, t: number) {
+          const label = flight.labels.filter((l) => t >= l.t).at(-1);
+          if (!label) return;
+          const fade = Math.min(1, (t - label.t) / 0.2, (flight.length - t) / 0.4);
+          if (fade <= 0) return;
+          const font = Math.max(10, Math.min(13, yardPx(-half) * 2.4));
+          ctx.font = `600 ${font}px ${type}`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          const [cx, farY] = at(50, -half);
+          const tall = font + 8;
+          const wide = ctx.measureText(label.text).width + 14;
+          const y = farY - 6 - tall / 2;
+          ctx.globalAlpha = alpha * fade;
+          ctx.fillStyle = colors.tag;
+          ctx.fillRect(cx - wide / 2, y - tall / 2, wide, tall);
+          ctx.fillStyle = colors.tagInk;
+          ctx.fillText(label.text, cx, y + 0.5);
+        }
 
         function drawRipple(m: Extract<FieldMark, { kind: "ripple" }>, age: number) {
           const u = age / 0.8;
