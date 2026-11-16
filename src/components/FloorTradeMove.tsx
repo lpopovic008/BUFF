@@ -37,8 +37,10 @@ const FACE_PX = 30;
  * A trade played out on the room's floor: each of the trading teams' lineups a row across the floor from left to
  * right, most valuable first as they're sorted (its name at its left end), the teams one behind the other, each piece
  * a dot in its position's color — and
- * those that change hands their faces (a ring for a pick), named. As it plays, they go across to their new lineup,
- * the rest closing ranks, a dashed ring left where each stood and an arc from there to where it landed. Behind them,
+ * those that change hands their faces (a ring for a pick), named. Each row has a place for everything the team
+ * had before the trade or after it, in order, so nothing else moves as it plays: those that change hands go across
+ * from their place in one row to the one kept open for them in the other — a dashed ring marking each open place
+ * (where it'll land, then where it left) and an arc from where it stood to where it landed. Behind them,
  * at the floor's back, the league's trades on a line across it by when (see FloorTimeline), the one shown marked, any
  * picked from there. `room`: the screen it's on, its horizon `share` of the way down, the floor's front edge at screen
  * y `bottom`.
@@ -54,8 +56,12 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
   const n = Math.max(1, rosters.length);
   const before = rosters.map((r) => [...r.before].sort(order));
   const after = rosters.map((r) => [...r.after].sort(order));
-  // As many places across as the longest lineup, before or after, needs — the same in every row, so they line up.
-  const slots = Math.max(1, ...before.map((l) => l.length), ...after.map((l) => l.length));
+  // Each row's places: everything the team had before or after, in order — a piece's place in its row the same
+  // before as after, so only what changes hands moves. As many places across as the fullest row needs, the same in
+  // every row, so they line up.
+  const places = rosters.map((r) => [...new Set([...r.before, ...r.after])].sort(order));
+  const placeOf = (lane: number, id: string) => places[lane].indexOf(id);
+  const slots = Math.max(1, ...places.map((l) => l.length));
 
   // The floor the lineups lie on: in front of the timeline at its back to a little short of its front edge, each
   // team's row a band of it, the first at the back; and as wide across as the screen lets the nearest row be.
@@ -75,7 +81,7 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
     return { x, y, s: floorScale(d) / floorScale(nearest) };
   };
   const spots = new Map<string, ReturnType<typeof place>>();
-  (played ? after : before).forEach((list, lane) => list.forEach((id, i) => spots.set(id, place(lane, i))));
+  (played ? after : before).forEach((list, lane) => list.forEach((id) => spots.set(id, place(lane, placeOf(lane, id)))));
   const ids = [...new Set([...before.flat(), ...after.flat()])];
   const colorOf = (id: string) => (people.get(id)?.position === PICK ? "var(--ink-muted)" : (POSITION_COLOR_VAR[people.get(id)?.position ?? ""] ?? "var(--ink-muted)"));
   // Each lineup's name, at its left end.
@@ -85,24 +91,35 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
     <div className="pointer-events-none fixed inset-0">
       {move.timeline ? <FloorTimeline timeline={move.timeline} depth={timelineDepth} span={span} room={room} /> : null}
       <svg className="absolute inset-0 h-full w-full overflow-visible">
-        {/* Where each piece that went stood, and the arc to where it landed. */}
-        {played
-          ? before.flatMap((list, lane) =>
-              list.map((id, i) => {
-                const to = spots.get(id);
-                if (!moved.has(id) || !to) return null;
-                const from = place(lane, i);
-                const lift = Math.hypot(to.x - from.x, to.y - from.y) * 0.35;
-                const [mx, my] = [(from.x + to.x) / 2, Math.min(from.y, to.y) - lift];
-                return (
-                  <g key={`arc-${id}`} className="animate-[fade-in_0.6s_ease-out_0.5s_backwards]">
-                    <circle cx={from.x} cy={from.y} r={(FACE_PX / 2) * from.s} fill="none" stroke="var(--ink-muted)" strokeWidth={1.25} strokeDasharray="3 3" />
-                    <path d={`M${from.x},${from.y} Q${mx},${my} ${to.x},${to.y}`} fill="none" stroke={colorOf(id)} strokeWidth={1.5} strokeOpacity={0.85} />
-                  </g>
-                );
-              })
-            )
-          : null}
+        {/* The places kept open for what changes hands: where each will land, then where each left — and, once it's
+            gone, the arc from where it stood to where it landed. */}
+        {before.flatMap((list, lane) =>
+          list.map((id) => {
+            if (!moved.has(id)) return null;
+            const from = place(lane, placeOf(lane, id));
+            const toLane = after.findIndex((l) => l.includes(id));
+            const to = toLane >= 0 ? place(toLane, placeOf(toLane, id)) : null;
+            const open = played ? from : to;
+            const lift = to ? Math.hypot(to.x - from.x, to.y - from.y) * 0.35 : 0;
+            return (
+              <g key={`open-${id}`}>
+                {open ? (
+                  <circle cx={open.x} cy={open.y} r={(FACE_PX / 2) * open.s} fill="none" stroke="var(--ink-muted)" strokeWidth={1.25} strokeDasharray="3 3" />
+                ) : null}
+                {played && to ? (
+                  <path
+                    className="animate-[fade-in_0.6s_ease-out_0.5s_backwards]"
+                    d={`M${from.x},${from.y} Q${(from.x + to.x) / 2},${Math.min(from.y, to.y) - lift} ${to.x},${to.y}`}
+                    fill="none"
+                    stroke={colorOf(id)}
+                    strokeWidth={1.5}
+                    strokeOpacity={0.85}
+                  />
+                ) : null}
+              </g>
+            );
+          })
+        )}
       </svg>
       {lanes.map((lane) => (
         <span
