@@ -209,15 +209,27 @@ export async function loadLeagueTrades(leagueId: string, myUserId: string | null
       return [p.playerId, { name: p.name, position: p.position || null, value: series ? valueOn(history, series, superflex, today) : null }];
     })
   );
-  // The draft picks: their season and round, whose they first were, and who they became.
+  // The draft picks: their season and round, whose they first were, who they became, and what they're worth now —
+  // KTC's value today for that year's middle pick in the round, or (a year KTC doesn't list) the nearest year it does.
   const teamName = seasons[0]?.teamNames ?? new Map<number, string>();
+  const pickSeries = new Map<string, ValueSeries>();
+  for (const series of Object.values(history.players)) if (series.p === "RDP") pickSeries.set(series.n, series);
+  const pickValue = (season: number, round: number): number | null => {
+    for (let off = 0; off <= 4; off++)
+      for (const year of off === 0 ? [season] : [season + off, season - off]) {
+        const series = pickSeries.get(`${year} Mid ${ordinal(round)}`);
+        const value = series ? valueOn(history, series, superflex, today) : null;
+        if (value !== null) return value;
+      }
+    return null;
+  };
   for (const column of timeline)
     for (const list of column.rosters.values())
       for (const id of list) {
         if (!isPick(id) || people.has(id)) continue;
         const [season, round, original] = id.slice(5).split("-").map(Number);
         const name = `${season} ${ordinal(round)} (${teamName.get(original) ?? `Team ${original}`})`;
-        people.set(id, { name, position: PICK, value: null, becomes: becomes.get(id) });
+        people.set(id, { name, position: PICK, value: pickValue(season, round), becomes: becomes.get(id) });
       }
   const teams = [...(seasons[0]?.teamNames ?? new Map<number, string>())].map(([rosterId, name]) => ({ rosterId, name })).sort((a, b) => a.rosterId - b.rosterId);
   return { trades: analyzeTrades(seasons, drafts, history, bySleeperId, players, superflex), teams, superflex, timeline, people };
