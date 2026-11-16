@@ -27,18 +27,16 @@ export const TradeFloorContext = createContext<((move: FloorMove | null) => void
 
 /** How long the rosters hold as they were before the trade plays out (ms). */
 const HOLD_MS = 450;
-/** How many pieces a row of a lineup holds, across. */
-const ACROSS = 5;
 /** A piece that stays put: a dot this big (px, nearest you); one that moves, its face this big. */
-const DOT_PX = 5;
+const DOT_PX = 6;
 const FACE_PX = 30;
 
 /**
- * A trade played out on the room's floor: the trading teams' lineups laid side by side on it, each a block of rows
- * running back from you (its name at its back), each piece in it a dot — and those that change hands their faces
- * (a ring for a pick), named. As it plays, they go across to their new lineup, the rest closing ranks, a dashed ring
- * left where each stood and an arc from there to where it landed. `room`: the screen it's on, its horizon `share` of
- * the way down, the floor's front edge at screen y `bottom`.
+ * A trade played out on the room's floor: each of the trading teams' lineups a row across the floor from left to
+ * right (its name at its left end), the teams one behind the other, each piece a dot in its position's color — and
+ * those that change hands their faces (a ring for a pick), named. As it plays, they go across to their new lineup,
+ * the rest closing ranks, a dashed ring left where each stood and an arc from there to where it landed. `room`: the
+ * screen it's on, its horizon `share` of the way down, the floor's front edge at screen y `bottom`.
  */
 export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width: number; height: number; share: number; bottom: number } }) {
   const [played, setPlayed] = useState(false);
@@ -51,44 +49,41 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
   const n = Math.max(1, rosters.length);
   const before = rosters.map((r) => [...r.before].sort(order));
   const after = rosters.map((r) => [...r.after].sort(order));
-  const rows = Math.max(1, Math.ceil(Math.max(1, ...before.map((l) => l.length), ...after.map((l) => l.length)) / ACROSS));
+  // As many places across as the longest lineup, before or after, needs — the same in every row, so they line up.
+  const slots = Math.max(1, ...before.map((l) => l.length), ...after.map((l) => l.length));
 
-  // The floor the lineups lie on: from a little in front of the horizon to a little short of the front edge, and as
-  // wide across as the screen lets their nearest row be.
+  // The floor the lineups lie on: from a little in front of the horizon to a little short of the front edge, each
+  // team's row a band of it, the first at the back; and as wide across as the screen lets the nearest row be.
   const horizon = height * share;
   const floor = bottom - horizon;
-  const back = floorDepth(horizon + floor * 0.12, height, share);
-  const front = floorDepth(bottom - floor * 0.16, height, share);
-  const span = (width * 0.82) / floorScale(front);
-  const laneGap = span * 0.07;
-  const laneW = (span - laneGap * (n - 1)) / n;
-  const cell = laneW / ACROSS;
-  // A row's depth (the first nearest you), and a piece's place on the floor.
-  const rowDepth = (row: number) => front - ((front - back) * row) / Math.max(1, rows - 1);
-  const laneLeft = (lane: number) => -span / 2 + lane * (laneW + laneGap);
+  const back = floorDepth(horizon + floor * 0.1, height, share);
+  const front = floorDepth(bottom - floor * 0.14, height, share);
+  const band = (front - back) / n;
+  const rowDepth = (lane: number) => back + band * (lane + 0.5);
+  const nearest = rowDepth(n - 1);
+  const span = (width * 0.84) / floorScale(nearest);
+  const cell = span / slots;
   const place = (lane: number, index: number) => {
-    const d = rowDepth(Math.floor(index / ACROSS));
-    const [x, y] = floorPoint(laneLeft(lane) + ((index % ACROSS) + 0.5) * cell, d, width, height, share);
-    return { x, y, s: floorScale(d) / floorScale(front) };
+    const d = rowDepth(lane);
+    const [x, y] = floorPoint(-span / 2 + (index + 0.5) * cell, d, width, height, share);
+    return { x, y, s: floorScale(d) / floorScale(nearest) };
   };
   const spots = new Map<string, ReturnType<typeof place>>();
   (played ? after : before).forEach((list, lane) => list.forEach((id, i) => spots.set(id, place(lane, i))));
   const ids = [...new Set([...before.flat(), ...after.flat()])];
   const colorOf = (id: string) => (people.get(id)?.position === PICK ? "var(--ink-muted)" : (POSITION_COLOR_VAR[people.get(id)?.position ?? ""] ?? "var(--ink-muted)"));
-  // Each lineup's patch of floor, outlined faintly; its name in front of it.
+  // Each lineup's strip of floor, outlined faintly; its name at its left end.
   const lanes = rosters.map((r, lane) => {
-    const pad = cell * 0.15;
-    const [l, rgt] = [laneLeft(lane) - pad, laneLeft(lane) + laneW + pad];
-    const extra = (front - back) / Math.max(1, rows) / 2;
-    const [dFront, dBack] = [front + extra, back - extra];
+    const d = rowDepth(lane);
+    const half = band * 0.3;
+    const [l, rgt] = [-span / 2 - cell * 0.2, span / 2 + cell * 0.2];
     const corners = [
-      floorPoint(l, dFront, width, height, share),
-      floorPoint(rgt, dFront, width, height, share),
-      floorPoint(rgt, dBack, width, height, share),
-      floorPoint(l, dBack, width, height, share),
+      floorPoint(l, d + half, width, height, share),
+      floorPoint(rgt, d + half, width, height, share),
+      floorPoint(rgt, d - half, width, height, share),
+      floorPoint(l, d - half, width, height, share),
     ];
-    const label = floorPoint(laneLeft(lane) + laneW / 2, dBack, width, height, share);
-    return { rosterId: r.rosterId, corners, label };
+    return { rosterId: r.rosterId, corners, label: floorPoint(l, d - half, width, height, share) };
   });
 
   return (
@@ -127,8 +122,8 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
       {lanes.map((lane) => (
         <span
           key={lane.rosterId}
-          className="absolute max-w-[45vw] -translate-x-1/2 -translate-y-full truncate whitespace-nowrap text-[0.6875rem] font-extrabold uppercase tracking-wide text-ink-primary"
-          style={{ left: lane.label[0], top: lane.label[1] - 4 }}
+          className="absolute max-w-[45vw] -translate-y-full truncate whitespace-nowrap text-[0.6875rem] font-extrabold uppercase tracking-wide text-ink-primary"
+          style={{ left: lane.label[0], top: lane.label[1] - 3 }}
         >
           {teamName(lane.rosterId)}
         </span>
@@ -163,7 +158,7 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
                 </span>
               </div>
             ) : (
-              <span className="block -translate-x-1/2 -translate-y-1/2 rounded-full bg-ink-primary opacity-60" style={{ width: size, height: size }} />
+              <span className="block -translate-x-1/2 -translate-y-1/2 rounded-full" style={{ width: size, height: size, background: colorOf(id) }} />
             )}
           </div>
         );
