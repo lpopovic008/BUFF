@@ -327,20 +327,20 @@ export default function DashboardPage() {
       const tabBar = parseFloat(css.getPropertyValue("--tabbar-h")) || 0;
       const rootPx = parseFloat(css.fontSize) || 16;
       // The projector's spot in the middle of the floor near its front edge (the screen's bottom, or a phone's tab bar),
-      // its map floating over the floor above it: on a phone, across the screen, reaching up no higher than the
-      // horizon (the starters list over it); from tablet width up, in the middle of the floor left of the
-      // starters list, as large as fits there under the ticker.
+      // the map it throws floating over the floor above it, in the middle of the screen across: on a phone, as wide as
+      // the screen, reaching up no higher than the horizon (the starters list over it); from tablet width up, between
+      // the Red Zone's column and the starters list's (as wide as each other), as large as fits there under the ticker.
       const desk = window.matchMedia(DESKTOP).matches;
       const horizonY = height * HORIZON_SHARE;
-      const listLeft = width - rootPx * (1 + (window.matchMedia("(min-width: 1024px)").matches ? 18 : 16));
+      const column = rootPx * (window.matchMedia("(min-width: 1024px)").matches ? 18 : 16);
       const projector = desk
         ? fitProjector({
             width,
             height,
             share: HORIZON_SHARE,
-            centerX: listLeft / 2,
+            centerX: width / 2,
             bottom: height,
-            maxWidth: listLeft - 3 * rootPx,
+            maxWidth: width - 2 * (column + 2 * rootPx),
             // Under the ticker, the kickoff countdown over it.
             highest: Math.max(height * 0.24, (parseFloat(css.getPropertyValue("--header-h")) || 0) + (parseFloat(css.getPropertyValue("--ticker-h")) || 0) + 3 * rootPx),
           })
@@ -699,8 +699,9 @@ export default function DashboardPage() {
         hiddenGames={offMap}
         // Stretched (⇕) on a phone; from tablet width up it's a column of its own, as tall as the starters list.
         full={desktop ? undefined : { on: redZoneFull, toggle: stretchRedZone }}
-        // Its title's its switch, once it's up (its switch goes up into it, see FloorCameraControls).
-        onSwitchOff={() => switchRedZone(false)}
+        // Its title's its switch, once it's up (its switch goes up into it, see FloorCameraControls) — on a phone; from
+        // tablet width up it's always up.
+        onSwitchOff={desktop ? undefined : () => switchRedZone(false)}
         scoringByLeague={scoringByLeague}
       />
     ) : null;
@@ -798,7 +799,8 @@ export default function DashboardPage() {
       map={mapCamera}
       place={stand.projector}
       desktop={desktop}
-      redZone={redZoneView ? { on: redZoneUp, onChange: switchRedZone } : undefined}
+      // (From tablet width up the Red Zone's always up, a column of its own beside the map: no switch, nothing slid.)
+      redZone={redZoneView && !desktop ? { on: redZoneUp, onChange: switchRedZone } : undefined}
       out={mapOut}
     />
   ) : null;
@@ -922,7 +924,7 @@ export default function DashboardPage() {
           games={games}
           // The countdown over the map, above the horizon — out of the way of graphs.
           top={stand.horizon - 0.75 * stand.rootPx}
-          overhead={graphsBack || redZoneUp ? undefined : <KickoffCountdown kickoffs={kickoffs} />}
+          overhead={graphsBack ? undefined : <KickoffCountdown kickoffs={kickoffs} />}
           map={mapCamera}
           floor={floorCamera}
         />
@@ -937,7 +939,8 @@ export default function DashboardPage() {
           height={stand.room}
           share={stand.projector.share}
           camera={floorCamera}
-          active={redZoneUp}
+          // (Not over the map, while it's out.)
+          active={redZoneUp && !mapOut}
           onShown={setFieldOn}
         />
       ) : null}

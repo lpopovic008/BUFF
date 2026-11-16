@@ -64,68 +64,121 @@ function useWire(): number {
   return wire;
 }
 
+/** Where the outline's points show (screen px), each ring of it apart. */
+function outlineRings(view: ProjectorView): [number, number][][] {
+  return US_SIMPLE_OUTLINE_PATH.split("M")
+    .filter(Boolean)
+    .map((ring) => [...ring.matchAll(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g)].map((m) => projectorPoint(view, Number(m[1]), Number(m[2]))));
+}
+
+/** The convex hull of some points (Andrew's monotone chain), round in order. */
+function hull(points: [number, number][]): [number, number][] {
+  const pts = [...points].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cross = (o: [number, number], a: [number, number], b: [number, number]) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const half = (list: [number, number][]) => {
+    const out: [number, number][] = [];
+    for (const p of list) {
+      while (out.length >= 2 && cross(out[out.length - 2], out[out.length - 1], p) <= 0) out.pop();
+      out.push(p);
+    }
+    out.pop();
+    return out;
+  };
+  return [...half(pts), ...half([...pts].reverse())];
+}
+
+/** How many rays of light go from the lens to the map's edge, about. */
+const RAYS = 44;
+
 /**
- * The week's map, projected (see projector.ts): from a spot of light on the floor, in its middle near the front, a
- * beam fanning up to a frame floating over the floor, facing you square on — the lower 48 lit in it, their outline
- * solid in ink (white, or black in light mode), and each game's ring on it. Drawn in the room, behind everything; the
- * games' stems and tags stand up in front (see FloorProjectionTags). Its picture moved and zoomed within the frame
- * (`map`), and all of it slid with the floor under it (`floor`).
+ * The week's map, projected (see projector.ts): from a lens of light on the floor, in its middle near the front, light
+ * thrown up into the air over the floor, the lower 48 lit where it lands — facing you square on, see-through (the room
+ * showing through it), their outline glowing in ink (white, or black in light mode) and faintly scanned across, each
+ * game's ring on it. Rays fan from the lens to the map's edge, a haze of light between them, its two outermost
+ * brightest. Drawn in the room, behind everything; the games' stems and tags stand up in front (see
+ * FloorProjectionTags). Its picture moved and zoomed (`map`), and all of it slid with the floor under it (`floor`).
  */
 export function FloorProjection({ place, games, map, floor }: { place: ProjectorPlace; games: MappedGame[]; map?: FloorCameraStore; floor?: FloorCameraStore }) {
   const view = useProjectorView(place, map, floor);
   const sites = useMemo(() => mapSites(games), [games]);
   const wire = useWire();
   const id = useId().replace(/:/g, "");
-  const outline = useMemo(() => projectorPath(view, US_SIMPLE_OUTLINE_PATH), [view]);
-  const { frame, source } = view;
-  const [l, t, r, b] = [frame.left, frame.top, frame.left + frame.width, frame.top + frame.height];
-  const [sx, sy] = source;
+  const drawn = useMemo(() => {
+    const rings = outlineRings(view);
+    const edge = rings.flat();
+    const [sx, sy] = view.source;
+    // The light's haze: everything between the lens and the map's edge.
+    const haze = hull([view.source, ...edge]);
+    const lens = haze.findIndex(([x, y]) => x === sx && y === sy);
+    // Its outermost rays: the haze's two edges from the lens.
+    const outer = lens < 0 ? [] : [haze[(lens + haze.length - 1) % haze.length], haze[(lens + 1) % haze.length]];
+    // Rays to the edge all round, about evenly along it.
+    const step = Math.max(1, Math.round(edge.length / RAYS));
+    const rays = edge.filter((_, i) => i % step === 0);
+    const top = Math.min(...edge.map((p) => p[1]));
+    return {
+      outline: projectorPath(view, US_SIMPLE_OUTLINE_PATH),
+      haze: `M${haze.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join("L")}Z`,
+      rays: rays.map(([x, y]) => `M${sx},${sy}L${x.toFixed(1)},${y.toFixed(1)}`).join(""),
+      outer: outer.map(([x, y]) => `M${sx},${sy}L${x.toFixed(1)},${y.toFixed(1)}`).join(""),
+      top,
+    };
+  }, [view]);
+  const [sx, sy] = view.source;
+  const spread = view.frame.width;
   return (
     <svg className="absolute inset-0 h-full w-full" aria-hidden>
       <defs>
-        {/* The beam: brightest where it leaves the spot, fading as it spreads up to the frame. */}
-        <linearGradient id={`${id}-beam`} gradientUnits="userSpaceOnUse" x1={sx} y1={sy} x2={sx} y2={t}>
-          <stop offset="0%" stopColor="var(--ink-primary)" stopOpacity={0.2} />
-          <stop offset="100%" stopColor="var(--ink-primary)" stopOpacity={0.03} />
+        {/* The light: brightest as it leaves the lens, thinning as it spreads up to the map. */}
+        <linearGradient id={`${id}-beam`} gradientUnits="userSpaceOnUse" x1={sx} y1={sy} x2={sx} y2={drawn.top}>
+          <stop offset="0%" stopColor="var(--ink-primary)" stopOpacity={0.16} />
+          <stop offset="55%" stopColor="var(--ink-primary)" stopOpacity={0.05} />
+          <stop offset="100%" stopColor="var(--ink-primary)" stopOpacity={0.015} />
         </linearGradient>
-        <radialGradient id={`${id}-spot`}>
-          <stop offset="0%" stopColor="var(--ink-primary)" stopOpacity={0.5} />
+        <linearGradient id={`${id}-ray`} gradientUnits="userSpaceOnUse" x1={sx} y1={sy} x2={sx} y2={drawn.top}>
+          <stop offset="0%" stopColor="var(--ink-primary)" stopOpacity={0.3} />
+          <stop offset="100%" stopColor="var(--ink-primary)" stopOpacity={0.04} />
+        </linearGradient>
+        <radialGradient id={`${id}-lens`}>
+          <stop offset="0%" stopColor="var(--ink-primary)" stopOpacity={0.55} />
+          <stop offset="35%" stopColor="var(--ink-primary)" stopOpacity={0.18} />
           <stop offset="100%" stopColor="var(--ink-primary)" stopOpacity={0} />
         </radialGradient>
-        {/* The frame lit: brighter toward its middle, as a projector's picture is. */}
-        <radialGradient id={`${id}-screen`} cx="50%" cy="50%" r="70%">
-          <stop offset="0%" stopColor="var(--ink-primary)" stopOpacity={0.07} />
-          <stop offset="100%" stopColor="var(--ink-primary)" stopOpacity={0.025} />
-        </radialGradient>
-        <clipPath id={`${id}-frame`}>
-          <rect x={l} y={t} width={frame.width} height={frame.height} />
+        {/* Scan lines across the picture, as a projection's light has. */}
+        <pattern id={`${id}-scan`} width={4} height={3} patternUnits="userSpaceOnUse">
+          <rect width={4} height={1} fill="var(--ink-primary)" />
+        </pattern>
+        <clipPath id={`${id}-land`}>
+          <path d={drawn.outline} />
         </clipPath>
+        <filter id={`${id}-glow`} x="-10%" y="-10%" width="120%" height="120%">
+          <feGaussianBlur stdDeviation={2.5} />
+        </filter>
       </defs>
-      {/* The beam, fanned out from the spot to the frame's corners (what's behind the frame hidden by it). */}
-      <path d={`M${sx},${sy}L${l},${b}L${l},${t}L${r},${t}L${r},${b}Z`} fill={`url(#${id}-beam)`} />
-      <g stroke="var(--ink-primary)" strokeOpacity={0.22} strokeWidth={wire}>
-        {[
-          [l, t],
-          [r, t],
-          [l, b],
-          [r, b],
-        ].map(([x, y]) => (
-          <line key={`${x},${y}`} x1={sx} y1={sy} x2={x} y2={y} />
-        ))}
-      </g>
-      {/* The spot it comes from, a glow on the floor round a point of light. */}
-      <ellipse cx={sx} cy={sy} rx={frame.width * 0.09} ry={frame.width * 0.022} fill={`url(#${id}-spot)`} />
-      <circle cx={sx} cy={sy} r={2.5} fill="var(--ink-primary)" />
-      {/* The frame: solid, so the room behind it doesn't show through, then lit. */}
-      <rect x={l} y={t} width={frame.width} height={frame.height} fill="var(--page)" />
-      <rect x={l} y={t} width={frame.width} height={frame.height} fill={`url(#${id}-screen)`} stroke="var(--ink-primary)" strokeOpacity={0.35} strokeWidth={wire} />
-      <g clipPath={`url(#${id}-frame)`}>
-        <path d={outline} fill="var(--ink-primary)" fillOpacity={0.05} stroke="var(--ink-primary)" strokeWidth={wire * 1.5} strokeLinejoin="round" />
-        {sites.map((s) => {
-          const [x, y] = projectorPoint(view, s.pos[0], s.pos[1]);
-          return <circle key={s.id} cx={x} cy={y} r={ringRadius(s.count) * view.s} fill="none" stroke="var(--ink-primary)" strokeWidth={wire * 1.5} />;
-        })}
-      </g>
+      {/* The light, from the lens to the map's edge. */}
+      <path d={drawn.haze} fill={`url(#${id}-beam)`} />
+      <path d={drawn.rays} fill="none" stroke={`url(#${id}-ray)`} strokeWidth={wire} strokeOpacity={0.55} />
+      <path d={drawn.outer} fill="none" stroke={`url(#${id}-ray)`} strokeWidth={wire * 1.5} />
+      {/* The lens, a glow on the floor round a point of light. */}
+      <ellipse cx={sx} cy={sy} rx={spread * 0.11} ry={spread * 0.026} fill={`url(#${id}-lens)`} />
+      <ellipse cx={sx} cy={sy} rx={3.5} ry={2} fill="var(--ink-primary)" />
+      {/* The map where the light lands: see-through, scanned across, its outline glowing. */}
+      <path d={drawn.outline} fill="var(--ink-primary)" fillOpacity={0.06} />
+      <rect
+        x={0}
+        y={0}
+        width={place.width}
+        height={place.height}
+        fill={`url(#${id}-scan)`}
+        opacity={0.07}
+        clipPath={`url(#${id}-land)`}
+      />
+      <path d={drawn.outline} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.5} strokeWidth={wire * 3} strokeLinejoin="round" filter={`url(#${id}-glow)`} />
+      <path d={drawn.outline} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.85} strokeWidth={wire * 1.25} strokeLinejoin="round" />
+      {sites.map((s) => {
+        const [x, y] = projectorPoint(view, s.pos[0], s.pos[1]);
+        return <circle key={s.id} cx={x} cy={y} r={ringRadius(s.count) * view.s} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.85} strokeWidth={wire * 1.5} />;
+      })}
     </svg>
   );
 }
@@ -134,7 +187,7 @@ export function FloorProjection({ place, games, map, floor }: { place: Projector
  * The week's games standing up off the projected map, in front of everything (the starters list sinks into the floor
  * behind them): each game's stem from its ring, taller the more players it counts, with the matchup's tag hung off its
  * top on the left (on Mountain or Pacific time, the right) — and, set over them, `overhead` (the kickoff countdown), in
- * the frame's middle across at screen y `top` (higher still, should the frame reach up past it). Those moved out of the frame
+ * the map's middle across at screen y `top` (higher still, should the map reach up past it). Those moved off the screen
  * aren't there.
  */
 export function FloorProjectionTags({
@@ -157,13 +210,13 @@ export function FloorProjectionTags({
   // (Drawn only once the room's measured, in the browser.)
   const [rootPx] = useState(() => (typeof document === "undefined" ? 16 : parseFloat(getComputedStyle(document.documentElement).fontSize) || 16));
   const { frame } = view;
-  // Lower on the map in front of higher; those out of the frame gone.
+  // Lower on the map in front of higher; those off the screen gone.
   const shown = sites
     .map((s) => {
       const [x, y] = projectorPoint(view, s.pos[0], s.pos[1]);
       return { ...s, x, y };
     })
-    .filter((s) => s.x >= frame.left && s.x <= frame.left + frame.width && s.y >= frame.top && s.y <= frame.top + frame.height)
+    .filter((s) => s.x >= 0 && s.x <= place.width && s.y >= 0 && s.y <= place.height)
     .sort((a, b) => a.y - b.y);
   // Graded from the lowest on the map (nearest you, whole) up to the highest (faintest).
   const [highest, lowest] = [shown[0]?.y ?? 0, shown.at(-1)?.y ?? 0];
@@ -173,7 +226,7 @@ export function FloorProjectionTags({
   }));
   return (
     <div className="pointer-events-none fixed inset-0 z-10" aria-hidden>
-      {/* Over the frame's middle. */}
+      {/* Over the map's middle. */}
       {overhead ? (
         <div className="absolute -translate-x-1/2 -translate-y-full" style={{ left: frame.left + frame.width / 2, top: Math.min(top, frame.top - 0.5 * rootPx) }}>
           {overhead}
