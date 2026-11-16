@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-15T19:10:19.234Z",
+  "updatedAt": "2026-11-16T22:36:38.614Z",
   "season": "2026",
   "throughWeek": 10,
   "players": [
@@ -22,34 +22,34 @@
     {
       "playerId": "10213",
       "position": "WR",
-      "gamesPlayed": 9,
-      "ptsPpr": 109.3,
-      "ptsHalfPpr": 92.8,
-      "ptsStd": 76.3
+      "gamesPlayed": 10,
+      "ptsPpr": 111.2,
+      "ptsHalfPpr": 94.2,
+      "ptsStd": 77.2
     },
     {
       "playerId": "10214",
       "position": "TE",
-      "gamesPlayed": 9,
-      "ptsPpr": 33.1,
-      "ptsHalfPpr": 27.1,
-      "ptsStd": 21.1
+      "gamesPlayed": 10,
+      "ptsPpr": 42,
+      "ptsHalfPpr": 35.5,
+      "ptsStd": 29
     },
     {
       "playerId": "10218",
       "position": "WR",
       "gamesPlayed": 9,
-      "ptsPpr": 80,
-      "ptsHalfPpr": 66.5,
-      "ptsStd": 53
+      "ptsPpr": 82.1,
+      "ptsHalfPpr": 68.1,
+      "ptsStd": 54.099999999999994
     },
     {
       "playerId": "10219",
       "position": "RB",
       "gamesPlayed": 9,
-      "ptsPpr": 55.400000000000006,
-      "ptsHalfPpr": 53.400000000000006,
-      "ptsStd": 51.400000000000006
+      "ptsPpr": 54.900000000000006,
+      "ptsHalfPpr": 52.900000000000006,
+      "ptsStd": 50.900000000000006
     },
     {
       "playerId": "10220",
@@ -70,7 +70,7 @@
     {
       "playerId": "10224",
       "position": "TE",
-      "gamesPlayed": 7,
+      "gamesPlayed": 8,
       "ptsPpr": 0,
       "ptsHalfPpr": 0,
       "ptsStd": 0
@@ -111,14 +111,14 @@
       "playerId": "10229",
       "position": "WR",
       "gamesPlayed": 7,
-      "ptsPpr": 70.4,
-      "ptsHalfPpr": 56.900000000000006,
-      "ptsStd": 43.400000000000006
+      "ptsPpr": 79.4,
+      "ptsHalfPpr": 64.4,
+      "ptsStd": 49.400000000000006
     },
     {
       "playerId": "10231",
       "position": "TE",
-      "gamesPlayed": 9,
+      "gamesPlayed": 10,
       "ptsPpr": 41.2,
       "ptsHalfPpr": 32.2,
       "ptsStd": 23.200000000000003
@@ -151,9 +151,9 @@
       "playerId": "10236",
       "position": "TE",
       "gamesPlayed": 9,
-      "ptsPpr": 86.3,
-      "ptsHalfPpr": 70.8,
-      "ptsStd": 55.3
+      "ptsPpr": 92.69999999999999,
+      "ptsHalfPpr": 76.69999999999999,
+      "ptsStd": 60.699999999999996
     },
     {
       "playerId": "10444",
@@ -182,26 +182,26 @@
     {
       "playerId": "10871",
       "position": "TE",
-      "gamesPlayed": 7,
-      "ptsPpr": 6,
-      "ptsHalfPpr": 4.5,
-      "ptsStd": 3
+      "gamesPlayed": 8,
+      "ptsPpr": 8.2,
+      "ptsHalfPpr": 6.2,
+      "ptsStd": 4.2
     },
     {
       "playerId": "10937",
       "position": "K",
       "gamesPlayed": 2,
-      "ptsPpr": 9,
-      "ptsHalfPpr": 9,
-      "ptsStd": 9
+      "ptsPpr": 13,
+      "ptsHalfPpr": 13,
+      "ptsStd": 13
     },
     {
       "playerId": "10955",
       "position": "K",
-      "gamesPlayed": 9,
-      "ptsPpr": 82,
-      "ptsHalfPpr": 82,
-      "ptsStd": 82
+      "gamesPlayed": 10,
+      "ptsPpr": 90,
+      "ptsHalfPpr": 90,
+      "ptsStd": 90
     },
     {
       "playerId": "11034",
@@ -230,7 +230,7 @@
     {
       "playerId": "11068",
       "position": "WR",
-      "gamesPlayed": 4,
+      "gamesPlayed": 5,
       "ptsPpr": 11,
       "ptsHalfPpr": 8.5,
       "ptsStd": 6.000000000000001
@@ -246,10 +246,10 @@
     {
       "playerId": "11168",
       "position": "WR",
-      "gamesPlayed": 3,
-      "ptsPpr": 0,
-      "ptsHalfPpr": 0,
-      "ptsStd": 0
+      "gamesPlayed": 4,
+      "ptsPpr": 12,
+      "ptsHalfPpr": 11,
+      "ptsStd": 10
     },
     {
       "playerId": "11186",
@@ -263,9 +263,9 @@
       "playerId": "11199",
       "position": "RB",
       "gamesPlayed": 4,
-      "ptsPpr": 4.9,
-      "ptsHalfPpr": 4.4,
-      "ptsStd": 3.9
+      "ptsPpr": 7.4,
+      "ptsHalfPpr": 6.4,
+      "ptsStd": 5.4
     },
     {
       "playerId": "11201",
@@ -295,9 +295,9 @@
       "playerId": "11261",
       "position": "K",
       "gamesPlayed": 10,
-      "ptsPpr": 84,
-      "ptsHalfPpr": 84,
-      "ptsStd": 84
+      "ptsPpr": 88,
+      "ptsHalfPpr": 88,
+      "ptsStd": 88
     },
     {
       "playerId": "11273",
@@ -310,7 +310,7 @@
     {
       "playerId": "11280",
       "position": "RB",
-      "gamesPlayed": 9,
+      "gamesPlayed": 10,
       "ptsPpr": 7,
       "ptsHalfPpr": 5.5,
       "ptsStd": 4
@@ -351,9 +351,9 @@
       "playerId": "11370",
       "position": "RB",
       "gamesPlayed": 5,
-      "ptsPpr": 12.5,
-      "ptsHalfPpr": 11,
-      "ptsStd": 9.5
+      "ptsPpr": 13.700000000000001,
+      "ptsHalfPpr": 11.700000000000001,
+      "ptsStd": 9.700000000000001
     },
     {
       "playerId": "11421",
@@ -398,18 +398,18 @@
     {
       "playerId": "11510",
       "position": "FB",
-      "gamesPlayed": 9,
-      "ptsPpr": 6.7,
-      "ptsHalfPpr": 4.7,
-      "ptsStd": 2.6999999999999997
+      "gamesPlayed": 10,
+      "ptsPpr": 9.2,
+      "ptsHalfPpr": 6.7,
+      "ptsStd": 4.199999999999999
     },
     {
       "playerId": "11533",
       "position": "K",
-      "gamesPlayed": 9,
-      "ptsPpr": 78,
-      "ptsHalfPpr": 78,
-      "ptsStd": 78
+      "gamesPlayed": 10,
+      "ptsPpr": 89,
+      "ptsHalfPpr": 89,
+      "ptsStd": 89
     },
     {
       "playerId": "11539",
@@ -431,9 +431,9 @@
       "playerId": "11559",
       "position": "QB",
       "gamesPlayed": 8,
-      "ptsPpr": 104.13999999999999,
-      "ptsHalfPpr": 104.13999999999999,
-      "ptsStd": 104.13999999999999
+      "ptsPpr": 115.6,
+      "ptsHalfPpr": 115.6,
+      "ptsStd": 115.6
     },
     {
       "playerId": "11560",
@@ -446,7 +446,7 @@
     {
       "playerId": "11562",
       "position": "QB",
-      "gamesPlayed": 2,
+      "gamesPlayed": 1,
       "ptsPpr": 0,
       "ptsHalfPpr": 0,
       "ptsStd": 0
@@ -510,7 +510,7 @@
     {
       "playerId": "11574",
       "position": "RB",
-      "gamesPlayed": 9,
+      "gamesPlayed": 10,
       "ptsPpr": 16.4,
       "ptsHalfPpr": 14.4,
       "ptsStd": 12.4
@@ -519,17 +519,17 @@
       "playerId": "11575",
       "position": "RB",
       "gamesPlayed": 9,
-      "ptsPpr": 11.499999999999998,
-      "ptsHalfPpr": 9.999999999999998,
-      "ptsStd": 8.499999999999998
+      "ptsPpr": 12.2,
+      "ptsHalfPpr": 10.7,
+      "ptsStd": 9.2
     },
     {
       "playerId": "11576",
       "position": "RB",
       "gamesPlayed": 10,
-      "ptsPpr": 106.3,
-      "ptsHalfPpr": 96.8,
-      "ptsStd": 87.3
+      "ptsPpr": 110.6,
+      "ptsHalfPpr": 100.6,
+      "ptsStd": 90.6
     },
     {
       "playerId": "11577",
@@ -551,9 +551,9 @@
       "playerId": "11581",
       "position": "RB",
       "gamesPlayed": 9,
-      "ptsPpr": 57.00000000000001,
-      "ptsHalfPpr": 49.50000000000001,
-      "ptsStd": 42.00000000000001
+      "ptsPpr": 58.7,
+      "ptsHalfPpr": 50.7,
+      "ptsStd": 42.7
     },
     {
       "playerId": "11582",
@@ -582,10 +582,10 @@
     {
       "playerId": "11586",
       "position": "RB",
-      "gamesPlayed": 9,
-      "ptsPpr": 94.6,
-      "ptsHalfPpr": 89.6,
-      "ptsStd": 84.60000000000001
+      "gamesPlayed": 10,
+      "ptsPpr": 115.5,
+      "ptsHalfPpr": 109,
+      "ptsStd": 102.5
     },
     {
       "playerId": "11588",
@@ -606,10 +606,10 @@
     {
       "playerId": "11593",
       "position": "TE",
-      "gamesPlayed": 9,
-      "ptsPpr": 28,
-      "ptsHalfPpr": 20.5,
-      "ptsStd": 13
+      "gamesPlayed": 10,
+      "ptsPpr": 31.6,
+      "ptsHalfPpr": 23.6,
+      "ptsStd": 15.6
     },
     {
       "playerId": "11595",
@@ -654,39 +654,39 @@
     {
       "playerId": "11603",
       "position": "TE",
-      "gamesPlayed": 9,
-      "ptsPpr": 62.8,
-      "ptsHalfPpr": 51.3,
-      "ptsStd": 39.8
+      "gamesPlayed": 10,
+      "ptsPpr": 67.7,
+      "ptsHalfPpr": 54.699999999999996,
+      "ptsStd": 41.699999999999996
     },
     {
       "playerId": "11604",
       "position": "TE",
-      "gamesPlayed": 7,
-      "ptsPpr": 146,
-      "ptsHalfPpr": 122,
-      "ptsStd": 98
+      "gamesPlayed": 8,
+      "ptsPpr": 149.8,
+      "ptsHalfPpr": 124.8,
+      "ptsStd": 99.8
     },
     {
       "playerId": "11608",
       "position": "WR",
       "gamesPlayed": 10,
-      "ptsPpr": 45.1,
-      "ptsHalfPpr": 38.6,
-      "ptsStd": 32.099999999999994
+      "ptsPpr": 49.8,
+      "ptsHalfPpr": 41.8,
+      "ptsStd": 33.8
     },
     {
       "playerId": "11610",
       "position": "WR",
       "gamesPlayed": 9,
-      "ptsPpr": 83.46,
-      "ptsHalfPpr": 66.46000000000001,
-      "ptsStd": 49.46000000000001
+      "ptsPpr": 89.16,
+      "ptsHalfPpr": 71.16,
+      "ptsStd": 53.160000000000004
     },
     {
       "playerId": "11616",
       "position": "WR",
-      "gamesPlayed": 8,
+      "gamesPlayed": 9,
       "ptsPpr": 9.399999999999999,
       "ptsHalfPpr": 6.8999999999999995,
       "ptsStd": 4.3999999999999995
@@ -695,9 +695,9 @@
       "playerId": "11617",
       "position": "WR",
       "gamesPlayed": 10,
-      "ptsPpr": -2,
-      "ptsHalfPpr": -2,
-      "ptsStd": -2
+      "ptsPpr": 4.7,
+      "ptsHalfPpr": 3.2,
+      "ptsStd": 1.7000000000000002
     },
     {
       "playerId": "11618",
@@ -735,9 +735,9 @@
       "playerId": "11625",
       "position": "WR",
       "gamesPlayed": 6,
-      "ptsPpr": 48.5,
-      "ptsHalfPpr": 40.5,
-      "ptsStd": 32.5
+      "ptsPpr": 57.4,
+      "ptsHalfPpr": 47.9,
+      "ptsStd": 38.4
     },
     {
       "playerId": "11626",
@@ -783,9 +783,9 @@
       "playerId": "11631",
       "position": "WR",
       "gamesPlayed": 9,
-      "ptsPpr": 35.5,
-      "ptsHalfPpr": 30,
-      "ptsStd": 24.5
+      "ptsPpr": 39.6,
+      "ptsHalfPpr": 33.1,
+      "ptsStd": 26.599999999999998
     },
     {
       "playerId": "11632",
@@ -815,9 +815,9 @@
       "playerId": "11643",
       "position": "RB",
       "gamesPlayed": 7,
-      "ptsPpr": 3.8,
-      "ptsHalfPpr": 3.8,
-      "ptsStd": 3.8
+      "ptsPpr": 7.6,
+      "ptsHalfPpr": 6.6,
+      "ptsStd": 5.6
     },
     {
       "playerId": "11644",
@@ -831,9 +831,9 @@
       "playerId": "11646",
       "position": "WR",
       "gamesPlayed": 8,
-      "ptsPpr": 85.99999999999999,
-      "ptsHalfPpr": 70.49999999999999,
-      "ptsStd": 54.99999999999999
+      "ptsPpr": 86.29999999999998,
+      "ptsHalfPpr": 70.79999999999998,
+      "ptsStd": 55.29999999999999
     },
     {
       "playerId": "11647",
@@ -855,9 +855,9 @@
       "playerId": "11653",
       "position": "K",
       "gamesPlayed": 2,
-      "ptsPpr": 11,
-      "ptsHalfPpr": 11,
-      "ptsStd": 11
+      "ptsPpr": 18,
+      "ptsHalfPpr": 18,
+      "ptsStd": 18
     },
     {
       "playerId": "11655",
@@ -871,9 +871,9 @@
       "playerId": "1166",
       "position": "QB",
       "gamesPlayed": 10,
-      "ptsPpr": 189.62,
-      "ptsHalfPpr": 189.62,
-      "ptsStd": 189.62
+      "ptsPpr": 196.68,
+      "ptsHalfPpr": 196.68,
+      "ptsStd": 196.68
     },
     {
       "playerId": "11729",
@@ -894,23 +894,23 @@
     {
       "playerId": "11783",
       "position": "WR",
-      "gamesPlayed": 9,
-      "ptsPpr": 83.8,
-      "ptsHalfPpr": 67.8,
-      "ptsStd": 51.8
+      "gamesPlayed": 10,
+      "ptsPpr": 102.9,
+      "ptsHalfPpr": 83.9,
+      "ptsStd": 64.89999999999999
     },
     {
       "playerId": "11786",
       "position": "K",
       "gamesPlayed": 9,
-      "ptsPpr": 86,
-      "ptsHalfPpr": 86,
-      "ptsStd": 86
+      "ptsPpr": 96,
+      "ptsHalfPpr": 96,
+      "ptsStd": 96
     },
     {
       "playerId": "11789",
       "position": "K",
-      "gamesPlayed": 2,
+      "gamesPlayed": 3,
       "ptsPpr": 0,
       "ptsHalfPpr": 0,
       "ptsStd": 0
@@ -919,9 +919,9 @@
       "playerId": "11792",
       "position": "K",
       "gamesPlayed": 9,
-      "ptsPpr": 94,
-      "ptsHalfPpr": 94,
-      "ptsStd": 94
+      "ptsPpr": 101,
+      "ptsHalfPpr": 101,
+      "ptsStd": 101
     },
     {
       "playerId": "11820",
@@ -935,9 +935,9 @@
       "playerId": "11834",
       "position": "WR",
       "gamesPlayed": 9,
-      "ptsPpr": 89.49999999999999,
-      "ptsHalfPpr": 72,
-      "ptsStd": 54.50000000000001
+      "ptsPpr": 92.89999999999999,
+      "ptsHalfPpr": 74.4,
+      "ptsStd": 55.900000000000006
     },
     {
       "playerId": "11911",
@@ -982,7 +982,7 @@
     {
       "playerId": "12048",
       "position": "RB",
-      "gamesPlayed": 9,
+      "gamesPlayed": 10,
       "ptsPpr": 36.5,
       "ptsHalfPpr": 30.5,
       "ptsStd": 24.499999999999996
@@ -990,7 +990,7 @@
     {
       "playerId": "12062",
       "position": "TE",
-      "gamesPlayed": 2,
+      "gamesPlayed": 3,
       "ptsPpr": 0,
       "ptsHalfPpr": 0,
       "ptsStd": 0
@@ -1015,9 +1015,9 @@
       "playerId": "12185",
       "position": "K",
       "gamesPlayed": 10,
-      "ptsPpr": 104,
-      "ptsHalfPpr": 104,
-      "ptsStd": 104
+      "ptsPpr": 111,
+      "ptsHalfPpr": 111,
+      "ptsStd": 111
     },
     {
       "playerId": "12217",
@@ -1078,7 +1078,7 @@
     {
       "playerId": "12467",
       "position": "RB",
-      "gamesPlayed": 6,
+      "gamesPlayed": 7,
       "ptsPpr": 5.300000000000001,
       "ptsHalfPpr": 4.800000000000001,
       "ptsStd": 4.300000000000001
@@ -1087,9 +1087,9 @@
       "playerId": "12469",
       "position": "RB",
       "gamesPlayed": 5,
-      "ptsPpr": 31.700000000000003,
-      "ptsHalfPpr": 25.700000000000003,
-      "ptsStd": 19.700000000000003
+      "ptsPpr": 39.1,
+      "ptsHalfPpr": 31.1,
+      "ptsStd": 23.1
     },
     {
       "playerId": "12471",
@@ -1119,9 +1119,9 @@
       "playerId": "12474",
       "position": "RB",
       "gamesPlayed": 9,
-      "ptsPpr": 76.80000000000001,
-      "ptsHalfPpr": 68.8,
-      "ptsStd": 60.8
+      "ptsPpr": 78.4,
+      "ptsHalfPpr": 70.4,
+      "ptsStd": 62.4
     },
     {
       "playerId": "12481",
@@ -1135,17 +1135,17 @@
       "playerId": "12482",
       "position": "WR",
       "gamesPlayed": 5,
-      "ptsPpr": 32.3,
-      "ptsHalfPpr": 26.8,
-      "ptsStd": 21.3
+      "ptsPpr": 37,
+      "ptsHalfPpr": 30.5,
+      "ptsStd": 24
     },
     {
       "playerId": "12483",
       "position": "WR",
-      "gamesPlayed": 5,
-      "ptsPpr": 17.7,
-      "ptsHalfPpr": 14.700000000000001,
-      "ptsStd": 11.700000000000001
+      "gamesPlayed": 6,
+      "ptsPpr": 20.7,
+      "ptsHalfPpr": 16.700000000000003,
+      "ptsStd": 12.700000000000001
     },
     {
       "playerId": "12485",
@@ -1175,9 +1175,9 @@
       "playerId": "12490",
       "position": "RB",
       "gamesPlayed": 9,
-      "ptsPpr": 132.8,
-      "ptsHalfPpr": 124.80000000000001,
-      "ptsStd": 116.80000000000001
+      "ptsPpr": 147.50000000000003,
+      "ptsHalfPpr": 138.50000000000003,
+      "ptsStd": 129.50000000000003
     },
     {
       "playerId": "12491",
@@ -1207,30 +1207,30 @@
       "playerId": "12494",
       "position": "QB",
       "gamesPlayed": 1,
-      "ptsPpr": 2.58,
-      "ptsHalfPpr": 2.58,
-      "ptsStd": 2.58
+      "ptsPpr": 12.76,
+      "ptsHalfPpr": 12.76,
+      "ptsStd": 12.76
     },
     {
       "playerId": "12495",
       "position": "RB",
       "gamesPlayed": 9,
-      "ptsPpr": 88.50000000000001,
-      "ptsHalfPpr": 84.00000000000001,
-      "ptsStd": 79.50000000000001
+      "ptsPpr": 95.10000000000001,
+      "ptsHalfPpr": 89.60000000000001,
+      "ptsStd": 84.10000000000001
     },
     {
       "playerId": "12496",
       "position": "WR",
       "gamesPlayed": 9,
-      "ptsPpr": 11.8,
-      "ptsHalfPpr": 9.3,
-      "ptsStd": 6.8
+      "ptsPpr": 13.399999999999999,
+      "ptsHalfPpr": 10.399999999999999,
+      "ptsStd": 7.3999999999999995
     },
     {
       "playerId": "12497",
       "position": "WR",
-      "gamesPlayed": 8,
+      "gamesPlayed": 9,
       "ptsPpr": 29.499999999999996,
       "ptsHalfPpr": 24.499999999999996,
       "ptsStd": 19.499999999999996
@@ -1239,22 +1239,22 @@
       "playerId": "12498",
       "position": "TE",
       "gamesPlayed": 8,
-      "ptsPpr": 48.5,
-      "ptsHalfPpr": 39,
-      "ptsStd": 29.5
+      "ptsPpr": 52.7,
+      "ptsHalfPpr": 41.7,
+      "ptsStd": 30.7
     },
     {
       "playerId": "12499",
       "position": "WR",
       "gamesPlayed": 9,
-      "ptsPpr": 50.1,
-      "ptsHalfPpr": 42.1,
-      "ptsStd": 34.1
+      "ptsPpr": 53,
+      "ptsHalfPpr": 44,
+      "ptsStd": 35
     },
     {
       "playerId": "12500",
       "position": "QB",
-      "gamesPlayed": 3,
+      "gamesPlayed": 2,
       "ptsPpr": 0.32,
       "ptsHalfPpr": 0.32,
       "ptsStd": 0.32
@@ -1263,17 +1263,17 @@
       "playerId": "12501",
       "position": "WR",
       "gamesPlayed": 10,
-      "ptsPpr": 163.9,
-      "ptsHalfPpr": 137.4,
-      "ptsStd": 110.9
+      "ptsPpr": 175.9,
+      "ptsHalfPpr": 146.9,
+      "ptsStd": 117.9
     },
     {
       "playerId": "12502",
       "position": "TE",
       "gamesPlayed": 9,
-      "ptsPpr": 37,
-      "ptsHalfPpr": 28.5,
-      "ptsStd": 20
+      "ptsPpr": 43.3,
+      "ptsHalfPpr": 32.8,
+      "ptsStd": 22.3
     },
     {
       "playerId": "12503",
@@ -1287,9 +1287,9 @@
       "playerId": "12504",
       "position": "RB",
       "gamesPlayed": 8,
-      "ptsPpr": 23.900000000000002,
-      "ptsHalfPpr": 23.400000000000002,
-      "ptsStd": 22.900000000000002
+      "ptsPpr": 27.400000000000002,
+      "ptsHalfPpr": 26.900000000000002,
+      "ptsStd": 26.400000000000002
     },
     {
       "playerId": "12505",
@@ -1303,9 +1303,9 @@
       "playerId": "12506",
       "position": "TE",
       "gamesPlayed": 10,
-      "ptsPpr": 106.7,
-      "ptsHalfPpr": 87.2,
-      "ptsStd": 67.7
+      "ptsPpr": 118.4,
+      "ptsHalfPpr": 96.39999999999999,
+      "ptsStd": 74.39999999999999
     },
     {
       "playerId": "12507",
@@ -1335,9 +1335,9 @@
       "playerId": "12512",
       "position": "RB",
       "gamesPlayed": 9,
-      "ptsPpr": 94.00000000000001,
-      "ptsHalfPpr": 82.50000000000001,
-      "ptsStd": 71.00000000000001
+      "ptsPpr": 108.20000000000002,
+      "ptsHalfPpr": 95.7,
+      "ptsStd": 83.2
     },
     {
       "playerId": "12514",
@@ -1367,9 +1367,9 @@
       "playerId": "12518",
       "position": "TE",
       "gamesPlayed": 8,
-      "ptsPpr": 84.4,
-      "ptsHalfPpr": 65.39999999999999,
-      "ptsStd": 46.39999999999999
+      "ptsPpr": 86.50000000000001,
+      "ptsHalfPpr": 66.5,
+      "ptsStd": 46.49999999999999
     },
     {
       "playerId": "12519",
@@ -1383,9 +1383,9 @@
       "playerId": "12520",
       "position": "WR",
       "gamesPlayed": 2,
-      "ptsPpr": 0,
-      "ptsHalfPpr": 0,
-      "ptsStd": 0
+      "ptsPpr": 6.1,
+      "ptsHalfPpr": 4.6,
+      "ptsStd": 3.1
     },
     {
       "playerId": "12521",
@@ -1399,9 +1399,9 @@
       "playerId": "12522",
       "position": "QB",
       "gamesPlayed": 9,
-      "ptsPpr": 113.58,
-      "ptsHalfPpr": 113.58,
-      "ptsStd": 113.58
+      "ptsPpr": 125.66,
+      "ptsHalfPpr": 125.66,
+      "ptsStd": 125.66
     },
     {
       "playerId": "12523",
@@ -1414,7 +1414,7 @@
     {
       "playerId": "12524",
       "position": "QB",
-      "gamesPlayed": 4,
+      "gamesPlayed": 3,
       "ptsPpr": 22.759999999999998,
       "ptsHalfPpr": 22.759999999999998,
       "ptsStd": 22.759999999999998
@@ -1423,17 +1423,17 @@
       "playerId": "12526",
       "position": "WR",
       "gamesPlayed": 9,
-      "ptsPpr": 124.49999999999999,
-      "ptsHalfPpr": 101.49999999999999,
-      "ptsStd": 78.5
+      "ptsPpr": 131,
+      "ptsHalfPpr": 106.49999999999999,
+      "ptsStd": 82
     },
     {
       "playerId": "12527",
       "position": "RB",
-      "gamesPlayed": 9,
-      "ptsPpr": 139.3,
-      "ptsHalfPpr": 118.3,
-      "ptsStd": 97.3
+      "gamesPlayed": 10,
+      "ptsPpr": 149.70000000000002,
+      "ptsHalfPpr": 126.7,
+      "ptsStd": 103.7
     },
     {
       "playerId": "12529",
@@ -1447,9 +1447,9 @@
       "playerId": "12530",
       "position": "DB",
       "gamesPlayed": 9,
-      "ptsPpr": 19.599999999999998,
-      "ptsHalfPpr": 16.099999999999998,
-      "ptsStd": 12.600000000000001
+      "ptsPpr": 23.199999999999996,
+      "ptsHalfPpr": 18.7,
+      "ptsStd": 14.200000000000001
     },
     {
       "playerId": "12531",
@@ -1492,14 +1492,6 @@
       "ptsStd": 47.7
     },
     {
-      "playerId": "12538",
-      "position": "QB",
-      "gamesPlayed": 1,
-      "ptsPpr": 0,
-      "ptsHalfPpr": 0,
-      "ptsStd": 0
-    },
-    {
       "playerId": "12539",
       "position": "WR",
       "gamesPlayed": 2,
@@ -1511,9 +1503,9 @@
       "playerId": "12540",
       "position": "WR",
       "gamesPlayed": 9,
-      "ptsPpr": 26.700000000000003,
-      "ptsHalfPpr": 20.7,
-      "ptsStd": 14.7
+      "ptsPpr": 29.5,
+      "ptsHalfPpr": 23,
+      "ptsStd": 16.5
     },
     {
       "playerId": "12542",
@@ -1526,10 +1518,10 @@
     {
       "playerId": "12543",
       "position": "RB",
-      "gamesPlayed": 8,
-      "ptsPpr": 0.6,
-      "ptsHalfPpr": 0.6,
-      "ptsStd": 0.6
+      "gamesPlayed": 9,
+      "ptsPpr": 1.7999999999999998,
+      "ptsHalfPpr": 1.7999999999999998,
+      "ptsStd": 1.7999999999999998
     },
     {
       "playerId": "12544",
@@ -1543,9 +1535,9 @@
       "playerId": "12545",
       "position": "QB",
       "gamesPlayed": 9,
-      "ptsPpr": 155.48,
-      "ptsHalfPpr": 155.48,
-      "ptsStd": 155.48
+      "ptsPpr": 162.61999999999998,
+      "ptsHalfPpr": 162.61999999999998,
+      "ptsStd": 162.61999999999998
     },
     {
       "playerId": "12547",
@@ -1558,10 +1550,10 @@
     {
       "playerId": "12634",
       "position": "WR",
-      "gamesPlayed": 6,
-      "ptsPpr": 38.4,
-      "ptsHalfPpr": 33.4,
-      "ptsStd": 28.4
+      "gamesPlayed": 7,
+      "ptsPpr": 45.3,
+      "ptsHalfPpr": 39.3,
+      "ptsStd": 33.3
     },
     {
       "playerId": "12641",
@@ -1599,9 +1591,9 @@
       "playerId": "12700",
       "position": "TE",
       "gamesPlayed": 9,
-      "ptsPpr": 14.500000000000002,
-      "ptsHalfPpr": 10.5,
-      "ptsStd": 6.5
+      "ptsPpr": 25,
+      "ptsHalfPpr": 20,
+      "ptsStd": 15
     },
     {
       "playerId": "12711",
@@ -1630,10 +1622,10 @@
     {
       "playerId": "12718",
       "position": "WR",
-      "gamesPlayed": 9,
-      "ptsPpr": 33.2,
-      "ptsHalfPpr": 27.7,
-      "ptsStd": 22.2
+      "gamesPlayed": 10,
+      "ptsPpr": 44.300000000000004,
+      "ptsHalfPpr": 37.3,
+      "ptsStd": 30.299999999999997
     },
     {
       "playerId": "12738",
@@ -1703,9 +1695,9 @@
       "playerId": "12863",
       "position": "WR",
       "gamesPlayed": 5,
-      "ptsPpr": 3.5999999999999996,
-      "ptsHalfPpr": 2.6,
-      "ptsStd": 1.6
+      "ptsPpr": 14.9,
+      "ptsHalfPpr": 13.4,
+      "ptsStd": 11.9
     },
     {
       "playerId": "12888",
@@ -1727,9 +1719,9 @@
       "playerId": "12897",
       "position": "RB",
       "gamesPlayed": 1,
-      "ptsPpr": 0,
-      "ptsHalfPpr": 0,
-      "ptsStd": 0
+      "ptsPpr": 0.6,
+      "ptsHalfPpr": 0.6,
+      "ptsStd": 0.6
     },
     {
       "playerId": "12901",
@@ -1767,9 +1759,9 @@
       "playerId": "12961",
       "position": "K",
       "gamesPlayed": 9,
-      "ptsPpr": 59,
-      "ptsHalfPpr": 59,
-      "ptsStd": 59
+      "ptsPpr": 70,
+      "ptsHalfPpr": 70,
+      "ptsStd": 70
     },
     {
       "playerId": "12969",
@@ -1788,20 +1780,28 @@
       "ptsStd": -2
     },
     {
+      "playerId": "13011",
+      "position": "WR",
+      "gamesPlayed": 1,
+      "ptsPpr": 0,
+      "ptsHalfPpr": 0,
+      "ptsStd": 0
+    },
+    {
       "playerId": "13013",
       "position": "TE",
       "gamesPlayed": 10,
-      "ptsPpr": 4.300000000000001,
-      "ptsHalfPpr": 2.8,
-      "ptsStd": 1.2999999999999998
+      "ptsPpr": 4.4,
+      "ptsHalfPpr": 2.9,
+      "ptsStd": 1.4
     },
     {
       "playerId": "13075",
       "position": "WR",
       "gamesPlayed": 9,
-      "ptsPpr": 28.1,
-      "ptsHalfPpr": 23.6,
-      "ptsStd": 19.099999999999998
+      "ptsPpr": 29.5,
+      "ptsHalfPpr": 24.5,
+      "ptsStd": 19.5
     },
     {
       "playerId": "13079",
@@ -1820,6 +1820,14 @@
       "ptsStd": 4.1
     },
     {
+      "playerId": "13122",
+      "position": "TE",
+      "gamesPlayed": 1,
+      "ptsPpr": 0,
+      "ptsHalfPpr": 0,
+      "ptsStd": 0
+    },
+    {
       "playerId": "13150",
       "position": "WR",
       "gamesPlayed": 9,
@@ -1830,7 +1838,7 @@
     {
       "playerId": "13151",
       "position": "TE",
-      "gamesPlayed": 6,
+      "gamesPlayed": 7,
       "ptsPpr": 0,
       "ptsHalfPpr": 0,
       "ptsStd": 0
@@ -1862,10 +1870,10 @@
     {
       "playerId": "13264",
       "position": "WR",
-      "gamesPlayed": 8,
-      "ptsPpr": 42.8,
-      "ptsHalfPpr": 33.8,
-      "ptsStd": 24.799999999999997
+      "gamesPlayed": 9,
+      "ptsPpr": 52.8,
+      "ptsHalfPpr": 42.8,
+      "ptsStd": 32.8
     },
     {
       "playerId": "13268",
@@ -1878,18 +1886,26 @@
     {
       "playerId": "13269",
       "position": "QB",
-      "gamesPlayed": 1,
-      "ptsPpr": 2.22,
-      "ptsHalfPpr": 2.22,
-      "ptsStd": 2.22
+      "gamesPlayed": 2,
+      "ptsPpr": 16.14,
+      "ptsHalfPpr": 16.14,
+      "ptsStd": 16.14
     },
     {
       "playerId": "13270",
       "position": "WR",
-      "gamesPlayed": 3,
-      "ptsPpr": 0,
-      "ptsHalfPpr": 0,
-      "ptsStd": 0
+      "gamesPlayed": 4,
+      "ptsPpr": 3.2,
+      "ptsHalfPpr": 2.7,
+      "ptsStd": 2.2
+    },
+    {
+      "playerId": "13272",
+      "position": "QB",
+      "gamesPlayed": 1,
+      "ptsPpr": 2.42,
+      "ptsHalfPpr": 2.42,
+      "ptsStd": 2.42
     },
     {
       "playerId": "13273",
@@ -1902,10 +1918,10 @@
     {
       "playerId": "13274",
       "position": "WR",
-      "gamesPlayed": 8,
-      "ptsPpr": 66.8,
-      "ptsHalfPpr": 50.8,
-      "ptsStd": 34.8
+      "gamesPlayed": 9,
+      "ptsPpr": 67.8,
+      "ptsHalfPpr": 51.8,
+      "ptsStd": 35.8
     },
     {
       "playerId": "13276",
@@ -1926,7 +1942,7 @@
     {
       "playerId": "13278",
       "position": "TE",
-      "gamesPlayed": 6,
+      "gamesPlayed": 7,
       "ptsPpr": 0,
       "ptsHalfPpr": 0,
       "ptsStd": 0
@@ -1943,17 +1959,17 @@
       "playerId": "13281",
       "position": "WR",
       "gamesPlayed": 2,
-      "ptsPpr": 9.7,
-      "ptsHalfPpr": 6.7,
-      "ptsStd": 3.7
+      "ptsPpr": 24,
+      "ptsHalfPpr": 16.5,
+      "ptsStd": 9
     },
     {
       "playerId": "13282",
       "position": "TE",
-      "gamesPlayed": 5,
-      "ptsPpr": 8.5,
-      "ptsHalfPpr": 7.5,
-      "ptsStd": 6.5
+      "gamesPlayed": 6,
+      "ptsPpr": 9.9,
+      "ptsHalfPpr": 8.4,
+      "ptsStd": 6.9
     },
     {
       "playerId": "13285",
@@ -1966,10 +1982,10 @@
     {
       "playerId": "13286",
       "position": "RB",
-      "gamesPlayed": 5,
-      "ptsPpr": 31.5,
-      "ptsHalfPpr": 26.5,
-      "ptsStd": 21.5
+      "gamesPlayed": 6,
+      "ptsPpr": 42.9,
+      "ptsHalfPpr": 37.4,
+      "ptsStd": 31.9
     },
     {
       "playerId": "13287",
@@ -2007,14 +2023,14 @@
       "playerId": "13296",
       "position": "WR",
       "gamesPlayed": 6,
-      "ptsPpr": 60.599999999999994,
-      "ptsHalfPpr": 51.099999999999994,
-      "ptsStd": 41.6
+      "ptsPpr": 70.69999999999999,
+      "ptsHalfPpr": 59.699999999999996,
+      "ptsStd": 48.7
     },
     {
       "playerId": "13297",
       "position": "WR",
-      "gamesPlayed": 5,
+      "gamesPlayed": 6,
       "ptsPpr": 8.4,
       "ptsHalfPpr": 6.9,
       "ptsStd": 5.4
@@ -2023,17 +2039,17 @@
       "playerId": "13298",
       "position": "WR",
       "gamesPlayed": 10,
-      "ptsPpr": 89.99999999999999,
-      "ptsHalfPpr": 71,
-      "ptsStd": 52.00000000000001
+      "ptsPpr": 100.1,
+      "ptsHalfPpr": 80.10000000000001,
+      "ptsStd": 60.10000000000001
     },
     {
       "playerId": "13299",
       "position": "TE",
       "gamesPlayed": 9,
-      "ptsPpr": 35.400000000000006,
-      "ptsHalfPpr": 30.9,
-      "ptsStd": 26.4
+      "ptsPpr": 37.60000000000001,
+      "ptsHalfPpr": 32.6,
+      "ptsStd": 27.599999999999998
     },
     {
       "playerId": "13301",
@@ -2047,17 +2063,17 @@
       "playerId": "13303",
       "position": "QB",
       "gamesPlayed": 1,
-      "ptsPpr": 0,
-      "ptsHalfPpr": 0,
-      "ptsStd": 0
+      "ptsPpr": 7.08,
+      "ptsHalfPpr": 7.08,
+      "ptsStd": 7.08
     },
     {
       "playerId": "13305",
       "position": "RB",
-      "gamesPlayed": 9,
-      "ptsPpr": 37.6,
-      "ptsHalfPpr": 36.1,
-      "ptsStd": 34.6
+      "gamesPlayed": 10,
+      "ptsPpr": 41.300000000000004,
+      "ptsHalfPpr": 39.300000000000004,
+      "ptsStd": 37.300000000000004
     },
     {
       "playerId": "13307",
@@ -2086,7 +2102,7 @@
     {
       "playerId": "13315",
       "position": "RB",
-      "gamesPlayed": 6,
+      "gamesPlayed": 7,
       "ptsPpr": 0,
       "ptsHalfPpr": 0,
       "ptsStd": 0
@@ -2175,17 +2191,17 @@
       "playerId": "13337",
       "position": "RB",
       "gamesPlayed": 9,
-      "ptsPpr": 76.6,
-      "ptsHalfPpr": 68.1,
-      "ptsStd": 59.60000000000001
+      "ptsPpr": 95.9,
+      "ptsHalfPpr": 85.9,
+      "ptsStd": 75.9
     },
     {
       "playerId": "13338",
       "position": "WR",
       "gamesPlayed": 9,
-      "ptsPpr": 29.8,
-      "ptsHalfPpr": 25.8,
-      "ptsStd": 21.8
+      "ptsPpr": 31.400000000000002,
+      "ptsHalfPpr": 26.900000000000002,
+      "ptsStd": 22.400000000000002
     },
     {
       "playerId": "13345",
@@ -2199,9 +2215,9 @@
       "playerId": "13346",
       "position": "WR",
       "gamesPlayed": 10,
-      "ptsPpr": 102.7,
-      "ptsHalfPpr": 86.7,
-      "ptsStd": 70.7
+      "ptsPpr": 105.3,
+      "ptsHalfPpr": 88.8,
+      "ptsStd": 72.3
     },
     {
       "playerId": "13347",
@@ -2255,9 +2271,9 @@
       "playerId": "13394",
       "position": "WR",
       "gamesPlayed": 9,
-      "ptsPpr": 37.099999999999994,
-      "ptsHalfPpr": 32.1,
-      "ptsStd": 27.1
+      "ptsPpr": 49,
+      "ptsHalfPpr": 43,
+      "ptsStd": 37
     },
     {
       "playerId": "13400",
@@ -2287,9 +2303,9 @@
       "playerId": "13408",
       "position": "TE",
       "gamesPlayed": 7,
-      "ptsPpr": 5.3,
-      "ptsHalfPpr": 3.8,
-      "ptsStd": 2.3
+      "ptsPpr": 7.1,
+      "ptsHalfPpr": 5.1,
+      "ptsStd": 3.0999999999999996
     },
     {
       "playerId": "13411",
@@ -2303,17 +2319,17 @@
       "playerId": "13413",
       "position": "WR",
       "gamesPlayed": 9,
-      "ptsPpr": 11.5,
-      "ptsHalfPpr": 9,
-      "ptsStd": 6.5
+      "ptsPpr": 23.9,
+      "ptsHalfPpr": 20.4,
+      "ptsStd": 16.9
     },
     {
       "playerId": "13414",
       "position": "RB",
-      "gamesPlayed": 8,
-      "ptsPpr": 37.7,
-      "ptsHalfPpr": 36.2,
-      "ptsStd": 34.7
+      "gamesPlayed": 9,
+      "ptsPpr": 52.300000000000004,
+      "ptsHalfPpr": 49.800000000000004,
+      "ptsStd": 47.300000000000004
     },
     {
       "playerId": "13417",
@@ -2367,9 +2383,9 @@
       "playerId": "13424",
       "position": "RB",
       "gamesPlayed": 10,
-      "ptsPpr": 40.800000000000004,
-      "ptsHalfPpr": 38.3,
-      "ptsStd": 35.8
+      "ptsPpr": 46.400000000000006,
+      "ptsHalfPpr": 43.9,
+      "ptsStd": 41.4
     },
     {
       "playerId": "13425",
@@ -2390,7 +2406,7 @@
     {
       "playerId": "13433",
       "position": "RB",
-      "gamesPlayed": 8,
+      "gamesPlayed": 9,
       "ptsPpr": 0,
       "ptsHalfPpr": 0,
       "ptsStd": 0
@@ -2406,7 +2422,7 @@
     {
       "playerId": "13477",
       "position": "WR",
-      "gamesPlayed": 6,
+      "gamesPlayed": 7,
       "ptsPpr": 2.9,
       "ptsHalfPpr": 1.9,
       "ptsStd": 0.8999999999999999
@@ -2414,7 +2430,7 @@
     {
       "playerId": "13491",
       "position": "WR",
-      "gamesPlayed": 8,
+      "gamesPlayed": 9,
       "ptsPpr": 0,
       "ptsHalfPpr": 0,
       "ptsStd": 0
@@ -2447,9 +2463,9 @@
       "playerId": "13545",
       "position": "K",
       "gamesPlayed": 10,
-      "ptsPpr": 63,
-      "ptsHalfPpr": 63,
-      "ptsStd": 63
+      "ptsPpr": 68,
+      "ptsHalfPpr": 68,
+      "ptsStd": 68
     },
     {
       "playerId": "13554",
@@ -2502,10 +2518,10 @@
     {
       "playerId": "13670",
       "position": "WR",
-      "gamesPlayed": 1,
-      "ptsPpr": 0,
-      "ptsHalfPpr": 0,
-      "ptsStd": 0
+      "gamesPlayed": 2,
+      "ptsPpr": 1.9,
+      "ptsHalfPpr": 1.4,
+      "ptsStd": 0.9
     },
     {
       "playerId": "13712",
@@ -2518,7 +2534,7 @@
     {
       "playerId": "13726",
       "position": "WR",
-      "gamesPlayed": 3,
+      "gamesPlayed": 4,
       "ptsPpr": 0,
       "ptsHalfPpr": 0,
       "ptsStd": 0
@@ -2527,9 +2543,9 @@
       "playerId": "1373",
       "position": "QB",
       "gamesPlayed": 10,
-      "ptsPpr": 135.84,
-      "ptsHalfPpr": 135.84,
-      "ptsStd": 135.84
+      "ptsPpr": 139.44,
+      "ptsHalfPpr": 139.44,
+      "ptsStd": 139.44
     },
     {
       "playerId": "13760",
@@ -2543,14 +2559,14 @@
       "playerId": "13770",
       "position": "WR",
       "gamesPlayed": 9,
-      "ptsPpr": 7.800000000000001,
-      "ptsHalfPpr": 5.800000000000001,
-      "ptsStd": 3.8000000000000003
+      "ptsPpr": 17.5,
+      "ptsHalfPpr": 14.5,
+      "ptsStd": 11.5
     },
     {
       "playerId": "1379",
       "position": "FB",
-      "gamesPlayed": 7,
+      "gamesPlayed": 8,
       "ptsPpr": 28,
       "ptsHalfPpr": 24,
       "ptsStd": 20
@@ -2614,26 +2630,26 @@
     {
       "playerId": "1433",
       "position": "K",
-      "gamesPlayed": 3,
-      "ptsPpr": 19,
-      "ptsHalfPpr": 19,
-      "ptsStd": 19
+      "gamesPlayed": 4,
+      "ptsPpr": 30,
+      "ptsHalfPpr": 30,
+      "ptsStd": 30
     },
     {
       "playerId": "1466",
       "position": "TE",
       "gamesPlayed": 9,
-      "ptsPpr": 102.60000000000001,
-      "ptsHalfPpr": 85.6,
-      "ptsStd": 68.6
+      "ptsPpr": 104.30000000000001,
+      "ptsHalfPpr": 86.8,
+      "ptsStd": 69.3
     },
     {
       "playerId": "1479",
       "position": "WR",
-      "gamesPlayed": 8,
-      "ptsPpr": 81.1,
-      "ptsHalfPpr": 61.1,
-      "ptsStd": 41.1
+      "gamesPlayed": 9,
+      "ptsPpr": 92.19999999999999,
+      "ptsHalfPpr": 69.7,
+      "ptsStd": 47.2
     },
     {
       "playerId": "1737",
@@ -2646,7 +2662,7 @@
     {
       "playerId": "19",
       "position": "QB",
-      "gamesPlayed": 2,
+      "gamesPlayed": 3,
       "ptsPpr": 0,
       "ptsHalfPpr": 0,
       "ptsStd": 0
@@ -2654,10 +2670,10 @@
     {
       "playerId": "1945",
       "position": "K",
-      "gamesPlayed": 8,
-      "ptsPpr": 77,
-      "ptsHalfPpr": 77,
-      "ptsStd": 77
+      "gamesPlayed": 9,
+      "ptsPpr": 82,
+      "ptsHalfPpr": 82,
+      "ptsStd": 82
     },
     {
       "playerId": "2020",
@@ -2743,17 +2759,17 @@
       "playerId": "2505",
       "position": "TE",
       "gamesPlayed": 9,
-      "ptsPpr": 79.2,
-      "ptsHalfPpr": 67.2,
-      "ptsStd": 55.2
+      "ptsPpr": 81.30000000000001,
+      "ptsHalfPpr": 68.80000000000001,
+      "ptsStd": 56.300000000000004
     },
     {
       "playerId": "2747",
       "position": "K",
-      "gamesPlayed": 9,
-      "ptsPpr": 73,
-      "ptsHalfPpr": 73,
-      "ptsStd": 73
+      "gamesPlayed": 10,
+      "ptsPpr": 75,
+      "ptsHalfPpr": 75,
+      "ptsStd": 75
     },
     {
       "playerId": "2750",
@@ -2775,14 +2791,14 @@
       "playerId": "3155",
       "position": "WR",
       "gamesPlayed": 10,
-      "ptsPpr": 41.199999999999996,
-      "ptsHalfPpr": 32.2,
-      "ptsStd": 23.2
+      "ptsPpr": 48.89999999999999,
+      "ptsHalfPpr": 39.400000000000006,
+      "ptsStd": 29.9
     },
     {
       "playerId": "3161",
       "position": "QB",
-      "gamesPlayed": 4,
+      "gamesPlayed": 3,
       "ptsPpr": 24.779999999999998,
       "ptsHalfPpr": 24.779999999999998,
       "ptsStd": 24.779999999999998
@@ -2815,9 +2831,9 @@
       "playerId": "3202",
       "position": "TE",
       "gamesPlayed": 10,
-      "ptsPpr": 22.6,
-      "ptsHalfPpr": 18.099999999999998,
-      "ptsStd": 13.6
+      "ptsPpr": 24.400000000000002,
+      "ptsHalfPpr": 19.4,
+      "ptsStd": 14.4
     },
     {
       "playerId": "3214",
@@ -2854,15 +2870,15 @@
     {
       "playerId": "3271",
       "position": "TE",
-      "gamesPlayed": 9,
-      "ptsPpr": 58.69999999999999,
-      "ptsHalfPpr": 44.699999999999996,
-      "ptsStd": 30.699999999999996
+      "gamesPlayed": 10,
+      "ptsPpr": 69.39999999999999,
+      "ptsHalfPpr": 53.89999999999999,
+      "ptsStd": 38.4
     },
     {
       "playerId": "3286",
       "position": "WR",
-      "gamesPlayed": 3,
+      "gamesPlayed": 4,
       "ptsPpr": 24.599999999999998,
       "ptsHalfPpr": 20.599999999999998,
       "ptsStd": 16.6
@@ -2870,18 +2886,18 @@
     {
       "playerId": "3294",
       "position": "QB",
-      "gamesPlayed": 9,
-      "ptsPpr": 172.44000000000003,
-      "ptsHalfPpr": 172.44000000000003,
-      "ptsStd": 172.44000000000003
+      "gamesPlayed": 10,
+      "ptsPpr": 207.86,
+      "ptsHalfPpr": 207.86,
+      "ptsStd": 207.86
     },
     {
       "playerId": "3451",
       "position": "K",
       "gamesPlayed": 9,
-      "ptsPpr": 98,
-      "ptsHalfPpr": 98,
-      "ptsStd": 98
+      "ptsPpr": 99,
+      "ptsHalfPpr": 99,
+      "ptsStd": 99
     },
     {
       "playerId": "3634",
@@ -2900,20 +2916,12 @@
       "ptsStd": 71
     },
     {
-      "playerId": "3976",
-      "position": "QB",
-      "gamesPlayed": 1,
-      "ptsPpr": 0,
-      "ptsHalfPpr": 0,
-      "ptsStd": 0
-    },
-    {
       "playerId": "4017",
       "position": "QB",
       "gamesPlayed": 9,
-      "ptsPpr": 134.35999999999999,
-      "ptsHalfPpr": 134.35999999999999,
-      "ptsStd": 134.35999999999999
+      "ptsPpr": 143.32,
+      "ptsHalfPpr": 143.32,
+      "ptsStd": 143.32
     },
     {
       "playerId": "4033",
@@ -2926,18 +2934,18 @@
     {
       "playerId": "4034",
       "position": "RB",
-      "gamesPlayed": 8,
-      "ptsPpr": 166.7,
-      "ptsHalfPpr": 148.7,
-      "ptsStd": 130.7
+      "gamesPlayed": 9,
+      "ptsPpr": 213,
+      "ptsHalfPpr": 193,
+      "ptsStd": 173
     },
     {
       "playerId": "4035",
       "position": "RB",
       "gamesPlayed": 8,
-      "ptsPpr": 73.7,
-      "ptsHalfPpr": 61.199999999999996,
-      "ptsStd": 48.7
+      "ptsPpr": 90.1,
+      "ptsHalfPpr": 76.1,
+      "ptsStd": 62.1
     },
     {
       "playerId": "4037",
@@ -2950,18 +2958,18 @@
     {
       "playerId": "4039",
       "position": "WR",
-      "gamesPlayed": 9,
-      "ptsPpr": 57.80000000000001,
-      "ptsHalfPpr": 46.80000000000001,
-      "ptsStd": 35.800000000000004
+      "gamesPlayed": 10,
+      "ptsPpr": 68.20000000000002,
+      "ptsHalfPpr": 56.70000000000001,
+      "ptsStd": 45.2
     },
     {
       "playerId": "4046",
       "position": "QB",
       "gamesPlayed": 9,
-      "ptsPpr": 155.16,
-      "ptsHalfPpr": 155.16,
-      "ptsStd": 155.16
+      "ptsPpr": 181.39999999999998,
+      "ptsHalfPpr": 181.39999999999998,
+      "ptsStd": 181.39999999999998
     },
     {
       "playerId": "4054",
@@ -2980,6 +2988,14 @@
       "ptsStd": 22.900000000000002
     },
     {
+      "playerId": "4080",
+      "position": "WR",
+      "gamesPlayed": 1,
+      "ptsPpr": 0,
+      "ptsHalfPpr": 0,
+      "ptsStd": 0
+    },
+    {
       "playerId": "4144",
       "position": "TE",
       "gamesPlayed": 9,
@@ -2990,10 +3006,10 @@
     {
       "playerId": "4147",
       "position": "RB",
-      "gamesPlayed": 8,
-      "ptsPpr": 44.9,
-      "ptsHalfPpr": 40.9,
-      "ptsStd": 36.9
+      "gamesPlayed": 9,
+      "ptsPpr": 58.8,
+      "ptsHalfPpr": 52.8,
+      "ptsStd": 46.8
     },
     {
       "playerId": "4177",
@@ -3014,7 +3030,7 @@
     {
       "playerId": "4189",
       "position": "TE",
-      "gamesPlayed": 9,
+      "gamesPlayed": 10,
       "ptsPpr": 12,
       "ptsHalfPpr": 10.5,
       "ptsStd": 9
@@ -3031,25 +3047,25 @@
       "playerId": "4199",
       "position": "RB",
       "gamesPlayed": 9,
-      "ptsPpr": 89.8,
-      "ptsHalfPpr": 81.8,
-      "ptsStd": 73.80000000000001
+      "ptsPpr": 95.39999999999999,
+      "ptsHalfPpr": 86.89999999999999,
+      "ptsStd": 78.4
     },
     {
       "playerId": "421",
       "position": "QB",
-      "gamesPlayed": 9,
-      "ptsPpr": 151.85999999999999,
-      "ptsHalfPpr": 151.85999999999999,
-      "ptsStd": 151.85999999999999
+      "gamesPlayed": 10,
+      "ptsPpr": 172.61999999999998,
+      "ptsHalfPpr": 172.61999999999998,
+      "ptsStd": 172.61999999999998
     },
     {
       "playerId": "4217",
       "position": "TE",
-      "gamesPlayed": 8,
-      "ptsPpr": 114.30000000000001,
-      "ptsHalfPpr": 95.3,
-      "ptsStd": 76.3
+      "gamesPlayed": 9,
+      "ptsPpr": 127.70000000000002,
+      "ptsHalfPpr": 105.7,
+      "ptsStd": 83.7
     },
     {
       "playerId": "4219",
@@ -3063,17 +3079,17 @@
       "playerId": "4227",
       "position": "K",
       "gamesPlayed": 9,
-      "ptsPpr": 59,
-      "ptsHalfPpr": 59,
-      "ptsStd": 59
+      "ptsPpr": 63,
+      "ptsHalfPpr": 63,
+      "ptsStd": 63
     },
     {
       "playerId": "4233",
       "position": "K",
       "gamesPlayed": 4,
-      "ptsPpr": 22,
-      "ptsHalfPpr": 22,
-      "ptsStd": 22
+      "ptsPpr": 25,
+      "ptsHalfPpr": 25,
+      "ptsStd": 25
     },
     {
       "playerId": "4274",
@@ -3142,7 +3158,7 @@
     {
       "playerId": "4602",
       "position": "TE",
-      "gamesPlayed": 8,
+      "gamesPlayed": 9,
       "ptsPpr": 1.2,
       "ptsHalfPpr": 0.7,
       "ptsStd": 0.2
@@ -3159,9 +3175,9 @@
       "playerId": "4718",
       "position": "RB",
       "gamesPlayed": 6,
-      "ptsPpr": 1.5,
-      "ptsHalfPpr": 1,
-      "ptsStd": 0.5
+      "ptsPpr": 3.8,
+      "ptsHalfPpr": 2.8,
+      "ptsStd": 1.8
     },
     {
       "playerId": "4866",
@@ -3206,10 +3222,10 @@
     {
       "playerId": "4972",
       "position": "QB",
-      "gamesPlayed": 3,
-      "ptsPpr": 0.09999999999999998,
-      "ptsHalfPpr": 0.09999999999999998,
-      "ptsStd": 0.09999999999999998
+      "gamesPlayed": 4,
+      "ptsPpr": 1.08,
+      "ptsHalfPpr": 1.08,
+      "ptsStd": 1.08
     },
     {
       "playerId": "4981",
@@ -3223,41 +3239,41 @@
       "playerId": "4983",
       "position": "WR",
       "gamesPlayed": 7,
-      "ptsPpr": 64.1,
-      "ptsHalfPpr": 54.1,
-      "ptsStd": 44.1
+      "ptsPpr": 78.9,
+      "ptsHalfPpr": 67.4,
+      "ptsStd": 55.9
     },
     {
       "playerId": "4984",
       "position": "QB",
       "gamesPlayed": 9,
-      "ptsPpr": 216.02,
-      "ptsHalfPpr": 215.52,
-      "ptsStd": 215.02
+      "ptsPpr": 230.02,
+      "ptsHalfPpr": 229.52,
+      "ptsStd": 229.02
     },
     {
       "playerId": "4993",
       "position": "TE",
-      "gamesPlayed": 8,
-      "ptsPpr": 80.19999999999999,
-      "ptsHalfPpr": 70.69999999999999,
-      "ptsStd": 61.2
+      "gamesPlayed": 9,
+      "ptsPpr": 82.1,
+      "ptsHalfPpr": 72.1,
+      "ptsStd": 62.1
     },
     {
       "playerId": "4995",
       "position": "TE",
-      "gamesPlayed": 9,
-      "ptsPpr": 17,
-      "ptsHalfPpr": 14.5,
-      "ptsStd": 12
+      "gamesPlayed": 10,
+      "ptsPpr": 19.3,
+      "ptsHalfPpr": 16.3,
+      "ptsStd": 13.3
     },
     {
       "playerId": "5001",
       "position": "TE",
       "gamesPlayed": 9,
-      "ptsPpr": 71.39999999999999,
-      "ptsHalfPpr": 53.9,
-      "ptsStd": 36.400000000000006
+      "ptsPpr": 79.49999999999999,
+      "ptsHalfPpr": 61.5,
+      "ptsStd": 43.50000000000001
     },
     {
       "playerId": "5008",
@@ -3311,9 +3327,9 @@
       "playerId": "5119",
       "position": "K",
       "gamesPlayed": 10,
-      "ptsPpr": 89,
-      "ptsHalfPpr": 89,
-      "ptsStd": 89
+      "ptsPpr": 99,
+      "ptsHalfPpr": 99,
+      "ptsStd": 99
     },
     {
       "playerId": "5121",
@@ -3327,9 +3343,9 @@
       "playerId": "5127",
       "position": "QB",
       "gamesPlayed": 3,
-      "ptsPpr": -0.4,
-      "ptsHalfPpr": -0.4,
-      "ptsStd": -0.4
+      "ptsPpr": -0.6000000000000001,
+      "ptsHalfPpr": -0.6000000000000001,
+      "ptsStd": -0.6000000000000001
     },
     {
       "playerId": "5133",
@@ -3350,10 +3366,10 @@
     {
       "playerId": "5189",
       "position": "K",
-      "gamesPlayed": 8,
-      "ptsPpr": 45,
-      "ptsHalfPpr": 45,
-      "ptsStd": 45
+      "gamesPlayed": 9,
+      "ptsPpr": 53,
+      "ptsHalfPpr": 53,
+      "ptsStd": 53
     },
     {
       "playerId": "5374",
@@ -3398,10 +3414,10 @@
     {
       "playerId": "5846",
       "position": "WR",
-      "gamesPlayed": 8,
-      "ptsPpr": 77.89999999999999,
-      "ptsHalfPpr": 61.39999999999999,
-      "ptsStd": 44.900000000000006
+      "gamesPlayed": 9,
+      "ptsPpr": 93.3,
+      "ptsHalfPpr": 75.8,
+      "ptsStd": 58.300000000000004
     },
     {
       "playerId": "5848",
@@ -3430,10 +3446,10 @@
     {
       "playerId": "5854",
       "position": "QB",
-      "gamesPlayed": 3,
-      "ptsPpr": 46.78,
-      "ptsHalfPpr": 46.78,
-      "ptsStd": 46.78
+      "gamesPlayed": 4,
+      "ptsPpr": 62.38,
+      "ptsHalfPpr": 62.38,
+      "ptsStd": 62.38
     },
     {
       "playerId": "5857",
@@ -3455,17 +3471,17 @@
       "playerId": "5870",
       "position": "QB",
       "gamesPlayed": 10,
-      "ptsPpr": 92.68,
-      "ptsHalfPpr": 92.68,
-      "ptsStd": 92.68
+      "ptsPpr": 98.7,
+      "ptsHalfPpr": 98.7,
+      "ptsStd": 98.7
     },
     {
       "playerId": "5872",
       "position": "WR",
-      "gamesPlayed": 5,
-      "ptsPpr": 60.4,
-      "ptsHalfPpr": 52.4,
-      "ptsStd": 44.4
+      "gamesPlayed": 6,
+      "ptsPpr": 86.3,
+      "ptsHalfPpr": 76.8,
+      "ptsStd": 67.3
     },
     {
       "playerId": "5892",
@@ -3503,17 +3519,17 @@
       "playerId": "5947",
       "position": "WR",
       "gamesPlayed": 9,
-      "ptsPpr": 75.60000000000001,
-      "ptsHalfPpr": 62.6,
-      "ptsStd": 49.6
+      "ptsPpr": 82.00000000000001,
+      "ptsHalfPpr": 67.5,
+      "ptsStd": 53
     },
     {
       "playerId": "5967",
       "position": "RB",
       "gamesPlayed": 9,
-      "ptsPpr": 120.20000000000002,
-      "ptsHalfPpr": 112.20000000000002,
-      "ptsStd": 104.20000000000002
+      "ptsPpr": 140.4,
+      "ptsHalfPpr": 129.4,
+      "ptsStd": 118.40000000000002
     },
     {
       "playerId": "5970",
@@ -3550,10 +3566,10 @@
     {
       "playerId": "6001",
       "position": "TE",
-      "gamesPlayed": 8,
-      "ptsPpr": 17.8,
-      "ptsHalfPpr": 14.3,
-      "ptsStd": 10.8
+      "gamesPlayed": 9,
+      "ptsPpr": 28.3,
+      "ptsHalfPpr": 23.3,
+      "ptsStd": 18.3
     },
     {
       "playerId": "6011",
@@ -3566,7 +3582,7 @@
     {
       "playerId": "6012",
       "position": "RB",
-      "gamesPlayed": 7,
+      "gamesPlayed": 8,
       "ptsPpr": 1.5,
       "ptsHalfPpr": 1.5,
       "ptsStd": 1.5
@@ -3590,10 +3606,10 @@
     {
       "playerId": "6083",
       "position": "K",
-      "gamesPlayed": 9,
-      "ptsPpr": 88,
-      "ptsHalfPpr": 88,
-      "ptsStd": 88
+      "gamesPlayed": 10,
+      "ptsPpr": 96,
+      "ptsHalfPpr": 96,
+      "ptsStd": 96
     },
     {
       "playerId": "6109",
@@ -3623,9 +3639,9 @@
       "playerId": "6271",
       "position": "WR",
       "gamesPlayed": 9,
-      "ptsPpr": 10.299999999999999,
-      "ptsHalfPpr": 6.800000000000001,
-      "ptsStd": 3.3
+      "ptsPpr": 12.3,
+      "ptsHalfPpr": 8.3,
+      "ptsStd": 4.3
     },
     {
       "playerId": "6323",
@@ -3647,9 +3663,9 @@
       "playerId": "6427",
       "position": "WR",
       "gamesPlayed": 6,
-      "ptsPpr": 19,
-      "ptsHalfPpr": 17,
-      "ptsStd": 15
+      "ptsPpr": 23,
+      "ptsHalfPpr": 20.5,
+      "ptsStd": 18
     },
     {
       "playerId": "6451",
@@ -3671,9 +3687,9 @@
       "playerId": "6528",
       "position": "K",
       "gamesPlayed": 9,
-      "ptsPpr": 59,
-      "ptsHalfPpr": 59,
-      "ptsStd": 59
+      "ptsPpr": 71,
+      "ptsHalfPpr": 71,
+      "ptsStd": 71
     },
     {
       "playerId": "6529",
@@ -3710,7 +3726,7 @@
     {
       "playerId": "6768",
       "position": "QB",
-      "gamesPlayed": 2,
+      "gamesPlayed": 1,
       "ptsPpr": 0.36,
       "ptsHalfPpr": 0.36,
       "ptsStd": 0.36
@@ -3718,26 +3734,26 @@
     {
       "playerId": "6770",
       "position": "QB",
-      "gamesPlayed": 8,
-      "ptsPpr": 205.14,
-      "ptsHalfPpr": 205.14,
-      "ptsStd": 205.14
+      "gamesPlayed": 9,
+      "ptsPpr": 238.29999999999998,
+      "ptsHalfPpr": 238.29999999999998,
+      "ptsStd": 238.29999999999998
     },
     {
       "playerId": "6783",
       "position": "WR",
       "gamesPlayed": 10,
-      "ptsPpr": 46.300000000000004,
-      "ptsHalfPpr": 36.8,
-      "ptsStd": 27.3
+      "ptsPpr": 48.2,
+      "ptsHalfPpr": 38.2,
+      "ptsStd": 28.200000000000003
     },
     {
       "playerId": "6786",
       "position": "WR",
-      "gamesPlayed": 9,
-      "ptsPpr": 201.8,
-      "ptsHalfPpr": 166.8,
-      "ptsStd": 131.8
+      "gamesPlayed": 10,
+      "ptsPpr": 222,
+      "ptsHalfPpr": 183.5,
+      "ptsStd": 145
     },
     {
       "playerId": "6790",
@@ -3751,9 +3767,9 @@
       "playerId": "6794",
       "position": "WR",
       "gamesPlayed": 8,
-      "ptsPpr": 97.5,
-      "ptsHalfPpr": 81.5,
-      "ptsStd": 65.5
+      "ptsPpr": 111.6,
+      "ptsHalfPpr": 91.60000000000001,
+      "ptsStd": 71.60000000000001
     },
     {
       "playerId": "6797",
@@ -3774,18 +3790,26 @@
     {
       "playerId": "6801",
       "position": "WR",
-      "gamesPlayed": 8,
-      "ptsPpr": 159.79999999999998,
-      "ptsHalfPpr": 135.79999999999998,
-      "ptsStd": 111.8
+      "gamesPlayed": 9,
+      "ptsPpr": 171.39999999999998,
+      "ptsHalfPpr": 144.89999999999998,
+      "ptsStd": 118.39999999999999
+    },
+    {
+      "playerId": "6803",
+      "position": "WR",
+      "gamesPlayed": 1,
+      "ptsPpr": 0,
+      "ptsHalfPpr": 0,
+      "ptsStd": 0
     },
     {
       "playerId": "6804",
       "position": "QB",
       "gamesPlayed": 10,
-      "ptsPpr": 191.62,
-      "ptsHalfPpr": 191.62,
-      "ptsStd": 191.62
+      "ptsPpr": 202.82000000000002,
+      "ptsHalfPpr": 202.82000000000002,
+      "ptsStd": 202.82000000000002
     },
     {
       "playerId": "6806",
@@ -3799,9 +3823,9 @@
       "playerId": "6813",
       "position": "RB",
       "gamesPlayed": 10,
-      "ptsPpr": 155.6,
-      "ptsHalfPpr": 142.6,
-      "ptsStd": 129.60000000000002
+      "ptsPpr": 165.9,
+      "ptsHalfPpr": 151.9,
+      "ptsStd": 137.9
     },
     {
       "playerId": "6819",
@@ -3830,10 +3854,10 @@
     {
       "playerId": "6847",
       "position": "WR",
-      "gamesPlayed": 9,
-      "ptsPpr": 6.199999999999999,
-      "ptsHalfPpr": 4.2,
-      "ptsStd": 2.2
+      "gamesPlayed": 10,
+      "ptsPpr": 11.7,
+      "ptsHalfPpr": 8.7,
+      "ptsStd": 5.7
     },
     {
       "playerId": "6853",
@@ -3846,10 +3870,10 @@
     {
       "playerId": "6865",
       "position": "TE",
-      "gamesPlayed": 7,
-      "ptsPpr": 35.6,
-      "ptsHalfPpr": 26.6,
-      "ptsStd": 17.6
+      "gamesPlayed": 8,
+      "ptsPpr": 38.7,
+      "ptsHalfPpr": 28.700000000000003,
+      "ptsStd": 18.700000000000003
     },
     {
       "playerId": "6869",
@@ -3876,14 +3900,6 @@
       "ptsStd": 2.5
     },
     {
-      "playerId": "6927",
-      "position": "WR",
-      "gamesPlayed": 1,
-      "ptsPpr": 0,
-      "ptsHalfPpr": 0,
-      "ptsStd": 0
-    },
-    {
       "playerId": "6931",
       "position": "RB",
       "gamesPlayed": 9,
@@ -3895,33 +3911,33 @@
       "playerId": "7002",
       "position": "TE",
       "gamesPlayed": 9,
-      "ptsPpr": 83.80000000000001,
-      "ptsHalfPpr": 68.80000000000001,
-      "ptsStd": 53.8
+      "ptsPpr": 83.7,
+      "ptsHalfPpr": 68.7,
+      "ptsStd": 53.699999999999996
     },
     {
       "playerId": "7021",
       "position": "RB",
-      "gamesPlayed": 5,
-      "ptsPpr": 44.6,
-      "ptsHalfPpr": 38.1,
-      "ptsStd": 31.6
+      "gamesPlayed": 6,
+      "ptsPpr": 50,
+      "ptsHalfPpr": 42.5,
+      "ptsStd": 35
     },
     {
       "playerId": "7039",
       "position": "WR",
-      "gamesPlayed": 9,
-      "ptsPpr": 39.199999999999996,
-      "ptsHalfPpr": 35.199999999999996,
-      "ptsStd": 31.199999999999996
+      "gamesPlayed": 10,
+      "ptsPpr": 42.4,
+      "ptsHalfPpr": 37.9,
+      "ptsStd": 33.4
     },
     {
       "playerId": "7042",
       "position": "K",
       "gamesPlayed": 9,
-      "ptsPpr": 93,
-      "ptsHalfPpr": 93,
-      "ptsStd": 93
+      "ptsPpr": 96,
+      "ptsHalfPpr": 96,
+      "ptsStd": 96
     },
     {
       "playerId": "7049",
@@ -3991,17 +4007,17 @@
       "playerId": "7521",
       "position": "WR",
       "gamesPlayed": 10,
-      "ptsPpr": 3.6,
-      "ptsHalfPpr": 3.1,
-      "ptsStd": 2.6
+      "ptsPpr": 7.2,
+      "ptsHalfPpr": 6.2,
+      "ptsStd": 5.2
     },
     {
       "playerId": "7523",
       "position": "QB",
       "gamesPlayed": 9,
-      "ptsPpr": 161.14000000000001,
-      "ptsHalfPpr": 161.14000000000001,
-      "ptsStd": 161.14000000000001
+      "ptsPpr": 178.96,
+      "ptsHalfPpr": 178.96,
+      "ptsStd": 178.96
     },
     {
       "playerId": "7525",
@@ -4046,10 +4062,10 @@
     {
       "playerId": "7535",
       "position": "TE",
-      "gamesPlayed": 4,
-      "ptsPpr": 3.5,
-      "ptsHalfPpr": 2.5,
-      "ptsStd": 1.5
+      "gamesPlayed": 5,
+      "ptsPpr": 5.2,
+      "ptsHalfPpr": 3.7,
+      "ptsStd": 2.2
     },
     {
       "playerId": "7536",
@@ -4063,9 +4079,9 @@
       "playerId": "7543",
       "position": "RB",
       "gamesPlayed": 4,
-      "ptsPpr": 35.699999999999996,
-      "ptsHalfPpr": 28.7,
-      "ptsStd": 21.7
+      "ptsPpr": 37.3,
+      "ptsHalfPpr": 30.299999999999997,
+      "ptsStd": 23.299999999999997
     },
     {
       "playerId": "7547",
@@ -4079,9 +4095,9 @@
       "playerId": "7553",
       "position": "TE",
       "gamesPlayed": 10,
-      "ptsPpr": 72.79999999999998,
-      "ptsHalfPpr": 59.79999999999999,
-      "ptsStd": 46.79999999999999
+      "ptsPpr": 77.99999999999999,
+      "ptsHalfPpr": 63.49999999999999,
+      "ptsStd": 48.99999999999999
     },
     {
       "playerId": "7561",
@@ -4094,18 +4110,18 @@
     {
       "playerId": "7562",
       "position": "WR",
-      "gamesPlayed": 6,
-      "ptsPpr": 16.900000000000002,
-      "ptsHalfPpr": 13.4,
-      "ptsStd": 9.9
+      "gamesPlayed": 7,
+      "ptsPpr": 21,
+      "ptsHalfPpr": 17,
+      "ptsStd": 13
     },
     {
       "playerId": "7564",
       "position": "WR",
-      "gamesPlayed": 8,
-      "ptsPpr": 159.70000000000002,
-      "ptsHalfPpr": 133.20000000000002,
-      "ptsStd": 106.70000000000002
+      "gamesPlayed": 9,
+      "ptsPpr": 193.8,
+      "ptsHalfPpr": 161.8,
+      "ptsStd": 129.8
     },
     {
       "playerId": "7567",
@@ -4127,9 +4143,9 @@
       "playerId": "7569",
       "position": "WR",
       "gamesPlayed": 7,
-      "ptsPpr": 110.3,
-      "ptsHalfPpr": 93.3,
-      "ptsStd": 76.3
+      "ptsPpr": 116,
+      "ptsHalfPpr": 97.5,
+      "ptsStd": 79
     },
     {
       "playerId": "7571",
@@ -4142,7 +4158,7 @@
     {
       "playerId": "7585",
       "position": "QB",
-      "gamesPlayed": 2,
+      "gamesPlayed": 1,
       "ptsPpr": 0.08,
       "ptsHalfPpr": 0.08,
       "ptsStd": 0.08
@@ -4158,10 +4174,10 @@
     {
       "playerId": "7588",
       "position": "RB",
-      "gamesPlayed": 9,
-      "ptsPpr": 159.6,
-      "ptsHalfPpr": 147.6,
-      "ptsStd": 135.6
+      "gamesPlayed": 10,
+      "ptsPpr": 167.29999999999998,
+      "ptsHalfPpr": 154.79999999999998,
+      "ptsStd": 142.29999999999998
     },
     {
       "playerId": "7591",
@@ -4175,17 +4191,17 @@
       "playerId": "7594",
       "position": "RB",
       "gamesPlayed": 9,
-      "ptsPpr": 162.6,
-      "ptsHalfPpr": 148.6,
-      "ptsStd": 134.6
+      "ptsPpr": 180.8,
+      "ptsHalfPpr": 165.29999999999998,
+      "ptsStd": 149.79999999999998
     },
     {
       "playerId": "7595",
       "position": "WR",
       "gamesPlayed": 8,
-      "ptsPpr": 5.1,
-      "ptsHalfPpr": 3.6,
-      "ptsStd": 2.1
+      "ptsPpr": 8,
+      "ptsHalfPpr": 5.5,
+      "ptsStd": 3
     },
     {
       "playerId": "7596",
@@ -4206,10 +4222,10 @@
     {
       "playerId": "7600",
       "position": "TE",
-      "gamesPlayed": 8,
-      "ptsPpr": 79,
-      "ptsHalfPpr": 66.5,
-      "ptsStd": 54
+      "gamesPlayed": 9,
+      "ptsPpr": 90.5,
+      "ptsHalfPpr": 77,
+      "ptsStd": 63.5
     },
     {
       "playerId": "7602",
@@ -4239,9 +4255,9 @@
       "playerId": "7608",
       "position": "RB",
       "gamesPlayed": 4,
-      "ptsPpr": 9.2,
-      "ptsHalfPpr": 7.199999999999999,
-      "ptsStd": 5.2
+      "ptsPpr": 11.899999999999999,
+      "ptsHalfPpr": 8.899999999999999,
+      "ptsStd": 5.9
     },
     {
       "playerId": "7611",
@@ -4263,9 +4279,9 @@
       "playerId": "7694",
       "position": "TE",
       "gamesPlayed": 9,
-      "ptsPpr": 64.6,
-      "ptsHalfPpr": 52.599999999999994,
-      "ptsStd": 40.6
+      "ptsPpr": 65.69999999999999,
+      "ptsHalfPpr": 53.19999999999999,
+      "ptsStd": 40.699999999999996
     },
     {
       "playerId": "7716",
@@ -4286,39 +4302,39 @@
     {
       "playerId": "7757",
       "position": "WR",
-      "gamesPlayed": 5,
-      "ptsPpr": 13.2,
-      "ptsHalfPpr": 11.7,
+      "gamesPlayed": 6,
+      "ptsPpr": 14.2,
+      "ptsHalfPpr": 12.2,
       "ptsStd": 10.2
     },
     {
       "playerId": "7812",
       "position": "WR",
-      "gamesPlayed": 9,
-      "ptsPpr": 4.7,
-      "ptsHalfPpr": 4.2,
-      "ptsStd": 3.7
+      "gamesPlayed": 10,
+      "ptsPpr": 7.800000000000001,
+      "ptsHalfPpr": 6.800000000000001,
+      "ptsStd": 5.800000000000001
     },
     {
       "playerId": "7828",
       "position": "TE",
       "gamesPlayed": 9,
-      "ptsPpr": 39.400000000000006,
-      "ptsHalfPpr": 31.900000000000006,
-      "ptsStd": 24.400000000000002
+      "ptsPpr": 41.00000000000001,
+      "ptsHalfPpr": 33.00000000000001,
+      "ptsStd": 25.000000000000004
     },
     {
       "playerId": "7839",
       "position": "K",
-      "gamesPlayed": 8,
-      "ptsPpr": 77,
-      "ptsHalfPpr": 77,
-      "ptsStd": 77
+      "gamesPlayed": 9,
+      "ptsPpr": 84,
+      "ptsHalfPpr": 84,
+      "ptsStd": 84
     },
     {
       "playerId": "7842",
       "position": "TE",
-      "gamesPlayed": 8,
+      "gamesPlayed": 9,
       "ptsPpr": 7.300000000000001,
       "ptsHalfPpr": 5.8,
       "ptsStd": 4.3
@@ -4326,10 +4342,10 @@
     {
       "playerId": "7865",
       "position": "WR",
-      "gamesPlayed": 4,
-      "ptsPpr": 4.4,
-      "ptsHalfPpr": 3.4,
-      "ptsStd": 2.4
+      "gamesPlayed": 5,
+      "ptsPpr": 7.9,
+      "ptsHalfPpr": 5.9,
+      "ptsStd": 3.9
     },
     {
       "playerId": "7891",
@@ -4391,9 +4407,9 @@
       "playerId": "8112",
       "position": "WR",
       "gamesPlayed": 10,
-      "ptsPpr": 123.3,
-      "ptsHalfPpr": 100.8,
-      "ptsStd": 78.3
+      "ptsPpr": 138.5,
+      "ptsHalfPpr": 113.5,
+      "ptsStd": 88.5
     },
     {
       "playerId": "8116",
@@ -4415,9 +4431,9 @@
       "playerId": "8119",
       "position": "WR",
       "gamesPlayed": 10,
-      "ptsPpr": 67.89999999999999,
-      "ptsHalfPpr": 58.9,
-      "ptsStd": 49.9
+      "ptsPpr": 72.6,
+      "ptsHalfPpr": 63.099999999999994,
+      "ptsStd": 53.599999999999994
     },
     {
       "playerId": "8121",
@@ -4430,18 +4446,18 @@
     {
       "playerId": "8122",
       "position": "RB",
-      "gamesPlayed": 8,
-      "ptsPpr": 25.1,
-      "ptsHalfPpr": 22.1,
-      "ptsStd": 19.1
+      "gamesPlayed": 9,
+      "ptsPpr": 27,
+      "ptsHalfPpr": 24,
+      "ptsStd": 21
     },
     {
       "playerId": "8126",
       "position": "WR",
       "gamesPlayed": 9,
-      "ptsPpr": 80.4,
-      "ptsHalfPpr": 61.90000000000001,
-      "ptsStd": 43.4
+      "ptsPpr": 81.30000000000001,
+      "ptsHalfPpr": 62.30000000000001,
+      "ptsStd": 43.3
     },
     {
       "playerId": "8127",
@@ -4462,10 +4478,10 @@
     {
       "playerId": "8130",
       "position": "TE",
-      "gamesPlayed": 9,
-      "ptsPpr": 162.8,
-      "ptsHalfPpr": 126.30000000000003,
-      "ptsStd": 89.80000000000001
+      "gamesPlayed": 10,
+      "ptsPpr": 171.5,
+      "ptsHalfPpr": 132.50000000000003,
+      "ptsStd": 93.50000000000001
     },
     {
       "playerId": "8131",
@@ -4478,18 +4494,18 @@
     {
       "playerId": "8132",
       "position": "RB",
-      "gamesPlayed": 9,
-      "ptsPpr": 90.69999999999999,
-      "ptsHalfPpr": 79.19999999999999,
-      "ptsStd": 67.7
+      "gamesPlayed": 10,
+      "ptsPpr": 92.1,
+      "ptsHalfPpr": 80.6,
+      "ptsStd": 69.10000000000001
     },
     {
       "playerId": "8134",
       "position": "WR",
       "gamesPlayed": 9,
-      "ptsPpr": 80.3,
-      "ptsHalfPpr": 64.3,
-      "ptsStd": 48.3
+      "ptsPpr": 83.7,
+      "ptsHalfPpr": 67.19999999999999,
+      "ptsStd": 50.699999999999996
     },
     {
       "playerId": "8135",
@@ -4510,18 +4526,18 @@
     {
       "playerId": "8137",
       "position": "WR",
-      "gamesPlayed": 8,
-      "ptsPpr": 104.3,
-      "ptsHalfPpr": 84.8,
-      "ptsStd": 65.3
+      "gamesPlayed": 9,
+      "ptsPpr": 147.8,
+      "ptsHalfPpr": 122.8,
+      "ptsStd": 97.8
     },
     {
       "playerId": "8138",
       "position": "RB",
       "gamesPlayed": 9,
-      "ptsPpr": 152.79999999999998,
-      "ptsHalfPpr": 146.79999999999998,
-      "ptsStd": 140.79999999999998
+      "ptsPpr": 170.09999999999997,
+      "ptsHalfPpr": 164.09999999999997,
+      "ptsStd": 158.09999999999997
     },
     {
       "playerId": "8139",
@@ -4543,9 +4559,9 @@
       "playerId": "8144",
       "position": "WR",
       "gamesPlayed": 9,
-      "ptsPpr": 141.39999999999998,
-      "ptsHalfPpr": 113.39999999999998,
-      "ptsStd": 85.39999999999999
+      "ptsPpr": 147.39999999999998,
+      "ptsHalfPpr": 117.89999999999998,
+      "ptsStd": 88.39999999999999
     },
     {
       "playerId": "8145",
@@ -4559,17 +4575,17 @@
       "playerId": "8146",
       "position": "WR",
       "gamesPlayed": 9,
-      "ptsPpr": 115.4,
-      "ptsHalfPpr": 93.4,
-      "ptsStd": 71.4
+      "ptsPpr": 129.3,
+      "ptsHalfPpr": 104.3,
+      "ptsStd": 79.3
     },
     {
       "playerId": "8147",
       "position": "WR",
       "gamesPlayed": 8,
-      "ptsPpr": 35.4,
-      "ptsHalfPpr": 28.4,
-      "ptsStd": 21.4
+      "ptsPpr": 36.8,
+      "ptsHalfPpr": 29.299999999999997,
+      "ptsStd": 21.799999999999997
     },
     {
       "playerId": "8148",
@@ -4582,10 +4598,10 @@
     {
       "playerId": "8150",
       "position": "RB",
-      "gamesPlayed": 9,
-      "ptsPpr": 159.10000000000002,
-      "ptsHalfPpr": 141.10000000000002,
-      "ptsStd": 123.1
+      "gamesPlayed": 10,
+      "ptsPpr": 164.3,
+      "ptsHalfPpr": 145.3,
+      "ptsStd": 126.3
     },
     {
       "playerId": "8151",
@@ -4607,14 +4623,14 @@
       "playerId": "8155",
       "position": "RB",
       "gamesPlayed": 5,
-      "ptsPpr": 60,
-      "ptsHalfPpr": 52.5,
-      "ptsStd": 45
+      "ptsPpr": 69,
+      "ptsHalfPpr": 60.5,
+      "ptsStd": 52
     },
     {
       "playerId": "8160",
       "position": "QB",
-      "gamesPlayed": 4,
+      "gamesPlayed": 3,
       "ptsPpr": 5.38,
       "ptsHalfPpr": 5.38,
       "ptsStd": 5.38
@@ -4631,9 +4647,9 @@
       "playerId": "8167",
       "position": "WR",
       "gamesPlayed": 10,
-      "ptsPpr": 179.4,
-      "ptsHalfPpr": 154.4,
-      "ptsStd": 129.4
+      "ptsPpr": 183.6,
+      "ptsHalfPpr": 157.6,
+      "ptsStd": 131.6
     },
     {
       "playerId": "8168",
@@ -4646,7 +4662,7 @@
     {
       "playerId": "8170",
       "position": "TE",
-      "gamesPlayed": 2,
+      "gamesPlayed": 3,
       "ptsPpr": 6,
       "ptsHalfPpr": 6,
       "ptsStd": 6
@@ -4670,26 +4686,26 @@
     {
       "playerId": "8180",
       "position": "WR",
-      "gamesPlayed": 8,
-      "ptsPpr": 32.2,
-      "ptsHalfPpr": 25.2,
-      "ptsStd": 18.2
+      "gamesPlayed": 9,
+      "ptsPpr": 33.1,
+      "ptsHalfPpr": 25.599999999999998,
+      "ptsStd": 18.099999999999998
     },
     {
       "playerId": "8181",
       "position": "RB",
-      "gamesPlayed": 9,
-      "ptsPpr": 4,
-      "ptsHalfPpr": 3,
-      "ptsStd": 2
+      "gamesPlayed": 10,
+      "ptsPpr": 6.6,
+      "ptsHalfPpr": 4.6,
+      "ptsStd": 2.6
     },
     {
       "playerId": "8183",
       "position": "QB",
-      "gamesPlayed": 8,
-      "ptsPpr": 176.3,
-      "ptsHalfPpr": 176.3,
-      "ptsStd": 176.3
+      "gamesPlayed": 9,
+      "ptsPpr": 207.96,
+      "ptsHalfPpr": 207.96,
+      "ptsStd": 207.96
     },
     {
       "playerId": "8188",
@@ -4702,10 +4718,10 @@
     {
       "playerId": "8195",
       "position": "RB",
-      "gamesPlayed": 3,
-      "ptsPpr": 3.4,
-      "ptsHalfPpr": 2.9,
-      "ptsStd": 2.4
+      "gamesPlayed": 4,
+      "ptsPpr": 11.5,
+      "ptsHalfPpr": 11,
+      "ptsStd": 10.5
     },
     {
       "playerId": "8200",
@@ -4767,14 +4783,14 @@
       "playerId": "8225",
       "position": "TE",
       "gamesPlayed": 9,
-      "ptsPpr": 23.2,
-      "ptsHalfPpr": 18.2,
-      "ptsStd": 13.2
+      "ptsPpr": 24.6,
+      "ptsHalfPpr": 19.1,
+      "ptsStd": 13.6
     },
     {
       "playerId": "8227",
       "position": "TE",
-      "gamesPlayed": 5,
+      "gamesPlayed": 6,
       "ptsPpr": 17.3,
       "ptsHalfPpr": 15.8,
       "ptsStd": 14.3
@@ -4782,10 +4798,10 @@
     {
       "playerId": "8228",
       "position": "RB",
-      "gamesPlayed": 8,
-      "ptsPpr": 140.8,
-      "ptsHalfPpr": 128.3,
-      "ptsStd": 115.8
+      "gamesPlayed": 9,
+      "ptsPpr": 149.9,
+      "ptsHalfPpr": 134.9,
+      "ptsStd": 119.89999999999999
     },
     {
       "playerId": "8250",
@@ -4823,9 +4839,9 @@
       "playerId": "827",
       "position": "QB",
       "gamesPlayed": 3,
-      "ptsPpr": -0.2,
-      "ptsHalfPpr": -0.2,
-      "ptsStd": -0.2
+      "ptsPpr": -0.08000000000000002,
+      "ptsHalfPpr": -0.08000000000000002,
+      "ptsStd": -0.08000000000000002
     },
     {
       "playerId": "829",
@@ -4839,9 +4855,9 @@
       "playerId": "8408",
       "position": "RB",
       "gamesPlayed": 5,
-      "ptsPpr": 28,
-      "ptsHalfPpr": 27,
-      "ptsStd": 26
+      "ptsPpr": 32.8,
+      "ptsHalfPpr": 31.799999999999997,
+      "ptsStd": 30.799999999999997
     },
     {
       "playerId": "8414",
@@ -4878,7 +4894,7 @@
     {
       "playerId": "8527",
       "position": "WR",
-      "gamesPlayed": 9,
+      "gamesPlayed": 10,
       "ptsPpr": 3.6,
       "ptsHalfPpr": 2.6,
       "ptsStd": 1.6
@@ -4886,10 +4902,10 @@
     {
       "playerId": "8676",
       "position": "WR",
-      "gamesPlayed": 7,
-      "ptsPpr": 42.2,
-      "ptsHalfPpr": 34.2,
-      "ptsStd": 26.200000000000003
+      "gamesPlayed": 8,
+      "ptsPpr": 44,
+      "ptsHalfPpr": 35.5,
+      "ptsStd": 27.000000000000004
     },
     {
       "playerId": "8698",
@@ -4926,7 +4942,7 @@
     {
       "playerId": "8861",
       "position": "WR",
-      "gamesPlayed": 4,
+      "gamesPlayed": 5,
       "ptsPpr": 0,
       "ptsHalfPpr": 0,
       "ptsStd": 0
@@ -4934,15 +4950,15 @@
     {
       "playerId": "8917",
       "position": "WR",
-      "gamesPlayed": 6,
-      "ptsPpr": 12.900000000000002,
-      "ptsHalfPpr": 10.9,
-      "ptsStd": 8.899999999999999
+      "gamesPlayed": 7,
+      "ptsPpr": 15.800000000000002,
+      "ptsHalfPpr": 13.3,
+      "ptsStd": 10.799999999999999
     },
     {
       "playerId": "9220",
       "position": "RB",
-      "gamesPlayed": 3,
+      "gamesPlayed": 4,
       "ptsPpr": 0,
       "ptsHalfPpr": 0,
       "ptsStd": 0
@@ -4958,10 +4974,10 @@
     {
       "playerId": "9224",
       "position": "RB",
-      "gamesPlayed": 8,
-      "ptsPpr": 101.4,
-      "ptsHalfPpr": 81.89999999999999,
-      "ptsStd": 62.4
+      "gamesPlayed": 9,
+      "ptsPpr": 129.70000000000002,
+      "ptsHalfPpr": 106.19999999999999,
+      "ptsStd": 82.7
     },
     {
       "playerId": "9225",
@@ -4982,23 +4998,23 @@
     {
       "playerId": "9227",
       "position": "RB",
-      "gamesPlayed": 1,
-      "ptsPpr": 0,
-      "ptsHalfPpr": 0,
-      "ptsStd": 0
+      "gamesPlayed": 2,
+      "ptsPpr": 2,
+      "ptsHalfPpr": 1.5,
+      "ptsStd": 1
     },
     {
       "playerId": "9228",
       "position": "QB",
       "gamesPlayed": 9,
-      "ptsPpr": 156.06,
-      "ptsHalfPpr": 156.06,
-      "ptsStd": 156.06
+      "ptsPpr": 160.68,
+      "ptsHalfPpr": 160.68,
+      "ptsStd": 160.68
     },
     {
       "playerId": "9229",
       "position": "QB",
-      "gamesPlayed": 2,
+      "gamesPlayed": 1,
       "ptsPpr": 0.72,
       "ptsHalfPpr": 0.72,
       "ptsStd": 0.72
@@ -5014,34 +5030,34 @@
     {
       "playerId": "9479",
       "position": "TE",
-      "gamesPlayed": 8,
-      "ptsPpr": 62.39999999999999,
-      "ptsHalfPpr": 52.89999999999999,
-      "ptsStd": 43.4
+      "gamesPlayed": 9,
+      "ptsPpr": 63.89999999999999,
+      "ptsHalfPpr": 53.89999999999999,
+      "ptsStd": 43.9
     },
     {
       "playerId": "9480",
       "position": "TE",
       "gamesPlayed": 9,
-      "ptsPpr": 73.2,
-      "ptsHalfPpr": 57.7,
-      "ptsStd": 42.2
+      "ptsPpr": 80.50000000000001,
+      "ptsHalfPpr": 64.5,
+      "ptsStd": 48.5
     },
     {
       "playerId": "9482",
       "position": "TE",
-      "gamesPlayed": 9,
-      "ptsPpr": 81.8,
-      "ptsHalfPpr": 62.300000000000004,
-      "ptsStd": 42.8
+      "gamesPlayed": 10,
+      "ptsPpr": 85.6,
+      "ptsHalfPpr": 65.10000000000001,
+      "ptsStd": 44.599999999999994
     },
     {
       "playerId": "9484",
       "position": "TE",
       "gamesPlayed": 10,
-      "ptsPpr": 90.4,
-      "ptsHalfPpr": 72.4,
-      "ptsStd": 54.4
+      "ptsPpr": 93.30000000000001,
+      "ptsHalfPpr": 74.80000000000001,
+      "ptsStd": 56.3
     },
     {
       "playerId": "9486",
@@ -5055,17 +5071,17 @@
       "playerId": "9487",
       "position": "WR",
       "gamesPlayed": 9,
-      "ptsPpr": 132.2,
-      "ptsHalfPpr": 115.19999999999999,
-      "ptsStd": 98.19999999999999
+      "ptsPpr": 137.79999999999998,
+      "ptsHalfPpr": 119.8,
+      "ptsStd": 101.8
     },
     {
       "playerId": "9488",
       "position": "WR",
-      "gamesPlayed": 9,
-      "ptsPpr": 232.06000000000003,
-      "ptsHalfPpr": 196.56,
-      "ptsStd": 161.06
+      "gamesPlayed": 10,
+      "ptsPpr": 263.16,
+      "ptsHalfPpr": 223.66,
+      "ptsStd": 184.16
     },
     {
       "playerId": "9493",
@@ -5095,9 +5111,9 @@
       "playerId": "9500",
       "position": "WR",
       "gamesPlayed": 10,
-      "ptsPpr": 78.19999999999999,
-      "ptsHalfPpr": 61.2,
-      "ptsStd": 44.2
+      "ptsPpr": 90.39999999999999,
+      "ptsHalfPpr": 71.9,
+      "ptsStd": 53.400000000000006
     },
     {
       "playerId": "9501",
@@ -5111,9 +5127,9 @@
       "playerId": "9502",
       "position": "WR",
       "gamesPlayed": 3,
-      "ptsPpr": 30.5,
-      "ptsHalfPpr": 27,
-      "ptsStd": 23.5
+      "ptsPpr": 31.1,
+      "ptsHalfPpr": 27.1,
+      "ptsStd": 23.1
     },
     {
       "playerId": "9504",
@@ -5135,25 +5151,25 @@
       "playerId": "9508",
       "position": "RB",
       "gamesPlayed": 7,
-      "ptsPpr": 26.8,
-      "ptsHalfPpr": 19.3,
-      "ptsStd": 11.8
+      "ptsPpr": 30.900000000000002,
+      "ptsHalfPpr": 22.900000000000002,
+      "ptsStd": 14.900000000000002
     },
     {
       "playerId": "9509",
       "position": "RB",
       "gamesPlayed": 10,
-      "ptsPpr": 184.59999999999997,
-      "ptsHalfPpr": 168.59999999999997,
-      "ptsStd": 152.59999999999997
+      "ptsPpr": 197.69999999999996,
+      "ptsHalfPpr": 180.19999999999996,
+      "ptsStd": 162.69999999999996
     },
     {
       "playerId": "9510",
       "position": "RB",
-      "gamesPlayed": 6,
-      "ptsPpr": 0.6,
-      "ptsHalfPpr": 0.6,
-      "ptsStd": 0.6
+      "gamesPlayed": 7,
+      "ptsPpr": 6.1,
+      "ptsHalfPpr": 5.6,
+      "ptsStd": 5.1
     },
     {
       "playerId": "9511",
@@ -5166,18 +5182,18 @@
     {
       "playerId": "96",
       "position": "QB",
-      "gamesPlayed": 8,
-      "ptsPpr": 123.13999999999999,
-      "ptsHalfPpr": 123.13999999999999,
-      "ptsStd": 123.13999999999999
+      "gamesPlayed": 9,
+      "ptsPpr": 138.76,
+      "ptsHalfPpr": 138.76,
+      "ptsStd": 138.76
     },
     {
       "playerId": "9753",
       "position": "RB",
-      "gamesPlayed": 2,
-      "ptsPpr": 15.5,
-      "ptsHalfPpr": 13.5,
-      "ptsStd": 11.5
+      "gamesPlayed": 3,
+      "ptsPpr": 24.9,
+      "ptsHalfPpr": 22.9,
+      "ptsStd": 20.9
     },
     {
       "playerId": "9754",
@@ -5207,9 +5223,9 @@
       "playerId": "9758",
       "position": "QB",
       "gamesPlayed": 9,
-      "ptsPpr": 182.00000000000003,
-      "ptsHalfPpr": 182.00000000000003,
-      "ptsStd": 182.00000000000003
+      "ptsPpr": 187.48000000000002,
+      "ptsHalfPpr": 187.48000000000002,
+      "ptsStd": 187.48000000000002
     },
     {
       "playerId": "9997",
@@ -5222,18 +5238,18 @@
     {
       "playerId": "ARI",
       "position": "DEF",
-      "gamesPlayed": 9,
-      "ptsPpr": 36,
-      "ptsHalfPpr": 36,
-      "ptsStd": 36
+      "gamesPlayed": 10,
+      "ptsPpr": 39,
+      "ptsHalfPpr": 39,
+      "ptsStd": 39
     },
     {
       "playerId": "ATL",
       "position": "DEF",
       "gamesPlayed": 10,
-      "ptsPpr": 59,
-      "ptsHalfPpr": 59,
-      "ptsStd": 59
+      "ptsPpr": 53,
+      "ptsHalfPpr": 53,
+      "ptsStd": 53
     },
     {
       "playerId": "BAL",
@@ -5247,17 +5263,17 @@
       "playerId": "BUF",
       "position": "DEF",
       "gamesPlayed": 9,
-      "ptsPpr": 64,
-      "ptsHalfPpr": 64,
-      "ptsStd": 64
+      "ptsPpr": 69,
+      "ptsHalfPpr": 69,
+      "ptsStd": 69
     },
     {
       "playerId": "CAR",
       "position": "DEF",
       "gamesPlayed": 9,
-      "ptsPpr": 57,
-      "ptsHalfPpr": 57,
-      "ptsStd": 57
+      "ptsPpr": 51,
+      "ptsHalfPpr": 51,
+      "ptsStd": 51
     },
     {
       "playerId": "CHI",
@@ -5270,26 +5286,26 @@
     {
       "playerId": "CIN",
       "position": "DEF",
-      "gamesPlayed": 8,
-      "ptsPpr": 72,
-      "ptsHalfPpr": 72,
-      "ptsStd": 72
+      "gamesPlayed": 9,
+      "ptsPpr": 77,
+      "ptsHalfPpr": 77,
+      "ptsStd": 77
     },
     {
       "playerId": "CLE",
       "position": "DEF",
       "gamesPlayed": 10,
-      "ptsPpr": 68,
-      "ptsHalfPpr": 68,
-      "ptsStd": 68
+      "ptsPpr": 70,
+      "ptsHalfPpr": 70,
+      "ptsStd": 70
     },
     {
       "playerId": "DAL",
       "position": "DEF",
-      "gamesPlayed": 9,
-      "ptsPpr": 38,
-      "ptsHalfPpr": 38,
-      "ptsStd": 38
+      "gamesPlayed": 10,
+      "ptsPpr": 40,
+      "ptsHalfPpr": 40,
+      "ptsStd": 40
     },
     {
       "playerId": "DEN",
@@ -5311,41 +5327,41 @@
       "playerId": "GB",
       "position": "DEF",
       "gamesPlayed": 10,
-      "ptsPpr": 77,
-      "ptsHalfPpr": 77,
-      "ptsStd": 77
+      "ptsPpr": 78,
+      "ptsHalfPpr": 78,
+      "ptsStd": 78
     },
     {
       "playerId": "HOU",
       "position": "DEF",
       "gamesPlayed": 9,
-      "ptsPpr": 59,
-      "ptsHalfPpr": 59,
-      "ptsStd": 59
+      "ptsPpr": 62,
+      "ptsHalfPpr": 62,
+      "ptsStd": 62
     },
     {
       "playerId": "IND",
       "position": "DEF",
       "gamesPlayed": 10,
-      "ptsPpr": 39,
-      "ptsHalfPpr": 39,
-      "ptsStd": 39
+      "ptsPpr": 48,
+      "ptsHalfPpr": 48,
+      "ptsStd": 48
     },
     {
       "playerId": "JAX",
       "position": "DEF",
       "gamesPlayed": 9,
-      "ptsPpr": 83,
-      "ptsHalfPpr": 83,
-      "ptsStd": 83
+      "ptsPpr": 80,
+      "ptsHalfPpr": 80,
+      "ptsStd": 80
     },
     {
       "playerId": "KC",
       "position": "DEF",
       "gamesPlayed": 9,
-      "ptsPpr": 68,
-      "ptsHalfPpr": 68,
-      "ptsStd": 68
+      "ptsPpr": 71,
+      "ptsHalfPpr": 71,
+      "ptsStd": 71
     },
     {
       "playerId": "LAC",
@@ -5358,34 +5374,34 @@
     {
       "playerId": "LAR",
       "position": "DEF",
-      "gamesPlayed": 9,
-      "ptsPpr": 60,
-      "ptsHalfPpr": 60,
-      "ptsStd": 60
+      "gamesPlayed": 10,
+      "ptsPpr": 77,
+      "ptsHalfPpr": 77,
+      "ptsStd": 77
     },
     {
       "playerId": "LV",
       "position": "DEF",
-      "gamesPlayed": 9,
-      "ptsPpr": 62,
-      "ptsHalfPpr": 62,
-      "ptsStd": 62
+      "gamesPlayed": 10,
+      "ptsPpr": 70,
+      "ptsHalfPpr": 70,
+      "ptsStd": 70
     },
     {
       "playerId": "MIA",
       "position": "DEF",
       "gamesPlayed": 9,
-      "ptsPpr": 35,
-      "ptsHalfPpr": 35,
-      "ptsStd": 35
+      "ptsPpr": 41,
+      "ptsHalfPpr": 41,
+      "ptsStd": 41
     },
     {
       "playerId": "MIN",
       "position": "DEF",
       "gamesPlayed": 9,
-      "ptsPpr": 106,
-      "ptsHalfPpr": 106,
-      "ptsStd": 106
+      "ptsPpr": 109,
+      "ptsHalfPpr": 109,
+      "ptsStd": 109
     },
     {
       "playerId": "NE",
@@ -5399,9 +5415,9 @@
       "playerId": "NO",
       "position": "DEF",
       "gamesPlayed": 9,
-      "ptsPpr": 52,
-      "ptsHalfPpr": 52,
-      "ptsStd": 52
+      "ptsPpr": 51,
+      "ptsHalfPpr": 51,
+      "ptsStd": 51
     },
     {
       "playerId": "NYG",
@@ -5430,26 +5446,26 @@
     {
       "playerId": "PIT",
       "position": "DEF",
-      "gamesPlayed": 8,
-      "ptsPpr": 84,
-      "ptsHalfPpr": 84,
-      "ptsStd": 84
+      "gamesPlayed": 9,
+      "ptsPpr": 82,
+      "ptsHalfPpr": 82,
+      "ptsStd": 82
     },
     {
       "playerId": "SEA",
+      "position": "DEF",
+      "gamesPlayed": 10,
+      "ptsPpr": 83,
+      "ptsHalfPpr": 83,
+      "ptsStd": 83
+    },
+    {
+      "playerId": "SF",
       "position": "DEF",
       "gamesPlayed": 9,
       "ptsPpr": 73,
       "ptsHalfPpr": 73,
       "ptsStd": 73
-    },
-    {
-      "playerId": "SF",
-      "position": "DEF",
-      "gamesPlayed": 8,
-      "ptsPpr": 69,
-      "ptsHalfPpr": 69,
-      "ptsStd": 69
     },
     {
       "playerId": "TB",
@@ -5463,9 +5479,9 @@
       "playerId": "TEN",
       "position": "DEF",
       "gamesPlayed": 9,
-      "ptsPpr": 62,
-      "ptsHalfPpr": 62,
-      "ptsStd": 62
+      "ptsPpr": 55,
+      "ptsHalfPpr": 55,
+      "ptsStd": 55
     },
     {
       "playerId": "WAS",
@@ -5480,15 +5496,15 @@
     {
       "team": "ARI",
       "position": "DEF",
-      "games": 9,
-      "ptsPpr": 60,
-      "ptsHalfPpr": 60,
-      "ptsStd": 60
+      "games": 10,
+      "ptsPpr": 77,
+      "ptsHalfPpr": 77,
+      "ptsStd": 77
     },
     {
       "team": "ARI",
       "position": "FB",
-      "games": 9,
+      "games": 10,
       "ptsPpr": 1.1,
       "ptsHalfPpr": 0.6,
       "ptsStd": 0.1
@@ -5496,50 +5512,50 @@
     {
       "team": "ARI",
       "position": "K",
-      "games": 9,
-      "ptsPpr": 75,
-      "ptsHalfPpr": 75,
-      "ptsStd": 75
+      "games": 10,
+      "ptsPpr": 86,
+      "ptsHalfPpr": 86,
+      "ptsStd": 86
     },
     {
       "team": "ARI",
       "position": "QB",
-      "games": 9,
-      "ptsPpr": 191.34,
-      "ptsHalfPpr": 191.34,
-      "ptsStd": 191.34
+      "games": 10,
+      "ptsPpr": 212.1,
+      "ptsHalfPpr": 212.1,
+      "ptsStd": 212.1
     },
     {
       "team": "ARI",
       "position": "RB",
-      "games": 9,
-      "ptsPpr": 186.8,
-      "ptsHalfPpr": 172.3,
-      "ptsStd": 157.8
+      "games": 10,
+      "ptsPpr": 221,
+      "ptsHalfPpr": 204,
+      "ptsStd": 187
     },
     {
       "team": "ARI",
       "position": "TE",
-      "games": 9,
-      "ptsPpr": 144,
-      "ptsHalfPpr": 121,
-      "ptsStd": 98
+      "games": 10,
+      "ptsPpr": 166.7,
+      "ptsHalfPpr": 140.7,
+      "ptsStd": 114.7
     },
     {
       "team": "ARI",
       "position": "WR",
-      "games": 9,
-      "ptsPpr": 290.1,
-      "ptsHalfPpr": 245.1,
-      "ptsStd": 200.1
+      "games": 10,
+      "ptsPpr": 320.5,
+      "ptsHalfPpr": 272,
+      "ptsStd": 223.5
     },
     {
       "team": "ATL",
       "position": "DEF",
       "games": 10,
-      "ptsPpr": 91,
-      "ptsHalfPpr": 91,
-      "ptsStd": 91
+      "ptsPpr": 94,
+      "ptsHalfPpr": 94,
+      "ptsStd": 94
     },
     {
       "team": "ATL",
@@ -5553,41 +5569,41 @@
       "team": "ATL",
       "position": "K",
       "games": 10,
-      "ptsPpr": 73,
-      "ptsHalfPpr": 73,
-      "ptsStd": 73
+      "ptsPpr": 77,
+      "ptsHalfPpr": 77,
+      "ptsStd": 77
     },
     {
       "team": "ATL",
       "position": "QB",
       "games": 10,
-      "ptsPpr": 166.32,
-      "ptsHalfPpr": 166.32,
-      "ptsStd": 166.32
+      "ptsPpr": 192.56,
+      "ptsHalfPpr": 192.56,
+      "ptsStd": 192.56
     },
     {
       "team": "ATL",
       "position": "RB",
       "games": 10,
-      "ptsPpr": 237.9,
-      "ptsHalfPpr": 214.9,
-      "ptsStd": 191.9
+      "ptsPpr": 257.8,
+      "ptsHalfPpr": 233.3,
+      "ptsStd": 208.8
     },
     {
       "team": "ATL",
       "position": "TE",
       "games": 10,
-      "ptsPpr": 121.7,
-      "ptsHalfPpr": 95.7,
-      "ptsStd": 69.7
+      "ptsPpr": 125,
+      "ptsHalfPpr": 98,
+      "ptsStd": 71
     },
     {
       "team": "ATL",
       "position": "WR",
       "games": 10,
-      "ptsPpr": 309.4,
-      "ptsHalfPpr": 250.9,
-      "ptsStd": 192.4
+      "ptsPpr": 354.3,
+      "ptsHalfPpr": 291.3,
+      "ptsStd": 228.3
     },
     {
       "team": "BAL",
@@ -5673,49 +5689,49 @@
       "team": "BUF",
       "position": "K",
       "games": 9,
-      "ptsPpr": 58,
-      "ptsHalfPpr": 58,
-      "ptsStd": 58
+      "ptsPpr": 68,
+      "ptsHalfPpr": 68,
+      "ptsStd": 68
     },
     {
       "team": "BUF",
       "position": "QB",
       "games": 9,
-      "ptsPpr": 136.8,
-      "ptsHalfPpr": 136.8,
-      "ptsStd": 136.8
+      "ptsPpr": 147.48,
+      "ptsHalfPpr": 147.48,
+      "ptsStd": 147.48
     },
     {
       "team": "BUF",
       "position": "RB",
       "games": 9,
-      "ptsPpr": 203.4,
-      "ptsHalfPpr": 180.9,
-      "ptsStd": 158.4
+      "ptsPpr": 216.7,
+      "ptsHalfPpr": 192.7,
+      "ptsStd": 168.7
     },
     {
       "team": "BUF",
       "position": "TE",
       "games": 9,
-      "ptsPpr": 108.8,
-      "ptsHalfPpr": 84.3,
-      "ptsStd": 59.8
+      "ptsPpr": 113,
+      "ptsHalfPpr": 87,
+      "ptsStd": 61
     },
     {
       "team": "BUF",
       "position": "WR",
       "games": 9,
-      "ptsPpr": 278,
-      "ptsHalfPpr": 232,
-      "ptsStd": 186
+      "ptsPpr": 305.5,
+      "ptsHalfPpr": 253.5,
+      "ptsStd": 201.5
     },
     {
       "team": "CAR",
       "position": "DEF",
       "games": 9,
-      "ptsPpr": 71,
-      "ptsHalfPpr": 71,
-      "ptsStd": 71
+      "ptsPpr": 70,
+      "ptsHalfPpr": 70,
+      "ptsStd": 70
     },
     {
       "team": "CAR",
@@ -5729,41 +5745,41 @@
       "team": "CAR",
       "position": "K",
       "games": 9,
-      "ptsPpr": 67,
-      "ptsHalfPpr": 67,
-      "ptsStd": 67
+      "ptsPpr": 74,
+      "ptsHalfPpr": 74,
+      "ptsStd": 74
     },
     {
       "team": "CAR",
       "position": "QB",
       "games": 9,
-      "ptsPpr": 142.4,
-      "ptsHalfPpr": 142.4,
-      "ptsStd": 142.4
+      "ptsPpr": 149.54,
+      "ptsHalfPpr": 149.54,
+      "ptsStd": 149.54
     },
     {
       "team": "CAR",
       "position": "RB",
       "games": 9,
-      "ptsPpr": 227.3,
-      "ptsHalfPpr": 206.8,
-      "ptsStd": 186.3
+      "ptsPpr": 245.3,
+      "ptsHalfPpr": 223.3,
+      "ptsStd": 201.3
     },
     {
       "team": "CAR",
       "position": "TE",
       "games": 9,
-      "ptsPpr": 113.8,
-      "ptsHalfPpr": 92.8,
-      "ptsStd": 71.8
+      "ptsPpr": 113.7,
+      "ptsHalfPpr": 92.7,
+      "ptsStd": 71.7
     },
     {
       "team": "CAR",
       "position": "WR",
       "games": 9,
-      "ptsPpr": 254.9,
-      "ptsHalfPpr": 204.4,
-      "ptsStd": 153.9
+      "ptsPpr": 278.6,
+      "ptsHalfPpr": 221.1,
+      "ptsStd": 163.6
     },
     {
       "team": "CHI",
@@ -5816,7 +5832,7 @@
     {
       "team": "CIN",
       "position": "DB",
-      "games": 8,
+      "games": 9,
       "ptsPpr": 0,
       "ptsHalfPpr": 0,
       "ptsStd": 0
@@ -5824,50 +5840,50 @@
     {
       "team": "CIN",
       "position": "DEF",
-      "games": 8,
-      "ptsPpr": 38,
-      "ptsHalfPpr": 38,
-      "ptsStd": 38
+      "games": 9,
+      "ptsPpr": 36,
+      "ptsHalfPpr": 36,
+      "ptsStd": 36
     },
     {
       "team": "CIN",
       "position": "K",
-      "games": 8,
-      "ptsPpr": 67,
-      "ptsHalfPpr": 67,
-      "ptsStd": 67
+      "games": 9,
+      "ptsPpr": 72,
+      "ptsHalfPpr": 72,
+      "ptsStd": 72
     },
     {
       "team": "CIN",
       "position": "QB",
-      "games": 8,
-      "ptsPpr": 143.16,
-      "ptsHalfPpr": 143.16,
-      "ptsStd": 143.16
+      "games": 9,
+      "ptsPpr": 159.76,
+      "ptsHalfPpr": 159.76,
+      "ptsStd": 159.76
     },
     {
       "team": "CIN",
       "position": "RB",
-      "games": 8,
-      "ptsPpr": 165.5,
-      "ptsHalfPpr": 148,
-      "ptsStd": 130.5
+      "games": 9,
+      "ptsPpr": 185.5,
+      "ptsHalfPpr": 164,
+      "ptsStd": 142.5
     },
     {
       "team": "CIN",
       "position": "TE",
-      "games": 8,
-      "ptsPpr": 127.6,
-      "ptsHalfPpr": 101.1,
-      "ptsStd": 74.6
+      "games": 9,
+      "ptsPpr": 140.6,
+      "ptsHalfPpr": 112.6,
+      "ptsStd": 84.6
     },
     {
       "team": "CIN",
       "position": "WR",
-      "games": 8,
-      "ptsPpr": 247.5,
-      "ptsHalfPpr": 204.5,
-      "ptsStd": 161.5
+      "games": 9,
+      "ptsPpr": 268.4,
+      "ptsHalfPpr": 222.9,
+      "ptsStd": 177.4
     },
     {
       "team": "CLE",
@@ -5881,62 +5897,62 @@
       "team": "CLE",
       "position": "DEF",
       "games": 10,
-      "ptsPpr": 91,
-      "ptsHalfPpr": 91,
-      "ptsStd": 91
+      "ptsPpr": 94,
+      "ptsHalfPpr": 94,
+      "ptsStd": 94
     },
     {
       "team": "CLE",
       "position": "K",
       "games": 10,
-      "ptsPpr": 87,
-      "ptsHalfPpr": 87,
-      "ptsStd": 87
+      "ptsPpr": 88,
+      "ptsHalfPpr": 88,
+      "ptsStd": 88
     },
     {
       "team": "CLE",
       "position": "QB",
       "games": 10,
-      "ptsPpr": 149.24,
-      "ptsHalfPpr": 149.24,
-      "ptsStd": 149.24
+      "ptsPpr": 154.72,
+      "ptsHalfPpr": 154.72,
+      "ptsStd": 154.72
     },
     {
       "team": "CLE",
       "position": "RB",
       "games": 10,
-      "ptsPpr": 197.9,
-      "ptsHalfPpr": 181.4,
-      "ptsStd": 164.9
+      "ptsPpr": 204.3,
+      "ptsHalfPpr": 186.8,
+      "ptsStd": 169.3
     },
     {
       "team": "CLE",
       "position": "TE",
       "games": 10,
-      "ptsPpr": 133.1,
-      "ptsHalfPpr": 109.6,
-      "ptsStd": 86.1
+      "ptsPpr": 141.2,
+      "ptsHalfPpr": 117.2,
+      "ptsStd": 93.2
     },
     {
       "team": "CLE",
       "position": "WR",
       "games": 10,
-      "ptsPpr": 300.6,
-      "ptsHalfPpr": 246.6,
-      "ptsStd": 192.6
+      "ptsPpr": 309,
+      "ptsHalfPpr": 252.5,
+      "ptsStd": 196
     },
     {
       "team": "DAL",
       "position": "DEF",
-      "games": 9,
-      "ptsPpr": 36,
-      "ptsHalfPpr": 36,
-      "ptsStd": 36
+      "games": 10,
+      "ptsPpr": 40,
+      "ptsHalfPpr": 40,
+      "ptsStd": 40
     },
     {
       "team": "DAL",
       "position": "FB",
-      "games": 9,
+      "games": 10,
       "ptsPpr": 0,
       "ptsHalfPpr": 0,
       "ptsStd": 0
@@ -5944,42 +5960,42 @@
     {
       "team": "DAL",
       "position": "K",
-      "games": 9,
-      "ptsPpr": 87,
-      "ptsHalfPpr": 87,
-      "ptsStd": 87
+      "games": 10,
+      "ptsPpr": 95,
+      "ptsHalfPpr": 95,
+      "ptsStd": 95
     },
     {
       "team": "DAL",
       "position": "QB",
-      "games": 9,
-      "ptsPpr": 175.52,
-      "ptsHalfPpr": 175.52,
-      "ptsStd": 175.52
+      "games": 10,
+      "ptsPpr": 207.18,
+      "ptsHalfPpr": 207.18,
+      "ptsStd": 207.18
     },
     {
       "team": "DAL",
       "position": "RB",
-      "games": 9,
-      "ptsPpr": 232.2,
-      "ptsHalfPpr": 212.2,
-      "ptsStd": 192.2
+      "games": 10,
+      "ptsPpr": 293.1,
+      "ptsHalfPpr": 270.1,
+      "ptsStd": 247.1
     },
     {
       "team": "DAL",
       "position": "TE",
-      "games": 9,
-      "ptsPpr": 118.2,
-      "ptsHalfPpr": 93.7,
-      "ptsStd": 69.2
+      "games": 10,
+      "ptsPpr": 131.6,
+      "ptsHalfPpr": 104.1,
+      "ptsStd": 76.6
     },
     {
       "team": "DAL",
       "position": "WR",
-      "games": 9,
-      "ptsPpr": 313.4,
-      "ptsHalfPpr": 260.9,
-      "ptsStd": 208.4
+      "games": 10,
+      "ptsPpr": 357.3,
+      "ptsHalfPpr": 299.8,
+      "ptsStd": 242.3
     },
     {
       "team": "DEN",
@@ -6097,9 +6113,9 @@
       "team": "GB",
       "position": "DEF",
       "games": 10,
-      "ptsPpr": 71,
-      "ptsHalfPpr": 71,
-      "ptsStd": 71
+      "ptsPpr": 74,
+      "ptsHalfPpr": 74,
+      "ptsStd": 74
     },
     {
       "team": "GB",
@@ -6113,41 +6129,41 @@
       "team": "GB",
       "position": "K",
       "games": 10,
-      "ptsPpr": 51,
-      "ptsHalfPpr": 51,
-      "ptsStd": 51
+      "ptsPpr": 58,
+      "ptsHalfPpr": 58,
+      "ptsStd": 58
     },
     {
       "team": "GB",
       "position": "QB",
       "games": 10,
-      "ptsPpr": 142.6,
-      "ptsHalfPpr": 142.6,
-      "ptsStd": 142.6
+      "ptsPpr": 149.66,
+      "ptsHalfPpr": 149.66,
+      "ptsStd": 149.66
     },
     {
       "team": "GB",
       "position": "RB",
       "games": 10,
-      "ptsPpr": 234.5,
-      "ptsHalfPpr": 215.5,
-      "ptsStd": 196.5
+      "ptsPpr": 244.9,
+      "ptsHalfPpr": 225.4,
+      "ptsStd": 205.9
     },
     {
       "team": "GB",
       "position": "TE",
       "games": 10,
-      "ptsPpr": 90.7,
-      "ptsHalfPpr": 70.7,
-      "ptsStd": 50.7
+      "ptsPpr": 101.2,
+      "ptsHalfPpr": 80.2,
+      "ptsStd": 59.2
     },
     {
       "team": "GB",
       "position": "WR",
       "games": 10,
-      "ptsPpr": 343.4,
-      "ptsHalfPpr": 278.4,
-      "ptsStd": 213.4
+      "ptsPpr": 360.5,
+      "ptsHalfPpr": 290.5,
+      "ptsStd": 220.5
     },
     {
       "team": "HOU",
@@ -6161,9 +6177,9 @@
       "team": "HOU",
       "position": "DEF",
       "games": 9,
-      "ptsPpr": 28,
-      "ptsHalfPpr": 28,
-      "ptsStd": 28
+      "ptsPpr": 30,
+      "ptsHalfPpr": 30,
+      "ptsStd": 30
     },
     {
       "team": "HOU",
@@ -6177,41 +6193,41 @@
       "team": "HOU",
       "position": "K",
       "games": 9,
-      "ptsPpr": 83,
-      "ptsHalfPpr": 83,
-      "ptsStd": 83
+      "ptsPpr": 87,
+      "ptsHalfPpr": 87,
+      "ptsStd": 87
     },
     {
       "team": "HOU",
       "position": "QB",
       "games": 9,
-      "ptsPpr": 159.56,
-      "ptsHalfPpr": 159.56,
-      "ptsStd": 159.56
+      "ptsPpr": 168.52,
+      "ptsHalfPpr": 168.52,
+      "ptsStd": 168.52
     },
     {
       "team": "HOU",
       "position": "RB",
       "games": 9,
-      "ptsPpr": 176.4,
-      "ptsHalfPpr": 157.9,
-      "ptsStd": 139.4
+      "ptsPpr": 198,
+      "ptsHalfPpr": 176.5,
+      "ptsStd": 155
     },
     {
       "team": "HOU",
       "position": "TE",
       "games": 9,
-      "ptsPpr": 84.9,
-      "ptsHalfPpr": 65.4,
-      "ptsStd": 45.9
+      "ptsPpr": 96.6,
+      "ptsHalfPpr": 74.6,
+      "ptsStd": 52.6
     },
     {
       "team": "HOU",
       "position": "WR",
       "games": 9,
-      "ptsPpr": 301.4,
-      "ptsHalfPpr": 250.4,
-      "ptsStd": 199.4
+      "ptsPpr": 325.6,
+      "ptsHalfPpr": 270.1,
+      "ptsStd": 214.6
     },
     {
       "team": "IND",
@@ -6225,9 +6241,9 @@
       "team": "IND",
       "position": "DEF",
       "games": 10,
-      "ptsPpr": 95,
-      "ptsHalfPpr": 95,
-      "ptsStd": 95
+      "ptsPpr": 101,
+      "ptsHalfPpr": 101,
+      "ptsStd": 101
     },
     {
       "team": "IND",
@@ -6241,25 +6257,25 @@
       "team": "IND",
       "position": "K",
       "games": 10,
-      "ptsPpr": 100,
-      "ptsHalfPpr": 100,
-      "ptsStd": 100
+      "ptsPpr": 103,
+      "ptsHalfPpr": 103,
+      "ptsStd": 103
     },
     {
       "team": "IND",
       "position": "QB",
       "games": 10,
-      "ptsPpr": 168.28,
-      "ptsHalfPpr": 168.28,
-      "ptsStd": 168.28
+      "ptsPpr": 178.46,
+      "ptsHalfPpr": 178.46,
+      "ptsStd": 178.46
     },
     {
       "team": "IND",
       "position": "RB",
       "games": 10,
-      "ptsPpr": 239.3,
-      "ptsHalfPpr": 221.8,
-      "ptsStd": 204.3
+      "ptsPpr": 249.7,
+      "ptsHalfPpr": 230.2,
+      "ptsStd": 210.7
     },
     {
       "team": "IND",
@@ -6273,17 +6289,17 @@
       "team": "IND",
       "position": "WR",
       "games": 10,
-      "ptsPpr": 283.96,
-      "ptsHalfPpr": 238.46,
-      "ptsStd": 192.96
+      "ptsPpr": 301.36,
+      "ptsHalfPpr": 252.86,
+      "ptsStd": 204.36
     },
     {
       "team": "JAX",
       "position": "DEF",
       "games": 9,
-      "ptsPpr": 32,
-      "ptsHalfPpr": 32,
-      "ptsStd": 32
+      "ptsPpr": 25,
+      "ptsHalfPpr": 25,
+      "ptsStd": 25
     },
     {
       "team": "JAX",
@@ -6297,49 +6313,49 @@
       "team": "JAX",
       "position": "K",
       "games": 9,
-      "ptsPpr": 54,
-      "ptsHalfPpr": 54,
-      "ptsStd": 54
+      "ptsPpr": 66,
+      "ptsHalfPpr": 66,
+      "ptsStd": 66
     },
     {
       "team": "JAX",
       "position": "QB",
       "games": 9,
-      "ptsPpr": 118.92,
-      "ptsHalfPpr": 118.92,
-      "ptsStd": 118.92
+      "ptsPpr": 131,
+      "ptsHalfPpr": 131,
+      "ptsStd": 131
     },
     {
       "team": "JAX",
       "position": "RB",
       "games": 9,
-      "ptsPpr": 144.78,
-      "ptsHalfPpr": 124.28,
-      "ptsStd": 103.78
+      "ptsPpr": 169.08,
+      "ptsHalfPpr": 145.08,
+      "ptsStd": 121.08
     },
     {
       "team": "JAX",
       "position": "TE",
       "games": 9,
-      "ptsPpr": 89.3,
-      "ptsHalfPpr": 72.8,
-      "ptsStd": 56.3
+      "ptsPpr": 97,
+      "ptsHalfPpr": 78,
+      "ptsStd": 59
     },
     {
       "team": "JAX",
       "position": "WR",
       "games": 9,
-      "ptsPpr": 280.24,
-      "ptsHalfPpr": 227.24,
-      "ptsStd": 174.24
+      "ptsPpr": 292.94,
+      "ptsHalfPpr": 236.44,
+      "ptsStd": 179.94
     },
     {
       "team": "KC",
       "position": "DEF",
       "games": 9,
-      "ptsPpr": 33,
-      "ptsHalfPpr": 33,
-      "ptsStd": 33
+      "ptsPpr": 27,
+      "ptsHalfPpr": 27,
+      "ptsStd": 27
     },
     {
       "team": "KC",
@@ -6353,41 +6369,41 @@
       "team": "KC",
       "position": "K",
       "games": 9,
-      "ptsPpr": 79,
-      "ptsHalfPpr": 79,
-      "ptsStd": 79
+      "ptsPpr": 83,
+      "ptsHalfPpr": 83,
+      "ptsStd": 83
     },
     {
       "team": "KC",
       "position": "QB",
       "games": 9,
-      "ptsPpr": 106.74,
-      "ptsHalfPpr": 106.74,
-      "ptsStd": 106.74
+      "ptsPpr": 118.2,
+      "ptsHalfPpr": 118.2,
+      "ptsStd": 118.2
     },
     {
       "team": "KC",
       "position": "RB",
       "games": 9,
-      "ptsPpr": 160.4,
-      "ptsHalfPpr": 141.4,
-      "ptsStd": 122.4
+      "ptsPpr": 176.2,
+      "ptsHalfPpr": 154.7,
+      "ptsStd": 133.2
     },
     {
       "team": "KC",
       "position": "TE",
       "games": 9,
-      "ptsPpr": 137.4,
-      "ptsHalfPpr": 110.4,
-      "ptsStd": 83.4
+      "ptsPpr": 144.4,
+      "ptsHalfPpr": 115.4,
+      "ptsStd": 86.4
     },
     {
       "team": "KC",
       "position": "WR",
       "games": 9,
-      "ptsPpr": 196.7,
-      "ptsHalfPpr": 155.2,
-      "ptsStd": 113.7
+      "ptsPpr": 222.2,
+      "ptsHalfPpr": 176.7,
+      "ptsStd": 131.2
     },
     {
       "team": "LAC",
@@ -6448,15 +6464,15 @@
     {
       "team": "LAR",
       "position": "DEF",
-      "games": 9,
-      "ptsPpr": 56,
-      "ptsHalfPpr": 56,
-      "ptsStd": 56
+      "games": 10,
+      "ptsPpr": 59,
+      "ptsHalfPpr": 59,
+      "ptsStd": 59
     },
     {
       "team": "LAR",
       "position": "FB",
-      "games": 9,
+      "games": 10,
       "ptsPpr": 0,
       "ptsHalfPpr": 0,
       "ptsStd": 0
@@ -6464,55 +6480,55 @@
     {
       "team": "LAR",
       "position": "K",
-      "games": 9,
-      "ptsPpr": 87,
-      "ptsHalfPpr": 87,
-      "ptsStd": 87
+      "games": 10,
+      "ptsPpr": 95,
+      "ptsHalfPpr": 95,
+      "ptsStd": 95
     },
     {
       "team": "LAR",
       "position": "QB",
-      "games": 9,
-      "ptsPpr": 149.26,
-      "ptsHalfPpr": 149.26,
-      "ptsStd": 149.26
+      "games": 10,
+      "ptsPpr": 151.68,
+      "ptsHalfPpr": 151.68,
+      "ptsStd": 151.68
     },
     {
       "team": "LAR",
       "position": "RB",
-      "games": 9,
-      "ptsPpr": 171.8,
-      "ptsHalfPpr": 147.8,
-      "ptsStd": 123.8
+      "games": 10,
+      "ptsPpr": 175.1,
+      "ptsHalfPpr": 151.1,
+      "ptsStd": 127.1
     },
     {
       "team": "LAR",
       "position": "TE",
-      "games": 9,
-      "ptsPpr": 97.7,
-      "ptsHalfPpr": 74.2,
-      "ptsStd": 50.7
+      "games": 10,
+      "ptsPpr": 108.1,
+      "ptsHalfPpr": 81.6,
+      "ptsStd": 55.1
     },
     {
       "team": "LAR",
       "position": "WR",
-      "games": 9,
-      "ptsPpr": 248.4,
-      "ptsHalfPpr": 206.9,
-      "ptsStd": 165.4
+      "games": 10,
+      "ptsPpr": 258.9,
+      "ptsHalfPpr": 215.4,
+      "ptsStd": 171.9
     },
     {
       "team": "LV",
       "position": "DEF",
-      "games": 9,
-      "ptsPpr": 42,
-      "ptsHalfPpr": 42,
-      "ptsStd": 42
+      "games": 10,
+      "ptsPpr": 52,
+      "ptsHalfPpr": 52,
+      "ptsStd": 52
     },
     {
       "team": "LV",
       "position": "FB",
-      "games": 9,
+      "games": 10,
       "ptsPpr": 0.4,
       "ptsHalfPpr": 0.4,
       "ptsStd": 0.4
@@ -6520,50 +6536,50 @@
     {
       "team": "LV",
       "position": "K",
-      "games": 9,
-      "ptsPpr": 70,
-      "ptsHalfPpr": 70,
-      "ptsStd": 70
+      "games": 10,
+      "ptsPpr": 72,
+      "ptsHalfPpr": 72,
+      "ptsStd": 72
     },
     {
       "team": "LV",
       "position": "QB",
-      "games": 9,
-      "ptsPpr": 190.62,
-      "ptsHalfPpr": 190.62,
-      "ptsStd": 190.62
+      "games": 10,
+      "ptsPpr": 206.22,
+      "ptsHalfPpr": 206.22,
+      "ptsStd": 206.22
     },
     {
       "team": "LV",
       "position": "RB",
-      "games": 9,
-      "ptsPpr": 233.2,
-      "ptsHalfPpr": 217.2,
-      "ptsStd": 201.2
+      "games": 10,
+      "ptsPpr": 254,
+      "ptsHalfPpr": 237.5,
+      "ptsStd": 221
     },
     {
       "team": "LV",
       "position": "TE",
-      "games": 9,
-      "ptsPpr": 155.4,
-      "ptsHalfPpr": 125.9,
-      "ptsStd": 96.4
+      "games": 10,
+      "ptsPpr": 160.3,
+      "ptsHalfPpr": 129.3,
+      "ptsStd": 98.3
     },
     {
       "team": "LV",
       "position": "WR",
-      "games": 9,
-      "ptsPpr": 302.6,
-      "ptsHalfPpr": 256.6,
-      "ptsStd": 210.6
+      "games": 10,
+      "ptsPpr": 345.9,
+      "ptsHalfPpr": 294.9,
+      "ptsStd": 243.9
     },
     {
       "team": "MIA",
       "position": "DEF",
       "games": 9,
-      "ptsPpr": 74,
-      "ptsHalfPpr": 74,
-      "ptsStd": 74
+      "ptsPpr": 83,
+      "ptsHalfPpr": 83,
+      "ptsStd": 83
     },
     {
       "team": "MIA",
@@ -6577,89 +6593,89 @@
       "team": "MIA",
       "position": "K",
       "games": 9,
-      "ptsPpr": 71,
-      "ptsHalfPpr": 71,
-      "ptsStd": 71
+      "ptsPpr": 78,
+      "ptsHalfPpr": 78,
+      "ptsStd": 78
     },
     {
       "team": "MIA",
       "position": "QB",
       "games": 9,
-      "ptsPpr": 151.54,
-      "ptsHalfPpr": 151.54,
-      "ptsStd": 151.54
+      "ptsPpr": 157.56,
+      "ptsHalfPpr": 157.56,
+      "ptsStd": 157.56
     },
     {
       "team": "MIA",
       "position": "RB",
       "games": 9,
-      "ptsPpr": 202.4,
-      "ptsHalfPpr": 183.9,
-      "ptsStd": 165.4
+      "ptsPpr": 218.3,
+      "ptsHalfPpr": 198.8,
+      "ptsStd": 179.3
     },
     {
       "team": "MIA",
       "position": "TE",
       "games": 9,
-      "ptsPpr": 143.3,
-      "ptsHalfPpr": 116.8,
-      "ptsStd": 90.3
+      "ptsPpr": 145.4,
+      "ptsHalfPpr": 117.9,
+      "ptsStd": 90.4
     },
     {
       "team": "MIA",
       "position": "WR",
       "games": 9,
-      "ptsPpr": 213.2,
-      "ptsHalfPpr": 172.7,
-      "ptsStd": 132.2
+      "ptsPpr": 224.9,
+      "ptsHalfPpr": 183.4,
+      "ptsStd": 141.9
     },
     {
       "team": "MIN",
       "position": "DEF",
       "games": 9,
-      "ptsPpr": 66,
-      "ptsHalfPpr": 66,
-      "ptsStd": 66
+      "ptsPpr": 67,
+      "ptsHalfPpr": 67,
+      "ptsStd": 67
     },
     {
       "team": "MIN",
       "position": "K",
       "games": 9,
-      "ptsPpr": 53,
-      "ptsHalfPpr": 53,
-      "ptsStd": 53
+      "ptsPpr": 58,
+      "ptsHalfPpr": 58,
+      "ptsStd": 58
     },
     {
       "team": "MIN",
       "position": "QB",
       "games": 9,
-      "ptsPpr": 76.8,
-      "ptsHalfPpr": 76.8,
-      "ptsStd": 76.8
+      "ptsPpr": 88.12,
+      "ptsHalfPpr": 88.12,
+      "ptsStd": 88.12
     },
     {
       "team": "MIN",
       "position": "RB",
       "games": 9,
-      "ptsPpr": 157.6,
-      "ptsHalfPpr": 144.6,
-      "ptsStd": 131.6
+      "ptsPpr": 164,
+      "ptsHalfPpr": 150,
+      "ptsStd": 136
     },
     {
       "team": "MIN",
       "position": "TE",
       "games": 9,
-      "ptsPpr": 73.7,
-      "ptsHalfPpr": 57.7,
-      "ptsStd": 41.7
+      "ptsPpr": 76.7,
+      "ptsHalfPpr": 60.2,
+      "ptsStd": 43.7
     },
     {
       "team": "MIN",
       "position": "WR",
       "games": 9,
-      "ptsPpr": 204.8,
-      "ptsHalfPpr": 164.3,
-      "ptsStd": 123.8
+      "ptsPpr": 235.4,
+      "ptsHalfPpr": 189.4,
+      "ptsStd": 143.4
     },
     {
       "team": "NE",
@@ -6721,9 +6737,9 @@
       "team": "NO",
       "position": "DEF",
       "games": 9,
-      "ptsPpr": 81,
-      "ptsHalfPpr": 81,
-      "ptsStd": 81
+      "ptsPpr": 75,
+      "ptsHalfPpr": 75,
+      "ptsStd": 75
     },
     {
       "team": "NO",
@@ -6737,41 +6753,41 @@
       "team": "NO",
       "position": "K",
       "games": 9,
-      "ptsPpr": 81,
-      "ptsHalfPpr": 81,
-      "ptsStd": 81
+      "ptsPpr": 92,
+      "ptsHalfPpr": 92,
+      "ptsStd": 92
     },
     {
       "team": "NO",
       "position": "QB",
       "games": 9,
-      "ptsPpr": 150.48,
-      "ptsHalfPpr": 150.48,
-      "ptsStd": 150.48
+      "ptsPpr": 155.1,
+      "ptsHalfPpr": 155.1,
+      "ptsStd": 155.1
     },
     {
       "team": "NO",
       "position": "RB",
       "games": 9,
-      "ptsPpr": 242,
-      "ptsHalfPpr": 221.5,
-      "ptsStd": 201
+      "ptsPpr": 260.2,
+      "ptsHalfPpr": 238.2,
+      "ptsStd": 216.2
     },
     {
       "team": "NO",
       "position": "TE",
       "games": 9,
-      "ptsPpr": 141.1,
-      "ptsHalfPpr": 115.6,
-      "ptsStd": 90.1
+      "ptsPpr": 144.3,
+      "ptsHalfPpr": 117.8,
+      "ptsStd": 91.3
     },
     {
       "team": "NO",
       "position": "WR",
       "games": 9,
-      "ptsPpr": 250.3,
-      "ptsHalfPpr": 206.8,
-      "ptsStd": 163.3
+      "ptsPpr": 258.5,
+      "ptsHalfPpr": 213,
+      "ptsStd": 167.5
     },
     {
       "team": "NYG",
@@ -6833,9 +6849,9 @@
       "team": "NYJ",
       "position": "DEF",
       "games": 10,
-      "ptsPpr": 72,
-      "ptsHalfPpr": 72,
-      "ptsStd": 72
+      "ptsPpr": 77,
+      "ptsHalfPpr": 77,
+      "ptsStd": 77
     },
     {
       "team": "NYJ",
@@ -6849,41 +6865,41 @@
       "team": "NYJ",
       "position": "K",
       "games": 10,
-      "ptsPpr": 66,
-      "ptsHalfPpr": 66,
-      "ptsStd": 66
+      "ptsPpr": 69,
+      "ptsHalfPpr": 69,
+      "ptsStd": 69
     },
     {
       "team": "NYJ",
       "position": "QB",
       "games": 10,
-      "ptsPpr": 168.6,
-      "ptsHalfPpr": 168.6,
-      "ptsStd": 168.6
+      "ptsPpr": 182.4,
+      "ptsHalfPpr": 182.4,
+      "ptsStd": 182.4
     },
     {
       "team": "NYJ",
       "position": "RB",
       "games": 10,
-      "ptsPpr": 227.8,
-      "ptsHalfPpr": 211.8,
-      "ptsStd": 195.8
+      "ptsPpr": 245.8,
+      "ptsHalfPpr": 229.8,
+      "ptsStd": 213.8
     },
     {
       "team": "NYJ",
       "position": "TE",
       "games": 10,
-      "ptsPpr": 134.9,
-      "ptsHalfPpr": 108.4,
-      "ptsStd": 81.9
+      "ptsPpr": 141.3,
+      "ptsHalfPpr": 114.3,
+      "ptsStd": 87.3
     },
     {
       "team": "NYJ",
       "position": "WR",
       "games": 10,
-      "ptsPpr": 263.3,
-      "ptsHalfPpr": 215.8,
-      "ptsStd": 168.3
+      "ptsPpr": 281.5,
+      "ptsHalfPpr": 232,
+      "ptsStd": 182.5
     },
     {
       "team": "PHI",
@@ -6952,15 +6968,15 @@
     {
       "team": "PIT",
       "position": "DEF",
-      "games": 8,
-      "ptsPpr": 58,
-      "ptsHalfPpr": 58,
-      "ptsStd": 58
+      "games": 9,
+      "ptsPpr": 63,
+      "ptsHalfPpr": 63,
+      "ptsStd": 63
     },
     {
       "team": "PIT",
       "position": "FB",
-      "games": 8,
+      "games": 9,
       "ptsPpr": 0,
       "ptsHalfPpr": 0,
       "ptsStd": 0
@@ -6968,154 +6984,154 @@
     {
       "team": "PIT",
       "position": "K",
-      "games": 8,
+      "games": 9,
+      "ptsPpr": 94,
+      "ptsHalfPpr": 94,
+      "ptsStd": 94
+    },
+    {
+      "team": "PIT",
+      "position": "QB",
+      "games": 9,
+      "ptsPpr": 136.7,
+      "ptsHalfPpr": 136.2,
+      "ptsStd": 135.7
+    },
+    {
+      "team": "PIT",
+      "position": "RB",
+      "games": 9,
+      "ptsPpr": 204.9,
+      "ptsHalfPpr": 175.9,
+      "ptsStd": 146.9
+    },
+    {
+      "team": "PIT",
+      "position": "TE",
+      "games": 9,
+      "ptsPpr": 115.5,
+      "ptsHalfPpr": 93,
+      "ptsStd": 70.5
+    },
+    {
+      "team": "PIT",
+      "position": "WR",
+      "games": 9,
+      "ptsPpr": 285.1,
+      "ptsHalfPpr": 228.1,
+      "ptsStd": 171.1
+    },
+    {
+      "team": "SEA",
+      "position": "DEF",
+      "games": 10,
+      "ptsPpr": 83,
+      "ptsHalfPpr": 83,
+      "ptsStd": 83
+    },
+    {
+      "team": "SEA",
+      "position": "FB",
+      "games": 10,
+      "ptsPpr": 0,
+      "ptsHalfPpr": 0,
+      "ptsStd": 0
+    },
+    {
+      "team": "SEA",
+      "position": "K",
+      "games": 10,
+      "ptsPpr": 67,
+      "ptsHalfPpr": 67,
+      "ptsStd": 67
+    },
+    {
+      "team": "SEA",
+      "position": "QB",
+      "games": 10,
+      "ptsPpr": 115.88,
+      "ptsHalfPpr": 115.88,
+      "ptsStd": 115.88
+    },
+    {
+      "team": "SEA",
+      "position": "RB",
+      "games": 10,
+      "ptsPpr": 201,
+      "ptsHalfPpr": 176,
+      "ptsStd": 151
+    },
+    {
+      "team": "SEA",
+      "position": "TE",
+      "games": 10,
+      "ptsPpr": 109,
+      "ptsHalfPpr": 81.5,
+      "ptsStd": 54
+    },
+    {
+      "team": "SEA",
+      "position": "WR",
+      "games": 10,
+      "ptsPpr": 213.5,
+      "ptsHalfPpr": 168.5,
+      "ptsStd": 123.5
+    },
+    {
+      "team": "SF",
+      "position": "DEF",
+      "games": 9,
+      "ptsPpr": 30,
+      "ptsHalfPpr": 30,
+      "ptsStd": 30
+    },
+    {
+      "team": "SF",
+      "position": "FB",
+      "games": 9,
+      "ptsPpr": 2.5,
+      "ptsHalfPpr": 2,
+      "ptsStd": 1.5
+    },
+    {
+      "team": "SF",
+      "position": "K",
+      "games": 9,
       "ptsPpr": 87,
       "ptsHalfPpr": 87,
       "ptsStd": 87
     },
     {
-      "team": "PIT",
-      "position": "QB",
-      "games": 8,
-      "ptsPpr": 103.54,
-      "ptsHalfPpr": 103.04,
-      "ptsStd": 102.54
-    },
-    {
-      "team": "PIT",
-      "position": "RB",
-      "games": 8,
-      "ptsPpr": 161.5,
-      "ptsHalfPpr": 138.5,
-      "ptsStd": 115.5
-    },
-    {
-      "team": "PIT",
-      "position": "TE",
-      "games": 8,
-      "ptsPpr": 101.7,
-      "ptsHalfPpr": 81.7,
-      "ptsStd": 61.7
-    },
-    {
-      "team": "PIT",
-      "position": "WR",
-      "games": 8,
-      "ptsPpr": 229.4,
-      "ptsHalfPpr": 181.4,
-      "ptsStd": 133.4
-    },
-    {
-      "team": "SEA",
-      "position": "DEF",
-      "games": 9,
-      "ptsPpr": 75,
-      "ptsHalfPpr": 75,
-      "ptsStd": 75
-    },
-    {
-      "team": "SEA",
-      "position": "FB",
-      "games": 9,
-      "ptsPpr": 0,
-      "ptsHalfPpr": 0,
-      "ptsStd": 0
-    },
-    {
-      "team": "SEA",
-      "position": "K",
-      "games": 9,
-      "ptsPpr": 59,
-      "ptsHalfPpr": 59,
-      "ptsStd": 59
-    },
-    {
-      "team": "SEA",
-      "position": "QB",
-      "games": 9,
-      "ptsPpr": 101.96,
-      "ptsHalfPpr": 101.96,
-      "ptsStd": 101.96
-    },
-    {
-      "team": "SEA",
-      "position": "RB",
-      "games": 9,
-      "ptsPpr": 184.3,
-      "ptsHalfPpr": 162.8,
-      "ptsStd": 141.3
-    },
-    {
-      "team": "SEA",
-      "position": "TE",
-      "games": 9,
-      "ptsPpr": 99.1,
-      "ptsHalfPpr": 74.1,
-      "ptsStd": 49.1
-    },
-    {
-      "team": "SEA",
-      "position": "WR",
-      "games": 9,
-      "ptsPpr": 204.5,
-      "ptsHalfPpr": 162,
-      "ptsStd": 119.5
-    },
-    {
-      "team": "SF",
-      "position": "DEF",
-      "games": 8,
-      "ptsPpr": 28,
-      "ptsHalfPpr": 28,
-      "ptsStd": 28
-    },
-    {
-      "team": "SF",
-      "position": "FB",
-      "games": 8,
-      "ptsPpr": 0,
-      "ptsHalfPpr": 0,
-      "ptsStd": 0
-    },
-    {
-      "team": "SF",
-      "position": "K",
-      "games": 8,
-      "ptsPpr": 76,
-      "ptsHalfPpr": 76,
-      "ptsStd": 76
-    },
-    {
       "team": "SF",
       "position": "QB",
-      "games": 8,
-      "ptsPpr": 125.52,
-      "ptsHalfPpr": 125.52,
-      "ptsStd": 125.52
+      "games": 9,
+      "ptsPpr": 160.94,
+      "ptsHalfPpr": 160.94,
+      "ptsStd": 160.94
     },
     {
       "team": "SF",
       "position": "RB",
-      "games": 8,
-      "ptsPpr": 168.1,
-      "ptsHalfPpr": 141.1,
-      "ptsStd": 114.1
+      "games": 9,
+      "ptsPpr": 177.8,
+      "ptsHalfPpr": 149.8,
+      "ptsStd": 121.8
     },
     {
       "team": "SF",
       "position": "TE",
-      "games": 8,
-      "ptsPpr": 110.8,
-      "ptsHalfPpr": 84.8,
-      "ptsStd": 58.8
+      "games": 9,
+      "ptsPpr": 116.6,
+      "ptsHalfPpr": 89.6,
+      "ptsStd": 62.6
     },
     {
       "team": "SF",
       "position": "WR",
-      "games": 8,
-      "ptsPpr": 217.9,
-      "ptsHalfPpr": 176.9,
-      "ptsStd": 135.9
+      "games": 9,
+      "ptsPpr": 303.6,
+      "ptsHalfPpr": 250.1,
+      "ptsStd": 196.6
     },
     {
       "team": "TB",
@@ -7177,17 +7193,17 @@
       "team": "TEN",
       "position": "DB",
       "games": 9,
-      "ptsPpr": 0.3,
-      "ptsHalfPpr": 0.3,
-      "ptsStd": 0.3
+      "ptsPpr": 3.9,
+      "ptsHalfPpr": 2.9,
+      "ptsStd": 1.9
     },
     {
       "team": "TEN",
       "position": "DEF",
       "games": 9,
-      "ptsPpr": 65,
-      "ptsHalfPpr": 65,
-      "ptsStd": 65
+      "ptsPpr": 62,
+      "ptsHalfPpr": 62,
+      "ptsStd": 62
     },
     {
       "team": "TEN",
@@ -7201,41 +7217,41 @@
       "team": "TEN",
       "position": "K",
       "games": 9,
-      "ptsPpr": 89,
-      "ptsHalfPpr": 89,
-      "ptsStd": 89
+      "ptsPpr": 99,
+      "ptsHalfPpr": 99,
+      "ptsStd": 99
     },
     {
       "team": "TEN",
       "position": "QB",
       "games": 9,
-      "ptsPpr": 164.94,
-      "ptsHalfPpr": 164.94,
-      "ptsStd": 164.94
+      "ptsPpr": 182.76,
+      "ptsHalfPpr": 182.76,
+      "ptsStd": 182.76
     },
     {
       "team": "TEN",
       "position": "RB",
       "games": 9,
-      "ptsPpr": 179.5,
-      "ptsHalfPpr": 162.5,
-      "ptsStd": 145.5
+      "ptsPpr": 193.7,
+      "ptsHalfPpr": 175.7,
+      "ptsStd": 157.7
     },
     {
       "team": "TEN",
       "position": "TE",
       "games": 9,
-      "ptsPpr": 102.2,
-      "ptsHalfPpr": 82.7,
-      "ptsStd": 63.2
+      "ptsPpr": 113.5,
+      "ptsHalfPpr": 92.5,
+      "ptsStd": 71.5
     },
     {
       "team": "TEN",
       "position": "WR",
       "games": 9,
-      "ptsPpr": 353.5,
-      "ptsHalfPpr": 289,
-      "ptsStd": 224.5
+      "ptsPpr": 381.5,
+      "ptsHalfPpr": 312.5,
+      "ptsStd": 243.5
     },
     {
       "team": "WAS",
