@@ -267,6 +267,17 @@ const NO_FILTER: TradeFilter = { season: null, team: null, sort: "newest" };
  */
 const READ_AT = 0.3;
 
+/** How close to filling its column a card has to come to rest (a share of its height) to be eased the rest of the way. */
+const SNAP_WITHIN = 0.25;
+/** How long a column's scroll has to have stopped to have come to rest (ms). */
+const SETTLE_MS = 160;
+
+/** How far `card` is from filling its column `column` — its top at the column's, past its padding (px, + below). */
+function offFill(column: HTMLElement, card: HTMLElement): number {
+  const pad = parseFloat(getComputedStyle(column).paddingTop) || 0;
+  return card.getBoundingClientRect().top - (column.getBoundingClientRect().top + pad);
+}
+
 /**
  * Every trade in a league, all its seasons, newest first: what each side got, what it was worth when traded
  * and now — in KTC dynasty values (superflex or 1QB, as the league plays), shown as the values page's grades —
@@ -303,7 +314,8 @@ export function TradeAnalyzer({
     const column = list.current?.closest<HTMLElement>("[data-scroll-list]");
     if (!card || !column) return;
     pickedAt.current = performance.now();
-    column.scrollTo({ top: Math.max(0, column.scrollTop + card.getBoundingClientRect().top - column.getBoundingClientRect().top - column.clientHeight * READ_AT + 8) });
+    // Its card filling the column (as tall as it shows, see cardHeight).
+    column.scrollTo({ top: Math.max(0, column.scrollTop + offFill(column, card)) });
   };
   // The card across the line it's read at, as its column's scrolled.
   const columns = !!layout;
@@ -322,8 +334,26 @@ export function TradeAnalyzer({
       if (id) setShownId((was) => (was === id ? was : id));
     };
     read();
-    column.addEventListener("scroll", read, { passive: true });
-    return () => column.removeEventListener("scroll", read);
+    // Scrolled as it is — but come to rest close to a card's filling the column (within a quarter of it), eased the
+    // rest of the way there.
+    let settle = 0;
+    const settled = () => {
+      const cards = [...el.querySelectorAll<HTMLElement>("[data-trade-id]")];
+      const nearest = cards.map((c) => ({ c, off: offFill(column, c) })).sort((a, b) => Math.abs(a.off) - Math.abs(b.off))[0];
+      if (!nearest || Math.abs(nearest.off) < 1 || Math.abs(nearest.off) > nearest.c.offsetHeight * SNAP_WITHIN) return;
+      const top = Math.max(0, Math.min(column.scrollHeight - column.clientHeight, column.scrollTop + nearest.off));
+      column.scrollTo({ top, behavior: "smooth" });
+    };
+    const scrolled = () => {
+      read();
+      window.clearTimeout(settle);
+      settle = window.setTimeout(settled, SETTLE_MS);
+    };
+    column.addEventListener("scroll", scrolled, { passive: true });
+    return () => {
+      window.clearTimeout(settle);
+      column.removeEventListener("scroll", scrolled);
+    };
   }, [columns, shown]);
 
   // In columns, each card as tall as its column shows: one trade fills it.
