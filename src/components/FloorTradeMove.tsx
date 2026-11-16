@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useEffect, useState } from "react";
+import { createContext, useEffect, useRef, useState } from "react";
 import { PICK, TimelinePlayer } from "@/lib/league-trades";
 import { floorDepth, floorPoint, floorScale } from "@/lib/grid-room";
 import type { TradeRoster } from "@/lib/trade-viewer";
@@ -40,8 +40,8 @@ const FACE_PX = 30;
  * those that change hands their faces (a ring for a pick), named. Each row has a place for everything the team
  * had before the trade or after it, in order, so nothing else moves as it plays: those that change hands go across
  * from their place in one row to the one kept open for them in the other — a dashed ring marking each open place
- * (where it'll land, then where it left) and an arc from where it stood to where it landed. Behind them,
- * at the floor's back, the league's trades on a line across it by when (see FloorTimeline), the one shown marked, any
+ * (where it'll land, then where it left) and an arc from where it stood to where it landed. In front of them,
+ * nearest you, the league's trades on a line across the floor by when (see FloorTimeline), the one shown marked, any
  * picked from there. `room`: the screen it's on, its horizon `share` of the way down, the floor's front edge at screen
  * y `bottom`.
  */
@@ -63,13 +63,14 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
   const placeOf = (lane: number, id: string) => places[lane].indexOf(id);
   const slots = Math.max(1, ...places.map((l) => l.length));
 
-  // The floor the lineups lie on: in front of the timeline at its back to a little short of its front edge, each
-  // team's row a band of it, the first at the back; and as wide across as the screen lets the nearest row be.
+  // The floor the lineups lie on: from a little in front of the horizon to the timeline nearest you, each team's row a
+  // band of it, the first at the back; and as wide across as the screen lets the nearest row be.
   const horizon = height * share;
   const floor = bottom - horizon;
-  const timelineDepth = floorDepth(horizon + floor * 0.09, height, share);
-  const back = floorDepth(horizon + floor * 0.22, height, share);
-  const front = floorDepth(bottom - floor * 0.14, height, share);
+  const back = floorDepth(horizon + floor * 0.1, height, share);
+  const front = floorDepth(bottom - floor * 0.3, height, share);
+  // The timeline in front of them, nearest you.
+  const timelineDepth = floorDepth(bottom - floor * 0.1, height, share);
   const band = (front - back) / n;
   const rowDepth = (lane: number) => back + band * (lane + 0.5);
   const nearest = rowDepth(n - 1);
@@ -89,7 +90,7 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
 
   return (
     <div className="pointer-events-none fixed inset-0">
-      {move.timeline ? <FloorTimeline timeline={move.timeline} depth={timelineDepth} span={span} room={room} /> : null}
+      {move.timeline ? <FloorTimeline timeline={move.timeline} depth={timelineDepth} room={room} /> : null}
       <svg className="absolute inset-0 h-full w-full overflow-visible">
         {/* The places kept open for what changes hands: where each will land, then where each left — and, once it's
             gone, the arc from where it stood to where it landed. */}
@@ -144,8 +145,9 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
             title={person?.name ?? id}
           >
             {going ? (
-              <div className="flex -translate-x-1/2 -translate-y-1/2 flex-col items-center">
-                <span className="block overflow-hidden rounded-full border-2 bg-page" style={{ width: size, height: size, borderColor: colorOf(id) }}>
+              // Its face on its row's line, as the dots are; its name hung under it.
+              <div className="relative -translate-x-1/2 -translate-y-1/2" style={{ width: size, height: size }}>
+                <span className="block h-full w-full overflow-hidden rounded-full border-2 bg-page" style={{ borderColor: colorOf(id) }}>
                   {person?.position === PICK ? (
                     <span className="flex h-full w-full items-center justify-center text-[0.5rem] font-bold text-ink-secondary">PK</span>
                   ) : (
@@ -153,8 +155,8 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
                   )}
                 </span>
                 <span
-                  className="mt-0.5 max-w-[7rem] truncate whitespace-nowrap bg-[var(--map-tag)] px-1 text-[0.5625rem] font-bold leading-[1.35] text-[var(--map-tag-ink)]"
-                  style={{ transform: `scale(${Math.max(0.75, at.s)})`, transformOrigin: "top center" }}
+                  className="absolute left-1/2 top-full mt-0.5 max-w-[7rem] -translate-x-1/2 truncate whitespace-nowrap bg-[var(--map-tag)] px-1 text-[0.5625rem] font-bold leading-[1.35] text-[var(--map-tag-ink)]"
+                  style={{ scale: Math.max(0.75, at.s), transformOrigin: "top center" }}
                 >
                   {person?.name ?? id}
                 </span>
@@ -171,24 +173,30 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
 
 const dateLabel = (at: number) => new Date(at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
+/** How far a finger goes sideways across the floor before it's a swipe to the next trade, or the last (px). */
+const SWIPE_PX = 40;
+
 /**
- * The league's trades on a line across the back of the floor, `span` floor px wide `depth` px back: each a mark,
- * spaced by when (as the timeline spaces them, see trackOffsets), the one shown filled in and its date over it, each
- * year's start under the line — and each picked by a tap.
+ * The league's trades on a line across the front of the floor, nearest you, `depth` px back, as wide as the screen:
+ * each a mark, spaced by when (as the timeline spaces them, see trackOffsets), the one shown filled in and its date
+ * over it, each year's start under the line — each picked by a tap, and the next or the last by a swipe across the
+ * floor.
  */
 function FloorTimeline({
   timeline,
   depth,
-  span,
   room,
 }: {
   timeline: NonNullable<FloorMove["timeline"]>;
   depth: number;
-  span: number;
-  room: { width: number; height: number; share: number };
+  room: { width: number; height: number; share: number; bottom: number };
 }) {
-  const { width, height, share } = room;
+  const { width, height, share, bottom } = room;
   const { trades, picked, onPick } = timeline;
+  const span = (width * 0.94) / floorScale(depth);
+  const horizon = height * share;
+  // A swipe across the floor: left for the next trade, right for the last.
+  const swipe = useRef<{ x: number; y: number; id: number } | null>(null);
   const last = trades.at(-1)?.offset ?? 0;
   const at = (offset: number) => floorPoint(last > 0 ? -span / 2 + (offset / last) * span : 0, depth, width, height, share);
   const [l, r] = [floorPoint(-span / 2, depth, width, height, share), floorPoint(span / 2, depth, width, height, share)];
@@ -199,6 +207,25 @@ function FloorTimeline({
   });
   return (
     <>
+      <div
+        className="pointer-events-auto absolute inset-x-0 touch-none"
+        style={{ top: horizon, height: Math.max(0, bottom - horizon) }}
+        onPointerDown={(e) => {
+          swipe.current = { x: e.clientX, y: e.clientY, id: e.pointerId };
+          // Its end heard here wherever the finger's lifted, off the floor and all.
+          e.currentTarget.setPointerCapture(e.pointerId);
+        }}
+        onPointerUp={(e) => {
+          const from = swipe.current;
+          swipe.current = null;
+          if (!from || from.id !== e.pointerId) return;
+          const [dx, dy] = [e.clientX - from.x, e.clientY - from.y];
+          if (Math.abs(dx) < SWIPE_PX || Math.abs(dx) < Math.abs(dy)) return;
+          const next = picked + (dx < 0 ? 1 : -1);
+          if (next >= 0 && next < trades.length) onPick(next);
+        }}
+        onPointerCancel={() => (swipe.current = null)}
+      />
       <svg className="absolute inset-0 h-full w-full overflow-visible">
         <line x1={l[0]} y1={l[1]} x2={r[0]} y2={r[1]} stroke="var(--ink-primary)" strokeOpacity={0.3} strokeWidth={1} />
       </svg>
@@ -226,7 +253,10 @@ function FloorTimeline({
       })}
       {trades[picked] ? (
         <span
-          className="absolute -translate-x-1/2 -translate-y-full whitespace-nowrap bg-[var(--map-tag)] px-1 text-[0.5625rem] font-bold uppercase leading-[1.35] text-[var(--map-tag-ink)]"
+          // Hung off the mark's side toward the middle near the ends, so it's never cut off by the screen's edge.
+          className={`absolute -translate-y-full whitespace-nowrap bg-[var(--map-tag)] px-1 text-[0.5625rem] font-bold uppercase leading-[1.35] text-[var(--map-tag-ink)] ${
+            at(trades[picked].offset)[0] > width * 0.8 ? "-translate-x-full" : at(trades[picked].offset)[0] < width * 0.2 ? "" : "-translate-x-1/2"
+          }`}
           style={{ left: at(trades[picked].offset)[0], top: at(trades[picked].offset)[1] - 8 }}
         >
           {dateLabel(trades[picked].at)}

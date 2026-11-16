@@ -74,7 +74,7 @@ const dateLabel = (at: number, year = true) =>
  * swiped (or scrolled) sideways from year to year — on a phone, one strip across every year instead (see
  * TrackStrip); under it, the trading teams' rosters as they stood, the pieces that changed hands sliding from one
  * to the other; and beside them, the trade's card. Picking a trade on the timeline, or stepping with the arrows,
- * moves them all. In a room with a floor for it (see TradeFloorContext), the rosters — and the timeline, at its back —
+ * moves them all. In a room with a floor for it (see TradeFloorContext), the rosters — and the timeline, in front of them —
  * are on the floor instead, and the card has the room here to itself.
  */
 export function TradeViewer({
