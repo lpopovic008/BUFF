@@ -4,12 +4,12 @@
 // zoom), never leaving it; and the whole of it — the spot, the beam and the frame — slides with the floor under it
 // (see floor-camera.ts) where the floor's been moved.
 
-import { US_SIMPLE_OUTLINE_PATH } from "./team-cities";
+import { US_PROJECTED_OUTLINE_PATH } from "./us-outline";
 import { cameraShows } from "./floor-camera";
 import { FloorCamera, floorDepth, floorPoint, floorScale } from "./grid-room";
 
 const POINT = /(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g;
-const OUTLINE_POINTS = [...US_SIMPLE_OUTLINE_PATH.matchAll(POINT)].map((m) => [Number(m[1]), Number(m[2])] as const);
+const OUTLINE_POINTS = [...US_PROJECTED_OUTLINE_PATH.matchAll(POINT)].map((m) => [Number(m[1]), Number(m[2])] as const);
 
 /** The lower 48's extent, in map units. */
 export const MAP_BOUNDS = {

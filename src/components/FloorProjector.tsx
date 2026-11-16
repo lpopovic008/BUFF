@@ -5,7 +5,7 @@ import { isOutsideUS } from "@/lib/nfl-schedule";
 import { gameMapPosition, gameState, internationalSlotPosition } from "@/lib/game-map";
 import type { FloorCameraStore } from "@/lib/floor-camera";
 import { ProjectorPlace, ProjectorView, projectorPath, projectorPoint, projectorView } from "@/lib/projector";
-import { US_SIMPLE_OUTLINE_PATH } from "@/lib/team-cities";
+import { US_PROJECTED_OUTLINE_PATH } from "@/lib/us-outline";
 import { useFloorCamera } from "./FloorGrid";
 import type { MappedGame } from "./GameMap";
 
@@ -66,7 +66,7 @@ function useWire(): number {
 
 /** Where the outline's points show (screen px), each ring of it apart. */
 function outlineRings(view: ProjectorView): [number, number][][] {
-  return US_SIMPLE_OUTLINE_PATH.split("M")
+  return US_PROJECTED_OUTLINE_PATH.split("M")
     .filter(Boolean)
     .map((ring) => [...ring.matchAll(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g)].map((m) => projectorPoint(view, Number(m[1]), Number(m[2]))));
 }
@@ -88,14 +88,14 @@ function hull(points: [number, number][]): [number, number][] {
 }
 
 /** How many rays of light go from the lens to the map's edge, about. */
-const RAYS = 44;
+const RAYS = 14;
 
 /**
  * The week's map, projected (see projector.ts): from a lens of light on the floor, in its middle near the front, light
  * thrown up into the air over the floor, the lower 48 lit where it lands — facing you square on, see-through (the room
  * showing through it), their outline glowing in ink (white, or black in light mode) and faintly scanned across, each
  * game's ring on it. Rays fan from the lens to the map's edge, a haze of light between them, its two outermost
- * brightest. Drawn in the room, behind everything; the games' stems and tags stand up in front (see
+ * brightest — flickering a little, as a projector's light does. Drawn in the room, behind everything; the games' stems and tags stand up in front (see
  * FloorProjectionTags). Its picture moved and zoomed (`map`), and all of it slid with the floor under it (`floor`).
  */
 export function FloorProjection({ place, games, map, floor }: { place: ProjectorPlace; games: MappedGame[]; map?: FloorCameraStore; floor?: FloorCameraStore }) {
@@ -106,6 +106,8 @@ export function FloorProjection({ place, games, map, floor }: { place: Projector
   const drawn = useMemo(() => {
     const rings = outlineRings(view);
     const edge = rings.flat();
+    // The rays go to the mainland's edge (its longest ring), not its islands.
+    const mainland = rings.reduce((a, b) => (b.length > a.length ? b : a), []);
     const [sx, sy] = view.source;
     // The light's haze: everything between the lens and the map's edge.
     const haze = hull([view.source, ...edge]);
@@ -113,11 +115,11 @@ export function FloorProjection({ place, games, map, floor }: { place: Projector
     // Its outermost rays: the haze's two edges from the lens.
     const outer = lens < 0 ? [] : [haze[(lens + haze.length - 1) % haze.length], haze[(lens + 1) % haze.length]];
     // Rays to the edge all round, about evenly along it.
-    const step = Math.max(1, Math.round(edge.length / RAYS));
-    const rays = edge.filter((_, i) => i % step === 0);
+    const step = Math.max(1, Math.round(mainland.length / RAYS));
+    const rays = mainland.filter((_, i) => i % step === 0);
     const top = Math.min(...edge.map((p) => p[1]));
     return {
-      outline: projectorPath(view, US_SIMPLE_OUTLINE_PATH),
+      outline: projectorPath(view, US_PROJECTED_OUTLINE_PATH),
       haze: `M${haze.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join("L")}Z`,
       rays: rays.map(([x, y]) => `M${sx},${sy}L${x.toFixed(1)},${y.toFixed(1)}`).join(""),
       outer: outer.map(([x, y]) => `M${sx},${sy}L${x.toFixed(1)},${y.toFixed(1)}`).join(""),
@@ -127,7 +129,9 @@ export function FloorProjection({ place, games, map, floor }: { place: Projector
   const [sx, sy] = view.source;
   const spread = view.frame.width;
   return (
-    <svg className="absolute inset-0 h-full w-full" aria-hidden>
+    <div className="absolute inset-0" aria-hidden>
+    {/* The light, flickering as a projector's does — on a layer of its own, so it's cheap to. */}
+    <svg className="projector-flicker absolute inset-0 h-full w-full">
       <defs>
         {/* The light: brightest as it leaves the lens, thinning as it spreads up to the map. */}
         <linearGradient id={`${id}-beam`} gradientUnits="userSpaceOnUse" x1={sx} y1={sy} x2={sx} y2={drawn.top}>
@@ -144,6 +148,18 @@ export function FloorProjection({ place, games, map, floor }: { place: Projector
           <stop offset="35%" stopColor="var(--ink-primary)" stopOpacity={0.18} />
           <stop offset="100%" stopColor="var(--ink-primary)" stopOpacity={0} />
         </radialGradient>
+      </defs>
+      {/* The light, from the lens to the map's edge. */}
+      <path d={drawn.haze} fill={`url(#${id}-beam)`} />
+      <path d={drawn.rays} fill="none" stroke={`url(#${id}-ray)`} strokeWidth={wire} strokeOpacity={0.55} />
+      <path d={drawn.outer} fill="none" stroke={`url(#${id}-ray)`} strokeWidth={wire * 1.5} />
+      {/* The lens, a glow on the floor round a point of light. */}
+      <ellipse cx={sx} cy={sy} rx={spread * 0.11} ry={spread * 0.026} fill={`url(#${id}-lens)`} />
+      <ellipse cx={sx} cy={sy} rx={3.5} ry={2} fill="var(--ink-primary)" />
+    </svg>
+    {/* The picture, with it, a little. */}
+    <svg className="projector-flicker-soft absolute inset-0 h-full w-full">
+      <defs>
         {/* Scan lines across the picture, as a projection's light has. */}
         <pattern id={`${id}-scan`} width={4} height={3} patternUnits="userSpaceOnUse">
           <rect width={4} height={1} fill="var(--ink-primary)" />
@@ -155,13 +171,6 @@ export function FloorProjection({ place, games, map, floor }: { place: Projector
           <feGaussianBlur stdDeviation={2.5} />
         </filter>
       </defs>
-      {/* The light, from the lens to the map's edge. */}
-      <path d={drawn.haze} fill={`url(#${id}-beam)`} />
-      <path d={drawn.rays} fill="none" stroke={`url(#${id}-ray)`} strokeWidth={wire} strokeOpacity={0.55} />
-      <path d={drawn.outer} fill="none" stroke={`url(#${id}-ray)`} strokeWidth={wire * 1.5} />
-      {/* The lens, a glow on the floor round a point of light. */}
-      <ellipse cx={sx} cy={sy} rx={spread * 0.11} ry={spread * 0.026} fill={`url(#${id}-lens)`} />
-      <ellipse cx={sx} cy={sy} rx={3.5} ry={2} fill="var(--ink-primary)" />
       {/* The map where the light lands: see-through, scanned across, its outline glowing. */}
       <path d={drawn.outline} fill="var(--ink-primary)" fillOpacity={0.06} />
       <rect
@@ -180,6 +189,7 @@ export function FloorProjection({ place, games, map, floor }: { place: Projector
         return <circle key={s.id} cx={x} cy={y} r={ringRadius(s.count) * view.s} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.85} strokeWidth={wire * 1.5} />;
       })}
     </svg>
+    </div>
   );
 }
 

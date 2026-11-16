@@ -246,6 +246,45 @@ body {
   }
 }
 
+/* A projector's light, never quite steady (see FloorProjection): the beam dips now and then, unevenly; the picture
+   it throws with it, a little. */
+@keyframes projector-flicker {
+  0%, 100% { opacity: 1; }
+  6% { opacity: 0.9; }
+  8% { opacity: 1; }
+  21% { opacity: 0.96; }
+  37% { opacity: 0.85; }
+  39% { opacity: 0.98; }
+  41% { opacity: 0.9; }
+  44% { opacity: 1; }
+  63% { opacity: 0.94; }
+  79% { opacity: 1; }
+  81% { opacity: 0.87; }
+  83% { opacity: 1; }
+}
+@keyframes projector-flicker-soft {
+  0%, 100% { opacity: 1; }
+  37% { opacity: 0.95; }
+  41% { opacity: 0.97; }
+  44% { opacity: 1; }
+  81% { opacity: 0.94; }
+  83% { opacity: 1; }
+}
+.projector-flicker {
+  animation: projector-flicker 3.7s linear infinite;
+  will-change: opacity;
+}
+.projector-flicker-soft {
+  animation: projector-flicker-soft 3.7s linear infinite;
+  will-change: opacity;
+}
+@media (prefers-reduced-motion: reduce) {
+  .projector-flicker,
+  .projector-flicker-soft {
+    animation: none;
+  }
+}
+
 @keyframes rise {
   from {
     opacity: 0;
