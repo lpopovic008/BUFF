@@ -3,18 +3,13 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { FloorCamera, GRID_PX, HOME_CAMERA } from "@/lib/grid-room";
 import { cameraBetween, FloorCameraStore } from "@/lib/floor-camera";
-import { GlobePlace, GLOBE_MIN_ZOOM, globeFacingCamera, globePoint, globeStemTip, globeView, keepGlobe } from "@/lib/globe";
-import { globeSites } from "./FloorGlobe";
+import { keepMap, mapPutting, ProjectorPlace, projectorUnder, projectorView } from "@/lib/projector";
 import { useFloorCamera } from "./FloorGrid";
-import type { MappedGame } from "./GameMap";
 
-/** How far in the globe zooms on the next game, at most (several at once, as far as fits them all), and how much a button zooms it by. */
-const FOCUS_ZOOM = 2;
+/** How much a button zooms the map by. */
 const ZOOM_STEP = 1.25;
-/** How far a finger or the mouse goes before it's turning the globe, not tapping it (px). */
+/** How far a finger or the mouse goes before it's moving the map, not tapping it (px). */
 const SLOP = 4;
-/** How long a stem the next games' tags stand on, about, in rem (see FloorGlobe): kept on the screen at home. */
-const STEM_REM = 3;
 /** How long the Red Zone takes to sink back into the floor before the floor slides back (ms; see page). */
 export const RED_ZONE_SINK_MS = 1000;
 // The Red Zone coming up, step by step, from its switch (ms from when it's switched on): its switch spells out its
@@ -38,7 +33,7 @@ const DROP_MS = 520;
 /** The Red Zone's name as its switch spells it out, a letter at a time. */
 const SPELLING = ["RZ", "R", "RE", "RED", "RED Z", "RED ZO", "RED ZON", "RED ZONE"];
 
-/** A mouse wheel's zoom: how much a px of its scroll zooms the globe, and how quickly it eases there (ms). */
+/** A mouse wheel's zoom: how much a px of its scroll zooms the map, and how quickly it eases there (ms). */
 const WHEEL_ZOOM_PER_PX = 0.0025;
 const WHEEL_EASE_MS = 90;
 
@@ -49,68 +44,59 @@ function onFloor(target: EventTarget | null): boolean {
 }
 
 /**
- * The globe on the home page's floor (see globe.ts), turned and zoomed: dragged (a finger, or the mouse) to turn it,
- * and pinched (two fingers, or a trackpad) or scrolled (a mouse's wheel) to zoom it, wherever the floor's bare below
- * the horizon or on the globe — a pinch zooming just it, never the page, and leaving it where it's put. It turns only
- * so far, never round to the eastern hemisphere. At home it faces the week's next game to kick off, zoomed in on it —
- * or, several kicking off at once, on all of them, as close as fits them all on the screen (none still to come, the
- * US) — and moves on to the next as each kicks off. Turned by you, it stays where you put it until its home button
- * takes it back. Its Red Zone button slides the floor (`store`) toward you, whole squares at a time, till the globe's
- * gone off the screen's bottom — and the Red Zone comes up out of it (see page); again, it sinks back, and the floor
- * slides back home. The globe holds still while it's up.
+ * The projected map on the home page (see projector.ts), moved and zoomed within its frame: dragged (a finger, or the
+ * mouse) to move it, and pinched (two fingers, or a trackpad) or scrolled (a mouse's wheel) to zoom it, about where
+ * you're pinching or pointing, wherever the floor's bare below the horizon or on the frame — a pinch zooming just it,
+ * never the page, and leaving it where it's put. At home the whole map's in its frame; moved by you, it stays where
+ * you put it until its home button takes it back. Its Red Zone button slides the floor (`store`) toward you, whole squares at a time, till the
+ * projector's gone off the screen's bottom — and the Red Zone comes up out of it (see page); again, it sinks back, and
+ * the floor slides back home. The map holds still while it's up.
  */
 export function FloorCameraControls({
   store,
-  globe,
+  map: picture,
   place,
-  games,
   desktop,
-  clearTo,
-  clearFrom,
   redZone,
-  map = true,
+  out = true,
 }: {
   /** The floor's camera: slid toward you for the Red Zone. */
   store: FloorCameraStore;
-  /** The globe's: turned (x, d: longitude and latitude from facing the US) and zoomed. */
-  globe: FloorCameraStore;
-  /** Where the globe stands. */
-  place: GlobePlace;
-  games: MappedGame[];
+  /** The map's: moved within its frame (x, d: map units from its middle) and zoomed. */
+  map: FloorCameraStore;
+  /** Where the projector stands. */
+  place: ProjectorPlace;
   desktop: boolean;
-  /** The screen x the floor's in the clear up to (from tablet width up, the starters list's left edge): the next games are kept left of it. */
-  clearTo?: number;
-  /** And the screen x it's in the clear from (from tablet width up, the Red Zone's column's right edge, while it's up): kept right of it. */
-  clearFrom?: number;
   /** Whether the Red Zone's up out of the floor, and its switch. */
   redZone?: { on: boolean; onChange: (on: boolean) => void };
-  /** Whether the globe's out on the floor (between weeks): without it, nothing turns, zooms or follows — and only the
-   * Red Zone's switch is here. */
-  map?: boolean;
+  /** Whether the map's out (between weeks): without it, nothing moves, zooms or follows — and only the Red Zone's
+   * switch is here. */
+  out?: boolean;
 }) {
+  const map = out;
   const redZoneUp = redZone?.on ?? false;
-  const { following } = useFloorCamera(globe);
-  const sites = useMemo(() => new Map(globeSites(games).map((s) => [s.id, s.at])), [games]);
+  const { following } = useFloorCamera(picture);
 
-  // Turned and zoomed — not while the Red Zone's up, or with no globe out.
+  // Moved and zoomed — not while the Red Zone's up, or with no map out.
   useEffect(() => {
     if (redZoneUp || !map) return;
     const { height, share } = place;
     const horizon = height * share;
-    // The globe as it shows now: what's on it, and how far a px across it turns it.
-    const view = () => globeView(place, globe.get().camera, store.get().camera);
-    const onGlobe = (x: number, y: number) => {
-      const v = view();
-      return Math.hypot(x - v.cx, y - v.cy) <= v.R;
+    // The projector as it shows now, and whether a point's on its frame.
+    const view = () => projectorView(place, picture.get().camera, store.get().camera);
+    const onFrame = (x: number, y: number) => {
+      const { frame } = view();
+      return x >= frame.left && x <= frame.left + frame.width && y >= frame.top && y <= frame.top + frame.height;
     };
     const pointers = new Map<number, [number, number]>();
-    // What it was when the fingers (or the mouse) took hold of it: its camera, where they were, and how far apart.
-    let held: { camera: FloorCamera; at: [number, number]; apart: number } | null = null;
+    // What it was when the fingers (or the mouse) took hold of it: its camera, the map point under them, where they
+    // were, and how far apart.
+    let held: { camera: FloorCamera; grab: [number, number]; at: [number, number]; apart: number } | null = null;
     let moving = false;
     // A zoom's own scrolls, and a moment after, aren't taken for a slide.
     let zoomedAt = 0;
-    // A pinch on a Safari trackpad: the camera it started from.
-    let gesture: FloorCamera | null = null;
+    // A pinch on a Safari trackpad: the camera it started from, and the map point under it.
+    let gesture: { camera: FloorCamera; grab: [number, number]; at: [number, number] } | null = null;
     const middleOf = (): [number, number] => {
       const ps = [...pointers.values()];
       return [ps.reduce((t, p) => t + p[0], 0) / ps.length, ps.reduce((t, p) => t + p[1], 0) / ps.length];
@@ -121,11 +107,14 @@ export function FloorCameraControls({
     };
     // Taken hold of afresh, as it is now (a finger's come or gone).
     const rehold = () => {
-      held = pointers.size > 0 ? { camera: globe.get().camera, at: middleOf(), apart: apartOf() } : null;
+      if (pointers.size === 0) return void (held = null);
+      const at = middleOf();
+      held = { camera: picture.get().camera, grab: projectorUnder(view(), ...at), at, apart: apartOf() };
     };
+    const put = (grab: [number, number], at: [number, number], zoom: number) => mapPutting(place, grab, at, zoom, store.get().camera);
     const down = (e: PointerEvent) => {
       if (!onFloor(e.target) || (e.pointerType === "mouse" && e.button !== 0)) return;
-      if (e.clientY <= horizon + 2 && !onGlobe(e.clientX, e.clientY)) return;
+      if (e.clientY <= horizon + 2 && !onFrame(e.clientX, e.clientY)) return;
       if (e.pointerType === "mouse") e.preventDefault();
       // Grabbed: a wheel's zoom on its way stops where it is.
       wheelTarget = null;
@@ -139,27 +128,25 @@ export function FloorCameraControls({
       const at = middleOf();
       if (!moving && Math.hypot(at[0] - held.at[0], at[1] - held.at[1]) < SLOP && pointers.size < 2) return;
       moving = true;
-      // Turned as far as they've gone (a px across it a px of its face), and zoomed as far as they've spread.
+      // The map point they took hold of kept under them, zoomed as far as they've spread.
       const zoom = pointers.size > 1 && held.apart > 0 ? held.camera.zoom * (apartOf() / held.apart) : held.camera.zoom;
       if (pointers.size > 1) zoomedAt = performance.now();
-      const per = 180 / Math.PI / (place.r * zoom);
-      globe.move(
-        keepGlobe({ zoom, x: held.camera.x - (at[0] - held.at[0]) * per, d: held.camera.d + (at[1] - held.at[1]) * per })
-      );
+      picture.move(put(held.grab, at, zoom));
     };
     const up = (e: PointerEvent) => {
       if (!pointers.delete(e.pointerId)) return;
       if (pointers.size === 0) moving = false;
       rehold();
     };
-    // A mouse's wheel zooms it smoothly, notch on notch — each going on from where the last was headed, eased toward
-    // a little of the way each frame.
+    // A mouse's wheel zooms it smoothly about the pointer, notch on notch — each going on from where the last was
+    // headed, eased toward a little of the way each frame.
     let wheelTarget: FloorCamera | null = null;
     let wheelFrame = 0;
     let wheelLast = 0;
-    const wheelZoom = (factor: number) => {
-      const from = wheelFrame && wheelTarget ? wheelTarget : globe.get().camera;
-      wheelTarget = keepGlobe({ ...from, zoom: from.zoom * factor });
+    const wheelZoom = (factor: number, at: [number, number]) => {
+      const from = wheelFrame && wheelTarget ? wheelTarget : picture.get().camera;
+      const grab = projectorUnder(projectorView(place, from, store.get().camera), ...at);
+      wheelTarget = put(grab, at, from.zoom * factor);
       zoomedAt = performance.now();
       if (wheelFrame) return;
       wheelLast = performance.now();
@@ -168,9 +155,9 @@ export function FloorCameraControls({
         if (!target) return void (wheelFrame = 0);
         const t = 1 - Math.exp(-(now - wheelLast) / WHEEL_EASE_MS);
         wheelLast = now;
-        const next = cameraBetween(globe.get().camera, target, t);
-        const done = Math.abs(next.zoom - target.zoom) < 0.002;
-        globe.move(done ? target : next);
+        const next = cameraBetween(picture.get().camera, target, t);
+        const done = Math.abs(next.zoom - target.zoom) < 0.002 && Math.abs(next.x - target.x) < 0.05 && Math.abs(next.d - target.d) < 0.05;
+        picture.move(done ? target : next);
         if (done) {
           wheelTarget = null;
           wheelFrame = 0;
@@ -178,21 +165,22 @@ export function FloorCameraControls({
       };
       wheelFrame = requestAnimationFrame(step);
     };
-    // A pinch on a trackpad (or Ctrl/⌘ + scroll) anywhere over the floor or the globe zooms it, and never the page;
-    // so does a wheel (or a trackpad's two-finger scroll) over them.
+    // A pinch on a trackpad (or Ctrl/⌘ + scroll) anywhere over the floor or the frame zooms it, and never the page; so
+    // does a wheel (or a trackpad's two-finger scroll) over them.
     const wheel = (e: WheelEvent) => {
-      if (e.clientY <= horizon + 2 && !onGlobe(e.clientX, e.clientY)) return;
+      if (e.clientY <= horizon + 2 && !onFrame(e.clientX, e.clientY)) return;
       const zoom = e.ctrlKey || e.metaKey;
       if (!zoom && !onFloor(e.target)) return;
       e.preventDefault();
       if (gesture) return;
       const px = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? height : 1;
+      const at: [number, number] = [e.clientX, e.clientY];
       if (zoom) {
         zoomedAt = performance.now();
-        const camera = globe.get().camera;
-        globe.move(keepGlobe({ ...camera, zoom: camera.zoom * Math.exp(-e.deltaY * px * 0.01) }));
+        const camera = picture.get().camera;
+        picture.move(put(projectorUnder(view(), ...at), at, camera.zoom * Math.exp(-e.deltaY * px * 0.01)));
       } else if (performance.now() - zoomedAt > 300) {
-        wheelZoom(Math.exp(-e.deltaY * px * WHEEL_ZOOM_PER_PX));
+        wheelZoom(Math.exp(-e.deltaY * px * WHEEL_ZOOM_PER_PX), at);
       }
     };
     // Safari's own pinch (a Mac's trackpad, or two fingers on an iPhone): never the page's zoom while it's on the
@@ -200,9 +188,10 @@ export function FloorCameraControls({
     type Gesture = UIEvent & { scale: number; clientX: number; clientY: number };
     const gestureStart = (e: Event) => {
       const g = e as Gesture;
-      if (pointers.size === 0 && (!onFloor(g.target) || (g.clientY <= horizon + 2 && !onGlobe(g.clientX, g.clientY)))) return;
+      if (pointers.size === 0 && (!onFloor(g.target) || (g.clientY <= horizon + 2 && !onFrame(g.clientX, g.clientY)))) return;
       g.preventDefault();
-      gesture = pointers.size === 0 ? globe.get().camera : null;
+      const at: [number, number] = [g.clientX, g.clientY];
+      gesture = pointers.size === 0 ? { camera: picture.get().camera, grab: projectorUnder(view(), ...at), at } : null;
     };
     const gestureChange = (e: Event) => {
       const g = e as Gesture;
@@ -210,7 +199,7 @@ export function FloorCameraControls({
       g.preventDefault();
       if (gesture) {
         zoomedAt = performance.now();
-        globe.move(keepGlobe({ ...gesture, zoom: gesture.zoom * g.scale }));
+        picture.move(put(gesture.grab, gesture.at, gesture.camera.zoom * g.scale));
       }
     };
     const gestureEnd = (e: Event) => {
@@ -237,68 +226,21 @@ export function FloorCameraControls({
       document.removeEventListener("gesturechange", gestureChange);
       document.removeEventListener("gestureend", gestureEnd);
     };
-  }, [store, globe, place, redZoneUp, map]);
+  }, [store, picture, place, redZoneUp, map]);
 
-  // Home: facing the next game to kick off (or the middle of those kicking off together), each on the screen between a
-  // little in from its sides and its top, its stem and tag too — as zoomed in as fits them all, no more than
-  // FOCUS_ZOOM, and the globe no higher than under the ticker (on a phone, than the horizon, the starters list over
-  // it). With none still to come, facing the US.
-  const nextGames = useMemo(() => {
-    const upcoming = games.filter((g) => g.game.state === "pre" && sites.has(g.game.id));
-    const kickoff = (g: MappedGame) => new Date(g.game.kickoff).getTime();
-    const first = Math.min(...upcoming.map(kickoff));
-    const next = upcoming.filter((g) => kickoff(g) === first).map((g) => g.game.id);
-    const key = `${map ? next.join(",") : "no map"}|${desktop}|${place.width}x${place.height}|${Math.round(clearTo ?? 0)}|${Math.round(clearFrom ?? 0)}`;
-    if (!map || next.length === 0) return { key, camera: HOME_CAMERA };
-    const { width, height } = place;
-    const rootPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-    const box = {
-      left: Math.max(width * 0.12, (clearFrom ?? 0) + width * 0.06),
-      right: Math.min(width * 0.88, (clearTo ?? width) - width * 0.06),
-      top: height * 0.15,
-      bottom: height,
-    };
-    const points = next.map((id) => sites.get(id)!);
-    // The middle of them: their average direction from the globe's middle.
-    const rad = Math.PI / 180;
-    const sum = points.reduce(
-      (t, [lon, lat]) => [t[0] + Math.cos(lat * rad) * Math.cos(lon * rad), t[1] + Math.cos(lat * rad) * Math.sin(lon * rad), t[2] + Math.sin(lat * rad)],
-      [0, 0, 0]
-    );
-    const center = [Math.atan2(sum[1], sum[0]) / rad, Math.atan2(sum[2], Math.hypot(sum[0], sum[1])) / rad];
-    const highest = desktop ? height * 0.18 : height * place.share - 12;
-    const fits = (zoom: number) => {
-      const view = globeView(place, globeFacingCamera(center[0], center[1], zoom), HOME_CAMERA);
-      if (view.cy - view.R < highest) return false;
-      return points.every(([lon, lat]) => {
-        const [x, y] = globePoint(view, lon, lat);
-        const [, tipY] = globeStemTip(view, lon, lat, STEM_REM * rootPx);
-        return x >= box.left && x <= box.right && tipY >= box.top && y <= box.bottom;
-      });
-    };
-    let zoom = FOCUS_ZOOM;
-    if (!fits(zoom)) {
-      let [lo, hi] = [GLOBE_MIN_ZOOM, FOCUS_ZOOM];
-      for (let i = 0; i < 30; i++) {
-        const mid = (lo + hi) / 2;
-        if (fits(mid)) lo = mid;
-        else hi = mid;
-      }
-      zoom = lo;
-    }
-    return { key, camera: globeFacingCamera(center[0], center[1], zoom) };
-  }, [games, sites, place, clearTo, clearFrom, map, desktop]);
-  // At home, it goes to the next games whenever they change (one kicks off) — not otherwise, live scores and all.
+  // Home: the whole map in its frame.
+  const nextGames = useMemo(() => ({ key: `${map}|${place.width}x${place.height}`, camera: HOME_CAMERA }), [place, map]);
+  // At home, it goes back there whenever the room's resized or the map comes out.
   const atHome = useRef<string | null>(null);
   useEffect(() => {
-    if (!globe.get().following || atHome.current === nextGames.key) return;
+    if (!picture.get().following || atHome.current === nextGames.key) return;
     atHome.current = nextGames.key;
-    globe.glide(nextGames.camera, true);
-  }, [nextGames, globe]);
+    picture.glide(nextGames.camera, true);
+  }, [nextGames, picture]);
   const goToNextGames = useCallback(() => {
     atHome.current = nextGames.key;
-    globe.glide(nextGames.camera, true);
-  }, [nextGames, globe]);
+    picture.glide(nextGames.camera, true);
+  }, [nextGames, picture]);
 
   const goHome = () => {
     if (redZoneUp) return toggleRedZone();
@@ -306,23 +248,18 @@ export function FloorCameraControls({
   };
   const toggleRedZone = () => redZone?.onChange(!redZoneUp);
   // The Red Zone coming up (switched on here, or on its own as the week's first game kicks off): the floor slid toward
-  // you a whole number of squares (so its lines end up where they were), the globe on it gone off the screen's bottom.
-  // Going back down: once it's sunk, the floor back home, and the globe on the next games. (Up already when these first
-  // show: slid all the same.)
+  // you a whole number of squares (so its lines end up where they were), the projector on it gone off the screen's
+  // bottom. Going back down: once it's sunk, the floor back home, and the map on the next games. (Up already when these
+  // first show: slid all the same.)
   const wasUp = useRef(false);
   useEffect(() => {
     if (wasUp.current === redZoneUp) return;
     wasUp.current = redZoneUp;
     if (redZoneUp) {
-      // (With no globe out, there's nothing to slide out of its way.)
+      // (With no map out, there's nothing to slide out of its way.)
       if (!map) return;
-      const turned = globe.get().camera;
       let squares = 1;
-      while (squares < 200) {
-        const view = globeView(place, turned, { zoom: 1, x: 0, d: squares * GRID_PX });
-        if (view.cy - view.R > place.height + 8) break;
-        squares++;
-      }
+      while (squares < 200 && projectorView(place, HOME_CAMERA, { zoom: 1, x: 0, d: squares * GRID_PX }).frame.top <= place.height + 8) squares++;
       store.glide({ zoom: 1, x: 0, d: squares * GRID_PX }, false);
       return;
     }
@@ -330,13 +267,13 @@ export function FloorCameraControls({
       store.glide(HOME_CAMERA, true);
       goToNextGames();
     }, RED_ZONE_SINK_MS);
-  }, [redZoneUp, place, store, globe, goToNextGames, map]);
-  // The globe put away (the week's under way): the floor back home, and the globe facing the US again.
+  }, [redZoneUp, place, store, goToNextGames, map]);
+  // The map put away (the week's under way): the floor back home, and the whole map in its frame again.
   useEffect(() => {
     if (map) return;
     store.glide(HOME_CAMERA, true);
-    globe.glide(HOME_CAMERA, true);
-  }, [map, store, globe]);
+    picture.glide(HOME_CAMERA, true);
+  }, [map, store, picture]);
   // Its switch becoming the Red Zone's header as it comes up (and back), step by step (see RISE_AT_MS and the rest): the
   // header's title (`data-rz-title`) its switch while it's up; the rest of the header (`data-rz-head`) and its plays
   // (`data-rz-plays`) brought in after it.
@@ -424,8 +361,8 @@ export function FloorCameraControls({
     return () => timers.forEach(clearTimeout);
   }, [redZoneUp]);
   const zoomBy = (factor: number) => {
-    const camera = globe.get().camera;
-    globe.glide(keepGlobe({ ...camera, zoom: camera.zoom * factor }), false);
+    const camera = picture.get().camera;
+    picture.glide(keepMap({ ...camera, zoom: camera.zoom * factor }), false);
   };
 
   const plate =

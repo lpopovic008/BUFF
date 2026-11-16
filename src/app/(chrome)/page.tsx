@@ -4,9 +4,9 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "reac
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import type { MappedGame } from "@/components/GameMap";
-import { FloorGlobe, FloorGlobeTags } from "@/components/FloorGlobe";
-import { GlobePlace, fitGlobe, globeView } from "@/lib/globe";
-import { HOME_CAMERA, HORIZON_SHARE, lowestGridLine } from "@/lib/grid-room";
+import { FloorProjection, FloorProjectionTags } from "@/components/FloorProjector";
+import { ProjectorPlace, fitProjector } from "@/lib/projector";
+import { HORIZON_SHARE, lowestGridLine } from "@/lib/grid-room";
 import { FloorGrid } from "@/components/FloorGrid";
 import { FloorCameraControls, RED_ZONE_PLAYS_AT_MS, RED_ZONE_PLAYS_MS, RED_ZONE_SINK_MS } from "@/components/FloorCameraControls";
 import { FloorReflection } from "@/components/FloorReflection";
@@ -304,14 +304,14 @@ export default function DashboardPage() {
   const [redZoneBox, setRedZoneBox] = useState<HTMLDivElement | null>(null);
   // The room's height as it's drawn (not 100vh, which a browser's toolbars can make taller than the screen); how far up
   // from its bottom the floor's lowest grid line is — where the starters list stands from tablet width up, and the Red
-  // Zone comes up; the horizon; the globe on the floor (see globe.ts) and its top; and the root font size — screen
-  // y's, from the top.
+  // Zone comes up; the horizon; the projected map over the floor (see projector.ts) and its top; and the root font
+  // size — screen y's, from the top.
   const [stand, setStand] = useState<{
     room: number;
     on: number;
     horizon: number;
-    globe: GlobePlace;
-    globeTop: number;
+    projector: ProjectorPlace;
+    mapTop: number;
     /** The line on the floor the Red Zone comes up out of (see redZoneStage). */
     redZoneLine: number;
     rootPx: number;
@@ -326,19 +326,33 @@ export default function DashboardPage() {
       const css = getComputedStyle(document.documentElement);
       const tabBar = parseFloat(css.getPropertyValue("--tabbar-h")) || 0;
       const rootPx = parseFloat(css.fontSize) || 16;
-      // The globe stands in the middle of the floor, over a spot near its front edge (the screen's bottom, or a
-      // phone's tab bar), as large as fits under the horizon.
+      // The projector's spot in the middle of the floor near its front edge (the screen's bottom, or a phone's tab bar),
+      // its map floating over the floor above it: on a phone, across the screen, reaching up no higher than the
+      // horizon (the starters list over it); from tablet width up, in the middle of the floor left of the
+      // starters list, as large as fits there under the ticker.
       const desk = window.matchMedia(DESKTOP).matches;
-      const globe = fitGlobe({ width, height, share: HORIZON_SHARE, centerX: width / 2, bottom: desk ? height : height - tabBar });
-      const home = globeView(globe, HOME_CAMERA);
+      const horizonY = height * HORIZON_SHARE;
+      const listLeft = width - rootPx * (1 + (window.matchMedia("(min-width: 1024px)").matches ? 18 : 16));
+      const projector = desk
+        ? fitProjector({
+            width,
+            height,
+            share: HORIZON_SHARE,
+            centerX: listLeft / 2,
+            bottom: height,
+            maxWidth: listLeft - 3 * rootPx,
+            // Under the ticker, the kickoff countdown over it.
+            highest: Math.max(height * 0.24, (parseFloat(css.getPropertyValue("--header-h")) || 0) + (parseFloat(css.getPropertyValue("--ticker-h")) || 0) + 3 * rootPx),
+          })
+        : fitProjector({ width, height, share: HORIZON_SHARE, centerX: width / 2, bottom: height - tabBar, maxWidth: width - 2 * rootPx, highest: horizonY });
       setStand({
         room: height,
         // Its switch's top: 0.75rem off the bottom (or a phone's tab bar), and 2.5rem tall.
         redZoneLine: height - (desk ? 0 : tabBar) - 3.25 * rootPx,
         on: height - lowestGridLine(height),
         horizon: height * HORIZON_SHARE,
-        globe,
-        globeTop: home.cy - home.R,
+        projector,
+        mapTop: projector.frame.top,
         rootPx,
       });
     };
@@ -573,10 +587,10 @@ export default function DashboardPage() {
     () => mappedGames.filter((g) => !hiddenBlocks.has(kickoffBlockLabel(g.game)) && !offMap.has(g.game.id)),
     [mappedGames, hiddenBlocks, offMap]
   );
-  // The floor, slid toward you for the Red Zone; and the globe on it turned and zoomed (see FloorCameraControls), at
-  // home on the next games to kick off.
+  // The floor, slid toward you for the Red Zone; and the projected map moved and zoomed in its frame (see
+  // FloorCameraControls), at home on the next games to kick off.
   const [floorCamera] = useState(createFloorCameraStore);
-  const [globeCamera] = useState(createFloorCameraStore);
+  const [mapCamera] = useState(createFloorCameraStore);
   const [startersList, setStartersList] = useState<HTMLDivElement | null>(null);
   // Scrolled as an iPhone scrolls, by the page, so its reflection moves with it exactly (see useListScroll).
   useListScroll(startersList);
@@ -633,11 +647,15 @@ export default function DashboardPage() {
 
   // The room the dashboard stands in: a grid floor running back to the horizon (see .grid-room).
   const horizon = HORIZON_SHARE;
-  // The globe stands in the middle of the floor (see FloorGlobe), its games standing out of it in front of everything
-  // (FloorGlobeTags) — out of the way while the Red Zone takes the screen (⇕).
+  // The map's projected over the middle of the floor (see FloorProjection), its games standing up off it in front of
+  // everything (FloorProjectionTags) — out of the way while the Red Zone takes the screen (⇕).
   const mapShown = stand !== null && weekGames.length > 0;
-  // The globe's only out between weeks: till the week's first game kicks off, and again once they're all over.
-  const mapOut = mapShown && (weekGames.every((g) => g.state === "pre") || weekGames.every((g) => g.state === "post"));
+  // The map's only out between weeks: till the week's first game kicks off, and again once they're all over.
+  // (From tablet width up, put away too while player graphs stand at the back of the room, where its frame floats.)
+  const mapOut =
+    mapShown &&
+    (weekGames.every((g) => g.state === "pre") || weekGames.every((g) => g.state === "post")) &&
+    !(desktop && graphed.length > 0 && !redZoneTall);
   const roomView = (
     <div
       ref={setRoom}
@@ -647,7 +665,7 @@ export default function DashboardPage() {
     >
       {/* Gone while a play's field lines the floor instead (see FloorPlay). */}
       <FloorGrid share={horizon} camera={floorCamera} hidden={fieldOn} />
-      {mapOut ? <FloorGlobe place={stand.globe} games={games} globe={globeCamera} floor={floorCamera} /> : null}
+      {mapOut ? <FloorProjection place={stand.projector} games={games} map={mapCamera} floor={floorCamera} /> : null}
     </div>
   );
   // One graph in full; two side by side; three or four, one to a corner.
@@ -713,7 +731,7 @@ export default function DashboardPage() {
           } ${redZoneFull && !desktop && !redZoneDragging ? "delay-500" : ""}`}
           style={{
             // Its left edge as far in as the starters list's right edge is from the screen's.
-            ...(desktop && startersList ? { left: stand.globe.width - startersList.getBoundingClientRect().right } : null),
+            ...(desktop && startersList ? { left: stand.projector.width - startersList.getBoundingClientRect().right } : null),
             bottom: stand.room - stand.redZoneLine,
             top: desktop
               ? // Up from under the ticker, as the starters list is; down, sunk to the line it stands on.
@@ -777,14 +795,11 @@ export default function DashboardPage() {
   const floorControls = mapShown ? (
     <FloorCameraControls
       store={floorCamera}
-      globe={globeCamera}
-      place={stand.globe}
-      games={games}
+      map={mapCamera}
+      place={stand.projector}
       desktop={desktop}
-      clearTo={desktop && startersList ? startersList.getBoundingClientRect().left : undefined}
-      clearFrom={desktop && redZoneUp && redZoneBox ? redZoneBox.getBoundingClientRect().right : undefined}
       redZone={redZoneView ? { on: redZoneUp, onChange: switchRedZone } : undefined}
-      map={mapOut}
+      out={mapOut}
     />
   ) : null;
 
@@ -840,10 +855,10 @@ export default function DashboardPage() {
           risesAtFirst={false}
         />
         {redZoneStage}
-        {mapOut ? <FloorGlobeTags place={stand.globe} games={games} top={stand.globeTop} globe={globeCamera} floor={floorCamera} /> : null}
+        {mapOut ? <FloorProjectionTags place={stand.projector} games={games} top={stand.mapTop} map={mapCamera} floor={floorCamera} /> : null}
         {/* Red Zone plays acted out on the floor, across the whole screen. */}
         {stand ? (
-          <FloorPlay width={stand.globe.width} height={stand.room} share={stand.globe.share} camera={floorCamera} active={redZoneUp} onShown={setFieldOn} />
+          <FloorPlay width={stand.projector.width} height={stand.room} share={stand.projector.share} camera={floorCamera} active={redZoneUp} onShown={setFieldOn} />
         ) : null}
         {floorControls}
       </div>
@@ -902,13 +917,13 @@ export default function DashboardPage() {
         </div>
       </div>
       {mapOut ? (
-        <FloorGlobeTags
-          place={stand.globe}
+        <FloorProjectionTags
+          place={stand.projector}
           games={games}
-          // The countdown over the globe's middle, above the horizon — out of the way of graphs.
+          // The countdown over the map, above the horizon — out of the way of graphs.
           top={stand.horizon - 0.75 * stand.rootPx}
           overhead={graphsBack || redZoneUp ? undefined : <KickoffCountdown kickoffs={kickoffs} />}
-          globe={globeCamera}
+          map={mapCamera}
           floor={floorCamera}
         />
       ) : null}
@@ -918,9 +933,9 @@ export default function DashboardPage() {
           whatever stands on it (see FloorPlay). */}
       {stand ? (
         <FloorPlay
-          width={stand.globe.width}
+          width={stand.projector.width}
           height={stand.room}
-          share={stand.globe.share}
+          share={stand.projector.share}
           camera={floorCamera}
           active={redZoneUp}
           onShown={setFieldOn}
