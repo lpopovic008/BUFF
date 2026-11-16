@@ -174,6 +174,8 @@ export function TradeViewer({
         >
           Replay
         </button>
+        {/* (On the floor, the pieces are placed by their values, whatever the order.) */}
+        {toFloor ? null : (
         <label className="flex items-center gap-1 text-[0.625rem] font-bold uppercase tracking-wide text-ink-muted">
           Sort
           <select
@@ -188,6 +190,7 @@ export function TradeViewer({
             ))}
           </select>
         </label>
+        )}
       </div>
     </div>
   );

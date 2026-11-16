@@ -35,11 +35,10 @@ const FACE_PX = 30;
 
 /**
  * A trade played out on the room's floor: each of the trading teams' lineups a row across the floor from left to
- * right, most valuable first as they're sorted (its name at its left end), the teams one behind the other, each piece
- * a dot in its position's color — and
- * those that change hands their faces (a ring for a pick), named. Each row has a place for everything the team
- * had before the trade or after it, in order, so nothing else moves as it plays: those that change hands go across
- * from their place in one row to the one kept open for them in the other — a dashed ring marking each open place
+ * right, placed by value — the most valuable at the left, the room between any two as wide as the difference in
+ * their values (its name at its left end) — the teams one behind the other, each piece a dot in its position's color
+ * — and those that change hands their faces (a ring for a pick), named. Nothing else moves as it plays: those that
+ * change hands go straight across from their place in one row to the same place, kept open, in the other — a dashed ring marking each open place
  * (where it'll land, then where it left) and an arc from where it stood to where it landed. In front of them,
  * nearest you, the league's trades on a line across the floor by when (see FloorTimeline), the one shown marked, any
  * picked from there. `room`: the screen it's on, its horizon `share` of the way down, the floor's front edge at screen
@@ -56,12 +55,17 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
   const n = Math.max(1, rosters.length);
   const before = rosters.map((r) => [...r.before].sort(order));
   const after = rosters.map((r) => [...r.after].sort(order));
-  // Each row's places: everything the team had before or after, in order — a piece's place in its row the same
-  // before as after, so only what changes hands moves. As many places across as the fullest row needs, the same in
-  // every row, so they line up.
-  const places = rosters.map((r) => [...new Set([...r.before, ...r.after])].sort(order));
-  const placeOf = (lane: number, id: string) => places[lane].indexOf(id);
-  const slots = Math.max(1, ...places.map((l) => l.length));
+  // Each piece's place across its row: by its value, the most valuable at the left, the room between any two as
+  // wide as the difference in their values (on one scale for every row, so a piece that changes hands goes straight
+  // across from its place in one to its place in the other); those with none at the right end.
+  const all = [...new Set(rosters.flatMap((r) => [...r.before, ...r.after]))];
+  const valued = all.map((id) => people.get(id)?.value ?? null).filter((v): v is number => v !== null);
+  const [lowest, highest] = [Math.min(...valued), Math.max(...valued)];
+  const along = (id: string) => {
+    const v = people.get(id)?.value ?? null;
+    if (v === null || !(highest > lowest)) return v === null ? 1 : 0.5;
+    return (highest - v) / (highest - lowest);
+  };
 
   // The floor the lineups lie on: from a little in front of the horizon to the timeline nearest you, each team's row a
   // band of it, the first at the back; and as wide across as the screen lets the nearest row be.
@@ -75,14 +79,14 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
   const rowDepth = (lane: number) => back + band * (lane + 0.5);
   const nearest = rowDepth(n - 1);
   const span = (width * 0.84) / floorScale(nearest);
-  const cell = span / slots;
-  const place = (lane: number, index: number) => {
+  const cell = span / 40;
+  const place = (lane: number, id: string) => {
     const d = rowDepth(lane);
-    const [x, y] = floorPoint(-span / 2 + (index + 0.5) * cell, d, width, height, share);
+    const [x, y] = floorPoint(-span / 2 + along(id) * span, d, width, height, share);
     return { x, y, s: floorScale(d) / floorScale(nearest) };
   };
   const spots = new Map<string, ReturnType<typeof place>>();
-  (played ? after : before).forEach((list, lane) => list.forEach((id) => spots.set(id, place(lane, placeOf(lane, id)))));
+  (played ? after : before).forEach((list, lane) => list.forEach((id) => spots.set(id, place(lane, id))));
   const ids = [...new Set([...before.flat(), ...after.flat()])];
   const colorOf = (id: string) => (people.get(id)?.position === PICK ? "var(--ink-muted)" : (POSITION_COLOR_VAR[people.get(id)?.position ?? ""] ?? "var(--ink-muted)"));
   // Each lineup's name, at its left end.
@@ -97,9 +101,9 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
         {before.flatMap((list, lane) =>
           list.map((id) => {
             if (!moved.has(id)) return null;
-            const from = place(lane, placeOf(lane, id));
+            const from = place(lane, id);
             const toLane = after.findIndex((l) => l.includes(id));
-            const to = toLane >= 0 ? place(toLane, placeOf(toLane, id)) : null;
+            const to = toLane >= 0 ? place(toLane, id) : null;
             const open = played ? from : to;
             const lift = to ? Math.hypot(to.x - from.x, to.y - from.y) * 0.35 : 0;
             return (
