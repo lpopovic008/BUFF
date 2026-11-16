@@ -3,12 +3,12 @@
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { PlateCard } from "@/components/ui/PlateCard";
 import { useLeagueTrades } from "@/hooks/useLeagueTrades";
-import { AnalyzedTrade, filterTrades, TRADE_SORTS, TradeFilter, tradeGap, TradeSide, TradeSort } from "@/lib/trades";
+import { AnalyzedTrade, filterTrades, TRADE_SIDE_COLORS, TRADE_SORTS, TradeFilter, tradeGap, TradeSide, TradeSort } from "@/lib/trades";
 import { TradeViewer } from "@/components/TradeViewer";
 import { shownGrade, valueGrade } from "@/lib/player-values";
 
-// Each side's color: its team's name, its pieces' lines, and its totals.
-const SIDE_COLORS = ["var(--series-1)", "var(--series-2)", "var(--series-5)", "var(--series-3)"];
+// Each side's color (see TRADE_SIDE_COLORS).
+const SIDE_COLORS = TRADE_SIDE_COLORS;
 
 const ADDED =
   "KTC's trade calculator's value adjustment: fewer, better pieces are worth more than the plain sum. Each piece counts for more the closer it is to the trade's best, the side ahead that way is ahead by a player worth the difference, and this evens the plain totals out to match. It's held at its value when traded, so the totals since show how lopsided the trade has become";
@@ -403,6 +403,7 @@ export function TradeAnalyzer({
                     people={data!.people}
                     teams={data!.teams}
                     trades={data!.trades}
+                    valueAt={data!.valueAt}
                     shownId={shownId}
                     onShow={showPicked}
                     narrow
@@ -431,6 +432,7 @@ export function TradeAnalyzer({
           people={data!.people}
           teams={data!.teams}
           trades={data!.trades}
+          valueAt={data!.valueAt}
           renderTrade={(trade) => <TradeCard trade={trade} />}
         />
       </PlateCard>

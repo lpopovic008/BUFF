@@ -6,6 +6,7 @@ import { floorDepth, floorPoint, floorScale } from "@/lib/grid-room";
 import type { TradeRoster } from "@/lib/trade-viewer";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { POSITION_COLOR_VAR } from "@/lib/position-colors";
+import { shownGrade, valueGrade } from "@/lib/player-values";
 
 /** A trade to play out on the room's floor (see FloorTradeMove): the rosters it changed, and what moved. */
 export interface FloorMove {
@@ -17,6 +18,10 @@ export interface FloorMove {
   /** The order each roster's put in. */
   order: (a: string, b: string) => number;
   teamName: (rosterId: number) => string;
+  /** Each piece's value as the trade was made — what it's placed by (else its value now). */
+  valueOf?: (id: string) => number | null;
+  /** Each team's color, by roster id: its name, and the arcs of what it got. */
+  colors?: Map<number, string>;
   /** Every trade on a line across the floor's back, by when (`offset`, as the timeline spaces them), to pick from. */
   timeline?: { trades: { at: number; offset: number }[]; picked: number; onPick: (i: number) => void };
 }
@@ -35,11 +40,12 @@ const FACE_PX = 30;
 
 /**
  * A trade played out on the room's floor: each of the trading teams' lineups a row across the floor from left to
- * right, placed by value — the most valuable at the left, the room between any two as wide as the difference in
+ * right, placed by its value as the trade was made — the most valuable at the left, the room between any two as wide as the difference in
  * their values (its name at its left end) — the teams one behind the other, each piece a dot in its position's color
- * — and those that change hands their faces (a ring for a pick), named. Nothing else moves as it plays: those that
+ * — and those that change hands their faces (a ring for a pick), named with what they were worth then. Nothing else moves as it plays: those that
  * change hands go straight across from their place in one row to the same place, kept open, in the other — a dashed ring marking each open place
- * (where it'll land, then where it left) and an arc from where it stood to where it landed. In front of them,
+ * (where it'll land, then where it left) and an arc, in the color of the team that got it, from where it stood to
+ * where it landed. In front of them,
  * nearest you, the league's trades on a line across the floor by when (see FloorTimeline), the one shown marked, any
  * picked from there. `room`: the screen it's on, its horizon `share` of the way down, the floor's front edge at screen
  * y `bottom`.
@@ -59,10 +65,13 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
   // wide as the difference in their values (on one scale for every row, so a piece that changes hands goes straight
   // across from its place in one to its place in the other); those with none at the right end.
   const all = [...new Set(rosters.flatMap((r) => [...r.before, ...r.after]))];
-  const valued = all.map((id) => people.get(id)?.value ?? null).filter((v): v is number => v !== null);
+  const valueOf = move.valueOf ?? ((id: string) => people.get(id)?.value ?? null);
+  const values = new Map(all.map((id) => [id, valueOf(id)]));
+  const valued = [...values.values()].filter((v): v is number => v !== null);
   const [lowest, highest] = [Math.min(...valued), Math.max(...valued)];
+  const teamColor = (rosterId: number) => move.colors?.get(rosterId) ?? "var(--ink-primary)";
   const along = (id: string) => {
-    const v = people.get(id)?.value ?? null;
+    const v = values.get(id) ?? null;
     if (v === null || !(highest > lowest)) return v === null ? 1 : 0.5;
     return (highest - v) / (highest - lowest);
   };
@@ -104,6 +113,8 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
             const from = place(lane, id);
             const toLane = after.findIndex((l) => l.includes(id));
             const to = toLane >= 0 ? place(toLane, id) : null;
+            // In the color of the team that got it.
+            const arcColor = toLane >= 0 ? teamColor(rosters[toLane].rosterId) : colorOf(id);
             const open = played ? from : to;
             const lift = to ? Math.hypot(to.x - from.x, to.y - from.y) * 0.35 : 0;
             return (
@@ -116,9 +127,9 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
                     className="animate-[fade-in_0.6s_ease-out_0.5s_backwards]"
                     d={`M${from.x},${from.y} Q${(from.x + to.x) / 2},${Math.min(from.y, to.y) - lift} ${to.x},${to.y}`}
                     fill="none"
-                    stroke={colorOf(id)}
+                    stroke={arcColor}
                     strokeWidth={1.5}
-                    strokeOpacity={0.85}
+                    strokeOpacity={0.9}
                   />
                 ) : null}
               </g>
@@ -129,8 +140,8 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
       {lanes.map((lane) => (
         <span
           key={lane.rosterId}
-          className="absolute max-w-[45vw] -translate-y-full truncate whitespace-nowrap text-[0.6875rem] font-extrabold uppercase tracking-wide text-ink-primary"
-          style={{ left: lane.label[0], top: lane.label[1] - 3 }}
+          className="absolute max-w-[45vw] -translate-y-full truncate whitespace-nowrap text-[0.6875rem] font-extrabold uppercase tracking-wide"
+          style={{ left: lane.label[0], top: lane.label[1] - 3, color: teamColor(lane.rosterId) }}
         >
           {teamName(lane.rosterId)}
         </span>
@@ -146,7 +157,7 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
             key={id}
             className={`absolute left-0 top-0 transition-transform duration-700 ease-[cubic-bezier(.6,.05,.25,1)] motion-reduce:transition-none ${going ? "z-10" : ""}`}
             style={{ transform: `translate(${at.x}px, ${at.y}px)` }}
-            title={person?.name ?? id}
+            title={`${person?.name ?? id}${values.get(id) != null ? ` · ${shownGrade(valueGrade(values.get(id)!))} then` : ""}`}
           >
             {going ? (
               // Its face on its row's line, as the dots are; its name hung under it.
@@ -163,6 +174,8 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
                   style={{ scale: Math.max(0.75, at.s), transformOrigin: "top center" }}
                 >
                   {person?.name ?? id}
+                  {/* What it was worth as the trade was made. */}
+                  {values.get(id) != null ? <span className="ml-1 tabular-nums opacity-70">{shownGrade(valueGrade(values.get(id)!))}</span> : null}
                 </span>
               </div>
             ) : (

@@ -23,6 +23,13 @@ export interface DraftResult {
   players: Map<string, string>;
 }
 
+/**
+ * Each side of a trade's color, in its sides' order — its team's name, the lines of what it got, its totals, and
+ * the arcs of what it got on the room's floor: the room's ink (white, or black in light mode), then its yellow (the
+ * ranks'), then quieter ones for a third and a fourth.
+ */
+export const TRADE_SIDE_COLORS = ["var(--ink-primary)", "var(--series-4)", "var(--ink-muted)", "var(--series-3)"];
+
 export interface TradeAsset {
   /** The player's name, or the pick's: "2027 1st". */
   label: string;

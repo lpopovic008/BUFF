@@ -142,6 +142,9 @@ export interface LeagueTrades {
   teams: { rosterId: number; name: string }[];
   /** Weighed in superflex values (else 1QB). */
   superflex: boolean;
+  /** A player's or pick's value on a day (`at`, ms) — a pick's by its year's middle pick in its round then (see the
+   * people's) — null where KTC had none. */
+  valueAt: (id: string, at: number) => number | null;
 }
 
 /** Every trade in a league, across all its seasons, weighed in KTC dynasty value then and now — null if Sleeper doesn't know the league. */
@@ -214,11 +217,11 @@ export async function loadLeagueTrades(leagueId: string, myUserId: string | null
   const teamName = seasons[0]?.teamNames ?? new Map<number, string>();
   const pickSeries = new Map<string, ValueSeries>();
   for (const series of Object.values(history.players)) if (series.p === "RDP") pickSeries.set(series.n, series);
-  const pickValue = (season: number, round: number): number | null => {
+  const pickValue = (season: number, round: number, day = today): number | null => {
     for (let off = 0; off <= 4; off++)
       for (const year of off === 0 ? [season] : [season + off, season - off]) {
         const series = pickSeries.get(`${year} Mid ${ordinal(round)}`);
-        const value = series ? valueOn(history, series, superflex, today) : null;
+        const value = series ? valueOn(history, series, superflex, day) : null;
         if (value !== null) return value;
       }
     return null;
@@ -232,5 +235,14 @@ export async function loadLeagueTrades(leagueId: string, myUserId: string | null
         people.set(id, { name, position: PICK, value: pickValue(season, round), becomes: becomes.get(id) });
       }
   const teams = [...(seasons[0]?.teamNames ?? new Map<number, string>())].map(([rosterId, name]) => ({ rosterId, name })).sort((a, b) => a.rosterId - b.rosterId);
-  return { trades: analyzeTrades(seasons, drafts, history, bySleeperId, players, superflex), teams, superflex, timeline, people };
+  const valueAt = (id: string, at: number): number | null => {
+    const day = dayOf(at);
+    if (isPick(id)) {
+      const [season, round] = id.slice(5).split("-").map(Number);
+      return pickValue(season, round, day);
+    }
+    const series = bySleeperId.get(id);
+    return series ? valueOn(history, series, superflex, day) : null;
+  };
+  return { trades: analyzeTrades(seasons, drafts, history, bySleeperId, players, superflex), teams, superflex, timeline, people, valueAt };
 }

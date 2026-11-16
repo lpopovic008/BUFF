@@ -4,7 +4,7 @@ import { CSSProperties, ReactNode, useContext, useEffect, useLayoutEffect, useMe
 import { TradeFloorContext } from "@/components/FloorTradeMove";
 import { TimelineColumn } from "@/lib/roster-timeline";
 import { PICK, TimelinePlayer } from "@/lib/league-trades";
-import { AnalyzedTrade } from "@/lib/trades";
+import { AnalyzedTrade, TRADE_SIDE_COLORS } from "@/lib/trades";
 import { timelineSpots, trackOffsets, TradeRoster, tradeRosters } from "@/lib/trade-viewer";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { POSITION_COLOR_VAR, POSITION_TEXT_COLOR } from "@/lib/position-colors";
@@ -86,6 +86,7 @@ export function TradeViewer({
   shownId = null,
   onShow,
   narrow = false,
+  valueAt,
 }: {
   timeline: TimelineColumn[];
   people: Map<string, TimelinePlayer>;
@@ -98,6 +99,8 @@ export function TradeViewer({
   onShow?: (tradeId: string) => void;
   /** In a narrow column: the timeline one strip across every year, as on a phone. */
   narrow?: boolean;
+  /** A player's or pick's value on a day — on the floor, each piece's as the trade was made. */
+  valueAt?: (id: string, at: number) => number | null;
 }) {
   // A column for each trade, oldest first — just after it, and the move it made.
   const columns = useMemo(() => timeline.filter((c) => c.kind === "trade" && c.move), [timeline]);
@@ -148,6 +151,9 @@ export function TradeViewer({
       people,
       order: (SORTS.find((s) => s.id === sortId) ?? SORTS[0]).order(people),
       teamName: (rosterId) => teams.find((t) => t.rosterId === rosterId)?.name ?? `Team ${rosterId}`,
+      // Each piece's value as the trade was made; each team's color, as the trade's card has it.
+      valueOf: (id) => (valueAt ? valueAt(id, column.at) : (people.get(id)?.value ?? null)),
+      colors: new Map((trade?.sides ?? []).map((side, i) => [side.rosterId, TRADE_SIDE_COLORS[i % TRADE_SIDE_COLORS.length]])),
       timeline: {
         trades: columns.map((c, i) => ({ at: c.at, offset: offsets[i] })),
         picked,
