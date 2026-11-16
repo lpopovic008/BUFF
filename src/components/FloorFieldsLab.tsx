@@ -66,14 +66,16 @@ export function FloorFieldsLab({
 }) {
   const [picked, setPicked] = useState(() => MATCHUPS.map((_, i) => i % FIELD_SCENARIOS.length));
   const [plays, setPlays] = useState<({ id: string; text: string } | null)[]>(() => MATCHUPS.map(() => null));
-  const count = useRef(0);
-  const games = useMemo(() => MATCHUPS.map((_, i) => benchGame(i, picked[i], plays[i])), [picked, plays]);
+  const made = useRef(0);
+  // How many games are on (the first so many), to see how the floor's laid out for each.
+  const [count, setCount] = useState(MATCHUPS.length);
+  const games = useMemo(() => MATCHUPS.slice(0, count).map((_, i) => benchGame(i, picked[i], plays[i])), [picked, plays, count]);
 
   // A field's play acted out: a new latest play for its game.
   const play = (i: number, scenario = picked[i]) => {
     const [away, home] = MATCHUPS[i];
-    count.current += 1;
-    setPlays((was) => was.map((p, k) => (k === i ? { id: `bench-${i}-${count.current}`, text: scenarioText(FIELD_SCENARIOS[scenario], away, home) } : p)));
+    made.current += 1;
+    setPlays((was) => was.map((p, k) => (k === i ? { id: `bench-${i}-${made.current}`, text: scenarioText(FIELD_SCENARIOS[scenario], away, home) } : p)));
   };
   // A field's play changed: its line moved to where the new one's snapped first, then the play.
   const [queued, setQueued] = useState<number | null>(null);
@@ -102,9 +104,19 @@ export function FloorFieldsLab({
       >
         <div className="col-span-full flex items-baseline justify-between text-ink-muted">
           <span className="font-semibold uppercase tracking-wide text-ink-primary">Play test</span>
+          <label className="flex items-center gap-1.5">
+            Games
+            <select value={count} onChange={(e) => setCount(Number(e.target.value))} className="border border-border bg-page px-1 py-0.5 text-ink-primary">
+              {MATCHUPS.map((_, i) => (
+                <option key={i} value={i + 1}>
+                  {i + 1}
+                </option>
+              ))}
+            </select>
+          </label>
           <span>Click a field to play it again · {FIELD_SCENARIOS.length} plays</span>
         </div>
-        {[6, 7, 8, 3, 4, 5, 0, 1, 2].map((i) => (
+        {[6, 7, 8, 3, 4, 5, 0, 1, 2].filter((i) => i < count).map((i) => (
           <label key={i} className="flex min-w-0 items-center gap-1.5">
             <span className="w-16 shrink-0 text-ink-muted">
               {MATCHUPS[i][0]}@{MATCHUPS[i][1]}

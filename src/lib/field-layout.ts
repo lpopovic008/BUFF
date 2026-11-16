@@ -42,6 +42,9 @@ export interface FieldFloor {
   right: number;
   front: number;
   back: number;
+  /** Where one field on its own lies (screen y of its near sideline): given, the rows of fields are laid around its
+   * middle (see layAround) — not from the floor's front. */
+  anchor?: number;
 }
 
 /** How far back a row of fields `yard` floor px a yard reaches. */
@@ -53,7 +56,7 @@ const rowDepth = (yard: number) => FIELD_WIDE * yard;
  * Each row's fields side by side across its middle. Null if there's no floor to lay them on.
  */
 export function layRows(rows: number[], floor: FieldFloor, most = Infinity): FieldSpot[][] | null {
-  const { width, height, share, left, right, front, back } = floor;
+  const { height, share, left, right, front, back } = floor;
   const room = right - left;
   if (rows.length === 0 || room <= 0 || front <= back) return null;
   const nearest = floorDepth(front, height, share);
@@ -64,25 +67,67 @@ export function layRows(rows: number[], floor: FieldFloor, most = Infinity): Fie
   const fits = (yard: number) => {
     const at = nears(yard);
     if (at[at.length - 1] - rowDepth(yard) < farthest) return false;
-    return rows.every((n, i) => (n * FIELD_LONG + (n - 1) * FIELD_LONG * COLUMN_GAP) * yard * floorScale(at[i]) <= room);
+    return rows.every((n, i) => rowWide(n, yard) * floorScale(at[i]) <= room);
   };
   let [lo, hi] = [0, Math.min(most, room / FIELD_LONG)];
   if (!fits(1e-6)) return null;
   if (fits(hi)) lo = hi;
   else for (let k = 0; k < 40; k++) [lo, hi] = fits((lo + hi) / 2) ? [(lo + hi) / 2, hi] : [lo, (lo + hi) / 2];
-  const yard = lo;
+  return spotsOf(rows, nears(lo), lo, floor);
+}
+
+/** Each row's fields, its near sideline `near[i]` back, side by side across the floor's middle. */
+function spotsOf(rows: number[], nears: number[], yard: number, { width, left, right }: FieldFloor): FieldSpot[][] {
   const middle = (left + right) / 2 - width / 2;
-  return nears(yard).map((near, i) => {
+  const step = FIELD_LONG * yard * (1 + COLUMN_GAP);
+  return nears.map((near, i) => {
     const n = rows[i];
-    const step = FIELD_LONG * yard * (1 + COLUMN_GAP);
     const center = middle / floorScale(near);
     return Array.from({ length: n }, (_, k) => ({ across: center + (k - (n - 1) / 2) * step, near, yard }));
   });
 }
 
-/** Every field's spot, in order: the nearest row's first (left to right), then the next row's. */
+/** How wide a row of `n` fields is, across the floor (floor px), `yard` px a yard. */
+const rowWide = (n: number, yard: number) => (n * FIELD_LONG + (n - 1) * FIELD_LONG * COLUMN_GAP) * yard;
+
+/**
+ * `rows` of fields laid around the middle of the floor: where one field on its own lies — its near sideline on
+ * `anchor`, from one side of the floor to the other — its middle. Two rows either side of it, the gap between them
+ * there, both within the floor across; three, the middle one on it, from one side to the other (the nearest wider, out
+ * past the floor's sides). As large as that allows, none of them past the floor's front or back. Null with no floor.
+ */
+export function layAround(rows: number[], floor: FieldFloor, anchor: number): FieldSpot[][] | null {
+  const { height, share, left, right, front, back } = floor;
+  const one = layRows([1], { ...floor, front: Math.min(anchor, front) })?.[0]?.[0];
+  if (!one || rows.length === 0) return null;
+  if (rows.length === 1 && rows[0] === 1) return [[one]];
+  const middle = one.near - rowDepth(one.yard) / 2;
+  const nearest = floorDepth(front, height, share);
+  const farthest = floorDepth(back, height, share);
+  const room = right - left;
+  // Each row's near sideline, the rows as a whole centered on the middle.
+  const nears = (yard: number) => {
+    const deep = rows.length * rowDepth(yard) + (rows.length - 1) * rowDepth(yard) * ROW_GAP;
+    return rows.map((_, i) => middle + deep / 2 - i * rowDepth(yard) * (1 + ROW_GAP));
+  };
+  // The rows that must be within the floor across: all of them — but with three, not the nearest.
+  const held = rows.map((_, i) => rows.length < 3 || i > 0);
+  const fits = (yard: number) => {
+    const at = nears(yard);
+    if (at[0] > nearest || at[at.length - 1] - rowDepth(yard) < farthest) return false;
+    return rows.every((n, i) => !held[i] || rowWide(n, yard) * floorScale(at[i]) <= room);
+  };
+  let [lo, hi] = [0, room / FIELD_LONG];
+  if (!fits(1e-6)) return null;
+  for (let k = 0; k < 40; k++) [lo, hi] = fits((lo + hi) / 2) ? [(lo + hi) / 2, hi] : [lo, (lo + hi) / 2];
+  return spotsOf(rows, nears(lo), lo, floor);
+}
+
+/** Every field's spot, in order: the nearest row's first (left to right), then the next row's — laid around the
+ * floor's middle given its `anchor` (see layAround), or from its front. */
 export function layFields(count: number, floor: FieldFloor): FieldSpot[] {
-  return layRows(fieldRows(count), floor)?.flat() ?? [];
+  const rows = fieldRows(count);
+  return (floor.anchor !== undefined ? layAround(rows, floor, floor.anchor) : layRows(rows, floor))?.flat() ?? [];
 }
 
 /**

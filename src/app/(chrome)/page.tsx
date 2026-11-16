@@ -319,7 +319,7 @@ export default function DashboardPage() {
     /** The line on the floor the Red Zone comes up out of (see redZoneStage). */
     redZoneLine: number;
     /** The floor live games' fields are laid on (see FloorFields): across, and from its front back to its back. */
-    fields: { left: number; right: number; front: number; back: number };
+    fields: { left: number; right: number; front: number; back: number; anchor?: number };
     rootPx: number;
   } | null>(null);
   // The room's only drawn once the leagues are in (not while the page is loading), so it's measured once it is.
@@ -356,10 +356,11 @@ export default function DashboardPage() {
       setStand({
         room: height,
         redZoneLine,
-        // From tablet width up, between the Red Zone's column and the starters list's, right down to the screen's
-        // bottom; on a phone, across the screen, down to the Red Zone's switch.
+        // From tablet width up, between the Red Zone's column and the starters list's, laid around the middle of the
+        // floor — where one game's field lies, a box up from the screen's bottom, on the floor's lowest grid line (see
+        // layAround); on a phone, across the screen, down to the Red Zone's switch.
         fields: desk
-          ? { left: column + 2 * rootPx, right: width - column - 2 * rootPx, front: height - 0.75 * rootPx, back: horizonY + 0.5 * rootPx }
+          ? { left: column + 2 * rootPx, right: width - column - 2 * rootPx, front: height - 0.75 * rootPx, back: horizonY + 0.5 * rootPx, anchor: lowestGridLine(height) }
           : { left: rootPx, right: width - rootPx, front: redZoneLine - 0.5 * rootPx, back: horizonY + 0.25 * rootPx },
         on: height - lowestGridLine(height),
         horizon: height * HORIZON_SHARE,

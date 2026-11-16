@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { FIELD_LONG, FIELD_WIDE, fieldRows, FieldSpot, layFields, layFocused } from "./field-layout";
-import { floorDepth, floorScale, HORIZON_SHARE } from "./grid-room";
+import { floorDepth, floorScale, HORIZON_SHARE, lowestGridLine } from "./grid-room";
 
 test("rows of fields: as many in each, the nearer ones one more where they can't be; a third row from seven", () => {
   assert.deepEqual(fieldRows(0), []);
@@ -53,6 +53,53 @@ test("more games: smaller fields, all the same size, rows going back — never o
   const two = layFields(2, desk);
   assert.ok(two[1].near < two[0].near);
   assert.ok(Math.abs(two[0].yard - layFields(1, desk)[0].yard) < 1e-9);
+});
+
+// From tablet width up: laid around the middle of the floor, one game's field a box up from the screen's bottom.
+const middle = { ...desk, anchor: lowestGridLine(desk.height, desk.share) };
+const mid = (s: FieldSpot) => s.near - (FIELD_WIDE * s.yard) / 2;
+const fitsAcross = (s: FieldSpot, floor = desk) => {
+  const half = across(s) / 2;
+  const at = floor.width / 2 + s.across * floorScale(s.near);
+  return at - half >= floor.left - 1 && at + half <= floor.right + 1;
+};
+
+test("around the middle: one game a box up from the front, across the floor; two rows either side of its middle", () => {
+  const [one] = layFields(1, middle);
+  assert.ok(Math.abs(one.near - floorDepth(middle.anchor, desk.height, desk.share)) < 1e-6);
+  assert.ok(Math.abs(across(one) - (desk.right - desk.left)) < 1);
+  const center = mid(one);
+  for (const n of [2, 3, 4, 5, 6]) {
+    const spots = layFields(n, middle);
+    assert.equal(spots.length, n);
+    const nears = [...new Set(spots.map((s) => s.near))];
+    assert.equal(nears.length, 2);
+    // The gap between the rows on the middle.
+    const gapMid = (nears[0] - FIELD_WIDE * spots[0].yard + nears[1]) / 2;
+    assert.ok(Math.abs(gapMid - center) < 1e-6, `${n}`);
+    assert.ok(spots.every((s) => fitsAcross(s)), `${n}`);
+  }
+});
+
+test("around the middle: three rows, the middle one on it from one side of the floor to the other, the nearest wider", () => {
+  const center = mid(layFields(1, middle)[0]);
+  for (const n of [7, 8, 9]) {
+    const spots = layFields(n, middle);
+    assert.equal(spots.length, n);
+    const rows = [...new Set(spots.map((s) => s.near))];
+    assert.equal(rows.length, 3);
+    const second = spots.filter((s) => s.near === rows[1]);
+    assert.ok(Math.abs(mid(second[0]) - center) < 1e-6, `${n}`);
+    // Never past the floor's front or back.
+    assert.ok(rows[0] <= floorDepth(desk.front, desk.height, desk.share) + 1e-6);
+    assert.ok(rows[2] - FIELD_WIDE * spots[0].yard >= floorDepth(desk.back, desk.height, desk.share) - 1e-6);
+  }
+  // Nine: the middle row from one side to the other; the nearest out past them.
+  const nine = layFields(9, middle);
+  const [near, mid2] = [nine.slice(0, 3), nine.slice(3, 6)];
+  const span = (row: FieldSpot[]) => (FIELD_LONG * row.length + FIELD_LONG * 0.12 * (row.length - 1)) * row[0].yard * floorScale(row[0].near);
+  assert.ok(Math.abs(span(mid2) - (desk.right - desk.left)) < 1);
+  assert.ok(span(near) > desk.right - desk.left);
 });
 
 test("a phone: the game in view as big however many there are, the rest smaller behind it", () => {
