@@ -10,7 +10,7 @@ import { HORIZON_SHARE, lowestGridLine } from "@/lib/grid-room";
 import { FloorGrid } from "@/components/FloorGrid";
 import { FloorCameraControls, RED_ZONE_PLAYS_AT_MS, RED_ZONE_PLAYS_MS, RED_ZONE_SINK_MS } from "@/components/FloorCameraControls";
 import { FloorReflection } from "@/components/FloorReflection";
-import { FloorPlay } from "@/components/FloorPlay";
+import { FloorFields } from "@/components/FloorFields";
 import { ScrollThumb } from "@/components/ScrollThumb";
 import { useListScroll } from "@/hooks/useListScroll";
 import { createFloorCameraStore } from "@/lib/floor-camera";
@@ -314,6 +314,8 @@ export default function DashboardPage() {
     mapTop: number;
     /** The line on the floor the Red Zone comes up out of (see redZoneStage). */
     redZoneLine: number;
+    /** The floor live games' fields are laid on (see FloorFields): across, and from its front back to its back. */
+    fields: { left: number; right: number; front: number; back: number };
     rootPx: number;
   } | null>(null);
   // The room's only drawn once the leagues are in (not while the page is loading), so it's measured once it is.
@@ -345,10 +347,16 @@ export default function DashboardPage() {
             highest: Math.max(height * 0.24, (parseFloat(css.getPropertyValue("--header-h")) || 0) + (parseFloat(css.getPropertyValue("--ticker-h")) || 0) + 3 * rootPx),
           })
         : fitProjector({ width, height, share: HORIZON_SHARE, centerX: width / 2, bottom: height - tabBar, maxWidth: width - 2 * rootPx, highest: horizonY });
+      // Its switch's top: 0.75rem off the bottom (or a phone's tab bar), and 2.5rem tall.
+      const redZoneLine = height - (desk ? 0 : tabBar) - 3.25 * rootPx;
       setStand({
         room: height,
-        // Its switch's top: 0.75rem off the bottom (or a phone's tab bar), and 2.5rem tall.
-        redZoneLine: height - (desk ? 0 : tabBar) - 3.25 * rootPx,
+        redZoneLine,
+        // From tablet width up, between the Red Zone's column and the starters list's, right down to the screen's
+        // bottom; on a phone, across the screen, down to the Red Zone's switch.
+        fields: desk
+          ? { left: column + 2 * rootPx, right: width - column - 2 * rootPx, front: height - 0.75 * rootPx, back: horizonY + 0.5 * rootPx }
+          : { left: rootPx, right: width - rootPx, front: redZoneLine - 0.5 * rootPx, back: horizonY + 0.25 * rootPx },
         on: height - lowestGridLine(height),
         horizon: height * HORIZON_SHARE,
         projector,
@@ -431,8 +439,6 @@ export default function DashboardPage() {
   // Stretched over the horizon (all the way, or dragged there): the starters list (on a phone) and the graphs (wider)
   // out of its way.
   const redZoneTall = redZoneFull || (redZoneDragTop !== null && stand !== null && redZoneDragTop < stand.horizon);
-  // A play's field on the floor, its grid gone from under it (see FloorPlay) — till it's tapped away.
-  const [fieldOn, setFieldOn] = useState(false);
   // The play by the graph's cursor, shown in the Red Zone while the cursor's up.
   const [spotlight, setSpotlight] = useState<{ gameId: string; playId: string } | null>(null);
   const unpickGraph = (playerId: string) =>
@@ -587,6 +593,17 @@ export default function DashboardPage() {
     () => mappedGames.filter((g) => !hiddenBlocks.has(kickoffBlockLabel(g.game)) && !offMap.has(g.game.id)),
     [mappedGames, hiddenBlocks, offMap]
   );
+  // The games being played (of those), each on a field of its own on the floor (see FloorFields) — on a phone, laid in
+  // front of the Red Zone's switch, or above the Red Zone while it's up (none, stretched up over the floor).
+  const liveGames = useMemo(() => games.filter((g) => g.game.state === "in").map((g) => g.game), [games]);
+  const fieldsFloor = useMemo(() => {
+    if (!stand) return null;
+    if (desktop || !redZoneUp) return stand.fields;
+    const top =
+      redZoneDragTop ??
+      (redZoneLevel === 0 ? stand.redZoneLine - (RED_ZONE_REM + RED_ZONE_FLOAT_REM) * stand.rootPx : redZoneLevel === 1 ? stand.horizon : 0);
+    return { ...stand.fields, front: Math.min(stand.fields.front, top - 0.5 * stand.rootPx) };
+  }, [stand, desktop, redZoneUp, redZoneDragTop, redZoneLevel]);
   // The floor, slid toward you for the Red Zone; and the projected map moved and zoomed in its frame (see
   // FloorCameraControls), at home on the next games to kick off.
   const [floorCamera] = useState(createFloorCameraStore);
@@ -663,8 +680,7 @@ export default function DashboardPage() {
       className="grid-room"
       style={{ ["--horizon" as string]: `${horizon * 100}%` }}
     >
-      {/* Gone while a play's field lines the floor instead (see FloorPlay). */}
-      <FloorGrid share={horizon} camera={floorCamera} hidden={fieldOn} />
+      <FloorGrid share={horizon} camera={floorCamera} />
       {mapOut ? <FloorProjection place={stand.projector} games={games} map={mapCamera} floor={floorCamera} /> : null}
     </div>
   );
@@ -858,9 +874,9 @@ export default function DashboardPage() {
         />
         {redZoneStage}
         {mapOut ? <FloorProjectionTags place={stand.projector} games={games} top={stand.mapTop} map={mapCamera} floor={floorCamera} /> : null}
-        {/* Red Zone plays acted out on the floor, across the whole screen. */}
-        {stand ? (
-          <FloorPlay width={stand.projector.width} height={stand.room} share={stand.projector.share} camera={floorCamera} active={redZoneUp} onShown={setFieldOn} />
+        {/* The games being played, the one in view across the floor's front, the rest behind it. */}
+        {stand && fieldsFloor ? (
+          <FloorFields games={liveGames} width={stand.projector.width} height={stand.room} share={stand.projector.share} floor={fieldsFloor} focused />
         ) : null}
         {floorControls}
       </div>
@@ -931,18 +947,9 @@ export default function DashboardPage() {
       ) : null}
       {/* Its reflection: what's at its foot, in the floor. */}
       <FloorReflection source={startersList} className="pb-16" style={{ paddingTop: `calc(${UNDER_TICKER})` }} />
-      {/* Red Zone plays acted out right across the floor, the floor's grid their field, in the middle of the screen —
-          whatever stands on it (see FloorPlay). */}
-      {stand ? (
-        <FloorPlay
-          width={stand.projector.width}
-          height={stand.room}
-          share={stand.projector.share}
-          camera={floorCamera}
-          // (Not over the map, while it's out.)
-          active={redZoneUp && !mapOut}
-          onShown={setFieldOn}
-        />
+      {/* The games being played, a field each, on the floor between the Red Zone and the starters list. */}
+      {stand && fieldsFloor ? (
+        <FloorFields games={liveGames} width={stand.projector.width} height={stand.room} share={stand.projector.share} floor={fieldsFloor} />
       ) : null}
       {redZoneStage}
       {floorControls}

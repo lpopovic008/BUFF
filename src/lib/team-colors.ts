@@ -7,15 +7,6 @@ export function teamColor(team: string): string {
   return HOME[team]?.[1] ?? "var(--ink-primary)";
 }
 
-/** A team's uniform as a pixel player on the floor wears it (see FloorPlay): helmet, jersey, its numbers, pants, socks. */
-export interface Uniform {
-  helmet: string;
-  jersey: string;
-  numbers: string;
-  pants: string;
-  socks: string;
-}
-
 // Each team's home uniform as of the 2026 season: its helmet, its colored jersey and the numbers on it, and its pants.
 // On the road, the jersey's white and its numbers the team's color.
 const HOME: Record<string, [helmet: string, jersey: string, numbers: string, pants: string]> = {
@@ -55,12 +46,3 @@ const HOME: Record<string, [helmet: string, jersey: string, numbers: string, pan
   WAS: ["#5a1414", "#5a1414", "#ffb612", "#ffb612"],
 };
 
-/** The uniform a team wears on the floor: its colors at home, white on the road (a team it doesn't know, gray). */
-export function uniformFor(team: string, home: boolean): Uniform {
-  const [helmet, jersey, numbers, pants] = HOME[team] ?? ["#8a8a8a", "#5a5a5a", "#ffffff", "#bdbdbd"];
-  if (home) return { helmet, jersey, numbers, pants, socks: jersey };
-  // On the road: a white jersey, the numbers in the home jersey's color (its numbers' color when the jersey's black).
-  const dark = jersey === "#101820" || jersey === "#0b162a" || jersey === "#03202f";
-  const away = dark && numbers !== "#ffffff" ? numbers : jersey;
-  return { helmet, jersey: "#f2f2f2", numbers: away, pants, socks: away };
-}

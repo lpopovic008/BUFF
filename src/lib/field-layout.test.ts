@@ -1,0 +1,72 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { FIELD_LONG, FIELD_WIDE, fieldRows, FieldSpot, layFields, layFocused } from "./field-layout";
+import { floorDepth, floorScale, HORIZON_SHARE } from "./grid-room";
+
+test("rows of fields: as many in each, the nearer ones one more where they can't be; a third row from seven", () => {
+  assert.deepEqual(fieldRows(0), []);
+  assert.deepEqual(fieldRows(1), [1]);
+  assert.deepEqual(fieldRows(2), [1, 1]);
+  assert.deepEqual(fieldRows(3), [2, 1]);
+  assert.deepEqual(fieldRows(4), [2, 2]);
+  assert.deepEqual(fieldRows(5), [3, 2]);
+  assert.deepEqual(fieldRows(6), [3, 3]);
+  assert.deepEqual(fieldRows(7), [3, 2, 2]);
+  assert.deepEqual(fieldRows(8), [3, 3, 2]);
+  assert.deepEqual(fieldRows(9), [3, 3, 3]);
+  // No more than nine.
+  assert.deepEqual(fieldRows(12), [3, 3, 3]);
+});
+
+const desk = { width: 1440, height: 900, share: HORIZON_SHARE, left: 320, right: 1120, front: 888, back: 512 };
+const across = (s: FieldSpot) => FIELD_LONG * s.yard * floorScale(s.near);
+
+test("one game: front and center, from one side of the floor to the other", () => {
+  const [one] = layFields(1, desk);
+  assert.ok(Math.abs(one.across) < 1e-6);
+  assert.ok(Math.abs(one.near - floorDepth(desk.front, desk.height, desk.share)) < 1e-6);
+  assert.ok(Math.abs(across(one) - (desk.right - desk.left)) < 1);
+});
+
+test("more games: smaller fields, all the same size, rows going back — never overlapping, all on the floor", () => {
+  let last = Infinity;
+  for (let n = 1; n <= 9; n++) {
+    const spots = layFields(n, desk);
+    assert.equal(spots.length, n);
+    const yard = spots[0].yard;
+    assert.ok(spots.every((s) => Math.abs(s.yard - yard) < 1e-9));
+    assert.ok(yard <= last + 1e-9, `${n}`);
+    last = yard;
+    const back = floorDepth(desk.back, desk.height, desk.share);
+    for (const s of spots) {
+      assert.ok(s.near - FIELD_WIDE * s.yard >= back - 1e-6);
+      // Within the floor across, at its near sideline.
+      const half = across(s) / 2;
+      const mid = desk.width / 2 + s.across * floorScale(s.near);
+      assert.ok(mid - half >= desk.left - 1 && mid + half <= desk.right + 1, `${n}`);
+    }
+    // Rows don't overlap: each farther row's near sideline behind the one in front's far sideline.
+    const nears = [...new Set(spots.map((s) => s.near))];
+    for (let i = 1; i < nears.length; i++) assert.ok(nears[i] < nears[i - 1] - FIELD_WIDE * yard);
+  }
+  // Two games: one near, one far, as big as one.
+  const two = layFields(2, desk);
+  assert.ok(two[1].near < two[0].near);
+  assert.ok(Math.abs(two[0].yard - layFields(1, desk)[0].yard) < 1e-9);
+});
+
+test("a phone: the game in view as big however many there are, the rest smaller behind it", () => {
+  const phone = { width: 393, height: 852, share: HORIZON_SHARE, left: 16, right: 377, front: 722, back: 481 };
+  const one = layFocused(1, phone);
+  for (let n = 2; n <= 9; n++) {
+    const spots = layFocused(n, phone);
+    assert.equal(spots.length, n, `${n}`);
+    assert.deepEqual(spots[0], one[0]);
+    for (const s of spots.slice(1)) {
+      assert.ok(s.yard < spots[0].yard);
+      assert.ok(s.near < spots[0].near - FIELD_WIDE * spots[0].yard);
+    }
+  }
+  // No floor, no fields.
+  assert.deepEqual(layFocused(3, { ...phone, front: phone.back }), []);
+});
