@@ -43,6 +43,8 @@ interface Row {
 // KTC's positions as Sleeper names them, for finding a player's photo.
 const SLEEPER_POSITION: Record<string, string> = { PK: "K", DST: "DEF" };
 
+/** A side column's width from laptop width up: the home page's side columns'. */
+const SIDE = "w-64 shrink-0 lg:w-72";
 /** How many cards are drawn at most. */
 const MOST_CARDS = 300;
 
@@ -287,18 +289,39 @@ export default function ValuesPage() {
       onCloseCard={() => setCard(null)}
       floor={picked && floorMove ? (room) => <FloorTradeMove key={floorMove.key} move={floorMove} room={room} /> : null}
     >
-      {desktop ? (
-        // Three columns, the middle one wider (as the League Room's); a team's trades taking the left one too.
-        <>
-          {picked ? null : (
-            <RoomColumn label="What the cards show" style={{ flex: "1 1 0%" }}>
-              {filters}
-            </RoomColumn>
+      {desktop && picked ? (
+        // A team's trades: the timeline (and the filters) on the left, the cards scrolled through in the middle — the
+        // one read there the trade shown on the timeline and the floor — and the leagues on the right; spaced as the
+        // home page's three columns are, the sides as wide as its.
+        <TradeAnalyzer
+          key={picked.leagueId}
+          leagueId={picked.leagueId}
+          leagueName={picked.leagueName}
+          sleeperUserId={config.sleeperUserId}
+          layout={({ timeline, cards }) => (
+            <>
+              <RoomColumn label={`${picked.leagueName}: trade timeline`} className={SIDE}>
+                {timeline}
+              </RoomColumn>
+              <RoomColumn label={`${picked.leagueName}: trades`} className="flex-1" stage>
+                {cards}
+              </RoomColumn>
+              <RoomColumn label="All players and your teams" className={SIDE}>
+                {picks}
+              </RoomColumn>
+            </>
           )}
-          <RoomColumn label={picked ? `${picked.leagueName}: trades` : "Players"} stage style={{ flex: picked ? "2.6 1 0%" : "1.6 1 0%" }}>
+        />
+      ) : desktop ? (
+        // Three columns, spaced as the home page's are: what the cards show, the cards, and the leagues.
+        <>
+          <RoomColumn label="What the cards show" className={SIDE}>
+            {filters}
+          </RoomColumn>
+          <RoomColumn label="Players" className="flex-1" stage>
             {main}
           </RoomColumn>
-          <RoomColumn label="All players and your teams" style={{ flex: "1 1 0%" }}>
+          <RoomColumn label="All players and your teams" className={SIDE}>
             {picks}
           </RoomColumn>
         </>

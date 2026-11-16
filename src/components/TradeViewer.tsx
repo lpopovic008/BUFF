@@ -83,23 +83,36 @@ export function TradeViewer({
   teams,
   trades,
   renderTrade,
+  shownId = null,
+  onShow,
+  narrow = false,
 }: {
   timeline: TimelineColumn[];
   people: Map<string, TimelinePlayer>;
   teams: { rosterId: number; name: string }[];
   trades: AnalyzedTrade[];
-  renderTrade: (trade: AnalyzedTrade) => ReactNode;
+  /** The trade's card, under its rosters — none where the cards are shown elsewhere. */
+  renderTrade?: (trade: AnalyzedTrade) => ReactNode;
+  /** The trade shown, where it's picked from elsewhere too (the cards scrolled through): told when one's picked here. */
+  shownId?: string | null;
+  onShow?: (tradeId: string) => void;
+  /** In a narrow column: the timeline one strip across every year, as on a phone. */
+  narrow?: boolean;
 }) {
   // A column for each trade, oldest first — just after it, and the move it made.
   const columns = useMemo(() => timeline.filter((c) => c.kind === "trade" && c.move), [timeline]);
   const spots = useMemo(() => timelineSpots(columns.map((c) => c.at)), [columns]);
   const years = useMemo(() => [...new Set(spots.map((s) => s.year))], [spots]);
-  const [picked, setPicked] = useState(columns.length - 1);
+  const [ownPick, setOwnPick] = useState(columns.length - 1);
+  // The trade shown from elsewhere, where it's on the timeline; else the one picked here.
+  const shownAt = shownId != null ? columns.findIndex((c) => c.tradeId === shownId) : -1;
+  const picked = shownAt >= 0 ? shownAt : ownPick;
   const [sortId, setSortId] = useState(SORTS[0].id);
   // Bumped to play the picked trade over again.
   const [replays, setReplays] = useState(0);
-  // The year on the timeline: the picked trade's, till another's swiped to.
-  const [shownYear, setShownYear] = useState(() => spots[columns.length - 1]?.year);
+  // The year on the timeline: the picked trade's, till another's swiped to (while that trade's picked).
+  const [turned, setTurned] = useState<{ year: number | undefined; at: number } | null>(null);
+  const shownYear = turned && turned.at === picked ? turned.year : spots[picked]?.year;
 
   const column = columns[picked];
   const trade = column?.tradeId ? trades.find((t) => t.id === column.tradeId) : undefined;
@@ -108,16 +121,18 @@ export function TradeViewer({
   const yearAt = Math.max(0, years.indexOf(shownYear ?? years[years.length - 1]));
   const pick = (i: number) => {
     const next = Math.max(0, Math.min(columns.length - 1, i));
-    setPicked(next);
-    setShownYear(spots[next]?.year);
+    setOwnPick(next);
+    setTurned(null);
+    const id = columns[next]?.tradeId;
+    if (id) onShow?.(id);
   };
   // The arrows, and the arrow keys while the viewer has focus, step through the trades.
   const step = (by: number) => pick(picked + by);
-  const turnYear = (by: number) => setShownYear(years[Math.max(0, Math.min(years.length - 1, yearAt + by))]);
+  const turnYear = (by: number) => setTurned({ year: years[Math.max(0, Math.min(years.length - 1, yearAt + by))], at: picked });
   // A swipe across the timeline, or a sideways scroll on it, turns to the next year or the last.
   const swipe = useRef<number | null>(null);
   const wheel = useRef({ sum: 0, at: 0 });
-  const phone = usePhone();
+  const phone = usePhone() || narrow;
   const offsets = useMemo(() => trackOffsets(columns.map((c) => c.at), TRACK_GAP_PX), [columns]);
 
   // On the room's floor, where there's one: the trade shown, played afresh each trade and each replay.
@@ -238,7 +253,7 @@ export function TradeViewer({
         // The rosters on the floor: here, just the way to play them again, and the card.
         <div className="flex min-w-0 flex-col gap-2">
           {controls}
-          {trade ? <ol>{renderTrade(trade)}</ol> : null}
+          {trade && renderTrade ? <ol>{renderTrade(trade)}</ol> : null}
         </div>
       ) : (
       <div className="grid gap-3 md:grid-cols-2 md:items-start">
@@ -256,7 +271,7 @@ export function TradeViewer({
           />
         </div>
         {/* Its card. */}
-        <div className="min-w-0">{trade ? <ol>{renderTrade(trade)}</ol> : null}</div>
+        <div className="min-w-0">{trade && renderTrade ? <ol>{renderTrade(trade)}</ol> : null}</div>
       </div>
       )}
     </div>

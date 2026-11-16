@@ -230,7 +230,14 @@ export function useListScroll(el: HTMLElement | null) {
             notchTarget = null;
             return false;
           }
+          // Settled where it can go no further (its end, a pixel or two short of where it was measured to be): done,
+          // rather than holding it there for good.
+          const was = at;
           show(next);
+          if (Math.abs(at - was) < 0.01) {
+            notchTarget = null;
+            return false;
+          }
           return true;
         });
       }

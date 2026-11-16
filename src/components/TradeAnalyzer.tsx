@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { PlateCard } from "@/components/ui/PlateCard";
 import { useLeagueTrades } from "@/hooks/useLeagueTrades";
 import { AnalyzedTrade, filterTrades, TRADE_SORTS, TradeAsset, TradeFilter, TradeGap, TradeSide, TradeSort } from "@/lib/trades";
@@ -244,7 +244,7 @@ function TradeCard({ trade }: { trade: AnalyzedTrade }) {
   const values = trade.sides.flatMap((side) => side.got.flatMap((a) => [...a.path.map((p) => p.value ?? 0), a.then ?? 0, a.now ?? 0]));
   const scale: ChartScale = { first: days[0] ?? 0, last: days[days.length - 1] ?? 0, lo: Math.min(...values), hi: Math.max(...values) };
   return (
-    <li className="@container grid grid-cols-[auto_minmax(0,1fr)] gap-2 border border-border p-2 sm:gap-3">
+    <li data-trade-id={trade.id} className="@container grid grid-cols-[auto_minmax(0,1fr)] gap-2 border border-border p-2 sm:gap-3">
       {/* On the left, when the trade was made; under it, the gap between the sides then, at its widest (with when) and now. */}
       <div className="flex min-w-[3.25rem] flex-col items-center gap-3 border-r border-border pr-2 sm:pr-3">
         <span className="text-center text-[0.6875rem] font-semibold uppercase leading-tight tracking-wide text-ink-secondary" title="When the trade was made">
@@ -321,53 +321,139 @@ function TradeFilters({
 const NO_FILTER: TradeFilter = { season: null, team: null, sort: "newest" };
 
 /**
+ * How far down its column the line a trade card's read at is, scrolled to its top: the card across it is the trade
+ * shown. Scrolled further, the line goes on down with it, so it's at the column's foot at its end (and the last card's
+ * read, however short).
+ */
+const READ_AT = 0.3;
+
+/**
  * Every trade in a league, all its seasons, newest first: what each side got, what it was worth when traded
  * and now — in KTC dynasty values (superflex or 1QB, as the league plays), shown as the values page's grades —
  * and each side's haul from the trade to now on a little chart. Filters above find a season's or a team's, and
- * reorder them.
+ * reorder them. Over them, the trades one at a time on a timeline (see TradeViewer).
+ *
+ * `layout`, where it's given, puts the two in columns of their own: the timeline (with the filters under it) and the
+ * cards, scrolled through — the card a little way down its column the trade shown on the timeline (and on the room's
+ * floor), and a trade picked on the timeline scrolled to.
  */
-export function TradeAnalyzer({ leagueId, leagueName, sleeperUserId }: { leagueId: string; leagueName: string; sleeperUserId: string | null }) {
+export function TradeAnalyzer({
+  leagueId,
+  leagueName,
+  sleeperUserId,
+  layout,
+}: {
+  leagueId: string;
+  leagueName: string;
+  sleeperUserId: string | null;
+  layout?: (parts: { timeline: ReactNode; cards: ReactNode }) => ReactNode;
+}) {
   const data = useLeagueTrades(leagueId, sleeperUserId);
   const [filter, setFilter] = useState<TradeFilter>(NO_FILTER);
   const shown = useMemo(() => (data ? filterTrades(data.trades, filter) : []), [data, filter]);
   const filtered = filter.season !== null || filter.team !== null;
+  // The trade shown, in columns: the card read, or the trade picked on the timeline.
+  const [shownId, setShownId] = useState<string | null>(null);
+  const list = useRef<HTMLOListElement>(null);
+  // A trade picked on the timeline scrolled to — not then taken for the cards being scrolled through, for a moment.
+  const pickedAt = useRef(0);
+  const showPicked = (id: string) => {
+    setShownId(id);
+    const card = list.current?.querySelector<HTMLElement>(`[data-trade-id="${CSS.escape(id)}"]`);
+    const column = list.current?.closest<HTMLElement>("[data-scroll-list]");
+    if (!card || !column) return;
+    pickedAt.current = performance.now();
+    column.scrollTo({ top: Math.max(0, column.scrollTop + card.getBoundingClientRect().top - column.getBoundingClientRect().top - column.clientHeight * READ_AT + 8) });
+  };
+  // The card across the line it's read at, as its column's scrolled.
+  const columns = !!layout;
+  useEffect(() => {
+    const el = list.current;
+    const column = el?.closest<HTMLElement>("[data-scroll-list]");
+    if (!columns || !el || !column) return;
+    const read = () => {
+      if (performance.now() - pickedAt.current < 400) return;
+      const most = column.scrollHeight - column.clientHeight;
+      const through = most > 0 ? Math.min(1, Math.max(0, column.scrollTop / most)) : 0;
+      const line = column.getBoundingClientRect().top + column.clientHeight * (READ_AT + (1 - READ_AT) * through);
+      const cards = [...el.querySelectorAll<HTMLElement>("[data-trade-id]")];
+      const across = cards.find((c) => c.getBoundingClientRect().bottom > line) ?? cards.at(-1);
+      const id = across?.dataset.tradeId;
+      if (id) setShownId((was) => (was === id ? was : id));
+    };
+    read();
+    column.addEventListener("scroll", read, { passive: true });
+    return () => column.removeEventListener("scroll", read);
+  }, [columns, shown]);
+
+  const hasTimeline = !!data && data.timeline.some((c) => c.kind === "trade");
+  const filters = data && data.trades.length > 0 ? <TradeFilters trades={data.trades} teams={data.teams} filter={filter} onChange={setFilter} /> : null;
+  const count = data ? <span className="tabular-nums">{filtered ? `${shown.length} of ${data.trades.length}` : data.trades.length} trades</span> : null;
+  const cardList = !data ? (
+    <p className="py-4 text-center text-sm text-ink-secondary">Loading trades…</p>
+  ) : data.trades.length === 0 ? (
+    <p className="py-4 text-center text-sm text-ink-secondary">No trades yet.</p>
+  ) : shown.length === 0 ? (
+    <p className="py-4 text-center text-sm text-ink-secondary">No trades match.</p>
+  ) : (
+    <ol ref={list} className="flex flex-col gap-3">
+      {shown.map((trade) => (
+        <TradeCard key={trade.id} trade={trade} />
+      ))}
+    </ol>
+  );
+
+  if (layout) {
+    return (
+      <>
+        {layout({
+          // The timeline, its way to step and replay, and under it the filters.
+          timeline: (
+            <div className="flex flex-col gap-3">
+              {hasTimeline ? (
+                <PlateCard title="Trade timeline" bodyClassName="p-2">
+                  <TradeViewer
+                    timeline={data!.timeline}
+                    people={data!.people}
+                    teams={data!.teams}
+                    trades={data!.trades}
+                    shownId={shownId}
+                    onShow={showPicked}
+                    narrow
+                  />
+                </PlateCard>
+              ) : null}
+              {data ? (
+                <PlateCard title={leagueName} aside={count} bodyClassName="p-2">
+                  {filters ?? <p className="py-2 text-center text-sm text-ink-secondary">{data.trades.length === 0 ? "No trades yet." : "Loading trades…"}</p>}
+                </PlateCard>
+              ) : null}
+            </div>
+          ),
+          cards: cardList,
+        })}
+      </>
+    );
+  }
   return (
     <div className="flex flex-col gap-3">
     {/* The trades one at a time: a timeline, the rosters they changed, and their cards. */}
-    {data && data.timeline.some((c) => c.kind === "trade") ? (
+    {hasTimeline ? (
       <PlateCard title="Trade timeline" bodyClassName="p-2 sm:p-3">
         <TradeViewer
-          timeline={data.timeline}
-          people={data.people}
-          teams={data.teams}
-          trades={data.trades}
+          timeline={data!.timeline}
+          people={data!.people}
+          teams={data!.teams}
+          trades={data!.trades}
           renderTrade={(trade) => <TradeCard trade={trade} />}
         />
       </PlateCard>
     ) : null}
-    <PlateCard
-      title={leagueName}
-      aside={data ? <span className="tabular-nums">{filtered ? `${shown.length} of ${data.trades.length}` : data.trades.length} trades</span> : null}
-      bodyClassName="p-2 sm:p-3"
-    >
-      {!data ? (
-        <p className="py-4 text-center text-sm text-ink-secondary">Loading trades…</p>
-      ) : data.trades.length === 0 ? (
-        <p className="py-4 text-center text-sm text-ink-secondary">No trades yet.</p>
-      ) : (
-        <div className="flex flex-col gap-3">
-          <TradeFilters trades={data.trades} teams={data.teams} filter={filter} onChange={setFilter} />
-          {shown.length === 0 ? (
-            <p className="py-4 text-center text-sm text-ink-secondary">No trades match.</p>
-          ) : (
-            <ol className="flex flex-col gap-3">
-              {shown.map((trade) => (
-                <TradeCard key={trade.id} trade={trade} />
-              ))}
-            </ol>
-          )}
-        </div>
-      )}
+    <PlateCard title={leagueName} aside={count} bodyClassName="p-2 sm:p-3">
+      <div className="flex flex-col gap-3">
+        {filters}
+        {cardList}
+      </div>
     </PlateCard>
     </div>
   );
