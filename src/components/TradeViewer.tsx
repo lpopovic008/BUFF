@@ -1,6 +1,7 @@
 "use client";
 
-import { CSSProperties, ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { CSSProperties, ReactNode, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { TradeFloorContext } from "@/components/FloorTradeMove";
 import { TimelineColumn } from "@/lib/roster-timeline";
 import { PICK, TimelinePlayer } from "@/lib/league-trades";
 import { AnalyzedTrade } from "@/lib/trades";
@@ -73,7 +74,8 @@ const dateLabel = (at: number, year = true) =>
  * swiped (or scrolled) sideways from year to year — on a phone, one strip across every year instead (see
  * TrackStrip); under it, the trading teams' rosters as they stood, the pieces that changed hands sliding from one
  * to the other; and beside them, the trade's card. Picking a trade on the timeline, or stepping with the arrows,
- * moves them all.
+ * moves them all. In a room with a floor for it (see TradeFloorContext), the rosters play out on the floor instead,
+ * and the card has the room here to itself.
  */
 export function TradeViewer({
   timeline,
@@ -118,7 +120,56 @@ export function TradeViewer({
   const phone = usePhone();
   const offsets = useMemo(() => trackOffsets(columns.map((c) => c.at), TRACK_GAP_PX), [columns]);
 
+  // On the room's floor, where there's one: the trade shown, played afresh each trade and each replay.
+  const toFloor = useContext(TradeFloorContext);
+  const tradeKey = column ? `${column.tradeId}-${replays}` : null;
+  useEffect(() => {
+    if (!toFloor || !column || !tradeKey) return;
+    toFloor({
+      key: tradeKey,
+      rosters: tradeRosters(column),
+      moved: new Set(column.move!.adds.map(([id]) => id)),
+      people,
+      order: (SORTS.find((s) => s.id === sortId) ?? SORTS[0]).order(people),
+      teamName: (rosterId) => teams.find((t) => t.rosterId === rosterId)?.name ?? `Team ${rosterId}`,
+    });
+    // (The column's the trade's: its key says when it's another.)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [toFloor, tradeKey, sortId, people, teams]);
+  useEffect(() => (toFloor ? () => toFloor(null) : undefined), [toFloor]);
+
   if (!column) return null;
+  // The trade's date, and the way to play it again and to put its rosters in another order.
+  const controls = (
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-[0.6875rem] font-semibold uppercase tracking-wide text-ink-secondary tabular-nums">
+        {dateLabel(column.at)} · {picked + 1} of {columns.length}
+      </span>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setReplays((n) => n + 1)}
+          className="border border-border px-1.5 py-px text-[0.625rem] font-bold uppercase tracking-wide text-ink-secondary hover:border-ink-primary hover:text-ink-primary"
+        >
+          Replay
+        </button>
+        <label className="flex items-center gap-1 text-[0.625rem] font-bold uppercase tracking-wide text-ink-muted">
+          Sort
+          <select
+            value={sortId}
+            onChange={(e) => setSortId(e.target.value)}
+            className="border border-ink-primary bg-page px-1 py-px font-bold uppercase text-ink-primary"
+          >
+            {SORTS.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+    </div>
+  );
   return (
     <div
       className="flex flex-col gap-3"
@@ -183,37 +234,17 @@ export function TradeViewer({
         </button>
       </div>
 
+      {toFloor ? (
+        // The rosters on the floor: here, just the way to play them again, and the card.
+        <div className="flex min-w-0 flex-col gap-2">
+          {controls}
+          {trade ? <ol>{renderTrade(trade)}</ol> : null}
+        </div>
+      ) : (
       <div className="grid gap-3 md:grid-cols-2 md:items-start">
         {/* The rosters, and the pieces moving between them. */}
         <div className="flex min-w-0 flex-col gap-2 border border-border p-2 sm:p-3">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[0.6875rem] font-semibold uppercase tracking-wide text-ink-secondary tabular-nums">
-              {dateLabel(column.at)} · {picked + 1} of {columns.length}
-            </span>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setReplays((n) => n + 1)}
-                className="border border-border px-1.5 py-px text-[0.625rem] font-bold uppercase tracking-wide text-ink-secondary hover:border-ink-primary hover:text-ink-primary"
-              >
-                Replay
-              </button>
-              <label className="flex items-center gap-1 text-[0.625rem] font-bold uppercase tracking-wide text-ink-muted">
-                Sort
-                <select
-                  value={sortId}
-                  onChange={(e) => setSortId(e.target.value)}
-                  className="border border-ink-primary bg-page px-1 py-px font-bold uppercase text-ink-primary"
-                >
-                  {SORTS.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          </div>
+          {controls}
           <TradeMove
             // A fresh play each trade (and each replay): the rosters as they were, then the trade.
             key={`${column.tradeId}-${replays}`}
@@ -227,6 +258,7 @@ export function TradeViewer({
         {/* Its card. */}
         <div className="min-w-0">{trade ? <ol>{renderTrade(trade)}</ol> : null}</div>
       </div>
+      )}
     </div>
   );
 }

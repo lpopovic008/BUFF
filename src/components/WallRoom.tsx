@@ -117,9 +117,23 @@ export function RoomColumn({
 /**
  * A page as a room: the page itself never scrolls; its columns (`children`, RoomColumns) stand side by side on the
  * back wall, each scrolling on its own and reflected in the floor in front of them. A player's `card` comes up as the
- * League Room's does: the horizon drops to make floor for it, and it stands where the column marked `stage` was.
+ * League Room's does: the horizon drops to make floor for it, and it stands where the column marked `stage` was. And
+ * what's laid on the `floor` (drawn for the room as it is, once its horizon's dropped to make floor for it) — put
+ * away while a card's up.
  */
-export function WallRoom({ title, card = null, onCloseCard, children }: { title: string; card?: RoomCard | null; onCloseCard?: () => void; children: React.ReactNode }) {
+export function WallRoom({
+  title,
+  card = null,
+  onCloseCard,
+  floor,
+  children,
+}: {
+  title: string;
+  card?: RoomCard | null;
+  onCloseCard?: () => void;
+  floor?: ((room: { width: number; height: number; share: number; bottom: number }) => React.ReactNode) | null;
+  children: React.ReactNode;
+}) {
   // The room fits the screen: the page itself never scrolls (only its columns do).
   useEffect(() => {
     const [html, body] = [document.documentElement.style, document.body.style];
@@ -171,7 +185,9 @@ export function WallRoom({ title, card = null, onCloseCard, children }: { title:
 
   // The horizon: low, the back wall most of the screen — but as the League Room's while a card's up, for its floor.
   const up = card !== null;
-  const share = useEasedShare(up ? HORIZON_SHARE : WALL_SHARE);
+  const share = useEasedShare(up || floor ? HORIZON_SHARE : WALL_SHARE);
+  // What's on the floor, once the horizon's there for it.
+  const floorShown = floor && !up && roomSize && Math.abs(share - HORIZON_SHARE) < 1e-3 ? floor({ ...roomSize, share, bottom: roomSize.height - tabBar }) : null;
   const stage =
     roomSize && stageBox
       ? {
@@ -206,6 +222,7 @@ export function WallRoom({ title, card = null, onCloseCard, children }: { title:
         <div className="fixed inset-x-0 top-0 flex gap-4 px-4" style={columnHeight}>
           {children}
         </div>
+        {floorShown ? <div className="animate-[fade-in_0.3s_ease-out]">{floorShown}</div> : null}
         {/* Over the page, not inside a column (whose contents move as it scrolls, and whose reflection would copy it). */}
         {card && stage && onCloseCard
           ? createPortal(

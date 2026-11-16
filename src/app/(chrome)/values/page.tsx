@@ -16,6 +16,7 @@ import { loadPlayerIdIndex } from "@/lib/players";
 import { normalizeName } from "@/lib/name-match";
 import { formatRecord } from "@/lib/format";
 import { RoomCard, RoomColumn, WallRoom, useWideRoom } from "@/components/WallRoom";
+import { FloorMove, FloorTradeMove, TradeFloorContext } from "@/components/FloorTradeMove";
 import { getNFLState } from "@/lib/sleeper";
 
 const snapshot = rawSnapshot as unknown as PlayerValuesSnapshot;
@@ -161,6 +162,8 @@ export default function ValuesPage() {
       cancelled = true;
     };
   }, []);
+  // A team's trade played out on the room's floor (see TradeViewer), while its trades are shown.
+  const [floorMove, setFloorMove] = useState<FloorMove | null>(null);
   // The player whose card is up (see WallRoom's card), as the League Room's.
   const [card, setCard] = useState<RoomCard | null>(null);
   const openCard = (row: Row, playerId: string) => {
@@ -277,7 +280,13 @@ export default function ValuesPage() {
   );
 
   return (
-    <WallRoom title="Values" card={card} onCloseCard={() => setCard(null)}>
+    <TradeFloorContext.Provider value={setFloorMove}>
+    <WallRoom
+      title="Values"
+      card={card}
+      onCloseCard={() => setCard(null)}
+      floor={picked && floorMove ? (room) => <FloorTradeMove key={floorMove.key} move={floorMove} room={room} /> : null}
+    >
       {desktop ? (
         // Three columns, the middle one wider (as the League Room's); a team's trades taking the left one too.
         <>
@@ -303,5 +312,6 @@ export default function ValuesPage() {
         </RoomColumn>
       )}
     </WallRoom>
+    </TradeFloorContext.Provider>
   );
 }
