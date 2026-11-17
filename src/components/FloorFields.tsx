@@ -8,7 +8,7 @@ import { nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import type { NFLGame } from "@/lib/nfl-schedule";
 import { playFromLastPlay } from "@/lib/play-by-play";
 import { PlayScene, sceneFor } from "@/lib/play-scene";
-import { teamColor, teamName, teamSecondary } from "@/lib/team-colors";
+import { teamColor, teamName } from "@/lib/team-colors";
 
 // As on television: the line of scrimmage in blue, the line to gain for a first down in yellow.
 const SCRIMMAGE = "#2f7cf6";
@@ -89,23 +89,28 @@ function tint(color: string, lift: number, alpha: number, ink: string): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-/** The size the end zones' names are lettered at, flat, before they're laid on the field (px). */
+/** The largest the end zones' names are lettered at, flat, before they're laid on the field (px) — they're lettered
+ * at about the size they'll show at (see drawNames), in steps of NAME_STEP_PX, no smaller than NAME_MIN_PX. */
 const NAME_PX = 160;
-/** A team's name lettered flat, once, in bold capitals in `font`'s family, in `color` (see paintedName). */
+const NAME_STEP_PX = 8;
+const NAME_MIN_PX = 16;
+/** How far up the screen each of a team name's letters must run to be made out (px) — any shorter, its abbreviation. */
+const NAME_RUN_PX = 4;
+/** A team's name lettered flat, once, in bold capitals in `font`'s family, in `color`, at a size (see paintedName). */
 const names = new Map<string, { image: HTMLCanvasElement; wide: number; ascent: number; pad: number }>();
 
-/** `name` lettered flat on a canvas of its own, its baseline `pad + ascent` down — kept for the next time. */
-function paintedName(name: string, family: string, color: string) {
-  const key = `${name}|${family}|${color}`;
+/** `name` lettered flat on a canvas of its own, `size` px, its baseline `pad + ascent` down — kept for the next time. */
+function paintedName(name: string, family: string, color: string, size = NAME_PX) {
+  const key = `${name}|${family}|${color}|${size}`;
   let painted = names.get(key);
   if (painted) return painted;
-  const font = `700 ${NAME_PX}px ${family}`;
+  const font = `700 ${size}px ${family}`;
   const measure = document.createElement("canvas").getContext("2d")!;
   measure.font = font;
   const m = measure.measureText(name);
-  const ascent = m.actualBoundingBoxAscent || NAME_PX * 0.7;
+  const ascent = m.actualBoundingBoxAscent || size * 0.7;
   const descent = m.actualBoundingBoxDescent || 0;
-  const pad = 8;
+  const pad = Math.ceil(size / 20);
   const image = document.createElement("canvas");
   image.width = Math.ceil(m.width + 2 * pad);
   image.height = Math.ceil(ascent + descent + 2 * pad);
@@ -479,24 +484,37 @@ export function FloorFields({
 
         // Each team's name in its end zone, as a field's painted: in bold capitals in the page's own type, running
         // along it from one sideline to the other — facing in, the letters' feet toward the field, so they read from
-        // it: the left one up the screen, the right one down it — and either side of it, two stripes of the team's
-        // second color, as long as the room it leaves (clear of it, and of the end zone's edges). The name's lettered
-        // flat once (see paintedName), then laid on the field a thin slice at a time, each in the perspective where it
-        // lies, so its letters stay straight and even. Left off where it'd be too small to make out.
+        // it: the left one up the screen, the right one down it. On a field too small for its name to be made out (a
+        // far row's), the team's abbreviation instead, its letters that much bigger. Lettered flat at about the size
+        // it'll show at (see paintedName, kept sharp), then laid on the field a thin slice at a time, each in the
+        // perspective where it lies, so its letters stay straight and even. Left off where even that'd be too small.
         function drawNames() {
-          for (const [end, team] of [
-            [-1, f.game.awayTeam],
-            [1, f.game.homeTeam],
+          const dpr = window.devicePixelRatio || 1;
+          // How far a yard along the end zone, sideline to sideline, runs up the screen (px) — the same for every field
+          // in a row.
+          const upScreen = Math.abs(at(50, half)[1] - at(50, -half)[1]) / (2 * half);
+          // How big a text's letters come out: its capitals as tall as fits the end zone, it as long as fits most of
+          // the way across — and how far each letter runs up the screen (px).
+          const sized = (text: string) => {
+            const flat = paintedName(text, type, colors.ink);
+            const perYard = Math.max(flat.ascent / 8, flat.wide / (FIELD_WIDE * 0.9));
+            const long = flat.wide / perYard;
+            return { text, long, tall: flat.ascent / perYard, run: (long / [...text].length) * upScreen, capRatio: flat.ascent / NAME_PX };
+          };
+          // Both teams' names — or, either too small to make out, both their abbreviations.
+          const full = [f.game.awayTeam, f.game.homeTeam].map((team) => sized(teamName(team).toUpperCase()));
+          const texts = full.every((t) => t.run >= NAME_RUN_PX) ? full : [sized(f.game.awayTeam), sized(f.game.homeTeam)];
+          for (const [end, name] of [
+            [-1, texts[0]],
+            [1, texts[1]],
           ] as const) {
-            const name = teamName(team).toUpperCase();
-            const painted = paintedName(name, type, colors.ink);
-            // A yard on the flat name (px): its capitals as tall as fits the end zone, the name no longer than leaves
-            // room either side for the stripes.
-            const perYard = Math.max(painted.ascent / 6, painted.wide / (FIELD_WIDE * 0.62));
-            const long = painted.wide / perYard;
-            const tall = painted.ascent / perYard;
-            if (tall * yardPx(0) < 7) continue;
             const middle = end < 0 ? -5 : 105;
+            const { long, tall } = name;
+            if (tall * yardPx(0) < 5) continue;
+            // Lettered at about the size it shows at, so it stays sharp.
+            const size = Math.max(NAME_MIN_PX, Math.min(NAME_PX, Math.ceil((tall * yardPx(0) * dpr) / name.capRatio / NAME_STEP_PX) * NAME_STEP_PX));
+            const painted = paintedName(name.text, type, colors.ink, size);
+            const perYard = painted.ascent / tall;
             // Its letters' feet along the end zone's field side; read toward the far sideline on the left, toward you
             // on the right.
             const foot = middle - (end < 0 ? -1 : 1) * (tall / 2);
@@ -519,20 +537,6 @@ export function FloorFields({
               ctx.transform(a[0], a[1], c[0], c[1], p0[0] - a[0] * u0, p0[1] - a[1] * u0);
               ctx.drawImage(image, u0, 0, u1 - u0, image.height, u0, 0, u1 - u0, image.height);
               ctx.restore();
-            }
-            // The stripes: two, stacked across the end zone, either side of the name.
-            const clear = 1.6;
-            const [from, to] = [long / 2 + clear, half - clear];
-            if (to - from < 1) continue;
-            ctx.globalAlpha = alpha * 0.95;
-            ctx.strokeStyle = tint(teamSecondary(team), colors.lift, 1, colors.ink);
-            ctx.lineCap = "butt";
-            for (const x of [middle - 1.7, middle + 1.7]) {
-              for (const side of [-1, 1]) {
-                const mid = (side * (from + to)) / 2;
-                ctx.lineWidth = Math.max(1, Math.min(4, yardPx(mid) * 0.75));
-                line(x, side * from, x, side * to);
-              }
             }
           }
         }
