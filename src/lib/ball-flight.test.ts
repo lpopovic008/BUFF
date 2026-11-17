@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { ballAt, FieldPlace, Flight, flightFor } from "./ball-flight";
+import { ballAt, FieldPlace, Flight, flightFor, HOLD_S } from "./ball-flight";
 import { GamePlay } from "./play-by-play";
 import { PlayScene, sceneFor } from "./play-scene";
 
@@ -143,4 +143,79 @@ test("who has the ball: the same team all play long, unless it changes hands —
   assert.deepEqual(teamsOf(fly("T.Bass kicks 65 yards from BUF 35 to KC 0. R.Rice to KC 25 for 25 yards.", {})), ["BUF", "KC"]);
   // An onside kick the kicking team gets back: theirs throughout.
   assert.deepEqual(teamsOf(fly("H.Butker onside kick 11 yards from KC 35 to KC 46. RECOVERED by KC-J.Watson.", { offense: "BUF" })), ["KC"]);
+});
+
+/** The ball's moves, before it's left where it ended. */
+const moves = (f: Flight) => f.legs.filter((l) => l.t < f.settled - 1e-9);
+
+test("a pass is just thrown: one arc from the line to where it was caught, however far it was taken from there", () => {
+  const f = fly("P.Mahomes pass short right to T.Kelce to BUF 35 for 12 yards (T.Bernard).", { yardsToEndzone: 47 });
+  const thrown = moves(f).filter((l) => l.spin === "spiral");
+  assert.equal(thrown.length, 1);
+  assert.ok(Math.abs(thrown[0].from[0] - 53) < 1e-9);
+  assert.ok(Math.abs(thrown[0].to[0] - 65) < 1e-9);
+  // Nothing carried along the ground after it (just brought down where it was caught).
+  assert.ok(moves(f).filter((l) => l.t > thrown[0].t).every((l) => Math.abs(l.to[0] - 65) < 1e-9));
+});
+
+test("the end of a play held on the field for a while, then faded away", () => {
+  const f = fly("J.Cook left end to KC 23 for 7 yards (N.Bolton).", { offense: "BUF", yardsToEndzone: 30 });
+  assert.ok(Math.abs(f.length - f.settled - HOLD_S - 0.35) < 1e-9);
+  const held = ballAt(f, f.settled + HOLD_S / 2)!;
+  assert.ok(Math.abs(held.at[0] - 23) < 1e-9 && held.alpha === 1);
+});
+
+test("an incompletion leaves a grey cross where it came down; a kickoff one where it was kicked from, and no line", () => {
+  const inc = fly("P.Mahomes pass incomplete deep right to X.Worthy.", { yardsToEndzone: 47 });
+  assert.equal(inc.marks.filter((m) => m.kind === "cross").length, 1);
+  const kick = fly("T.Bass kicks 65 yards from BUF 35 to end zone, Touchback.", {});
+  const cross = kick.marks.find((m) => m.kind === "cross");
+  assert.ok(cross && cross.kind === "cross" && cross.x === 65);
+  assert.equal(kick.kickoff, true);
+  assert.equal(inc.kickoff, false);
+  // In the air, a kick spins back.
+  assert.ok(kick.legs.some((l) => l.spin === "backspin"));
+  assert.ok(!inc.legs.some((l) => l.spin === "backspin"));
+});
+
+test("a sack and a fumbled snap start from the snap: the ball back off the line, then to where it ended", () => {
+  for (const [text, end] of [
+    ["P.Mahomes sacked at KC 46 for -7 yards (G.Rousseau).", 46],
+    ["(Shotgun) P.Mahomes FUMBLES (Aborted) at KC 30, RECOVERED by BUF-G.Rousseau at KC 28.", 28],
+  ] as const) {
+    const f = fly(text, { yardsToEndzone: text.includes("sacked") ? 47 : 70 });
+    const [, snap] = f.legs;
+    assert.ok(snap.to[0] < snap.from[0], text);
+    assert.ok(snap.to[2] > snap.from[2], text);
+    assert.ok(Math.abs(moves(f).at(-1)!.to[0] - end) < 1e-9, text);
+  }
+  // Every other play starts with the ball where it's played from, no snap.
+  const run = fly("J.Cook left end to KC 23 for 7 yards (N.Bolton).", { offense: "BUF", yardsToEndzone: 30 });
+  assert.ok(run.legs[1].to[0] < run.legs[1].from[0]);
+});
+
+test("a lateral: pitched back two yards for every five out to the side", () => {
+  const f = fly("J.Allen pass short left to S.Diggs to BUF 50 for 10 yards. S.Diggs lateral to J.Cook to BUF 35 for 15 yards (T.Bernard).", { yardsToEndzone: 60 });
+  const pitch = moves(f).find((l) => l.spin === "tumble" && l.to[0] < l.from[0])!;
+  const [back, side] = [pitch.from[0] - pitch.to[0], Math.abs(pitch.to[1] - pitch.from[1])];
+  assert.ok(Math.abs(side / back - 5 / 2) < 1e-9);
+});
+
+test("a flag: the play as it happened, then the ball straight on to where the yards put it, quickly", () => {
+  const f = fly("J.Cook left end to KC 23 for 7 yards (N.Bolton). PENALTY on KC-N.Bolton, Defensive Holding, 5 yards, enforced at KC 23.", { offense: "BUF", yardsToEndzone: 30 });
+  const last = moves(f).at(-1)!;
+  assert.ok(Math.abs(last.from[0] - 23) < 1e-9 && Math.abs(last.to[0] - 18) < 1e-9);
+  assert.ok(last.dur <= 0.3 + 1e-9);
+  const flag = f.marks.find((m) => m.kind === "flag")!;
+  assert.ok(flag.t < 0.5);
+});
+
+test("a field goal: just past the posts, then straight down", () => {
+  for (const text of ["H.Butker 45 yard field goal is GOOD.", "H.Butker 50 yard field goal is No Good, Wide Right."]) {
+    const f = fly(text, { yardsToEndzone: text.includes("45") ? 27 : 32 });
+    const down = moves(f).at(-1)!;
+    assert.deepEqual([down.from[0], down.from[1]], [down.to[0], down.to[1]]);
+    assert.equal(down.to[2], 0);
+    assert.ok(down.to[0] > 110 && down.to[0] < 113, text);
+  }
 });

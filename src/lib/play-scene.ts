@@ -301,7 +301,7 @@ function readPlay(raw: string, action: string, base: PlayScene, play: GamePlay):
     return { ...base, kind: "spike", passer: m[1], yards: 0, touchdown: false };
   }
   if ((m = new RegExp(String.raw`^${NAME}\s+FUMBLES\s+\(?Aborted`, "i").exec(raw.replace(/^\s*\([^)]*\)\s*/, "")))) {
-    return { ...base, kind: "fumble", passer: m[1], defender: recoveredBy(raw), yards: play.yards, touchdown };
+    return { ...base, kind: "fumble", passer: m[1], defender: recoveredBy(raw), yards: recoveredGain(raw, base.offense) ?? play.yards, touchdown };
   }
 
   // Picked off.
@@ -380,6 +380,18 @@ function readPlay(raw: string, action: string, base: PlayScene, play: GamePlay):
     };
   }
   return null;
+}
+
+/** How far a loose snap went, from where it got away to where it was fallen on — "FUMBLES (Aborted) at KC 30,
+ * RECOVERED by BUF-G.Rousseau at KC 28": -2 — for `offense`; null when the line doesn't say both. */
+function recoveredGain(text: string, offense: string): number | null {
+  const spot = String.raw`([A-Z]{2,3})\s+(\d{1,2})`;
+  const lost = new RegExp(String.raw`FUMBLES\s*\(Aborted\)\s*at\s+${spot}`, "i").exec(text);
+  const found = new RegExp(String.raw`RECOVERED by [A-Z]{2,3}-${NAME}\s+at\s+${spot}`).exec(text);
+  if (!lost || !found) return null;
+  // How far from the goal line the offense is going for: its own side, 100 less the yard line.
+  const toGoal = (team: string, yard: number) => (normalizeTeam(team) === offense ? 100 - yard : yard);
+  return toGoal(lost[1], Number(lost[2])) - toGoal(found[2], Number(found[3]));
 }
 
 /** Who fell on a loose ball: "RECOVERED by BUF-J.Cook". */

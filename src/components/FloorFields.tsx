@@ -10,8 +10,9 @@ import { playFromLastPlay } from "@/lib/play-by-play";
 import { PlayScene, sceneFor } from "@/lib/play-scene";
 import { teamColor, teamName } from "@/lib/team-colors";
 
-// As on television: the line of scrimmage in blue.
+// As on television: the line of scrimmage in blue, the line to gain for a first down in yellow.
 const SCRIMMAGE = "#2f7cf6";
+const FIRST_DOWN = "#f5d020";
 const FLAG = { yellow: "#f5d020", red: "#e5484d" };
 const POSTS = "#f2c94c";
 const BALL = "#8b5a2b";
@@ -22,10 +23,21 @@ const QUEUE = 3;
 /** How far a swipe goes before it moves the fields (px). */
 const SWIPE_PX = 28;
 
-/** Where a game stands: who has the ball, and how far they have to go to the end zone. */
+/** Where a game stands: who has the ball, how far they have to go to the end zone, and for a first down (null: to the
+ * goal line, or off a down). */
 interface Situation {
   possession: string | null;
   toGo: number | null;
+  distance: number | null;
+}
+
+/** A play sent down a field: its ball's flight, the team with the ball as it's snapped, where it's snapped from (x),
+ * and how far that team had to go for a first down. */
+interface FieldPlay {
+  flight: Flight;
+  offense: string;
+  los: number;
+  distance: number | null;
 }
 
 /** A game's field as it's drawn: where it lies now (easing to where it's laid), its line, its plays. */
@@ -39,15 +51,24 @@ interface FieldState {
   situation: Situation;
   /** Its line of scrimmage as drawn (x), easing to where it is. */
   los: number | null;
-  /** The play going on, and those waiting. */
-  playing: { flight: Flight; start: number; offense: string; los: number } | null;
-  waiting: { flight: Flight; offense: string; los: number }[];
+  /** The play going on (when it started, and whether it's been told it's done moving), those waiting, and the last
+   * one sent down it — acted out again when the field's tapped. */
+  playing: (FieldPlay & { start: number; told: boolean }) | null;
+  waiting: FieldPlay[];
+  last: FieldPlay | null;
 }
 
 const situationOf = (game: NFLGame): Situation => ({
   possession: game.live?.possession ?? null,
   toGo: game.live?.yardsToEndzone ?? null,
+  distance: distanceOf(game.live?.downDistance ?? null),
 });
+
+/** The yards to go in a down and distance ("2nd & 6 at BUF 23": 6) — null for "& Goal", or none given. */
+const distanceOf = (downDistance: string | null) => {
+  const m = /&\s*(\d+)/.exec(downDistance ?? "");
+  return m ? Number(m[1]) : null;
+};
 
 /** Which way a team goes on its game's field: the road team toward the right end zone, the home team toward the left. */
 const dirOf = (game: NFLGame, team: string | null): 1 | -1 => (team === game.homeTeam ? -1 : 1);
@@ -142,7 +163,7 @@ export function FloorFields({
       const lastPlay = game.live?.lastPlay ?? null;
       let state = fields.current.get(game.id);
       if (!state) {
-        state = { game, spot: null, alpha: 0, target: null, lastPlayId: lastPlay?.id ?? null, situation: situationOf(game), los: null, playing: null, waiting: [] };
+        state = { game, spot: null, alpha: 0, target: null, lastPlayId: lastPlay?.id ?? null, situation: situationOf(game), los: null, playing: null, waiting: [], last: null };
         fields.current.set(game.id, state);
       }
       const before = state.situation;
@@ -164,11 +185,15 @@ export function FloorFields({
         return { dir, los: s.toGoal !== null && s.kind !== "kickoff" ? spotOf(dir, s.toGoal) : (lastLos ?? 50) };
       };
       const seed = [...lastPlay.id].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 1e6, 7);
-      state.waiting.push({ flight: flightFor(scene, place, seed), offense: scene.offense, los: place(scene).los });
+      // How far they had to go for a first down: the line's word for it — or, the scoreboard's latest play not saying,
+      // where the game stood just before it.
+      const distance = scene.toGo ?? (scene.offense === before.possession ? before.distance : null);
+      state.waiting.push({ flight: flightFor(scene, place, seed), offense: scene.offense, los: place(scene).los, distance });
       while (state.waiting.length > QUEUE) state.waiting.shift();
       if (!state.playing) {
         const next = state.waiting.shift()!;
-        state.playing = { ...next, start: now };
+        state.playing = { ...next, start: now, told: false };
+        state.last = next;
       }
     }
     order.current = games.map((g) => g.id);
@@ -249,15 +274,24 @@ export function FloorFields({
           fields.current.delete(id);
           continue;
         }
-        // The play on, over: the next in.
-        if (f.playing && (now - f.playing.start) / 1000 > f.playing.flight.length) {
-          const next = f.waiting.shift();
-          f.playing = next ? { ...next, start: now } : null;
-          if (!next) played.current?.(id);
+        // The play on, done moving: told so. Over (its end held a while, see HOLD_S) — or done moving with another
+        // waiting: the next in.
+        if (f.playing) {
+          const t = (now - f.playing.start) / 1000;
+          if (t > f.playing.flight.settled && !f.playing.told) {
+            f.playing.told = true;
+            played.current?.(id);
+          }
+          if (t > f.playing.flight.length || (t > f.playing.flight.settled && f.waiting.length > 0)) {
+            const next = f.waiting.shift();
+            f.playing = next ? { ...next, start: now, told: false } : null;
+            if (next) f.last = next;
+          }
         }
         if (f.playing) moving = true;
         const { possession, toGo } = f.situation;
-        const lineTo = f.playing ? f.playing.los : possession && toGo !== null ? spotOf(dirOf(f.game, possession), toGo) : null;
+        // (None while a kickoff's on.)
+        const lineTo = f.playing ? (f.playing.flight.kickoff ? null : f.playing.los) : possession && toGo !== null ? spotOf(dirOf(f.game, possession), toGo) : null;
         if (lineTo === null) f.los = null;
         else {
           f.los = f.los === null ? lineTo : f.los + (lineTo - f.los) * k;
@@ -335,22 +369,43 @@ export function FloorFields({
             ctx.closePath();
             ctx.fill();
           } else if (m.kind === "ripple" && t - m.t < 0.8) drawRipple(m, t - m.t);
+          else if (m.kind === "cross") drawCross(m);
         }
 
-        // The line of scrimmage, sideline to sideline; the team with the ball's logo standing behind it.
+        // The line of scrimmage, sideline to sideline, and the line to gain for a first down; the team with the ball's
+        // logo standing behind it, reflected in the field; the yard line it's on by its foot (on the logo's side), an
+        // arrow the way they're going on the other.
         if (f.los !== null) {
+          const team = f.playing ? f.playing.offense : f.situation.possession;
+          const dir = dirOf(f.game, team);
+          const distance = f.playing ? f.playing.distance : f.situation.distance;
+          const lineWide = Math.max(1.5, Math.min(3, yardPx(0) * 0.35));
+          const gain = distance !== null ? f.los + dir * distance : null;
+          if (gain !== null && gain > 0 && gain < 100) {
+            ctx.globalAlpha = alpha;
+            ctx.strokeStyle = FIRST_DOWN;
+            ctx.lineWidth = lineWide;
+            line(gain, -half, gain, half);
+          }
           ctx.globalAlpha = alpha;
           ctx.strokeStyle = SCRIMMAGE;
-          ctx.lineWidth = Math.max(1.5, Math.min(3, yardPx(0) * 0.35));
+          ctx.lineWidth = lineWide;
           line(f.los, -half, f.los, half);
-          const team = f.playing ? f.playing.offense : f.situation.possession;
+          drawYardLine(f.los, dir);
           const img = team ? logo(team) : null;
           if (team && img) {
-            const dir = dirOf(f.game, team);
             const [lx, ly] = at(Math.max(-8, Math.min(108, f.los - dir * 9)), 0);
-            const size = nflLogoSize(team, Math.max(10, yardPx(0) * 8));
+            const size = nflLogoSize(team, Math.max(4, yardPx(0) * 8));
+            const top = ly - size.height * 0.85;
             ctx.globalAlpha = alpha * 0.92;
-            ctx.drawImage(img, lx - size.width / 2, ly - size.height * 0.85, size.width, size.height);
+            ctx.drawImage(img, lx - size.width / 2, top, size.width, size.height);
+            // Its reflection, upside down under its foot, faint.
+            ctx.save();
+            ctx.globalAlpha = alpha * 0.18;
+            ctx.translate(0, 2 * ly);
+            ctx.scale(1, -1);
+            ctx.drawImage(img, lx - size.width / 2, top, size.width, size.height);
+            ctx.restore();
           }
         }
 
@@ -431,6 +486,44 @@ export function FloorFields({
           }
         }
 
+        // The yard line the ball's on (its number, as a field's are: from the nearer goal line), standing by the line of
+        // scrimmage's foot just in from the near sideline, on the side the team with it is coming from — and an arrow
+        // on the other, the way they're going.
+        function drawYardLine(los: number, dir: 1 | -1) {
+          const yard = Math.round(Math.min(los, 100 - los));
+          const z = half - 3;
+          const yp = yardPx(z);
+          const font = Math.max(7, Math.min(13, yp * 2.6));
+          const [nx, ny] = at(los - dir * 1.4, z);
+          const [ax, ay] = at(los + dir * 1.4, z);
+          // Which way the field's `dir` runs across the screen there.
+          const across = Math.sign(at(los + dir, z)[0] - at(los, z)[0]) || dir;
+          ctx.globalAlpha = alpha * 0.9;
+          ctx.fillStyle = colors.ink;
+          ctx.font = `700 ${font}px ${type}`;
+          ctx.textAlign = across > 0 ? "right" : "left";
+          ctx.textBaseline = "middle";
+          ctx.fillText(String(yard), nx, ny);
+          const size = font * 0.45;
+          const tip = ax + across * size * 1.6;
+          ctx.beginPath();
+          ctx.moveTo(tip, ay);
+          ctx.lineTo(ax, ay - size * 0.8);
+          ctx.lineTo(ax, ay + size * 0.8);
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        // A grey cross lying on the field: where a pass came down incomplete, or a kickoff was kicked from.
+        function drawCross(m: Extract<FieldMark, { kind: "cross" }>) {
+          const r = 1.1;
+          ctx.globalAlpha = alpha * 0.55;
+          ctx.strokeStyle = colors.ink;
+          ctx.lineWidth = Math.max(1, Math.min(2.5, yardPx(m.z) * 0.3));
+          line(m.x - r, m.z - r, m.x + r, m.z + r);
+          line(m.x - r, m.z + r, m.x + r, m.z - r);
+        }
+
         function drawRipple(m: Extract<FieldMark, { kind: "ripple" }>, age: number) {
           const u = age / 0.8;
           const [cx, cy] = at(m.x, m.z);
@@ -492,12 +585,17 @@ export function FloorFields({
           ctx.globalAlpha = alpha * fade * Math.max(0.55, 1 - hgt / 30);
           ctx.fillStyle = team ? teamTint(team, colors.lift, 0.75, colors.ink) : withAlpha(colors.ink, 0.3);
           ctx.beginPath();
-          const shadow = Math.max(5, yp * 1.5);
+          const shadow = Math.max(1.5, yp * 1.5);
           ctx.ellipse(gx, gy, shadow, shadow * 0.3, 0, 0, Math.PI * 2);
           ctx.fill();
           let angle: number;
           if (spin === "tumble") angle = t * 13;
-          else {
+          else if (spin === "backspin") {
+            // Kicked, it spins back over itself: against the way it's going across the screen.
+            const before = ballAt(flight, Math.max(0, t - 0.03));
+            const way = before ? Math.sign(gx - at(before.at[0], before.at[1])[0]) || 1 : 1;
+            angle = -way * t * 9;
+          } else {
             const before = ballAt(flight, Math.max(0, t - 0.03));
             if (before) {
               const [px, py] = at(before.at[0], before.at[1]);
@@ -506,8 +604,9 @@ export function FloorFields({
               angle = Math.abs(dx) + Math.abs(dy) > 0.05 ? Math.atan2(dy, dx) : 0;
             } else angle = 0;
           }
-          const long = Math.max(9, yp * 2.2);
-          const girth = Math.max(5.5, yp * 1.3) * (spin === "spiral" ? 0.8 + 0.2 * Math.abs(Math.sin(t * 40)) : 1);
+          // As big as the field it's on makes it: smaller, the farther off (and the smaller) the field.
+          const long = Math.max(3, yp * 2.2);
+          const girth = Math.max(2, yp * 1.3) * (spin === "spiral" ? 0.8 + 0.2 * Math.abs(Math.sin(t * 40)) : 1);
           ctx.globalAlpha = alpha * fade;
           ctx.save();
           ctx.translate(gx, by);
@@ -546,13 +645,12 @@ export function FloorFields({
     };
 
     // On a phone: the fields swiped up or down the floor, the next one brought to the front — or one tapped. Anywhere,
-    // a field tapped is told (see onPick).
+    // a field tapped is told (see onPick), and acts out its last play again.
     let down: { x: number; y: number } | null = null;
     const onDown = (e: PointerEvent) => {
       const { height: h, share: sh, floor: f, focused: phone } = room.current;
       down = null;
-      const swipes = phone && order.current.length > 1;
-      if ((!swipes && !pick.current) || e.clientY < h * sh || e.clientY > f.front + 12) return;
+      if (e.clientY < h * sh || e.clientY > (phone ? f.front + 12 : h)) return;
       const target = e.target instanceof Element ? e.target : null;
       if (target?.closest("button, a, input, select, textarea, label, [role='button'], [data-scroll-list], [data-floor-ui], header, nav")) return;
       down = { x: e.clientX, y: e.clientY };
@@ -575,10 +673,18 @@ export function FloorFields({
       const id = fieldAt(e.clientX, e.clientY);
       if (!id) return;
       pick.current?.(id);
-      // On a phone, a field tapped behind the one in view comes to the front.
+      // On a phone, a field tapped behind the one in view comes to the front. The one in view (or any, from tablet
+      // width up) acts out its last play again.
       if (phone && id !== front.current) {
         front.current = id;
         relay.current();
+        return;
+      }
+      const f = fields.current.get(id);
+      if (f?.last) {
+        f.waiting = [];
+        f.playing = { ...f.last, start: performance.now(), told: false };
+        kick.current();
       }
     };
     window.addEventListener("pointerdown", onDown, true);

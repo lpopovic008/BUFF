@@ -39,7 +39,7 @@ function benchGame(i: number, scenario: number, play: { id: string; text: string
     live: {
       possession: away,
       isRedZone: false,
-      downDistance: null,
+      downDistance: FIELD_SCENARIOS[scenario].toGo <= 10 ? "1st & Goal" : "1st & 10",
       yardsToEndzone: FIELD_SCENARIOS[scenario].toGo,
       lastPlay: play ? { id: play.id, text: play.text, type: "", scoreValue: 0, team: away, athletes: [] } : null,
     },
@@ -47,8 +47,9 @@ function benchGame(i: number, scenario: number, play: { id: string; text: string
 }
 
 /**
- * The made-up games' fields on the floor (nine, or as many as picked), every one set to the same play: clicked (a
- * field, or Play), they all act it out at once — and once it's over, the next play's picked, for the next click.
+ * The made-up games' fields on the floor (nine, or as many as picked), every one set to the same play: Play, and they
+ * all act it out at once — and once the ball's done moving, the next play's picked, for the next time. A field clicked
+ * acts out its last play again (see FloorFields) — or, before there's been one, they all act out the one picked.
  */
 export function FloorFieldsLab({
   width,
@@ -78,7 +79,7 @@ export function FloorFieldsLab({
   );
   // Every field acts out the play picked.
   const play = () => setRun((was) => ({ id: (was?.id ?? 0) + 1, scenario }));
-  // Once it's over (the first field done with it), on to the next play.
+  // Once the ball's done moving (the first field done with it), on to the next play.
   const done = () => {
     if (!run || moved.current === run.id || run.scenario !== scenario) return;
     moved.current = run.id;
@@ -87,7 +88,7 @@ export function FloorFieldsLab({
 
   return (
     <>
-      <FloorFields games={games} width={width} height={height} share={share} floor={floor} onPick={play} onPlayed={done} />
+      <FloorFields games={games} width={width} height={height} share={share} floor={floor} onPick={() => !run && play()} onPlayed={done} />
       <div
         data-floor-ui
         className="fixed z-[6] flex flex-wrap items-center gap-x-3 gap-y-1.5 border border-border bg-[color-mix(in_srgb,var(--page)_85%,transparent)] p-2 text-xs"
@@ -121,7 +122,7 @@ export function FloorFieldsLab({
         <button type="button" onClick={play} className="shrink-0 border border-border px-2 py-0.5 font-medium text-ink-primary hover:bg-page">
           Play
         </button>
-        <span className="w-full text-ink-muted">Click a field (or Play) to run it on every field — then it moves on to the next play.</span>
+        <span className="w-full text-ink-muted">Play runs it on every field, then moves on to the next play. Click a field to see its last play again.</span>
       </div>
     </>
   );
