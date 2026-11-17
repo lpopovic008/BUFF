@@ -307,7 +307,7 @@ function TickerItem({
   const { matchup, my, opponent } = league;
   return (
     <Link
-      href={`/league-room?id=${league.leagueId}`}
+      href={`/league?id=${league.leagueId}`}
       aria-hidden={copy || undefined}
       tabIndex={copy ? -1 : undefined}
       draggable={false}

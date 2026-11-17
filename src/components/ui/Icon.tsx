@@ -179,17 +179,7 @@ export function CheckIcon(props: IconProps) {
   );
 }
 
-export function StandingsIcon(props: IconProps) {
-  return (
-    <svg {...base(props)}>
-      <rect x="4" y="10.5" width="3" height="5.5" />
-      <rect x="8.5" y="6.5" width="3" height="9.5" />
-      <rect x="13" y="3.5" width="3" height="12.5" />
-    </svg>
-  );
-}
-
-/** The standings' bars standing on a floor running back to the horizon — the league room. */
+/** The standings' bars standing on a floor running back to the horizon — the League page. */
 export function LeagueRoomIcon(props: IconProps) {
   return (
     <svg {...base(props)}>

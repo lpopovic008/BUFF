@@ -4,10 +4,12 @@ import { useEffect, useRef } from "react";
 import { BallLeg, ballAt, FieldMark, FieldPlace, Flight, flightFor, Point } from "@/lib/ball-flight";
 import { FIELD_WIDE, FieldFloor, FieldSpot, layFields, layFocused, MOST_FIELDS } from "@/lib/field-layout";
 import { floorPoint, floorScale } from "@/lib/grid-room";
+import { endZoneFont } from "@/lib/fonts";
 import { nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import type { NFLGame } from "@/lib/nfl-schedule";
 import { playFromLastPlay } from "@/lib/play-by-play";
 import { PlayScene, sceneFor } from "@/lib/play-scene";
+import { teamColor, teamName } from "@/lib/team-colors";
 
 // As on television: the line of scrimmage in blue.
 const SCRIMMAGE = "#2f7cf6";
@@ -53,6 +55,18 @@ const dirOf = (game: NFLGame, team: string | null): 1 | -1 => (team === game.hom
 /** Where a team with `toGo` yards to the end zone has the ball (x, from the left goal line). */
 const spotOf = (dir: 1 | -1, toGo: number) => (dir > 0 ? 100 - toGo : toGo);
 
+/** A team's highlight, as the starters list tints its side of a game's header (see .team-bar): its color, lifted
+ * toward white by `lift` (0–1, on a dark page), as `rgba` at `alpha` — the page's ink, for a team it doesn't know. */
+function teamTint(team: string, lift: number, alpha: number, ink: string): string {
+  const hex = /^#([0-9a-f]{6})$/i.exec(teamColor(team))?.[1];
+  if (!hex) return withAlpha(ink, alpha);
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16)).map((c) => Math.round(c + (255 - c) * lift));
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+/** A CSS color at `alpha`, by the canvas mixing it with transparent. */
+const withAlpha = (color: string, alpha: number) => `color-mix(in srgb, ${color} ${Math.round(alpha * 100)}%, transparent)`;
+
 /**
  * Every game being played, a field of its own laid on the room's floor (see field-layout): its line of scrimmage, and
  * the logo of the team with the ball standing behind it, the way they're going — and each play as it comes in, told by
@@ -68,6 +82,7 @@ export function FloorFields({
   floor,
   focused = false,
   onPick,
+  onPlayed,
 }: {
   /** The games being played, in order. */
   games: NFLGame[];
@@ -80,6 +95,8 @@ export function FloorFields({
   focused?: boolean;
   /** Told when a field's tapped (or clicked), and which game's it is. */
   onPick?: (gameId: string) => void;
+  /** Told when a field's done acting out the plays sent down it, and which game's it is. */
+  onPlayed?: (gameId: string) => void;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const fields = useRef(new Map<string, FieldState>());
@@ -90,9 +107,11 @@ export function FloorFields({
   // Drawn again (and on, while anything's moving).
   const kick = useRef(() => {});
   const pick = useRef(onPick);
+  const played = useRef(onPlayed);
   useEffect(() => {
     pick.current = onPick;
-  }, [onPick]);
+    played.current = onPlayed;
+  }, [onPick, onPlayed]);
 
   // Laid out again: where each field goes for the games on, and the room as it is.
   const relay = useRef(() => {
@@ -181,11 +200,16 @@ export function FloorFields({
         page: v("--page", "#000"),
         good: v("--status-good", "#2e7d32"),
         bad: v("--status-critical", "#d03b3b"),
-        tag: v("--map-tag", "#1f1f1f"),
-        tagInk: v("--map-tag-ink", "#f4f4f4"),
+        lift: (parseFloat(v("--team-lift", "0%")) || 0) / 100,
       };
     };
     const type = getComputedStyle(document.body).fontFamily;
+    // The end zones' lettering (see drawNames): drawn again once it's in. Just the font itself — not the stand-in
+    // next/font names after it, made of the device's own fonts, which there's nothing to load for.
+    document.fonts
+      ?.load(`400 100px ${endZoneFont.style.fontFamily.split(",")[0]}`)
+      .then(() => kick.current())
+      .catch(() => {});
     let frame = 0;
     let last = performance.now();
     let looping = false;
@@ -234,6 +258,7 @@ export function FloorFields({
         if (f.playing && (now - f.playing.start) / 1000 > f.playing.flight.length) {
           const next = f.waiting.shift();
           f.playing = next ? { ...next, start: now } : null;
+          if (!next) played.current?.(id);
         }
         if (f.playing) moving = true;
         const { possession, toGo } = f.situation;
@@ -277,16 +302,19 @@ export function FloorFields({
         quad(-10, 110);
         ctx.closePath();
         ctx.fill();
-        ctx.fillStyle = colors.ink;
-        for (const [x0, x1] of [
-          [-10, 0],
-          [100, 110],
-        ]) {
-          ctx.globalAlpha = alpha * 0.06;
+        // Each end zone the highlight of the team it's theirs (the one going away from it — the road team's on the
+        // left), as the starters list tints its side of the game.
+        for (const [x0, x1, team] of [
+          [-10, 0, f.game.awayTeam],
+          [100, 110, f.game.homeTeam],
+        ] as const) {
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = teamTint(team, colors.lift, 0.22, colors.ink);
           quad(x0, x1);
           ctx.closePath();
           ctx.fill();
         }
+        drawNames();
         ctx.strokeStyle = colors.ink;
         ctx.lineWidth = 1;
         for (let x = 10; x < 100; x += 10) {
@@ -331,55 +359,83 @@ export function FloorFields({
           }
         }
 
-        // Each team's name, standing in its own end zone — as small as keeps it clear of the field beside it.
-        ctx.textAlign = "center";
-        ctx.textBaseline = "alphabetic";
-        ctx.fillStyle = colors.ink;
-        ctx.globalAlpha = alpha * 0.75;
-        const room = 1.7 * Math.abs(at(0, -half * 0.2)[0] - at(-10, -half * 0.2)[0]);
-        for (const [x, team] of [
-          [-5, f.game.awayTeam],
-          [105, f.game.homeTeam],
-        ] as const) {
-          const [sx, sy] = at(x, -half * 0.2);
-          let font = Math.max(9, Math.min(15, yardPx(0) * 3.2));
-          ctx.font = `600 ${font}px ${type}`;
-          const wide = ctx.measureText(team).width;
-          if (wide > room) {
-            font = Math.max(7, (font * room) / wide);
-            ctx.font = `600 ${font}px ${type}`;
-          }
-          ctx.fillText(team, sx, sy - 2);
-        }
-
         if (f.playing) {
           for (const m of marks) if (m.kind === "posts" && t <= m.until + 0.3) drawPosts(m, Math.min(1, (m.until + 0.3 - t) / 0.3));
           for (const m of marks) if (m.kind === "flag") drawFlag(m, t);
           const ball = ballAt(f.playing.flight, t);
-          if (ball) drawBall(ball.at, ball.alpha, ball.spin, t, f.playing.flight);
+          if (ball) drawBall(ball.at, ball.alpha, ball.spin, t, f.playing.flight, ball.team);
           drawLabel(f.playing.flight, t);
         }
         ctx.restore();
 
-        // What the play was, on a tag over the field's far sideline while it's on — faded in, and out at its end.
+        // What the play was, over the field's far sideline while it's on: just its letters, popping up — and fading
+        // out at its end.
         function drawLabel(flight: Flight, t: number) {
           const label = flight.labels.filter((l) => t >= l.t).at(-1);
           if (!label) return;
-          const fade = Math.min(1, (t - label.t) / 0.2, (flight.length - t) / 0.4);
+          const fade = Math.min(1, (t - label.t) / 0.15, (flight.length - t) / 0.4);
           if (fade <= 0) return;
-          const font = Math.max(10, Math.min(13, yardPx(-half) * 2.4));
-          ctx.font = `600 ${font}px ${type}`;
+          const pop = Math.min(1, (t - label.t) / 0.25);
+          const font = Math.max(10, Math.min(13, yardPx(-half) * 2.4)) * (0.7 + 0.3 * (1 - (1 - pop) * (1 - pop)));
+          ctx.font = `700 ${font}px ${type}`;
           ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
+          ctx.textBaseline = "alphabetic";
           const [cx, farY] = at(50, -half);
-          const tall = font + 8;
-          const wide = ctx.measureText(label.text).width + 14;
-          const y = farY - 6 - tall / 2;
+          const y = farY - 6 - (1 - pop) * 4;
           ctx.globalAlpha = alpha * fade;
-          ctx.fillStyle = colors.tag;
-          ctx.fillRect(cx - wide / 2, y - tall / 2, wide, tall);
-          ctx.fillStyle = colors.tagInk;
-          ctx.fillText(label.text, cx, y + 0.5);
+          // A thin edge of the page's color round the letters, so they read over the grid and the field behind.
+          ctx.lineJoin = "round";
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = colors.page;
+          ctx.strokeText(label.text, cx, y);
+          ctx.fillStyle = colors.ink;
+          ctx.fillText(label.text, cx, y);
+        }
+
+        // Each team's name in its end zone, as a field's painted: in outlined blocky capitals (see endZoneFont), the
+        // inside just what's under them, running along it from one sideline to the other — facing in, the letters'
+        // feet toward the field, so they read from it: the left one up the screen, the right one down it. Each letter
+        // laid on the floor where it lies, in its perspective. Left off where it'd be too small to make out.
+        function drawNames() {
+          const family = endZoneFont.style.fontFamily;
+          ctx.font = `400 100px ${family}`;
+          const capRatio = (ctx.measureText("H").actualBoundingBoxAscent || 70) / 100;
+          for (const [end, team] of [
+            [-1, f.game.awayTeam],
+            [1, f.game.homeTeam],
+          ] as const) {
+            const name = teamName(team).toUpperCase();
+            const widths = [...name].map((ch) => ctx.measureText(ch).width / 100);
+            const long = widths.reduce((a, b) => a + b, 0);
+            // A letter's height (yards): as tall as fits the end zone, as long as the name fits most of the way across.
+            const em = Math.min(6.5 / capRatio, (FIELD_WIDE * 0.86) / long);
+            const tall = em * capRatio;
+            if (tall * yardPx(0) < 7) continue;
+            // Its letters' feet along the end zone's field side; read toward the far sideline on the left, toward you
+            // on the right.
+            const foot = end < 0 ? -5 + tall / 2 : 105 - tall / 2;
+            const up = end < 0 ? -1 : 1;
+            const read = end < 0 ? -1 : 1;
+            ctx.globalAlpha = alpha * 0.85;
+            ctx.strokeStyle = colors.ink;
+            ctx.textAlign = "left";
+            ctx.textBaseline = "alphabetic";
+            let along = -long / 2;
+            [...name].forEach((ch, k) => {
+              const z = read * along * em;
+              const [ox, oy] = at(foot, z);
+              const [ax, ay] = at(foot, z + read);
+              const [ux, uy] = at(foot + up, z);
+              // A font px in yards, and the floor's directions here on the screen: along the name, and up a letter.
+              const unit = em / 100;
+              ctx.save();
+              ctx.transform((ax - ox) * unit, (ay - oy) * unit, -(ux - ox) * unit, -(uy - oy) * unit, ox, oy);
+              ctx.lineWidth = 1 / (unit * Math.max(0.5, Math.hypot(ux - ox, uy - oy)));
+              ctx.strokeText(ch, 0, 0);
+              ctx.restore();
+              along += widths[k];
+            });
+          }
         }
 
         function drawRipple(m: Extract<FieldMark, { kind: "ripple" }>, age: number) {
@@ -435,14 +491,15 @@ export function FloorFields({
 
         // The ball: its shadow on the ground under it, and the ball up off it — pointed the way it's going, spinning
         // on a throw, end over end on a kick or a bounce.
-        function drawBall([x, z, hgt]: Point, fade: number, spin: BallLeg["spin"], t: number, flight: Flight) {
+        function drawBall([x, z, hgt]: Point, fade: number, spin: BallLeg["spin"], t: number, flight: Flight, team: string | null) {
           const yp = yardPx(z);
           const [gx, gy] = at(x, z);
           const by = gy - hgt * yp;
-          ctx.globalAlpha = alpha * fade * 0.3 * Math.max(0.25, 1 - hgt / 16);
-          ctx.fillStyle = colors.ink;
+          // Its shadow, under it all the way, in the highlight of the team that has it (see teamTint).
+          ctx.globalAlpha = alpha * fade * Math.max(0.55, 1 - hgt / 30);
+          ctx.fillStyle = team ? teamTint(team, colors.lift, 0.75, colors.ink) : withAlpha(colors.ink, 0.3);
           ctx.beginPath();
-          const shadow = Math.max(4, yp * 1.1);
+          const shadow = Math.max(5, yp * 1.5);
           ctx.ellipse(gx, gy, shadow, shadow * 0.3, 0, 0, Math.PI * 2);
           ctx.fill();
           let angle: number;

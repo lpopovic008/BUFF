@@ -11,8 +11,11 @@ export const FIELD_WIDE = 160 / 3;
 /** The most fields the floor holds. */
 export const MOST_FIELDS = 9;
 
-/** The gap between rows (of a field's width) and between fields in a row (of a field's length). */
-const ROW_GAP = 0.22;
+/** The gap between rows on the screen (px) — room for a field's play to be named over it (see FloorFields) clear of
+ * the field behind — and between fields in a row (of a field's length). */
+export const ROW_GAP_PX = 26;
+/** On a phone's strip of floor, the rows behind the field in view just a little apart: room there is short. */
+export const PHONE_ROW_GAP_PX = 6;
 const COLUMN_GAP = 0.12;
 
 /** How many fields stand in each row, nearest first: as many as each other, the nearer rows one more where they can't be. */
@@ -55,15 +58,15 @@ const rowDepth = (yard: number) => FIELD_WIDE * yard;
  * across (each at its own depth) and all of them back to the floor's back — no larger than `most` floor px a yard.
  * Each row's fields side by side across its middle. Null if there's no floor to lay them on.
  */
-export function layRows(rows: number[], floor: FieldFloor, most = Infinity): FieldSpot[][] | null {
+export function layRows(rows: number[], floor: FieldFloor, most = Infinity, gap = ROW_GAP_PX): FieldSpot[][] | null {
   const { height, share, left, right, front, back } = floor;
   const room = right - left;
   if (rows.length === 0 || room <= 0 || front <= back) return null;
   const nearest = floorDepth(front, height, share);
   const farthest = floorDepth(back, height, share);
   if (nearest - farthest <= 0) return null;
-  // Each row's near sideline, for fields `yard` px a yard.
-  const nears = (yard: number) => rows.map((_, i) => nearest - i * rowDepth(yard) * (1 + ROW_GAP));
+  // Each row's near sideline, for fields `yard` px a yard: the nearest at the front, each next one past a gap.
+  const nears = (yard: number) => stepBack(nearest, rows.length, yard, height, share, gap);
   const fits = (yard: number) => {
     const at = nears(yard);
     if (at[at.length - 1] - rowDepth(yard) < farthest) return false;
@@ -75,6 +78,17 @@ export function layRows(rows: number[], floor: FieldFloor, most = Infinity): Fie
   else for (let k = 0; k < 40; k++) [lo, hi] = fits((lo + hi) / 2) ? [(lo + hi) / 2, hi] : [lo, (lo + hi) / 2];
   return spotsOf(rows, nears(lo), lo, floor);
 }
+
+/** `n` rows' near sideline, the first's at `first`, each next behind the one before past a gap on the screen. */
+function stepBack(first: number, n: number, yard: number, height: number, share: number, gap = ROW_GAP_PX): number[] {
+  const nears = [first];
+  while (nears.length < n) nears.push(behind(nears[nears.length - 1] - rowDepth(yard), height, share, gap));
+  return nears;
+}
+/** How far back the near sideline of a row behind one whose far sideline is `far` back lies: past the gap. */
+const behind = (far: number, height: number, share: number, gap = ROW_GAP_PX) => floorDepth(floorY(far, height, share) - gap, height, share);
+/** How far back the far sideline of a row in front of one whose near sideline is `near` back lies: past the gap. */
+const inFront = (near: number, height: number, share: number) => floorDepth(floorY(near, height, share) + ROW_GAP_PX, height, share);
 
 /** Each row's fields, its near sideline `near[i]` back, side by side across the floor's middle. */
 function spotsOf(rows: number[], nears: number[], yard: number, { width, left, right }: FieldFloor): FieldSpot[][] {
@@ -105,10 +119,14 @@ export function layAround(rows: number[], floor: FieldFloor, anchor: number): Fi
   const nearest = floorDepth(front, height, share);
   const farthest = floorDepth(back, height, share);
   const room = right - left;
-  // Each row's near sideline, the rows as a whole centered on the middle.
+  // Each row's near sideline, the rows laid round the middle: two, the gap between them on it (as much of it either
+  // side, on the screen); three, the middle one on it, the others past a gap in front and behind.
+  const at = floorY(middle, height, share);
   const nears = (yard: number) => {
-    const deep = rows.length * rowDepth(yard) + (rows.length - 1) * rowDepth(yard) * ROW_GAP;
-    return rows.map((_, i) => middle + deep / 2 - i * rowDepth(yard) * (1 + ROW_GAP));
+    const deep = rowDepth(yard);
+    if (rows.length === 2) return [floorDepth(at + ROW_GAP_PX / 2, height, share) + deep, floorDepth(at - ROW_GAP_PX / 2, height, share)];
+    const second = middle + deep / 2;
+    return [inFront(second, height, share) + deep, ...stepBack(second, rows.length - 1, yard, height, share)];
   };
   // The rows that must be within the floor across: all of them — but with three, not the nearest.
   const held = rows.map((_, i) => rows.length < 3 || i > 0);
@@ -141,8 +159,8 @@ export function layFocused(count: number, floor: FieldFloor): FieldSpot[] {
   const rest = Math.min(count, MOST_FIELDS) - 1;
   if (rest === 0) return [main];
   // Behind it, past a gap, as far back as the floor goes.
-  const behind = main.near - rowDepth(main.yard) * (1 + ROW_GAP);
   const { height, share } = floor;
-  const others = layRows(fieldRows(rest), { ...floor, front: floorY(behind, height, share) }, main.yard * 0.6)?.flat() ?? [];
+  const back = behind(main.near - rowDepth(main.yard), height, share, PHONE_ROW_GAP_PX);
+  const others = layRows(fieldRows(rest), { ...floor, front: floorY(back, height, share) }, main.yard * 0.6, PHONE_ROW_GAP_PX)?.flat() ?? [];
   return [main, ...others];
 }

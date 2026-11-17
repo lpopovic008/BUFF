@@ -6,7 +6,7 @@
 // strings — see RecapEditor.tsx, which also renders an invisible span in
 // this font so the browser actually has a live use of it to load.
 
-import { Anton, Karla } from "next/font/google";
+import { Anton, Graduate, Karla } from "next/font/google";
 
 export const recapDisplayFont = Anton({ weight: "400", subsets: ["latin"], display: "swap" });
 
@@ -15,3 +15,7 @@ export const recapDisplayFont = Anton({ weight: "400", subsets: ["latin"], displ
 // Inconsolata chrome, since this is the one place in the app meant to be
 // read like a document rather than a UI.
 export const recapBodyFont = Karla({ subsets: ["latin"], display: "swap" });
+
+// The blocky varsity lettering painted in each end zone of the home page's live-game fields (see FloorFields) —
+// drawn on a canvas, so it's used by family name there (and loaded before it's painted).
+export const endZoneFont = Graduate({ weight: "400", subsets: ["latin"], display: "swap" });

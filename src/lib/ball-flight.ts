@@ -22,6 +22,10 @@ export interface BallLeg {
   spin: Spin;
   /** Faded in over the leg, or out; or not there at all. */
   fade: "in" | "out" | "none" | "hidden";
+  /** Who has the ball: the team on offense when the play started, or the other — once it's been turned over (or a
+   * kick's been fielded); and that team (set for a flight, see flightFor). */
+  side: "offense" | "defense";
+  team?: string;
 }
 
 /** What else shows on the field as it goes: a flag thrown (a coach's red one for a challenge), the ground shaken where
@@ -63,7 +67,7 @@ const easeOf = (ease: Ease, u: number) =>
   ease === "in" ? u * u : ease === "out" ? 1 - (1 - u) * (1 - u) : ease === "inOut" ? (u < 0.5 ? 2 * u * u : 1 - 2 * (1 - u) * (1 - u)) : u;
 
 /** Where the ball is `t` s into a flight (null before it, or once it's gone), how much of it shows, and how it's turning. */
-export function ballAt(flight: Flight, t: number): { at: Point; alpha: number; spin: Spin } | null {
+export function ballAt(flight: Flight, t: number): { at: Point; alpha: number; spin: Spin; team: string | null } | null {
   if (t < 0 || t > flight.length) return null;
   const leg = flight.legs.find((l) => t >= l.t && t <= l.t + l.dur) ?? null;
   if (!leg || leg.fade === "hidden") return null;
@@ -72,7 +76,7 @@ export function ballAt(flight: Flight, t: number): { at: Point; alpha: number; s
   const lerp = (i: number) => leg.from[i] + (leg.to[i] - leg.from[i]) * e;
   const at: Point = [lerp(0), lerp(1), Math.max(0, lerp(2) + leg.arc * 4 * u * (1 - u))];
   const alpha = leg.fade === "in" ? u : leg.fade === "out" ? 1 - u : 1;
-  return { at, alpha, spin: leg.spin };
+  return { at, alpha, spin: leg.spin, team: leg.team ?? null };
 }
 
 /** A flight being put together, leg by leg, from where the ball is. */
@@ -80,9 +84,15 @@ class Path {
   legs: BallLeg[] = [];
   marks: FieldMark[] = [];
   t = 0;
+  side: BallLeg["side"] = "offense";
   constructor(public at: Point) {}
+  /** The ball changes hands: the other team has it from here. */
+  turn(): this {
+    this.side = this.side === "offense" ? "defense" : "offense";
+    return this;
+  }
   go(to: Point, dur: number, o: { arc?: number; ease?: Ease; spin?: Spin; fade?: BallLeg["fade"] } = {}): this {
-    const leg: BallLeg = { t: this.t, dur, from: this.at, to, arc: o.arc ?? 0, ease: o.ease ?? "linear", spin: o.spin ?? "none", fade: o.fade ?? "none" };
+    const leg: BallLeg = { t: this.t, dur, from: this.at, to, arc: o.arc ?? 0, ease: o.ease ?? "linear", spin: o.spin ?? "none", fade: o.fade ?? "none", side: this.side };
     this.legs.push(leg);
     this.t += dur;
     this.at = to;
@@ -197,7 +207,7 @@ function playFlight(scene: PlayScene, place: FieldPlace, seed: number): Path {
       } else if (scene.kind === "interception") {
         // Picked off: going straight back the other way.
         p.mark({ kind: "ripple", t: p.t, x: caught, z: lane, tone: "bad" });
-        p.go([caught, lane, 2.6], 0.22, { ease: "out", spin: "tumble" });
+        p.turn().go([caught, lane, 2.6], 0.22, { ease: "out", spin: "tumble" });
         p.carry(carriedTo(on(caught, dir, -scene.yards), (-dir) as 1 | -1, scene.touchdown), lane);
       } else {
         // Caught, and run on with.
@@ -240,6 +250,8 @@ function playFlight(scene: PlayScene, place: FieldPlace, seed: number): Path {
       p = new Path([at(-2), 0, 16]);
       p.go([at(-2), 0, 0], 0.95, { ease: "in", fade: "in", spin: "tumble" });
       p.bounce(dribble(seed, dir));
+      // Fallen on by the other side: theirs.
+      if (scene.fumbleLost) p.turn().mark({ kind: "ripple", t: p.t, x: p.at[0], z: p.at[1], tone: "bad" }).wait(0.3);
       break;
     }
     case "fieldGoal":
@@ -253,7 +265,7 @@ function playFlight(scene: PlayScene, place: FieldPlace, seed: number): Path {
       if (scene.blocked) {
         p.go([at(-5), 0, 2.2], 0.2, { ease: "out", spin: "tumble" });
         p.mark({ kind: "ripple", t: p.t, x: at(-5), z: 0, tone: "bad" });
-        p.go([at(-11), 3, 0], 0.7, { arc: 3.5, spin: "tumble" });
+        p.turn().go([at(-11), 3, 0], 0.7, { arc: 3.5, spin: "tumble" });
         p.bounce(dribble(seed, (-dir) as 1 | -1).slice(1));
       } else if (scene.good) {
         // Up over the crossbar, between the uprights, and down behind them.
@@ -273,7 +285,7 @@ function playFlight(scene: PlayScene, place: FieldPlace, seed: number): Path {
       p = from(at(-14), 1.4);
       if (scene.blocked) {
         p.mark({ kind: "ripple", t: p.t, x: at(-13), z: 0, tone: "bad" });
-        p.go([at(-18), -3, 0], 0.7, { arc: 4, spin: "tumble" });
+        p.turn().go([at(-18), -3, 0], 0.7, { arc: 4, spin: "tumble" });
         p.bounce(dribble(seed, (-dir) as 1 | -1));
         break;
       }
@@ -285,11 +297,15 @@ function playFlight(scene: PlayScene, place: FieldPlace, seed: number): Path {
       // bounding along the ground.
       const kick = (-dir) as 1 | -1;
       const tee = goalOf(dir) + kick * 35;
+      // The kicking team's ball till it's fielded.
       p = from(tee, 0.4);
+      p.legs[0].side = "defense";
+      p.side = "defense";
       if (scene.onside) {
         const hops = [3, 2.2, 1.4, 0.8, 0.4];
         const each = Math.max(2, scene.yards) / hops.length;
         p.bounce(hops.map((up, i) => [kick * each, (i % 2 ? -1 : 1) * 1.2, up]));
+        if (scene.recoveredBy?.team === scene.offense) p.turn();
         p.mark({ kind: "ripple", t: p.t, x: p.at[0], z: p.at[1], tone: scene.recoveredBy && scene.recoveredBy.team !== scene.offense ? "bad" : "ink" });
         break;
       }
@@ -313,7 +329,7 @@ function playFlight(scene: PlayScene, place: FieldPlace, seed: number): Path {
     p.go([x, z, 0], 0.75, { ease: "in", spin: "tumble" });
     p.bounce(dribble(seed, dir));
     if (scene.fumble.lost) {
-      p.mark({ kind: "ripple", t: p.t, x: p.at[0], z: p.at[1], tone: "bad" });
+      p.turn().mark({ kind: "ripple", t: p.t, x: p.at[0], z: p.at[1], tone: "bad" });
       if (scene.fumble.back > 0) p.carry(on(p.at[0], (-dir) as 1 | -1, scene.fumble.back), p.at[1]);
     }
   }
@@ -357,6 +373,8 @@ function kickedDown(p: Path, land: number, dir: 1 | -1, scene: PlayScene, seed: 
   const z = result === "OUT OF BOUNDS" ? (seed % 2 ? 1 : -1) * 22 : (seed % 3) - 1;
   const caught = !result || result === "FAIR CATCH";
   p.go([land, z, caught ? 1.5 : 0], hang, { arc: peak, spin: scene.kind === "punt" ? "spiral" : "tumble" });
+  // Fielded (or left to lie): the receiving team's ball now.
+  p.turn();
   if (result === "FAIR CATCH") {
     p.wait(0.5);
     return;
@@ -404,7 +422,7 @@ export function flightFor(scene: PlayScene, place: (scene: PlayScene) => FieldPl
     labels.push({ t, text: playLabel(s) });
     // A kick's goalposts up only while it's on.
     for (const m of p.marks) marks.push(m.kind === "posts" ? { ...m, t: m.t + t, until: t + p.t } : { ...m, t: m.t + t });
-    for (const l of p.legs) legs.push({ ...l, t: l.t + t });
+    for (const l of p.legs) legs.push({ ...l, t: l.t + t, team: l.side === "offense" ? s.offense : s.defense });
     end = p.at[0];
     t += p.t + 0.25;
   }

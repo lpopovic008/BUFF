@@ -124,3 +124,23 @@ test("flags: a yellow one thrown in on a penalty, a red one on a challenge — a
   );
   assert.ok(challenged.marks.some((m) => m.kind === "flag" && m.color === "red"));
 });
+
+test("who has the ball: the same team all play long, unless it changes hands — a pick, a lost fumble, a kick fielded", () => {
+  const teamsOf = (f: Flight) => [...new Set(sample(f).map((b) => b.team))];
+  assert.deepEqual(teamsOf(fly("P.Mahomes pass short right to T.Kelce to BUF 35 for 12 yards (T.Bernard).", { yardsToEndzone: 47 })), ["KC"]);
+  assert.deepEqual(teamsOf(fly("P.Mahomes sacked at KC 46 for -7 yards (G.Rousseau).", { yardsToEndzone: 47 })), ["KC"]);
+  assert.deepEqual(
+    teamsOf(fly("P.Mahomes pass deep left intended for X.Worthy INTERCEPTED by T.Bernard at BUF 20. T.Bernard to BUF 35 for 15 yards.", { yardsToEndzone: 47 })),
+    ["KC", "BUF"]
+  );
+  assert.deepEqual(
+    teamsOf(fly("I.Pacheco up the middle to BUF 40 for 7 yards, FUMBLES (Z.Sieler), RECOVERED by BUF-T.Bernard at BUF 40.", { yardsToEndzone: 47 })),
+    ["KC", "BUF"]
+  );
+  assert.deepEqual(teamsOf(fly("I.Pacheco up the middle to BUF 40 for 7 yards, FUMBLES (Z.Sieler), and recovers at BUF 40.", { yardsToEndzone: 47 })), ["KC"]);
+  // A punt: the punting team's till it's fielded. A kickoff: the kicking team's (the other one) till it's fielded.
+  assert.deepEqual(teamsOf(fly("M.Araiza punts 45 yards to BUF 20. K.Coleman to BUF 30 for 10 yards (N.Bolton).", { yardsToEndzone: 65 })), ["KC", "BUF"]);
+  assert.deepEqual(teamsOf(fly("T.Bass kicks 65 yards from BUF 35 to KC 0. R.Rice to KC 25 for 25 yards.", {})), ["BUF", "KC"]);
+  // An onside kick the kicking team gets back: theirs throughout.
+  assert.deepEqual(teamsOf(fly("H.Butker onside kick 11 yards from KC 35 to KC 46. RECOVERED by KC-J.Watson.", { offense: "BUF" })), ["KC"]);
+});

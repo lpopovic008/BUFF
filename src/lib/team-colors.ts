@@ -46,3 +46,44 @@ const HOME: Record<string, [helmet: string, jersey: string, numbers: string, pan
   WAS: ["#5a1414", "#5a1414", "#ffb612", "#ffb612"],
 };
 
+
+/** Each team's name, as painted in its end zone (see FloorFields), by Sleeper's team abbreviation. */
+const NAMES: Record<string, string> = {
+  ARI: "Cardinals",
+  ATL: "Falcons",
+  BAL: "Ravens",
+  BUF: "Bills",
+  CAR: "Panthers",
+  CHI: "Bears",
+  CIN: "Bengals",
+  CLE: "Browns",
+  DAL: "Cowboys",
+  DEN: "Broncos",
+  DET: "Lions",
+  GB: "Packers",
+  HOU: "Texans",
+  IND: "Colts",
+  JAX: "Jaguars",
+  KC: "Chiefs",
+  LAC: "Chargers",
+  LAR: "Rams",
+  LV: "Raiders",
+  MIA: "Dolphins",
+  MIN: "Vikings",
+  NE: "Patriots",
+  NO: "Saints",
+  NYG: "Giants",
+  NYJ: "Jets",
+  PHI: "Eagles",
+  PIT: "Steelers",
+  SEA: "Seahawks",
+  SF: "49ers",
+  TB: "Buccaneers",
+  TEN: "Titans",
+  WAS: "Commanders",
+};
+
+/** A team's name ("Bears") — its abbreviation, for a team it doesn't know. */
+export function teamName(team: string): string {
+  return NAMES[team] ?? team;
+}

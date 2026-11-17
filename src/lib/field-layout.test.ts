@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { FIELD_LONG, FIELD_WIDE, fieldRows, FieldSpot, layFields, layFocused } from "./field-layout";
-import { floorDepth, floorScale, HORIZON_SHARE, lowestGridLine } from "./grid-room";
+import { FIELD_LONG, FIELD_WIDE, fieldRows, FieldSpot, layFields, layFocused, PHONE_ROW_GAP_PX, ROW_GAP_PX } from "./field-layout";
+import { floorDepth, floorScale, floorY, HORIZON_SHARE, lowestGridLine } from "./grid-room";
 
 test("rows of fields: as many in each, the nearer ones one more where they can't be; a third row from seven", () => {
   assert.deepEqual(fieldRows(0), []);
@@ -74,9 +74,10 @@ test("around the middle: one game a box up from the front, across the floor; two
     assert.equal(spots.length, n);
     const nears = [...new Set(spots.map((s) => s.near))];
     assert.equal(nears.length, 2);
-    // The gap between the rows on the middle.
-    const gapMid = (nears[0] - FIELD_WIDE * spots[0].yard + nears[1]) / 2;
-    assert.ok(Math.abs(gapMid - center) < 1e-6, `${n}`);
+    // The gap between the rows on the middle, on the screen.
+    const y = (d: number) => floorY(d, desk.height, desk.share);
+    const gapMid = (y(nears[0] - FIELD_WIDE * spots[0].yard) + y(nears[1])) / 2;
+    assert.ok(Math.abs(gapMid - y(center)) < 1e-3, `${n}`);
     assert.ok(spots.every((s) => fitsAcross(s)), `${n}`);
   }
 });
@@ -116,4 +117,25 @@ test("a phone: the game in view as big however many there are, the rest smaller 
   }
   // No floor, no fields.
   assert.deepEqual(layFocused(3, { ...phone, front: phone.back }), []);
+});
+
+test("rows of fields stand clear of each other on the screen: room between them for a play's name", () => {
+  const phone = { width: 393, height: 852, share: HORIZON_SHARE, left: 16, right: 377, front: 722, back: 481 };
+  const layouts: [string, FieldSpot[], number, number][] = [];
+  for (let n = 2; n <= 9; n++) {
+    layouts.push(
+      [`desk ${n}`, layFields(n, desk), desk.height, ROW_GAP_PX],
+      [`middle ${n}`, layFields(n, middle), desk.height, ROW_GAP_PX],
+      // On a phone, just a little apart: room there is short.
+      [`phone ${n}`, layFocused(n, phone), phone.height, PHONE_ROW_GAP_PX]
+    );
+  }
+  for (const [what, spots, height, gap] of layouts) {
+    const rows = [...new Map(spots.map((s) => [s.near, s])).values()].sort((a, b) => b.near - a.near);
+    for (let i = 1; i < rows.length; i++) {
+      const farOfFront = floorY(rows[i - 1].near - FIELD_WIDE * rows[i - 1].yard, height, HORIZON_SHARE);
+      const nearOfBack = floorY(rows[i].near, height, HORIZON_SHARE);
+      assert.ok(farOfFront - nearOfBack >= gap - 0.5, `${what}: ${(farOfFront - nearOfBack).toFixed(1)}px`);
+    }
+  }
 });
