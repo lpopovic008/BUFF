@@ -8,7 +8,7 @@ import { FIELD_SCENARIOS, scenarioText } from "@/lib/field-scenarios";
 import type { NFLGame } from "@/lib/nfl-schedule";
 
 // TEMPORARY: a bench for trying out every play the fields act out (see field-scenarios) — shown in place of the live
-// games' fields from tablet width up while it's on (see the home page).
+// games' fields while it's on (see the home page), on a phone as well.
 
 // Nine made-up games, the road team first.
 const MATCHUPS: [away: string, home: string][] = [
@@ -58,16 +58,22 @@ export function FloorFieldsLab({
   share,
   floor,
   top,
+  bottom,
   tilt,
+  focused = false,
 }: {
   width: number;
   height: number;
   share: number;
   floor: Omit<FieldFloor, "width" | "height" | "share">;
-  /** Where the panel picking the play goes, from the top of the screen (CSS length). */
-  top: string;
+  /** Where the panel picking the play goes: its top from the top of the screen, or its bottom from the bottom (CSS
+   * lengths). */
+  top?: string;
+  bottom?: string;
   /** How far the floor's laid back (see FloorFields' `tilt`). */
   tilt?: FloorTiltStore;
+  /** On a phone: the fields laid as there (see FloorFields' `focused`). */
+  focused?: boolean;
 }) {
   const [scenario, setScenario] = useState(0);
   const [count, setCount] = useState(MATCHUPS.length);
@@ -92,11 +98,11 @@ export function FloorFieldsLab({
 
   return (
     <>
-      <FloorFields games={games} width={width} height={height} share={share} floor={floor} onPick={() => !run && play()} onPlayed={done} tilt={tilt} />
+      <FloorFields games={games} width={width} height={height} share={share} floor={floor} onPick={() => !run && play()} onPlayed={done} tilt={tilt} focused={focused} />
       <div
         data-floor-ui
         className="fixed z-[6] flex flex-wrap items-center gap-x-3 gap-y-1.5 border border-border bg-[color-mix(in_srgb,var(--page)_85%,transparent)] p-2 text-xs"
-        style={{ top, left: floor.left, width: floor.right - floor.left }}
+        style={{ top, bottom, left: floor.left, width: floor.right - floor.left }}
       >
         <span className="font-semibold uppercase tracking-wide text-ink-primary">Play test</span>
         <label className="flex items-center gap-1.5 text-ink-muted">
@@ -126,7 +132,11 @@ export function FloorFieldsLab({
         <button type="button" onClick={play} className="shrink-0 border border-border px-2 py-0.5 font-medium text-ink-primary hover:bg-page">
           Play
         </button>
-        <span className="w-full text-ink-muted">Play runs it on every field, then moves on to the next play. Click a field to see its last play again.</span>
+        <span className="w-full text-ink-muted">
+          {focused
+            ? "Play runs it on every field, then moves on to the next play. Tap the front field to see its last play again; tap or swipe to bring another forward."
+            : "Play runs it on every field, then moves on to the next play. Click a field to see its last play again."}
+        </span>
       </div>
     </>
   );

@@ -63,7 +63,7 @@ const RED_ZONE_FLOAT_REM = 0.125;
 const RED_ZONE_REM = 10.5;
 // From tablet width up, the player graphs at the back of the room: from under the ticker down to the horizon.
 // From tablet width up, how far down the starters list's first row sits: under the header and ticker, and the gap.
-// TEMPORARY: from tablet width up, nine made-up games' fields in place of the live ones, for trying out every play
+// TEMPORARY: nine made-up games' fields in place of the live ones, for trying out every play
 // they act out (see FloorFieldsLab). Set to false to put the live games back.
 const PLAY_TEST = true;
 const UNDER_TICKER = "var(--header-h, 0px) + var(--ticker-h, 0px) + 0.625rem";
@@ -884,7 +884,19 @@ export default function DashboardPage() {
         {mapOut ? <FloorProjectionTags place={stand.projector} games={games} top={stand.mapTop} map={mapCamera} floor={floorCamera} /> : null}
         {/* The games being played, the one in view across the floor's front, the rest behind it. */}
         {stand && fieldsFloor ? (
-          <FloorFields games={liveGames} width={stand.projector.width} height={stand.room} share={stand.projector.share} floor={fieldsFloor} focused />
+          PLAY_TEST ? (
+            // The bench's panel just over the horizon, the floor under it clear.
+            <FloorFieldsLab
+              width={stand.projector.width}
+              height={stand.room}
+              share={stand.projector.share}
+              floor={fieldsFloor}
+              bottom={`${stand.room - stand.horizon + 0.5 * stand.rootPx}px`}
+              focused
+            />
+          ) : (
+            <FloorFields games={liveGames} width={stand.projector.width} height={stand.room} share={stand.projector.share} floor={fieldsFloor} focused />
+          )
         ) : null}
         {floorControls}
       </div>
