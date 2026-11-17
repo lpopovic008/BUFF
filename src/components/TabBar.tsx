@@ -63,7 +63,8 @@ export function TabBar() {
         ROOM_PAGES.has(pathname) ? "" : "bg-page/95 backdrop-blur"
       }`}
     >
-      <div className="grid h-16 grid-cols-6">
+      {/* As many columns as there are pages, the buttons spread evenly across the screen. */}
+      <div className="grid h-16" style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}>
         {tabs.map(({ href, label, icon: Icon, active }) => (
           <Link key={href} href={href} aria-label={label} title={label} aria-current={active ? "page" : undefined} className={tabClass(active)}>
             <Icon width={22} height={22} />
