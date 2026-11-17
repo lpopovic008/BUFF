@@ -85,11 +85,11 @@ test("centered: however many fields, the rows centered north to south, the neare
     const { screen, floor } = slack(spots, desk, tilt);
     assert.ok(screen[0] > screen[1] - 1, `${n}: screen ${screen.map((v) => v.toFixed(1))}`);
     assert.ok(floor[1] > floor[0] - 1, `${n}: floor ${floor.map((v) => v.toFixed(1))}`);
-    // The nearest row's outermost end lines on the columns' edges (a lone field's three quarters of the way to its
-    // near sideline, others' halfway), centered.
+    // The nearest row's outermost end lines on the columns' edges (a lone field's at its near sideline, the whole
+    // of it clear of them; others' halfway), centered.
     const nears = [...new Set(spots.map((s) => s.near))].sort((a, b) => b - a);
     const nearest = spots.filter((s) => s.near === nears[0]);
-    const span = spanAt(nearest, n === 1 ? 0.75 : 0.5, tilt);
+    const span = spanAt(nearest, nearest.length === 1 ? 1 : 0.5, tilt);
     assert.ok(Math.abs(span - (desk.right - desk.left)) < 1, `${n}: ${span.toFixed(1)}`);
     assert.ok(Math.abs(nearest.reduce((a, s) => a + s.across, 0) / nearest.length) < 1e-6);
   }

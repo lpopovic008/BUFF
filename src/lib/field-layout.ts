@@ -134,13 +134,14 @@ function centerBlock(ends: (first: number) => [number, number] | null, floor: Fi
   return floorDepth(y(onScreen) + (y(onFloor) - y(onScreen)) * DEPTH_WEIGHT, height, share, tilt);
 }
 
-/** How far toward its near sideline from its far one a row's width is taken (see layCentered): halfway, or three
- * quarters for a lone field — less of it behind what stands at the floor's sides. */
-const widthAt = (rows: number[]) => (rows.length === 1 && rows[0] === 1 ? 0.75 : 0.5);
+/** How far toward its near sideline from its far one a row's width is taken (see layCentered): halfway, or right at
+ * it where the nearest row's a lone field (one game or two) — the whole of it clear of what stands at the floor's
+ * sides. */
+const widthAt = (rows: number[]) => (rows[0] === 1 ? 1 : 0.5);
 
 /**
  * `rows` of fields laid across the floor (from tablet width up): as big as puts the nearest row's outermost end lines,
- * halfway between their sidelines (a lone field's, three quarters of the way to its near one), on the floor's sides
+ * halfway between their sidelines (a lone field's at its near one, all of it inside), on the floor's sides
  * (`left`, `right`) — however many rows there are — and the rows, a gap apart, centered north to south on the floor
  * (see centerBlock). Smaller only where they'd not all fit on the floor so. Null with no floor.
  */
