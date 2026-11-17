@@ -610,6 +610,8 @@ export default function DashboardPage() {
       (redZoneLevel === 0 ? stand.redZoneLine - (RED_ZONE_REM + RED_ZONE_FLOAT_REM) * stand.rootPx : redZoneLevel === 1 ? stand.horizon : 0);
     return { ...stand.fields, front: Math.min(stand.fields.front, top - 0.5 * stand.rootPx) };
   }, [stand, desktop, redZoneUp, redZoneDragTop, redZoneLevel]);
+  // Whether there are fields on the floor (the bench's, while it's on): then the floor's bare — no grid lines, no map.
+  const fieldsUp = fieldsFloor !== null && (PLAY_TEST || liveGames.length > 0);
   // The floor, slid toward you for the Red Zone; and the projected map moved and zoomed in its frame (see
   // FloorCameraControls), at home on the next games to kick off.
   const [floorCamera] = useState(createFloorCameraStore);
@@ -675,10 +677,12 @@ export default function DashboardPage() {
   // The map's projected over the middle of the floor (see FloorProjection), its games standing up off it in front of
   // everything (FloorProjectionTags) — out of the way while the Red Zone takes the screen (⇕).
   const mapShown = stand !== null && weekGames.length > 0;
-  // The map's only out between weeks: till the week's first game kicks off, and again once they're all over.
+  // The map's only out between weeks: till the week's first game kicks off, and again once they're all over — and
+  // never with fields on the floor.
   // (From tablet width up, put away too while player graphs stand at the back of the room, where its frame floats.)
   const mapOut =
     mapShown &&
+    !fieldsUp &&
     (weekGames.every((g) => g.state === "pre") || weekGames.every((g) => g.state === "post")) &&
     !(desktop && graphed.length > 0 && !redZoneTall);
   const roomView = (
@@ -688,7 +692,7 @@ export default function DashboardPage() {
       className="grid-room"
       style={{ ["--horizon" as string]: `${horizon * 100}%` }}
     >
-      <FloorGrid share={horizon} camera={floorCamera} tilt={floorTilt} />
+      <FloorGrid share={horizon} camera={floorCamera} tilt={floorTilt} hidden={fieldsUp} />
       {mapOut ? <FloorProjection place={stand.projector} games={games} map={mapCamera} floor={floorCamera} /> : null}
     </div>
   );

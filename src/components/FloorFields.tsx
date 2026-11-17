@@ -16,7 +16,9 @@ const SCRIMMAGE = "#2f7cf6";
 const FIRST_DOWN = "#f5d020";
 const FLAG = { yellow: "#f5d020", red: "#e5484d" };
 const POSTS = "#f2c94c";
-const BALL = "#8b5a2b";
+const BALL = "#8b4a22";
+const BALL_LIT = "#b06a38";
+const BALL_DARK = "#4f2810";
 /** How quickly a field eases to where it's laid (ms), and fades on or off the floor. */
 const EASE_MS = 140;
 /** Plays waiting their turn on a field, at most. */
@@ -449,8 +451,7 @@ export function FloorFields({
         }
 
         // The line of scrimmage, sideline to sideline, and the line to gain for a first down; the team with the ball's
-        // logo standing behind it, reflected in the field; the yard line it's on by its foot (on the logo's side), an
-        // arrow the way they're going on the other.
+        // logo standing behind it, reflected in the field.
         if (f.los !== null) {
           const team = f.playing ? f.playing.offense : f.situation.possession;
           const dir = dirOf(f.game, team);
@@ -467,12 +468,13 @@ export function FloorFields({
           ctx.strokeStyle = SCRIMMAGE;
           ctx.lineWidth = lineWide;
           line(f.los, -half, f.los, half);
-          drawYardLine(f.los, dir);
           const img = team ? logo(team) : null;
           if (team && img) {
             const [lx, ly] = at(Math.max(-8, Math.min(108, f.los - dir * 9)), 0);
             const size = nflLogoSize(team, Math.max(4, yardPx(0) * 8));
-            const top = ly - size.height * 0.85;
+            // Standing a little up off the field, its reflection as far under it: the two clear of each other.
+            const gap = size.height * 0.08;
+            const top = ly - gap - size.height;
             ctx.globalAlpha = alpha * 0.92;
             ctx.drawImage(img, lx - size.width / 2, top, size.width, size.height);
             // Its reflection, upside down under its foot, faint.
@@ -568,34 +570,6 @@ export function FloorFields({
               ctx.restore();
             }
           }
-        }
-
-        // The yard line the ball's on (its number, as a field's are: from the nearer goal line), standing by the line of
-        // scrimmage's foot just in from the near sideline, on the side the team with it is coming from — and an arrow
-        // on the other, the way they're going.
-        function drawYardLine(los: number, dir: 1 | -1) {
-          const yard = Math.round(Math.min(los, 100 - los));
-          const z = half - 3;
-          const yp = yardPx(z);
-          const font = Math.max(7, Math.min(13, yp * 2.6));
-          const [nx, ny] = at(los - dir * 1.4, z);
-          const [ax, ay] = at(los + dir * 1.4, z);
-          // Which way the field's `dir` runs across the screen there.
-          const across = Math.sign(at(los + dir, z)[0] - at(los, z)[0]) || dir;
-          ctx.globalAlpha = alpha * 0.9;
-          ctx.fillStyle = colors.ink;
-          ctx.font = `700 ${font}px ${type}`;
-          ctx.textAlign = across > 0 ? "right" : "left";
-          ctx.textBaseline = "middle";
-          ctx.fillText(String(yard), nx, ny);
-          const size = font * 0.45;
-          const tip = ax + across * size * 1.6;
-          ctx.beginPath();
-          ctx.moveTo(tip, ay);
-          ctx.lineTo(ax, ay - size * 0.8);
-          ctx.lineTo(ax, ay + size * 0.8);
-          ctx.closePath();
-          ctx.fill();
         }
 
         // A grey cross lying on the field: where a pass came down incomplete, or a kickoff was kicked from.
@@ -695,16 +669,41 @@ export function FloorFields({
           ctx.save();
           ctx.translate(gx, by);
           ctx.rotate(angle);
-          ctx.fillStyle = BALL;
+          // Pointed at both ends, leather brown, lit from above — with its laces along its top, where it's big enough to
+          // show them.
+          const [l, g] = [long / 2, girth / 2];
+          const shade = ctx.createLinearGradient(0, -g, 0, g);
+          shade.addColorStop(0, BALL_LIT);
+          shade.addColorStop(0.45, BALL);
+          shade.addColorStop(1, BALL_DARK);
+          ctx.fillStyle = shade;
           ctx.beginPath();
-          ctx.ellipse(0, 0, long / 2, girth / 2, 0, 0, Math.PI * 2);
+          ctx.moveTo(-l, 0);
+          ctx.bezierCurveTo(-l * 0.32, -g * 1.32, l * 0.32, -g * 1.32, l, 0);
+          ctx.bezierCurveTo(l * 0.32, g * 1.32, -l * 0.32, g * 1.32, -l, 0);
+          ctx.closePath();
           ctx.fill();
-          ctx.strokeStyle = "#f2f2f2";
-          ctx.lineWidth = Math.max(0.75, girth * 0.14);
-          ctx.beginPath();
-          ctx.moveTo(-long * 0.16, 0);
-          ctx.lineTo(long * 0.16, 0);
+          ctx.strokeStyle = BALL_DARK;
+          ctx.lineWidth = Math.max(0.4, girth * 0.06);
           ctx.stroke();
+          if (long >= 7) {
+            const lace = -g * 0.28;
+            ctx.strokeStyle = "#f4efe6";
+            ctx.lineCap = "round";
+            ctx.lineWidth = Math.max(0.5, girth * 0.09);
+            ctx.beginPath();
+            ctx.moveTo(-l * 0.3, lace);
+            ctx.lineTo(l * 0.3, lace);
+            ctx.stroke();
+            ctx.lineWidth = Math.max(0.4, girth * 0.07);
+            ctx.beginPath();
+            for (let k = 0; k < 5; k++) {
+              const x = -l * 0.24 + (k * l * 0.48) / 4;
+              ctx.moveTo(x, lace - g * 0.2);
+              ctx.lineTo(x, lace + g * 0.2);
+            }
+            ctx.stroke();
+          }
           ctx.restore();
         }
       }
