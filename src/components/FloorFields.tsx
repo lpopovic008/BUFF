@@ -4,7 +4,6 @@ import { useEffect, useRef } from "react";
 import { BallLeg, ballAt, FieldMark, FieldPlace, Flight, flightFor, Point } from "@/lib/ball-flight";
 import { FIELD_WIDE, FieldFloor, FieldSpot, layFields, layFocused, MOST_FIELDS } from "@/lib/field-layout";
 import { floorPoint, floorScale } from "@/lib/grid-room";
-import { endZoneFont } from "@/lib/fonts";
 import { nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import type { NFLGame } from "@/lib/nfl-schedule";
 import { playFromLastPlay } from "@/lib/play-by-play";
@@ -204,12 +203,8 @@ export function FloorFields({
       };
     };
     const type = getComputedStyle(document.body).fontFamily;
-    // The end zones' lettering (see drawNames): drawn again once it's in. Just the font itself — not the stand-in
-    // next/font names after it, made of the device's own fonts, which there's nothing to load for.
-    document.fonts
-      ?.load(`400 100px ${endZoneFont.style.fontFamily.split(",")[0]}`)
-      .then(() => kick.current())
-      .catch(() => {});
+    // Drawn again once the page's fonts are in (the end zones are lettered in its type, see drawNames).
+    document.fonts?.ready.then(() => kick.current()).catch(() => {});
     let frame = 0;
     let last = performance.now();
     let looping = false;
@@ -392,13 +387,12 @@ export function FloorFields({
           ctx.fillText(label.text, cx, y);
         }
 
-        // Each team's name in its end zone, as a field's painted: in outlined blocky capitals (see endZoneFont), the
-        // inside just what's under them, running along it from one sideline to the other — facing in, the letters'
-        // feet toward the field, so they read from it: the left one up the screen, the right one down it. Each letter
-        // laid on the floor where it lies, in its perspective. Left off where it'd be too small to make out.
+        // Each team's name in its end zone, as a field's painted: in bold capitals in the page's own type, running
+        // along it from one sideline to the other — facing in, the letters' feet toward the field, so they read from
+        // it: the left one up the screen, the right one down it. Each letter laid on the floor where it lies, in its
+        // perspective. Left off where it'd be too small to make out.
         function drawNames() {
-          const family = endZoneFont.style.fontFamily;
-          ctx.font = `400 100px ${family}`;
+          ctx.font = `700 100px ${type}`;
           const capRatio = (ctx.measureText("H").actualBoundingBoxAscent || 70) / 100;
           for (const [end, team] of [
             [-1, f.game.awayTeam],
@@ -417,7 +411,7 @@ export function FloorFields({
             const up = end < 0 ? -1 : 1;
             const read = end < 0 ? -1 : 1;
             ctx.globalAlpha = alpha * 0.85;
-            ctx.strokeStyle = colors.ink;
+            ctx.fillStyle = colors.ink;
             ctx.textAlign = "left";
             ctx.textBaseline = "alphabetic";
             let along = -long / 2;
@@ -430,8 +424,7 @@ export function FloorFields({
               const unit = em / 100;
               ctx.save();
               ctx.transform((ax - ox) * unit, (ay - oy) * unit, -(ux - ox) * unit, -(uy - oy) * unit, ox, oy);
-              ctx.lineWidth = 1 / (unit * Math.max(0.5, Math.hypot(ux - ox, uy - oy)));
-              ctx.strokeText(ch, 0, 0);
+              ctx.fillText(ch, 0, 0);
               ctx.restore();
               along += widths[k];
             });
