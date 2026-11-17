@@ -15,6 +15,7 @@ import { FloorFieldsLab } from "@/components/FloorFieldsLab";
 import { ScrollThumb } from "@/components/ScrollThumb";
 import { useListScroll } from "@/hooks/useListScroll";
 import { createFloorCameraStore } from "@/lib/floor-camera";
+import { createFloorTiltStore } from "@/lib/floor-tilt";
 import { LeagueTicker, TickerLeague } from "@/components/LeagueTicker";
 import { ByeTeam, LeagueLegendEntry, StartersByGame, viewPlayers } from "@/components/StartersByGame";
 import { NFL_TEAMS } from "@/lib/nfl-logos";
@@ -613,6 +614,8 @@ export default function DashboardPage() {
   // FloorCameraControls), at home on the next games to kick off.
   const [floorCamera] = useState(createFloorCameraStore);
   const [mapCamera] = useState(createFloorCameraStore);
+  // How far the floor's laid back: looked down on more, the more live games' fields are on it (see FloorFields).
+  const [floorTilt] = useState(() => createFloorTiltStore());
   const [startersList, setStartersList] = useState<HTMLDivElement | null>(null);
   // Scrolled as an iPhone scrolls, by the page, so its reflection moves with it exactly (see useListScroll).
   useListScroll(startersList);
@@ -685,7 +688,7 @@ export default function DashboardPage() {
       className="grid-room"
       style={{ ["--horizon" as string]: `${horizon * 100}%` }}
     >
-      <FloorGrid share={horizon} camera={floorCamera} />
+      <FloorGrid share={horizon} camera={floorCamera} tilt={floorTilt} />
       {mapOut ? <FloorProjection place={stand.projector} games={games} map={mapCamera} floor={floorCamera} /> : null}
     </div>
   );
@@ -955,9 +958,9 @@ export default function DashboardPage() {
       {/* The games being played, a field each, on the floor between the Red Zone and the starters list. */}
       {stand && fieldsFloor ? (
         PLAY_TEST ? (
-          <FloorFieldsLab width={stand.projector.width} height={stand.room} share={stand.projector.share} floor={fieldsFloor} top={`calc(${UNDER_TICKER})`} />
+          <FloorFieldsLab width={stand.projector.width} height={stand.room} share={stand.projector.share} floor={fieldsFloor} top={`calc(${UNDER_TICKER})`} tilt={floorTilt} />
         ) : (
-          <FloorFields games={liveGames} width={stand.projector.width} height={stand.room} share={stand.projector.share} floor={fieldsFloor} />
+          <FloorFields games={liveGames} width={stand.projector.width} height={stand.room} share={stand.projector.share} floor={fieldsFloor} tilt={floorTilt} />
         )
       ) : null}
       {redZoneStage}

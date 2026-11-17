@@ -6,14 +6,17 @@
 export const HORIZON_SHARE = 0.56;
 /** The room's CSS perspective, in px. */
 export const PERSPECTIVE_PX = 520;
-/** How far the floor is laid back from upright, in degrees. */
+/** How far the floor is laid back from upright, in degrees — as it lies; the home page lays it back less (looks down
+ * on it more) while there are many live games' fields on it (see FloorFields). Every function here takes how far it's
+ * laid back (`tilt`), this unless told. */
 export const FLOOR_TILT = 80;
 /** The floor's grid, in px on the floor. */
 export const GRID_PX = 64;
 
-const SIN = Math.sin((FLOOR_TILT * Math.PI) / 180);
+const sinOf = (tilt: number) => Math.sin((tilt * Math.PI) / 180);
+const cosOf = (tilt: number) => Math.cos((tilt * Math.PI) / 180);
 /** How far back from the hinge the floor may be drawn: just short of the viewer, where the projection turns over. */
-const NEAREST_DEPTH = (PERSPECTIVE_PX / SIN) * 0.97;
+const nearestDepth = (tilt: number) => (PERSPECTIVE_PX / sinOf(tilt)) * 0.97;
 
 /**
  * Where the floor's been moved to (see floor-camera.ts): a point `D` px back from the hinge and `X` across from the
@@ -27,38 +30,37 @@ export interface FloorCamera {
 export const HOME_CAMERA: FloorCamera = { zoom: 1, x: 0, d: 0 };
 
 /** How the floor magnifies what's across it `d` px back from the hinge. */
-export function floorScale(d: number): number {
-  return PERSPECTIVE_PX / (PERSPECTIVE_PX - Math.min(d, NEAREST_DEPTH) * SIN);
+export function floorScale(d: number, tilt = FLOOR_TILT): number {
+  return PERSPECTIVE_PX / (PERSPECTIVE_PX - Math.min(d, nearestDepth(tilt)) * sinOf(tilt));
 }
 
 /** Where floor point (`across`, `d`) shows on a `width` x `height` screen — past the viewer, held just short of it. */
-export function floorPoint(across: number, d: number, width: number, height: number, share = HORIZON_SHARE): [number, number] {
-  const near = Math.min(d, NEAREST_DEPTH);
-  return [width / 2 + across * floorScale(near), floorY(near, height, share)];
+export function floorPoint(across: number, d: number, width: number, height: number, share = HORIZON_SHARE, tilt = FLOOR_TILT): [number, number] {
+  const near = Math.min(d, nearestDepth(tilt));
+  return [width / 2 + across * floorScale(near, tilt), floorY(near, height, share, tilt)];
 }
 
 /** The floor point (across, back) at screen point (`x`, `y`) — `y` below the horizon. */
-export function floorAt(x: number, y: number, width: number, height: number, share = HORIZON_SHARE): [number, number] {
-  const d = floorDepth(y, height, share);
-  return [(x - width / 2) / floorScale(d), d];
+export function floorAt(x: number, y: number, width: number, height: number, share = HORIZON_SHARE, tilt = FLOOR_TILT): [number, number] {
+  const d = floorDepth(y, height, share, tilt);
+  return [(x - width / 2) / floorScale(d, tilt), d];
 }
 
 /**
  * Where on a screen `height` px tall, its horizon `share` of the way down, a floor point `d` px back from the
  * horizon's hinge shows, from the top.
  */
-export function floorY(d: number, height: number, share = HORIZON_SHARE): number {
-  const a = (FLOOR_TILT * Math.PI) / 180;
-  return height * share + (d * Math.cos(a) * PERSPECTIVE_PX) / (PERSPECTIVE_PX - d * Math.sin(a));
+export function floorY(d: number, height: number, share = HORIZON_SHARE, tilt = FLOOR_TILT): number {
+  return height * share + (d * cosOf(tilt) * PERSPECTIVE_PX) / (PERSPECTIVE_PX - d * sinOf(tilt));
 }
 
 /** The floor's lowest across-the-screen grid line on a screen `height` px tall, from the top. */
-export function lowestGridLine(height: number, share = HORIZON_SHARE): number {
-  let y = floorY(0, height, share);
+export function lowestGridLine(height: number, share = HORIZON_SHARE, tilt = FLOOR_TILT): number {
+  let y = floorY(0, height, share, tilt);
   for (let n = 1; ; n++) {
-    const next = floorY(n * GRID_PX, height, share);
+    const next = floorY(n * GRID_PX, height, share, tilt);
     // Past the bottom, or past the viewer (where the projection turns over).
-    if (n * GRID_PX * Math.sin((FLOOR_TILT * Math.PI) / 180) >= PERSPECTIVE_PX || next >= height) return y;
+    if (n * GRID_PX * sinOf(tilt) >= PERSPECTIVE_PX || next >= height) return y;
     y = next;
   }
 }
@@ -67,11 +69,11 @@ export function lowestGridLine(height: number, share = HORIZON_SHARE): number {
  * The floor's across-the-screen grid lines on a screen `height` px tall, from the top — the horizon first, at home
  * (where the floor's been moved, `camera`, those from the horizon on).
  */
-export function gridRows(height: number, share = HORIZON_SHARE, camera = HOME_CAMERA): number[] {
+export function gridRows(height: number, share = HORIZON_SHARE, camera = HOME_CAMERA, tilt = FLOOR_TILT): number[] {
   const rows: number[] = [];
   const step = GRID_PX * camera.zoom;
-  for (let n = Math.ceil(-camera.d / step - 1e-9); (n * step + camera.d) * SIN < PERSPECTIVE_PX; n++) {
-    const y = floorY(n * step + camera.d, height, share);
+  for (let n = Math.ceil(-camera.d / step - 1e-9); (n * step + camera.d) * sinOf(tilt) < PERSPECTIVE_PX; n++) {
+    const y = floorY(n * step + camera.d, height, share, tilt);
     if (y >= height) break;
     rows.push(y);
   }
@@ -84,10 +86,9 @@ export function nearestRow(height: number, y: number, share = HORIZON_SHARE): nu
 }
 
 /** How far back from the horizon's hinge a point at screen y `y` (below the horizon) lies on the floor. */
-export function floorDepth(y: number, height: number, share = HORIZON_SHARE): number {
-  const a = (FLOOR_TILT * Math.PI) / 180;
+export function floorDepth(y: number, height: number, share = HORIZON_SHARE, tilt = FLOOR_TILT): number {
   const below = y - height * share;
-  return (below * PERSPECTIVE_PX) / (Math.cos(a) * PERSPECTIVE_PX + below * Math.sin(a));
+  return (below * PERSPECTIVE_PX) / (cosOf(tilt) * PERSPECTIVE_PX + below * sinOf(tilt));
 }
 
 /**
@@ -99,9 +100,10 @@ export function gridColumns(
   width: number,
   height: number,
   share = HORIZON_SHARE,
-  camera = HOME_CAMERA
+  camera = HOME_CAMERA,
+  tilt = FLOOR_TILT
 ): { x1: number; y1: number; x2: number; y2: number }[] {
-  const scale = floorScale(floorDepth(height, height, share));
+  const scale = floorScale(floorDepth(height, height, share, tilt), tilt);
   const step = GRID_PX * camera.zoom;
   // Those within the screen at the horizon (they only spread out from there).
   const first = Math.ceil((-width / 2 - camera.x) / step - 0.5);

@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { floorDepth, floorY, gridColumns, gridRows, HOME_CAMERA, HORIZON_SHARE } from "@/lib/grid-room";
+import { FLOOR_TILT, floorDepth, floorY, gridColumns, gridRows, HOME_CAMERA, HORIZON_SHARE } from "@/lib/grid-room";
 import type { FloorCameraStore } from "@/lib/floor-camera";
+import type { FloorTiltStore } from "@/lib/floor-tilt";
 
 // How strongly the grid's lines show, and how they fade toward the horizon: from FAR_OPACITY of that at the
 // hinge to all of it FULL_DEPTH_SHARE of the screen's height back on the floor.
@@ -51,22 +52,27 @@ export function FloorFade({
  * the laid-back floor — so every line is a wire one device pixel wide, near or far, whatever the browser's zoom.
  * The horizon, then across, a line every grid square back from it; running back, lines meeting at the horizon's
  * middle, the screen's middle down the middle of a column of boxes. Fading toward the horizon, its far end as faint
- * as it. Moved and zoomed with the floor (`camera`, see floor-camera.ts).
+ * as it. Moved and zoomed with the floor (`camera`, see floor-camera.ts), and laid back as far as it is (`tilt`, see
+ * floor-tilt.ts).
  */
 export function FloorGrid({
   share = HORIZON_SHARE,
   camera: store,
+  tilt: tiltStore,
   hidden = false,
   away = false,
 }: {
   share?: number;
   camera?: FloorCameraStore;
+  /** How far it's laid back, as it changes — as it lies, without one. */
+  tilt?: FloorTiltStore;
   hidden?: boolean;
   /** Not drawn at all, the horizon too, at once: something else draws the floor for now (see LeagueRoomPayouts). */
   away?: boolean;
 }) {
   const ref = useRef<SVGSVGElement>(null);
   const camera = useFloorCamera(store).camera;
+  const tilt = useSyncExternalStore(tiltStore?.subscribe ?? still, tiltStore?.get ?? (() => FLOOR_TILT), () => FLOOR_TILT);
   const [view, setView] = useState<{ width: number; height: number; dpr: number } | null>(null);
   useEffect(() => {
     const svg = ref.current;
@@ -85,8 +91,8 @@ export function FloorGrid({
 
   const lines = view
     ? {
-        rows: gridRows(view.height, share, camera).filter((y) => y > view.height * share + 0.5),
-        columns: gridColumns(view.width, view.height, share, camera),
+        rows: gridRows(view.height, share, camera, tilt).filter((y) => y > view.height * share + 0.5),
+        columns: gridColumns(view.width, view.height, share, camera, tilt),
       }
     : null;
   // One device pixel, and a row snapped to the middle of one, so it's a crisp wire.
@@ -94,7 +100,7 @@ export function FloorGrid({
   const snap = (y: number) => (view ? (Math.floor(y * view.dpr) + 0.5) / view.dpr : y);
   const horizon = view ? view.height * share : 0;
   const fullDepth = view ? view.height * FULL_DEPTH_SHARE : 1;
-  const bottomDepth = view ? floorDepth(view.height, view.height, share) : 0;
+  const bottomDepth = view ? floorDepth(view.height, view.height, share, tilt) : 0;
   // Every line one shape, stroked with the fade back to the horizon: nothing made anew, or masked, as the floor moves.
   const d = lines
     ? lines.rows.map((y) => `M0 ${snap(y).toFixed(2)}H${view!.width}`).join("") +
@@ -109,7 +115,7 @@ export function FloorGrid({
             <linearGradient id="floor-grid-fade" gradientUnits="userSpaceOnUse" x1="0" y1={horizon} x2="0" y2={view.height}>
               {Array.from({ length: FADE_STOPS + 1 }, (_, i) => {
                 const depth = (bottomDepth * i) / FADE_STOPS;
-                const y = floorY(depth, view.height, share);
+                const y = floorY(depth, view.height, share, tilt);
                 const opacity = Math.min(1, FAR_OPACITY + (1 - FAR_OPACITY) * (depth / fullDepth));
                 return <stop key={i} offset={(y - horizon) / (view.height - horizon)} stopColor="var(--ink-primary)" stopOpacity={LINE_OPACITY * opacity} />;
               })}

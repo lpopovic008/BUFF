@@ -3,7 +3,8 @@
 import { useEffect, useRef } from "react";
 import { BallLeg, ballAt, FieldMark, FieldPlace, Flight, flightFor, Point } from "@/lib/ball-flight";
 import { FIELD_WIDE, FieldFloor, FieldSpot, layFields, layFocused, MOST_FIELDS } from "@/lib/field-layout";
-import { floorPoint, floorScale } from "@/lib/grid-room";
+import { FLOOR_TILT, floorPoint, floorScale, lowestGridLine } from "@/lib/grid-room";
+import { FloorTiltStore, tiltFor } from "@/lib/floor-tilt";
 import { nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import type { NFLGame } from "@/lib/nfl-schedule";
 import { playFromLastPlay } from "@/lib/play-by-play";
@@ -94,8 +95,6 @@ function tint(color: string, lift: number, alpha: number, ink: string): string {
 const NAME_PX = 160;
 const NAME_STEP_PX = 8;
 const NAME_MIN_PX = 16;
-/** How far up the screen each of a team name's letters must run to be made out (px) — any shorter, its abbreviation. */
-const NAME_RUN_PX = 4;
 /** A team's name lettered flat, once, in bold capitals in `font`'s family, in `color`, at a size (see paintedName). */
 const names = new Map<string, { image: HTMLCanvasElement; wide: number; ascent: number; pad: number }>();
 
@@ -131,8 +130,9 @@ const withAlpha = (color: string, alpha: number) => `color-mix(in srgb, ${color}
  * Every game being played, a field of its own laid on the room's floor (see field-layout): its line of scrimmage, and
  * the logo of the team with the ball standing behind it, the way they're going — and each play as it comes in, told by
  * the ball (see ball-flight). From tablet width up the fields share the floor between the Red Zone and the starters
- * list; on a phone, the game in view across the floor's front and the rest behind it — swiped up or down (or tapped)
- * to bring another to the front.
+ * list, the floor looked down on more the more fields there are (`tilt`, see floor-tilt.ts — its horizon where it is);
+ * on a phone, the game in view across the floor's front and the rest behind it — swiped up or down (or tapped) to
+ * bring another to the front.
  */
 export function FloorFields({
   games,
@@ -143,6 +143,7 @@ export function FloorFields({
   focused = false,
   onPick,
   onPlayed,
+  tilt: tiltStore,
 }: {
   /** The games being played, in order. */
   games: NFLGame[];
@@ -157,6 +158,9 @@ export function FloorFields({
   onPick?: (gameId: string) => void;
   /** Told when a field's done acting out the plays sent down it, and which game's it is. */
   onPlayed?: (gameId: string) => void;
+  /** How far the floor's laid back, eased here to suit how many fields there are (from tablet width up) — for what
+   * draws the floor to follow. */
+  tilt?: FloorTiltStore;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const fields = useRef(new Map<string, FieldState>());
@@ -166,6 +170,14 @@ export function FloorFields({
   const order = useRef<string[]>([]);
   // Drawn again (and on, while anything's moving).
   const kick = useRef(() => {});
+  // How far the floor's laid back now (easing to suit how many fields there are), and its store.
+  const tilt = useRef(tiltStore?.get() ?? FLOOR_TILT);
+  const tilts = useRef(tiltStore);
+  useEffect(() => {
+    tilts.current = tiltStore;
+    // Gone, the floor laid back as it lies again.
+    return () => tiltStore?.set(FLOOR_TILT);
+  }, [tiltStore]);
   const pick = useRef(onPick);
   const played = useRef(onPlayed);
   useEffect(() => {
@@ -173,19 +185,21 @@ export function FloorFields({
     played.current = onPlayed;
   }, [onPick, onPlayed]);
 
-  // Laid out again: where each field goes for the games on, and the room as it is.
-  const relay = useRef(() => {
+  // Laid out again: where each field goes for the games on, and the room as it is — straight there (`glued`), as the
+  // floor's tilting under them.
+  const relay = useRef((glued = false) => {
     const { width: w, height: h, share: sh, floor: f, focused: phone } = room.current;
     const ids = order.current;
     if (phone && (!front.current || !ids.includes(front.current))) front.current = ids[0] ?? null;
     const at = phone && front.current ? ids.indexOf(front.current) : 0;
     const shown = (phone ? [...ids.slice(at), ...ids.slice(0, at)] : ids).slice(0, MOST_FIELDS);
-    const lay = { ...f, width: w, height: h, share: sh };
+    // (One field's anchored on the floor's lowest grid line as it's laid back now.)
+    const lay = { ...f, width: w, height: h, share: sh, tilt: tilt.current, anchor: f.anchor === undefined ? undefined : lowestGridLine(h, sh, tilt.current) };
     const spots = phone ? layFocused(shown.length, lay) : layFields(shown.length, lay);
     for (const [id, state] of fields.current) {
       const k = shown.indexOf(id);
       state.target = k >= 0 ? (spots[k] ?? null) : null;
-      if (!state.spot && state.target) state.spot = state.target;
+      if ((!state.spot || glued) && state.target) state.spot = state.target;
     }
     kick.current();
   });
@@ -297,6 +311,16 @@ export function FloorFields({
       const k = 1 - Math.exp(-dt / EASE_MS);
       let moving = false;
 
+      // The floor laid back to suit how many fields there are (from tablet width up), the fields laid out again on it.
+      const tiltTo = room.current.focused ? FLOOR_TILT : tiltFor(Math.min(order.current.length, MOST_FIELDS));
+      if (Math.abs(tilt.current - tiltTo) > 0.01) {
+        tilt.current += (tiltTo - tilt.current) * k;
+        if (Math.abs(tilt.current - tiltTo) <= 0.01) tilt.current = tiltTo;
+        tilts.current?.set(tilt.current);
+        relay.current(true);
+        moving = true;
+      } else tilts.current?.set(tilt.current);
+
       // Each field eased to where it's laid (or faded off the floor), its line to where the ball is.
       for (const [id, f] of fields.current) {
         const goal = f.target;
@@ -349,9 +373,9 @@ export function FloorFields({
         const half = FIELD_WIDE / 2;
         // Where field point (x, z) shows: x yards along it from its left goal line, z across it from its middle, toward you.
         const depth = (z: number) => spot.near - (half - z) * spot.yard;
-        const at = (x: number, z: number) => floorPoint(spot.across + (x - 50) * spot.yard, depth(z), w, h, sh);
+        const at = (x: number, z: number) => floorPoint(spot.across + (x - 50) * spot.yard, depth(z), w, h, sh, tilt.current);
         // A yard on the screen, where z is.
-        const yardPx = (z: number) => spot.yard * floorScale(depth(z));
+        const yardPx = (z: number) => spot.yard * floorScale(depth(z), tilt.current);
         const alpha = f.alpha;
         const path = (pts: [number, number][]) => {
           ctx.beginPath();
@@ -484,26 +508,19 @@ export function FloorFields({
 
         // Each team's name in its end zone, as a field's painted: in bold capitals in the page's own type, running
         // along it from one sideline to the other — facing in, the letters' feet toward the field, so they read from
-        // it: the left one up the screen, the right one down it. On a field too small for its name to be made out (a
-        // far row's), the team's abbreviation instead, its letters that much bigger. Lettered flat at about the size
-        // it'll show at (see paintedName, kept sharp), then laid on the field a thin slice at a time, each in the
-        // perspective where it lies, so its letters stay straight and even. Left off where even that'd be too small.
+        // it: the left one up the screen, the right one down it. Lettered flat at about the size it'll show at (see
+        // paintedName, kept sharp), then laid on the field a thin slice at a time, each in the perspective where it
+        // lies, so its letters stay straight and even. Left off where it'd be too small to make out.
         function drawNames() {
           const dpr = window.devicePixelRatio || 1;
-          // How far a yard along the end zone, sideline to sideline, runs up the screen (px) — the same for every field
-          // in a row.
-          const upScreen = Math.abs(at(50, half)[1] - at(50, -half)[1]) / (2 * half);
-          // How big a text's letters come out: its capitals as tall as fits the end zone, it as long as fits most of
-          // the way across — and how far each letter runs up the screen (px).
+          // How big a team's name comes out: its capitals as tall as fits the end zone, it as long as fits most of the
+          // way across.
           const sized = (text: string) => {
             const flat = paintedName(text, type, colors.ink);
             const perYard = Math.max(flat.ascent / 8, flat.wide / (FIELD_WIDE * 0.9));
-            const long = flat.wide / perYard;
-            return { text, long, tall: flat.ascent / perYard, run: (long / [...text].length) * upScreen, capRatio: flat.ascent / NAME_PX };
+            return { text, long: flat.wide / perYard, tall: flat.ascent / perYard, capRatio: flat.ascent / NAME_PX };
           };
-          // Both teams' names — or, either too small to make out, both their abbreviations.
-          const full = [f.game.awayTeam, f.game.homeTeam].map((team) => sized(teamName(team).toUpperCase()));
-          const texts = full.every((t) => t.run >= NAME_RUN_PX) ? full : [sized(f.game.awayTeam), sized(f.game.homeTeam)];
+          const texts = [f.game.awayTeam, f.game.homeTeam].map((team) => sized(teamName(team).toUpperCase()));
           for (const [end, name] of [
             [-1, texts[0]],
             [1, texts[1]],
@@ -688,7 +705,7 @@ export function FloorFields({
       for (const [id, f] of fields.current) {
         const s = f.target;
         if (!s) continue;
-        const p = (fx: number, z: number) => floorPoint(s.across + (fx - 50) * s.yard, s.near - (half - z) * s.yard, w, h, sh);
+        const p = (fx: number, z: number) => floorPoint(s.across + (fx - 50) * s.yard, s.near - (half - z) * s.yard, w, h, sh, tilt.current);
         const corners = [p(-10, -half), p(110, -half), p(110, half), p(-10, half)];
         const inside = corners.every(([ax, ay], i) => {
           const [bx, by] = corners[(i + 1) % 4];

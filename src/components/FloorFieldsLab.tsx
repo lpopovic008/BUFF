@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { FloorFields } from "@/components/FloorFields";
 import type { FieldFloor } from "@/lib/field-layout";
+import type { FloorTiltStore } from "@/lib/floor-tilt";
 import { FIELD_SCENARIOS, scenarioText } from "@/lib/field-scenarios";
 import type { NFLGame } from "@/lib/nfl-schedule";
 
@@ -57,6 +58,7 @@ export function FloorFieldsLab({
   share,
   floor,
   top,
+  tilt,
 }: {
   width: number;
   height: number;
@@ -64,6 +66,8 @@ export function FloorFieldsLab({
   floor: Omit<FieldFloor, "width" | "height" | "share">;
   /** Where the panel picking the play goes, from the top of the screen (CSS length). */
   top: string;
+  /** How far the floor's laid back (see FloorFields' `tilt`). */
+  tilt?: FloorTiltStore;
 }) {
   const [scenario, setScenario] = useState(0);
   const [count, setCount] = useState(MATCHUPS.length);
@@ -88,7 +92,7 @@ export function FloorFieldsLab({
 
   return (
     <>
-      <FloorFields games={games} width={width} height={height} share={share} floor={floor} onPick={() => !run && play()} onPlayed={done} />
+      <FloorFields games={games} width={width} height={height} share={share} floor={floor} onPick={() => !run && play()} onPlayed={done} tilt={tilt} />
       <div
         data-floor-ui
         className="fixed z-[6] flex flex-wrap items-center gap-x-3 gap-y-1.5 border border-border bg-[color-mix(in_srgb,var(--page)_85%,transparent)] p-2 text-xs"
