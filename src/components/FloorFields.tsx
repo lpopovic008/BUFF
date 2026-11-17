@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { BallLeg, ballAt, FieldMark, FieldPlace, Flight, flightFor, Point } from "@/lib/ball-flight";
 import { FIELD_WIDE, FieldFloor, FieldSpot, layFields, layFocused, MOST_FIELDS } from "@/lib/field-layout";
-import { FLOOR_TILT, floorPoint, floorScale, lowestGridLine } from "@/lib/grid-room";
+import { FLOOR_TILT, floorPoint, floorScale } from "@/lib/grid-room";
 import { FloorTiltStore, tiltFor } from "@/lib/floor-tilt";
 import { nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import type { NFLGame } from "@/lib/nfl-schedule";
@@ -193,8 +193,7 @@ export function FloorFields({
     if (phone && (!front.current || !ids.includes(front.current))) front.current = ids[0] ?? null;
     const at = phone && front.current ? ids.indexOf(front.current) : 0;
     const shown = (phone ? [...ids.slice(at), ...ids.slice(0, at)] : ids).slice(0, MOST_FIELDS);
-    // (One field's anchored on the floor's lowest grid line as it's laid back now.)
-    const lay = { ...f, width: w, height: h, share: sh, tilt: tilt.current, anchor: f.anchor === undefined ? undefined : lowestGridLine(h, sh, tilt.current) };
+    const lay = { ...f, width: w, height: h, share: sh, tilt: tilt.current };
     const spots = phone ? layFocused(shown.length, lay) : layFields(shown.length, lay);
     for (const [id, state] of fields.current) {
       const k = shown.indexOf(id);
