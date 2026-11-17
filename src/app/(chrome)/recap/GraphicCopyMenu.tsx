@@ -18,6 +18,8 @@ interface GraphicCopyMenuProps {
   onCopyFull: () => void;
   onCopySplit: () => void;
   onCopySplitPart: (index: number) => void;
+  /** Its button small, for a slim header (the League page's write-ups panel). */
+  small?: boolean;
 }
 
 /**
@@ -42,6 +44,7 @@ export function GraphicCopyMenu({
   onCopyFull,
   onCopySplit,
   onCopySplitPart,
+  small = false,
 }: GraphicCopyMenuProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -102,9 +105,11 @@ export function GraphicCopyMenu({
         aria-expanded={open}
         disabled={busy}
         onClick={() => setOpen((v) => !v)}
-        className="flex h-9 shrink-0 items-center justify-center gap-1 border border-border px-2 text-ink-secondary transition-all duration-150 hover:bg-page hover:text-ink-primary disabled:opacity-30 disabled:hover:bg-transparent active:scale-90"
+        className={`flex shrink-0 items-center justify-center gap-1 border border-border text-ink-secondary transition-all duration-150 hover:bg-page hover:text-ink-primary disabled:opacity-30 disabled:hover:bg-transparent active:scale-90 ${
+          small ? "h-6 w-7" : "h-9 px-2"
+        }`}
       >
-        {triggerCopied ? <CheckIcon className="h-4 w-4" /> : <ImageIcon className="h-4 w-4" />}
+        {triggerCopied ? <CheckIcon className={small ? "h-3.5 w-3.5" : "h-4 w-4"} /> : <ImageIcon className={small ? "h-3.5 w-3.5" : "h-4 w-4"} />}
       </button>
 
       {open ? (

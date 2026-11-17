@@ -2,8 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDownIcon, ChevronLeftIcon } from "@/components/ui/Icon";
+import { CheckIcon, ChevronDownIcon, ChevronLeftIcon, CopyIcon, UploadIcon } from "@/components/ui/Icon";
+import { IconButton } from "@/components/ui/IconButton";
 import { CloseButton } from "@/components/LeagueRoomFloor";
+import { recapDisplayFont } from "@/lib/fonts";
+import { GraphicCopyMenu } from "@/app/(chrome)/recap/GraphicCopyMenu";
 import { recapWeekFor } from "@/lib/sleeper";
 import { ScrollThumb } from "@/components/ScrollThumb";
 import { useListScroll } from "@/hooks/useListScroll";
@@ -78,7 +81,15 @@ function PanelBody({ leagueId, currentWeek, top, bottom, left, width, className 
   const [picked, setPicked] = useState<number | null>(null);
   const [today] = useState(() => new Date().getDay());
   const week = picked ?? (currentWeek === null ? null : recapWeekFor(currentWeek, today));
-  const { ready, error, actions, editorProps, contentsProps } = useRecapWriteup(leagueId, week);
+  const { ready, error, actions, editorProps, contentsProps, money, googleClientId } = useRecapWriteup(leagueId, week);
+  // The write-up's to be saved to a Google Doc (one's set up for it, and Google Docs connected), not copied as text.
+  const toDoc = !!money?.profile.writeupDocId && !!googleClientId;
+  const exportError =
+    actions.graphicStatus === "error" && actions.graphicError
+      ? `Copy graphic failed: ${actions.graphicError}`
+      : actions.docStatus === "error" && actions.docError
+        ? `Google Doc save failed: ${actions.docError}`
+        : null;
   const [list, setList] = useState<HTMLDivElement | null>(null);
   // Scrolled as an iPhone scrolls (see useListScroll).
   useListScroll(list);
@@ -182,10 +193,51 @@ function PanelBody({ leagueId, currentWeek, top, bottom, left, width, className 
             <span className="ml-auto text-[0.625rem] text-ink-muted">
               {actions.lastSavedAt ? `Saved ${new Date(actions.lastSavedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : ready ? "Not saved yet" : ""}
             </span>
+            {/* Its exports, as on the Write-ups page: the graphic (whole, or cut into parts), and the write-up saved to
+                its Google Doc — or, with none, copied as plain text. */}
+            {ready && !error ? (
+              <span className="ml-1 flex items-center gap-1">
+                <GraphicCopyMenu
+                  small
+                  graphicStatus={actions.graphicStatus}
+                  graphicError={actions.graphicError}
+                  splitStatus={actions.splitStatus}
+                  splitError={actions.splitError}
+                  splitPartCount={actions.splitPartCount}
+                  partCopied={actions.partCopied}
+                  onCopyFull={actions.handleCopyGraphic}
+                  onCopySplit={actions.handleCopySplitGraphic}
+                  onCopySplitPart={actions.handleCopySplitPart}
+                />
+                {toDoc ? (
+                  <IconButton
+                    size="sm"
+                    icon={actions.docStatus === "saved" ? <CheckIcon className="h-3.5 w-3.5" /> : <UploadIcon className="h-3.5 w-3.5" />}
+                    label={actions.docStatus === "saving" ? "Saving to Doc…" : actions.docStatus === "saved" ? "Saved to Doc" : "Save to Doc"}
+                    variant="primary"
+                    onClick={actions.handleSaveToDoc}
+                    disabled={actions.docStatus === "saving"}
+                  />
+                ) : (
+                  <IconButton
+                    size="sm"
+                    icon={actions.copied ? <CheckIcon className="h-3.5 w-3.5" /> : <CopyIcon className="h-3.5 w-3.5" />}
+                    label={actions.copied ? "Copied plain text" : "Copy plain text"}
+                    onClick={actions.handleCopy}
+                  />
+                )}
+              </span>
+            ) : null}
             <span className="ml-1 flex">
               <CloseButton onClose={onClose} label="Close the write-ups" />
             </span>
           </div>
+          {exportError ? <p className="shrink-0 pb-1 text-[0.625rem] text-status-critical">{exportError}</p> : null}
+          {/* A live use of the graphic's display font, so it's loaded before the graphic's drawn with it (see
+              recap-graphic.ts). */}
+          <span aria-hidden className={`${recapDisplayFont.className} absolute h-0 w-0 overflow-hidden`}>
+            .
+          </span>
           <div className="relative min-h-0 flex-1">
             <div ref={setList} data-scroll-list className="h-full touch-none overflow-y-auto overscroll-none pb-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <div>
