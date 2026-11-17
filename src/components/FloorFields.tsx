@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { BallLeg, ballAt, FieldMark, FieldPlace, Flight, flightFor, Point } from "@/lib/ball-flight";
 import { FIELD_WIDE, FieldFloor, FieldSpot, layFields, layFocused, MOST_FIELDS } from "@/lib/field-layout";
-import { FLOOR_TILT, floorPoint, floorScale } from "@/lib/grid-room";
+import { FLOOR_TILT, floorAt, floorPoint, floorScale } from "@/lib/grid-room";
 import { FloorTiltStore, tiltFor } from "@/lib/floor-tilt";
 import { nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import type { NFLGame } from "@/lib/nfl-schedule";
@@ -23,6 +23,8 @@ const EASE_MS = 140;
 const QUEUE = 3;
 /** How far a swipe goes before it moves the fields (px). */
 const SWIPE_PX = 28;
+/** How long a finger's held on a field, still, before it's picked up to be dragged (a mouse takes it at once). */
+const HOLD_MS = 350;
 
 /** Where a game stands: who has the ball, how far they have to go to the end zone, and for a first down (null: to the
  * goal line, or off a down). */
@@ -168,6 +170,11 @@ export function FloorFields({
   // The game in view on a phone, and the games on, in order.
   const front = useRef<string | null>(null);
   const order = useRef<string[]>([]);
+  // Whether fields have been dragged to other spots (see the pointer handling below): then they stay where they've
+  // been put, the games' own order only placing new ones, after them.
+  const arranged = useRef(false);
+  // The field being dragged, if any: which, and how far its spot is from the floor point under the pointer.
+  const dragging = useRef<{ id: string; across: number; near: number } | null>(null);
   // Drawn again (and on, while anything's moving).
   const kick = useRef(() => {});
   // How far the floor's laid back now (easing to suit how many fields there are), and its store.
@@ -196,6 +203,8 @@ export function FloorFields({
     const lay = { ...f, width: w, height: h, share: sh, tilt: tilt.current };
     const spots = phone ? layFocused(shown.length, lay) : layFields(shown.length, lay);
     for (const [id, state] of fields.current) {
+      // The one being dragged goes where it's dragged.
+      if (dragging.current?.id === id) continue;
       const k = shown.indexOf(id);
       state.target = k >= 0 ? (spots[k] ?? null) : null;
       if ((!state.spot || glued) && state.target) state.spot = state.target;
@@ -249,7 +258,8 @@ export function FloorFields({
         state.last = next;
       }
     }
-    order.current = games.map((g) => g.id);
+    const ids = games.map((g) => g.id);
+    order.current = arranged.current ? [...order.current.filter((id) => ids.includes(id)), ...ids.filter((id) => !order.current.includes(id))] : ids;
     relay.current();
   }, [games]);
 
@@ -364,6 +374,9 @@ export function FloorFields({
       }
       // Farthest first, so nearer ones are drawn over them.
       const drawn = [...fields.current.values()].filter((f) => f.spot && f.alpha > 0.01).sort((a, b) => a.spot!.near - b.spot!.near);
+      // The one being dragged over the rest.
+      const held = dragging.current && fields.current.get(dragging.current.id);
+      if (held && drawn.includes(held)) drawn.push(...drawn.splice(drawn.indexOf(held), 1));
       for (const f of drawn) drawField(f, now);
       if (moving) loop();
 
@@ -698,12 +711,12 @@ export function FloorFields({
     }
 
     // The field at screen point (x, y), if any: inside its four corners as they show.
-    const fieldAt = (x: number, y: number): string | null => {
+    const fieldAt = (x: number, y: number, except?: string): string | null => {
       const { width: w, height: h, share: sh } = room.current;
       const half = FIELD_WIDE / 2;
       for (const [id, f] of fields.current) {
         const s = f.target;
-        if (!s) continue;
+        if (!s || id === except) continue;
         const p = (fx: number, z: number) => floorPoint(s.across + (fx - 50) * s.yard, s.near - (half - z) * s.yard, w, h, sh, tilt.current);
         const corners = [p(-10, -half), p(110, -half), p(110, half), p(-10, half)];
         const inside = corners.every(([ax, ay], i) => {
@@ -715,18 +728,87 @@ export function FloorFields({
       return null;
     };
 
+    // A field dragged onto another: the two swap spots, no other moving. It's picked up at once with a mouse; with a
+    // finger, once held still on it a moment (a swipe across the floor, on a phone, brings the next field forward).
+    const swap = (a: string, b: string) => {
+      const ids = [...order.current];
+      const [i, j] = [ids.indexOf(a), ids.indexOf(b)];
+      if (i < 0 || j < 0) return;
+      [ids[i], ids[j]] = [ids[j], ids[i]];
+      order.current = ids;
+      arranged.current = true;
+      // On a phone, the one in view's spot taken: the one put there's in view.
+      if (front.current === a) front.current = b;
+      else if (front.current === b) front.current = a;
+    };
+    // The floor point under screen point (x, y) — held a little below the horizon.
+    const floorUnder = (x: number, y: number) => {
+      const { width: w, height: h, share: sh } = room.current;
+      return floorAt(x, Math.max(y, h * sh + 4), w, h, sh, tilt.current);
+    };
+    const pickUp = (id: string, x: number, y: number) => {
+      const spot = fields.current.get(id)?.spot;
+      if (!spot) return;
+      const [across, d] = floorUnder(x, y);
+      dragging.current = { id, across: spot.across - across, near: spot.near - d };
+      kick.current();
+    };
+    let grabbed: { id: string; x: number; y: number; mouse: boolean } | null = null;
+    let hold = 0;
+
     // On a phone: the fields swiped up or down the floor, the next one brought to the front — or one tapped. Anywhere,
     // a field tapped is told (see onPick), and acts out its last play again.
     let down: { x: number; y: number } | null = null;
     const onDown = (e: PointerEvent) => {
       const { height: h, share: sh, floor: f, focused: phone } = room.current;
       down = null;
+      grabbed = null;
+      clearTimeout(hold);
       if (e.clientY < h * sh || e.clientY > (phone ? f.front + 12 : h)) return;
       const target = e.target instanceof Element ? e.target : null;
       if (target?.closest("button, a, input, select, textarea, label, [role='button'], [data-scroll-list], [data-floor-ui], header, nav")) return;
+      if (e.pointerType === "mouse" && e.button !== 0) return;
       down = { x: e.clientX, y: e.clientY };
+      const id = fieldAt(e.clientX, e.clientY);
+      if (!id) return;
+      grabbed = { id, x: e.clientX, y: e.clientY, mouse: e.pointerType === "mouse" };
+      if (!grabbed.mouse) hold = window.setTimeout(() => grabbed && pickUp(grabbed.id, grabbed.x, grabbed.y), HOLD_MS);
+    };
+    const onMove = (e: PointerEvent) => {
+      if (!grabbed) return;
+      const drag = dragging.current;
+      if (!drag) {
+        if (grabbed.mouse) {
+          // A mouse's press on a field is its, not the floor's to slide.
+          e.stopPropagation();
+          if (Math.hypot(e.clientX - grabbed.x, e.clientY - grabbed.y) > 3) pickUp(grabbed.id, grabbed.x, grabbed.y);
+        } else if (Math.hypot(e.clientX - grabbed.x, e.clientY - grabbed.y) > 8) {
+          // Moved before it was held long enough: a swipe, not a drag.
+          clearTimeout(hold);
+          grabbed = null;
+        }
+        return;
+      }
+      e.stopPropagation();
+      e.preventDefault();
+      const f = fields.current.get(drag.id);
+      if (!f?.target) return;
+      const [across, d] = floorUnder(e.clientX, e.clientY);
+      f.target = { ...f.target, across: across + drag.across, near: d + drag.near };
+      kick.current();
     };
     const onUp = (e: PointerEvent) => {
+      clearTimeout(hold);
+      grabbed = null;
+      const drag = dragging.current;
+      if (drag) {
+        dragging.current = null;
+        down = null;
+        const onto = fieldAt(e.clientX, e.clientY, drag.id);
+        if (onto) swap(drag.id, onto);
+        relay.current();
+        return;
+      }
       if (!down) return;
       const [dx, dy] = [e.clientX - down.x, e.clientY - down.y];
       down = null;
@@ -758,12 +840,26 @@ export function FloorFields({
         kick.current();
       }
     };
+    const onCancel = () => {
+      clearTimeout(hold);
+      grabbed = null;
+      down = null;
+      if (dragging.current) {
+        dragging.current = null;
+        relay.current();
+      }
+    };
     window.addEventListener("pointerdown", onDown, true);
+    window.addEventListener("pointermove", onMove, { capture: true, passive: false });
     window.addEventListener("pointerup", onUp, true);
+    window.addEventListener("pointercancel", onCancel, true);
     loop();
     return () => {
       window.removeEventListener("pointerdown", onDown, true);
+      window.removeEventListener("pointermove", onMove, true);
       window.removeEventListener("pointerup", onUp, true);
+      window.removeEventListener("pointercancel", onCancel, true);
+      clearTimeout(hold);
       cancelAnimationFrame(frame);
       kick.current = () => {};
     };
