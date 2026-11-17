@@ -58,45 +58,62 @@ test("more games: smaller fields, all the same size, rows going back — never o
 
 // From tablet width up: centered on the floor, the nearest row's outermost end lines on its sides.
 const centered = { ...desk, centered: true };
-/** How wide a row of fields is across the screen, halfway between its sidelines. */
-const midSpan = (row: FieldSpot[], tilt?: number) =>
-  (FIELD_LONG * row.length + FIELD_LONG * 0.12 * (row.length - 1)) * row[0].yard * floorScale(row[0].near - (FIELD_WIDE * row[0].yard) / 2, tilt);
+/** How wide a row of fields is across the screen, `at` of the way from its far sideline to its near one. */
+const spanAt = (row: FieldSpot[], at: number, tilt?: number) =>
+  (FIELD_LONG * row.length + FIELD_LONG * 0.12 * (row.length - 1)) * row[0].yard * floorScale(row[0].near - FIELD_WIDE * row[0].yard * (1 - at), tilt);
+
+/** How much floor in front of and behind a block of fields, on the screen (px) and on the floor (px back). */
+function slack(spots: FieldSpot[], floor: { height: number; share: number; front: number; back: number }, tilt?: number) {
+  const { height, share, front, back } = floor;
+  const near = Math.max(...spots.map((s) => s.near));
+  const far = Math.min(...spots.map((s) => s.near - FIELD_WIDE * s.yard));
+  const y = (d: number) => floorY(d, height, share, tilt);
+  return {
+    screen: [front - y(near), y(far) - back],
+    floor: [floorDepth(front, height, share, tilt) - near, far - floorDepth(back, height, share, tilt)],
+  };
+}
 
 test("centered: however many fields, the rows centered north to south, the nearest row from one column to the other", () => {
   for (let n = 1; n <= 9; n++) {
     // At the tilt the floor's laid back to for that many (see floor-tilt).
     const tilt = tiltFor(n);
-    const y = (d: number) => floorY(d, desk.height, desk.share, tilt);
     const spots = layFields(n, { ...centered, tilt });
     assert.equal(spots.length, n);
+    // Between as much screen in front of them as behind and as much floor: back of the screen's middle, short of
+    // the floor's (it crowds toward the horizon).
+    const { screen, floor } = slack(spots, desk, tilt);
+    assert.ok(screen[0] > screen[1] - 1, `${n}: screen ${screen.map((v) => v.toFixed(1))}`);
+    assert.ok(floor[1] > floor[0] - 1, `${n}: floor ${floor.map((v) => v.toFixed(1))}`);
+    // The nearest row's outermost end lines on the columns' edges (a lone field's three quarters of the way to its
+    // near sideline, others' halfway), centered.
     const nears = [...new Set(spots.map((s) => s.near))].sort((a, b) => b - a);
-    const yard = spots[0].yard;
-    // As much floor in front of them as behind them.
-    const [bottom, top] = [y(nears[0]), y(nears[nears.length - 1] - FIELD_WIDE * yard)];
-    assert.ok(Math.abs(top - desk.back - (desk.front - bottom)) < 1, `${n}: ${(top - desk.back).toFixed(1)} / ${(desk.front - bottom).toFixed(1)}`);
-    // The nearest row's outermost end lines, halfway between its sidelines, on the columns' edges, centered.
     const nearest = spots.filter((s) => s.near === nears[0]);
-    assert.ok(Math.abs(midSpan(nearest, tilt) - (desk.right - desk.left)) < 1, `${n}: ${midSpan(nearest, tilt).toFixed(1)}`);
+    const span = spanAt(nearest, n === 1 ? 0.75 : 0.5, tilt);
+    assert.ok(Math.abs(span - (desk.right - desk.left)) < 1, `${n}: ${span.toFixed(1)}`);
     assert.ok(Math.abs(nearest.reduce((a, s) => a + s.across, 0) / nearest.length) < 1e-6);
   }
   // Where the floor's too short for that (laid back far more than so few fields would have it), as big as fills it.
   const [one, two] = layFields(2, { ...centered, tilt: 60 });
   const y = (d: number) => floorY(d, desk.height, desk.share, 60);
-  assert.ok(midSpan([one], 60) < desk.right - desk.left);
+  assert.ok(spanAt([one], 0.5, 60) < desk.right - desk.left);
   assert.ok(Math.abs(y(one.near) - desk.front) < 1 && Math.abs(y(two.near - FIELD_WIDE * two.yard) - desk.back) < 1);
 });
 
-test("a phone: the game in view as big however many there are, the rest smaller behind it", () => {
+test("a phone: the game in view across the floor however many there are, the rest smaller behind it, all centered", () => {
   const phone = { width: 393, height: 852, share: HORIZON_SHARE, left: 16, right: 377, front: 722, back: 481 };
-  const one = layFocused(1, phone);
-  for (let n = 2; n <= 9; n++) {
+  for (let n = 1; n <= 9; n++) {
     const spots = layFocused(n, phone);
     assert.equal(spots.length, n, `${n}`);
-    assert.deepEqual(spots[0], one[0]);
+    const [main] = spots;
+    assert.ok(Math.abs(FIELD_LONG * main.yard * floorScale(main.near) - (phone.right - phone.left)) < 1, `${n}`);
     for (const s of spots.slice(1)) {
-      assert.ok(s.yard < spots[0].yard);
-      assert.ok(s.near < spots[0].near - FIELD_WIDE * spots[0].yard);
+      assert.ok(s.yard < main.yard);
+      assert.ok(s.near < main.near - FIELD_WIDE * main.yard);
     }
+    const { screen, floor } = slack(spots, phone);
+    assert.ok(screen[0] > screen[1] - 1 && floor[1] > floor[0] - 1, `${n}`);
+    assert.ok(screen[1] >= -0.5, `${n}`);
   }
   // No floor, no fields.
   assert.deepEqual(layFocused(3, { ...phone, front: phone.back }), []);

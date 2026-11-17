@@ -104,41 +104,63 @@ function spotsOf(rows: number[], nears: number[], yard: number, { width, left, r
 /** How wide a row of `n` fields is, across the floor (floor px), `yard` px a yard. */
 const rowWide = (n: number, yard: number) => (n * FIELD_LONG + (n - 1) * FIELD_LONG * COLUMN_GAP) * yard;
 
+/** How far the rows are centered by the floor's own depth, rather than the screen's (see centerBlock): mostly by it. */
+const DEPTH_WEIGHT = 0.7;
+
+/**
+ * Where to lay a block of rows of fields on `floor` (its nearest row's near sideline, how far back): centered north
+ * to south — between as much of the screen in front of it as behind it and as much floor (grid squares, which crowd
+ * toward the horizon) in front of it as behind it, nearer the latter (DEPTH_WEIGHT). `ends(first)` is the block's
+ * nearest and farthest screen y laid from `first`, null where it doesn't fit there (then farther forward).
+ */
+function centerBlock(ends: (first: number) => [number, number] | null, floor: FieldFloor): number {
+  const { height, share, front, back, tilt = FLOOR_TILT } = floor;
+  const nearest = floorDepth(front, height, share, tilt);
+  const farthest = floorDepth(back, height, share, tilt);
+  // Where it's as far forward as `forward` (in front of it, behind it) has it: more in front, farther forward.
+  const balance = (forward: (bottom: number, top: number, first: number) => boolean) => {
+    let [lo, hi] = [farthest, nearest];
+    for (let k = 0; k < 50; k++) {
+      const mid = (lo + hi) / 2;
+      const at = ends(mid);
+      if (!at || forward(at[0], at[1], mid)) lo = mid;
+      else hi = mid;
+    }
+    return lo;
+  };
+  const onScreen = balance((bottom, top) => top - back < front - bottom);
+  const onFloor = balance((_, top, first) => floorDepth(top, height, share, tilt) - farthest < nearest - first);
+  const y = (d: number) => floorY(d, height, share, tilt);
+  return floorDepth(y(onScreen) + (y(onFloor) - y(onScreen)) * DEPTH_WEIGHT, height, share, tilt);
+}
+
+/** How far toward its near sideline from its far one a row's width is taken (see layCentered): halfway, or three
+ * quarters for a lone field — less of it behind what stands at the floor's sides. */
+const widthAt = (rows: number[]) => (rows.length === 1 && rows[0] === 1 ? 0.75 : 0.5);
+
 /**
  * `rows` of fields laid across the floor (from tablet width up): as big as puts the nearest row's outermost end lines,
- * halfway between their sidelines, on the floor's sides (`left`, `right`) — however many rows there are — and the
- * rows, a gap apart, centered north to south on the floor (as much of it in front of them as behind them, on the
- * screen). Smaller only where they'd not all fit on the floor so. Null with no floor.
+ * halfway between their sidelines (a lone field's, three quarters of the way to its near one), on the floor's sides
+ * (`left`, `right`) — however many rows there are — and the rows, a gap apart, centered north to south on the floor
+ * (see centerBlock). Smaller only where they'd not all fit on the floor so. Null with no floor.
  */
 export function layCentered(rows: number[], floor: FieldFloor): FieldSpot[][] | null {
   const { height, share, left, right, front, back, tilt = FLOOR_TILT } = floor;
   const room = right - left;
   if (rows.length === 0 || room <= 0 || front <= back) return null;
-  const nearest = floorDepth(front, height, share, tilt);
-  const farthest = floorDepth(back, height, share, tilt);
-  if (nearest - farthest <= 0) return null;
+  if (floorDepth(front, height, share, tilt) - floorDepth(back, height, share, tilt) <= 0) return null;
   const y = (d: number) => floorY(d, height, share, tilt);
   // The rows' near sidelines, the nearest's `first` back, each next past a gap — and the screen y's of the nearest's
   // near sideline and the farthest's far one.
   const from = (first: number, yard: number) => stepBack(first, rows.length, yard, height, share, tilt);
-  const ends = (nears: number[], yard: number) => [y(nears[0]), y(nears[nears.length - 1] - rowDepth(yard))];
-  // Laid so there's as much floor in front of them as behind them.
-  const centered = (yard: number) => {
-    let [lo, hi] = [farthest, nearest];
-    for (let k = 0; k < 50; k++) {
-      const mid = (lo + hi) / 2;
-      const [bottom, top] = ends(from(mid, yard), yard);
-      if (top - back < front - bottom) lo = mid;
-      else hi = mid;
-    }
-    return from(lo, yard);
-  };
+  const ends = (nears: number[], yard: number): [number, number] => [y(nears[0]), y(nears[nears.length - 1] - rowDepth(yard))];
+  const centered = (yard: number) => from(centerBlock((first) => ends(from(first, yard), yard), floor), yard);
   const fits = (yard: number) => {
     const nears = centered(yard);
     const [bottom, top] = ends(nears, yard);
     if (top < back - 0.5 || bottom > front + 0.5) return false;
-    // The nearest row, halfway between its sidelines, no wider than the floor.
-    return rowWide(rows[0], yard) * floorScale(nears[0] - rowDepth(yard) / 2, tilt) <= room + 1e-6;
+    // The nearest row, where its width's taken, no wider than the floor.
+    return rowWide(rows[0], yard) * floorScale(nears[0] - rowDepth(yard) * (1 - widthAt(rows)), tilt) <= room + 1e-6;
   };
   let [lo, hi] = [0, room / FIELD_LONG];
   if (!fits(1e-6)) return null;
@@ -154,18 +176,40 @@ export function layFields(count: number, floor: FieldFloor): FieldSpot[] {
 }
 
 /**
- * A phone's floor: the field in view (`count`'s first) across the whole of it at its front, the rest in rows behind
- * it (laid as on a wider screen, see fieldRows) — smaller than it, however many there are, and never changing its size.
+ * A phone's floor: the field in view (`count`'s first) with the rest in rows behind it (laid as on a wider screen, see
+ * fieldRows) smaller than it, the lot centered north to south on the floor (see centerBlock) — the field in view as big
+ * as puts its near sideline across the whole of the floor, however many there are.
  */
 export function layFocused(count: number, floor: FieldFloor): FieldSpot[] {
-  if (count <= 0) return [];
-  const [main] = layRows([1], floor)?.[0] ?? [];
-  if (!main) return [];
-  const rest = Math.min(count, MOST_FIELDS) - 1;
-  if (rest === 0) return [main];
-  // Behind it, past a gap, as far back as the floor goes.
-  const { height, share, tilt = FLOOR_TILT } = floor;
-  const back = behind(main.near - rowDepth(main.yard), height, share, tilt, PHONE_ROW_GAP_PX);
-  const others = layRows(fieldRows(rest), { ...floor, front: floorY(back, height, share, tilt) }, main.yard * 0.6, PHONE_ROW_GAP_PX)?.flat() ?? [];
-  return [main, ...others];
+  const { width, height, share, left, right, front, back, tilt = FLOOR_TILT } = floor;
+  const room = right - left;
+  if (count <= 0 || room <= 0 || front <= back) return [];
+  const rest = fieldRows(Math.min(count, MOST_FIELDS) - 1);
+  const y = (d: number) => floorY(d, height, share, tilt);
+  // The rest, for the field in view `yard` px a yard with its near sideline `first` back: behind it, past a gap, as
+  // far back as the floor goes, no more than 0.6 its size.
+  const others = (first: number, yard: number) => {
+    if (rest.length === 0) return [];
+    const from = behind(first - rowDepth(yard), height, share, tilt, PHONE_ROW_GAP_PX);
+    return layRows(rest, { ...floor, front: y(from) }, yard * 0.6, PHONE_ROW_GAP_PX)?.flat() ?? null;
+  };
+  const ends = (first: number, yard: number): [number, number] | null => {
+    const them = others(first, yard);
+    if (!them) return null;
+    const far = Math.min(first - rowDepth(yard), ...them.map((s) => s.near - rowDepth(s.yard)));
+    return [y(first), y(far)];
+  };
+  const at = (yard: number) => centerBlock((first) => ends(first, yard), floor);
+  const fits = (yard: number) => {
+    const first = at(yard);
+    const block = ends(first, yard);
+    if (!block || block[1] < back - 0.5 || block[0] > front + 0.5) return false;
+    return rowWide(1, yard) * floorScale(first, tilt) <= room + 1e-6;
+  };
+  let [lo, hi] = [0, room / FIELD_LONG];
+  if (!fits(1e-6)) return [];
+  for (let k = 0; k < 50; k++) [lo, hi] = fits((lo + hi) / 2) ? [(lo + hi) / 2, hi] : [lo, (lo + hi) / 2];
+  const first = at(lo);
+  const main = { across: ((left + right) / 2 - width / 2) / floorScale(first, tilt), near: first, yard: lo };
+  return [main, ...(others(first, lo) ?? [])];
 }
