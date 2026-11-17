@@ -8,7 +8,7 @@ import { nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import type { NFLGame } from "@/lib/nfl-schedule";
 import { playFromLastPlay } from "@/lib/play-by-play";
 import { PlayScene, sceneFor } from "@/lib/play-scene";
-import { teamColor, teamName } from "@/lib/team-colors";
+import { teamColor, teamName, teamSecondary } from "@/lib/team-colors";
 
 // As on television: the line of scrimmage in blue, the line to gain for a first down in yellow.
 const SCRIMMAGE = "#2f7cf6";
@@ -78,10 +78,45 @@ const spotOf = (dir: 1 | -1, toGo: number) => (dir > 0 ? 100 - toGo : toGo);
 /** A team's highlight, as the starters list tints its side of a game's header (see .team-bar): its color, lifted
  * toward white by `lift` (0–1, on a dark page), as `rgba` at `alpha` — the page's ink, for a team it doesn't know. */
 function teamTint(team: string, lift: number, alpha: number, ink: string): string {
-  const hex = /^#([0-9a-f]{6})$/i.exec(teamColor(team))?.[1];
+  return tint(teamColor(team), lift, alpha, ink);
+}
+
+/** A `#rrggbb` color lifted toward white by `lift`, at `alpha` — `ink`, for anything else. */
+function tint(color: string, lift: number, alpha: number, ink: string): string {
+  const hex = /^#([0-9a-f]{6})$/i.exec(color)?.[1];
   if (!hex) return withAlpha(ink, alpha);
   const [r, g, b] = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16)).map((c) => Math.round(c + (255 - c) * lift));
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+/** The size the end zones' names are lettered at, flat, before they're laid on the field (px). */
+const NAME_PX = 160;
+/** A team's name lettered flat, once, in bold capitals in `font`'s family, in `color` (see paintedName). */
+const names = new Map<string, { image: HTMLCanvasElement; wide: number; ascent: number; pad: number }>();
+
+/** `name` lettered flat on a canvas of its own, its baseline `pad + ascent` down — kept for the next time. */
+function paintedName(name: string, family: string, color: string) {
+  const key = `${name}|${family}|${color}`;
+  let painted = names.get(key);
+  if (painted) return painted;
+  const font = `700 ${NAME_PX}px ${family}`;
+  const measure = document.createElement("canvas").getContext("2d")!;
+  measure.font = font;
+  const m = measure.measureText(name);
+  const ascent = m.actualBoundingBoxAscent || NAME_PX * 0.7;
+  const descent = m.actualBoundingBoxDescent || 0;
+  const pad = 8;
+  const image = document.createElement("canvas");
+  image.width = Math.ceil(m.width + 2 * pad);
+  image.height = Math.ceil(ascent + descent + 2 * pad);
+  const g = image.getContext("2d")!;
+  g.font = font;
+  g.fillStyle = color;
+  g.textBaseline = "alphabetic";
+  g.fillText(name, pad, pad + ascent);
+  painted = { image, wide: m.width, ascent, pad };
+  names.set(key, painted);
+  return painted;
 }
 
 /** A CSS color at `alpha`, by the canvas mixing it with transparent. */
@@ -444,45 +479,61 @@ export function FloorFields({
 
         // Each team's name in its end zone, as a field's painted: in bold capitals in the page's own type, running
         // along it from one sideline to the other — facing in, the letters' feet toward the field, so they read from
-        // it: the left one up the screen, the right one down it. Each letter laid on the floor where it lies, in its
-        // perspective. Left off where it'd be too small to make out.
+        // it: the left one up the screen, the right one down it — and either side of it, two stripes of the team's
+        // second color, as long as the room it leaves (clear of it, and of the end zone's edges). The name's lettered
+        // flat once (see paintedName), then laid on the field a thin slice at a time, each in the perspective where it
+        // lies, so its letters stay straight and even. Left off where it'd be too small to make out.
         function drawNames() {
-          ctx.font = `700 100px ${type}`;
-          const capRatio = (ctx.measureText("H").actualBoundingBoxAscent || 70) / 100;
           for (const [end, team] of [
             [-1, f.game.awayTeam],
             [1, f.game.homeTeam],
           ] as const) {
             const name = teamName(team).toUpperCase();
-            const widths = [...name].map((ch) => ctx.measureText(ch).width / 100);
-            const long = widths.reduce((a, b) => a + b, 0);
-            // A letter's height (yards): as tall as fits the end zone, as long as the name fits most of the way across.
-            const em = Math.min(6.5 / capRatio, (FIELD_WIDE * 0.86) / long);
-            const tall = em * capRatio;
+            const painted = paintedName(name, type, colors.ink);
+            // A yard on the flat name (px): its capitals as tall as fits the end zone, the name no longer than leaves
+            // room either side for the stripes.
+            const perYard = Math.max(painted.ascent / 6, painted.wide / (FIELD_WIDE * 0.62));
+            const long = painted.wide / perYard;
+            const tall = painted.ascent / perYard;
             if (tall * yardPx(0) < 7) continue;
+            const middle = end < 0 ? -5 : 105;
             // Its letters' feet along the end zone's field side; read toward the far sideline on the left, toward you
             // on the right.
-            const foot = end < 0 ? -5 + tall / 2 : 105 - tall / 2;
+            const foot = middle - (end < 0 ? -1 : 1) * (tall / 2);
             const up = end < 0 ? -1 : 1;
             const read = end < 0 ? -1 : 1;
-            ctx.globalAlpha = alpha * 0.85;
-            ctx.fillStyle = colors.ink;
-            ctx.textAlign = "left";
-            ctx.textBaseline = "alphabetic";
-            let along = -long / 2;
-            [...name].forEach((ch, k) => {
-              const z = read * along * em;
-              const [ox, oy] = at(foot, z);
-              const [ax, ay] = at(foot, z + read);
-              const [ux, uy] = at(foot + up, z);
-              // A font px in yards, and the floor's directions here on the screen: along the name, and up a letter.
-              const unit = em / 100;
+            const { image, pad, ascent } = painted;
+            // A point on the flat name (px across it, and down it), on the field.
+            const put = (u: number, v: number) => at(foot + up * ((pad + ascent - v) / perYard), read * ((u - pad) / perYard - long / 2));
+            const slices = Math.max(8, Math.min(48, Math.ceil(Math.abs(put(image.width, 0)[1] - put(0, 0)[1]) / 5)));
+            ctx.globalAlpha = alpha * 0.9;
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = "high";
+            for (let i = 0; i < slices; i++) {
+              const u0 = (i * image.width) / slices;
+              const u1 = Math.min(image.width, ((i + 1) * image.width) / slices + 1);
+              const [p0, p1, p2] = [put(u0, 0), put(u1, 0), put(u0, image.height)];
+              const a = [(p1[0] - p0[0]) / (u1 - u0), (p1[1] - p0[1]) / (u1 - u0)];
+              const c = [(p2[0] - p0[0]) / image.height, (p2[1] - p0[1]) / image.height];
               ctx.save();
-              ctx.transform((ax - ox) * unit, (ay - oy) * unit, -(ux - ox) * unit, -(uy - oy) * unit, ox, oy);
-              ctx.fillText(ch, 0, 0);
+              ctx.transform(a[0], a[1], c[0], c[1], p0[0] - a[0] * u0, p0[1] - a[1] * u0);
+              ctx.drawImage(image, u0, 0, u1 - u0, image.height, u0, 0, u1 - u0, image.height);
               ctx.restore();
-              along += widths[k];
-            });
+            }
+            // The stripes: two, stacked across the end zone, either side of the name.
+            const clear = 1.6;
+            const [from, to] = [long / 2 + clear, half - clear];
+            if (to - from < 1) continue;
+            ctx.globalAlpha = alpha * 0.95;
+            ctx.strokeStyle = tint(teamSecondary(team), colors.lift, 1, colors.ink);
+            ctx.lineCap = "butt";
+            for (const x of [middle - 1.7, middle + 1.7]) {
+              for (const side of [-1, 1]) {
+                const mid = (side * (from + to)) / 2;
+                ctx.lineWidth = Math.max(1, Math.min(4, yardPx(mid) * 0.75));
+                line(x, side * from, x, side * to);
+              }
+            }
           }
         }
 

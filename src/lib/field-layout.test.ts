@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { FIELD_LONG, FIELD_WIDE, fieldRows, FieldSpot, layFields, layFocused, PHONE_ROW_GAP_PX, ROW_GAP_PX } from "./field-layout";
-import { floorDepth, floorScale, floorY, HORIZON_SHARE, lowestGridLine } from "./grid-room";
+import { floorDepth, floorScale, floorY, GRID_PX, HORIZON_SHARE, lowestGridLine } from "./grid-room";
 
 test("rows of fields: as many in each, the nearer ones one more where they can't be; a third row from seven", () => {
   assert.deepEqual(fieldRows(0), []);
@@ -82,8 +82,8 @@ test("around the middle: one game a box up from the front, across the floor; two
   }
 });
 
-test("around the middle: three rows, the middle one on it from one side of the floor to the other, the nearest wider", () => {
-  const center = mid(layFields(1, middle)[0]);
+test("around the middle: three rows, the middle one on it (half a grid square back) from one side of the floor to the other, the nearest wider", () => {
+  const center = mid(layFields(1, middle)[0]) - GRID_PX / 2;
   for (const n of [7, 8, 9]) {
     const spots = layFields(n, middle);
     assert.equal(spots.length, n);

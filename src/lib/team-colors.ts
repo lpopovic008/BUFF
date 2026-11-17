@@ -87,3 +87,45 @@ const NAMES: Record<string, string> = {
 export function teamName(team: string): string {
   return NAMES[team] ?? team;
 }
+
+// Each team's secondary color: the one beside its main color in its marks and its end zones (a gold, a silver, an
+// orange) — striping its end zone either side of its name (see FloorFields).
+const SECONDARY: Record<string, string> = {
+  ARI: "#ffb612",
+  ATL: "#a5acaf",
+  BAL: "#9e7c0c",
+  BUF: "#c60c30",
+  CAR: "#0085ca",
+  CHI: "#c83803",
+  CIN: "#000000",
+  CLE: "#ff3c00",
+  DAL: "#869397",
+  DEN: "#002244",
+  DET: "#b0b7bc",
+  GB: "#ffb612",
+  HOU: "#a71930",
+  IND: "#a2aaad",
+  JAX: "#d7a22a",
+  KC: "#ffb81c",
+  LAC: "#ffc20e",
+  LAR: "#ffd100",
+  LV: "#a5acaf",
+  MIA: "#fc4c02",
+  MIN: "#ffc62f",
+  NE: "#c60c30",
+  NO: "#d3bc8d",
+  NYG: "#a71930",
+  NYJ: "#ffffff",
+  PHI: "#a5acaf",
+  PIT: "#ffb612",
+  SEA: "#69be28",
+  SF: "#b3995d",
+  TB: "#ff7900",
+  TEN: "#0c2340",
+  WAS: "#ffb612",
+};
+
+/** A team's secondary color (see SECONDARY) — its main one (teamColor), for a team it doesn't know. */
+export function teamSecondary(team: string): string {
+  return SECONDARY[team] ?? teamColor(team);
+}

@@ -3,7 +3,7 @@
 // rows (two games: one near, one far; three: two near, one far), a third row only for seven games or more. All the
 // same size on the floor, so a row farther back shows smaller, as it would; as large as fits the nearest row across.
 
-import { floorDepth, floorScale, floorY } from "./grid-room";
+import { floorDepth, floorScale, floorY, GRID_PX } from "./grid-room";
 
 /** A field's length, end line to end line, and its width, sideline to sideline (yards). */
 export const FIELD_LONG = 120;
@@ -115,7 +115,8 @@ export function layAround(rows: number[], floor: FieldFloor, anchor: number): Fi
   const one = layRows([1], { ...floor, front: Math.min(anchor, front) })?.[0]?.[0];
   if (!one || rows.length === 0) return null;
   if (rows.length === 1 && rows[0] === 1) return [[one]];
-  const middle = one.near - rowDepth(one.yard) / 2;
+  // (Three rows, laid half a square of the floor's grid farther back.)
+  const middle = one.near - rowDepth(one.yard) / 2 - (rows.length >= 3 ? GRID_PX / 2 : 0);
   const nearest = floorDepth(front, height, share);
   const farthest = floorDepth(back, height, share);
   const room = right - left;
