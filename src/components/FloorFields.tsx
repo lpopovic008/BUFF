@@ -19,6 +19,11 @@ const POSTS = "#f2c94c";
 const BALL = "#8b4a22";
 const BALL_LIT = "#b06a38";
 const BALL_DARK = "#4f2810";
+/** How far round its long axis the ball's laces sit at rest (rad, from facing you): a little up its near side. */
+const LACE_REST = 0.32;
+/** How fast a thrown ball spirals, and a tumbling one rolls over, round its long axis (rad/s) — slow enough to see. */
+const SPIRAL_RAD_S = 14;
+const TUMBLE_ROLL_RAD_S = 5;
 /** How quickly a field eases to where it's laid (ms), and fades on or off the floor. */
 const EASE_MS = 140;
 /** Plays waiting their turn on a field, at most. */
@@ -664,7 +669,10 @@ export function FloorFields({
           }
           // As big as the field it's on makes it: smaller, the farther off (and the smaller) the field.
           const long = Math.max(3, yp * 2.2);
-          const girth = Math.max(2, yp * 1.3) * (spin === "spiral" ? 0.8 + 0.2 * Math.abs(Math.sin(t * 40)) : 1);
+          // How far round its long axis it's turned, its laces with it: spinning on a throw, rolling over as it tumbles,
+          // still as it's carried or kicked (a kick turns it end over end, above) — at rest, a little up its near side.
+          const roll = LACE_REST + (spin === "spiral" ? t * SPIRAL_RAD_S : spin === "tumble" ? t * TUMBLE_ROLL_RAD_S : 0);
+          const girth = Math.max(2, yp * 1.3) * (spin === "spiral" ? 0.85 + 0.15 * Math.abs(Math.cos(roll)) : 1);
           // Its reflection, upside down in the field under it, faint (as the logo's is) — clear of it as it lies there,
           // and fainter the higher it goes, gone by 25 yards up.
           const mirror = gy + girth * 0.6;
@@ -700,11 +708,18 @@ export function FloorFields({
             ctx.strokeStyle = BALL_DARK;
             ctx.lineWidth = Math.max(0.4, girth * 0.06);
             ctx.stroke();
-            if (long >= 7) {
-              const lace = -g * 0.28;
+            // Its laces where its turn has them: across its near side, sliding over its top or bottom out of sight as it
+            // turns, back round the far side to come up again — fainter and narrower the farther round they are.
+            const face = Math.cos(roll);
+            if (long >= 7 && face > 0.05) {
+              const lace = -g * 0.9 * Math.sin(roll);
+              const shown = ctx.globalAlpha;
+              ctx.save();
+              ctx.clip();
+              ctx.globalAlpha = shown * Math.min(1, face * 2);
               ctx.strokeStyle = "#f4efe6";
               ctx.lineCap = "round";
-              ctx.lineWidth = Math.max(0.5, girth * 0.09);
+              ctx.lineWidth = Math.max(0.5, girth * 0.09 * (0.5 + 0.5 * face));
               ctx.beginPath();
               ctx.moveTo(-l * 0.3, lace);
               ctx.lineTo(l * 0.3, lace);
@@ -713,10 +728,11 @@ export function FloorFields({
               ctx.beginPath();
               for (let k = 0; k < 5; k++) {
                 const x = -l * 0.24 + (k * l * 0.48) / 4;
-                ctx.moveTo(x, lace - g * 0.2);
-                ctx.lineTo(x, lace + g * 0.2);
+                ctx.moveTo(x, lace - g * 0.2 * face);
+                ctx.lineTo(x, lace + g * 0.2 * face);
               }
               ctx.stroke();
+              ctx.restore();
             }
           }
         }
