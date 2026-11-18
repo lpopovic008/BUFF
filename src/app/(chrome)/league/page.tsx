@@ -649,8 +649,8 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
   // The bench open from the start, in the right-hand column under the room's buttons.
   const { action, pick, close } = useFloorAction("bench");
   // The write-ups up: the write-up the whole middle column, from under the header to the screen's bottom; the matchups
-  // in the right-hand column opened a little (see MatchupList); and its contents in the left-hand column in place of
-  // your leagues.
+  // under your league on the left opened a little (see MatchupList); and its contents in the right-hand column under
+  // the room's buttons.
   const writeups = action === "writeups";
   // Where the header ends (and a gap under it): the write-up's top.
   const [underHeader, setUnderHeader] = useState(0);
@@ -762,14 +762,20 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
             pickedId={shownGame.matchupId}
             onPick={(id) => setPicked({ leagueId, week, id })}
             // With the write-ups up, each box opened a little: the all-time wins, PF and PA, and projected.
-            opened={{ open: opened, owners, allTime }}
+            // (No all-time head-to-head in them for now.)
+            opened={{ open: opened, owners, allTime: null }}
           />
         )
       : null;
   // What a button opens under them in the column itself (the bench's and the score graph's are stages over it, see
   // RoomStagePanel; the payouts', the floor, see PayoutStage).
   const underButtons =
-    action === "writeups" ? matchups(true) : action === "history" || action === "more" ? <ActionPanel action={action} league={rooms[index]} /> : null;
+    action === "writeups" ? (
+      // The write-up's contents (see WriteupsPanel).
+      <div ref={setContentsSlot} />
+    ) : action === "history" ? (
+      <ActionPanel action={action} league={rooms[index]} />
+    ) : null;
 
   // The columns, each scrolling on its own.
   const [leagueColumn, setLeagueColumn] = useState<HTMLDivElement | null>(null);
@@ -819,10 +825,6 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
           <div ref={setLeagueColumn} data-scroll-list className={column} style={columnPad}>
             <div>
             <div style={{ zoom: sideZoom }}>
-            {writeups ? (
-              // The write-up's contents (see WriteupsPanel).
-              <div ref={setContentsSlot} />
-            ) : (
             <ul className="flex flex-col gap-1" aria-label="Your leagues">
               {leagues.map((league) => {
                 const on = league.leagueId === leagueId;
@@ -846,13 +848,13 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
                         <path d="M2.5 4.5 6 8l3.5-3.5" />
                       </svg>
                     </button>
-                    {/* Its matchups, picking the one whose lineups are in the middle. */}
-                    {open ? <div className="pb-2 pt-1">{matchups(false)}</div> : null}
+                    {/* Its matchups, picking the one whose lineups are in the middle — with the write-ups up, each box opened
+                        a little to each team's PF and PA. */}
+                    {open ? <div className="pb-2 pt-1">{matchups(writeups)}</div> : null}
                   </li>
                 );
               })}
             </ul>
-            )}
             </div>
             </div>
           </div>
@@ -896,9 +898,9 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
           <ScrollThumb source={lineupColumn} />
         </div>
 
-        {/* The room's buttons, square tiles two to a row (see ActionTiles) — with the write-ups up, the league's matchups
-            instead, each box opened a little (see MatchupList), the leagues' column the write-up's contents. Stepping
-            aside while the payouts have the floor, as the leagues do. */}
+        {/* The room's buttons, square tiles in a row that slides (see ActionTiles), and under them what one opens there —
+            with the write-ups up, the write-up's contents. Stepping aside while the payouts have the floor, as the
+            leagues do. */}
         <div
           ref={setSide}
           className={`relative min-w-0 transition-opacity duration-300 ${floorAway ? "pointer-events-none opacity-0" : ""}`}
@@ -996,7 +998,6 @@ function graphSides(game: ResolvedMatchupGame, myRosterId: number | null, projec
   return { mine: side(first), theirs: second ? side(second) : null };
 }
 
-const panelNote = (text: string) => <p className="text-sm text-ink-secondary">{text}</p>;
 const panelLink = (href: string, text: string) => (
   <Link href={href} className="inline-block bg-[var(--map-tag)] px-3 py-2 text-xs font-bold uppercase tracking-wide text-[var(--map-tag-ink)] transition-opacity hover:opacity-90">
     {text}
@@ -1006,7 +1007,7 @@ const panelLink = (href: string, text: string) => (
 /**
  * What a floor button's panel shows (the bench and the score graph have stages of their own, see RoomStagePanel, the
  * payouts the floor itself, see PayoutStage, and the write-ups a panel, see WriteupsPanel): the way to the league's
- * history; and a spot kept for something else.
+ * history.
  */
 function ActionPanel({
   action,
@@ -1018,7 +1019,6 @@ function ActionPanel({
   const leagueId = league.official.league.league_id;
   if (action === "writeups") return panelLink(`/recap?id=${leagueId}`, "Open the write-ups");
   if (action === "history") return panelLink(`/league/history?id=${leagueId}`, "Open the league's history");
-  if (action === "more") return panelNote("Something else is coming here.");
   return null;
 }
 

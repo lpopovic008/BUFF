@@ -306,6 +306,8 @@ export interface TeamStanding {
   record?: { wins: number; losses: number; ties: number };
   streak?: Streak | null;
   pointsRanks?: PointsRanks;
+  /** Its points for and against this season. */
+  points?: { for: number; against: number };
 }
 
 /** Every team's standing (rank, record, streak, points-for/against ranks), by roster. */
@@ -323,6 +325,7 @@ export function teamStandings(
           record: { wins: row.wins, losses: row.losses, ties: row.ties },
           streak: extendStreak(roster ? rosterStreak(roster) : null, summary.provisional?.get(row.rosterId) ?? []),
           pointsRanks: ranks.get(row.rosterId),
+          points: { for: row.pointsFor, against: row.pointsAgainst },
         },
       ];
     })

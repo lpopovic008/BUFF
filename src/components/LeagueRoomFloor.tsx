@@ -5,7 +5,7 @@ import { FLOOR_TILT, floorDepth, floorPoint, floorScale, HORIZON_SHARE, PERSPECT
 import { ChevronLeftIcon } from "@/components/ui/Icon";
 
 /** What the League Room's floor offers, each a button lying on a square of its grid. */
-export type FloorAction = "bench" | "graph" | "payouts" | "writeups" | "history" | "more";
+export type FloorAction = "bench" | "graph" | "payouts" | "writeups" | "history";
 
 /**
  * A solid of a floor button's model, in the model's own room: `x` across its slot (0 its left, 1 its right), `f` back
@@ -165,18 +165,6 @@ function historyModel(): Solid[] {
   ];
 }
 
-/** A wrapped present: a box, its lid, the ribbon round them and a bow on top. */
-function moreModel(): Solid[] {
-  return [
-    box(0.2, 0.8, 0.1, 0.5, 0, 0.38, -0.02),
-    box(0.46, 0.54, 0.085, 0.1, 0, 0.38, 0.22),
-    box(0.17, 0.83, 0.07, 0.53, 0.38, 0.47, 0.08),
-    box(0.46, 0.54, 0.06, 0.54, 0.47, 0.48, 0.24),
-    box(0.36, 0.47, 0.24, 0.36, 0.48, 0.57, 0.24),
-    box(0.53, 0.64, 0.24, 0.36, 0.48, 0.57, 0.24),
-  ];
-}
-
 /** Each button: what it's for, and what stands on the floor for it (see Solid). */
 export const FLOOR_ACTIONS: { id: FloorAction; label: string; model: () => Solid[] }[] = [
   { id: "bench", label: "Bench", model: benchModel },
@@ -184,7 +172,6 @@ export const FLOOR_ACTIONS: { id: FloorAction; label: string; model: () => Solid
   { id: "payouts", label: "Payouts", model: payoutsModel },
   { id: "writeups", label: "Write-ups", model: writeupsModel },
   { id: "history", label: "League history", model: historyModel },
-  { id: "more", label: "More to come", model: moreModel },
 ];
 
 /** Each button's model, built once: they never change, only where they're seen from (see FloorButtons). */
@@ -224,7 +211,7 @@ export interface FloorButtonRow {
 }
 
 /**
- * The floor's buttons as a row of six standing upright across it, as wide together as `span` (px, across the screen's
+ * The floor's buttons as a row of them standing upright across it, as wide together as `span` (px, across the screen's
  * middle) allows: just in front of where their tops would rise past the horizon, so they never stand over what's above
  * it — and the horizon (`share`) just high enough over `bottom` (screen y) for the floor to show them and their
  * reflections: the room looked at as straight on as they allow.
@@ -329,7 +316,7 @@ function drawModel(solids: Solid[], x0: number, front: number, unit: number, wid
 
 /**
  * The League Room's buttons: a row of models standing on its floor (see floorButtonRow), each what it's for — a park
- * bench, two teams' bars of points, stacks of coins, written pages and a quill, a trophy, a present — in the room's
+ * bench, two teams' bars of points, stacks of coins, written pages and a quill, a trophy — in the room's
  * perspective, lit from above, and reflected in the floor under them. Pointed at, lit up; pressed, they give a
  * little. Gone (`hidden`) while a panel's up over them.
  *
@@ -559,7 +546,7 @@ const TILE_MODELS = (() => {
 /**
  * The League Room's buttons as square tiles in a row that slides sideways (from laptop width up, across the top of
  * the right-hand column) — by a wheel or a trackpad over it, or dragged: each its model, as the floor's are (a park
- * bench, two teams' bars of points, stacks of coins, written pages and a quill, a trophy, a present), and what it's for
+ * bench, two teams' bars of points, stacks of coins, written pages and a quill, a trophy), and what it's for
  * under it — see-through, outlined; the one whose panel's up, outlined in ink. Pointed at, lit up; pressed, it gives a
  * little.
  */

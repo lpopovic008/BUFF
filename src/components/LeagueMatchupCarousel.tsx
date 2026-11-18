@@ -1077,8 +1077,8 @@ export function MatchupList({
   onPick: (matchupId: number) => void;
   /**
    * Its boxes opened, or shut again (the League Room's, with its write-ups up) — never any bigger, what's in them
-   * moving to make room: each team's all-time wins over the other at its left, and under it, from where its name
-   * starts, its PF and PA ranks (in the places' color) and its projected total under its score — coming in and going
+   * moving to make room: each team's all-time wins over the other at its left (given `allTime`), and under it, from
+   * where its name starts, its points for and against and its projected total under its score — coming in and going
    * again as they open and shut.
    */
   opened?: { open: boolean; owners: Map<number, string>; allTime: Map<string, Map<string, AllTimeRecord>> | null };
@@ -1122,12 +1122,19 @@ export function MatchupList({
                     wins: record ? record.wins : null,
                     below: opened ? (
                       <span className="flex items-baseline justify-between gap-2">
-                        <PointsRankBadges
-                          pointsRanks={standings.get(t.rosterId)?.pointsRanks}
-                          leagueSize={standings.size}
-                          sizeClass="text-[0.6875rem] leading-none"
-                          rankClass="text-series-4"
-                        />
+                        {standings.get(t.rosterId)?.points ? (
+                          // Its points for and against this season.
+                          <span className="whitespace-nowrap text-[0.6875rem] leading-none tabular-nums text-ink-secondary">
+                            PF {formatPoints(standings.get(t.rosterId)!.points!.for)} · PA {formatPoints(standings.get(t.rosterId)!.points!.against)}
+                          </span>
+                        ) : (
+                          <PointsRankBadges
+                            pointsRanks={standings.get(t.rosterId)?.pointsRanks}
+                            leagueSize={standings.size}
+                            sizeClass="text-[0.6875rem] leading-none"
+                            rankClass="text-series-4"
+                          />
+                        )}
                         <span className="text-[0.6875rem] leading-none tabular-nums text-ink-primary opacity-70" title="Projected">
                           {total !== undefined ? formatPoints(total) : ""}
                         </span>
