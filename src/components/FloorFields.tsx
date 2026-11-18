@@ -679,8 +679,8 @@ export function FloorFields({
           ctx.fillStyle = shade;
           ctx.beginPath();
           ctx.moveTo(-l, 0);
-          ctx.bezierCurveTo(-l * 0.32, -g * 1.32, l * 0.32, -g * 1.32, l, 0);
-          ctx.bezierCurveTo(l * 0.32, g * 1.32, -l * 0.32, g * 1.32, -l, 0);
+          ctx.bezierCurveTo(-l * 0.5, -g * 1.32, l * 0.5, -g * 1.32, l, 0);
+          ctx.bezierCurveTo(l * 0.5, g * 1.32, -l * 0.5, g * 1.32, -l, 0);
           ctx.closePath();
           ctx.fill();
           ctx.strokeStyle = BALL_DARK;
