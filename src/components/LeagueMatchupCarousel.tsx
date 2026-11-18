@@ -69,6 +69,13 @@ export function useLineupNumbers(): (resolved: ResolvedSlot) => LineupNumbers {
   };
 }
 
+/** Each lineup player's note (opponent, bye, matchup, projection — see LineNote), by player id — from inside
+ * MatchupProviders. */
+export function useLineNoteOf(): (playerId: string) => LineNote | undefined {
+  const notes = useContext(LineNoteContext);
+  return (playerId) => notes.get(playerId);
+}
+
 function OpensCareer({ resolved, className = "", children }: { resolved: ResolvedSlot; className?: string; children: React.ReactNode }) {
   const open = useContext(PlayerCardContext);
   const numbersOf = useLineupNumbers();

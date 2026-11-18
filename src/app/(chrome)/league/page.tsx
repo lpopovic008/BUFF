@@ -12,7 +12,7 @@ import { ScrollThumb } from "@/components/ScrollThumb";
 import { useSwipePager } from "@/hooks/useSwipePager";
 import { LIST_MOVE, useListScroll } from "@/hooks/useListScroll";
 import { LeagueSwitcher, LeagueTitle, RoomLeague } from "@/components/LeagueSwitcher";
-import { BriefMatchups, CareerStageContext, MatchupList, MatchupProviders, MatchupSlide, MatchupStack, useLineupNumbers, useMatchupHeadToHead } from "@/components/LeagueMatchupCarousel";
+import { BriefMatchups, CareerStageContext, MatchupList, MatchupProviders, MatchupSlide, MatchupStack, useLineNoteOf, useLineupNumbers, useMatchupHeadToHead } from "@/components/LeagueMatchupCarousel";
 import { RoomBench, RoomGraph, StagePlaces, useStageShown } from "@/components/LeagueRoomStages";
 import { WriteupsPanel } from "@/components/LeagueRoomWriteups";
 import { ActionTiles, CloseButton, FLOOR_ACTIONS, FloorAction, FloorButtonSwiper, floorButtonRow, FrontPanel } from "@/components/LeagueRoomFloor";
@@ -1074,6 +1074,7 @@ function RoomStageContent({ kind, places, onClose, back, league, week, userId, m
       onClose={onClose}
       back={back}
       bench={mine.bench}
+      starters={mine.slots}
       season={Number(league.official.league.season) || new Date().getFullYear()}
       scoring={scoring}
       floorless={floorless}
@@ -1081,10 +1082,11 @@ function RoomStageContent({ kind, places, onClose, back, league, week, userId, m
   );
 }
 
-/** The bench's stage, inside the lineups' providers (for what each player's numbers in the lineup are). */
-function BenchStage(props: Omit<React.ComponentProps<typeof RoomBench>, "numbersOf">) {
+/** The bench's stage, inside the lineups' providers (for what each player's numbers in the lineup are, and his note). */
+function BenchStage(props: Omit<React.ComponentProps<typeof RoomBench>, "numbersOf" | "noteOf">) {
   const numbersOf = useLineupNumbers();
-  return <RoomBench {...props} numbersOf={numbersOf} />;
+  const noteOf = useLineNoteOf();
+  return <RoomBench {...props} numbersOf={numbersOf} noteOf={noteOf} />;
 }
 
 export default function LeagueRoomPage() {

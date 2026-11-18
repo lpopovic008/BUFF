@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeftIcon } from "@/components/ui/Icon";
 import { CloseButton, FloorTile, FloorTiles } from "@/components/LeagueRoomFloor";
 import { FLOOR_RISE_MS, SeasonLine } from "@/components/FloorCareer";
 import { MatchupGraph, MatchupSide } from "@/components/MatchupGraph";
 import type { LineupNumbers } from "@/components/PlayerCareer";
+import type { LineNote } from "@/components/LeagueMatchupCarousel";
+import { BenchCandidate, benchGroups, StarterInSlot } from "@/lib/bench-groups";
 import { collegeLogo } from "@/lib/college-logos";
 import { nflLogoUrl } from "@/lib/nfl-logos";
 import { ordinal } from "@/lib/format";
@@ -891,18 +893,47 @@ export function PlayerStage({
   );
 }
 
-/** Your bench as a stage: your bench players to pick from across the top of the wall, the one picked a PlayerStage. */
+/**
+ * Your bench as a stage: your bench players to pick from across the top of the wall, in groups of what's worth
+ * knowing (see benchGroups) — who could outscore a starter, who's projected most, the best matchups, the hottest, who's
+ * on bye, then everyone — the one picked a PlayerStage (at first, the first in the first group).
+ */
 export function RoomBench({
   bench,
+  starters,
   numbersOf,
+  noteOf,
   ...stage
 }: Omit<React.ComponentProps<typeof PlayerStage>, "title" | "player" | "numbers" | "picker" | "details"> & {
   bench: ResolvedSlot[];
+  /** Your starters in their slots: who a bench player could outscore. */
+  starters: ResolvedSlot[];
   numbersOf: (resolved: ResolvedSlot) => LineupNumbers;
+  noteOf: (playerId: string) => LineNote | undefined;
 }) {
   const players = bench.filter((b) => b.player);
+  const groups = useMemo(() => {
+    const candidate = (b: ResolvedSlot): BenchCandidate => {
+      const note = noteOf(b.player!.playerId);
+      return {
+        id: b.player!.playerId,
+        name: b.player!.name,
+        position: b.player!.position,
+        projected: note?.projected ?? null,
+        matchup: note?.share ?? null,
+        opponent: note?.opponent ?? null,
+        bye: note?.bye ?? false,
+        ppg: b.ppg,
+      };
+    };
+    const lineup: StarterInSlot[] = starters.flatMap((s) =>
+      s.player ? [{ slot: s.slot, id: s.player.playerId, name: s.player.name, projected: noteOf(s.player.playerId)?.projected ?? null }] : []
+    );
+    return benchGroups(players.map(candidate), lineup);
+  }, [players, starters, noteOf]);
   const [pickedId, setPickedId] = useState<string | null>(null);
-  const slot = players.find((b) => b.player!.playerId === pickedId) ?? players[0];
+  const firstId = groups[0]?.players[0]?.id;
+  const slot = players.find((b) => b.player!.playerId === (pickedId ?? firstId)) ?? players[0];
   if (!slot) {
     return (
       <div data-floor-ui className="fixed z-[7] flex items-center gap-2 text-sm text-ink-secondary" style={{ top: stage.places.wall.top, left: stage.places.wall.left, width: stage.places.wall.width }}>
@@ -911,28 +942,38 @@ export function RoomBench({
       </div>
     );
   }
+  const byId = new Map(players.map((b) => [b.player!.playerId, b]));
   const picker = (
-    <ul className="flex flex-wrap gap-1" aria-label="Your bench">
-      {players.map((b) => {
-        const p = b.player!;
-        const on = p.playerId === slot.player!.playerId;
-        return (
-          <li key={p.playerId}>
-            <button
-              type="button"
-              aria-pressed={on}
-              onClick={() => setPickedId(p.playerId)}
-              className={`flex items-baseline gap-1 border px-1.5 py-1 text-[0.6875rem] font-bold transition-colors ${
-                on ? "border-ink-primary bg-ink-primary text-page" : "border-border bg-page/60 text-ink-primary hover:border-ink-primary"
-              }`}
-            >
-              <span className={on ? "" : (POSITION_TEXT_COLOR[p.position] ?? "text-ink-secondary")}>{p.position}</span>
-              <span className="max-w-[9rem] truncate">{p.name}</span>
-            </button>
-          </li>
-        );
-      })}
-    </ul>
+    <div className="flex flex-col gap-1.5" aria-label="Your bench">
+      {groups.map((group) => (
+        <section key={group.key} aria-label={group.label} className="flex flex-col gap-1">
+          <span className="text-[0.625rem] font-bold uppercase tracking-wide text-ink-muted">{group.label}</span>
+          <ul className="flex flex-wrap gap-1">
+            {group.players.map(({ id, note }) => {
+              const p = byId.get(id)?.player;
+              if (!p) return null;
+              const on = id === slot.player!.playerId;
+              return (
+                <li key={id}>
+                  <button
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => setPickedId(id)}
+                    className={`flex items-baseline gap-1 border px-1.5 py-1 text-[0.6875rem] font-bold transition-colors ${
+                      on ? "border-ink-primary bg-ink-primary text-page" : "border-border bg-page/60 text-ink-primary hover:border-ink-primary"
+                    }`}
+                  >
+                    <span className={on ? "" : (POSITION_TEXT_COLOR[p.position] ?? "text-ink-secondary")}>{p.position}</span>
+                    <span className="max-w-[9rem] truncate">{p.name}</span>
+                    {note ? <span className={`font-semibold tabular-nums ${on ? "opacity-80" : "text-ink-muted"}`}>{note}</span> : null}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))}
+    </div>
   );
   return <PlayerStage key={slot.player!.playerId} {...stage} player={slot.player!} numbers={numbersOf(slot)} picker={picker} />;
 }
