@@ -15,7 +15,7 @@ import { LeagueSwitcher, LeagueTitle, RoomLeague } from "@/components/LeagueSwit
 import { BriefMatchups, CareerStageContext, MatchupList, MatchupProviders, MatchupSlide, MatchupStack, useLineupNumbers, useMatchupHeadToHead } from "@/components/LeagueMatchupCarousel";
 import { RoomBench, RoomGraph, StagePlaces, useStageShown } from "@/components/LeagueRoomStages";
 import { WriteupsPanel } from "@/components/LeagueRoomWriteups";
-import { ActionTiles, CloseButton, FLOOR_ACTIONS, FloorAction, FloorButtons, floorButtonRow, FrontPanel } from "@/components/LeagueRoomFloor";
+import { ActionTiles, CloseButton, FLOOR_ACTIONS, FloorAction, FloorButtonSwiper, floorButtonRow, FrontPanel } from "@/components/LeagueRoomFloor";
 import type { MatchupSide } from "@/components/MatchupGraph";
 import { PayoutStage } from "@/components/LeagueRoomPayouts";
 import type { ResolvedMatchupGame } from "@/hooks/useLeagueMatchupCarousel";
@@ -462,7 +462,17 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
       {/* The floor's buttons at the front of the room, and the panel one brings up there. */}
       {room ? (
         <>
-          {buttons ? <FloorButtons width={room.width} height={room.height} row={buttons} hidden={action !== null || cardUp || floorAway} onPick={pick} /> : null}
+          {buttons ? (
+            // One at a time, swiped along the floor.
+            <FloorButtonSwiper
+              width={room.width}
+              height={room.height}
+              row={buttons}
+              hidden={action !== null || cardUp || floorAway}
+              floorBottom={room.height - tabBar}
+              onPick={pick}
+            />
+          ) : null}
           {/* The write-ups: up to just under the matchups, the rest of the screen. */}
           <WriteupsPanel
             open={writeups}
@@ -886,7 +896,8 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
           ) : null}
           {columnPlaces ? (
             <>
-              <RoomStagePanel kind="bench" open={action === "bench"} places={columnPlaces} onClose={close} back league={rooms[index]} week={week} userId={userId} />
+              {/* (Nothing of the bench's players on the floor: it'd lie behind the lineups.) */}
+              <RoomStagePanel kind="bench" open={action === "bench"} places={columnPlaces} onClose={close} back floorless league={rooms[index]} week={week} userId={userId} />
               <RoomStagePanel
                 kind="graph"
                 open={action === "graph"}
@@ -978,6 +989,8 @@ function RoomStagePanel(props: StageProps & { open: boolean }) {
 interface StageProps {
   kind: "bench" | "graph";
   places: StagePlaces;
+  /** The bench's players just on the wall, nothing of them on the floor (see PlayerStage). */
+  floorless?: boolean;
   onClose: () => void;
   back?: boolean;
   league: RoomLeagueData;
@@ -986,7 +999,7 @@ interface StageProps {
   matchupId?: number;
 }
 
-function RoomStageContent({ kind, places, onClose, back, league, week, userId, matchupId, up }: StageProps & { up: boolean }) {
+function RoomStageContent({ kind, places, onClose, back, league, week, userId, matchupId, up, floorless }: StageProps & { up: boolean }) {
   const { myRosterId, carousel, providers, weekGames, projectionStats, scoring } = useLeagueRoom(league, week, userId);
   const games = carousel?.games ?? [];
   const game =
@@ -1008,7 +1021,16 @@ function RoomStageContent({ kind, places, onClose, back, league, week, userId, m
   const mine = game.teams.find((t) => t.rosterId === myRosterId);
   if (!mine) return note("You've no team in this league.");
   return providers(
-    <BenchStage places={places} up={up} onClose={onClose} back={back} bench={mine.bench} season={Number(league.official.league.season) || new Date().getFullYear()} scoring={scoring} />
+    <BenchStage
+      places={places}
+      up={up}
+      onClose={onClose}
+      back={back}
+      bench={mine.bench}
+      season={Number(league.official.league.season) || new Date().getFullYear()}
+      scoring={scoring}
+      floorless={floorless}
+    />
   );
 }
 

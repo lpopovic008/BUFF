@@ -343,6 +343,7 @@ export const FloorButtons = memo(
     a.width === b.width &&
     a.height === b.height &&
     a.hidden === b.hidden &&
+    a.only === b.only &&
     a.onPick === b.onPick &&
     a.row.share === b.row.share &&
     a.row.width === b.row.width &&
@@ -356,23 +357,28 @@ function FloorButtonsDrawn({
   height,
   row,
   hidden,
+  only,
   onPick,
 }: {
   width: number;
   height: number;
   row: FloorButtonRow;
   hidden: boolean;
+  /** Just this one, in the middle of the floor (see FloorButtonSwiper). */
+  only?: FloorAction;
   onPick: (action: FloorAction) => void;
 }) {
   const hinge = height * row.share;
   const { share, width: unit, gap, depth } = row;
   // Drawn once for the screen they're on.
   const slots = useMemo(() => {
-    const n = FLOOR_ACTIONS.length;
+    const shown = only ? FLOOR_ACTIONS.filter((a) => a.id === only) : FLOOR_ACTIONS;
+    const n = shown.length;
     const total = n * unit + (n - 1) * gap;
     const at = height * share;
-    return FLOOR_ACTIONS.map((action, i) => {
-      const x0 = -total / 2 + i * (unit + gap);
+    return shown.map((action, k) => {
+      const i = FLOOR_ACTIONS.indexOf(action);
+      const x0 = -total / 2 + k * (unit + gap);
       const up = drawModel(SOLIDS[i], x0, depth, unit, width, at, false);
       const down = drawModel(SOLIDS[i], x0, depth, unit, width, at, true);
       // What's tapped: the slot's whole box, as it stands.
@@ -383,7 +389,7 @@ function FloorButtonsDrawn({
       const hit = { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
       return { action, up, down, hit };
     });
-  }, [width, height, share, unit, gap, depth]);
+  }, [width, height, share, unit, gap, depth, only]);
   const reflectTop = standing(0, row.depth, 0, width, hinge)[1];
   const reflectBottom = standing(0, row.depth, -row.height, width, hinge)[1];
   const fade = "floor-buttons-fade";
@@ -445,6 +451,83 @@ function FloorButtonsDrawn({
         </g>
       ))}
     </svg>
+  );
+}
+
+/**
+ * The floor's buttons one at a time (on a phone's League page): the one picked standing in the middle of the floor,
+ * where the row of them was (the floor no different), swiped along the floor — left for the next, right for the one
+ * before, round from the last to the first — and pressed to open it. Under it, a dot for each, the one shown lit.
+ */
+export function FloorButtonSwiper({
+  width,
+  height,
+  row,
+  hidden,
+  floorBottom,
+  onPick,
+}: {
+  width: number;
+  height: number;
+  row: FloorButtonRow;
+  hidden: boolean;
+  /** The floor's bottom on the screen (above a phone's tab bar): swipes start between it and the horizon. */
+  floorBottom: number;
+  onPick: (action: FloorAction) => void;
+}) {
+  const [shown, setShown] = useState(0);
+  const step = (by: number) => setShown((i) => (i + by + FLOOR_ACTIONS.length) % FLOOR_ACTIONS.length);
+  useEffect(() => {
+    if (hidden) return;
+    const horizon = height * row.share;
+    let start: { x: number; y: number; id: number } | null = null;
+    const down = (e: PointerEvent) => {
+      const target = e.target instanceof Element ? e.target : null;
+      if (e.clientY < horizon || e.clientY > floorBottom) return;
+      if (target?.closest("a, input, select, textarea, [data-floor-ui], [data-scroll-list], header, nav")) return;
+      start = { x: e.clientX, y: e.clientY, id: e.pointerId };
+      // The floor's its own to swipe: not the lineups' over it, to the next league — nor, with a mouse, a drag
+      // selecting their text.
+      e.stopPropagation();
+      if (e.pointerType === "mouse") e.preventDefault();
+    };
+    const select = (e: Event) => {
+      if (start) e.preventDefault();
+    };
+    const up = (e: PointerEvent) => {
+      if (!start || e.pointerId !== start.id) return;
+      const [dx, dy] = [e.clientX - start.x, e.clientY - start.y];
+      start = null;
+      if (Math.abs(dx) < 36 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+      step(dx < 0 ? 1 : -1);
+      // A swipe that ends on the button isn't a press of it (the click that follows, if any, swallowed).
+      const swallow = (c: MouseEvent) => (c.stopPropagation(), c.preventDefault());
+      window.addEventListener("click", swallow, { capture: true, once: true });
+      window.setTimeout(() => window.removeEventListener("click", swallow, { capture: true }), 300);
+    };
+    window.addEventListener("pointerdown", down, true);
+    window.addEventListener("pointerup", up, true);
+    document.addEventListener("selectstart", select, true);
+    return () => {
+      window.removeEventListener("pointerdown", down, true);
+      window.removeEventListener("pointerup", up, true);
+      document.removeEventListener("selectstart", select, true);
+    };
+  }, [hidden, height, row.share, floorBottom]);
+  const action = FLOOR_ACTIONS[shown];
+  return (
+    <>
+      <FloorButtons width={width} height={height} row={row} hidden={hidden} only={action.id} onPick={onPick} />
+      <div
+        aria-hidden
+        className={`pointer-events-none fixed inset-x-0 z-[3] flex justify-center gap-1.5 transition-opacity duration-300 ${hidden ? "opacity-0" : ""}`}
+        style={{ top: floorBottom - 10 }}
+      >
+        {FLOOR_ACTIONS.map((a, i) => (
+          <span key={a.id} className={`h-1.5 w-1.5 rounded-full ${i === shown ? "bg-ink-primary" : "bg-[color-mix(in_srgb,var(--ink-primary)_25%,transparent)]"}`} />
+        ))}
+      </div>
+    </>
   );
 }
 

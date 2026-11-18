@@ -680,10 +680,13 @@ export function PlayerStage({
   scoring,
   picker,
   details,
+  floorless = false,
 }: {
   places: StagePlaces;
   up: boolean;
   onClose: () => void;
+  /** Just who he is and his seasons, on the wall: nothing of him on the floor (his seasons' bars and table). */
+  floorless?: boolean;
   /** Kept for the stages' shared props (the × in the header is the way back). */
   back?: boolean;
   title?: string;
@@ -830,7 +833,7 @@ export function PlayerStage({
           </section>
         </div>
       </div>
-      {table && details ? (
+      {floorless ? null : table && details ? (
         <div
           data-floor-ui
           className={`fixed z-[7] overflow-y-auto border border-border bg-surface-raised/90 backdrop-blur-[3px] transition-opacity ease-out ${up ? "opacity-100" : "opacity-0"}`}
