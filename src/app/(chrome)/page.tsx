@@ -11,7 +11,6 @@ import { FloorGrid } from "@/components/FloorGrid";
 import { FloorCameraControls, RED_ZONE_PLAYS_AT_MS, RED_ZONE_PLAYS_MS, RED_ZONE_SINK_MS } from "@/components/FloorCameraControls";
 import { FloorReflection } from "@/components/FloorReflection";
 import { FloorFields } from "@/components/FloorFields";
-import { FloorFieldsLab } from "@/components/FloorFieldsLab";
 import { ScrollThumb } from "@/components/ScrollThumb";
 import { useListScroll } from "@/hooks/useListScroll";
 import { createFloorCameraStore } from "@/lib/floor-camera";
@@ -63,9 +62,6 @@ const RED_ZONE_FLOAT_REM = 0.125;
 const RED_ZONE_REM = 10.5;
 // From tablet width up, the player graphs at the back of the room: from under the ticker down to the horizon.
 // From tablet width up, how far down the starters list's first row sits: under the header and ticker, and the gap.
-// TEMPORARY: nine made-up games' fields in place of the live ones, for trying out every play
-// they act out (see FloorFieldsLab). Set to false to put the live games back.
-const PLAY_TEST = true;
 const UNDER_TICKER = "var(--header-h, 0px) + var(--ticker-h, 0px) + 0.625rem";
 const COLUMN_TO_HORIZON = `(var(--room-h, 100vh) * ${HORIZON_SHARE} - var(--header-h, 0px) - var(--ticker-h, 0px) - 0.625rem)`;
 const onDesktopChange = (listener: () => void) => {
@@ -610,8 +606,8 @@ export default function DashboardPage() {
       (redZoneLevel === 0 ? stand.redZoneLine - (RED_ZONE_REM + RED_ZONE_FLOAT_REM) * stand.rootPx : redZoneLevel === 1 ? stand.horizon : 0);
     return { ...stand.fields, front: Math.min(stand.fields.front, top - 0.5 * stand.rootPx) };
   }, [stand, desktop, redZoneUp, redZoneDragTop, redZoneLevel]);
-  // Whether there are fields on the floor (the bench's, while it's on): then the floor's bare — no grid lines, no map.
-  const fieldsUp = fieldsFloor !== null && (PLAY_TEST || liveGames.length > 0);
+  // Whether there are fields on the floor: then the floor's bare — no grid lines, no map.
+  const fieldsUp = fieldsFloor !== null && liveGames.length > 0;
   // The floor, slid toward you for the Red Zone; and the projected map moved and zoomed in its frame (see
   // FloorCameraControls), at home on the next games to kick off.
   const [floorCamera] = useState(createFloorCameraStore);
@@ -888,19 +884,7 @@ export default function DashboardPage() {
         {mapOut ? <FloorProjectionTags place={stand.projector} games={games} top={stand.mapTop} map={mapCamera} floor={floorCamera} /> : null}
         {/* The games being played, the one in view across the floor's front, the rest behind it. */}
         {stand && fieldsFloor ? (
-          PLAY_TEST ? (
-            // The bench's panel just over the horizon, the floor under it clear.
-            <FloorFieldsLab
-              width={stand.projector.width}
-              height={stand.room}
-              share={stand.projector.share}
-              floor={fieldsFloor}
-              bottom={`${stand.room - stand.horizon + 0.5 * stand.rootPx}px`}
-              focused
-            />
-          ) : (
-            <FloorFields games={liveGames} width={stand.projector.width} height={stand.room} share={stand.projector.share} floor={fieldsFloor} focused />
-          )
+          <FloorFields games={liveGames} width={stand.projector.width} height={stand.room} share={stand.projector.share} floor={fieldsFloor} focused />
         ) : null}
         {floorControls}
       </div>
@@ -973,11 +957,7 @@ export default function DashboardPage() {
       <FloorReflection source={startersList} className="pb-16" style={{ paddingTop: `calc(${UNDER_TICKER})` }} />
       {/* The games being played, a field each, on the floor between the Red Zone and the starters list. */}
       {stand && fieldsFloor ? (
-        PLAY_TEST ? (
-          <FloorFieldsLab width={stand.projector.width} height={stand.room} share={stand.projector.share} floor={fieldsFloor} top={`calc(${UNDER_TICKER})`} tilt={floorTilt} />
-        ) : (
-          <FloorFields games={liveGames} width={stand.projector.width} height={stand.room} share={stand.projector.share} floor={fieldsFloor} tilt={floorTilt} />
-        )
+        <FloorFields games={liveGames} width={stand.projector.width} height={stand.room} share={stand.projector.share} floor={fieldsFloor} tilt={floorTilt} />
       ) : null}
       {redZoneStage}
       {floorControls}

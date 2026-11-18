@@ -665,46 +665,60 @@ export function FloorFields({
           // As big as the field it's on makes it: smaller, the farther off (and the smaller) the field.
           const long = Math.max(3, yp * 2.2);
           const girth = Math.max(2, yp * 1.3) * (spin === "spiral" ? 0.8 + 0.2 * Math.abs(Math.sin(t * 40)) : 1);
+          // Its reflection, upside down in the field under it, faint (as the logo's is) — clear of it as it lies there,
+          // and fainter the higher it goes, gone by 25 yards up.
+          const mirror = gy + girth * 0.6;
+          ctx.globalAlpha = alpha * fade * 0.18 * Math.max(0, 1 - hgt / 25);
+          ctx.save();
+          ctx.translate(gx, 2 * mirror - by);
+          ctx.scale(1, -1);
+          ctx.rotate(angle);
+          ball();
+          ctx.restore();
           ctx.globalAlpha = alpha * fade;
           ctx.save();
           ctx.translate(gx, by);
           ctx.rotate(angle);
-          // Pointed at both ends, leather brown, lit from above — with its laces along its top, where it's big enough to
-          // show them.
-          const [l, g] = [long / 2, girth / 2];
-          const shade = ctx.createLinearGradient(0, -g, 0, g);
-          shade.addColorStop(0, BALL_LIT);
-          shade.addColorStop(0.45, BALL);
-          shade.addColorStop(1, BALL_DARK);
-          ctx.fillStyle = shade;
-          ctx.beginPath();
-          ctx.moveTo(-l, 0);
-          ctx.bezierCurveTo(-l * 0.5, -g * 1.32, l * 0.5, -g * 1.32, l, 0);
-          ctx.bezierCurveTo(l * 0.5, g * 1.32, -l * 0.5, g * 1.32, -l, 0);
-          ctx.closePath();
-          ctx.fill();
-          ctx.strokeStyle = BALL_DARK;
-          ctx.lineWidth = Math.max(0.4, girth * 0.06);
-          ctx.stroke();
-          if (long >= 7) {
-            const lace = -g * 0.28;
-            ctx.strokeStyle = "#f4efe6";
-            ctx.lineCap = "round";
-            ctx.lineWidth = Math.max(0.5, girth * 0.09);
-            ctx.beginPath();
-            ctx.moveTo(-l * 0.3, lace);
-            ctx.lineTo(l * 0.3, lace);
-            ctx.stroke();
-            ctx.lineWidth = Math.max(0.4, girth * 0.07);
-            ctx.beginPath();
-            for (let k = 0; k < 5; k++) {
-              const x = -l * 0.24 + (k * l * 0.48) / 4;
-              ctx.moveTo(x, lace - g * 0.2);
-              ctx.lineTo(x, lace + g * 0.2);
-            }
-            ctx.stroke();
-          }
+          ball();
           ctx.restore();
+
+          function ball() {
+            // Pointed at both ends, leather brown, lit from above — with its laces along its top, where it's big enough to
+            // show them.
+            const [l, g] = [long / 2, girth / 2];
+            const shade = ctx.createLinearGradient(0, -g, 0, g);
+            shade.addColorStop(0, BALL_LIT);
+            shade.addColorStop(0.45, BALL);
+            shade.addColorStop(1, BALL_DARK);
+            ctx.fillStyle = shade;
+            ctx.beginPath();
+            ctx.moveTo(-l, 0);
+            ctx.bezierCurveTo(-l * 0.5, -g * 1.32, l * 0.5, -g * 1.32, l, 0);
+            ctx.bezierCurveTo(l * 0.5, g * 1.32, -l * 0.5, g * 1.32, -l, 0);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = BALL_DARK;
+            ctx.lineWidth = Math.max(0.4, girth * 0.06);
+            ctx.stroke();
+            if (long >= 7) {
+              const lace = -g * 0.28;
+              ctx.strokeStyle = "#f4efe6";
+              ctx.lineCap = "round";
+              ctx.lineWidth = Math.max(0.5, girth * 0.09);
+              ctx.beginPath();
+              ctx.moveTo(-l * 0.3, lace);
+              ctx.lineTo(l * 0.3, lace);
+              ctx.stroke();
+              ctx.lineWidth = Math.max(0.4, girth * 0.07);
+              ctx.beginPath();
+              for (let k = 0; k < 5; k++) {
+                const x = -l * 0.24 + (k * l * 0.48) / 4;
+                ctx.moveTo(x, lace - g * 0.2);
+                ctx.lineTo(x, lace + g * 0.2);
+              }
+              ctx.stroke();
+            }
+          }
         }
       }
     }

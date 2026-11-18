@@ -1,5 +1,5 @@
-// Every kind of play the fields on the floor act out (see ball-flight), as ESPN would word it — for trying them out on
-// the floor one at a time (see FloorFieldsLab). In each line `{O}` is the team with the ball and `{D}` the other one;
+// Every kind of play the fields on the floor act out (see ball-flight), as ESPN would word it — each checked to come
+// out as the play it is (see field-scenarios.test). In each line `{O}` is the team with the ball and `{D}` the other one;
 // `toGo` is how far the team with the ball had to go to the end zone when it was snapped.
 
 export interface FieldScenario {
