@@ -9,6 +9,7 @@ import { PendingMatchups } from "@/hooks/useAsItStands";
 import { TeamStanding } from "@/lib/league-data";
 import { MatchupRows } from "@/components/LeagueTicker";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
+import { startMatchupDrag } from "@/lib/matchup-drag";
 import { nflLogoUrl } from "@/lib/nfl-logos";
 import { abbreviateFirstName, formatPoints, formatRecord } from "@/lib/format";
 import { getHomeView, saveHomeView } from "@/lib/localStore";
@@ -670,7 +671,13 @@ export function BriefMatchups({
       {stacked.map((g) => {
         const [mine, other] = sides(g, myRosterId);
         return (
-          <li key={g.matchupId}>
+          <li
+            key={g.matchupId}
+            // Dragged onto a write-up's upcoming Matchup of the Week, its teams fill it (see matchup-drag.ts).
+            draggable
+            onDragStart={(e) => startMatchupDrag(e, g.teams.map((t) => t.rosterId), g.teams.map((t) => t.teamName).join(" vs "))}
+            className="cursor-grab active:cursor-grabbing"
+          >
             <BriefMatchupHeader left={mine} right={other} standings={standings} headToHead={headToHeadFor(mine, other, owners, allTime)} />
           </li>
         );
@@ -1087,6 +1094,9 @@ export function MatchupList({
               type="button"
               aria-current={active || undefined}
               onClick={() => onPick(g.matchupId)}
+              // Dragged onto a write-up's upcoming Matchup of the Week, its teams fill it (see matchup-drag.ts).
+              draggable
+              onDragStart={(e) => startMatchupDrag(e, g.teams.map((t) => t.rosterId), g.teams.map((t) => t.teamName).join(" vs "))}
               // Opened or not (see `opened`), always as tall as it is shut — two rows and its padding — what's in it moving
               // to make room for what comes in: its padding at the top, bottom and left given up, its rows set closer.
               className={`w-full border pr-3 text-left transition-[color,background-color,border-color,padding] duration-500 ${

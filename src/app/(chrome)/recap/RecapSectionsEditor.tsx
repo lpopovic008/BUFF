@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useState } from "react";
 import "./recap-neon.css";
 import {
   RecapModel,
@@ -30,6 +30,8 @@ import { WeekRecapData } from "@/lib/league-data";
 import { PayoutLedger } from "@/lib/payouts";
 import { recapDisplayFont } from "@/lib/fonts";
 import { generateAiRecap } from "@/lib/recap-ai";
+import { formatPoints } from "@/lib/format";
+import { droppedMatchup, isMatchupDrag } from "@/lib/matchup-drag";
 import {
   GraphicTeam,
   decidedMatchupFor,
@@ -171,20 +173,48 @@ function PreviewMatchupBody({
   pick,
   teamOptions,
   onChangeTeam,
+  stats,
 }: {
   pick: BowlGamePick | null;
   teamOptions: LeagueTeamOption[] | null;
   onChangeTeam: (slot: 0 | 1, rosterId: number | "") => void;
+  /** Each team's points for and against, and the two's record against each other (see RecapMatchups' teamStats). */
+  stats?: RecapMatchups["teamStats"];
 }) {
   if (!teamOptions) {
     return <p className="rn-caption">Loading teams…</p>;
   }
   const rosterIds = pick?.rosterIds ?? [];
+  const [a, b] = [rosterIds[0], rosterIds[1]];
+  // Under each team picked, its PF and PA; under the VS, once both are, their record against each other, the left
+  // team's first.
+  const points = (id: number | undefined) => {
+    const of = id !== undefined ? stats?.of(id) : null;
+    return of ? (
+      <span className="rn-team-stats">
+        PF {formatPoints(of.pointsFor)} · PA {formatPoints(of.pointsAgainst)}
+      </span>
+    ) : null;
+  };
+  const between = a !== undefined && b !== undefined ? stats?.between(a, b) : null;
   return (
     <div className="rn-team-row">
-      <TeamSelect value={rosterIds[0] ?? ""} options={teamOptions} onChange={(id) => onChangeTeam(0, id)} />
-      <span className="rn-vs">VS</span>
-      <TeamSelect value={rosterIds[1] ?? ""} options={teamOptions} onChange={(id) => onChangeTeam(1, id)} />
+      <div className="rn-team-pick">
+        <TeamSelect value={a ?? ""} options={teamOptions} onChange={(id) => onChangeTeam(0, id)} />
+        {points(a)}
+      </div>
+      <span className="rn-vs-col">
+        <span className="rn-vs">VS</span>
+        {between ? (
+          <span className="rn-alltime" title="Their all-time record against each other">
+            All-time {between.wins}–{between.losses}
+          </span>
+        ) : null}
+      </span>
+      <div className="rn-team-pick">
+        <TeamSelect value={b ?? ""} options={teamOptions} onChange={(id) => onChangeTeam(1, id)} />
+        {points(b)}
+      </div>
     </div>
   );
 }
@@ -461,6 +491,14 @@ export interface RecapMatchups {
   onRenameResult: (n: number, name: string) => void;
   onRenameUpcoming: (n: number, name: string) => void;
   onChangeUpcomingTeam: (n: number, slot: 0 | 1, rosterId: number | "") => void;
+  /** Both of an upcoming matchup's teams at once (a matchup dropped on it). */
+  onSetUpcomingTeams?: (n: number, rosterIds: number[]) => void;
+  /** A team's points for and against so far, and two teams' all-time record against each other (the first's wins
+   * first) — null where there's none to give. */
+  teamStats?: {
+    of: (rosterId: number) => { pointsFor: number; pointsAgainst: number } | null;
+    between: (a: number, b: number) => { wins: number; losses: number } | null;
+  };
 }
 
 /** An added section's body: its text, a draft written from the week's data (or, for notes, blank), free to edit. */
@@ -476,9 +514,13 @@ function ExtraBody({ value, onChange, section }: { value: string; onChange: (v: 
   );
 }
 
-/** In the League Room, what in a section stretches to fill its box (see .rn-room): anything else is drawn bigger to, up to so much bigger. */
-const STRETCHES = ".rn-lastweek-rows, .rn-records-rows, .rn-ai-body, .rn-detail-textarea";
-const MOST_FILL = 1.8;
+/** A section as the write-up's own words (the League Room's, see `text`): its lines as they're written, each pair of a
+ * name and its points (`pairs`) on one line. */
+function TextLines({ value, pairs = false }: { value: string; pairs?: boolean }) {
+  const lines = value.split("\n").filter((l) => l.trim() !== "");
+  const shown = pairs ? Array.from({ length: Math.ceil(lines.length / 2) }, (_, i) => lines.slice(2 * i, 2 * i + 2).join("  ")) : lines;
+  return <p className="rn-text">{shown.join("\n")}</p>;
+}
 
 /** Every section's shared shell: a translucent card matching the graphic's own, an include/exclude checkbox pinned to the top-right corner (unchecked greys the whole box out and leaves it out of both the copied text and the graphic), and a "+"/"–" button pinned to the bottom-right that shows or hides `detail`. `poster` switches to the wider-padded gradient-tinted card the two decided/preview matchups use in the graphic. */
 function SectionBox({
@@ -492,6 +534,7 @@ function SectionBox({
   onToggleDetail,
   onRemove,
   poster = false,
+  onDropTeams,
 }: {
   /** Which section this is — the contents list down the side finds it by this. */
   section: RecapSectionKey;
@@ -506,9 +549,36 @@ function SectionBox({
   /** Takes it out of the layout — this week's and every week's after (it can be added back from the contents). */
   onRemove?: () => void;
   poster?: boolean;
+  /** A matchup dropped on it (see matchup-drag.ts): its two teams. */
+  onDropTeams?: (rosterIds: number[]) => void;
 }) {
+  const [over, setOver] = useState(false);
+  const drop = onDropTeams
+    ? {
+        onDragOver: (e: React.DragEvent) => {
+          if (!isMatchupDrag(e)) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "copy";
+          setOver(true);
+        },
+        onDragLeave: (e: React.DragEvent) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOver(false);
+        },
+        onDrop: (e: React.DragEvent) => {
+          if (!isMatchupDrag(e)) return;
+          e.preventDefault();
+          setOver(false);
+          const ids = droppedMatchup(e);
+          if (ids.length > 0) onDropTeams(ids);
+        },
+      }
+    : null;
   return (
-    <div data-recap-section={section} className={`rn-card ${poster ? "rn-poster-card" : ""} ${included ? "" : "rn-excluded"}`}>
+    <div
+      data-recap-section={section}
+      className={`rn-card ${poster ? "rn-poster-card" : ""} ${included ? "" : "rn-excluded"} ${over ? "rn-drop-over" : ""}`}
+      {...drop}
+    >
       <label
         className="rn-include-toggle-wrap"
         title={included ? "Included — click to leave this out" : "Excluded — click to include it"}
@@ -587,61 +657,14 @@ export function RecapSectionsEditor({
   onRemoveSection?: (key: RecapSectionKey) => void;
   onAddSection?: (key: RecapSectionKey) => void;
   /**
-   * In the League Room's write-ups panel: see-through, its sections one over another, every one as tall as the
-   * tallest, and a section to add at the bottom on any screen (there's no contents down the side there).
+   * In the League Room's write-ups panel: the write-up as plain text (see `text`), see-through, its sections one over
+   * another, and a section to add at the bottom on any screen (there's no contents down the side there).
    */
   room?: boolean;
 }) {
-  // In the League Room, every section's box as tall as the tallest (see .rn-room in recap-neon.css): each measured at
-  // its own height, whenever what's in one changes — and what's in a box that doesn't stretch to fill it (a list of
-  // rows, a text box) drawn as big as fits it.
-  const root = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => {
-    const el = root.current;
-    if (!room || !el) return;
-    const measure = () => {
-      const mains = [...el.querySelectorAll<HTMLElement>(".rn-card-main")];
-      const zoomed = (main: HTMLElement) => [...main.children] as HTMLElement[];
-      for (const main of mains) for (const part of zoomed(main)) part.style.removeProperty("zoom");
-      el.style.setProperty("--rn-card-h", "0px");
-      // In its own px: the editor's scaled down to fit where it's narrower than it's made for (see RecapEditor).
-      const scale = el.getBoundingClientRect().width / (el.offsetWidth || 1) || 1;
-      // (A px over, so the tallest is held to it too, whatever the rounding.)
-      const most = Math.ceil(Math.max(0, ...[...el.querySelectorAll<HTMLElement>(".rn-card")].map((card) => card.getBoundingClientRect().height / scale))) + 1;
-      el.style.setProperty("--rn-card-h", `${most}px`);
-      for (const main of mains) {
-        const parts = zoomed(main);
-        const card = main.closest<HTMLElement>(".rn-card");
-        if (!card || parts.length === 0 || main.querySelector(STRETCHES)) continue;
-        // Its box no taller than the rest, nothing in it wider than it, and no row of it wrapping onto another (a
-        // sentence may).
-        const natural = parts.map((part) => part.getBoundingClientRect().height);
-        const fits = (z: number) => {
-          for (const part of parts) part.style.zoom = String(z);
-          return (
-            card.getBoundingClientRect().height / scale <= most + 0.5 &&
-            parts.every((part, i) => part.scrollWidth <= part.clientWidth + 1 && (part.tagName === "P" || part.getBoundingClientRect().height <= natural[i] * z * 1.04 + 1))
-          );
-        };
-        let [lo, hi] = [1, MOST_FILL];
-        if (fits(hi)) lo = hi;
-        else
-          for (let i = 0; i < 7; i++) {
-            const mid = (lo + hi) / 2;
-            if (fits(mid)) lo = mid;
-            else hi = mid;
-          }
-        fits(lo);
-      }
-    };
-    measure();
-    // Everything in them, whose size doesn't follow the boxes' own (the boxes themselves do) — and the whole, which
-    // grows as a section's added, or one drawn by a part of its own grows.
-    const observer = new ResizeObserver(measure);
-    observer.observe(el);
-    for (const card of el.querySelectorAll(".rn-card")) for (const part of card.children) observer.observe(part);
-    return () => observer.disconnect();
-  });
+  // In the League Room, the write-up as plain text (see .recap-text in recap-neon.css): each section's words alone,
+  // one after another, as little room as they take — what's to be picked or written, plain boxes.
+  const text = room;
   const set = <K extends FieldKey>(key: K, value: RecapModel[K]) => onChange({ ...model, [key]: value });
   const toggleIncluded = (key: RecapSectionKey) =>
     onChange({ ...model, include: { ...model.include, [key]: !isSectionIncluded(model, key) } });
@@ -687,7 +710,9 @@ export function RecapSectionsEditor({
         onToggleDetail={() => toggleDetail(key)}
         detail={<DetailField value={matchupDetail(key)} onChange={(v) => setMatchupDetail(key, v)} />}
       >
-        {decidedMatchupFor(teams, result) ? (
+        {text ? (
+          <TextLines value={n === 1 ? model.bowlResult : n === 2 ? model.honorableResult : (model.more?.[n as MoreMatchup]?.result ?? "")} />
+        ) : decidedMatchupFor(teams, result) ? (
           <DecidedMatchupBody matchup={result} teams={teams} />
         ) : (
           <p className="rn-caption">Calculated from live scores — not editable.</p>
@@ -706,6 +731,7 @@ export function RecapSectionsEditor({
         poster
         included={included(key)}
         onToggleIncluded={() => toggleIncluded(key)}
+        onDropTeams={matchups.onSetUpcomingTeams ? (ids) => matchups.onSetUpcomingTeams!(n, ids) : undefined}
         header={
           <>
             <SectionHeader emoji={emoji} label={label} />
@@ -724,6 +750,7 @@ export function RecapSectionsEditor({
           pick={pickAt(matchups.upcomingPicks, n)}
           teamOptions={teamOptions}
           onChangeTeam={(slot, rosterId) => matchups.onChangeUpcomingTeam(n, slot, rosterId)}
+          stats={matchups.teamStats}
         />
         {/* The second closes the house style's write-up; every other one asks who'll win. */}
         <p className="rn-trailer">{n === 2 ? GOOD_LUCK_TO_ALL : WHO_WILL_PREVAIL}</p>
@@ -767,8 +794,14 @@ export function RecapSectionsEditor({
         onToggleDetail={() => toggleDetail("highScorer")}
         detail={<DetailField value={model.highScorerDetail} onChange={(v) => set("highScorerDetail", v)} />}
       >
-        <HighScorerBody {...live} playerNames={playerNames} />
-        <HighScorerSentence {...live} playerNames={playerNames} />
+        {text ? (
+          <TextLines value={model.highScorer} />
+        ) : (
+          <>
+            <HighScorerBody {...live} playerNames={playerNames} />
+            <HighScorerSentence {...live} playerNames={playerNames} />
+          </>
+        )}
       </SectionBox>
     ),
     winners: (
@@ -782,7 +815,7 @@ export function RecapSectionsEditor({
         onToggleDetail={() => toggleDetail("winners")}
         detail={<DetailField value={model.winnersDetail} onChange={(v) => set("winnersDetail", v)} />}
       >
-        <WinnersBody {...live} />
+        {text ? <TextLines value={model.winners} /> : <WinnersBody {...live} />}
       </SectionBox>
     ),
     lastWeek: (
@@ -796,7 +829,7 @@ export function RecapSectionsEditor({
         onToggleDetail={() => toggleDetail("lastWeek")}
         detail={<DetailField value={model.lastWeekDetail} onChange={(v) => set("lastWeekDetail", v)} />}
       >
-        <LastWeekBody {...live} />
+        {text ? <TextLines value={model.lastWeek} pairs /> : <LastWeekBody {...live} />}
       </SectionBox>
     ),
     standings: (
@@ -810,7 +843,7 @@ export function RecapSectionsEditor({
         onToggleDetail={() => toggleDetail("standings")}
         detail={<DetailField value={model.standingsDetail} onChange={(v) => set("standingsDetail", v)} />}
       >
-        <StandingsBody {...live} />
+        {text ? <TextLines value={model.standings} /> : <StandingsBody {...live} />}
       </SectionBox>
     ),
     records: (
@@ -824,7 +857,7 @@ export function RecapSectionsEditor({
         onToggleDetail={() => toggleDetail("records")}
         detail={<DetailField value={model.recordsDetail} onChange={(v) => set("recordsDetail", v)} />}
       >
-        <RecordsStandingsBody recapData={recapData} teams={teams} />
+        {text ? <TextLines value={model.records} /> : <RecordsStandingsBody recapData={recapData} teams={teams} />}
       </SectionBox>
     ),
     upcomingBowl: previewCard(1),
@@ -852,7 +885,7 @@ export function RecapSectionsEditor({
   const missing = addableSections(layout, maxMatchups);
 
   return (
-    <div ref={root} className={`recap-neon app-theme ${room ? "rn-room" : ""}`}>
+    <div className={text ? "recap-text" : "recap-neon app-theme"}>
       <span className="rn-badge">Commi$h</span>
       <div data-recap-section="title" className="rn-title-row">
         <TitleField value={model.title} onChange={(v) => set("title", v)} />
@@ -865,7 +898,9 @@ export function RecapSectionsEditor({
           {key === firstUpcoming ? (
             <>
               <div className="rn-divider" />
-              <p data-recap-section="upcoming" className={`${recapDisplayFont.className} rn-upcoming-title`}>{upcomingWeekLabel(model.upcomingWeek)}</p>
+              <p data-recap-section="upcoming" className={`${text ? "" : recapDisplayFont.className} rn-upcoming-title`}>
+                {upcomingWeekLabel(model.upcomingWeek)}
+              </p>
             </>
           ) : null}
           {card(key)}

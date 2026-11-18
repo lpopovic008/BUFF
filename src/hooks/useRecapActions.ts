@@ -9,7 +9,7 @@
 // else in the tree entirely.
 
 import { useEffect, useRef, useState } from "react";
-import { saveRecap } from "@/lib/localStore";
+import { getHomeView, saveRecap } from "@/lib/localStore";
 import { RecapModel, joinRecapModel } from "@/lib/recap-model";
 import { drawRecapGraphic, drawRecapGraphicParts, RecapGraphicExtras } from "@/lib/recap-graphic";
 import {
@@ -171,6 +171,8 @@ export function useRecapActions(args: RecapActionsArgs) {
       avatarByName,
       displayFontFamily: recapDisplayFont.style.fontFamily,
       include: args.model?.include,
+      // Its look, as picked in Settings.
+      theme: getHomeView().exportTheme,
     };
   }
 

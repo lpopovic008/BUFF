@@ -425,6 +425,8 @@ export interface HomeView {
   hiddenGames?: { week: number; ids: string[] };
   /** How the league page's bench is sorted (see BENCH_SORTS). */
   benchSort?: string;
+  /** The exported write-up graphic's look (see RECAP_THEMES in recap-graphic.ts) — the app's own, unless picked. */
+  exportTheme?: string;
 }
 
 export function getHomeView(): HomeView {

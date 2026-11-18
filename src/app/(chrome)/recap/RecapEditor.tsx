@@ -154,29 +154,32 @@ export function RecapEditor({
     );
   }
 
+  const sections = (
+    <RecapSectionsEditor
+      model={model}
+      onChange={onModelChange}
+      matchups={matchups}
+      maxMatchups={maxMatchups}
+      teams={teams}
+      teamOptions={teamOptions}
+      recapData={recapData}
+      ledger={ledger}
+      week={week}
+      playerNames={playerNames}
+      onRemoveSection={onRemoveSection}
+      onAddSection={onAddSection}
+      room={room}
+    />
+  );
+  // In the League Room, plain text: as wide as it's given, nothing scaled.
+  if (room) return sections;
   return (
     // Scaled to fit — the graphic replica below has a fixed authored width
     // (see GRAPHIC_WIDTH above and recap-neon.css) instead of a responsive
     // one, so ScaleToFit zooms the whole thing uniformly to the available
     // width, rather than each component squeezing/wrapping on its own.
     <div>
-      <ScaleToFit width={GRAPHIC_WIDTH}>
-        <RecapSectionsEditor
-          model={model}
-          onChange={onModelChange}
-          matchups={matchups}
-          maxMatchups={maxMatchups}
-          teams={teams}
-          teamOptions={teamOptions}
-          recapData={recapData}
-          ledger={ledger}
-          week={week}
-          playerNames={playerNames}
-          onRemoveSection={onRemoveSection}
-          onAddSection={onAddSection}
-          room={room}
-        />
-      </ScaleToFit>
+      <ScaleToFit width={GRAPHIC_WIDTH}>{sections}</ScaleToFit>
     </div>
   );
 }

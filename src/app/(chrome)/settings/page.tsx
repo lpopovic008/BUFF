@@ -13,6 +13,7 @@ import { ExternalLeaguesSection } from "./ExternalLeaguesSection";
 import { GoogleDocsSection } from "./GoogleDocsSection";
 import { AccountSection } from "./AccountSection";
 import { AppearanceSection } from "./AppearanceSection";
+import { ExportSection } from "./ExportSection";
 import { RedZoneSection } from "./RedZoneSection";
 import { ScoresSection } from "./ScoresSection";
 import { SupportSection } from "./SupportSection";
@@ -170,6 +171,11 @@ export default function SettingsPage() {
 
           <Section title="Appearance">
             <AppearanceSection />
+          </Section>
+
+          {/* The write-up's exported graphic: its look. */}
+          <Section title="Export">
+            <ExportSection />
           </Section>
 
           <Section title="Scores">

@@ -69,7 +69,185 @@ const COLOR = {
   loss: "#ef4444",
 };
 
-const FONT_STACK = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
+const SYSTEM_STACK = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
+// The type the graphic's set in — the system's, or (the app's theme) the page's own; set for each graphic by its theme.
+let FONT_STACK = SYSTEM_STACK;
+// An avatar with no picture: its tile and its initials.
+let AVATAR_TILE = "#2c261c";
+let AVATAR_INK = "rgba(255, 255, 255, 0.85)";
+// The badge's lettering, on its gradient.
+let BADGE_INK = "#ffffff";
+
+/** A look for the exported graphic (see RECAP_THEMES): its three accent hues (blended as gradients), its colors, and its type. */
+export interface RecapTheme {
+  id: string;
+  name: string;
+  /** What it looks like, in a few words, for picking it in Settings. */
+  blurb: string;
+  neon: typeof NEON;
+  color: typeof COLOR;
+  avatarTile: string;
+  avatarInk: string;
+  badgeInk: string;
+  /** Set in the system's type, or the app's own (its page's font). */
+  font: "system" | "app";
+  /** Light: dark ink on a light ground (the medals darker to read on it). */
+  light?: boolean;
+}
+
+const NEON_THEME: RecapTheme = {
+  id: "neon",
+  name: "Neon",
+  blurb: "The original: pink, cyan and green glowing on a warm black.",
+  neon: { ...NEON },
+  color: { ...COLOR },
+  avatarTile: "#2c261c",
+  avatarInk: "rgba(255, 255, 255, 0.85)",
+  badgeInk: "#ffffff",
+  font: "system",
+};
+
+/** Every look the graphic can take: the app's own first (the default), then the original neon, then the rest. */
+export const RECAP_THEMES: RecapTheme[] = [
+  {
+    id: "app",
+    name: "Commi$h",
+    blurb: "The app's own: black and white, set in its type.",
+    neon: { pink: "#ffffff", blue: "#b8b8b8", green: "#6e6e6e" },
+    color: {
+      bgTop: "#141414",
+      bgBottom: "#050505",
+      card: "rgba(255, 255, 255, 0.05)",
+      bar: "rgba(255, 255, 255, 0.16)",
+      primary: "#ffffff",
+      secondary: "#c4c4c4",
+      muted: "#858585",
+      accent: "#ffffff",
+      accentInk: "#0a0a0a",
+      hairline: "rgba(255, 255, 255, 0.14)",
+      win: "#22c55e",
+      loss: "#ef4444",
+    },
+    avatarTile: "#262626",
+    avatarInk: "rgba(255, 255, 255, 0.85)",
+    badgeInk: "#0a0a0a",
+    font: "app",
+  },
+  NEON_THEME,
+  {
+    id: "gridiron",
+    name: "Gridiron",
+    blurb: "Field green, chalk white and goal-post yellow.",
+    neon: { pink: "#ffd21f", blue: "#ffffff", green: "#7fdc8f" },
+    color: {
+      bgTop: "#123a20",
+      bgBottom: "#06170c",
+      card: "rgba(255, 255, 255, 0.07)",
+      bar: "rgba(255, 255, 255, 0.18)",
+      primary: "#ffffff",
+      secondary: "#d4e6d6",
+      muted: "#8fb397",
+      accent: "#ffd21f",
+      accentInk: "#132a05",
+      hairline: "rgba(255, 255, 255, 0.16)",
+      win: "#7fdc8f",
+      loss: "#ff6b5e",
+    },
+    avatarTile: "#1d4a2b",
+    avatarInk: "rgba(255, 255, 255, 0.85)",
+    badgeInk: "#132a05",
+    font: "system",
+  },
+  {
+    id: "midnight",
+    name: "Midnight",
+    blurb: "Deep navy with gold and sky blue.",
+    neon: { pink: "#f5c542", blue: "#5ab0ff", green: "#b9d4ff" },
+    color: {
+      bgTop: "#121c3d",
+      bgBottom: "#050914",
+      card: "rgba(255, 255, 255, 0.06)",
+      bar: "rgba(255, 255, 255, 0.15)",
+      primary: "#ffffff",
+      secondary: "#c3cde6",
+      muted: "#7f8bab",
+      accent: "#f5c542",
+      accentInk: "#1a1405",
+      hairline: "rgba(255, 255, 255, 0.13)",
+      win: "#4ade80",
+      loss: "#f87171",
+    },
+    avatarTile: "#1d2a52",
+    avatarInk: "rgba(255, 255, 255, 0.85)",
+    badgeInk: "#1a1405",
+    font: "system",
+  },
+  {
+    id: "sunset",
+    name: "Sunset",
+    blurb: "Plum dusk with orange, coral and gold.",
+    neon: { pink: "#ff6a3d", blue: "#ff3d7f", green: "#ffc24b" },
+    color: {
+      bgTop: "#2b1233",
+      bgBottom: "#0e0511",
+      card: "rgba(255, 255, 255, 0.06)",
+      bar: "rgba(255, 255, 255, 0.15)",
+      primary: "#ffffff",
+      secondary: "#e7cfe0",
+      muted: "#a2869a",
+      accent: "#ff6a3d",
+      accentInk: "#1f0802",
+      hairline: "rgba(255, 255, 255, 0.13)",
+      win: "#4ade80",
+      loss: "#ff5c6c",
+    },
+    avatarTile: "#3e1d47",
+    avatarInk: "rgba(255, 255, 255, 0.85)",
+    badgeInk: "#1f0802",
+    font: "system",
+  },
+  {
+    id: "paper",
+    name: "Paper",
+    blurb: "Light: ink on warm paper, with navy and red.",
+    neon: { pink: "#1d3f8f", blue: "#c8102e", green: "#1d3f8f" },
+    color: {
+      bgTop: "#faf7ef",
+      bgBottom: "#ece6d6",
+      card: "rgba(0, 0, 0, 0.045)",
+      bar: "rgba(0, 0, 0, 0.12)",
+      primary: "#141414",
+      secondary: "#3d3d3d",
+      muted: "#777064",
+      accent: "#c8102e",
+      accentInk: "#ffffff",
+      hairline: "rgba(0, 0, 0, 0.14)",
+      win: "#15803d",
+      loss: "#c8102e",
+    },
+    avatarTile: "#d8d0bd",
+    avatarInk: "rgba(0, 0, 0, 0.7)",
+    badgeInk: "#ffffff",
+    font: "system",
+    light: true,
+  },
+];
+export const DEFAULT_RECAP_THEME = "app";
+
+/** Sets the graphic about to be drawn in theme `id` (the default, if there's no such one). */
+function applyTheme(id: string | undefined): RecapTheme {
+  const theme = RECAP_THEMES.find((t) => t.id === id) ?? RECAP_THEMES.find((t) => t.id === DEFAULT_RECAP_THEME)!;
+  Object.assign(NEON, theme.neon);
+  Object.assign(COLOR, theme.color);
+  AVATAR_TILE = theme.avatarTile;
+  // The medals darker on a light theme.
+  Object.assign(RANK_METAL, theme.light ? DARK_METAL : LIGHT_METAL);
+  AVATAR_INK = theme.avatarInk;
+  BADGE_INK = theme.badgeInk;
+  FONT_STACK =
+    theme.font === "app" && typeof document !== "undefined" ? getComputedStyle(document.body).fontFamily || SYSTEM_STACK : SYSTEM_STACK;
+  return theme;
+}
 
 export interface MatchupTeam {
   name: string;
@@ -132,6 +310,8 @@ export interface RecordsGraphicRow {
 }
 
 export interface RecapGraphicExtras {
+  /** Its look (see RECAP_THEMES) — the default's, if none. */
+  theme?: string;
   bowl?: DecidedMatchup | null;
   honorable?: DecidedMatchup | null;
   upcoming?: PreviewMatchup | null;
@@ -281,9 +461,9 @@ function drawAvatarCircle(
       ctx.drawImage(img, cx - r, cy - r, r * 2, r * 2);
     }
   } else {
-    ctx.fillStyle = "#2c261c";
+    ctx.fillStyle = AVATAR_TILE;
     ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
-    ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+    ctx.fillStyle = AVATAR_INK;
     ctx.font = `800 ${Math.round(r)}px ${FONT_STACK}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -441,6 +621,13 @@ const RANK_METAL: Record<1 | 2 | 3, [string, string, string]> = {
   2: ["#f6f7f8", "#a7abb0", "#f6f7f8"],
   3: ["#f4c99a", "#a9653a", "#f4c99a"],
 };
+/** The same, darker — to read on a light theme's paper. */
+const DARK_METAL: Record<1 | 2 | 3, [string, string, string]> = {
+  1: ["#b8891a", "#7d5a08", "#b8891a"],
+  2: ["#7d8288", "#4a4f55", "#7d8288"],
+  3: ["#a9653a", "#6e3f1f", "#a9653a"],
+};
+const LIGHT_METAL = { ...RANK_METAL };
 
 /** One vertical cursor shared by every section. Each card measures its own content once (regardless of `paint`) to size itself, then — only when actually painting — draws its background before its content, so nothing is ever painted over an unsized box. */
 class Layout {
@@ -1236,7 +1423,7 @@ function runLayout(
     roundRectPath(ctx, PADDING, l.y, badgeW, badgeH, 8);
     ctx.fillStyle = neonGradient(ctx, PADDING, l.y, PADDING + badgeW, l.y);
     ctx.fill();
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = BADGE_INK;
     ctx.font = `800 15px ${FONT_STACK}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -1448,7 +1635,12 @@ async function prepareGraphic(
     ...(matchups.records?.map((r) => r.avatarUrl) ?? []),
     ...Object.values(matchups.avatarByName ?? {}),
   ];
-  const [images, displayFamily] = await Promise.all([preloadImages(avatarUrls), ensureDisplayFont(matchups.displayFontFamily)]);
+  // Its look, as picked in Settings (see RECAP_THEMES) — the app's own set in the page's type, headings too.
+  const theme = applyTheme(matchups.theme);
+  const [images, displayFamily] = await Promise.all([
+    preloadImages(avatarUrls),
+    theme.font === "app" ? Promise.resolve(FONT_STACK) : ensureDisplayFont(matchups.displayFontFamily),
+  ]);
   return { header, restBody, gctx: { images, displayFamily, avatarByName: matchups.avatarByName } };
 }
 

@@ -811,63 +811,216 @@
   color: var(--ink-secondary);
 }
 
-/* ---------- in the League Room's write-ups panel ----------
-   See-through over the room (as the Red Zone is): the cards a little of the
-   page's color, the room showing through them. The sections one over
-   another in a single column, every box as tall as the tallest
-   (--rn-card-h, measured by RecapSectionsEditor); the title, the upcoming
-   week's heading and the section to add across it too. */
-.recap-neon.app-theme.rn-room {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-items: start;
-}
-.recap-neon.app-theme.rn-room .rn-card {
-  min-height: var(--rn-card-h, 0px);
-}
-/* What a section shows fills its box: a list of rows spread down it, a text
-   box grown to it, anything else in the middle of it. (Elsewhere what it
-   shows is laid out as part of the card's body, as it always was.) */
+/* What a section shows, laid out as part of the card's body. */
 .recap-neon .rn-card-main {
   display: contents;
 }
-.recap-neon.app-theme.rn-room .rn-card-body {
-  flex: 1 1 auto;
-}
-.recap-neon.app-theme.rn-room .rn-card-main {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  justify-content: space-evenly;
-  gap: 16px;
-}
-.recap-neon.app-theme.rn-room .rn-card-main > .rn-lastweek-rows,
-.recap-neon.app-theme.rn-room .rn-card-main > .rn-records-rows,
-.recap-neon.app-theme.rn-room .rn-card-main > .rn-ai-body,
-.recap-neon.app-theme.rn-room .rn-card-main > .rn-detail-textarea {
-  flex: 1 1 auto;
-}
-.recap-neon.app-theme.rn-room .rn-card-main > .rn-lastweek-rows,
-.recap-neon.app-theme.rn-room .rn-card-main > .rn-records-rows {
+
+/* An upcoming matchup's teams: each one's PF and PA under it, their record
+   against each other under the VS — and a matchup dragged over it. */
+.recap-neon .rn-team-pick {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
 }
-.recap-neon.app-theme.rn-room .rn-ai-body > textarea {
-  flex: 1 1 auto;
+.recap-neon .rn-vs-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
-.recap-neon.app-theme.rn-room > .rn-badge {
-  grid-column: 1 / -1;
-  justify-self: start;
+.recap-neon .rn-team-stats,
+.recap-neon .rn-alltime {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-secondary, #c9c7bc);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
-.recap-neon.app-theme.rn-room > .rn-title-row,
-.recap-neon.app-theme.rn-room .rn-divider,
-.recap-neon.app-theme.rn-room .rn-upcoming-title,
-.recap-neon.app-theme.rn-room > .rn-add-section {
-  grid-column: 1 / -1;
+.recap-neon .rn-drop-over {
+  outline: 2px dashed currentColor;
+  outline-offset: 2px;
 }
-.recap-neon.app-theme.rn-room .rn-card,
-.recap-neon.app-theme.rn-room .rn-poster-card {
-  background: color-mix(in srgb, var(--surface-raised) 55%, transparent);
-  backdrop-filter: blur(3px);
+
+/* ---------- in the League Room's write-ups panel: plain text ----------
+   The write-up's own words, section after section, as little room as they
+   take: a section's name over its lines, a hairline between sections, and
+   what's to be picked or written plain boxes. No pictures, no display type. */
+.recap-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--ink-primary);
+}
+.recap-text .rn-badge,
+.recap-text .rn-underline,
+.recap-text .rn-divider,
+.recap-text .rn-avatar,
+.recap-text .rn-trailer {
+  display: none;
+}
+.recap-text input,
+.recap-text textarea,
+.recap-text select {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 2px 6px;
+  outline: none;
+}
+.recap-text input:focus,
+.recap-text textarea:focus,
+.recap-text select:focus {
+  border-color: var(--ink-primary);
+}
+.recap-text textarea {
+  resize: vertical;
+}
+.recap-text .rn-title-row {
+  padding-bottom: 6px;
+}
+.recap-text .rn-title-input {
+  font-weight: 700;
+  font-size: 0.9375rem;
+}
+.recap-text .rn-card {
+  position: relative;
+  border-top: 1px solid var(--border);
+  padding: 6px 4.25rem 6px 0;
+}
+.recap-text .rn-card.rn-excluded .rn-card-body {
+  opacity: 0.4;
+}
+.recap-text .rn-card-body {
+  gap: 4px !important;
+}
+.recap-text .rn-card-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.recap-text .rn-section-header {
+  display: flex;
+  gap: 4px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-secondary);
+}
+.recap-text .rn-section-header > span:last-child {
+  display: none;
+}
+.recap-text .rn-bowl-name-input {
+  font-weight: 700;
+}
+.recap-text .rn-text {
+  margin: 0;
+  white-space: pre-line;
+}
+.recap-text .rn-caption {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+.recap-text .rn-include-toggle-wrap {
+  position: absolute;
+  top: 7px;
+  right: 2.75rem;
+}
+.recap-text .rn-include-toggle {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--ink-primary);
+}
+.recap-text .rn-detail-toggle {
+  position: absolute;
+  top: 5px;
+  right: 1.375rem;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--border);
+  font-size: 0.75rem;
+  line-height: 1;
+  color: var(--ink-secondary);
+}
+.recap-text .rn-detail-toggle.rn-remove-section {
+  right: 0;
+}
+.recap-text .rn-detail-toggle:hover {
+  color: var(--ink-primary);
+  border-color: var(--ink-primary);
+}
+.recap-text .rn-team-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: start;
+  gap: 6px;
+}
+.recap-text .rn-team-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.recap-text .rn-vs-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.recap-text .rn-vs {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--ink-muted);
+  padding-top: 3px;
+}
+.recap-text .rn-team-stats,
+.recap-text .rn-alltime {
+  font-size: 0.6875rem;
+  color: var(--ink-secondary);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.recap-text .rn-drop-over {
+  outline: 1px dashed var(--ink-primary);
+  outline-offset: -1px;
+}
+.recap-text .rn-upcoming-title {
+  margin: 10px 0 2px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.recap-text .rn-generate-button {
+  border: 1px solid var(--map-tag);
+  background: var(--map-tag);
+  color: var(--map-tag-ink);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 8px;
+}
+.recap-text .rn-generate-error {
+  font-size: 0.75rem;
+  color: var(--status-critical);
+}
+.recap-text .rn-add-section > span {
+  white-space: nowrap;
+}
+.recap-text .rn-add-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  font-size: 0.75rem;
+  color: var(--ink-secondary);
 }

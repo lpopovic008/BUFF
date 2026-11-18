@@ -43,6 +43,7 @@ import { getLeague, getLeagueRosters, getLeagueUsers, getMatchups } from "@/lib/
 import { resolvePlayers } from "@/lib/players";
 import { displayManagerName } from "@/lib/format";
 import { useLeagueTeams } from "@/hooks/useLeagueTeams";
+import { headToHeadKey, useAllTimeHeadToHead } from "@/hooks/useAllTimeHeadToHead";
 import { recapContents, sectionsToAdd } from "./RecapContents";
 
 // week=0 is a sentinel for the preseason write-up — a free-write space that
@@ -443,6 +444,17 @@ export function useRecapWriteup(leagueId: string | null, week: number | null) {
   }
 
   /** One of next week's Matchups of the Week (1-based) got a team — writes back to the shared pick record and folds the new preview lines into the model via handlePicksSaved above. */
+  /** Both of next week's nth Matchup of the Week's teams at once (a matchup dropped on it) — its name kept. */
+  function setUpcomingTeams(n: number, rosterIds: number[]) {
+    if (!leagueId || !header || week === null) return;
+    const pickWeek = week + 1;
+    const current = upcomingPicks ?? getBowlPicks(leagueId, header.season, pickWeek);
+    const pick = pickAt(current, n);
+    const updated = withPickAt(current, n, { ...pick, rosterIds: rosterIds.slice(0, 2) });
+    saveBowlPicks(leagueId, header.season, pickWeek, updated);
+    handlePicksSaved(updated);
+  }
+
   function changeUpcomingTeam(n: number, slot: 0 | 1, rosterId: number | "") {
     if (!leagueId || !header || week === null) return;
     const pickWeek = week + 1;
@@ -573,6 +585,24 @@ export function useRecapWriteup(leagueId: string | null, week: number | null) {
     playerNames: highScorerNames,
   });
 
+  // Each team's points for and against through this week, and every two teams' all-time record against each other
+  // (by manager, see useAllTimeHeadToHead), for next week's Matchups of the Week.
+  const allTime = useAllTimeHeadToHead(leagueId ?? "");
+  const teamStats = useMemo(() => {
+    const rows = new Map((recapData?.standingsAfter ?? []).map((r) => [r.rosterId, r]));
+    return {
+      of: (rosterId: number) => {
+        const row = rows.get(rosterId);
+        return row ? { pointsFor: row.pointsFor, pointsAgainst: row.pointsAgainst } : null;
+      },
+      between: (a: number, b: number) => {
+        const [ra, rb] = [rows.get(a), rows.get(b)];
+        if (!ra || !rb) return null;
+        return allTime.get(headToHeadKey(a, ra.ownerId))?.get(headToHeadKey(b, rb.ownerId)) ?? { wins: 0, losses: 0 };
+      },
+    };
+  }, [recapData, allTime]);
+
   // Loaded: the week's own data (or the preseason's header) in.
   const ready = Boolean(leagueId) && !error && week !== null && !!header && (isPreseason || !!recapData);
   /** Everything the editor (see RecapEditor) takes. */
@@ -589,6 +619,8 @@ export function useRecapWriteup(leagueId: string | null, week: number | null) {
       onRenameResult: renameResult,
       onRenameUpcoming: renameUpcoming,
       onChangeUpcomingTeam: changeUpcomingTeam,
+      onSetUpcomingTeams: setUpcomingTeams,
+      teamStats,
     },
     maxMatchups,
     teams: teamsById,
