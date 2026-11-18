@@ -416,6 +416,9 @@ const HOME_VIEW_KEY = "commish:home-view";
  */
 export interface HomeView {
   graphs?: { week: number; picks: { playerId: string; gameId: string }[] };
+  /** The kickoff windows whose start has been seen to (their top scorers' graphs put up, or graphs already up), for
+   * the week they're from — so none's put up twice, nor again once closed. */
+  autoGraphs?: { week: number; blocks: string[] };
   /** The starters list's bar: 1 Team, 2 VS, 3 ALL. */
   startersView?: number;
   /** The games hidden from the map and the Red Zone (their matchups swiped over), for the week they're from. */

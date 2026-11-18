@@ -32,6 +32,7 @@ import { getLeagueSummary, lastFinishedWeek, LeagueSummary, teamStandings } from
 import { GameStarters, groupStartersByGame, GroupedStarter, startersListGames, withSides } from "@/lib/my-starters";
 import { avatarUrl, getCurrentWeek, weighProjection } from "@/lib/sleeper";
 import { kickoffBlockLabel } from "@/lib/game-map";
+import { topFacing } from "@/lib/auto-graphs";
 import { setHeaderWeek } from "@/lib/header-week";
 import { getHomeView, saveHomeView, TrackedLeague, visibleLeagues } from "@/lib/localStore";
 
@@ -555,6 +556,30 @@ export default function DashboardPage() {
       }),
     [graphFor, listedGames]
   );
+
+  // A kickoff window's games starting (this week's, as it's under way): its top scorers in your matchups put up as
+  // graphs (see topFacing) — only if none are up already, and only once a window (closed, they stay down).
+  useEffect(() => {
+    if (shownWeek == null || shownWeek !== week) return;
+    const live = [...new Set(weekGames.filter((g) => g.state === "in").map(kickoffBlockLabel))];
+    if (live.length === 0) return;
+    const seen = getHomeView().autoGraphs;
+    const done = seen?.week === shownWeek ? seen.blocks : [];
+    const fresh = live.filter((label) => !done.includes(label));
+    if (fresh.length === 0) return;
+    const markDone = () => saveHomeView({ autoGraphs: { week: shownWeek, blocks: [...done, ...fresh] } });
+    // Graphs up already (or saved, about to be): left as they are.
+    const saved = getHomeView().graphs;
+    if (graphFor.length > 0 || (saved?.week === shownWeek && saved.picks.length > 0)) return markDone();
+    // The latest of them to kick off.
+    const kickoffOf = (label: string) => Math.max(...weekGames.filter((g) => kickoffBlockLabel(g) === label).map((g) => Date.parse(g.kickoff) || 0));
+    const block = fresh.reduce((a, b) => (kickoffOf(b) > kickoffOf(a) ? b : a));
+    const picks = topFacing(listedGames, new Set(weekGames.filter((g) => kickoffBlockLabel(g) === block).map((g) => g.id)), MAX_GRAPHS);
+    // (Not till your lineups are in.)
+    if (picks.length === 0) return;
+    markDone();
+    queueMicrotask(() => setGraphPicks({ week: shownWeek, picks }));
+  }, [shownWeek, week, weekGames, listedGames, graphFor]);
 
   // The teams with no game this week, each with your starters on it — and any starter with no NFL team at all,
   // together last. The ones you face on a bye aren't listed (one who's yours in another league is).

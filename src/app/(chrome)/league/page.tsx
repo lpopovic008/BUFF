@@ -46,6 +46,8 @@ const UNDER_HEADER = "var(--header-h, 0px) + 0.625rem";
 const UNDER_SWITCHER = "var(--header-h, 0px) + 0.5rem";
 // How far above the horizon a lineup fitted to the space ends.
 const OVER_HORIZON = "0.5rem";
+// What of the floor's kept clear at the room's bottom, under the floor's buttons (px).
+const FOOT_PX = 52;
 // From laptop width up, how wide each side column is against the middle one: the middle wider, not dominating.
 const SIDE_SHARE = 1;
 const MIDDLE_SHARE = 1.6;
@@ -649,14 +651,18 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
   // The lineups step aside only while the payouts have the floor, or a player's card's up (a stage of his own, see
   // PlayerStage) — the room's stages are in the right-hand column.
   const fullStage = action === "payouts" || floorAway || cardUp;
-  // The room's horizon where the home page's is: the floor in front for the stages.
-  const lineupShare = HORIZON_SHARE;
-  useShareFor(onShare, lineupShare, true);
+  // The room's horizon where it's always been with the lineups up: just high enough over the columns' foot for the
+  // floor to show a row of the floor's buttons (see floorButtonRow) — the floor as it was, with them up in the right-hand
+  // column now. Up where the home page's is only while the payouts have the floor, or a player's card's up.
+  const lineupShare = room && middleBox ? floorButtonRow(room.width, room.height, room.height - FOOT_PX, middleBox.width).share : HORIZON_SHARE;
+  useShareFor(onShare, lineupShare, cardUp || floorAway);
+  // The bench's and the score graph's stages in the right-hand column: under its buttons down to the horizon, and on the
+  // floor in front of it.
   const columnPlaces: StagePlaces | null =
     room && sideBox
       ? {
-          wall: { top: sideBox.under + PANEL_GAP_PX, height: Math.max(0, room.height * HORIZON_SHARE - 2 * PANEL_GAP_PX - sideBox.under), left: sideBox.left, width: sideBox.width },
-          floor: { top: room.height * HORIZON_SHARE + PANEL_GAP_PX, bottom: room.height - 12, left: sideBox.left, width: sideBox.width },
+          wall: { top: sideBox.under + PANEL_GAP_PX, height: Math.max(0, room.height * lineupShare - 2 * PANEL_GAP_PX - sideBox.under), left: sideBox.left, width: sideBox.width },
+          floor: { top: room.height * lineupShare + PANEL_GAP_PX, bottom: room.height - 12, left: sideBox.left, width: sideBox.width },
           room,
         }
       : null;
