@@ -5,7 +5,7 @@ import { formatCountdown } from "@/lib/format";
 import { isOutsideUS } from "@/lib/nfl-schedule";
 import { gameMapPosition, gameState, internationalSlotPosition } from "@/lib/game-map";
 import type { FloorCameraStore } from "@/lib/floor-camera";
-import { ProjectorPlace, ProjectorView, projectorPath, projectorPoint, projectorView } from "@/lib/projector";
+import { MAP_BOUNDS, ProjectorPlace, ProjectorView, projectorPath, projectorPoint, projectorView } from "@/lib/projector";
 import { US_PROJECTED_OUTLINE_PATH } from "@/lib/us-outline";
 import { useFloorCamera } from "./FloorGrid";
 import type { MappedGame } from "./GameMap";
@@ -93,9 +93,32 @@ function useCountdown(kickoffs: number[] | undefined): string | null {
   return next === undefined ? null : formatCountdown(next - now);
 }
 
-/** The countdown's size over the map (px), and how far over its frame it stands. */
+/** The countdown's size over the map (px), and how far over its line it stands. */
 const COUNTDOWN_PX = 26;
-const COUNTDOWN_GAP_PX = 10;
+const COUNTDOWN_GAP_PX = 6;
+
+/**
+ * Where the countdown stands on the map (map units): in its middle across, on the straight line along the top of the
+ * lower 48 from Washington's corner to Maine's — the mainland's convex hull's top edge there.
+ */
+const COUNTDOWN_SPOT: [number, number] = (() => {
+  const pts = [...US_PROJECTED_OUTLINE_PATH.matchAll(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g)].map((m) => [Number(m[1]), Number(m[2])] as [number, number]);
+  const x = (MAP_BOUNDS.minX + MAP_BOUNDS.maxX) / 2;
+  // The hull's top chain, left to right (y down: the points no line between two others passes above).
+  const sorted = [...pts].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const top: [number, number][] = [];
+  for (const p of sorted) {
+    while (top.length >= 2) {
+      const [o, a] = [top[top.length - 2], top[top.length - 1]];
+      if ((a[0] - o[0]) * (p[1] - o[1]) - (a[1] - o[1]) * (p[0] - o[0]) <= 0) top.pop();
+      else break;
+    }
+    top.push(p);
+  }
+  const i = top.findIndex((p, k) => k > 0 && p[0] >= x);
+  const [a, b] = [top[Math.max(0, i - 1)], top[Math.max(0, i)]];
+  return [x, b[0] === a[0] ? a[1] : a[1] + ((b[1] - a[1]) * (x - a[0])) / (b[0] - a[0])];
+})();
 
 /**
  * The week's map, projected (see projector.ts): from a lens of light on the floor, in its middle near the front, light
@@ -127,11 +150,9 @@ export function FloorProjection({
   const countdown = useCountdown(kickoffs);
   const counting = countdown !== null;
   // Where the countdown's lit: over the middle of the frame's top.
-  const clock = {
-    x: view.frame.left + view.frame.width / 2,
-    y: view.frame.top - COUNTDOWN_GAP_PX,
-    wide: COUNTDOWN_PX * 0.62 * 8,
-  };
+  // Where the countdown's lit: on the map, over its top edge's middle — moved and zoomed with it.
+  const [clockX, clockLine] = projectorPoint(view, ...COUNTDOWN_SPOT);
+  const clock = { x: clockX, y: clockLine - COUNTDOWN_GAP_PX, wide: COUNTDOWN_PX * 0.62 * 8 };
   const drawn = useMemo(() => {
     const rings = outlineRings(view);
     const edge = rings.flat();
