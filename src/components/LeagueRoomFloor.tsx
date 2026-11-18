@@ -448,6 +448,114 @@ function FloorButtonsDrawn({
   );
 }
 
+/** Each button's model drawn on its own, as a tile shows it (see ActionTiles): its faces, its lines, and the box
+ * they're in (an SVG viewBox), a little room round them. Drawn once. */
+const TILE_MODELS = (() => {
+  let cache: { faces: Drawn["faces"]; decals: string[]; box: string }[] | null = null;
+  return () => {
+    if (cache) return cache;
+    const unit = 60;
+    cache = SOLIDS.map((solids) => {
+      const drawn = drawModel(solids, -unit / 2, unit * 1.2, unit, 200, 100, false);
+      const pts = [...drawn.faces.map((f) => f.d), ...drawn.decals].join("").matchAll(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g);
+      const [xs, ys] = [[] as number[], [] as number[]];
+      for (const m of pts) {
+        xs.push(Number(m[1]));
+        ys.push(Number(m[2]));
+      }
+      const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+      // Square, about its middle, with a margin.
+      const side = Math.max(x1 - x0, y1 - y0) * 1.18;
+      const [cx, cy] = [(x0 + x1) / 2, (y0 + y1) / 2];
+      return { faces: drawn.faces, decals: drawn.decals, box: `${(cx - side / 2).toFixed(1)} ${(cy - side / 2).toFixed(1)} ${side.toFixed(1)} ${side.toFixed(1)}` };
+    });
+    return cache;
+  };
+})();
+
+/**
+ * The League Room's buttons as square tiles in a row that slides sideways (from laptop width up, across the top of
+ * the right-hand column) — by a wheel or a trackpad over it, or dragged: each its model, as the floor's are (a park
+ * bench, two teams' bars of points, stacks of coins, written pages and a quill, a trophy, a present), and what it's for
+ * under it — see-through, outlined; the one whose panel's up, outlined in ink. Pointed at, lit up; pressed, it gives a
+ * little.
+ */
+export function ActionTiles({ active, onPick }: { active: FloorAction | null; onPick: (action: FloorAction) => void }) {
+  const models = TILE_MODELS();
+  // Slid by the wheel (down, along it) and dragged — kept from the column it's in, which would scroll instead.
+  const [row, setRow] = useState<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!row) return;
+    let drag: { x: number; left: number; moved: boolean } | null = null;
+    const wheel = (e: WheelEvent) => {
+      if (row.scrollWidth <= row.clientWidth) return;
+      e.preventDefault();
+      e.stopPropagation();
+      row.scrollLeft += Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+    };
+    const down = (e: PointerEvent) => {
+      e.stopPropagation();
+      drag = { x: e.clientX, left: row.scrollLeft, moved: false };
+    };
+    const move = (e: PointerEvent) => {
+      if (!drag) return;
+      e.stopPropagation();
+      if (Math.abs(e.clientX - drag.x) > 4) drag.moved = true;
+      if (drag.moved) row.scrollLeft = drag.left - (e.clientX - drag.x);
+    };
+    const up = (e: PointerEvent) => {
+      if (!drag) return;
+      e.stopPropagation();
+      // A drag isn't a press.
+      if (drag.moved) row.addEventListener("click", (c) => (c.stopPropagation(), c.preventDefault()), { capture: true, once: true });
+      drag = null;
+    };
+    row.addEventListener("wheel", wheel, { passive: false });
+    row.addEventListener("pointerdown", down);
+    window.addEventListener("pointermove", move, true);
+    window.addEventListener("pointerup", up, true);
+    return () => {
+      row.removeEventListener("wheel", wheel);
+      row.removeEventListener("pointerdown", down);
+      window.removeEventListener("pointermove", move, true);
+      window.removeEventListener("pointerup", up, true);
+    };
+  }, [row]);
+  const edge = { stroke: "var(--ink-primary)", strokeOpacity: 0.4, strokeWidth: 0.75, strokeLinejoin: "round" as const };
+  const seamless = (fill: string) => ({ stroke: fill, strokeWidth: 0.75, strokeLinejoin: "round" as const });
+  return (
+    <div ref={setRow} className="flex select-none gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="toolbar" aria-label="The league's room">
+      {FLOOR_ACTIONS.map((action, i) => {
+        const on = active === action.id;
+        const model = models[i];
+        return (
+          <button
+            key={action.id}
+            type="button"
+            aria-pressed={on}
+            onClick={() => onPick(action.id)}
+            className={`group flex aspect-square w-[6.5rem] shrink-0 flex-col items-center justify-center gap-1 border p-2 transition-colors active:translate-y-px ${
+              on ? "border-ink-primary" : "border-[color-mix(in_srgb,var(--ink-primary)_22%,transparent)] hover:border-[color-mix(in_srgb,var(--ink-primary)_55%,transparent)]"
+            }`}
+          >
+            <svg viewBox={model.box} className="min-h-0 w-[72%] flex-1 transition-[filter] group-hover:[filter:brightness(1.35)]" aria-hidden>
+              {model.faces.map((f, j) => (
+                <path key={j} d={f.d} fill={f.fill} {...(f.edge ? edge : seamless(f.fill))} />
+              ))}
+              <g fill="none" stroke="var(--ink-primary)" strokeOpacity={0.55} strokeWidth={1} strokeLinecap="round">
+                {model.decals.map((d, j) => (
+                  <path key={j} d={d} />
+                ))}
+              </g>
+            </svg>
+            <span className="text-center text-xs font-semibold uppercase leading-tight tracking-wide text-ink-primary">{action.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 /** A panel's ×, at the right of its title row. */
 export function CloseButton({ onClose, label = "Close" }: { onClose: () => void; label?: string }) {
   return (

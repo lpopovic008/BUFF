@@ -902,7 +902,7 @@ export function RoomBench({
   const slot = players.find((b) => b.player!.playerId === pickedId) ?? players[0];
   if (!slot) {
     return (
-      <div data-floor-ui className="fixed z-[7] flex items-center gap-2 text-sm text-ink-secondary" style={{ top: stage.places.floor.top, left: stage.places.floor.left, width: stage.places.floor.width }}>
+      <div data-floor-ui className="fixed z-[7] flex items-center gap-2 text-sm text-ink-secondary" style={{ top: stage.places.wall.top, left: stage.places.wall.left, width: stage.places.wall.width }}>
         <span className="min-w-0 flex-1">No one&rsquo;s on your bench.</span>
         <CloseButton onClose={stage.onClose} />
       </div>

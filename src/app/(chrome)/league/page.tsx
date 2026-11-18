@@ -15,7 +15,7 @@ import { LeagueSwitcher, LeagueTitle, RoomLeague } from "@/components/LeagueSwit
 import { BriefMatchups, CareerStageContext, MatchupList, MatchupProviders, MatchupSlide, MatchupStack, useLineupNumbers, useMatchupHeadToHead } from "@/components/LeagueMatchupCarousel";
 import { RoomBench, RoomGraph, StagePlaces, useStageShown } from "@/components/LeagueRoomStages";
 import { WriteupsPanel } from "@/components/LeagueRoomWriteups";
-import { CloseButton, FLOOR_ACTIONS, FloorAction, FloorButtons, floorButtonRow, FrontPanel } from "@/components/LeagueRoomFloor";
+import { ActionTiles, CloseButton, FLOOR_ACTIONS, FloorAction, FloorButtons, floorButtonRow, FrontPanel } from "@/components/LeagueRoomFloor";
 import type { MatchupSide } from "@/components/MatchupGraph";
 import { PayoutStage } from "@/components/LeagueRoomPayouts";
 import type { ResolvedMatchupGame } from "@/hooks/useLeagueMatchupCarousel";
@@ -46,8 +46,6 @@ const UNDER_HEADER = "var(--header-h, 0px) + 0.625rem";
 const UNDER_SWITCHER = "var(--header-h, 0px) + 0.5rem";
 // How far above the horizon a lineup fitted to the space ends.
 const OVER_HORIZON = "0.5rem";
-// What of the floor's kept clear at the room's bottom, under the floor's buttons (px).
-const FOOT_PX = 52;
 // From laptop width up, how wide each side column is against the middle one: the middle wider, not dominating.
 const SIDE_SHARE = 1;
 const MIDDLE_SHARE = 1.6;
@@ -297,8 +295,8 @@ function useShareFor(onShare: (share: number) => void, lineups: number, stage: b
 }
 
 /** The floor's button that's open (its panel up), closed again by Escape. */
-function useFloorAction() {
-  const [action, setAction] = useState<FloorAction | null>(null);
+function useFloorAction(initial: FloorAction | null = null) {
+  const [action, setAction] = useState<FloorAction | null>(initial);
   const close = useCallback(() => setAction(null), []);
   useEffect(() => {
     if (!action) return;
@@ -309,7 +307,7 @@ function useFloorAction() {
     return () => window.removeEventListener("keydown", onKey);
   }, [action, close]);
   // Kept while it sinks, so its panel still says what it is.
-  const [last, setLast] = useState<FloorAction>("bench");
+  const [last, setLast] = useState<FloorAction>(initial ?? "bench");
   const pick = useCallback((next: FloorAction) => {
     setLast(next);
     setAction(next);
@@ -589,7 +587,8 @@ function LeaguePane({
  * reflected in the floor — each scrolling on its own, up behind the see-through header.
  */
 function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, room, floorAway, onFloorAway, onShare, share = HORIZON_SHARE }: RoomProps) {
-  const { action, last, pick, close } = useFloorAction();
+  // The bench open from the start, in the right-hand column under the room's buttons.
+  const { action, pick, close } = useFloorAction("bench");
   // The write-ups up: the write-up the whole middle column, from under the header to the screen's bottom; the matchups
   // in the right-hand column opened a little (see MatchupList); and its contents in the left-hand column in place of
   // your leagues.
@@ -625,15 +624,42 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
     return () => observer.disconnect();
   }, [middle]);
   const [contentsSlot, setContentsSlot] = useState<HTMLDivElement | null>(null);
-  // The bench's and the score graph's stages: on the back wall in the middle (the lineups step aside), and the floor
-  // in front of it.
-  // A player's card too: a stage of his own (see PlayerStage).
-  const fullStage = action === "bench" || action === "graph" || action === "payouts" || floorAway || cardUp;
-  // The floor's buttons in a row across the floor in front, between the side columns, the horizon just high enough over
-  // the columns' foot to show them.
-  const buttons = room && middleBox ? floorButtonRow(room.width, room.height, room.height - FOOT_PX, middleBox.width) : null;
-  const lineupShare = buttons?.share ?? HORIZON_SHARE;
-  useShareFor(onShare, lineupShare, (action !== null && !writeups) || cardUp || floorAway);
+  // The right-hand column, and where its row of buttons ends on the screen: the bench's and the score graph's stages
+  // go under them, in that column, and on the floor in front of it.
+  const [side, setSide] = useState<HTMLDivElement | null>(null);
+  const [slider, setSlider] = useState<HTMLDivElement | null>(null);
+  const [sideBox, setSideBox] = useState<{ left: number; width: number; under: number } | null>(null);
+  useEffect(() => {
+    if (!side || !slider) return;
+    const measure = () => {
+      const r = side.getBoundingClientRect();
+      const under = slider.getBoundingClientRect().bottom;
+      setSideBox((was) => (was && was.left === r.left && was.width === r.width && was.under === under ? was : { left: r.left, width: r.width, under }));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(side);
+    observer.observe(slider);
+    window.addEventListener("resize", measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [side, slider]);
+  // The lineups step aside only while the payouts have the floor, or a player's card's up (a stage of his own, see
+  // PlayerStage) — the room's stages are in the right-hand column.
+  const fullStage = action === "payouts" || floorAway || cardUp;
+  // The room's horizon where the home page's is: the floor in front for the stages.
+  const lineupShare = HORIZON_SHARE;
+  useShareFor(onShare, lineupShare, true);
+  const columnPlaces: StagePlaces | null =
+    room && sideBox
+      ? {
+          wall: { top: sideBox.under + PANEL_GAP_PX, height: Math.max(0, room.height * HORIZON_SHARE - 2 * PANEL_GAP_PX - sideBox.under), left: sideBox.left, width: sideBox.width },
+          floor: { top: room.height * HORIZON_SHARE + PANEL_GAP_PX, bottom: room.height - 12, left: sideBox.left, width: sideBox.width },
+          room,
+        }
+      : null;
   const stagePlaces: StagePlaces | null =
     room && middleBox
       ? {
@@ -653,6 +679,34 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
   const games = carousel?.games ?? [];
   const chosen = picked && picked.leagueId === leagueId && picked.week === week ? games.find((g) => g.matchupId === picked.id) : undefined;
   const shownGame = chosen ?? games.find((g) => g.teams.some((t) => t.rosterId === myRosterId)) ?? games[0];
+  // The league shown, folded away under its name (or open, its matchups under it): one open at a time — another
+  // picked opens, this one folding.
+  const [folded, setFolded] = useState(false);
+  const openLeague = (id: string) => {
+    if (id === leagueId) return setFolded((was) => !was);
+    setFolded(false);
+    onPick(id);
+  };
+  // A tile pressed: its panel up — or, already up, down again.
+  const press = (next: FloorAction) => (action === next ? close() : pick(next));
+  const matchups = (opened: boolean) =>
+    shownGame
+      ? providers(
+          <MatchupList
+            games={games}
+            myRosterId={myRosterId}
+            standings={standings}
+            pickedId={shownGame.matchupId}
+            onPick={(id) => setPicked({ leagueId, week, id })}
+            // With the write-ups up, each box opened a little: the all-time wins, PF and PA, and projected.
+            opened={{ open: opened, owners, allTime }}
+          />
+        )
+      : null;
+  // What a button opens under them in the column itself (the bench's and the score graph's are stages over it, see
+  // RoomStagePanel; the payouts', the floor, see PayoutStage).
+  const underButtons =
+    action === "writeups" ? matchups(true) : action === "history" || action === "more" ? <ActionPanel action={action} league={rooms[index]} /> : null;
 
   // The columns, each scrolling on its own.
   const [leagueColumn, setLeagueColumn] = useState<HTMLDivElement | null>(null);
@@ -709,18 +763,28 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
             <ul className="flex flex-col gap-1" aria-label="Your leagues">
               {leagues.map((league) => {
                 const on = league.leagueId === leagueId;
+                const open = on && !folded;
                 return (
                   <li key={league.leagueId}>
+                    {/* Its name, a header: folding its matchups away under it, or opening them (and it, picked). */}
                     <button
                       type="button"
                       aria-current={on || undefined}
-                      onClick={() => onPick(league.leagueId)}
-                      className={`w-full px-3 py-2 transition-colors ${
+                      aria-expanded={open}
+                      onClick={() => openLeague(league.leagueId)}
+                      className={`flex w-full items-center gap-2 px-3 py-2 transition-colors ${
                         on ? "bg-[var(--map-tag)] text-[var(--map-tag-ink)]" : "text-ink-secondary hover:text-ink-primary"
                       }`}
                     >
-                      <LeagueTitle league={league} start />
+                      <span className="min-w-0 flex-1">
+                        <LeagueTitle league={league} start />
+                      </span>
+                      <svg viewBox="0 0 12 12" className={`h-3 w-3 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+                        <path d="M2.5 4.5 6 8l3.5-3.5" />
+                      </svg>
                     </button>
+                    {/* Its matchups, picking the one whose lineups are in the middle. */}
+                    {open ? <div className="pb-2 pt-1">{matchups(false)}</div> : null}
                   </li>
                 );
               })}
@@ -769,30 +833,21 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
           <ScrollThumb source={lineupColumn} />
         </div>
 
-        {/* The league's matchups, picking the one whose lineups are in the middle (with the write-ups up, each box opened
-            a little, see MatchupList) — stepping aside while the payouts have the floor, as the leagues do. */}
+        {/* The room's buttons, square tiles two to a row (see ActionTiles) — with the write-ups up, the league's matchups
+            instead, each box opened a little (see MatchupList), the leagues' column the write-up's contents. Stepping
+            aside while the payouts have the floor, as the leagues do. */}
         <div
+          ref={setSide}
           className={`relative min-w-0 transition-opacity duration-300 ${floorAway ? "pointer-events-none opacity-0" : ""}`}
           style={{ flex: `${SIDE_SHARE} 1 0%` }}
           inert={floorAway}
         >
           <div ref={setMatchupColumn} data-scroll-list className={column} style={columnPad}>
             <div>
-            <div style={{ zoom: sideZoom }}>
-              {shownGame
-                ? providers(
-                    <MatchupList
-                      games={games}
-                      myRosterId={myRosterId}
-                      standings={standings}
-                      pickedId={shownGame.matchupId}
-                      onPick={(id) => setPicked({ leagueId, week, id })}
-                      // With the write-ups up, each box opened a little: the all-time wins, PF and PA, and projected.
-                      opened={{ open: writeups, owners, allTime }}
-                    />
-                  )
-                : null}
+            <div ref={setSlider}>
+              <ActionTiles active={action} onPick={press} />
             </div>
+            {underButtons ? <div className="pt-3" style={{ zoom: sideZoom }}>{underButtons}</div> : null}
             </div>
           </div>
           <ScrollThumb source={matchupColumn} />
@@ -808,7 +863,6 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
       {/* The floor's buttons at the front of the room between the columns, and the panel one brings up there. */}
       {room ? (
         <>
-          {buttons ? <FloorButtons width={room.width} height={room.height} row={buttons} hidden={action !== null || cardUp || floorAway} onPick={pick} /> : null}
           {/* The write-ups: the whole middle column, from under the header down to the screen's bottom. */}
           {middleBox ? (
             <WriteupsPanel
@@ -824,13 +878,13 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
               contentsSlot={contentsSlot}
             />
           ) : null}
-          {stagePlaces ? (
+          {columnPlaces ? (
             <>
-              <RoomStagePanel kind="bench" open={action === "bench"} places={stagePlaces} onClose={close} back league={rooms[index]} week={week} userId={userId} />
+              <RoomStagePanel kind="bench" open={action === "bench"} places={columnPlaces} onClose={close} back league={rooms[index]} week={week} userId={userId} />
               <RoomStagePanel
                 kind="graph"
                 open={action === "graph"}
-                places={stagePlaces}
+                places={columnPlaces}
                 onClose={close}
                 back
                 league={rooms[index]}
@@ -854,18 +908,6 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
               onAway={onFloorAway}
             />
           ) : null}
-          <FrontPanel
-            open={action !== null && !writeups && !fullStage}
-            title={FLOOR_ACTIONS.find((a) => a.id === last)!.label}
-            top={room.height * HORIZON_SHARE + PANEL_GAP_PX}
-            bottom={room.height - 12}
-            left={middleBox?.left}
-            width={middleBox?.width}
-            back={close}
-            onClose={close}
-          >
-            <ActionPanel action={last} league={rooms[index]} />
-          </FrontPanel>
         </>
       ) : null}
     </CareerStageContext.Provider>
@@ -944,7 +986,7 @@ function RoomStageContent({ kind, places, onClose, back, league, week, userId, m
   const game =
     (matchupId !== undefined ? games.find((g) => g.matchupId === matchupId) : undefined) ?? games.find((g) => g.teams.some((t) => t.rosterId === myRosterId)) ?? games[0];
   const note = (text: string) => (
-    <div data-floor-ui className="fixed z-[7] text-sm text-ink-secondary" style={{ top: places.floor.top, left: places.floor.left, width: places.floor.width }}>
+    <div data-floor-ui className="fixed z-[7] text-sm text-ink-secondary" style={{ top: places.wall.top, left: places.wall.left, width: places.wall.width }}>
       <div className="flex items-center gap-2">
         <span className="min-w-0 flex-1">{text}</span>
         <CloseButton onClose={onClose} />
