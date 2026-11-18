@@ -316,6 +316,9 @@ export default function DashboardPage() {
     projector: ProjectorPlace;
     /** The line on the floor the Red Zone comes up out of (see redZoneStage). */
     redZoneLine: number;
+    /** Where the Red Zone stands while it's up: on that line from tablet width up; on a phone, down on the tab bar's
+     * top, reflected from there. */
+    redZoneFoot: number;
     /** The floor live games' fields are laid on (see FloorFields): across, and from its front back to its back. */
     fields: { left: number; right: number; front: number; back: number; centered?: boolean };
     rootPx: number;
@@ -354,6 +357,7 @@ export default function DashboardPage() {
       setStand({
         room: height,
         redZoneLine,
+        redZoneFoot: desk ? redZoneLine : height - tabBar,
         // From tablet width up, centered north to south on the floor, the nearest row's outermost end lines on the Red
         // Zone's column's edge and the starters list's (each a column 1rem in from the screen's side, see layCentered);
         // on a phone, across the screen, down to the Red Zone's switch.
@@ -380,7 +384,7 @@ export default function DashboardPage() {
   // started on (its title, its switch).
   const redZoneDrag = useRef({ up: false, line: 0, away: () => {} });
   useEffect(() => {
-    redZoneDrag.current = { up: redZoneUp, line: stand?.redZoneLine ?? 0, away: () => switchRedZone(false) };
+    redZoneDrag.current = { up: redZoneUp, line: stand?.redZoneFoot ?? 0, away: () => switchRedZone(false) };
   });
   useEffect(() => {
     const box = redZoneBox;
@@ -644,7 +648,7 @@ export default function DashboardPage() {
     if (desktop || !redZoneUp) return stand.fields;
     const top =
       redZoneDragTop ??
-      (redZoneLevel === 0 ? stand.redZoneLine - (RED_ZONE_REM + RED_ZONE_FLOAT_REM) * stand.rootPx : redZoneLevel === 1 ? stand.horizon : 0);
+      (redZoneLevel === 0 ? stand.redZoneFoot - (RED_ZONE_REM + RED_ZONE_FLOAT_REM) * stand.rootPx : redZoneLevel === 1 ? stand.horizon : 0);
     return { ...stand.fields, front: Math.min(stand.fields.front, top - 0.5 * stand.rootPx) };
   }, [stand, desktop, redZoneUp, redZoneDragTop, redZoneLevel]);
   // Whether there are fields on the floor: then the floor's bare — no grid lines, no map.
@@ -775,7 +779,8 @@ export default function DashboardPage() {
     ) : null;
   // The Red Zone, up out of the floor in front of you (its switch beside the map's way home, see FloorCameraControls):
   // once the floor's slid toward you and the map's gone off the screen's bottom, it rises out of the floor at its
-  // switch's top and floats a little over it, two plays tall, as wide as the screen (on a tablet or wider, a column at
+  // switch's top (on a phone, down on the tab bar's top) and floats a little over it, two plays tall, as wide as the
+  // screen (on a tablet or wider, a column at
   // the left as wide as the starters list at the right, from under the ticker down to the same line on the floor as
   // it) — and sinks back into it. With no backing of its own, the room behind it showing right
   // through; reflected in the floor under it, the gap it floats by and all, its
@@ -784,7 +789,7 @@ export default function DashboardPage() {
   const redZoneHeight = RED_ZONE_REM + RED_ZONE_FLOAT_REM;
   // On a phone, where the Red Zone's top stands over the floor while it's up, a step at a time.
   const redZoneTop = (level: 0 | 1) =>
-    !stand ? 0 : level === 0 ? stand.redZoneLine - redZoneHeight * stand.rootPx : stand.horizon + 0.375 * stand.rootPx;
+    !stand ? 0 : level === 0 ? stand.redZoneFoot - redZoneHeight * stand.rootPx : stand.horizon + 0.375 * stand.rootPx;
   const redZoneStage =
     redZoneView && stand ? (
       <>
@@ -801,7 +806,7 @@ export default function DashboardPage() {
           style={{
             // Its left edge as far in as the starters list's right edge is from the screen's.
             ...(desktop && startersList ? { left: stand.projector.width - startersList.getBoundingClientRect().right } : null),
-            bottom: stand.room - stand.redZoneLine,
+            bottom: stand.room - stand.redZoneFoot,
             top: desktop
               ? // Up from under the ticker, as the starters list is; down, sunk to the line it stands on.
                 redZoneUp
