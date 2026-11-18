@@ -19,7 +19,6 @@ import { LeagueTicker, TickerLeague } from "@/components/LeagueTicker";
 import { ByeTeam, LeagueLegendEntry, StartersByGame, viewPlayers } from "@/components/StartersByGame";
 import { NFL_TEAMS } from "@/lib/nfl-logos";
 import { PointsGraphGrid } from "@/components/PointsGraph";
-import { KickoffCountdown } from "@/components/KickoffCountdown";
 import { RedZone } from "@/components/RedZone";
 import { useConfig } from "@/hooks/useConfig";
 import { MatchupTarget, useDashboardMatchups } from "@/hooks/useDashboardMatchups";
@@ -314,7 +313,6 @@ export default function DashboardPage() {
     on: number;
     horizon: number;
     projector: ProjectorPlace;
-    mapTop: number;
     /** The line on the floor the Red Zone comes up out of (see redZoneStage). */
     redZoneLine: number;
     /** The floor live games' fields are laid on (see FloorFields): across, and from its front back to its back. */
@@ -364,7 +362,6 @@ export default function DashboardPage() {
         on: height - lowestGridLine(height),
         horizon: height * HORIZON_SHARE,
         projector,
-        mapTop: projector.frame.top,
         rootPx,
       });
     };
@@ -708,7 +705,10 @@ export default function DashboardPage() {
       style={{ ["--horizon" as string]: `${horizon * 100}%` }}
     >
       <FloorGrid share={horizon} camera={floorCamera} tilt={floorTilt} hidden={fieldsUp} />
-      {mapOut ? <FloorProjection place={stand.projector} games={games} map={mapCamera} floor={floorCamera} /> : null}
+      {mapOut ? (
+        // From tablet width up, the countdown to the next kickoff lit over it.
+        <FloorProjection place={stand.projector} games={games} map={mapCamera} floor={floorCamera} countdown={desktop ? kickoffs : undefined} />
+      ) : null}
     </div>
   );
   // One graph in full; two side by side; three or four, one to a corner.
@@ -900,7 +900,7 @@ export default function DashboardPage() {
           risesAtFirst={false}
         />
         {redZoneStage}
-        {mapOut ? <FloorProjectionTags place={stand.projector} games={games} top={stand.mapTop} map={mapCamera} floor={floorCamera} /> : null}
+        {mapOut ? <FloorProjectionTags place={stand.projector} games={games} map={mapCamera} floor={floorCamera} /> : null}
         {/* The games being played, the one in view across the floor's front, the rest behind it. */}
         {stand && fieldsFloor ? (
           <FloorFields games={fieldGames} width={stand.projector.width} height={stand.room} share={stand.projector.share} floor={fieldsFloor} focused />
@@ -962,15 +962,7 @@ export default function DashboardPage() {
         </div>
       </div>
       {mapOut ? (
-        <FloorProjectionTags
-          place={stand.projector}
-          games={games}
-          // The countdown over the map, above the horizon — out of the way of graphs.
-          top={stand.horizon - 0.75 * stand.rootPx}
-          overhead={graphsBack ? undefined : <KickoffCountdown kickoffs={kickoffs} />}
-          map={mapCamera}
-          floor={floorCamera}
-        />
+        <FloorProjectionTags place={stand.projector} games={games} map={mapCamera} floor={floorCamera} />
       ) : null}
       {/* Its reflection: what's at its foot, in the floor. */}
       <FloorReflection source={startersList} className="pb-16" style={{ paddingTop: `calc(${UNDER_TICKER})` }} />

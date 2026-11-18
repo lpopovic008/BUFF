@@ -6,7 +6,7 @@
 
 import { US_PROJECTED_OUTLINE_PATH } from "./us-outline";
 import { cameraShows } from "./floor-camera";
-import { FloorCamera, floorDepth, floorPoint, floorScale } from "./grid-room";
+import { FloorCamera, floorDepth, floorPoint, floorScale, GRID_PX } from "./grid-room";
 
 const POINT = /(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g;
 const OUTLINE_POINTS = [...US_PROJECTED_OUTLINE_PATH.matchAll(POINT)].map((m) => [Number(m[1]), Number(m[2])] as const);
@@ -49,8 +49,9 @@ export interface ProjectorPlace {
 
 /**
  * The projector on a `width` x `height` screen (its horizon `share` of the way down): its spot on the floor near the
- * floor's front edge (screen y `bottom`) at screen x `centerX`; its frame floating over the middle of the floor above
- * it, as large as fits under screen y `highest` and within `maxWidth` across.
+ * floor's front edge (screen y `bottom`) about screen x `centerX` — in the middle of the grid square there; its frame
+ * floating over the middle of the floor above it, as large as fits under screen y `highest` and within `maxWidth`
+ * across.
  */
 export function fitProjector({
   width,
@@ -71,19 +72,24 @@ export function fitProjector({
 }): ProjectorPlace {
   const horizon = height * share;
   const floor = bottom - horizon;
-  const sourceY = horizon + floor * 0.85;
+  // Its spot: the middle of the grid square about 85% of the way down the floor — halfway between two of the floor's
+  // lines across (at whole squares back from the hinge) and two of those running back (half a square either side of
+  // the floor's middle, and every square on).
+  const rough = floorDepth(horizon + floor * 0.85, height, share);
+  const depth = (Math.round(rough / GRID_PX - 0.5) + 0.5) * GRID_PX;
+  const across = Math.round((centerX - width / 2) / floorScale(rough) / GRID_PX) * GRID_PX;
+  const [sourceX, sourceY] = floorPoint(across, depth, width, height, share);
   const frameBottom = horizon + floor * 0.6;
   const aspect = MAP_W / MAP_H;
   const frameW = Math.max(40, Math.min(maxWidth, (frameBottom - highest) * aspect));
   const frameH = frameW / aspect;
-  const depth = floorDepth(sourceY, height, share);
   return {
     width,
     height,
     share,
-    source: [centerX, sourceY],
-    anchor: [(centerX - width / 2) / floorScale(depth), depth],
-    frame: { left: centerX - frameW / 2, top: frameBottom - frameH, width: frameW, height: frameH },
+    source: [sourceX, sourceY],
+    anchor: [across, depth],
+    frame: { left: sourceX - frameW / 2, top: frameBottom - frameH, width: frameW, height: frameH },
   };
 }
 

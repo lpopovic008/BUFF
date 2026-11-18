@@ -48,7 +48,7 @@ function onFloor(target: EventTarget | null): boolean {
  * mouse) to move it, and pinched (two fingers, or a trackpad) or scrolled (a mouse's wheel) to zoom it, about where
  * you're pinching or pointing, wherever the floor's bare below the horizon or on the frame — a pinch zooming just it,
  * never the page, and leaving it where it's put. At home the whole map's in its frame; moved by you, it stays where
- * you put it until its home button takes it back. Its Red Zone button slides the floor (`store`) toward you, whole squares at a time, till the
+ * you put it until its home button (or a double-click on it) takes it back. Its Red Zone button slides the floor (`store`) toward you, whole squares at a time, till the
  * projector's gone off the screen's bottom — and the Red Zone comes up out of it (see page); again, it sinks back, and
  * the floor slides back home. The map holds still while it's up.
  */
@@ -76,6 +76,11 @@ export function FloorCameraControls({
   const map = out;
   const redZoneUp = redZone?.on ?? false;
   const { following } = useFloorCamera(picture);
+  // Where the projector's spot is now (the floor under it slid, or not): its buttons stand under it.
+  const slid = useFloorCamera(store).camera;
+  const [spotX, spotY] = projectorView(place, HOME_CAMERA, slid).source;
+  // Back home, as its home button takes it (double-clicked; see below) — kept for the handlers set up once.
+  const homeAgain = useRef(() => {});
 
   // Moved and zoomed — not while the Red Zone's up, or with no map out.
   useEffect(() => {
@@ -207,6 +212,13 @@ export function FloorCameraControls({
       e.preventDefault();
       gesture = null;
     };
+    // Double-clicked on the floor or the frame: the map back home.
+    const twice = (e: MouseEvent) => {
+      if (!onFloor(e.target) || (e.clientY <= horizon + 2 && !onFrame(e.clientX, e.clientY))) return;
+      e.preventDefault();
+      homeAgain.current();
+    };
+    document.addEventListener("dblclick", twice);
     document.addEventListener("pointerdown", down);
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
@@ -217,6 +229,7 @@ export function FloorCameraControls({
     document.addEventListener("gestureend", gestureEnd, { passive: false });
     return () => {
       cancelAnimationFrame(wheelFrame);
+      document.removeEventListener("dblclick", twice);
       document.removeEventListener("pointerdown", down);
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
@@ -241,6 +254,9 @@ export function FloorCameraControls({
     atHome.current = nextGames.key;
     picture.glide(nextGames.camera, true);
   }, [nextGames, picture]);
+  useEffect(() => {
+    homeAgain.current = goToNextGames;
+  }, [goToNextGames]);
 
   const goHome = () => {
     if (redZoneUp) return toggleRedZone();
@@ -367,10 +383,13 @@ export function FloorCameraControls({
 
   const plate =
     "pointer-events-auto flex h-7 min-w-7 cursor-pointer items-center justify-center bg-[var(--map-tag)] px-1.5 text-xs font-bold leading-none text-[var(--map-tag-ink)] transition-opacity hover:opacity-90";
-  // The Red Zone's switch and the way home bigger to tap (their text no bigger).
+  // The Red Zone's switch bigger to tap (its text no bigger).
   const big = "!h-10 !min-w-10 !px-3";
+  // The map's own buttons: see-through, just outlined.
+  const clear =
+    "pointer-events-auto flex h-8 min-w-8 cursor-pointer items-center justify-center border border-[color-mix(in_srgb,var(--ink-primary)_30%,transparent)] bg-transparent px-2 text-xs font-bold leading-none text-ink-primary transition-colors hover:border-[color-mix(in_srgb,var(--ink-primary)_65%,transparent)]";
   const home = (
-    <button type="button" aria-label="Back home" title="Back home" onClick={goHome} className={`${plate} ${big}`}>
+    <button type="button" aria-label="Back home" title="Back home (or double-click the map)" onClick={goHome} className={clear}>
       <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" aria-hidden>
         <path d="M2 7.5 8 2l6 5.5M3.5 6.5V14h3.5v-4h2v4h3.5V6.5" />
       </svg>
@@ -395,25 +414,31 @@ export function FloorCameraControls({
       {SPELLING[spelled]}
     </button>
   ) : null;
-  // The Red Zone's switch in the screen's bottom-left corner; in its bottom-right, the way home while it's away, and
-  // from tablet width up zoom buttons too (for a mouse with no pinch). On a phone, over the tab bar.
+  // The Red Zone's switch in the screen's bottom-left corner (on a phone, over the tab bar). The map's buttons in the
+  // middle under the projector's spot (kept up off the screen's bottom, or a phone's tab bar): from tablet width up,
+  // zoom buttons (for a mouse with no pinch); and the way home while it's away.
   const corner = desktop ? "bottom-3" : "bottom-[calc(var(--tabbar-h,0px)+0.75rem)]";
+  const zooms = map && desktop && !redZoneUp;
+  const homeShown = !(following || redZoneUp || !map);
   return (
     <>
       <div className={`pointer-events-none fixed left-4 z-20 flex gap-1 ${corner}`}>{redZoneButton}</div>
-      <div className={`pointer-events-none fixed right-4 z-20 flex items-end gap-1 ${corner}`}>
-        {map && desktop && !redZoneUp ? (
-          <>
-            <button type="button" aria-label="Zoom out" onClick={() => zoomBy(1 / ZOOM_STEP)} className={plate}>
-              −
-            </button>
-            <button type="button" aria-label="Zoom in" onClick={() => zoomBy(ZOOM_STEP)} className={plate}>
-              +
-            </button>
-          </>
-        ) : null}
-        {following || redZoneUp || !map ? null : home}
-      </div>
+      {zooms || homeShown ? (
+        <div className="pointer-events-none fixed z-20 flex -translate-x-1/2 gap-1" style={{ left: spotX, top: `min(${spotY + 12}px, calc(100dvh - var(--tabbar-h, 0px) - 2.75rem))` }}>
+          {zooms ? (
+            <>
+              <button type="button" aria-label="Zoom out" onClick={() => zoomBy(1 / ZOOM_STEP)} className={clear}>
+                −
+              </button>
+              <button type="button" aria-label="Zoom in" onClick={() => zoomBy(ZOOM_STEP)} className={clear}>
+                +
+              </button>
+            </>
+          ) : null}
+          {/* (Its place kept beside the zoom buttons while it's not needed, so they hold still.) */}
+          {homeShown ? home : zooms ? <span className="invisible">{home}</span> : null}
+        </div>
+      ) : null}
     </>
   );
 }

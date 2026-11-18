@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useState } from "react";
+import { formatCountdown } from "@/lib/format";
 import { isOutsideUS } from "@/lib/nfl-schedule";
 import { gameMapPosition, gameState, internationalSlotPosition } from "@/lib/game-map";
 import type { FloorCameraStore } from "@/lib/floor-camera";
@@ -71,61 +72,96 @@ function outlineRings(view: ProjectorView): [number, number][][] {
     .map((ring) => [...ring.matchAll(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g)].map((m) => projectorPoint(view, Number(m[1]), Number(m[2]))));
 }
 
-/** The convex hull of some points (Andrew's monotone chain), round in order. */
-function hull(points: [number, number][]): [number, number][] {
-  const pts = [...points].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-  const cross = (o: [number, number], a: [number, number], b: [number, number]) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
-  const half = (list: [number, number][]) => {
-    const out: [number, number][] = [];
-    for (const p of list) {
-      while (out.length >= 2 && cross(out[out.length - 2], out[out.length - 1], p) <= 0) out.pop();
-      out.push(p);
-    }
-    out.pop();
-    return out;
-  };
-  return [...half(pts), ...half([...pts].reverse())];
-}
-
 /** How many rays of light go from the lens to the map's edge, about. */
 const RAYS = 14;
+
+/** The countdown to the next of `kickoffs` (ms), ticking each second — null once they've all kicked off. */
+function useCountdown(kickoffs: number[] | undefined): string | null {
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    if (!kickoffs?.length) return;
+    const tick = () => setNow(Date.now());
+    const id = setInterval(tick, 1000);
+    const first = setTimeout(tick, 0);
+    return () => {
+      clearInterval(id);
+      clearTimeout(first);
+    };
+  }, [kickoffs]);
+  if (now === null || !kickoffs) return null;
+  const next = kickoffs.find((t) => t > now);
+  return next === undefined ? null : formatCountdown(next - now);
+}
+
+/** The countdown's size over the map (px), and how far over its frame it stands. */
+const COUNTDOWN_PX = 26;
+const COUNTDOWN_GAP_PX = 10;
 
 /**
  * The week's map, projected (see projector.ts): from a lens of light on the floor, in its middle near the front, light
  * thrown up into the air over the floor, the lower 48 lit where it lands — facing you square on, see-through (the room
  * showing through it), their outline glowing in ink (white, or black in light mode) and faintly scanned across, each
  * game's ring on it. Rays fan from the lens to the map's edge, a haze of light between them, its two outermost
- * brightest — flickering a little, as a projector's light does. Drawn in the room, behind everything; the games' stems and tags stand up in front (see
+ * brightest — flickering a little, as a projector's light does; over it, the countdown to the next kickoff, lit as the
+ * map is. Drawn in the room, behind everything; the games' stems and tags stand up in front (see
  * FloorProjectionTags). Its picture moved and zoomed (`map`), and all of it slid with the floor under it (`floor`).
  */
-export function FloorProjection({ place, games, map, floor }: { place: ProjectorPlace; games: MappedGame[]; map?: FloorCameraStore; floor?: FloorCameraStore }) {
+export function FloorProjection({
+  place,
+  games,
+  map,
+  floor,
+  countdown: kickoffs,
+}: {
+  place: ProjectorPlace;
+  games: MappedGame[];
+  map?: FloorCameraStore;
+  floor?: FloorCameraStore;
+  /** The week's kickoffs (ms): the countdown to the next one projected with the map, just over it. */
+  countdown?: number[];
+}) {
   const view = useProjectorView(place, map, floor);
   const sites = useMemo(() => mapSites(games), [games]);
   const wire = useWire();
   const id = useId().replace(/:/g, "");
+  const countdown = useCountdown(kickoffs);
+  const counting = countdown !== null;
+  // Where the countdown's lit: over the middle of the frame's top.
+  const clock = {
+    x: view.frame.left + view.frame.width / 2,
+    y: view.frame.top - COUNTDOWN_GAP_PX,
+    wide: COUNTDOWN_PX * 0.62 * 8,
+  };
   const drawn = useMemo(() => {
     const rings = outlineRings(view);
     const edge = rings.flat();
     // The rays go to the mainland's edge (its longest ring), not its islands.
     const mainland = rings.reduce((a, b) => (b.length > a.length ? b : a), []);
     const [sx, sy] = view.source;
-    // The light's haze: everything between the lens and the map's edge.
-    const haze = hull([view.source, ...edge]);
-    const lens = haze.findIndex(([x, y]) => x === sx && y === sy);
-    // Its outermost rays: the haze's two edges from the lens.
-    const outer = lens < 0 ? [] : [haze[(lens + haze.length - 1) % haze.length], haze[(lens + 1) % haze.length]];
+    // The light's haze: a fan from the lens to every stretch of the map's edge (and over the countdown), so it ends
+    // where the map does — no straight edges across from coast to coast. Each wedge wound the same way, so they add up.
+    const wedge = ([ax, ay]: [number, number], [bx, by]: [number, number]) => {
+      const turn = (ax - sx) * (by - sy) - (ay - sy) * (bx - sx);
+      const [p, q] = turn >= 0 ? [[ax, ay], [bx, by]] : [[bx, by], [ax, ay]];
+      return `M${sx},${sy}L${p[0].toFixed(1)},${p[1].toFixed(1)}L${q[0].toFixed(1)},${q[1].toFixed(1)}Z`;
+    };
+    const fan = rings.flatMap((ring) => ring.map((p, i) => wedge(p, ring[(i + 1) % ring.length])));
+    if (counting) fan.push(wedge([clock.x - clock.wide / 2, clock.y - COUNTDOWN_PX], [clock.x + clock.wide / 2, clock.y - COUNTDOWN_PX]));
+    // Its outermost rays: to the points of the edge farthest round either way from the lens.
+    const angle = ([x, y]: [number, number]) => Math.atan2(x - sx, sy - y);
+    const outer = edge.length ? [edge.reduce((a, b) => (angle(b) < angle(a) ? b : a)), edge.reduce((a, b) => (angle(b) > angle(a) ? b : a))] : [];
     // Rays to the edge all round, about evenly along it.
     const step = Math.max(1, Math.round(mainland.length / RAYS));
     const rays = mainland.filter((_, i) => i % step === 0);
-    const top = Math.min(...edge.map((p) => p[1]));
+    const top = Math.min(...edge.map((p) => p[1]), counting ? clock.y - COUNTDOWN_PX : Infinity);
     return {
       outline: projectorPath(view, US_PROJECTED_OUTLINE_PATH),
-      haze: `M${haze.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join("L")}Z`,
+      haze: fan.join(""),
       rays: rays.map(([x, y]) => `M${sx},${sy}L${x.toFixed(1)},${y.toFixed(1)}`).join(""),
       outer: outer.map(([x, y]) => `M${sx},${sy}L${x.toFixed(1)},${y.toFixed(1)}`).join(""),
       top,
     };
-  }, [view]);
+  }, [view, counting, clock.x, clock.y, clock.wide]);
   const [sx, sy] = view.source;
   const spread = view.frame.width;
   return (
@@ -188,6 +224,17 @@ export function FloorProjection({ place, games, map, floor }: { place: Projector
         const [x, y] = projectorPoint(view, s.pos[0], s.pos[1]);
         return <circle key={s.id} cx={x} cy={y} r={ringRadius(s.count) * view.s} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.85} strokeWidth={wire * 1.5} />;
       })}
+      {/* The countdown to the next kickoff, lit over the map as it is: glowing, see-through. */}
+      {countdown !== null ? (
+        <g fontSize={COUNTDOWN_PX} fontWeight={700} textAnchor="middle" style={{ fontVariantNumeric: "tabular-nums" }}>
+          <text x={clock.x} y={clock.y} fill="var(--ink-primary)" fillOpacity={0.5} filter={`url(#${id}-glow)`}>
+            {countdown}
+          </text>
+          <text x={clock.x} y={clock.y} fill="var(--ink-primary)" fillOpacity={0.85}>
+            {countdown}
+          </text>
+        </g>
+      ) : null}
     </svg>
     </div>
   );
@@ -196,30 +243,11 @@ export function FloorProjection({ place, games, map, floor }: { place: Projector
 /**
  * The week's games standing up off the projected map, in front of everything (the starters list sinks into the floor
  * behind them): each game's stem from its ring, taller the more players it counts, with the matchup's tag hung off its
- * top on the left (on Mountain or Pacific time, the right) — and, set over them, `overhead` (the kickoff countdown), in
- * the map's middle across at screen y `top` (higher still, should the map reach up past it). Those moved off the screen
- * aren't there.
+ * top on the left (on Mountain or Pacific time, the right). Those moved off the screen aren't there.
  */
-export function FloorProjectionTags({
-  place,
-  games,
-  overhead,
-  top,
-  map,
-  floor,
-}: {
-  place: ProjectorPlace;
-  games: MappedGame[];
-  overhead?: React.ReactNode;
-  top: number;
-  map?: FloorCameraStore;
-  floor?: FloorCameraStore;
-}) {
+export function FloorProjectionTags({ place, games, map, floor }: { place: ProjectorPlace; games: MappedGame[]; map?: FloorCameraStore; floor?: FloorCameraStore }) {
   const view = useProjectorView(place, map, floor);
   const sites = useMemo(() => mapSites(games), [games]);
-  // (Drawn only once the room's measured, in the browser.)
-  const [rootPx] = useState(() => (typeof document === "undefined" ? 16 : parseFloat(getComputedStyle(document.documentElement).fontSize) || 16));
-  const { frame } = view;
   // Lower on the map in front of higher; those off the screen gone.
   const shown = sites
     .map((s) => {
@@ -236,12 +264,6 @@ export function FloorProjectionTags({
   }));
   return (
     <div className="pointer-events-none fixed inset-0 z-10" aria-hidden>
-      {/* Over the map's middle. */}
-      {overhead ? (
-        <div className="absolute -translate-x-1/2 -translate-y-full" style={{ left: frame.left + frame.width / 2, top: Math.min(top, frame.top - 0.5 * rootPx) }}>
-          {overhead}
-        </div>
-      ) : null}
       {placed.map((s) => (
         <div key={s.id} className="absolute left-0 top-0" style={{ transform: `translate(${s.x}px, ${s.y}px)`, opacity: s.fade }}>
           <span className="absolute bottom-0 left-0 w-px bg-[var(--map-edge)]" style={{ height: `${stemRem(s.count)}rem` }} />
