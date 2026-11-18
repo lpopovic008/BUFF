@@ -19,6 +19,43 @@ const POSTS = "#f2c94c";
 const BALL = "#8b4a22";
 const BALL_LIT = "#b06a38";
 const BALL_DARK = "#4f2810";
+/** A kickoff's flyover: how long the jets take over the field and how long their smoke lasts after (s); how far past
+ * each end zone they're flown from and to, how high (yards), and how long their smoke trails (yards). */
+const FLYOVER_S = 4.2;
+const TRAIL_FADE_S = 1.8;
+const FLYOVER_RUN = 70;
+const FLYOVER_HEIGHT = 15;
+const TRAIL_LONG = 90;
+/** A jet's length, nose to tail (yards — bigger than life, to be seen), and how far toward you its shadow falls. */
+const JET_LONG = 11;
+const SHADOW_SHIFT = 9;
+/** How much a jet's drawn shorter across than it's long, as it shows from where you see it. */
+const JET_SQUASH = 0.5;
+/** The formation, a diamond: each jet's distance behind the lead, across the field (toward you, +), and how much
+ * lower (yards) — the lead, the left wing, the right wing, the slot. */
+const FORMATION: [back: number, z: number, lower: number][] = [
+  [0, 0, 0],
+  [10, -9, 0.5],
+  [10, 9, 0.5],
+  [20, 0, 1],
+];
+/** A jet seen from above, nose first along +u, wings across v: a fighter's delta, its tailplanes, outlined round. */
+const JET_HALF: [number, number][] = [
+  [4.6, 0],
+  [3.4, 0.35],
+  [1.8, 0.6],
+  [0.6, 0.75],
+  [-1.5, 4.1],
+  [-2.3, 4.1],
+  [-2.0, 0.9],
+  [-3.1, 0.9],
+  [-4.1, 2.1],
+  [-4.6, 2.1],
+  [-4.3, 0.55],
+  [-4.6, 0.35],
+];
+const JET: [number, number][] = [...JET_HALF, ...JET_HALF.slice(1).reverse().map(([u, v]): [number, number] => [u, -v])];
+
 /** How far round its long axis the ball's laces sit at rest (rad, from facing you): a little up its near side. */
 const LACE_REST = 0.32;
 /** How fast a thrown ball spirals, and a tumbling one rolls over, round its long axis (rad/s) — slow enough to see. */
@@ -66,6 +103,10 @@ interface FieldState {
   playing: (FieldPlay & { start: number; told: boolean }) | null;
   waiting: FieldPlay[];
   last: FieldPlay | null;
+  /** Whether it came on before its game's kickoff (and jets are to fly over it as that comes), and the flyover going on
+   * (when it started, as the draw loop's clock has it). */
+  awaitingKickoff: boolean;
+  flyover: number | null;
 }
 
 const situationOf = (game: NFLGame): Situation => ({
@@ -232,7 +273,8 @@ export function FloorFields({
       const lastPlay = game.live?.lastPlay ?? null;
       let state = fields.current.get(game.id);
       if (!state) {
-        state = { game, spot: null, alpha: 0, target: null, lastPlayId: lastPlay?.id ?? null, situation: situationOf(game), los: null, playing: null, waiting: [], last: null };
+        const awaitingKickoff = !reduced && game.state === "pre" && Date.now() < Date.parse(game.kickoff);
+        state = { game, spot: null, alpha: 0, target: null, lastPlayId: lastPlay?.id ?? null, situation: situationOf(game), los: null, playing: null, waiting: [], last: null, awaitingKickoff, flyover: null };
         fields.current.set(game.id, state);
       }
       const before = state.situation;
@@ -301,6 +343,8 @@ export function FloorFields({
     // Drawn again once the page's fonts are in (the end zones are lettered in its type, see drawNames).
     document.fonts?.ready.then(() => kick.current()).catch(() => {});
     let frame = 0;
+    // Woken at the next kickoff a field's waiting on, for its flyover.
+    let kickoffTimer = 0;
     let last = performance.now();
     let looping = false;
     const loop = () => {
@@ -379,12 +423,34 @@ export function FloorFields({
           else f.los = lineTo;
         }
       }
+      // Kickoff: jets flown over a field that came on before it, as its time comes (or its game's started) — and the
+      // next one waited on.
+      let nextKickoff = Infinity;
+      for (const f of fields.current.values()) {
+        if (f.awaitingKickoff) {
+          const kickoff = Date.parse(f.game.kickoff);
+          if (Date.now() >= kickoff || f.game.state !== "pre") {
+            f.awaitingKickoff = false;
+            f.flyover = now;
+          } else nextKickoff = Math.min(nextKickoff, kickoff);
+        }
+        if (f.flyover !== null) {
+          if ((now - f.flyover) / 1000 < FLYOVER_S + TRAIL_FADE_S) moving = true;
+          else f.flyover = null;
+        }
+      }
+      clearTimeout(kickoffTimer);
+      if (Number.isFinite(nextKickoff)) kickoffTimer = window.setTimeout(loop, Math.min(nextKickoff - Date.now() + 20, 2 ** 31 - 1));
+      // What's flown over the fields, drawn over them all.
+      const skies: (() => void)[] = [];
+
       // Farthest first, so nearer ones are drawn over them.
       const drawn = [...fields.current.values()].filter((f) => f.spot && f.alpha > 0.01).sort((a, b) => a.spot!.near - b.spot!.near);
       // The one being dragged over the rest.
       const held = dragging.current && fields.current.get(dragging.current.id);
       if (held && drawn.includes(held)) drawn.push(...drawn.splice(drawn.indexOf(held), 1));
       for (const f of drawn) drawField(f, now);
+      for (const sky of skies) sky();
       if (moving) loop();
 
       function drawField(f: FieldState, now: number) {
@@ -500,6 +566,110 @@ export function FloorFields({
           drawLabel(f.playing.flight, t);
         }
         ctx.restore();
+        if (f.flyover !== null) {
+          const started = f.flyover;
+          skies.push(() => {
+            ctx.save();
+            // From tablet width up, flown behind what stands at the floor's sides (the Red Zone, the starters list).
+            if (!room.current.focused) {
+              const { left, right } = room.current.floor;
+              ctx.beginPath();
+              ctx.rect(left, 0, right - left, h);
+              ctx.clip();
+            }
+            drawFlyover((now - started) / 1000);
+            ctx.restore();
+          });
+        }
+
+        // Jets in formation flown the length of the field, high over it, at kickoff: their shadows sweeping across it
+        // under them, smoke trailing from them — the wingmen's in the two teams' highlights — that drifts and fades
+        // once they're gone.
+        function drawFlyover(t: number) {
+          const fade = alpha * Math.min(1, Math.max(0, (FLYOVER_S + TRAIL_FADE_S - t) / TRAIL_FADE_S));
+          if (fade <= 0) return;
+          // How far along the lead's flown (x), the road team's end zone to the home team's.
+          const from = -FLYOVER_RUN;
+          const lead = from + ((100 + 2 * FLYOVER_RUN) * Math.min(t, FLYOVER_S)) / FLYOVER_S;
+          const up = (x: number, z: number, hgt: number): [number, number] => {
+            const [px, py] = at(x, z);
+            return [px, py - hgt * yardPx(z)];
+          };
+          const smoke = [colors.ink, teamTint(f.game.awayTeam, colors.lift, 1, colors.ink), teamTint(f.game.homeTeam, colors.lift, 1, colors.ink), colors.ink];
+          const jets = FORMATION.map(([back, z, lower], i) => ({ x: lead - back, z, hgt: FLYOVER_HEIGHT - lower, color: smoke[i] }));
+          // Their shadows on the field, where they're over it.
+          ctx.save();
+          quad(-10, 110);
+          ctx.closePath();
+          ctx.clip();
+          ctx.globalAlpha = fade * 0.35;
+          ctx.fillStyle = "#000";
+          if (t < FLYOVER_S) for (const j of jets) jetShadow(j.x, j.z + SHADOW_SHIFT);
+          ctx.restore();
+          // Their smoke, from where they came on over the field (or as far back as it lasts) to their tails: thin and
+          // thick at the tail, wider and fainter back along it.
+          ctx.lineCap = "butt";
+          for (const j of jets) {
+            const tail = Math.min(j.x - JET_LONG / 2, 110 + FLYOVER_RUN);
+            const start = Math.max(from, tail - TRAIL_LONG);
+            if (tail <= start) continue;
+            const steps = 14;
+            for (let k = 0; k < steps; k++) {
+              const a = tail - ((tail - start) * k) / steps;
+              const b = tail - ((tail - start) * (k + 1)) / steps;
+              const age = k / steps;
+              ctx.globalAlpha = fade * 0.55 * (1 - age);
+              ctx.strokeStyle = j.color;
+              ctx.lineWidth = Math.max(1, yardPx(j.z) * (0.8 + 2.2 * age));
+              ctx.beginPath();
+              ctx.moveTo(...up(a, j.z, j.hgt + age * 1.5));
+              ctx.lineTo(...up(b, j.z, j.hgt + (age + 1 / steps) * 1.5));
+              ctx.stroke();
+            }
+          }
+          if (t >= FLYOVER_S) return;
+          // The jets: silver, lit from above, their canopies dark, their afterburners glowing — seen more from above than
+          // the floor is (a jet laid as flat as the field would show as a sliver), their size where they are.
+          for (const j of jets) {
+            const [cx, cy] = up(j.x, j.z, j.hgt);
+            const [ax, ay] = up(j.x + 1, j.z, j.hgt);
+            const size = (yardPx(j.z) * JET_LONG) / 9.2;
+            ctx.save();
+            ctx.globalAlpha = fade;
+            ctx.translate(cx, cy);
+            ctx.rotate(Math.atan2(ay - cy, ax - cx));
+            ctx.scale(size, size * JET_SQUASH);
+            const body = ctx.createLinearGradient(0, -4.2, 0, 4.2);
+            body.addColorStop(0, "#f2f4f7");
+            body.addColorStop(0.5, "#c3c8cf");
+            body.addColorStop(1, "#7f8690");
+            ctx.fillStyle = body;
+            path(JET);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = "#555b63";
+            ctx.lineWidth = 0.7 / size;
+            ctx.stroke();
+            ctx.fillStyle = "#1d2733";
+            ctx.beginPath();
+            ctx.ellipse(2.1, 0, 1.1, 0.38, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = fade * 0.9;
+            ctx.fillStyle = "#ffb347";
+            ctx.beginPath();
+            ctx.ellipse(-4.9, 0, 0.6 * (0.85 + 0.15 * Math.sin(t * 60 + j.z)), 0.4, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
+        }
+
+        // A jet's shadow on the field, its middle at (x, z), nose toward the home team's end zone.
+        function jetShadow(x: number, z: number) {
+          const s = JET_LONG / 9.2;
+          path(JET.map(([u, v]) => at(x + u * s, z + v * s)));
+          ctx.closePath();
+          ctx.fill();
+        }
 
         // What the play was, over the field's far sideline while it's on: just its letters, popping up — and fading
         // out at its end.
@@ -890,6 +1060,7 @@ export function FloorFields({
       window.removeEventListener("pointercancel", onCancel, true);
       clearTimeout(hold);
       cancelAnimationFrame(frame);
+      clearTimeout(kickoffTimer);
       kick.current = () => {};
     };
   }, []);

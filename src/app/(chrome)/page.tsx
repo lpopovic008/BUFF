@@ -60,6 +60,8 @@ const FLING_WINDOW_MS = 100;
 const FLING_MIN_PX = 24;
 const RED_ZONE_FLOAT_REM = 0.125;
 const RED_ZONE_REM = 10.5;
+/** How long before its kickoff a game's field comes onto the floor (see FloorFields, which flies jets over it then). */
+const FIELD_LEAD_MS = 5 * 60_000;
 // From tablet width up, the player graphs at the back of the room: from under the ticker down to the horizon.
 // From tablet width up, how far down the starters list's first row sits: under the header and ticker, and the gap.
 const UNDER_TICKER = "var(--header-h, 0px) + var(--ticker-h, 0px) + 0.625rem";
@@ -595,9 +597,26 @@ export default function DashboardPage() {
     () => mappedGames.filter((g) => !hiddenBlocks.has(kickoffBlockLabel(g.game)) && !offMap.has(g.game.id)),
     [mappedGames, hiddenBlocks, offMap]
   );
-  // The games being played (of those), each on a field of its own on the floor (see FloorFields) — on a phone, laid in
-  // front of the Red Zone's switch, or above the Red Zone while it's up (none, stretched up over the floor).
-  const liveGames = useMemo(() => games.filter((g) => g.game.state === "in").map((g) => g.game), [games]);
+  // The games being played (of those), and those about to be (FIELD_LEAD_MS from kickoff on), each on a field of its own
+  // on the floor (see FloorFields) — on a phone, laid in front of the Red Zone's switch, or above the Red Zone while
+  // it's up (none, stretched up over the floor). The time they're checked against moves on as the next one's due.
+  const [fieldsClock, setFieldsClock] = useState(() => Date.now());
+  useEffect(() => {
+    const due = games
+      .filter((g) => g.game.state === "pre")
+      .map((g) => Date.parse(g.game.kickoff) - FIELD_LEAD_MS)
+      .filter((t) => t > fieldsClock);
+    if (due.length === 0) return;
+    const id = window.setTimeout(() => setFieldsClock(Date.now()), Math.min(Math.max(0, Math.min(...due) - Date.now()) + 50, 2 ** 31 - 1));
+    return () => window.clearTimeout(id);
+  }, [games, fieldsClock]);
+  const fieldGames = useMemo(
+    () =>
+      games
+        .filter((g) => g.game.state === "in" || (g.game.state === "pre" && Date.parse(g.game.kickoff) - FIELD_LEAD_MS <= fieldsClock))
+        .map((g) => g.game),
+    [games, fieldsClock]
+  );
   const fieldsFloor = useMemo(() => {
     if (!stand) return null;
     if (desktop || !redZoneUp) return stand.fields;
@@ -607,7 +626,7 @@ export default function DashboardPage() {
     return { ...stand.fields, front: Math.min(stand.fields.front, top - 0.5 * stand.rootPx) };
   }, [stand, desktop, redZoneUp, redZoneDragTop, redZoneLevel]);
   // Whether there are fields on the floor: then the floor's bare — no grid lines, no map.
-  const fieldsUp = fieldsFloor !== null && liveGames.length > 0;
+  const fieldsUp = fieldsFloor !== null && fieldGames.length > 0;
   // The floor, slid toward you for the Red Zone; and the projected map moved and zoomed in its frame (see
   // FloorCameraControls), at home on the next games to kick off.
   const [floorCamera] = useState(createFloorCameraStore);
@@ -884,7 +903,7 @@ export default function DashboardPage() {
         {mapOut ? <FloorProjectionTags place={stand.projector} games={games} top={stand.mapTop} map={mapCamera} floor={floorCamera} /> : null}
         {/* The games being played, the one in view across the floor's front, the rest behind it. */}
         {stand && fieldsFloor ? (
-          <FloorFields games={liveGames} width={stand.projector.width} height={stand.room} share={stand.projector.share} floor={fieldsFloor} focused />
+          <FloorFields games={fieldGames} width={stand.projector.width} height={stand.room} share={stand.projector.share} floor={fieldsFloor} focused />
         ) : null}
         {floorControls}
       </div>
@@ -957,7 +976,7 @@ export default function DashboardPage() {
       <FloorReflection source={startersList} className="pb-16" style={{ paddingTop: `calc(${UNDER_TICKER})` }} />
       {/* The games being played, a field each, on the floor between the Red Zone and the starters list. */}
       {stand && fieldsFloor ? (
-        <FloorFields games={liveGames} width={stand.projector.width} height={stand.room} share={stand.projector.share} floor={fieldsFloor} tilt={floorTilt} />
+        <FloorFields games={fieldGames} width={stand.projector.width} height={stand.room} share={stand.projector.share} floor={fieldsFloor} tilt={floorTilt} />
       ) : null}
       {redZoneStage}
       {floorControls}
