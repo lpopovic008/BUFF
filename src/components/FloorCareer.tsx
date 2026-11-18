@@ -27,6 +27,8 @@ export interface CareerStage {
   places?: StagePlaces;
   /** Its own back button too (from laptop width up, where the header has none). */
   back?: boolean;
+  /** Bumped to put away whatever card is up (something else on the page wanting the room). */
+  closeAt?: number;
 }
 
 /** A season of his, as his card shows it: his team, stats, fantasy points under the league's scoring, and finish. */

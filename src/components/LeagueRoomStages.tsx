@@ -1,21 +1,20 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeftIcon } from "@/components/ui/Icon";
 import { CloseButton, FloorTile, FloorTiles } from "@/components/LeagueRoomFloor";
-import { FLOOR_RISE_MS, SeasonLine } from "@/components/FloorCareer";
+import { SeasonLine } from "@/components/FloorCareer";
 import { MatchupGraph, MatchupSide } from "@/components/MatchupGraph";
 import type { LineupNumbers } from "@/components/PlayerCareer";
 import type { LineNote } from "@/components/LeagueMatchupCarousel";
 import { BenchCandidate, benchGroups, StarterInSlot } from "@/lib/bench-groups";
+import { ChartGame, ChartStat, FloorStatBars, WallLine } from "@/components/PlayerStageCharts";
 import { collegeLogo } from "@/lib/college-logos";
 import { nflLogoUrl } from "@/lib/nfl-logos";
 import { ordinal } from "@/lib/format";
 import { StatTier, statTier } from "@/lib/stat-tiers";
 import { playerHeadshotUrl } from "@/lib/sleeper";
 import { CareerWeek, getCareer, getSeasonWeeks, seasonPoints, seasonRank } from "@/lib/career-stats";
-import { FLOOR_TILT, floorDepth, floorPoint, floorScale, floorY, HORIZON_SHARE, PERSPECTIVE_PX } from "@/lib/grid-room";
-import { LIST_MOVE, listPosition, useListScroll } from "@/hooks/useListScroll";
 import { getPlayerBio, PlayerBio, ResolvedPlayer } from "@/lib/players";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import type { ResolvedSlot } from "@/hooks/useLeagueMatchupCarousel";
@@ -76,27 +75,6 @@ export function FloorTitle({ title, sub, onClose, back, extra }: { title: string
       </span>
     </div>
   );
-}
-
-/** Where `el` is on the screen — measured as it changes size, and as the window does. */
-function useScreenBox(el: HTMLElement | null) {
-  const [box, setBox] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
-  useLayoutEffect(() => {
-    if (!el) return;
-    const measure = () => {
-      const r = el.getBoundingClientRect();
-      setBox((was) => (was && was.left === r.left && was.top === r.top && was.width === r.width && was.height === r.height ? was : { left: r.left, top: r.top, width: r.width, height: r.height }));
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(el);
-    window.addEventListener("resize", measure);
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", measure);
-    };
-  }, [el]);
-  return box;
 }
 
 /** Split into rows of at most `per`. */
@@ -271,399 +249,48 @@ function PlayerHeader({ player, bio, numbers, onClose }: { player: ResolvedPlaye
   );
 }
 
-/** A stat on the floor: its name, and its key in a game's (or a season's) stats — graded by position (see statTier). */
-interface FloorStat {
-  label: string;
-  key: string;
-}
-const stat = (label: string, key: string): FloorStat => ({ label, key });
-const PASSING = [stat("Att", "pass_att"), stat("Cmp", "pass_cmp"), stat("PYd", "pass_yd"), stat("PTD", "pass_td"), stat("Int", "pass_int")];
-const RUSHING = [stat("Car", "rush_att"), stat("RYd", "rush_yd"), stat("RTD", "rush_td")];
-const RECEIVING = [stat("Tgt", "rec_tgt"), stat("Rec", "rec"), stat("RcYd", "rec_yd"), stat("RcTD", "rec_td")];
-/** Each position's stats on the floor, a column each: its own first (a back's running, a receiver's catching). */
-const FLOOR_STATS: Record<string, FloorStat[]> = {
-  QB: [...PASSING, ...RUSHING],
-  RB: [...RUSHING, ...RECEIVING],
-  WR: [...RECEIVING, ...RUSHING],
-  TE: [...RECEIVING, ...RUSHING],
-  K: [stat("FG", "fgm"), stat("FGA", "fga"), stat("XP", "xpm")],
-  DEF: [stat("Sack", "sack"), stat("Int", "int"), stat("PA", "pts_allow")],
+const stat = (label: string, key: string): ChartStat => ({ label, key });
+/**
+ * Each position's stats on the floor's bars (see FloorStatBars): its primary ones, as Sleeper leads with them, and its
+ * secondary ones behind them.
+ */
+const CHART_STATS: Record<string, { primary: ChartStat[]; secondary: ChartStat[] }> = {
+  QB: {
+    primary: [stat("PYd", "pass_yd"), stat("PTD", "pass_td"), stat("Int", "pass_int"), stat("RYd", "rush_yd"), stat("RTD", "rush_td")],
+    secondary: [stat("Cmp", "pass_cmp"), stat("Att", "pass_att"), stat("Car", "rush_att"), stat("Sack", "pass_sack"), stat("Fum", "fum_lost")],
+  },
+  RB: {
+    primary: [stat("Car", "rush_att"), stat("RYd", "rush_yd"), stat("RTD", "rush_td"), stat("Rec", "rec"), stat("RcYd", "rec_yd"), stat("RcTD", "rec_td")],
+    secondary: [stat("Tgt", "rec_tgt"), stat("Fum", "fum_lost"), stat("2Pt", "rush_2pt")],
+  },
+  WR: {
+    primary: [stat("Tgt", "rec_tgt"), stat("Rec", "rec"), stat("RcYd", "rec_yd"), stat("RcTD", "rec_td")],
+    secondary: [stat("Car", "rush_att"), stat("RYd", "rush_yd"), stat("RTD", "rush_td"), stat("Fum", "fum_lost")],
+  },
+  TE: {
+    primary: [stat("Tgt", "rec_tgt"), stat("Rec", "rec"), stat("RcYd", "rec_yd"), stat("RcTD", "rec_td")],
+    secondary: [stat("Car", "rush_att"), stat("RYd", "rush_yd"), stat("RTD", "rush_td"), stat("Fum", "fum_lost")],
+  },
+  K: {
+    primary: [stat("FG", "fgm"), stat("FGA", "fga"), stat("XP", "xpm")],
+    secondary: [stat("50+", "fgm_50p"), stat("XPA", "xpa"), stat("Miss", "fgmiss")],
+  },
+  DEF: {
+    primary: [stat("Sack", "sack"), stat("Int", "int"), stat("FR", "fum_rec"), stat("TD", "def_td"), stat("PA", "pts_allow")],
+    secondary: [stat("Saf", "safe"), stat("Blk", "blk_kick"), stat("YdA", "yds_allow")],
+  },
 };
-/** A stat's value as it's painted, and how good it was (see statTier) — none for a week he didn't play. */
-interface FloorCell {
-  text: string;
-  tier: StatTier | null;
-}
-/** Each tier's color: green, the places' yellow, red. */
-const TIER_CLASS: Record<StatTier, string> = { good: "text-status-good", mid: "text-series-4", bad: "text-status-critical" };
 
-/** A game (or a season) of his — or a gap, a week he didn't play: a column at the back, a row on the floor. */
-interface FloorColumn {
-  key: string;
-  /** Its fantasy points — null for a gap. */
-  value: number | null;
-  /** Its row on the floor: a team's logo (the opponent's, or his team's that season), its week (or year), and stats. */
-  logo: string | null;
-  tag: string;
-  cells: FloorCell[];
-  /** Read out for it, as a button — and, picked, in short along the floor's front. */
-  label: string;
+/** A game (or a season) as the stage picks and reads it out. */
+interface StageGame extends ChartGame {
   short: string;
-}
-
-/** How far into the floor the columns stand from the horizon (px down the screen), and how deep each is (floor px). */
-const COLUMN_FOOT_PX = 10;
-const COLUMN_DEPTH = 8;
-
-/**
- * His games (or seasons) as columns at the back of the room: standing on the floor at the horizon, rising up the
- * wall to `top` (screen y), across `left`..`right` — each as tall as his fantasy points, a gap for a week he didn't
- * play. Those whose rows are on the floor (`inView`) stand out; the picked one's lit. Each is a button (the arrow keys
- * move along them).
- */
-function ColumnBars({
-  columns,
-  room,
-  top,
-  left,
-  right,
-  picked,
-  inView,
-  onPick,
-  label,
-}: {
-  columns: FloorColumn[];
-  room: { width: number; height: number };
-  top: number;
-  left: number;
-  right: number;
-  picked: number;
-  inView: [number, number];
-  onPick: (i: number) => void;
-  label: string;
-}) {
-  const id = useId().replace(/:/g, "");
-  const { width: W, height: H } = room;
-  const yBase = H * HORIZON_SHARE + COLUMN_FOOT_PX;
-  const dF = floorDepth(yBase, H);
-  const dB = Math.max(0, dF - COLUMN_DEPTH);
-  const sF = floorScale(dF);
-  const sB = floorScale(dB);
-  const yBack = floorPoint(0, dB, W, H)[1];
-  const n = Math.max(1, columns.length);
-  const a0 = (left + 4 - W / 2) / sF;
-  const a1 = (right - 4 - W / 2) / sF;
-  const slot = (a1 - a0) / n;
-  const half = slot * 0.3;
-  const tallest = Math.max(8, yBase - top - 16);
-  const most = Math.max(1, ...columns.map((c) => c.value ?? 0));
-  const best = Math.max(...columns.map((c) => c.value ?? -1));
-  const pts = (ps: [number, number][]) => ps.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
-  const x = (a: number, sc: number) => W / 2 + a * sc;
-  return (
-    <svg className="pointer-events-none fixed inset-0 z-[7] h-full w-full overflow-visible" role="group" aria-label={label}>
-      <defs>
-        <radialGradient id={`${id}-glow`}>
-          <stop offset="0" stopColor="var(--ink-primary)" stopOpacity="0.14" />
-          <stop offset="1" stopColor="var(--ink-primary)" stopOpacity="0" />
-        </radialGradient>
-      </defs>
-      {/* A pool of light on the floor where they stand. */}
-      <ellipse cx={(left + right) / 2} cy={yBase + 4} rx={(right - left) * 0.5} ry={24} fill={`url(#${id}-glow)`} />
-      {columns.map((c, i) => {
-        const mid = a0 + slot * (i + 0.5);
-        const [fl, fr, bl, br] = [x(mid - half, sF), x(mid + half, sF), x(mid - half, sB), x(mid + half, sB)];
-        const slotL = x(a0 + slot * i, sF);
-        const slotR = x(a0 + slot * (i + 1), sF);
-        if (c.value === null) {
-          // A week he didn't play: its footprint on the floor, empty.
-          return <polygon key={c.key} points={pts([[fl, yBase], [fr, yBase], [br, yBack], [bl, yBack]])} fill="none" stroke="var(--ink-muted)" strokeOpacity={0.5} strokeDasharray="2 2" aria-hidden />;
-        }
-        const hF = Math.max(2, (tallest * Math.max(0, c.value)) / most);
-        const hB = (hF * sB) / sF;
-        const lit = i === picked;
-        const near = i >= inView[0] && i <= inView[1];
-        const right_ = (fl + fr) / 2 < W / 2;
-        const narrow = slotR - slotL < 30;
-        return (
-          <g
-            key={c.key}
-            role="button"
-            tabIndex={0}
-            aria-label={c.label}
-            aria-pressed={lit}
-            data-col={i}
-            className="group pointer-events-auto cursor-pointer outline-none"
-            onClick={() => onPick(i)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                onPick(i);
-              } else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
-                e.preventDefault();
-                e.stopPropagation();
-                const by = e.key === "ArrowLeft" ? -1 : 1;
-                let next = i + by;
-                while (next >= 0 && next < columns.length && columns[next].value === null) next += by;
-                if (next < 0 || next >= columns.length) return;
-                onPick(next);
-                e.currentTarget.parentElement?.querySelector<SVGGElement>(`[data-col="${next}"]`)?.focus();
-              }
-            }}
-          >
-            {/* The whole of its slot, to tap. */}
-            <rect x={slotL} y={yBase - tallest - 16} width={slotR - slotL} height={tallest + 20} fill="transparent" />
-            <g className="floor-bar" style={{ transformOrigin: `${(fl + fr) / 2}px ${yBase}px`, animationDelay: `${FLOOR_RISE_MS * 0.6 + i * 40}ms` }}>
-              <polygon
-                points={right_ ? pts([[fr, yBase], [br, yBack], [br, yBack - hB], [fr, yBase - hF]]) : pts([[fl, yBase], [bl, yBack], [bl, yBack - hB], [fl, yBase - hF]])}
-                fill={lit || near ? "var(--ink-primary)" : "var(--ink-secondary)"}
-                fillOpacity={lit ? 0.55 : near ? 0.3 : 0.12}
-              />
-              <polygon
-                points={pts([[bl, yBack - hB], [br, yBack - hB], [fr, yBase - hF], [fl, yBase - hF]])}
-                fill={lit || near ? "var(--ink-primary)" : "var(--ink-secondary)"}
-                fillOpacity={lit ? 0.8 : near ? 0.45 : 0.2}
-              />
-              <polygon
-                points={pts([[fl, yBase], [fr, yBase], [fr, yBase - hF], [fl, yBase - hF]])}
-                fill={lit ? "var(--ink-primary)" : near ? "var(--ink-secondary)" : "var(--page)"}
-                fillOpacity={lit ? 1 : near ? 0.45 : 0.45}
-                stroke={lit || near ? "var(--ink-primary)" : "var(--ink-muted)"}
-                strokeOpacity={lit || near ? 1 : 0.6}
-                strokeWidth={1}
-                strokeLinejoin="round"
-                className="transition-[fill-opacity,stroke-opacity] duration-200"
-              />
-            </g>
-            <rect
-              x={slotL + 1}
-              y={yBase - tallest - 16}
-              width={slotR - slotL - 2}
-              height={tallest + 16}
-              fill="none"
-              stroke="var(--ink-primary)"
-              strokeDasharray="3 3"
-              className="opacity-0 group-focus-visible:opacity-100"
-            />
-            <text
-              x={(fl + fr) / 2}
-              y={Math.min(yBase - hF, yBack - hB) - 4}
-              textAnchor="middle"
-              className={`floor-bar-label tabular-nums ${lit ? "fill-[var(--ink-primary)] font-extrabold" : near ? "fill-[var(--ink-primary)] font-semibold" : "fill-[var(--ink-muted)] font-semibold"}`}
-              style={{ fontSize: narrow ? "0.5625rem" : "0.625rem", animationDelay: `${FLOOR_RISE_MS * 0.6 + i * 40 + 450}ms` }}
-            >
-              {c.value === best && best > 0 ? "★" : ""}
-              {narrow && c.value >= 10 ? String(Math.round(c.value)) : c.value >= 100 ? String(Math.round(c.value)) : c.value.toFixed(1)}
-            </text>
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
-
-/** The floor's table, in floor px: a row's depth; how far the table's first row is from the columns' foot. */
-const ROW_DEPTH = 26;
-const TABLE_GAP = 12;
-/** How much the table's letters are drawn taller than wide, as a road's are, to read along a floor laid so far back. */
-const FLOOR_LETTERING = 2.4;
-/** The table reaches no nearer than where the floor's this many times as wide as at the horizon (its far rows legible). */
-const TABLE_NEAR_SCALE = 3;
-/** A screen px of drag moves the table this many floor px. */
-const DRAG_TO_FLOOR = 1.6;
-
-/** The floor's rows moved `off` floor px along it (on the graphics card, not re-rendered). */
-function slideRows(el: HTMLElement | null, off: number) {
-  if (el) el.style.transform = `translateY(${-off}px)`;
-}
-/** A scrolling box put at `top`, there and then. */
-function scrollTo(el: HTMLElement, top: number) {
-  el.scrollTop = top;
-}
-
-/**
- * His games (or seasons) as rows of a table lying on the floor in front of the columns — drawn in the room's own
- * perspective (laid back as the floor is, under the same lens: see grid-room.ts), its letters long as a road's are.
- * The column names along its near edge; the rows above, scrolled along the floor by a drag or a wheel — farther rows
- * smaller, nearer bigger. Tapping a row picks it. Tells `onView` which rows are on the floor as it moves, and scrolls
- * to bring row `bring.i` forward when asked.
- */
-function FloorTable({
-  columns,
-  heads,
-  room,
-  left,
-  right,
-  picked,
-  onPick,
-  onView,
-  bring,
-}: {
-  columns: FloorColumn[];
-  heads: string[];
-  room: { width: number; height: number };
-  left: number;
-  right: number;
-  picked: number;
-  onPick: (i: number) => void;
-  onView: (range: [number, number]) => void;
-  bring: { i: number; at: number } | null;
-}) {
-  const { width: W, height: H } = room;
-  const horizon = H * HORIZON_SHARE;
-  const yBase = horizon + COLUMN_FOOT_PX;
-  // The table's band of floor, far edge to near.
-  const dTop = floorDepth(yBase, H) + TABLE_GAP;
-  const dNear = (PERSPECTIVE_PX / Math.sin((FLOOR_TILT * Math.PI) / 180)) * (1 - 1 / TABLE_NEAR_SCALE);
-  const dBottom = Math.max(dTop + ROW_DEPTH * 3, dNear);
-  const headDepth = ROW_DEPTH * 0.8;
-  const band = dBottom - headDepth - dTop;
-  // As wide as fits the screen at its nearest edge.
-  const planeW = (right - left - 8) / floorScale(dBottom);
-  const cols = heads.length;
-  const grid = `1.3fr 0.9fr 1.1fr ${Array.from({ length: cols - 3 }, () => "1fr").join(" ")}`;
-  const maxScroll = Math.max(0, columns.length * ROW_DEPTH - band);
-
-  // Scrolled by a box over the table's stretch of screen, moved as an iPhone moves a list (see useListScroll).
-  const [scroller, setScroller] = useState<HTMLDivElement | null>(null);
-  useListScroll(scroller);
-  const rowsRef = useRef<HTMLDivElement>(null);
-  const viewRef = useRef<[number, number]>([-1, -1]);
-  const onViewLatest = useRef(onView);
-  useEffect(() => {
-    onViewLatest.current = onView;
-  });
-  useEffect(() => {
-    if (!scroller) return;
-    const move = () => {
-      // Fewer rows than fit: they sit along the near edge, by the column names.
-      const off = listPosition(scroller) * DRAG_TO_FLOOR + Math.min(0, columns.length * ROW_DEPTH - band);
-      slideRows(rowsRef.current, off);
-      const first = Math.max(0, Math.floor(Math.max(0, off) / ROW_DEPTH));
-      const last = Math.min(columns.length - 1, Math.floor((off + band - 1) / ROW_DEPTH));
-      if (first !== viewRef.current[0] || last !== viewRef.current[1]) {
-        viewRef.current = [first, last];
-        onViewLatest.current([first, last]);
-      }
-    };
-    // Starts with his latest nearest.
-    scrollTo(scroller, maxScroll / DRAG_TO_FLOOR);
-    move();
-    scroller.addEventListener(LIST_MOVE, move);
-    scroller.addEventListener("scroll", move, { passive: true });
-    return () => {
-      scroller.removeEventListener(LIST_MOVE, move);
-      scroller.removeEventListener("scroll", move);
-    };
-  }, [scroller, columns.length, band, maxScroll]);
-  // A column at the back tapped: its row brought forward, nearest but one.
-  useEffect(() => {
-    if (!bring || !scroller) return;
-    const target = Math.min(maxScroll, Math.max(0, (bring.i + 2) * ROW_DEPTH - band));
-    scroller.scrollTo({ top: target / DRAG_TO_FLOOR, behavior: "smooth" });
-  }, [bring, scroller, maxScroll, band]);
-
-  const yTop = floorY(dTop, H);
-  const yBottom = floorY(dBottom, H);
-  // A tap: the row under it, through the floor's lens.
-  const tap = (e: React.MouseEvent) => {
-    if (!scroller) return;
-    const d = floorDepth(Math.max(e.clientY, horizon + 1), H);
-    const i = Math.floor((d - dTop + listPosition(scroller) * DRAG_TO_FLOOR + Math.min(0, columns.length * ROW_DEPTH - band)) / ROW_DEPTH);
-    if (i >= 0 && i < columns.length && columns[i].value !== null) onPick(i);
-  };
-  const cell = "flex items-center justify-center overflow-hidden whitespace-nowrap tabular-nums";
-  const lettering = { transform: `scaleY(${FLOOR_LETTERING})` };
-  return (
-    <>
-      {/* The table, laid on the floor: hinged at the horizon, laid back as the floor is, under its lens. */}
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 z-[7] overflow-hidden"
-        style={{ perspective: `${PERSPECTIVE_PX}px`, perspectiveOrigin: `${W / 2}px ${horizon}px` }}
-      >
-        <div
-          className="absolute"
-          style={{ left: W / 2 - planeW / 2, top: horizon, width: planeW, height: dBottom, transformOrigin: "50% 0", transform: `rotateX(${FLOOR_TILT}deg)` }}
-        >
-          {/* The rows, fading out toward the back. */}
-          <div
-            className="absolute inset-x-0 overflow-hidden"
-            style={{ top: dTop, height: band, maskImage: `linear-gradient(to bottom, transparent, black ${ROW_DEPTH * 1.5}px)` }}
-          >
-            <div ref={rowsRef} className="will-change-transform">
-              {columns.map((c, i) => {
-                const lit = i === picked;
-                return (
-                  <div
-                    key={c.key}
-                    className={`grid border-b border-ink-muted/30 ${lit ? "bg-ink-primary/10" : ""}`}
-                    style={{ gridTemplateColumns: grid, height: ROW_DEPTH, fontSize: 7 }}
-                  >
-                    <span className={cell}>
-                      {c.logo ? (
-                        // eslint-disable-next-line @next/next/no-img-element -- a static SVG on a static export
-                        <img src={c.logo} alt="" className="h-[80%] w-auto object-contain" style={{ transform: "scaleY(1.6)" }} />
-                      ) : null}
-                    </span>
-                    <span className={`${cell} ${lit ? "font-extrabold text-ink-primary" : "font-bold text-ink-muted"}`}>
-                      <span style={lettering}>{c.tag}</span>
-                    </span>
-                    <span className={`${cell} ${lit ? "font-extrabold text-ink-primary" : c.value === null ? "text-ink-muted" : "font-bold text-ink-primary"}`}>
-                      <span style={lettering}>{c.value === null ? "–" : c.value.toFixed(1)}</span>
-                    </span>
-                    {/* Each stat in its tier's color (green, yellow, red), the picked row's bolder. */}
-                    {c.cells.map((v, k) => (
-                      <span
-                        key={k}
-                        className={`${cell} ${lit ? "font-extrabold" : "font-semibold"} ${v.tier ? TIER_CLASS[v.tier] : lit ? "text-ink-primary" : "text-ink-secondary"}`}
-                      >
-                        <span style={lettering}>{v.text}</span>
-                      </span>
-                    ))}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-          {/* The column names, along the table's near edge. */}
-          <div
-            className="absolute inset-x-0 grid border-t border-ink-primary/60 font-bold uppercase text-ink-muted"
-            style={{ top: dTop + band, height: headDepth, gridTemplateColumns: grid, fontSize: 6 }}
-          >
-            {heads.map((h, k) => (
-              <span key={k} className={cell}>
-                <span style={lettering}>{h}</span>
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-      {/* What's dragged: a box over the table's stretch of the screen, scrolled by the page (see useListScroll). */}
-      <div
-        ref={setScroller}
-        data-floor-ui
-        onClick={tap}
-        className="fixed z-[8] touch-none overflow-y-auto overscroll-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        style={{ top: yTop, height: Math.max(0, yBottom - yTop), left, width: right - left }}
-        aria-label="Drag along the floor to see every game"
-      >
-        <div style={{ height: Math.max(0, yBottom - yTop) + maxScroll / DRAG_TO_FLOOR }} />
-      </div>
-    </>
-  );
 }
 
 /** A stat's value as it's painted: whole (Sleeper leaves a stat out when it's none). */
 const whole = (v: number | undefined) => String(Math.round(v !== undefined && Number.isFinite(v) ? v : 0));
-/**
- * A stat's cell for a game he played (a stat he didn't have is none — red, where it's graded); or for a season, its
- * total, graded by what it came to a game (`games`).
- */
-const gradedCell = (position: string, key: string, stats: Record<string, number>, games = 1): FloorCell => {
-  const value = Number.isFinite(stats[key]) ? stats[key] : 0;
-  return { text: whole(value), tier: games > 0 ? statTier(position, key, value / games) : null };
-};
+/** How good each of a game's stats was (see statTier) — or a season's, by what it came to a game (`games`). */
+const tiersOf = (position: string, stats: ChartStat[], line: Record<string, number>, games = 1): Record<string, StatTier | null> =>
+  Object.fromEntries(stats.map((r) => [r.key, games > 0 ? statTier(position, r.key, (Number.isFinite(line[r.key]) ? line[r.key] : 0) / games) : null]));
 
 /**
  * A player as a stage: on the back wall (under `picker`, if there is one), who he is (see PlayerHeader), his numbers
@@ -731,18 +358,19 @@ export function PlayerStage({
   const seasonWeeks = openSeason && weeks?.season === openSeason ? weeks.weeks : null;
   const [table, setTable] = useState(false);
 
-  const statRows = FLOOR_STATS[player.position] ?? FLOOR_STATS.WR;
-  // The columns: every week of the season picked (its whole length — or, this season, through his latest game), a
-  // gap where he didn't play; or every season of his.
-  const columns: FloorColumn[] | null = (() => {
+  const chartStats = CHART_STATS[player.position] ?? CHART_STATS.WR;
+  const allStats = [...chartStats.primary, ...chartStats.secondary];
+  // The games: every week of the season picked (all of it, the weeks still to come too), a gap where he didn't play;
+  // or every season of his.
+  const columns: StageGame[] | null = (() => {
     if (seasons === null) return null;
     if (!openSeason) {
       return seasons.map((s) => ({
         key: s.season,
         value: s.points,
-        logo: s.team ? nflLogoUrl(s.team) : null,
-        tag: s.season,
-        cells: [{ text: whole(s.stats.gp), tier: null }, ...statRows.map((r) => gradedCell(player.position, r.key, s.stats, s.stats.gp ?? 0))],
+        tag: `'${s.season.slice(-2)}`,
+        stats: s.stats,
+        tiers: tiersOf(player.position, allStats, s.stats, s.stats.gp ?? 0),
         label: `${s.season}${s.team ? `, ${s.team}` : ""}: ${s.points.toFixed(1)} points${s.rank ? `, ${player.position}${s.rank}` : ""}`,
         short: `${s.season}${s.team ? ` · ${s.team}` : ""} · ${Math.round(s.stats.gp ?? 0)} GP · ${s.points.toFixed(1)} pts · ${
           s.stats.gp ? (s.points / s.stats.gp).toFixed(1) : "–"
@@ -752,29 +380,27 @@ export function PlayerStage({
     if (!seasonWeeks) return null;
     const byWeek = new Map(seasonWeeks.map((w) => [w.week, w]));
     const last = Math.max(0, ...seasonWeeks.map((w) => w.week));
-    const length = Number(openSeason) === season ? last : Math.max(last, Number(openSeason) >= 2021 ? 18 : 17);
+    const length = Math.max(last, Number(openSeason) >= 2021 ? 18 : 17);
+    const thisSeason = Number(openSeason) === season;
     return Array.from({ length }, (_, k) => {
       const week = k + 1;
       const w = byWeek.get(week);
-      if (!w)
-        return { key: `w${week}`, value: null, logo: null, tag: String(week), cells: statRows.map(() => ({ text: "–", tier: null })), label: `Week ${week}: didn't play`, short: `Week ${week}` };
+      if (!w) {
+        const future = thisSeason && week > last;
+        return { key: `w${week}`, value: null, tag: String(week), stats: null, tiers: {}, future, label: `Week ${week}: ${future ? "still to come" : "didn't play"}`, short: `Week ${week}` };
+      }
       const points = seasonPoints(w.stats, scoring);
       return {
         key: `w${week}`,
         value: points,
-        logo: w.opponent ? nflLogoUrl(w.opponent) : null,
         tag: String(week),
-        cells: statRows.map((r) => gradedCell(player.position, r.key, w.stats)),
-        label: `Week ${week}${w.opponent ? ` against ${w.opponent}` : ""}: ${points.toFixed(1)} points, ${statRows.map((r) => `${whole(w.stats[r.key])} ${r.label}`).join(", ")}`,
+        stats: w.stats,
+        tiers: tiersOf(player.position, allStats, w.stats),
+        label: `Week ${week}${w.opponent ? ` against ${w.opponent}` : ""}: ${points.toFixed(1)} points, ${chartStats.primary.map((r) => `${whole(w.stats[r.key])} ${r.label}`).join(", ")}`,
         short: `${openSeason} · Week ${week}${w.opponent ? ` · vs ${w.opponent}` : ""} · ${points.toFixed(1)} pts`,
       };
     });
   })();
-  // The table's column names: the team, the week (or year), points, then the stats.
-  const heads = openSeason ? ["Opp", "Wk", "Pts", ...statRows.map((r) => r.label)] : ["Team", "Year", "Pts", "GP", ...statRows.map((r) => r.label)];
-  // Which rows are on the floor (their columns stand out), and a column's row to bring forward.
-  const [inView, setInView] = useState<[number, number]>([-1, -1]);
-  const [bring, setBring] = useState<{ i: number; at: number } | null>(null);
 
   // The column read out: his latest, until another's picked — in whatever's shown.
   const [pickedCol, setPickedCol] = useState<{ view: string; i: number } | null>(null);
@@ -783,10 +409,7 @@ export function PlayerStage({
   const pick = pickedCol?.view === view && columns?.[pickedCol.i]?.value != null ? pickedCol.i : lastPlayed;
   const readout = !columns ? "Loading…" : lastPlayed < 0 ? (openSeason ? `No games in ${openSeason}` : "No regular-season stats yet") : columns[pick].short;
 
-  // Where the wall's words end: the columns rise to just under them.
-  const [wallEl, setWallEl] = useState<HTMLElement | null>(null);
-  const wallBox = useScreenBox(wallEl);
-  const { floor, room } = places;
+  const { floor } = places;
   const seasonButton = (key: string, label: string, on: boolean, onPick: () => void, buttonTitle?: string) => (
     <button
       key={key}
@@ -810,7 +433,7 @@ export function PlayerStage({
         className={`fixed z-[6] overflow-y-auto transition-[opacity,transform] ease-out [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${up ? "opacity-100" : "translate-y-2 opacity-0"}`}
         style={{ ...places.wall, transitionDuration: `${STAGE_MS}ms` }}
       >
-        <div ref={setWallEl} className="flex flex-col gap-2">
+        <div className="flex min-h-full flex-col gap-2">
           {picker}
           <section aria-label={player.name} className="flex flex-col gap-2">
             <PlayerHeader player={player} bio={bio} numbers={numbers} onClose={onClose} />
@@ -833,6 +456,22 @@ export function PlayerStage({
               </div>
             </div>
           </section>
+          {/* His points game by game, a line across the rest of the wall (see WallLine). */}
+          {columns && columns.length > 0 ? (
+            <div className="min-h-[8rem] flex-1 pb-1">
+              <WallLine
+                key={`line-${view}`}
+                games={columns}
+                picked={pick}
+                onPick={(i) => {
+                  setPickedCol({ view, i });
+                  // A season's dot looks into that season.
+                  if (!openSeason && seasons?.[i]) setChosen(seasons[i].season);
+                }}
+                label={openSeason ? `${player.name}'s ${openSeason}, week by week` : `${player.name}'s fantasy points by season`}
+              />
+            </div>
+          ) : null}
         </div>
       </div>
       {floorless ? null : table && details ? (
@@ -845,38 +484,19 @@ export function PlayerStage({
         </div>
       ) : (
         <div className={`transition-opacity ease-out ${up ? "opacity-100" : "pointer-events-none opacity-0"}`} style={{ transitionDuration: `${STAGE_MS}ms` }}>
-          {columns && wallBox && columns.length > 0 ? (
-            <>
-              <ColumnBars
-                key={`bars-${view}`}
-                columns={columns}
-                room={room}
-                top={wallBox.top + wallBox.height + 18}
-                left={floor.left}
-                right={floor.left + floor.width}
-                picked={pick}
-                inView={inView}
-                onPick={(i) => {
-                  setPickedCol({ view, i });
-                  // A season's column looks into that season; a game's brings its row forward on the floor.
-                  if (!openSeason && seasons?.[i]) setChosen(seasons[i].season);
-                  else setBring({ i, at: Date.now() });
-                }}
-                label={openSeason ? `${player.name}'s ${openSeason}, week by week` : `${player.name}'s fantasy points by season`}
-              />
-              <FloorTable
-                key={`table-${view}`}
-                columns={columns}
-                heads={heads}
-                room={room}
-                left={floor.left}
-                right={floor.left + floor.width}
-                picked={pick}
-                onPick={(i) => setPickedCol({ view, i })}
-                onView={setInView}
-                bring={bring}
-              />
-            </>
+          {columns && columns.length > 0 ? (
+            <FloorStatBars
+              key={`bars-${view}`}
+              games={columns}
+              primary={chartStats.primary}
+              secondary={chartStats.secondary}
+              top={floor.top}
+              bottom={floor.bottom - 20}
+              left={floor.left}
+              right={floor.left + floor.width}
+              picked={pick}
+              onPick={(i) => setPickedCol({ view, i })}
+            />
           ) : null}
           {/* The column picked, read out along the floor's front. */}
           <p

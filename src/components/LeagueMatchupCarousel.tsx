@@ -1035,6 +1035,14 @@ export function MatchupProviders({
     onShow(true);
     return () => onShow(false);
   }, [onShow, shown]);
+  // Put away when the page asks (see CareerStage's closeAt).
+  const closeAt = stage?.closeAt;
+  const closedAt = useRef(closeAt);
+  useEffect(() => {
+    if (closeAt === closedAt.current) return;
+    closedAt.current = closeAt;
+    queueMicrotask(() => setCard(null));
+  }, [closeAt]);
   return (
     <ProjectedContext.Provider value={projected}>
     <LineToneContext.Provider value={lineTones ?? EMPTY_TONES}>

@@ -751,7 +751,14 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
     onPick(id);
   };
   // A tile pressed: its panel up — or, already up, down again.
-  const press = (next: FloorAction) => (action === next ? close() : pick(next));
+  // A tile pressed: any player's card put away first (see CareerStage's closeAt), then its panel up — or, already up,
+  // down again.
+  const [closeCardAt, setCloseCardAt] = useState(0);
+  const press = (next: FloorAction) => {
+    if (cardUp) setCloseCardAt((n) => n + 1);
+    if (action === next && !cardUp) close();
+    else pick(next);
+  };
   const matchups = (opened: boolean) =>
     shownGame
       ? providers(
@@ -808,6 +815,7 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
         onShow: setCardUp,
         places: stagePlaces ?? undefined,
         back: true,
+        closeAt: closeCardAt,
       }
     : null;
   return (
