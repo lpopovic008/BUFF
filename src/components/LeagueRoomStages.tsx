@@ -8,13 +8,14 @@ import { MatchupGraph, MatchupSide } from "@/components/MatchupGraph";
 import type { LineupNumbers } from "@/components/PlayerCareer";
 import type { LineNote } from "@/components/LeagueMatchupCarousel";
 import { BenchCandidate, benchGroups, StarterInSlot } from "@/lib/bench-groups";
-import { ChartGame, ChartStat, FloorStatBars, WallLine } from "@/components/PlayerStageCharts";
+import { BARS_OVER_HORIZON, ChartGame, ChartStat, FloorStatBars, useChartPan, WallLine } from "@/components/PlayerStageCharts";
 import { collegeLogo } from "@/lib/college-logos";
 import { nflLogoUrl } from "@/lib/nfl-logos";
 import { ordinal } from "@/lib/format";
 import { StatTier, statTier } from "@/lib/stat-tiers";
 import { playerHeadshotUrl } from "@/lib/sleeper";
 import { CareerWeek, getCareer, getSeasonWeeks, seasonPoints, seasonRank } from "@/lib/career-stats";
+import { HORIZON_SHARE } from "@/lib/grid-room";
 import { getPlayerBio, PlayerBio, ResolvedPlayer } from "@/lib/players";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import type { ResolvedSlot } from "@/hooks/useLeagueMatchupCarousel";
@@ -409,7 +410,10 @@ export function PlayerStage({
   const pick = pickedCol?.view === view && columns?.[pickedCol.i]?.value != null ? pickedCol.i : lastPlayed;
   const readout = !columns ? "Loading…" : lastPlayed < 0 ? (openSeason ? `No games in ${openSeason}` : "No regular-season stats yet") : columns[pick].short;
 
-  const { floor } = places;
+  const { floor, room } = places;
+  // The wall's line and the floor's bars, slid together — the game picked in the middle to begin with.
+  const { pan, set: setPan, settle: settlePan } = useChartPan(view, Math.max(0, pick));
+  const horizon = room.height * HORIZON_SHARE;
   const seasonButton = (key: string, label: string, on: boolean, onPick: () => void, buttonTitle?: string) => (
     <button
       key={key}
@@ -458,17 +462,22 @@ export function PlayerStage({
           </section>
           {/* His points game by game, a line across the rest of the wall (see WallLine). */}
           {columns && columns.length > 0 ? (
-            <div className="min-h-[8rem] flex-1 pb-1">
+            <div className="min-h-[8rem] flex-1" style={{ paddingBottom: BARS_OVER_HORIZON - 6 }}>
               <WallLine
                 key={`line-${view}`}
                 games={columns}
                 picked={pick}
                 onPick={(i) => {
                   setPickedCol({ view, i });
+                  settlePan({ x: i, z: pan.z });
                   // A season's dot looks into that season.
                   if (!openSeason && seasons?.[i]) setChosen(seasons[i].season);
                 }}
                 label={openSeason ? `${player.name}'s ${openSeason}, week by week` : `${player.name}'s fantasy points by season`}
+                pan={pan.x}
+                screenWidth={room.width}
+                onPan={(x) => setPan({ x, z: pan.z })}
+                onSettle={(x) => settlePan({ x, z: pan.z })}
               />
             </div>
           ) : null}
@@ -490,12 +499,19 @@ export function PlayerStage({
               games={columns}
               primary={chartStats.primary}
               secondary={chartStats.secondary}
-              top={floor.top}
+              screenWidth={room.width}
+              horizon={horizon}
               bottom={floor.bottom - 20}
               left={floor.left}
               right={floor.left + floor.width}
               picked={pick}
-              onPick={(i) => setPickedCol({ view, i })}
+              onPick={(i) => {
+                setPickedCol({ view, i });
+                settlePan({ x: i, z: pan.z });
+              }}
+              pan={pan}
+              onPan={setPan}
+              onSettle={settlePan}
             />
           ) : null}
           {/* The column picked, read out along the floor's front. */}
