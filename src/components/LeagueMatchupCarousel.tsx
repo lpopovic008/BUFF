@@ -164,6 +164,8 @@ const THEIR_ROW_COLS = "grid-cols-[1.75rem_minmax(0,1fr)_1.875rem] sm:grid-cols-
 // The middle column fits the widest slot label (FLEX) in bold, and no more; every slot box fills it.
 const SLOT_COLS = "grid-cols-[1fr_1.5rem_1fr] sm:grid-cols-[1fr_1.8rem_1fr]";
 const ROW_TEXT = "text-[0.6875rem] sm:text-[0.8125rem]";
+// A starter's name written out in full (see FullNamesContext): on a phone a little bigger than the row's text.
+const NAME_TEXT_FULL = "text-[0.75rem] sm:text-[0.8125rem]";
 // A starter's second line, under their name and points: smaller, set tight, so the two lines take about the photo's height.
 const NOTE_TEXT = "text-[0.5625rem] leading-none sm:text-[0.625rem] sm:leading-none";
 
@@ -213,6 +215,8 @@ function SlotPhoto({ player }: { player: ResolvedPlayer }) {
  */
 function RankedName({ resolved, align }: { resolved: ResolvedSlot; align: "left" | "right" }) {
   const { player, valueRank, seasonRank, ppg } = resolved;
+  // Written out in full (the League page), a little bigger on a phone too.
+  const nameText = useContext(FullNamesContext) ? NAME_TEXT_FULL : ROW_TEXT;
   // Each in a column of its own width, kept even when it's empty, so every row's line up — the numbers centered in
   // the column.
   const pieces = [
@@ -229,7 +233,7 @@ function RankedName({ resolved, align }: { resolved: ResolvedSlot; align: "left"
   ];
   return (
     <span className={`flex min-w-0 flex-col ${align === "right" ? "items-end" : "items-start"}`}>
-      <OpensCareer resolved={resolved} className={`block max-w-full truncate ${ROW_TEXT} font-bold leading-tight text-ink-primary hover:underline ${align === "right" ? "text-right" : "text-left"}`}>
+      <OpensCareer resolved={resolved} className={`block max-w-full truncate ${nameText} font-bold leading-tight text-ink-primary hover:underline ${align === "right" ? "text-right" : "text-left"}`}>
         <PlayerName name={player!.name} />
       </OpensCareer>
       {/* Kept a line tall even with nothing on it. */}
@@ -284,7 +288,7 @@ function TheirSlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
 
 function SlotRow({ slot, my, their }: { slot: string; my: ResolvedSlot; their: ResolvedSlot | undefined }) {
   return (
-    <div className={`grid ${SLOT_COLS} items-center gap-1 sm:gap-2`}>
+    <div data-lineup-row className={`grid ${SLOT_COLS} items-center gap-1 sm:gap-2`}>
       <MySlotPlayer resolved={my} />
       {/* Every box the same width — the column's, which fits FLEX and no more. Outlined in its own text color, every slot alike. */}
       <span className="justify-self-stretch border border-current py-px text-center text-[0.625rem] font-bold uppercase leading-tight text-ink-primary sm:text-[0.6875rem]">
@@ -702,7 +706,8 @@ function MatchupLineup({ game, myRosterId, fit }: { game: ResolvedMatchupGame; m
   const [mine, other] = sides(game, myRosterId);
   if (fit) {
     return (
-      <FitRows className={`px-2 ${fit.className ?? ""}`} style={fit.style}>
+      // (On a phone, out to the list's own sides: the photos nearer the screen's edges.)
+      <FitRows className={`px-0 sm:px-2 ${fit.className ?? ""}`} style={fit.style}>
         {mine.slots.map((slot, i) => (
           <SlotRow key={i} slot={slot.slot} my={slot} their={other?.slots[i]} />
         ))}
@@ -893,6 +898,7 @@ export function MatchupStack({
             {/* The whole header toggles its lineup — except the team names, which still go to each team's page. */}
             <div
               ref={i === 0 ? setAHeader : undefined}
+              data-matchup-header
               role="button"
               tabIndex={0}
               aria-expanded={open}
