@@ -6,7 +6,7 @@ import { CloseButton, FloorTile, FloorTiles } from "@/components/LeagueRoomFloor
 import { SeasonLine } from "@/components/FloorCareer";
 import { MatchupGraph, MatchupSide } from "@/components/MatchupGraph";
 import type { LineupNumbers } from "@/components/PlayerCareer";
-import type { LineNote } from "@/components/LeagueMatchupCarousel";
+import { type LineNote, LineupPlayerRow } from "@/components/LeagueMatchupCarousel";
 import { BenchCandidate, BenchFilterKey, benchFilters, benchList, StarterInSlot } from "@/lib/bench-groups";
 import { ChartGame, ChartStat, FloorStairs, FloorStatBars, useChartPan, useStairs, WallLine } from "@/components/PlayerStageCharts";
 import { collegeLogo } from "@/lib/college-logos";
@@ -591,26 +591,62 @@ export function RoomBench({
     );
   }
   const byId = new Map(players.map((b) => [b.player!.playerId, b]));
+  const filterRow = (
+    <div role="group" aria-label="Look through your bench by" className="flex flex-wrap gap-1">
+      {filters.map((f) => {
+        const on = f.key === list.key;
+        return (
+          <button
+            key={f.key}
+            type="button"
+            aria-pressed={on}
+            onClick={() => setFilter(f.key)}
+            className={`border px-1.5 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide transition-colors ${
+              on ? "border-ink-primary text-ink-primary" : "border-transparent text-ink-muted hover:text-ink-primary"
+            }`}
+          >
+            {f.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+  // Just on the wall (beside the lineups, from laptop width up): the list alone, a player to a row, each laid out as
+  // the lineups' right-hand side is (his photo at the right edge) and opening his card where theirs do.
+  if (stage.floorless) {
+    return (
+      <div
+        data-floor-ui
+        className={`fixed z-[7] flex flex-col gap-2 transition-opacity ease-out ${stage.up ? "opacity-100" : "pointer-events-none opacity-0"}`}
+        style={{ ...stage.places.wall, transitionDuration: `${STAGE_MS}ms` }}
+      >
+        <div className="flex items-start gap-2">
+          <div className="min-w-0 flex-1">{filterRow}</div>
+          <CloseButton onClose={stage.onClose} />
+        </div>
+        {list.entries.length === 0 ? (
+          <span className="text-xs text-ink-muted">No one.</span>
+        ) : (
+          <ul aria-label="Your bench" className="flex min-h-0 flex-col gap-2.5 overflow-y-auto overflow-x-hidden py-1">
+            {list.entries.map(({ id, note }) => {
+              const b = byId.get(id);
+              if (!b?.player) return null;
+              return (
+                <li key={id} className="ml-auto flex w-full max-w-[19rem] flex-col items-stretch">
+                  <LineupPlayerRow resolved={b} />
+                  {/* What only this list says (who he'd outscore): under him, at the right. */}
+                  {list.key === "outscore" && note ? <span className="pr-[2.75rem] text-right text-[0.5625rem] font-semibold tabular-nums text-ink-muted">{note}</span> : null}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    );
+  }
   const picker = (
     <div className="flex flex-col gap-1.5" aria-label="Your bench">
-      <div role="group" aria-label="Look through your bench by" className="flex flex-wrap gap-1">
-        {filters.map((f) => {
-          const on = f.key === list.key;
-          return (
-            <button
-              key={f.key}
-              type="button"
-              aria-pressed={on}
-              onClick={() => setFilter(f.key)}
-              className={`border px-1.5 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide transition-colors ${
-                on ? "border-ink-primary text-ink-primary" : "border-transparent text-ink-muted hover:text-ink-primary"
-              }`}
-            >
-              {f.label}
-            </button>
-          );
-        })}
-      </div>
+      {filterRow}
       {list.entries.length === 0 ? (
         <span className="text-xs text-ink-muted">No one.</span>
       ) : (

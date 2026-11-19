@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ResolvedMatchupGame, ResolvedSlot } from "@/hooks/useLeagueMatchupCarousel";
 import { HeadToHeadBadge, PointsRankBadges, StreakBadge, TeamNameLabel } from "@/components/DashboardMatchupCard";
@@ -48,6 +48,8 @@ export const CareerStageContext = createContext<CareerStage | null>(null);
 
 /** Opens a player's career card (see PlayerCareer), with what their lineup numbers mean — null where there's none to open. */
 const PlayerCardContext = createContext<((player: ResolvedPlayer, numbers: LineupNumbers) => void) | null>(null);
+/** Told on the window as a card's opened (by whichever MatchupProviders opened it), so any other one goes. */
+const CARD_OPENED = "buff:player-card-opened";
 
 /** A starter's photo or name, opening their career card when tapped — what their numbers in the lineup mean first. */
 /** What a player's numbers in the lineup are (see PlayerCareer's LineupNumbers) — from inside MatchupProviders. */
@@ -292,6 +294,12 @@ function TheirSlotPlayer({ resolved }: { resolved: ResolvedSlot }) {
       </OpensCareer>
     </div>
   );
+}
+
+/** A player laid out as the right-hand side's starters are — points, then his name and numbers, his photo at the right
+ * edge — for a list beside the lineups (the bench's, see RoomBench). From inside MatchupProviders. */
+export function LineupPlayerRow({ resolved }: { resolved: ResolvedSlot }) {
+  return <TheirSlotPlayer resolved={resolved} />;
 }
 
 function SlotRow({ slot, my, their }: { slot: string; my: ResolvedSlot; their: ResolvedSlot | undefined }) {
@@ -1043,13 +1051,26 @@ export function MatchupProviders({
     closedAt.current = closeAt;
     queueMicrotask(() => setCard(null));
   }, [closeAt]);
+  // One card up at a time: opened here (the bench's list, say), whatever another of these has up goes.
+  const me = useId();
+  useEffect(() => {
+    const other = (e: Event) => {
+      if ((e as CustomEvent<string>).detail !== me) setCard(null);
+    };
+    window.addEventListener(CARD_OPENED, other);
+    return () => window.removeEventListener(CARD_OPENED, other);
+  }, [me]);
+  const openCard = (player: ResolvedPlayer, numbers: LineupNumbers) => {
+    window.dispatchEvent(new CustomEvent(CARD_OPENED, { detail: me }));
+    setCard({ player, numbers });
+  };
   return (
     <ProjectedContext.Provider value={projected}>
     <LineToneContext.Provider value={lineTones ?? EMPTY_TONES}>
     <LineNoteContext.Provider value={lineNotes ?? EMPTY_NOTES}>
     <DynastyContext.Provider value={dynasty}>
     <PositionsContext.Provider value={positions}>
-    <PlayerCardContext.Provider value={season ? (player: ResolvedPlayer, numbers: LineupNumbers) => setCard({ player, numbers }) : null}>
+    <PlayerCardContext.Provider value={season ? openCard : null}>
     <FullNamesContext.Provider value={fullNames}>
       {/* Over the page, not inside the list it was opened from (whose reflection would copy it). */}
       {card && season
