@@ -175,6 +175,9 @@ export default function ValuesPage() {
       player: { playerId, name: p.name, position, team: teamOf(p) },
       numbers: { valueRank: positionRanks.get(p) ?? null, dynasty: listType === "dynasty", seasonRank: null, ppg: null, opponent: null, bye: false, defenseRank: null },
       season,
+      // Opened on his value over time, in the values shown.
+      startOn: "value",
+      valueFormat: leagueFormat === "oneQB" ? "oneQB" : "superflex",
     });
   };
 

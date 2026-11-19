@@ -8,7 +8,9 @@ import { MatchupGraph, MatchupSide } from "@/components/MatchupGraph";
 import type { LineupNumbers } from "@/components/PlayerCareer";
 import { type LineNote, LineupPlayerRow } from "@/components/LeagueMatchupCarousel";
 import { BenchCandidate, BenchFilterKey, benchFilters, benchList, StarterInSlot } from "@/lib/bench-groups";
-import { ChartGame, ChartStat, FloorStairs, FloorStatBars, useChartPan, useStairs, WallLine } from "@/components/PlayerStageCharts";
+import { ChartGame, ChartStat, chartColumn, FloorStairs, FloorStatBars, useChartPan, useStairs, ValueLine, WallLine } from "@/components/PlayerStageCharts";
+import { loadValueHistory } from "@/hooks/useLeagueTrades";
+import { normalizeName } from "@/lib/name-match";
 import { collegeLogo } from "@/lib/college-logos";
 import { nflLogoUrl } from "@/lib/nfl-logos";
 import { ordinal } from "@/lib/format";
@@ -279,6 +281,8 @@ export function PlayerStage({
   picker,
   details,
   floorless = false,
+  startOn,
+  valueFormat = "superflex",
 }: {
   places: StagePlaces;
   up: boolean;
@@ -295,6 +299,10 @@ export function PlayerStage({
   scoring?: Record<string, number>;
   picker?: React.ReactNode;
   details?: React.ReactNode;
+  /** Opened on his value over time (from the Values page), not his current season. */
+  startOn?: "value";
+  /** Whose values his value over time is: superflex leagues' or 1QB's. */
+  valueFormat?: "superflex" | "oneQB";
 }) {
   // His bio and his seasons, as they load.
   const [bio, setBio] = useState<PlayerBio | null>(null);
@@ -326,6 +334,23 @@ export function PlayerStage({
   }, [player.playerId, openSeason]);
   const seasonWeeks = openSeason && weeks?.season === openSeason ? weeks.weeks : null;
   const [table, setTable] = useState(false);
+  // His value over time (KTC's, see value-history.ts), in place of his seasons while it's picked.
+  const [valueView, setValueView] = useState(startOn === "value");
+  const [valuePoints, setValuePoints] = useState<{ day: number; value: number }[] | null>(null);
+  useEffect(() => {
+    if (!valueView) return;
+    let cancelled = false;
+    loadValueHistory().then((history) => {
+      if (cancelled) return;
+      const name = normalizeName(player.name);
+      const series = history ? Object.values(history.players).find((p) => p.p === player.position && normalizeName(p.n) === name) : undefined;
+      const values = series ? (valueFormat === "oneQB" ? series.q : series.sf) : [];
+      setValuePoints(history ? values.flatMap((v, i) => (v == null ? [] : [{ day: history.from + i * history.step, value: v }])) : []);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [valueView, player.name, player.position, valueFormat]);
 
   const chartStats = CHART_STATS[player.position] ?? CHART_STATS.WR;
   const allStats = [...chartStats.primary, ...chartStats.secondary];
@@ -376,14 +401,29 @@ export function PlayerStage({
   const view = shown ?? "loading";
   const lastPlayed = columns ? columns.map((c, i) => (c.value === null ? -1 : i)).reduce((a, b) => Math.max(a, b), -1) : -1;
   const pick = pickedCol?.view === view && columns?.[pickedCol.i]?.value != null ? pickedCol.i : lastPlayed;
-  const readout = !columns ? "Loading…" : lastPlayed < 0 ? (openSeason ? `No games in ${openSeason}` : "No regular-season stats yet") : columns[pick].short;
+  const readout = valueView
+    ? valuePoints === null
+      ? "Loading…"
+      : valuePoints.length > 0
+        ? `KTC ${valueFormat === "oneQB" ? "1QB" : "superflex"} value now · ${Math.floor(valuePoints[valuePoints.length - 1].value / 100)}`
+        : "No value history for him"
+    : !columns
+      ? "Loading…"
+      : lastPlayed < 0
+        ? openSeason
+          ? `No games in ${openSeason}`
+          : "No regular-season stats yet"
+        : columns[pick].short;
 
   const { floor, room } = places;
-  // The wall's line and the floor's bars, slid together — the game picked in the middle to begin with.
-  const { pan, set: setPan, settle: settlePan } = useChartPan(view, Math.max(0, pick));
+  // The wall's line and the floor's bars: every game across, the middle one in the middle of the screen, each game's
+  // column as wide as lets them all fit (see chartColumn); slid down the stairs together.
   const horizon = room.height * HORIZON_SHARE;
+  const games = columns?.length ?? 0;
+  const { pan, set: setPan, settle: settlePan } = useChartPan(view, (games - 1) / 2);
+  const col = chartColumn(games, horizon, floor.bottom - 20, floor.left, floor.left + floor.width);
   // The floor made stairs for his stats while they're up on it.
-  const stairs = useStairs(up && !floorless && !table);
+  const stairs = useStairs(up && !floorless && !table && !valueView);
   const seasonButton = (key: string, label: string, on: boolean, onPick: () => void, buttonTitle?: string) => (
     <button
       key={key}
@@ -407,7 +447,7 @@ export function PlayerStage({
         className={`fixed z-[6] overflow-y-auto transition-[opacity,transform] ease-out [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${up ? "opacity-100" : "translate-y-2 opacity-0"}`}
         style={{ ...places.wall, transitionDuration: `${STAGE_MS}ms` }}
       >
-        <div className="flex min-h-full flex-col gap-2">
+        <div className="flex h-full min-h-fit flex-col gap-2">
           {picker}
           <section aria-label={player.name} className="flex flex-col gap-2">
             <PlayerHeader player={player} bio={bio} numbers={numbers} onClose={onClose} />
@@ -420,40 +460,46 @@ export function PlayerStage({
                   <span className="text-xs text-ink-muted">None yet</span>
                 ) : (
                   <>
-                    {seasonButton("career", "Career", !table && shown === "career", () => (setChosen("career"), setTable(false)), "Every season he's played")}
+                    {seasonButton("career", "Career", !table && !valueView && shown === "career", () => (setChosen("career"), setTable(false), setValueView(false)), "Every season he's played")}
                     {[...seasons].reverse().map((s) =>
-                      seasonButton(s.season, s.season, !table && shown === s.season, () => (setChosen(s.season), setTable(false)), `His ${s.season} week by week`)
+                      seasonButton(s.season, s.season, !table && !valueView && shown === s.season, () => (setChosen(s.season), setTable(false), setValueView(false)), `His ${s.season} week by week`)
                     )}
-                    {details ? seasonButton("table", "Table", table, () => setTable((t) => !t), "Every number there is") : null}
+                    {details ? seasonButton("table", "Table", table, () => (setTable((t) => !t), setValueView(false)), "Every number there is") : null}
                   </>
                 )}
               </div>
+              {/* His value over time: KTC's, from when it first listed him. */}
+              <div className="flex gap-1 pt-0.5">
+                {seasonButton("value", "Value over time", valueView, () => (setValueView(true), setTable(false)), "His trade value, KTC's, over time")}
+              </div>
             </div>
           </section>
-          {/* His points game by game, a line across the rest of the wall (see WallLine). */}
-          {columns && columns.length > 0 ? (
-            <div className="min-h-[8rem] flex-1 pb-1">
+          {/* His points game by game, a line across the rest of the wall down to the floor (see WallLine) — or his value
+              over time (see ValueLine). */}
+          {valueView ? (
+            <div className="relative min-h-[8rem] flex-1">
+              {valuePoints ? <ValueLine points={valuePoints} label={`${player.name}'s trade value over time`} /> : null}
+            </div>
+          ) : columns && columns.length > 0 ? (
+            <div className="relative min-h-[8rem] flex-1">
               <WallLine
                 key={`line-${view}`}
                 games={columns}
                 picked={pick}
                 onPick={(i) => {
                   setPickedCol({ view, i });
-                  settlePan({ x: i, z: pan.z });
                   // A season's dot looks into that season.
                   if (!openSeason && seasons?.[i]) setChosen(seasons[i].season);
                 }}
                 label={openSeason ? `${player.name}'s ${openSeason}, week by week` : `${player.name}'s fantasy points by season`}
-                pan={pan.x}
+                col={col}
                 screenWidth={room.width}
-                onPan={(x) => setPan({ x, z: pan.z })}
-                onSettle={(x) => settlePan({ x, z: pan.z })}
               />
             </div>
           ) : null}
         </div>
       </div>
-      {floorless ? null : <FloorStairs room={room} horizon={horizon} pan={pan} q={stairs} onAway={places.onFloorAway} />}
+      {floorless ? null : <FloorStairs room={room} horizon={horizon} pan={pan} q={stairs} col={col} onAway={places.onFloorAway} />}
       {floorless ? null : table && details ? (
         <div
           data-floor-ui
@@ -464,7 +510,7 @@ export function PlayerStage({
         </div>
       ) : (
         <div className={`transition-opacity ease-out ${up ? "opacity-100" : "pointer-events-none opacity-0"}`} style={{ transitionDuration: `${STAGE_MS}ms` }}>
-          {columns && columns.length > 0 ? (
+          {columns && columns.length > 0 && !valueView ? (
             <FloorStatBars
               key={`bars-${view}`}
               games={columns}
@@ -475,11 +521,9 @@ export function PlayerStage({
               bottom={floor.bottom - 20}
               left={floor.left}
               right={floor.left + floor.width}
+              col={col}
               picked={pick}
-              onPick={(i) => {
-                setPickedCol({ view, i });
-                settlePan({ x: i, z: pan.z });
-              }}
+              onPick={(i) => setPickedCol({ view, i })}
               pan={pan}
               onPan={setPan}
               onSettle={settlePan}

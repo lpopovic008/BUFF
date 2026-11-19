@@ -111,6 +111,8 @@ export function PlayerCareer({
   onClose,
   numbers,
   stage,
+  startOn,
+  valueFormat,
 }: {
   player: ResolvedPlayer;
   /** The season to count through — the league's. */
@@ -124,6 +126,9 @@ export function PlayerCareer({
    * standing on it (see FloorCareer) — the page around it left as it is, rather than over the page, dimmed.
    */
   stage?: CareerStage;
+  /** On a stage, opened on his value over time (see PlayerStage), and whose. */
+  startOn?: "value";
+  valueFormat?: "superflex" | "oneQB";
 }) {
   // Up out of the floor (on a stage): on its way up once it's drawn, back down before it's gone.
   const [up, setUp] = useState(false);
@@ -327,6 +332,8 @@ export function PlayerCareer({
         season={season}
         scoring={scoring}
         details={details}
+        startOn={startOn}
+        valueFormat={valueFormat}
       />
     );
   }

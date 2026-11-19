@@ -35,6 +35,9 @@ export interface RoomCard {
   /** The season counted through. */
   season: number;
   scoring?: Record<string, number>;
+  /** Opened on his value over time, and whose (see PlayerStage). */
+  startOn?: "value";
+  valueFormat?: "superflex" | "oneQB";
 }
 
 // The column a player's card stands in front of (see RoomColumn's `stage`): told where it is, and whether a card's up.
@@ -230,7 +233,16 @@ export function WallRoom({
         {/* Over the page, not inside a column (whose contents move as it scrolls, and whose reflection would copy it). */}
         {card && stage && onCloseCard
           ? createPortal(
-              <PlayerCareer player={card.player} numbers={card.numbers} season={card.season} scoring={card.scoring} stage={stage} onClose={onCloseCard} />,
+              <PlayerCareer
+                player={card.player}
+                numbers={card.numbers}
+                season={card.season}
+                scoring={card.scoring}
+                startOn={card.startOn}
+                valueFormat={card.valueFormat}
+                stage={stage}
+                onClose={onCloseCard}
+              />,
               document.body
             )
           : null}
