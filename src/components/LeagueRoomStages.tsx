@@ -8,7 +8,7 @@ import { MatchupGraph, MatchupSide } from "@/components/MatchupGraph";
 import type { LineupNumbers } from "@/components/PlayerCareer";
 import type { LineNote } from "@/components/LeagueMatchupCarousel";
 import { BenchCandidate, benchGroups, StarterInSlot } from "@/lib/bench-groups";
-import { BARS_OVER_HORIZON, ChartGame, ChartStat, FloorStatBars, useChartPan, WallLine } from "@/components/PlayerStageCharts";
+import { ChartGame, ChartStat, FloorStairs, FloorStatBars, useChartPan, useStairs, WallLine } from "@/components/PlayerStageCharts";
 import { collegeLogo } from "@/lib/college-logos";
 import { nflLogoUrl } from "@/lib/nfl-logos";
 import { ordinal } from "@/lib/format";
@@ -33,6 +33,8 @@ export interface StagePlaces {
   wall: React.CSSProperties;
   floor: { top: number; bottom: number; left: number; width: number };
   room: { width: number; height: number };
+  /** Told while a stage draws the floor itself (a player's stairs, see FloorStairs): the room's own grid put away. */
+  onFloorAway?: (away: boolean) => void;
 }
 
 /** In (or on its way), and drawn at all: kept drawn while it goes. */
@@ -414,6 +416,8 @@ export function PlayerStage({
   // The wall's line and the floor's bars, slid together — the game picked in the middle to begin with.
   const { pan, set: setPan, settle: settlePan } = useChartPan(view, Math.max(0, pick));
   const horizon = room.height * HORIZON_SHARE;
+  // The floor made stairs for his stats while they're up on it.
+  const stairs = useStairs(up && !floorless && !table);
   const seasonButton = (key: string, label: string, on: boolean, onPick: () => void, buttonTitle?: string) => (
     <button
       key={key}
@@ -462,7 +466,7 @@ export function PlayerStage({
           </section>
           {/* His points game by game, a line across the rest of the wall (see WallLine). */}
           {columns && columns.length > 0 ? (
-            <div className="min-h-[8rem] flex-1" style={{ paddingBottom: BARS_OVER_HORIZON - 6 }}>
+            <div className="min-h-[8rem] flex-1 pb-1">
               <WallLine
                 key={`line-${view}`}
                 games={columns}
@@ -483,6 +487,7 @@ export function PlayerStage({
           ) : null}
         </div>
       </div>
+      {floorless ? null : <FloorStairs room={room} horizon={horizon} pan={pan} q={stairs} onAway={places.onFloorAway} />}
       {floorless ? null : table && details ? (
         <div
           data-floor-ui
@@ -512,6 +517,8 @@ export function PlayerStage({
               pan={pan}
               onPan={setPan}
               onSettle={settlePan}
+              q={stairs}
+              up={up}
             />
           ) : null}
           {/* The column picked, read out along the floor's front. */}

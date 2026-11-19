@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { FAR_OPACITY, FULL_DEPTH_SHARE, HORIZON_OPACITY, LINE_OPACITY } from "@/components/FloorGrid";
 import { FLOOR_TILT, GRID_PX, PERSPECTIVE_PX } from "@/lib/grid-room";
 import type { StatTier } from "@/lib/stat-tiers";
 
 // A player's card's charts (see PlayerStage): his fantasy points game by game as a line on the back wall, and his
-// stats game by game as bars standing in the room's floor below it — a game to each of the floor's grid columns, right
-// under its dot on the wall, a stat to each of its grid rows. Slid side to side together (see useChartPan).
+// stats game by game as bars standing on the room's floor below it, the floor made a flight of stairs going down
+// toward you (see FloorStairs) — a game to each of the floor's grid columns, right under its dot on the wall, a stat
+// to each step. Slid together (see useChartPan).
 
 /** A game of his (or a season), as the charts draw it: its points — null for a week he didn't play (or hasn't yet) —
  * its stats, how each was graded, and how it's read out. */
@@ -353,25 +355,138 @@ export function WallLine({
 const SIN = Math.sin((FLOOR_TILT * Math.PI) / 180);
 const COS = Math.cos((FLOOR_TILT * Math.PI) / 180);
 const NEAREST = (PERSPECTIVE_PX / SIN) * 0.97;
-/** How the floor magnifies what's `d` px back from the hinge (see grid-room's floorScale). */
-const scaleAt = (d: number) => PERSPECTIVE_PX / (PERSPECTIVE_PX - Math.min(d, NEAREST) * SIN);
 
-/** The tallest bar, in px on the floor (a stat's best); how far up off the floor the bars may reach past the horizon. */
-const TALLEST = 30;
-export const BARS_OVER_HORIZON = 30;
-/** Rows between the primary stats' block and the secondary's; room under a block for its games' tags (screen px). */
-const BLOCK_GAP = 0.5;
-const TAGS_H = 16;
+/** How long the floor takes to become stairs (ms), and to go flat again (inside the stage's own going, STAGE_MS). */
+const STAIRS_IN_MS = 750;
+const STAIRS_OUT_MS = 400;
+const easeInOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+
+/** How far the floor's become stairs, 0 (flat, the room's own) to 1, run toward `up` from wherever it is. */
+export function useStairs(up: boolean) {
+  const [q, setQ] = useState(0);
+  const now = useRef(0);
+  useEffect(() => {
+    const target = up ? 1 : 0;
+    const from = now.current;
+    if (from === target) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const ms = reduce ? 1 : (up ? STAIRS_IN_MS : STAIRS_OUT_MS) * Math.abs(target - from);
+    let raf = 0;
+    let start: number | null = null;
+    const tick = (t: number) => {
+      start ??= t;
+      const k = Math.min(1, (t - start) / ms);
+      now.current = from + (target - from) * k;
+      setQ(now.current);
+      if (k < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [up]);
+  return easeInOut(q);
+}
+
+/**
+ * The floor as a flight of stairs going down toward you from the wall, slid as the charts are (`pan`), `q` of the way
+ * from flat: each of the grid's lines across an edge of a step, each step a grid square deep and a grid square down
+ * from the one behind it. Row `z` of the stats (whole rows, `r`) sits on the step under the one at the wall — the
+ * landing — with as many games across as `pan.x` has it. Where floor point (`a` games across, `z` rows), `up` px off
+ * row `r`'s step, shows on the screen; and the step's own edges.
+ */
+function stairLens(screenWidth: number, horizon: number, pan: ChartPan, q: number) {
+  const W = screenWidth;
+  const project = (across: number, d: number, h: number): [number, number, number] => {
+    const toward = Math.min(d * SIN + h * COS, NEAREST);
+    const s = PERSPECTIVE_PX / (PERSPECTIVE_PX - toward);
+    return [W / 2 + across * s, horizon + (d * COS - h * SIN) * s, s];
+  };
+  // Row r's step: how far back from the wall it starts, and how far down it is.
+  const back = (r: number) => (r - pan.z + 1) * GRID_PX;
+  const down = (r: number) => -(r - pan.z + 1) * GRID_PX * q;
+  const at = (a: number, z: number, r: number, up = 0) => project((a - pan.x) * GRID_PX, (z - pan.z + 1) * GRID_PX, down(r) + up);
+  return { project, back, down, at };
+}
+
+/**
+ * The room's floor while a player's card is up, as stairs (see stairLens) across the whole room — drawn in place of
+ * the room's own grid (which is put away, `onAway`, while it's anything but flat), each line where the grid's was
+ * when it's flat, faded toward the horizon as the grid's are, each step's face (its riser) faintly lit.
+ */
+export function FloorStairs({ room, horizon, pan, q, onAway }: { room: { width: number; height: number }; horizon: number; pan: ChartPan; q: number; onAway?: (away: boolean) => void }) {
+  const away = q > 0.001;
+  useEffect(() => {
+    onAway?.(away);
+  }, [away, onAway]);
+  useEffect(() => () => onAway?.(false), [onAway]);
+  if (!away || !onAway) return null;
+  const { width: W, height: H } = room;
+  const { project, back, down } = stairLens(W, horizon, pan, q);
+  const fullDepth = H * FULL_DEPTH_SHARE;
+  const fade = (d: number) => LINE_OPACITY * Math.min(1, FAR_OPACITY + (1 - FAR_OPACITY) * (Math.max(0, d) / fullDepth));
+  // The grid's lines running back: one between every two games' columns, as far across as shows.
+  const reach = W / 2 / GRID_PX + 2;
+  const columns: number[] = [];
+  for (let i = Math.floor(pan.x - reach); i <= Math.ceil(pan.x + reach); i++) columns.push((i + 0.5 - pan.x) * GRID_PX);
+  const drawn: React.ReactNode[] = [];
+  for (let r = Math.floor(pan.z) - 1; ; r++) {
+    const d0 = back(r);
+    const d1 = d0 + GRID_PX;
+    // Its riser, from the step behind's front edge down to its own back edge — then its tread.
+    const [, yTop] = project(0, d0, down(r - 1));
+    const [, yBase, sBase] = project(0, d0, down(r));
+    const [, yFront, sFront] = project(0, d1, down(r));
+    if (yTop > H) break;
+    if (d1 <= 0) continue;
+    const o = fade(d0);
+    const riser = yBase - yTop;
+    if (riser > 0.5) {
+      drawn.push(<rect key={`riser-${r}`} x={0} y={yTop} width={W} height={riser} fill="var(--ink-primary)" fillOpacity={0.03 * q} />);
+      drawn.push(<line key={`nose-${r}`} x1={0} x2={W} y1={yTop} y2={yTop} stroke="var(--ink-primary)" strokeOpacity={o} strokeWidth={1} />);
+    }
+    drawn.push(<line key={`base-${r}`} x1={0} x2={W} y1={yBase} y2={yBase} stroke="var(--ink-primary)" strokeOpacity={o} strokeWidth={1} />);
+    const path = columns
+      .map((c) => {
+        const [xt] = project(c, d0, down(r - 1));
+        const xb = W / 2 + c * sBase;
+        const xf = W / 2 + c * sFront;
+        return `M${xt.toFixed(1)} ${yTop.toFixed(1)}L${xb.toFixed(1)} ${yBase.toFixed(1)}L${xf.toFixed(1)} ${yFront.toFixed(1)}`;
+      })
+      .join("");
+    drawn.push(<path key={`cols-${r}`} d={path} fill="none" stroke="var(--ink-primary)" strokeOpacity={fade((d0 + d1) / 2)} strokeWidth={1} />);
+  }
+  return (
+    <svg aria-hidden className="pointer-events-none fixed inset-0 h-full w-full" style={{ zIndex: -1 }}>
+      <defs>
+        <clipPath id="floor-stairs-clip">
+          <rect x={0} y={horizon} width={W} height={Math.max(0, H - horizon)} />
+        </clipPath>
+        <linearGradient id="floor-stairs-horizon" gradientUnits="userSpaceOnUse" x1="0" x2={W} y1="0" y2="0">
+          <stop offset="0" stopColor="var(--ink-primary)" stopOpacity="0" />
+          <stop offset="0.2" stopColor="var(--ink-primary)" stopOpacity={HORIZON_OPACITY} />
+          <stop offset="0.8" stopColor="var(--ink-primary)" stopOpacity={HORIZON_OPACITY} />
+          <stop offset="1" stopColor="var(--ink-primary)" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <line x1={0} x2={W} y1={horizon} y2={horizon} stroke="url(#floor-stairs-horizon)" strokeWidth={1} />
+      <g clipPath="url(#floor-stairs-clip)">{drawn}</g>
+    </svg>
+  );
+}
+
+/** The tallest bar, in px on the floor (a stat's best): just short of the step behind, so a row never hides the next. */
+const TALLEST = 54;
+/** Steps between the primary stats and the secondary ones. */
+const BLOCK_GAP = 1;
 
 const TIER_FILL: Record<StatTier, string> = { good: "var(--status-good)", mid: "var(--series-4)", bad: "var(--status-critical)" };
 
 /**
- * His stats game by game as bars standing in the room's floor, under its own lens and on its own grid: the x axis his
- * games, one to each of the floor's grid columns, each right under its slot on the wall's line (see WallLine); the z
- * axis his stats, one to each grid row, from the top of the floor down (his primary ones, then — below, off the floor
- * until it's swiped up — his secondary ones); the y axis up, each stat's bars as tall as it went against his best at it,
- * in its grade's color (green, yellow, red). Dragged (or a wheel) side to side for every game, up and down for the
- * secondary stats, settling on the grid; a tap picks a game.
+ * His stats game by game as bars standing on the stairs (see FloorStairs): the x axis his games, one to each of the
+ * floor's grid columns, each right under its slot on the wall's line (see WallLine), their weeks along the wall's foot;
+ * the z axis his stats, one to each step down from the landing at the wall (his primary ones, then — further down, on
+ * as the stairs are slid up — his secondary ones); the y axis up, each stat's bars as tall as it went against his best
+ * at it, in its grade's color (green, yellow, red). Dragged (or a wheel) side to side for every game, up and down along
+ * the stairs, settling on a whole game and a whole step; a tap picks a game.
  */
 export function FloorStatBars({
   games,
@@ -387,6 +502,8 @@ export function FloorStatBars({
   pan,
   onPan,
   onSettle,
+  q,
+  up,
 }: {
   games: ChartGame[];
   primary: ChartStat[];
@@ -403,138 +520,123 @@ export function FloorStatBars({
   pan: ChartPan;
   onPan: (to: ChartPan) => void;
   onSettle: (to: ChartPan) => void;
+  /** How far the floor's become stairs (see useStairs). */
+  q: number;
+  /** Shown (else fading away). */
+  up: boolean;
 }) {
   const W = screenWidth;
   const n = games.length;
-  const depthOf = (y: number) => {
-    const below = Math.max(0, y - horizon);
-    return (below * PERSPECTIVE_PX) / (COS * PERSPECTIVE_PX + below * SIN);
-  };
   const blocks = [
     { name: "Primary", stats: primary, z0: 0 },
     { name: "Secondary", stats: secondary, z0: primary.length + BLOCK_GAP },
   ].filter((b) => b.stats.length > 0);
-  // A stat's row, deep enough that the primary ones reach from the floor's top to its bottom (their games' tags under
-  // them); slid back a block at a time, the secondary ones the same.
-  const ROW = depthOf(bottom - TAGS_H) / Math.max(1, primary.length || secondary.length);
-  const stops = blocks.map((b) => b.z0);
-  const maxZ = stops[stops.length - 1] ?? 0;
+  const last = blocks.length > 0 ? blocks[blocks.length - 1].z0 + blocks[blocks.length - 1].stats.length - 1 : 0;
+  // Slid down the stairs as far as brings the last row up to the step under the landing.
+  const maxZ = Math.max(0, last);
   const clamp = (p: ChartPan) => ({ x: Math.max(0, Math.min(n - 1, p.x)), z: Math.max(0, Math.min(maxZ, p.z)) });
-  // Let go: on a whole game, and on whichever block it was swiped toward.
-  const settleAt = (p: ChartPan, was: ChartPan) => {
-    const moved = p.z - was.z;
-    const near = stops.reduce((best, s) => (Math.abs(s - p.z) < Math.abs(best - p.z) ? s : best), 0);
-    const toward = moved > 0.4 ? stops.find((s) => s > was.z + 0.01) : moved < -0.4 ? [...stops].reverse().find((s) => s < was.z - 0.01) : undefined;
-    return clamp({ x: Math.round(p.x), z: toward ?? near });
-  };
+  const { project, back, down, at } = stairLens(W, horizon, pan, q);
 
-  // A floor point `a` across (in columns from the middle game's) and `z` rows back from the stats' top, `up` px off it.
-  const at = (a: number, z: number, up = 0): [number, number] => {
-    const d = (z - pan.z) * ROW;
-    const s = scaleAt(d);
-    return [W / 2 + (a - pan.x) * CELL * s, horizon + (Math.min(d, NEAREST) * COS - up * SIN) * s];
+  // Which row's step is under screen y (its riser and tread), and how big things are there.
+  const rowAt = (y: number) => {
+    for (let r = Math.floor(pan.z) - 1; r < Math.floor(pan.z) + 40; r++) {
+      const [, yFront, s] = project(0, back(r) + GRID_PX, down(r));
+      if (y < yFront) return { r, s, pitch: Math.max(8, yFront - project(0, back(r), down(r - 1))[1]) };
+    }
+    return null;
   };
-  const pts = (ps: [number, number][]) => ps.map(([px, py]) => `${px.toFixed(1)},${py.toFixed(1)}`).join(" ");
 
   const [pad, setPad] = useState<HTMLDivElement | null>(null);
-  const from = useRef(pan);
-  // The floor point under the finger stays under it.
-  const floorAtScreen = (x: number, y: number) => {
-    const d = depthOf(y);
-    return { a: (x - W / 2) / (CELL * scaleAt(d)), z: d / ROW };
-  };
+  const from = useRef<{ pan: ChartPan; s: number; pitch: number }>({ pan, s: 1, pitch: 60 });
   useGrab(pad, {
-    start: () => (from.current = pan),
-    move: (a, b) => {
-      const [p, q] = [floorAtScreen(a.x, a.y), floorAtScreen(b.x, b.y)];
-      onPan(clamp({ x: from.current.x + p.a - q.a, z: from.current.z + p.z - q.z }));
+    start: () => {
+      const at = rowAt((horizon + bottom) / 2);
+      from.current = { pan, s: at?.s ?? 1, pitch: at?.pitch ?? 60 };
     },
-    end: () => onSettle(settleAt(pan, from.current)),
+    move: (a, b) => {
+      const f = from.current;
+      // Side to side as far as the stairs went under the finger; up and down a step for each step's height.
+      onPan(clamp({ x: f.pan.x - (b.x - a.x) / (GRID_PX * f.s), z: f.pan.z - (b.y - a.y) / f.pitch }));
+    },
+    end: () => {
+      const moved = pan.z - from.current.pan.z;
+      const z = moved > 0.25 ? Math.ceil(pan.z - 1e-6) : moved < -0.25 ? Math.floor(pan.z + 1e-6) : Math.round(pan.z);
+      onSettle(clamp({ x: Math.round(pan.x), z }));
+    },
     tap: ({ x, y }) => {
-      const p = floorAtScreen(x, y);
-      const i = Math.round(p.a + pan.x);
+      const at = rowAt(y);
+      if (!at) return;
+      const i = Math.round((x - W / 2) / (GRID_PX * at.s) + pan.x);
       if (i >= 0 && i < n && games[i].value !== null) onPick(i);
     },
-    wheel: (dx, dy) => onPan(clamp({ x: pan.x + dx / CELL, z: pan.z + dy / ROW })),
+    wheel: (dx, dy) => onPan(clamp({ x: pan.x + dx / GRID_PX, z: pan.z + dy / 90 })),
   });
 
   // Each stat's best this season (or career), for its bars' heights.
   const bestOf = new Map<string, number>();
   for (const b of blocks)
     for (const s of b.stats) bestOf.set(s.key, Math.max(0, ...games.map((g) => (g.stats && Number.isFinite(g.stats[s.key]) ? g.stats[s.key] : 0))));
-  // Only the rows on the floor's stretch, and the columns across it.
-  const rowShown = (z: number) => z - pan.z > -0.2 && (z - pan.z) * ROW < depthOf(bottom) + ROW;
-  const colShown = (i: number, z: number) => {
-    const [x0] = at(i - 0.5, z + 1);
-    const [x1] = at(i + 0.5, z + 1);
+  // Only the rows on the stairs that show — from the one under the landing — and the games across the floor's stretch.
+  const rowShown = (r: number) => r - pan.z > -0.95 && project(0, back(r), down(r - 1))[1] < bottom;
+  const colShown = (i: number, r: number) => {
+    const [x0] = at(i - 0.5, r + 1, r);
+    const [x1] = at(i + 0.5, r + 1, r);
     return x1 > left && x0 < right;
   };
   // Games from the outside in, toward the middle of the screen: nearer the middle stand over those beside them.
-  const order = Array.from({ length: n }, (_, i) => i).sort((p, q) => Math.abs(q - pan.x) - Math.abs(p - pan.x));
+  const order = Array.from({ length: n }, (_, i) => i).sort((p, q2) => Math.abs(q2 - pan.x) - Math.abs(p - pan.x));
   const label = { stroke: "var(--page)", strokeWidth: 3, paintOrder: "stroke" as const };
+  const pts = (ps: [number, number, number][]) => ps.map(([px, py]) => `${px.toFixed(1)},${py.toFixed(1)}`).join(" ");
+  const rise = Math.min(1, q * 1.15);
 
   const drawn: React.ReactNode[] = [];
   const names: React.ReactNode[] = [];
   for (const b of blocks) {
-    const zEnd = b.z0 + b.stats.length;
-    const back = Math.max(b.z0, pan.z);
-    if (!rowShown(b.z0) && !rowShown(zEnd - 1)) continue;
-    // The block's floor, faint, with the picked game's column lit; the z axis along its first game's left edge, the
-    // x axis along its near edge, the y axis standing at its far left corner up to a stat's best.
-    drawn.push(<polygon key={`${b.name}-floor`} points={pts([at(-0.5, back), at(n - 0.5, back), at(n - 0.5, zEnd), at(-0.5, zEnd)])} fill="var(--ink-primary)" fillOpacity={0.035} />);
-    if (picked >= 0)
-      drawn.push(
-        <polygon key={`${b.name}-lit`} points={pts([at(picked - 0.5, back), at(picked + 0.5, back), at(picked + 0.5, zEnd), at(picked - 0.5, zEnd)])} fill="var(--ink-primary)" fillOpacity={0.1} />
-      );
-    drawn.push(<polyline key={`${b.name}-axes`} points={pts([at(-0.5, back), at(-0.5, zEnd), at(n - 0.5, zEnd)])} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.6} />);
-    const [yb, yt] = [at(-0.5, back), at(-0.5, back, TALLEST)];
-    drawn.push(<line key={`${b.name}-y`} x1={yb[0]} y1={yb[1]} x2={yt[0]} y2={yt[1]} stroke="var(--ink-primary)" strokeOpacity={0.6} />);
-    drawn.push(<line key={`${b.name}-y-best`} x1={yt[0] - 3} y1={yt[1]} x2={yt[0] + 3} y2={yt[1]} stroke="var(--ink-primary)" strokeOpacity={0.6} />);
-    drawn.push(
-      <text key={`${b.name}-y-name`} x={yt[0] - 5} y={yt[1] + 3} textAnchor="end" {...label} className="fill-[var(--ink-muted)] text-[0.5625rem] font-bold">
-        ★
-      </text>
-    );
-    // The weeks (or years) along the near edge.
-    games.forEach((g, i) => {
-      if (!colShown(i, zEnd - 1)) return;
-      const [tx, ty] = at(i, zEnd);
-      drawn.push(
-        <text key={`${b.name}-${g.key}-tag`} x={tx} y={ty + 11} textAnchor="middle" {...label} className={`text-[0.5625rem] tabular-nums ${i === picked ? "fill-[var(--ink-primary)] font-extrabold" : "fill-[var(--ink-muted)]"}`}>
-          {g.tag}
-        </text>
-      );
-    });
-    // Back to front, so nearer bars stand over farther ones.
     b.stats.forEach((s, j) => {
-      const z = b.z0 + j;
-      if (!rowShown(z)) return;
+      const r = b.z0 + j;
+      if (!rowShown(r)) return;
       const most = bestOf.get(s.key) || 1;
+      // The picked game's column lit, down its step's face and across its tread.
+      if (picked >= 0 && colShown(picked, r)) {
+        const face = [at(picked - 0.5, r, r - 1), at(picked + 0.5, r, r - 1), at(picked + 0.5, r, r), at(picked + 0.5, r + 1, r), at(picked - 0.5, r + 1, r), at(picked - 0.5, r, r)];
+        drawn.push(<polygon key={`${b.name}-${s.key}-lit`} points={pts(face)} fill="var(--ink-primary)" fillOpacity={0.08} />);
+      }
+      // The y axis, standing at the step's back left corner, up to a stat's best.
+      const [yb, yt] = [at(-0.5, r + 0.15, r), at(-0.5, r + 0.15, r, TALLEST * rise)];
+      drawn.push(<line key={`${b.name}-${s.key}-y`} x1={yb[0]} y1={yb[1]} x2={yt[0]} y2={yt[1]} stroke="var(--ink-primary)" strokeOpacity={0.45} />);
+      drawn.push(<line key={`${b.name}-${s.key}-y-best`} x1={yt[0] - 3} y1={yt[1]} x2={yt[0] + 3} y2={yt[1]} stroke="var(--ink-primary)" strokeOpacity={0.45} />);
       for (const i of order) {
-        if (!colShown(i, z)) continue;
+        if (!colShown(i, r)) continue;
         const g = games[i];
         const lit = i === picked;
         const v = g.stats ? (Number.isFinite(g.stats[s.key]) ? g.stats[s.key] : 0) : null;
         const [x0, x1] = [i - 0.3, i + 0.3];
-        const [z0, z1] = [z + 0.2, z + 0.8];
+        const [z0, z1] = [r + 0.15, r + 0.75];
         if (v === null) {
           // A week he didn't play: its footprint, empty. Nothing yet for a week to come.
           if (g.future) continue;
           drawn.push(
-            <polygon key={`${b.name}-${g.key}-${s.key}`} points={pts([at(x0, z0), at(x1, z0), at(x1, z1), at(x0, z1)])} fill="none" stroke="var(--ink-muted)" strokeOpacity={0.45} strokeDasharray="2 2" />
+            <polygon
+              key={`${b.name}-${g.key}-${s.key}`}
+              points={pts([at(x0, z0, r), at(x1, z0, r), at(x1, z1, r), at(x0, z1, r)])}
+              fill="none"
+              stroke="var(--ink-muted)"
+              strokeOpacity={0.45}
+              strokeDasharray="2 2"
+            />
           );
           continue;
         }
-        const tall = Math.max(1.5, (TALLEST * Math.max(0, v)) / most);
+        const tall = Math.max(1.5, (TALLEST * Math.max(0, v)) / most) * rise;
         const tier = g.tiers[s.key];
         const fill = tier ? TIER_FILL[tier] : "var(--ink-primary)";
-        const [fl, fr, bl, br] = [at(x0, z1), at(x1, z1), at(x0, z0), at(x1, z0)];
-        const [tfl, tfr, tbl, tbr] = [at(x0, z1, tall), at(x1, z1, tall), at(x0, z0, tall), at(x1, z0, tall)];
+        const [fl, fr, bl, br] = [at(x0, z1, r), at(x1, z1, r), at(x0, z0, r), at(x1, z0, r)];
+        const [tfl, tfr, tbl, tbr] = [at(x0, z1, r, tall), at(x1, z1, r, tall), at(x0, z0, r, tall), at(x1, z0, r, tall)];
         // Its side toward the middle of the screen, its top, its front.
         const leftOfMiddle = i < pan.x;
         drawn.push(
           <g key={`${b.name}-${g.key}-${s.key}`} opacity={lit ? 1 : 0.85}>
-            {i !== pan.x ? <polygon points={pts(leftOfMiddle ? [fr, br, tbr, tfr] : [fl, bl, tbl, tfl])} fill={fill} fillOpacity={0.3} /> : null}
+            {Math.abs(i - pan.x) > 0.01 ? <polygon points={pts(leftOfMiddle ? [fr, br, tbr, tfr] : [fl, bl, tbl, tfl])} fill={fill} fillOpacity={0.3} /> : null}
             <polygon points={pts([tbl, tbr, tfr, tfl])} fill={fill} fillOpacity={0.75} />
             <polygon points={pts([fl, fr, tfr, tfl])} fill={fill} fillOpacity={0.5} stroke={fill} strokeWidth={lit ? 1 : 0.5} />
             {lit ? (
@@ -545,41 +647,59 @@ export function FloorStatBars({
           </g>
         );
       }
-      // The stat's name, at the floor's left side however far it's slid.
-      const [, ny] = at(0, z + 0.5);
+      // The stat's name, on its step's face at the floor's left side, however far it's slid.
+      const [, ny] = project(0, back(r), down(r - 1));
       names.push(
-        <text key={`${b.name}-${s.key}-name`} x={left + 4} y={ny + 3} {...label} className="fill-[var(--ink-secondary)] text-[0.5625rem] font-bold uppercase">
+        <text key={`${b.name}-${s.key}-name`} x={left + 4} y={ny + 11} {...label} className="fill-[var(--ink-secondary)] text-[0.5625rem] font-bold uppercase">
           {s.label}
         </text>
       );
     });
+    // The secondary stats named on the step before theirs.
     if (b.z0 > 0 && rowShown(b.z0 - 1)) {
-      const [, hy] = at(0, b.z0 - 0.35);
+      const [, hy] = project(0, back(b.z0 - 1), down(b.z0 - 2));
       names.push(
-        <text key={`${b.name}-name`} x={left + 4} y={hy + 3} {...label} className="fill-[var(--ink-muted)] text-[0.5625rem] font-bold uppercase tracking-wide">
-          {b.name} stats
+        <text key={`${b.name}-name`} x={left + 4} y={hy + 11} {...label} className="fill-[var(--ink-muted)] text-[0.5625rem] font-bold uppercase tracking-wide">
+          {b.name} stats ↓
         </text>
       );
     }
   }
-  const more = blocks.length > 1 && pan.z < maxZ - 0.5;
-  const clipTop = horizon - BARS_OVER_HORIZON;
+  // The x axis: each game's week along the wall's foot, right under its slot on the wall.
+  const tags = games.map((g, i) => {
+    const [tx] = project((i - pan.x) * GRID_PX, 0, 0);
+    if (tx < left + 4 || tx > right - 4) return null;
+    return (
+      <text
+        key={`${g.key}-tag`}
+        x={tx}
+        y={horizon + 10}
+        textAnchor="middle"
+        {...label}
+        className={`text-[0.5625rem] tabular-nums ${i === picked ? "fill-[var(--ink-primary)] font-extrabold" : "fill-[var(--ink-muted)]"}`}
+      >
+        {g.tag}
+      </text>
+    );
+  });
+  const more = pan.z < maxZ - 0.5;
 
   return (
     <>
-      <svg aria-hidden className="pointer-events-none fixed inset-0 z-[7] h-full w-full">
+      <svg aria-hidden className={`pointer-events-none fixed inset-0 z-[7] h-full w-full transition-opacity ease-out ${up ? "opacity-100" : "opacity-0"}`} style={{ transitionDuration: `${STAIRS_OUT_MS}ms` }}>
         <defs>
           <clipPath id="floor-stat-bars-clip">
-            <rect x={left} y={clipTop} width={Math.max(0, right - left)} height={Math.max(0, bottom - clipTop)} />
+            <rect x={left} y={horizon + 12} width={Math.max(0, right - left)} height={Math.max(0, bottom - horizon - 12)} />
           </clipPath>
         </defs>
         <g clipPath="url(#floor-stat-bars-clip)">
           {drawn}
           {names}
         </g>
+        {tags}
         {more ? (
           <text x={right - 4} y={bottom - 4} textAnchor="end" {...label} className="fill-[var(--ink-muted)] text-[0.5625rem] font-bold uppercase tracking-wide">
-            Swipe up · secondary stats ↓
+            Swipe up · more stats ↓
           </text>
         ) : null}
       </svg>
@@ -587,9 +707,9 @@ export function FloorStatBars({
       <div
         ref={setPad}
         data-floor-ui
-        className="fixed z-[8] cursor-grab touch-none select-none active:cursor-grabbing"
+        className={`fixed z-[8] cursor-grab touch-none select-none active:cursor-grabbing ${up ? "" : "pointer-events-none"}`}
         style={{ top: horizon, left, width: Math.max(0, right - left), height: Math.max(0, bottom - horizon) }}
-        aria-label="Drag along the floor for every game and stat"
+        aria-label="Drag along the stairs for every game and stat"
       />
     </>
   );

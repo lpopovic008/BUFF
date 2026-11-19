@@ -227,6 +227,8 @@ function LeagueRoomContent() {
   const share = useRoomShare(shareTarget);
   // The room's floor grid put away while the payouts draw the floor themselves (see PayoutStage).
   const [floorAway, setFloorAway] = useState(false);
+  // …and while a player's card makes it stairs (see FloorStairs).
+  const [gridAway, setGridAway] = useState(false);
   useEffect(() => {
     if (!room) return;
     const measure = () => setRoomSize({ width: room.clientWidth || window.innerWidth, height: room.clientHeight || window.innerHeight });
@@ -256,12 +258,12 @@ function LeagueRoomContent() {
     <div style={roomVars}>
       <h1 className="sr-only">{leagues[index].name}</h1>
       <div ref={setRoom} aria-hidden className="grid-room" style={{ ["--horizon" as string]: `${share * 100}%` }}>
-        <FloorGrid share={share} away={floorAway} />
+        <FloorGrid share={share} away={floorAway || gridAway} />
       </div>
       {desktop ? (
-        <DesktopRoom rooms={rooms} leagues={leagues} index={index} week={shownWeek} currentWeek={week} userId={config.sleeperUserId} onPick={pickLeague} room={roomSize} floorAway={floorAway} onFloorAway={setFloorAway} onShare={setShareTarget} share={share} />
+        <DesktopRoom rooms={rooms} leagues={leagues} index={index} week={shownWeek} currentWeek={week} userId={config.sleeperUserId} onPick={pickLeague} room={roomSize} floorAway={floorAway} onFloorAway={setFloorAway} onGridAway={setGridAway} onShare={setShareTarget} share={share} />
       ) : (
-        <PhoneRoom rooms={rooms} leagues={leagues} index={index} week={shownWeek} currentWeek={week} userId={config.sleeperUserId} onPick={pickLeague} room={roomSize} floorAway={floorAway} onFloorAway={setFloorAway} onShare={setShareTarget} />
+        <PhoneRoom rooms={rooms} leagues={leagues} index={index} week={shownWeek} currentWeek={week} userId={config.sleeperUserId} onPick={pickLeague} room={roomSize} floorAway={floorAway} onFloorAway={setFloorAway} onGridAway={setGridAway} onShare={setShareTarget} />
       )}
     </div>
   );
@@ -282,6 +284,8 @@ interface RoomProps {
    * gone again. */
   floorAway: boolean;
   onFloorAway: (away: boolean) => void;
+  /** A player's card draws the floor (as stairs, see FloorStairs): the room's own grid is put away meanwhile. */
+  onGridAway: (away: boolean) => void;
   /** Where the room's horizon should be (a share of its height): low under the lineups, to show more of them, the floor's
    * buttons just in front of it (see floorButtonRow) — up where the home page's is while a stage has the floor. */
   onShare: (share: number) => void;
@@ -396,7 +400,7 @@ const PANEL_GAP_PX = 8;
  * picked on screen. A sideways swipe anywhere slides the
  * names and the lineups along together to the next league (see useSwipePager).
  */
-function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, room, floorAway, onFloorAway, onShare }: RoomProps) {
+function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, room, floorAway, onFloorAway, onGridAway, onShare }: RoomProps) {
   const { action, last, pick, close } = useFloorAction();
   // The write-ups up: the matchups in brief, the write-up up to just under them (where they end on screen).
   const writeups = action === "writeups";
@@ -461,6 +465,7 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
         },
         floor: { top: room.height * HORIZON_SHARE + PANEL_GAP_PX, bottom: room.height - tabBar - PANEL_GAP_PX, left: PANEL_GAP_PX, width: room.width - 2 * PANEL_GAP_PX },
         room,
+        onFloorAway: onGridAway,
       }
     : null;
   // A player's card: his own stage, the lineups stepping aside.
@@ -645,7 +650,7 @@ function LeaguePane({
  * From laptop width up: three columns with no backgrounds of their own, on the back wall down to the horizon and
  * reflected in the floor — each scrolling on its own, up behind the see-through header.
  */
-function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, room, floorAway, onFloorAway, onShare, share = HORIZON_SHARE }: RoomProps) {
+function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, room, floorAway, onFloorAway, onGridAway, onShare, share = HORIZON_SHARE }: RoomProps) {
   // The bench open from the start, in the right-hand column under the room's buttons.
   const { action, pick, close } = useFloorAction("bench");
   // The write-ups up: the write-up the whole middle column, from under the header to the screen's bottom; the matchups
@@ -734,6 +739,7 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
           },
           floor: { top: room.height * HORIZON_SHARE + PANEL_GAP_PX, bottom: room.height - 12, left: middleBox.left, width: middleBox.width },
           room,
+          onFloorAway: onGridAway,
         }
       : null;
   const { leagueId, standings, owners, myRosterId, carousel, allTime, providers } = useLeagueRoom(rooms[index], week, userId);
