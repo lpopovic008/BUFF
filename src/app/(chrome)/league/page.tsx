@@ -777,6 +777,7 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
             // With the write-ups up, each box opened a little: the all-time wins, PF and PA, and projected.
             // (No all-time head-to-head in them for now.)
             opened={{ open: opened, owners, allTime: null }}
+            small
           />
         )
       : null;
@@ -858,13 +859,11 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
                       <span className="min-w-0 flex-1">
                         <LeagueTitle league={league} start />
                       </span>
-                      <svg viewBox="0 0 12 12" className={`h-3 w-3 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
-                        <path d="M2.5 4.5 6 8l3.5-3.5" />
-                      </svg>
                     </button>
                     {/* Its matchups, picking the one whose lineups are in the middle — with the write-ups up, each box opened
                         a little to each team's PF and PA. */}
-                    {open ? <div className="pb-2 pt-1">{matchups(writeups)}</div> : null}
+                    {/* Not drawn bigger with the column (see sideZoom): its text the lineups' size. */}
+                    {open ? <div className="pb-2 pt-1" style={{ zoom: 1 / sideZoom }}>{matchups(writeups)}</div> : null}
                   </li>
                 );
               })}

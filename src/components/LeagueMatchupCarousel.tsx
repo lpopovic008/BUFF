@@ -1105,6 +1105,7 @@ export function MatchupList({
   pickedId,
   onPick,
   opened,
+  small = false,
 }: {
   games: ResolvedMatchupGame[];
   myRosterId: number | null;
@@ -1118,6 +1119,8 @@ export function MatchupList({
    * again as they open and shut.
    */
   opened?: { open: boolean; owners: Map<number, string>; allTime: Map<string, Map<string, AllTimeRecord>> | null };
+  /** Set as small as the lineups beside it (see MatchupRows). */
+  small?: boolean;
 }) {
   const projected = useContext(ProjectedContext);
   return (
@@ -1145,6 +1148,7 @@ export function MatchupList({
             >
               <MatchupRows
                 fitWidth
+                small={small}
                 open={opened?.open}
                 teams={sides(g, myRosterId).map((t, i, both) => {
                   const other = both[1 - i];

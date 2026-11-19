@@ -180,8 +180,8 @@ export interface MatchupRowTeam {
  * never cut short — the entry grows to fit them; in a fixed-width box
  * (`fitWidth`) a name too long for it ends in an ellipsis.
  */
-function TickerTeamRow({ team, fitWidth, dense, open }: { team: MatchupRowTeam; fitWidth: boolean; dense: boolean; open?: boolean }) {
-  const row = <TeamLine team={team} fitWidth={fitWidth} dense={dense} tight={open} />;
+function TickerTeamRow({ team, fitWidth, dense, small, open }: { team: MatchupRowTeam; fitWidth: boolean; dense: boolean; small: boolean; open?: boolean }) {
+  const row = <TeamLine team={team} fitWidth={fitWidth} dense={dense} small={small} tight={open} />;
   if (open === undefined) return row;
   // Opened (see MatchupRows): its all-time wins over the other team coming in at its left, and its line under it
   // opening — both going again as it shuts — its own line set closer to make room for it.
@@ -213,10 +213,12 @@ function TickerTeamRow({ team, fitWidth, dense, open }: { team: MatchupRowTeam; 
 
 /**
  * `tight`: its standing and score closer together, and its line set closer (its box opened, see MatchupRows — the
- * all-time wins and the line under it taking some of its room); left out, it's never opened.
+ * all-time wins and the line under it taking some of its room); left out, it's never opened. `small`: its name and
+ * score in the League page's lineups' size, the rest a step under it.
  */
-function TeamLine({ team, fitWidth, dense, tight }: { team: MatchupRowTeam; fitWidth: boolean; dense: boolean; tight?: boolean }) {
+function TeamLine({ team, fitWidth, dense, small = false, tight }: { team: MatchupRowTeam; fitWidth: boolean; dense: boolean; small?: boolean; tight?: boolean }) {
   const { name, points, standing, mine = false, winning = false } = team;
+  const [minor, main, score] = small ? ["text-[0.6875rem]", "text-[0.8125rem]", "text-[0.8125rem]"] : ["text-xs", "text-sm", "text-base"];
   const { rank, record, streak } = standing ?? {};
   // A plain flex row, standing and score pushed apart: it sizes to its own content in every browser, so
   // the box it's in is always wide enough for the name and the score. The winner's whole row — rank
@@ -231,16 +233,16 @@ function TeamLine({ team, fitWidth, dense, tight }: { team: MatchupRowTeam; fitW
     >
       <div className={`flex items-center gap-1.5 whitespace-nowrap ${fitWidth ? "min-w-0" : ""}`}>
         {/* The place as a bare number in a fixed two digits, right-aligned, so every team name starts at the same x. */}
-        <span className={`w-[2ch] shrink-0 text-right text-xs font-medium tabular-nums ${winning ? "" : "text-series-4"}`}>{rank ?? ""}</span>
+        <span className={`w-[2ch] shrink-0 text-right ${minor} font-medium tabular-nums ${winning ? "" : "text-series-4"}`}>{rank ?? ""}</span>
         <span
-          className={`text-sm ${fitWidth ? "min-w-0 truncate" : ""} ${
+          className={`${main} ${fitWidth ? "min-w-0 truncate" : ""} ${
             winning ? "font-bold" : mine && HIGHLIGHT_MINE ? MY_TEAM_NAME_CLASS : "font-medium text-ink-primary"
           }`}
         >
           {name}
         </span>
         {record ? (
-          <span className={`shrink-0 text-xs tabular-nums ${winning ? "opacity-75" : "text-ink-muted"}`}>
+          <span className={`shrink-0 ${minor} tabular-nums ${winning ? "opacity-75" : "text-ink-muted"}`}>
             ({formatRecord(record.wins, record.losses, record.ties)})
           </span>
         ) : null}
@@ -248,7 +250,7 @@ function TeamLine({ team, fitWidth, dense, tight }: { team: MatchupRowTeam; fitW
       </div>
       {/* Room for a five-digit score ("163.80") at the least, so the scores always line up and always fit. */}
       <span
-        className={`min-w-[6ch] shrink-0 whitespace-nowrap text-right text-base tabular-nums ${
+        className={`min-w-[6ch] shrink-0 whitespace-nowrap text-right ${score} tabular-nums ${
           winning ? "font-bold" : mine && HIGHLIGHT_MINE ? MY_TEAM_NAME_CLASS : "font-semibold text-ink-primary"
         }`}
       >
@@ -268,11 +270,14 @@ export function MatchupRows({
   teams,
   fitWidth = false,
   dense = false,
+  small = false,
   open,
 }: {
   teams: MatchupRowTeam[];
   fitWidth?: boolean;
   dense?: boolean;
+  /** Set as small as the League page's lineups (see TeamLine). */
+  small?: boolean;
   /** Opened, or shut (or, left out, neither): each team's all-time wins over the other at its left and its line
    * (`below`) under it, coming in and going again as it opens and shuts. */
   open?: boolean;
@@ -282,7 +287,7 @@ export function MatchupRows({
       className={`flex flex-col ${dense || open ? "" : "gap-y-1"} ${open === undefined ? "" : "transition-[row-gap] duration-500"} ${fitWidth ? "min-w-0" : ""}`}
     >
       {teams.map((team, i) => (
-        <TickerTeamRow key={i} team={team} fitWidth={fitWidth} dense={dense} open={open} />
+        <TickerTeamRow key={i} team={team} fitWidth={fitWidth} dense={dense} small={small} open={open} />
       ))}
     </div>
   );
