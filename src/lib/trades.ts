@@ -38,9 +38,9 @@ export interface TradeAsset {
   pickOf?: string;
   /**
    * Who a pick became, once it's been drafted: their value when drafted (their first from the draft on) and
-   * now — null where KTC doesn't list them.
+   * now — null where KTC doesn't list them — and the day the pick turned into them (`at`).
    */
-  became?: { name: string; position: string | null; drafted: number | null; now: number | null };
+  became?: { name: string; position: string | null; drafted: number | null; now: number | null; at?: number };
   /** A drafted pick's own value at its draft — what it was worth when it was used. */
   atDraft?: number | null;
   /** `atDraft` read off its round's trend. */
@@ -386,6 +386,7 @@ export function analyzeTrades(
                   position: info?.position ?? player?.p ?? null,
                   drafted: firstFrom(player, becomes),
                   now: on(player, today),
+                  at: becomes,
                 }
               : undefined,
             atDraft: drafted ? pickOn(becomes - 1) : undefined,

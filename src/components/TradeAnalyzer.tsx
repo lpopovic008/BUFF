@@ -64,10 +64,25 @@ function closestDay(trade: AnalyzedTrade): number | null {
 }
 
 /**
+ * Where a value's label goes inside the chart beside a point on a line at `at` (percent down): just above it or just
+ * below, whichever leaves more room from the other lines there (`others`, percent down) and the labels already put
+ * beside them (`placed`) — kept inside the chart. `h`: a label's height, and `pad` the room between it and its line
+ * (percent).
+ */
+function roomFor(at: number, others: number[], placed: number[], h: number, pad: number): number {
+  const keep = (c: number) => Math.min(100 - h / 2, Math.max(h / 2, c));
+  const candidates = [keep(at - pad - h / 2), keep(at + pad + h / 2)];
+  const clearance = (c: number) => Math.min(Infinity, ...others.map((o) => Math.abs(o - c)), ...placed.map((p) => Math.abs(p - c) - h / 2));
+  return clearance(candidates[1]) > clearance(candidates[0]) + 0.5 ? candidates[1] : candidates[0];
+}
+
+/**
  * A trade's every piece on one chart, week by week from the trade to now: each a line in the color of the team that
- * got it (a pick's running on into whoever it became), its name outside the chart on the left by where it started,
- * and its value now outside it on the right by where it ends. Inside it, nothing but two faint wires: the week the
- * sides were farthest apart, and the week they were closest.
+ * got it (a pick's running on into whoever it became, a dot where it did), its name outside the chart on the left by
+ * where it started, and on the right by where it ends its value now — or, for a pick that's become a player, his name,
+ * its value now then inside the chart over or under its line's end, wherever there's room. Every line's value when
+ * traded inside the chart by its start the same way. Inside it too, two faint wires: the week the sides were farthest
+ * apart, and the week they were closest.
  */
 function TradeChart({ trade, colorOf }: { trade: AnalyzedTrade; colorOf: (side: TradeSide) => string }) {
   const box = useRef<HTMLDivElement>(null);
@@ -95,17 +110,43 @@ function TradeChart({ trade, colorOf }: { trade: AnalyzedTrade; colorOf: (side: 
   const y = (value: number) => 4 + (1 - (value - lo) / span) * 92;
   const x = (day: number) => (last > first ? ((day - first) / (last - first)) * 100 : 0);
   const gap = (LABEL_PX / Math.max(1, tall)) * 100;
-  // Where each line starts and ends on the chart — its name and its value now beside them, moved apart only as far as
-  // they'd otherwise overlap (a tick then joining a name to its line's start).
-  const starts = lines.map((l) => y(l.points[0]?.value ?? l.asset.then ?? 0));
+  const firstValue = (l: (typeof lines)[number]) => l.points[0]?.value ?? l.asset.then ?? 0;
+  const lastValue = (l: (typeof lines)[number]) => l.points[l.points.length - 1]?.value ?? l.asset.now ?? 0;
+  // Where each line starts and ends on the chart — its name, and its value now (or who it became), beside them, moved
+  // apart only as far as they'd otherwise overlap (a tick then joining a name to its line's start).
+  const starts = lines.map((l) => y(firstValue(l)));
+  const ends = lines.map((l) => y(lastValue(l)));
   const lefts = spread(starts, gap);
-  const rights = spread(lines.map((l) => y(l.points[l.points.length - 1]?.value ?? l.asset.now ?? 0)), gap);
+  const rights = spread(ends, gap);
+  const named = lines.some((l) => l.asset.became);
+  // The values inside the chart: every line's when traded by its start, and a drafted pick's now by its end.
+  const h = (11 / Math.max(1, tall)) * 100;
+  const pad = (3 / Math.max(1, tall)) * 100;
+  const startAt: number[] = [];
+  starts.forEach((s, i) => startAt.push(roomFor(s, starts.filter((_, j) => j !== i), startAt, h, pad)));
+  const endAt = new Map<number, number>();
+  lines.forEach((l, i) => {
+    if (l.asset.became) endAt.set(i, roomFor(ends[i], ends.filter((_, j) => j !== i), [...endAt.values()], h, pad));
+  });
+  // Where each pick became a player: its line's point that day.
+  const dots = lines.flatMap((l, i) => {
+    const at = l.asset.became?.at;
+    if (at === undefined || at < first || at > last) return [];
+    const point = l.points.find((p) => p.day >= at) ?? l.points[l.points.length - 1];
+    return point ? [{ i, left: x(at), top: y(point.value), color: l.color, name: l.asset.became!.name }] : [];
+  });
   const widest = x(trade.widest.day);
   const closestOn = closestDay(trade);
   const closest = closestOn !== null ? x(closestOn) : null;
   const label = "absolute -translate-y-1/2 whitespace-nowrap text-xs leading-none";
+  const inside = "absolute -translate-y-1/2 whitespace-nowrap text-[0.625rem] font-bold leading-none tabular-nums";
   return (
-    <div ref={box} className="grid min-h-[11rem] flex-1 grid-cols-[minmax(0,8rem)_minmax(0,1fr)_2rem] gap-x-0 gap-y-1.5" role="img" aria-label="Each piece's value from the trade to now">
+    <div
+      ref={box}
+      className={`grid min-h-[11rem] flex-1 ${named ? "grid-cols-[minmax(0,8rem)_minmax(0,1fr)_minmax(0,8rem)]" : "grid-cols-[minmax(0,8rem)_minmax(0,1fr)_2rem]"} gap-x-0 gap-y-1.5`}
+      role="img"
+      aria-label="Each piece's value from the trade to now"
+    >
       {/* Each piece's name, right beside where its line starts. */}
       <div className="relative">
         <svg viewBox="0 0 8 100" preserveAspectRatio="none" className="absolute inset-y-0 right-0 h-full w-2 overflow-visible" aria-hidden>
@@ -147,14 +188,40 @@ function TradeChart({ trade, colorOf }: { trade: AnalyzedTrade; colorOf: (side: 
             ) : null
           )}
         </svg>
-      </div>
-      {/* Each piece's value now, by where its line ends. */}
-      <div className="relative">
+        {/* Where each pick became a player. */}
+        {dots.map((d) => (
+          <span
+            key={`dot-${d.i}`}
+            className="absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-[var(--page)]"
+            style={{ left: `${d.left}%`, top: `${d.top}%`, background: d.color }}
+            title={`Drafted: ${d.name}`}
+          />
+        ))}
+        {/* Each line's value when traded, by its start; a drafted pick's value now, by its end. */}
         {lines.map((l, i) => (
-          <span key={i} className={`${label} left-1.5 font-bold tabular-nums text-ink-primary`} style={{ top: `${rights[i]}%` }} title={l.asset.became ? `${l.asset.became.name} now` : "Now"}>
-            <Shown value={l.asset.now} />
+          <span key={`then-${i}`} className={`${inside} left-1`} style={{ top: `${startAt[i]}%`, color: l.color }} title="When traded">
+            {grade(firstValue(l))}
           </span>
         ))}
+        {[...endAt].map(([i, at]) => (
+          <span key={`now-${i}`} className={`${inside} right-1`} style={{ top: `${at}%`, color: lines[i].color }} title={`${lines[i].asset.became!.name} now`}>
+            <Shown value={lines[i].asset.now} />
+          </span>
+        ))}
+      </div>
+      {/* By where each line ends: its value now — or, a pick that's become a player, who he is. */}
+      <div className="relative">
+        {lines.map((l, i) =>
+          l.asset.became ? (
+            <span key={i} className={`${label} left-1.5 max-w-[calc(100%-0.375rem)] truncate font-semibold`} style={{ top: `${rights[i]}%`, color: l.color }} title={`${l.asset.label} became ${l.asset.became.name}`}>
+              {l.asset.became.name}
+            </span>
+          ) : (
+            <span key={i} className={`${label} left-1.5 font-bold tabular-nums text-ink-primary`} style={{ top: `${rights[i]}%` }} title="Now">
+              <Shown value={l.asset.now} />
+            </span>
+          )
+        )}
       </div>
     </div>
   );
