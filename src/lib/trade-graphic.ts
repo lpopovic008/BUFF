@@ -129,79 +129,86 @@ export function drawTradeGraphic(canvas: HTMLCanvasElement, trade: AnalyzedTrade
       ctx.fillStyle = color;
       ctx.fillText(fit(ctx, team, teamRoom), x + 24, by);
       by += 14;
-      // Each piece: its name, its grade then → now and the change.
-      const line = (name: string, right: { then: string; now: string; delta: number | null } | string, muted = false) => {
-        by += ROW;
-        type(26, "800");
-        let rightW = 0;
-        if (typeof right === "string") {
-          ctx.fillStyle = C.secondary;
-          rightW = ctx.measureText(right).width;
-          ctx.fillText(right, x + colW - 24 - rightW, by);
-        } else {
-          const delta = right.delta === null ? "" : right.delta > 0 ? ` +${right.delta}` : right.delta < 0 ? ` −${Math.abs(right.delta)}` : " 0";
-          const nowText = right.now;
-          const thenText = `${right.then} → `;
-          const dW = ctx.measureText(delta).width;
-          const nW = ctx.measureText(nowText).width;
-          type(26, "600");
-          const tW = ctx.measureText(thenText).width;
-          rightW = tW + nW + dW;
-          let rx = x + colW - 24 - rightW;
-          ctx.fillStyle = C.muted;
-          ctx.fillText(thenText, rx, by);
-          rx += tW;
-          type(26, "800");
-          ctx.fillStyle = C.primary;
-          ctx.fillText(nowText, rx, by);
-          rx += nW;
-          ctx.fillStyle = right.delta === null || right.delta === 0 ? C.muted : right.delta > 0 ? C.win : C.loss;
-          ctx.fillText(delta, rx, by);
-        }
-        // Smaller before it's cut short.
-        const room = inner - rightW - 16;
-        for (const size of [26, 23, 20]) {
-          type(size, muted ? "500" : "700");
-          if (ctx.measureText(name).width <= room) break;
-        }
-        ctx.fillStyle = muted ? C.secondary : C.primary;
-        ctx.fillText(fit(ctx, name, room), x + 24, by);
-      };
-      if (side.got.length === 0 && side.faab === 0) line("Nothing", "", true);
+      // Each piece: its name, then its grade then → now and the change, in columns — every arrow (the total's too) one
+      // above the other, however many digits are either side of it.
+      const signed = (d: number | null) => (d === null ? "" : d > 0 ? `+${d}` : d < 0 ? `−${Math.abs(d)}` : "0");
+      type Row = { name: string; muted?: boolean; then?: string; now?: string; delta?: number | null; text?: string };
+      const rowsOf: Row[] = [];
+      if (side.got.length === 0 && side.faab === 0) rowsOf.push({ name: "Nothing", muted: true });
       for (const a of side.got) {
         const then = a.then !== null ? grade(a.then) : null;
         const now = a.now !== null ? grade(a.now) : null;
-        line(pieceName(a), { then: then !== null ? String(then) : "–", now: now !== null ? String(now) : "–", delta: then !== null && now !== null ? now - then : null });
+        rowsOf.push({ name: pieceName(a), then: then !== null ? String(then) : "–", now: now !== null ? String(now) : "–", delta: then !== null && now !== null ? now - then : null });
       }
-      if (side.faab > 0) line(`$${side.faab} FAAB`, "", true);
-      if (side.added > 0) line("Added value", String(grade(side.added)), true);
+      if (side.faab > 0) rowsOf.push({ name: `$${side.faab} FAAB`, muted: true });
+      if (side.added > 0) rowsOf.push({ name: "Added value", muted: true, text: String(grade(side.added)) });
+      const totalThen = grade(side.then + side.added);
+      const totalNow = grade(side.now + side.added);
+      // One place for every arrow (the total's too): as far left as the widest row needs, right of it each row's
+      // value now straight after its arrow, and the pieces' changes in a column of their own.
+      const widthIn = (size: number, weight: string, text: string) => {
+        type(size, weight);
+        return ctx.measureText(text).width;
+      };
+      const pieces = rowsOf.filter((r) => r.then !== undefined);
+      const colGap = 10;
+      const arrowW = Math.max(widthIn(30, "600", "→"), widthIn(26, "600", "→"));
+      const pieceNowW = Math.max(0, ...pieces.map((r) => widthIn(26, "800", r.now!)));
+      const pieceDeltaW = Math.max(0, ...pieces.map((r) => widthIn(26, "800", signed(r.delta ?? null))));
+      const totalRoom = widthIn(42, "800", String(totalNow)) + colGap + widthIn(42, "800", signed(totalNow - totalThen));
+      const pieceRoom = pieceNowW + colGap + pieceDeltaW;
+      const right = x + colW - 24;
+      const arrowMid = right - Math.max(totalRoom, pieceRoom) - colGap - arrowW / 2;
+      const thenRight = arrowMid - arrowW / 2 - colGap;
+      const nowLeft = arrowMid + arrowW / 2 + colGap;
+      const thenW = Math.max(0, ...pieces.map((r) => widthIn(26, "600", r.then!)));
+      // A row's then → now and change — in `big` type for the total, its change straight after its value.
+      const numbers = (at: number, then: string, now: string, delta: number | null, nowColor: string, big = false) => {
+        ctx.textAlign = "right";
+        type(big ? 30 : 26, "600");
+        ctx.fillStyle = C.muted;
+        ctx.fillText(then, thenRight, at);
+        ctx.textAlign = "center";
+        ctx.fillText("→", arrowMid, at);
+        ctx.textAlign = "left";
+        type(big ? 42 : 26, "800");
+        ctx.fillStyle = nowColor;
+        ctx.fillText(now, nowLeft, at);
+        const deltaX = big ? nowLeft + ctx.measureText(now).width + colGap : nowLeft + pieceNowW + colGap;
+        ctx.fillStyle = delta === null || delta === 0 ? C.muted : delta > 0 ? C.win : C.loss;
+        ctx.fillText(signed(delta), deltaX, at);
+      };
+      for (const r of rowsOf) {
+        by += ROW;
+        let leftOf = right;
+        if (r.then !== undefined) {
+          numbers(by, r.then, r.now!, r.delta ?? null, C.primary);
+          leftOf = thenRight - thenW;
+        } else if (r.text) {
+          type(26, "800");
+          ctx.fillStyle = C.secondary;
+          ctx.textAlign = "right";
+          ctx.fillText(r.text, right, by);
+          ctx.textAlign = "left";
+          leftOf = right - ctx.measureText(r.text).width;
+        }
+        // Smaller before it's cut short.
+        const room = leftOf - 16 - (x + 24);
+        for (const size of [26, 23, 20]) {
+          type(size, r.muted ? "500" : "700");
+          if (ctx.measureText(r.name).width <= room) break;
+        }
+        ctx.fillStyle = r.muted ? C.secondary : C.primary;
+        ctx.fillText(fit(ctx, r.name, room), x + 24, by);
+      }
       // Its total.
       const ty = y + h - 34;
       ctx.fillStyle = C.hairline;
       ctx.fillRect(x + 24, ty - 56, inner, 2);
-      const then = grade(side.then + side.added);
-      const now = grade(side.now + side.added);
-      const delta = now - then;
       type(24, "800");
       ctx.fillStyle = color;
       ctx.fillText("TOTAL", x + 24, ty);
-      type(46, "800");
-      const deltaText = delta > 0 ? `+${delta}` : delta < 0 ? `−${Math.abs(delta)}` : "0";
-      const dW = ctx.measureText(` ${deltaText}`).width;
-      const nW = ctx.measureText(String(now)).width;
-      type(30, "600");
-      const tText = `${then} → `;
-      const tW = ctx.measureText(tText).width;
-      let rx = x + colW - 24 - (tW + nW + dW);
-      ctx.fillStyle = C.muted;
-      ctx.fillText(tText, rx, ty);
-      rx += tW;
-      type(46, "800");
-      ctx.fillStyle = color;
-      ctx.fillText(String(now), rx, ty);
-      rx += nW;
-      ctx.fillStyle = delta > 0 ? C.win : delta < 0 ? C.loss : C.muted;
-      ctx.fillText(` ${deltaText}`, rx, ty);
+      numbers(ty, String(totalThen), String(totalNow), totalNow - totalThen, color, true);
     });
     y += rowHeights[ri] + GAP;
   });
