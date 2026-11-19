@@ -81,13 +81,13 @@ export function internationalSlotPosition(index: number): [number, number] {
 }
 
 /**
- * Where the countries of games abroad are drawn small on the US map (map units): under California, Arizona and New
- * Mexico, left of Texas, no lower than the lower 48 go (Texas's tip) — inside the lower 48's own extent, so the map's
- * fitted the same with them as without.
+ * Where the countries of games abroad are drawn on the US map (map units): under California, Arizona and New Mexico —
+ * from California's edge across to Texas's southern tip, no lower than that tip — inside the lower 48's own extent, so
+ * the map's fitted the same with them as without.
  */
-const ABROAD_AREA = { left: 25, right: 113 };
-/** The most a country's drawn across (or down), in map units. */
-const COUNTRY_MOST = 60;
+const ABROAD_AREA = { left: 24, right: 160 };
+/** The most a country's drawn across (or down), in map units: past the most there's room for. */
+const COUNTRY_MOST = 120;
 /** Between two countries side by side, and between a country and the border over it (map units). */
 const COUNTRY_GAP = 4;
 const BORDER_GAP = 2.5;
@@ -117,10 +117,12 @@ function southAt(x: number): number {
           profile[c] = Math.max(profile[c], yAt(lo), yAt(hi));
         }
       });
-    southProfile = profile;
+    // The lowest within the border's gap either side too, so a country's kept clear of a steep stretch of it (Texas's
+    // coast) as of a flat one.
+    const reach = Math.ceil(BORDER_GAP);
+    southProfile = profile.map((_, c) => Math.max(...profile.slice(Math.max(0, c - reach), c + reach + 1)));
   }
-  const c = Math.round(Math.min(southProfile.length - 1, Math.max(0, x)));
-  return southProfile[c];
+  return southProfile[Math.round(Math.min(southProfile.length - 1, Math.max(0, x)))];
 }
 
 /**
@@ -129,14 +131,24 @@ function southAt(x: number): number {
  * go anywhere in it without reaching lower than the lower 48 do.
  */
 function tuckUnder(outline: CountryOutline, scale: number, from: number, to: number): { left: number; top: number } | null {
+  const key = `${outline.name}|${scale}|${from}|${to}`;
+  if (!tucked.has(key)) tucked.set(key, tuckUnderNow(outline, scale, from, to));
+  return tucked.get(key)!;
+}
+const tucked = new Map<string, { left: number; top: number } | null>();
+/** Each outline's points, read once. */
+const outlinePoints = new Map<CountryOutline, number[][]>();
+function tuckUnderNow(outline: CountryOutline, scale: number, from: number, to: number): { left: number; top: number } | null {
   const width = outline.width * scale;
   const height = outline.height * scale;
   if (width > to - from) return null;
-  const pts = outline.path.match(/-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?/g)?.map((p) => p.split(",").map(Number)) ?? [];
+  if (!outlinePoints.has(outline)) outlinePoints.set(outline, outline.path.match(/-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?/g)?.map((p) => p.split(",").map(Number)) ?? []);
+  const pts = outlinePoints.get(outline)!;
   const middle = (from + to - width) / 2;
   let best: { left: number; top: number } | null = null;
   for (let left = from; left <= to - width + 1e-9; left += 1) {
-    const top = Math.max(...pts.map(([x, y]) => southAt(left + x * scale) + BORDER_GAP - y * scale));
+    let top = -Infinity;
+    for (const [x, y] of pts) top = Math.max(top, southAt(left + x * scale) + BORDER_GAP - y * scale);
     if (top + height > US_BOTTOM) continue;
     if (!best || Math.abs(left - middle) < Math.abs(best.left - middle)) best = { left, top };
   }
@@ -198,7 +210,11 @@ export function abroadOnMap(games: NFLGame[]): { countries: AbroadCountry[]; pos
   const share = (ABROAD_AREA.right - ABROAD_AREA.left - (outlines.length - 1) * COUNTRY_GAP) / Math.max(1, outlines.length);
   const placed = outlines.map((outline, i) => {
     const from = ABROAD_AREA.left + i * (share + COUNTRY_GAP);
-    for (let most = COUNTRY_MOST; ; most *= 0.96) {
+    // From as big as the room down under the border could take it, down till it fits.
+    let roof = Infinity;
+    for (let x = from; x <= from + share; x++) roof = Math.min(roof, southAt(x));
+    const tallest = ((US_BOTTOM - roof - BORDER_GAP) * Math.max(outline.width, outline.height)) / outline.height;
+    for (let most = Math.min(COUNTRY_MOST, tallest); ; most *= 0.97) {
       const scale = most / Math.max(outline.width, outline.height);
       const at = tuckUnder(outline, scale, from, from + share);
       if (at || most < 4) return { outline, scale, left: at?.left ?? from, top: at?.top ?? US_BOTTOM - outline.height * scale };

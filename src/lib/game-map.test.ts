@@ -85,10 +85,10 @@ function insideUS(x: number, y: number): boolean {
   return inside;
 }
 
-test("a country abroad alone is drawn bigger than it is beside others", () => {
+test("a country abroad alone is drawn as big as there's room for, smaller beside others", () => {
   const alone = abroadOnMap([abroad("a", "Melbourne", "Australia")]).countries[0];
-  const beside = abroadOnMap([abroad("a", "Melbourne", "Australia"), abroad("b", "London", "UK")]).countries[0];
-  assert.ok(alone.width >= 40, `${alone.width}`);
+  const beside = abroadOnMap([abroad("a", "Melbourne", "Australia"), abroad("b", "London", "UK"), abroad("c", "Munich", "Germany")]).countries[0];
+  assert.ok(alone.width >= 50, `${alone.width}`);
   assert.ok(beside.width < alone.width);
 });
 
