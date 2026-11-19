@@ -518,40 +518,41 @@ export function FloorButtonSwiper({
   );
 }
 
-/** Each button's model drawn on its own, as a tile shows it (see ActionTiles): its faces, its lines, and the box
- * they're in (an SVG viewBox), a little room round them. Drawn once. */
-const TILE_MODELS = (() => {
-  let cache: { faces: Drawn["faces"]; decals: string[]; box: string }[] | null = null;
-  return () => {
-    if (cache) return cache;
-    const unit = 60;
-    cache = SOLIDS.map((solids) => {
-      const drawn = drawModel(solids, -unit / 2, unit * 1.2, unit, 200, 100, false);
-      const pts = [...drawn.faces.map((f) => f.d), ...drawn.decals].join("").matchAll(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g);
-      const [xs, ys] = [[] as number[], [] as number[]];
-      for (const m of pts) {
-        xs.push(Number(m[1]));
-        ys.push(Number(m[2]));
-      }
-      const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
-      // Square, about its middle, with a margin.
-      const side = Math.max(x1 - x0, y1 - y0) * 1.18;
-      const [cx, cy] = [(x0 + x1) / 2, (y0 + y1) / 2];
-      return { faces: drawn.faces, decals: drawn.decals, box: `${(cx - side / 2).toFixed(1)} ${(cy - side / 2).toFixed(1)} ${side.toFixed(1)} ${side.toFixed(1)}` };
-    });
-    return cache;
-  };
-})();
+/** Each button's icon for the tiles (see ActionTiles): flat line drawings on a 24 px square, in the ink's color. */
+const TILE_ICONS: Record<FloorAction, React.ReactNode> = {
+  // A bench, side on: its back rail, its seat, its legs.
+  bench: <path d="M5 6.5h14M5 6.5v6M19 6.5v6M3 12.5h18M6 12.5v6M18 12.5v6M5 9.5h14" />,
+  // Two teams' points over the week: a line each, the other's fainter, on a pair of axes.
+  graph: (
+    <>
+      <path d="M4 4v16h16" />
+      <path d="M7 15.5l3.5-4 3 2.5 5-6.5" />
+      <path d="M7 17.5l3.5-1.5 3 .5 5-3" strokeOpacity={0.45} />
+    </>
+  ),
+  // A coin: the money paid out.
+  payouts: (
+    <>
+      <circle cx={12} cy={12} r={8.5} />
+      <path d="M14.6 9.4c-.5-.9-1.5-1.4-2.6-1.4-1.5 0-2.6.8-2.6 2s1.1 1.7 2.6 2 2.7.8 2.7 2.1-1.2 2-2.7 2c-1.2 0-2.2-.5-2.7-1.4M12 6.5v11" />
+    </>
+  ),
+  // A page written on, a corner turned.
+  writeups: <path d="M6.5 3.5h8l3.5 3.5v13.5H6.5zM14.5 3.5V7H18M9 11h6.5M9 14h6.5M9 17h4" />,
+  // A trophy: the league's past winners.
+  history: <path d="M8 4h8v5a4 4 0 0 1-8 0zM8 5.5H5.5a2.5 2.5 0 0 0 3 4.4M16 5.5h2.5a2.5 2.5 0 0 1-3 4.4M12 13v3.5M9 20h6M10 16.5h4V20h-4z" />,
+};
+
+/** A tile's name, where the button's own is too long for it. */
+const TILE_LABEL: Partial<Record<FloorAction, string>> = { history: "History" };
 
 /**
- * The League Room's buttons as square tiles in a row that slides sideways (from laptop width up, across the top of
- * the right-hand column) — by a wheel or a trackpad over it, or dragged: each its model, as the floor's are (a park
- * bench, two teams' bars of points, stacks of coins, written pages and a quill, a trophy), and what it's for
- * under it — see-through, outlined; the one whose panel's up, outlined in ink. Pointed at, lit up; pressed, it gives a
- * little.
+ * The League Room's buttons as small square tiles in a row that slides sideways (from laptop width up, across the
+ * top of the right-hand column) — by a wheel or a trackpad over it, or dragged: each a flat line icon of what it's
+ * for (a bench, two teams' lines of points, a coin, a written page, a trophy) over its name. The one whose panel's
+ * up, filled in ink; pointed at, outlined.
  */
 export function ActionTiles({ active, onPick }: { active: FloorAction | null; onPick: (action: FloorAction) => void }) {
-  const models = TILE_MODELS();
   // Slid by the wheel (down, along it) and dragged — kept from the column it's in, which would scroll instead.
   const [row, setRow] = useState<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -591,34 +592,28 @@ export function ActionTiles({ active, onPick }: { active: FloorAction | null; on
       window.removeEventListener("pointerup", up, true);
     };
   }, [row]);
-  const edge = { stroke: "var(--ink-primary)", strokeOpacity: 0.4, strokeWidth: 0.75, strokeLinejoin: "round" as const };
-  const seamless = (fill: string) => ({ stroke: fill, strokeWidth: 0.75, strokeLinejoin: "round" as const });
   return (
-    <div ref={setRow} className="flex select-none gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="toolbar" aria-label="The league's room">
-      {FLOOR_ACTIONS.map((action, i) => {
+    <div ref={setRow} className="flex select-none gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="toolbar" aria-label="The league's room">
+      {FLOOR_ACTIONS.map((action) => {
         const on = active === action.id;
-        const model = models[i];
         return (
           <button
             key={action.id}
             type="button"
             aria-pressed={on}
+            aria-label={action.label}
+            title={action.label}
             onClick={() => onPick(action.id)}
-            className={`group flex aspect-square w-[6.5rem] shrink-0 flex-col items-center justify-center gap-1 border p-2 transition-colors active:translate-y-px ${
-              on ? "border-ink-primary" : "border-[color-mix(in_srgb,var(--ink-primary)_22%,transparent)] hover:border-[color-mix(in_srgb,var(--ink-primary)_55%,transparent)]"
+            className={`flex h-14 min-w-[3.75rem] flex-1 basis-0 flex-col items-center justify-center gap-1 border px-1 transition-colors active:translate-y-px ${
+              on
+                ? "border-ink-primary bg-ink-primary text-page"
+                : "border-[color-mix(in_srgb,var(--ink-primary)_22%,transparent)] text-ink-primary hover:border-[color-mix(in_srgb,var(--ink-primary)_60%,transparent)]"
             }`}
           >
-            <svg viewBox={model.box} className="min-h-0 w-[72%] flex-1 transition-[filter] group-hover:[filter:brightness(1.35)]" aria-hidden>
-              {model.faces.map((f, j) => (
-                <path key={j} d={f.d} fill={f.fill} {...(f.edge ? edge : seamless(f.fill))} />
-              ))}
-              <g fill="none" stroke="var(--ink-primary)" strokeOpacity={0.55} strokeWidth={1} strokeLinecap="round">
-                {model.decals.map((d, j) => (
-                  <path key={j} d={d} />
-                ))}
-              </g>
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              {TILE_ICONS[action.id]}
             </svg>
-            <span className="text-center text-xs font-semibold uppercase leading-tight tracking-wide text-ink-primary">{action.label}</span>
+            <span className="w-full truncate text-center text-[0.5625rem] font-bold uppercase leading-tight tracking-wide">{TILE_LABEL[action.id] ?? action.label}</span>
           </button>
         );
       })}
