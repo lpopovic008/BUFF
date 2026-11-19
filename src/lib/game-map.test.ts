@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  abroadOnMap,
   computeKickoffSlots,
   gameMapPosition,
   gameState,
@@ -13,6 +14,8 @@ import {
 } from "./game-map";
 import { NFLGame } from "./nfl-schedule";
 import { TEAM_CITIES } from "./team-cities";
+import { US_PROJECTED_OUTLINE_PATH } from "./us-outline";
+import { MAP_BOUNDS } from "./projector";
 
 function game(over: Partial<NFLGame> = {}): NFLGame {
   return {
@@ -49,6 +52,53 @@ test("a London game has no map position either", () => {
     neutralSite: true,
   });
   assert.equal(gameMapPosition(london), null);
+});
+
+const abroad = (id: string, city: string, country: string) =>
+  game({ id, homeTeam: "JAX", venue: { name: null, city, state: null, country }, neutralSite: true });
+
+test("a game abroad is pinned at its city in its country, drawn small under the southwest", () => {
+  const { countries, positions } = abroadOnMap([game(), abroad("mel", "Melbourne", "Australia")]);
+  assert.deepEqual(
+    countries.map((c) => c.name),
+    ["Australia"]
+  );
+  const [au] = countries;
+  const [x, y] = positions.get("mel")!;
+  // Melbourne: in the country's southeast, near its bottom.
+  assert.ok(x > au.left + au.width * 0.6 && x < au.left + au.width, `x ${x}`);
+  assert.ok(y > au.top + au.height * 0.75 && y < au.top + au.height, `y ${y}`);
+  // The game at home isn't moved.
+  assert.equal(positions.has("1"), false);
+});
+
+test("countries abroad sit within the lower 48's extent, clear of its outline, so the map's fit is the same", () => {
+  const { countries } = abroadOnMap([
+    abroad("a", "London", "England"),
+    abroad("b", "Munich", "Germany"),
+    abroad("c", "São Paulo", "Brazil"),
+    abroad("d", "Ciudad de México", "Mexico"),
+  ]);
+  assert.equal(countries.length, 4);
+  const us = [...US_PROJECTED_OUTLINE_PATH.matchAll(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g)].map((m) => [Number(m[1]), Number(m[2])]);
+  for (const c of countries) {
+    assert.ok(c.left >= MAP_BOUNDS.minX && c.left + c.width <= MAP_BOUNDS.maxX, c.name);
+    assert.ok(c.top >= MAP_BOUNDS.minY && c.top + c.height <= MAP_BOUNDS.maxY, c.name);
+    const inside = us.filter(([x, y]) => x >= c.left && x <= c.left + c.width && y >= c.top && y <= c.top + c.height);
+    assert.deepEqual(inside, [], c.name);
+  }
+  // Side by side, not over one another.
+  for (let i = 1; i < countries.length; i++) assert.ok(countries[i].left >= countries[i - 1].left + countries[i - 1].width, countries[i].name);
+});
+
+test("games abroad in the same country share it; one in a country not on file still gets a spot", () => {
+  const { countries, positions } = abroadOnMap([abroad("a", "London", "United Kingdom"), abroad("b", "London", "England"), abroad("c", "Tokyo", "Japan")]);
+  assert.deepEqual(
+    countries.map((c) => c.name),
+    ["UK"]
+  );
+  assert.notDeepEqual(positions.get("a"), positions.get("b"));
+  assert.ok(positions.get("c"));
 });
 
 test("a neutral-site game inside the US plots at its actual venue, not the home team's stadium", () => {

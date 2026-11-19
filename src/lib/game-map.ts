@@ -1,6 +1,7 @@
 // Where a game belongs on the dashboard's US map, and which colour marks each
 // league in the starters list.
 
+import { COUNTRY_OUTLINES, CountryOutline } from "./country-outlines";
 import { isOutsideUS, NFLGame } from "./nfl-schedule";
 import { TEAM_CITIES, TeamCity } from "./team-cities";
 
@@ -76,6 +77,106 @@ export function internationalSlotPosition(index: number): [number, number] {
   const [originX, originY] = [80, 166];
   const [stepX, stepY] = [-6, 7];
   return [originX + index * stepX, originY + index * stepY];
+}
+
+/**
+ * Where the countries of games abroad are drawn small on the US map (map units): under California, Arizona and New
+ * Mexico, left of Texas — inside the lower 48's own extent, so the map's fitted the same with them as without.
+ */
+const ABROAD_AREA = { left: 26, top: 151, right: 114, bottom: 184 };
+/** The most a country's drawn across (or down), in map units: small, beside the states. */
+const COUNTRY_MOST = 30;
+/** Between two countries side by side (map units). */
+const COUNTRY_GAP = 5;
+/** How far apart games in the same city are pinned (map units), so each shows. */
+const SAME_CITY_STEP = 3;
+
+/** A country games are being played in abroad, drawn small on the US map (see abroadOnMap). */
+export interface AbroadCountry {
+  name: string;
+  /** Its outline, in map units. */
+  path: string;
+  /** Its extent, in map units. */
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+/** Other names ESPN might give a venue's city, as country-outlines.ts names it. */
+const CITY_ALIASES: Record<string, string> = {
+  "ciudad de mexico": "mexico city",
+  cdmx: "mexico city",
+  munchen: "munich",
+  "frankfurt am main": "frankfurt",
+  roma: "rome",
+  milano: "milan",
+  rio: "rio de janeiro",
+};
+
+/** A name lower-cased, its accents off (São Paulo, Düsseldorf). */
+const plain = (name: string) =>
+  name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+
+/** The outline of the country a game abroad is played in, if it's one drawn (see country-outlines.ts). */
+function countryOf(game: NFLGame): CountryOutline | null {
+  const country = game.venue?.country;
+  if (!country) return null;
+  const name = plain(country);
+  return COUNTRY_OUTLINES.find((c) => c.spellings.includes(name)) ?? null;
+}
+
+/**
+ * The games played abroad on the US map: each country they're in drawn small under California, Arizona and New Mexico
+ * (side by side, smaller the more there are), and each game pinned in its own country at the city it's played in (its
+ * middle, for a city not on file). A country not on file has its games in holding spots there instead (see
+ * internationalSlotPosition).
+ */
+export function abroadOnMap(games: NFLGame[]): { countries: AbroadCountry[]; positions: Map<string, [number, number]> } {
+  const abroad = games.filter(isOutsideUS);
+  const outlines = [...new Set(abroad.map(countryOf).filter((c): c is CountryOutline => c !== null))];
+  const area = { width: ABROAD_AREA.right - ABROAD_AREA.left, height: ABROAD_AREA.bottom - ABROAD_AREA.top };
+  // As big as lets them all fit across, up to the most.
+  const most = Math.min(COUNTRY_MOST, area.height, (area.width - (outlines.length - 1) * COUNTRY_GAP) / Math.max(1, outlines.length));
+  const sized = outlines.map((c) => ({ outline: c, scale: most / Math.max(c.width, c.height) }));
+  const across = sized.reduce((sum, c) => sum + c.outline.width * c.scale, 0) + (sized.length - 1) * COUNTRY_GAP;
+  let left = ABROAD_AREA.left + (area.width - across) / 2;
+  const placed = sized.map(({ outline, scale }) => {
+    const at = { outline, scale, left, top: ABROAD_AREA.top };
+    left += outline.width * scale + COUNTRY_GAP;
+    return at;
+  });
+  const r = (v: number) => Math.round(v * 100) / 100;
+  const countries = placed.map(({ outline, scale, left: x0, top: y0 }) => ({
+    name: outline.name,
+    path: outline.path.replace(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g, (_, x: string, y: string) => `${r(x0 + Number(x) * scale)},${r(y0 + Number(y) * scale)}`),
+    left: x0,
+    top: y0,
+    width: outline.width * scale,
+    height: outline.height * scale,
+  }));
+  const positions = new Map<string, [number, number]>();
+  const pinned = new Map<string, number>();
+  let held = 0;
+  for (const game of abroad) {
+    const outline = countryOf(game);
+    const at = outline ? placed.find((p) => p.outline === outline) : undefined;
+    if (!at) {
+      positions.set(game.id, internationalSlotPosition(held++));
+      continue;
+    }
+    const city = game.venue?.city ? plain(game.venue.city) : "";
+    const [cx, cy] = at.outline.cities[CITY_ALIASES[city] ?? city] ?? [at.outline.width / 2, at.outline.height / 2];
+    const spot = `${at.outline.name}:${cx},${cy}`;
+    const before = pinned.get(spot) ?? 0;
+    pinned.set(spot, before + 1);
+    positions.set(game.id, [at.left + cx * at.scale + before * SAME_CITY_STEP, at.top + cy * at.scale]);
+  }
+  return { countries, positions };
 }
 
 // Kickoff-time gradient tokens (see globals.css) — cool/dark for the week's

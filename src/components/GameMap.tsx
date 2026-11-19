@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NFLGame, isOutsideUS } from "@/lib/nfl-schedule";
-import { gameMapPosition, gameState, internationalSlotPosition } from "@/lib/game-map";
+import { abroadOnMap, gameMapPosition, gameState } from "@/lib/game-map";
 import {
   DEFAULT_SCALES,
   DEFAULT_SCENE,
@@ -538,10 +538,10 @@ export function GameMap({
   );
 
   const tags = useMemo(() => {
-    let abroadIndex = 0;
+    const { positions } = abroadOnMap(games.map((entry) => entry.game));
     const sited = games
       .map((entry): Omit<Tag, "side"> | null => {
-        const pos = isOutsideUS(entry.game) ? internationalSlotPosition(abroadIndex++) : gameMapPosition(entry.game);
+        const pos = isOutsideUS(entry.game) ? (positions.get(entry.game.id) ?? null) : gameMapPosition(entry.game);
         if (!pos) return null;
         return {
           id: entry.game.id,
