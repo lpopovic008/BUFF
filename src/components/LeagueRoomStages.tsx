@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronLeftIcon } from "@/components/ui/Icon";
-import { CloseButton, FloorTile, FloorTiles } from "@/components/LeagueRoomFloor";
+import { CloseButton } from "@/components/LeagueRoomFloor";
 import { SeasonLine } from "@/components/FloorCareer";
 import { MatchupGraph, MatchupSide } from "@/components/MatchupGraph";
 import type { LineupNumbers } from "@/components/PlayerCareer";
@@ -20,7 +20,6 @@ import { getPlayerBio, PlayerBio, ResolvedPlayer } from "@/lib/players";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import type { ResolvedSlot } from "@/hooks/useLeagueMatchupCarousel";
 import type { NFLGame } from "@/lib/nfl-schedule";
-import type { Span } from "@/lib/matchup-timeline";
 
 /** How long a stage takes to come in, or go (ms) — as the room's panels rise. */
 export const STAGE_MS = 450;
@@ -81,13 +80,9 @@ export function FloorTitle({ title, sub, onClose, back, extra }: { title: string
 }
 
 /** Split into rows of at most `per`. */
-const rowsOf = <T,>(items: T[], per: number): T[][] => Array.from({ length: Math.ceil(items.length / per) }, (_, i) => items.slice(i * per, (i + 1) * per));
-
 /**
- * The score graph as a stage: the whole of it on the back wall, where the lineups were — and on the floor in front,
- * a tile for each of the week's kickoff blocks (Thursday night, Sunday 1:00...), picked to spread just that block
- * across the graph, its scoring plays marked to step through (the ‹ › tiles, the arrow keys, or a drag along it), and
- * a tile for the whole week again.
+ * The score graph as a stage: the whole week of it on the back wall, where the lineups were, and its title on the
+ * floor in front.
  */
 export function RoomGraph({
   places,
@@ -108,25 +103,7 @@ export function RoomGraph({
   weekGames: NFLGame[];
   scoring?: Record<string, number>;
 }) {
-  const [blocks, setBlocks] = useState<(Span & { label: string })[]>([]);
-  const [focus, setFocus] = useState<(Span & { label: string }) | null>(null);
-  const step = useRef<((by: -1 | 1) => void) | null>(null);
-  const { floor, room } = places;
-  // Three to a row on a phone, more wider.
-  const per = floor.width < 520 ? 3 : 5;
-  const blockTiles: FloorTile[] = blocks.map((b) => ({
-    key: String(b.from),
-    label: b.label,
-    title: `Zoom into the ${b.label} games`,
-    on: focus?.from === b.from,
-    onPick: () => setFocus(focus?.from === b.from ? null : b),
-  }));
-  const controls: FloorTile[] = [
-    { key: "prev", label: "‹ Play", title: "The play before", disabled: !focus, onPick: () => step.current?.(-1) },
-    { key: "all", label: "Whole week", title: "The whole week again", on: !focus, onPick: () => setFocus(null) },
-    { key: "next", label: "Play ›", title: "The next play", disabled: !focus, onPick: () => step.current?.(1) },
-  ];
-  const TITLE_H = 36;
+  const { floor } = places;
   return (
     <>
       {/* The graph on the back wall. */}
@@ -135,26 +112,15 @@ export function RoomGraph({
         className={`fixed z-[6] flex flex-col transition-[opacity,transform] ease-out ${up ? "opacity-100" : "translate-y-2 opacity-0"}`}
         style={{ ...places.wall, transitionDuration: `${STAGE_MS}ms` }}
       >
-        <MatchupGraph mine={mine} theirs={theirs} weekGames={weekGames} scoring={scoring} focus={focus} onBlocks={setBlocks} stepRef={step} />
+        <MatchupGraph mine={mine} theirs={theirs} weekGames={weekGames} scoring={scoring} />
       </div>
-      {/* Its title and tiles on the floor. */}
+      {/* Its title on the floor. */}
       <div
         data-floor-ui
         className={`fixed z-[7] transition-opacity ease-out ${up ? "opacity-100" : "opacity-0"}`}
         style={{ top: floor.top, left: floor.left, width: floor.width, transitionDuration: `${STAGE_MS}ms` }}
       >
-        <FloorTitle title="Score graph" sub={focus ? focus.label : "Whole week"} onClose={onClose} back={back} />
-      </div>
-      <div className={`transition-opacity ease-out ${up ? "opacity-100" : "pointer-events-none opacity-0"}`} style={{ transitionDuration: `${STAGE_MS}ms` }}>
-        <FloorTiles
-          label="Zoom into the graph"
-          rows={[...rowsOf(blockTiles, per), controls]}
-          room={room}
-          top={floor.top + TITLE_H + 6}
-          bottom={floor.bottom}
-          left={floor.left}
-          right={floor.left + floor.width}
-        />
+        <FloorTitle title="Score graph" sub="Whole week" onClose={onClose} back={back} />
       </div>
     </>
   );
