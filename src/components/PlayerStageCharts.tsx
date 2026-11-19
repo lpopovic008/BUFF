@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { FAR_OPACITY, FULL_DEPTH_SHARE, HORIZON_OPACITY, LINE_OPACITY } from "@/components/FloorGrid";
-import { FLOOR_TILT, GRID_PX, PERSPECTIVE_PX } from "@/lib/grid-room";
+import { FLOOR_TILT, PERSPECTIVE_PX } from "@/lib/grid-room";
 import type { StatTier } from "@/lib/stat-tiers";
 
 // A player's card's charts (see PlayerStage): his fantasy points game by game as a line on the back wall, and his
@@ -196,8 +196,9 @@ const NEAREST = (PERSPECTIVE_PX / SIN) * 0.97;
 /** How the floor magnifies what's `d` px back from the hinge and `h` px up off it (see grid-room's floorScale). */
 const scaleOf = (d: number, h: number) => PERSPECTIVE_PX / (PERSPECTIVE_PX - Math.min(d * SIN + h * COS, NEAREST));
 
-/** A step of the stairs (see FloorStairs): a grid square high, and this deep — shallow, so more of them show. */
-const RISE = GRID_PX;
+/** A step of the stairs (see FloorStairs): this high and this deep — low and shallow, so more of them, and more of
+ * the stats' rows, show. */
+const RISE = 36;
 const TREAD = 24;
 /** The widest a game's column is (at the wall), however few games there are. */
 const MOST_COLUMN = 72;
@@ -387,7 +388,7 @@ export function useStairs(up: boolean) {
 
 /**
  * The floor as a flight of stairs going down toward you from the wall, slid down them as the stats are (`pan.z`), `q`
- * of the way from flat: each step a grid square high (RISE) and shallow (TREAD), its columns `col` wide. Row `z` of the
+ * of the way from flat: each step low (RISE) and shallow (TREAD), its columns `col` wide. Row `z` of the
  * stats (whole rows, `r`) sits on the step under the one at the wall — the landing — its games across, centered on the
  * screen. Where floor point (`a` games across from the middle one, `z` rows), `up` px off row `r`'s step, shows on
  * the screen; and the step's own edges.
@@ -486,8 +487,9 @@ export function FloorStairs({
   );
 }
 
-/** The tallest bar, in px on the floor (a stat's best): just short of the step behind, so a row never hides the next. */
-const TALLEST = 50;
+/** The tallest bar, in px on the floor (a stat's best): short of the step behind by its value's room over it, so a
+ * row never hides the next. */
+const TALLEST = 26;
 /** Steps between the primary stats and the secondary ones. */
 const BLOCK_GAP = 1;
 
