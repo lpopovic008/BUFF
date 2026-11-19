@@ -162,7 +162,8 @@ function TradeChart({ trade, colorOf }: { trade: AnalyzedTrade; colorOf: (side: 
 
 /**
  * The trade as a picture to send to the league (see trade-graphic.ts), in the export theme picked in Settings: handed
- * to the share sheet where there is one (a phone's — Messages, the group chat), else copied to paste, else saved.
+ * to the share sheet where there is one (a phone's — Messages, the group chat) as the picture alone, no text with it, else
+ * copied to paste, else saved.
  */
 function TradeExport({ trade, leagueName }: { trade: AnalyzedTrade; leagueName: string }) {
   const [status, setStatus] = useState<"idle" | "copied" | "saved" | "error">("idle");
@@ -184,7 +185,7 @@ function TradeExport({ trade, leagueName }: { trade: AnalyzedTrade; leagueName: 
     // Straight to the share sheet, in this same tap.
     if (navigator.canShare?.({ files: [file] })) {
       try {
-        await navigator.share({ files: [file], title: `${leagueName} trade` });
+        await navigator.share({ files: [file] });
         return;
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
