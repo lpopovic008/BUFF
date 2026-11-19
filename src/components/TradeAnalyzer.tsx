@@ -95,20 +95,30 @@ function TradeChart({ trade, colorOf }: { trade: AnalyzedTrade; colorOf: (side: 
   const y = (value: number) => 4 + (1 - (value - lo) / span) * 92;
   const x = (day: number) => (last > first ? ((day - first) / (last - first)) * 100 : 0);
   const gap = (LABEL_PX / Math.max(1, tall)) * 100;
-  const lefts = spread(lines.map((l) => y(l.asset.then ?? 0)), gap);
-  const rights = spread(lines.map((l) => y(l.asset.now ?? 0)), gap);
+  // Where each line starts and ends on the chart — its name and its value now beside them, moved apart only as far as
+  // they'd otherwise overlap (a tick then joining a name to its line's start).
+  const starts = lines.map((l) => y(l.points[0]?.value ?? l.asset.then ?? 0));
+  const lefts = spread(starts, gap);
+  const rights = spread(lines.map((l) => y(l.points[l.points.length - 1]?.value ?? l.asset.now ?? 0)), gap);
   const widest = x(trade.widest.day);
   const closestOn = closestDay(trade);
   const closest = closestOn !== null ? x(closestOn) : null;
   const label = "absolute -translate-y-1/2 whitespace-nowrap text-xs leading-none";
   return (
-    <div ref={box} className="grid min-h-[11rem] flex-1 grid-cols-[minmax(0,7.5rem)_minmax(0,1fr)_2rem] gap-1.5" role="img" aria-label="Each piece's value from the trade to now">
-      {/* Each piece's name, by where its line starts. */}
+    <div ref={box} className="grid min-h-[11rem] flex-1 grid-cols-[minmax(0,8rem)_minmax(0,1fr)_2rem] gap-x-0 gap-y-1.5" role="img" aria-label="Each piece's value from the trade to now">
+      {/* Each piece's name, right beside where its line starts. */}
       <div className="relative">
+        <svg viewBox="0 0 8 100" preserveAspectRatio="none" className="absolute inset-y-0 right-0 h-full w-2 overflow-visible" aria-hidden>
+          {lines.map((l, i) =>
+            Math.abs(lefts[i] - starts[i]) > 0.5 ? (
+              <line key={i} x1={0} y1={lefts[i]} x2={8} y2={starts[i]} stroke={l.color} strokeWidth={1} vectorEffect="non-scaling-stroke" />
+            ) : null
+          )}
+        </svg>
         {lines.map((l, i) => (
           <span
             key={i}
-            className={`${label} right-0 max-w-full truncate font-semibold`}
+            className={`${label} right-2.5 max-w-[calc(100%-0.625rem)] truncate font-semibold`}
             style={{ top: `${lefts[i]}%`, color: l.color }}
             title={[l.asset.label, l.asset.became ? `became ${l.asset.became.name}` : null, l.asset.pickOf ? `(${l.asset.pickOf})` : null].filter(Boolean).join(" ")}
           >
@@ -141,7 +151,7 @@ function TradeChart({ trade, colorOf }: { trade: AnalyzedTrade; colorOf: (side: 
       {/* Each piece's value now, by where its line ends. */}
       <div className="relative">
         {lines.map((l, i) => (
-          <span key={i} className={`${label} left-0 font-bold tabular-nums text-ink-primary`} style={{ top: `${rights[i]}%` }} title={l.asset.became ? `${l.asset.became.name} now` : "Now"}>
+          <span key={i} className={`${label} left-1.5 font-bold tabular-nums text-ink-primary`} style={{ top: `${rights[i]}%` }} title={l.asset.became ? `${l.asset.became.name} now` : "Now"}>
             <Shown value={l.asset.now} />
           </span>
         ))}
@@ -222,7 +232,7 @@ function TradeCard({ trade, leagueName, height }: { trade: AnalyzedTrade; league
   const madeOn = new Date(trade.at);
   const colorOf = (side: TradeSide) => SIDE_COLORS[Math.max(0, trade.sides.indexOf(side)) % SIDE_COLORS.length];
   return (
-    <li data-trade-id={trade.id} className="flex flex-col gap-2 border border-border p-2 sm:p-3" style={height ? { height } : undefined}>
+    <li data-trade-id={trade.id} className="flex flex-col gap-2 py-2 sm:py-3" style={height ? { height } : undefined}>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className="text-[0.6875rem] font-semibold uppercase tracking-wide text-ink-secondary tabular-nums" title="When the trade was made">
           {madeOn.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}

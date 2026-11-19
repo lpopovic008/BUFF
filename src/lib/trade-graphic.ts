@@ -214,8 +214,6 @@ export function drawTradeGraphic(canvas: HTMLCanvasElement, trade: AnalyzedTrade
   type(18, "800");
   ctx.fillStyle = C.muted;
   ctx.fillText("VALUE OVER TIME", PAD, y + 18);
-  ctx.fillStyle = C.card;
-  ctx.fillRect(chart.x, chart.y, chart.w, chart.h);
   const values = lines.flatMap((l) => l.points.map((p) => p.value));
   if (values.length > 0 && last > first) {
     // From nothing up to the highest, and room over it as wide as a fair trade's sides can be apart (FAIR_SHARE): how
