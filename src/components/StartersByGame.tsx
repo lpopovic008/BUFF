@@ -14,6 +14,7 @@ import { Ordinals } from "./Ordinals";
 import { LastAction, onPace, paceShare } from "@/lib/live-play-points";
 import { GAME_MS } from "./PointsGraph";
 import { useLastActions } from "@/hooks/useLastActions";
+import { LIST_MOVE } from "@/hooks/useListScroll";
 import { getHomeView, saveHomeView } from "@/lib/localStore";
 import { teamColor } from "@/lib/team-colors";
 import { shortName } from "@/lib/pregame-rows";
@@ -845,8 +846,10 @@ function GameBox({
   const toggle = () => onToggle(id, next, closeMsFor());
   const nextLabel = ["show just the teams", "show your players", "show yours and the ones you face", "show everyone"][next];
   // The matchup — and only the matchup — steps through the box's views.
+  // Marked as the game's header, for the map to show just the games whose headers are in sight (see StartersByGame).
   const matchup = (
     <div
+      data-game-head={map ? id : undefined}
       role={toggleable ? "button" : undefined}
       tabIndex={toggleable ? 0 : undefined}
       aria-label={`${label}${toggleable ? ` — ${nextLabel}` : ""}`}
@@ -869,8 +872,7 @@ function GameBox({
   // with its game, for the floor to follow (see FloorCameraControls) — not a bye's.
   return (
     <div data-game={map ? id : undefined}>
-      {/* Its header marked, for the map to show just the games whose headers are in sight (see StartersByGame). */}
-      <div ref={box} data-game-head={map ? id : undefined} className="flex flex-col px-2 py-1.5">
+      <div ref={box} className="flex flex-col px-2 py-1.5">
         {map ? (
           // Just the matchup swipes over, out to the box's edges, to show the button that hides the game.
           <Swipeable
@@ -1174,40 +1176,71 @@ export function StartersByGame({
     if (barView && added.length > 0) setViews((prev) => new Map([...prev, ...openTo(barView, added)]));
   }
   useEffect(() => onViewsChange?.(views), [views, onViewsChange]);
-  // The games whose headers are in sight (half of each at least, on the screen under the header and ticker, and not
-  // scrolled or folded out of their list's view), told as they come and go.
+  // The games whose headers (their matchup rows) are in sight — any of one showing between the bottom of the page's
+  // header and ticker (see-through, but what's under them reads as out of sight) and the bottom of its list's view,
+  // not folded away — told as they come and go. Checked every time the list moves (its own scroll, or pulled past an
+  // end, see useListScroll), the page resizes or anything in the list changes size (a box opening, a block folding).
   const [root, setRoot] = useState<HTMLDivElement | null>(null);
   const tellInView = useRef(onGamesInView);
   useEffect(() => {
     tellInView.current = onGamesInView;
   });
-  const gameIds = games.map((g) => g.game.id).join(",");
-  // How far down the screen the header and the ticker reach (px).
-  const coveredTop = () => {
-    const css = getComputedStyle(document.documentElement);
-    return Math.round((parseFloat(css.getPropertyValue("--header-h")) || 0) + (parseFloat(css.getPropertyValue("--ticker-h")) || 0));
-  };
   useEffect(() => {
     if (!root) return;
-    const seen = new Set<string>();
     let told = "";
-    const observer = new IntersectionObserver((entries) => {
-      for (const e of entries) {
-        const id = (e.target as HTMLElement).dataset.gameHead;
-        if (!id) continue;
-        // In sight once half of it shows — not a sliver at the list's edge.
-        if (e.isIntersecting && e.intersectionRatio >= 0.5) seen.add(id);
-        else seen.delete(id);
+    let frame = 0;
+    const check = () => {
+      frame = 0;
+      // The strip of the screen the list shows: under what covers the page's top, inside every box that clips it.
+      let top = Math.max(
+        0,
+        ...[...document.querySelectorAll("header.sticky, [data-covers]")]
+          .map((el) => el.getBoundingClientRect())
+          .filter((r) => r.height > 0 && r.top < window.innerHeight / 2)
+          .map((r) => r.bottom)
+      );
+      let bottom = window.innerHeight;
+      for (let el = root.parentElement; el && el !== document.body; el = el.parentElement) {
+        const style = getComputedStyle(el);
+        if (style.overflowY !== "visible" || style.overflowX !== "visible") {
+          const r = el.getBoundingClientRect();
+          top = Math.max(top, r.top);
+          bottom = Math.min(bottom, r.bottom);
+        }
+        // Nothing past a fixed box clips what's in it.
+        if (style.position === "fixed") break;
       }
-      const key = [...seen].sort().join(",");
-      if (seen.size === 0 || key === told) return;
+      const seen = [...root.querySelectorAll<HTMLElement>("[data-game-head]")]
+        .filter((el) => {
+          const r = el.getBoundingClientRect();
+          // Folded away (see BlockGames): no height to show.
+          return r.height > 0 && r.bottom > top && r.top < bottom && el.closest("[aria-hidden='true']") === null;
+        })
+        .map((el) => el.dataset.gameHead!)
+        .sort();
+      const key = seen.join(",");
+      if (seen.length === 0 || key === told) return;
       told = key;
       tellInView.current?.(new Set(seen));
-      // Not up behind the see-through header and ticker.
-    }, { threshold: [0, 0.5, 1], rootMargin: `${-coveredTop()}px 0px 0px 0px` });
-    root.querySelectorAll<HTMLElement>("[data-game-head]").forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
-  }, [root, gameIds]);
+    };
+    const soon = () => {
+      if (!frame) frame = requestAnimationFrame(check);
+    };
+    check();
+    window.addEventListener("scroll", soon, { capture: true, passive: true });
+    window.addEventListener(LIST_MOVE, soon, { capture: true });
+    window.addEventListener("resize", soon);
+    const sized = new ResizeObserver(soon);
+    sized.observe(root);
+    document.querySelectorAll("header.sticky, [data-covers]").forEach((el) => sized.observe(el));
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", soon, { capture: true });
+      window.removeEventListener(LIST_MOVE, soon, { capture: true });
+      window.removeEventListener("resize", soon);
+      sized.disconnect();
+    };
+  }, [root]);
   const closeTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   useEffect(() => {
     const timers = closeTimers.current;

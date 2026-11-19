@@ -400,6 +400,8 @@ export function LeagueTicker({ leagues }: { leagues: TickerLeague[] }) {
   return (
     <nav
       ref={bar}
+      // What's under it is hidden by it, near enough (see StartersByGame's games in sight).
+      data-covers
       aria-label="Your leagues"
       className="sticky top-[var(--header-h,0px)] z-40 -mx-4 -mt-6 bg-page/70 backdrop-blur-[3px] sm:-mx-6 sm:-mt-8 md:-mx-1"
     >
