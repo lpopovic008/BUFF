@@ -11,7 +11,7 @@ import { BenchCandidate, BenchFilterKey, benchFilters, benchList, StarterInSlot 
 import { ChartGame, ChartStat, chartColumn, FloorStairs, FloorStatBars, stairStep, statRows, useChartPan, useStairs, ValueLine, WallLine } from "@/components/PlayerStageCharts";
 import { loadValueHistory } from "@/hooks/useLeagueTrades";
 import { normalizeName } from "@/lib/name-match";
-import { collegeLogo } from "@/lib/college-logos";
+import { collegeAbbreviation } from "@/lib/college-abbreviations";
 import { nflLogoUrl } from "@/lib/nfl-logos";
 import { ordinal } from "@/lib/format";
 import { StatTier, statTier } from "@/lib/stat-tiers";
@@ -131,32 +131,23 @@ export function RoomGraph({
 /** "6'2\"" from inches. */
 const feet = (inches: number) => `${Math.floor(inches / 12)}'${inches % 12}"`;
 
-/** His college's logo (see collegeLogo) — its name instead, small, if there's none to show. */
+/** His college's short name (see collegeAbbreviation), its whole name said and on hover. */
 function CollegeMark({ college }: { college: string | null }) {
-  const [logo, setLogo] = useState<{ college: string; src: string | null } | null>(null);
-  const [failed, setFailed] = useState<string | null>(null);
-  useEffect(() => {
-    if (!college) return;
-    let cancelled = false;
-    collegeLogo(college).then((src) => !cancelled && setLogo({ college, src }));
-    return () => {
-      cancelled = true;
-    };
-  }, [college]);
-  if (!college) return null;
-  const src = logo?.college === college ? logo.src : null;
-  if (src && failed !== src) {
-    // eslint-disable-next-line @next/next/no-img-element -- a remote ESPN logo on a static export
-    return <img src={src} alt={college} title={college} onError={() => setFailed(src)} className="h-9 w-9 shrink-0 object-contain sm:h-11 sm:w-11" />;
-  }
-  return <span className="max-w-[5rem] shrink-0 text-right text-[0.625rem] font-bold uppercase leading-tight text-ink-secondary">{college}</span>;
+  const short = collegeAbbreviation(college);
+  if (!college || !short) return null;
+  return (
+    <span title={college} className="block shrink-0 whitespace-nowrap text-right text-xs font-extrabold uppercase leading-tight tracking-wide text-ink-primary sm:text-sm">
+      <span aria-hidden>{short}</span>
+      <span className="sr-only">{college}</span>
+    </span>
+  );
 }
 
 /**
  * Who a player is, across the top of his stage, in two lines: his photo over his team's logo beside them both; his
  * name and position, and his way out at the end of that line; under them his height and weight (and number). On the
  * right, each two lines level with those two: his trade-value rank over his season rank, his age over his years in
- * the league, and his college's logo between the two.
+ * the league, and his college's short name between the two.
  */
 function PlayerHeader({ player, bio, numbers, onClose }: { player: ResolvedPlayer; bio: PlayerBio | null; numbers: LineupNumbers | null; onClose: () => void }) {
   const [photoFailed, setPhotoFailed] = useState(false);
