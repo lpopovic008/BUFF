@@ -90,7 +90,7 @@ const ABROAD_AREA = { left: 24, right: 160 };
 const COUNTRY_MOST = 120;
 /** Between two countries side by side, and between a country and the border over it (map units). */
 const COUNTRY_GAP = 4;
-const BORDER_GAP = 2.5;
+const BORDER_GAP = 5;
 
 /** The lower 48's outline's points (map units). */
 const US_POINTS = [...US_PROJECTED_OUTLINE_PATH.matchAll(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g)].map((m) => [Number(m[1]), Number(m[2])] as const);

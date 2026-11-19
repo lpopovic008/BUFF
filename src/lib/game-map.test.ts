@@ -109,7 +109,7 @@ test("countries abroad sit within the lower 48's extent, clear of its outline, s
     for (const [x, y] of own) {
       assert.ok(!insideUS(x, y), `${c.name} ${x},${y} inside the US`);
       const near = Math.min(...us.map(([ux, uy]) => Math.hypot(ux - x, uy - y)));
-      assert.ok(near >= 1.5, `${c.name} ${x},${y} ${near.toFixed(2)} from the border`);
+      assert.ok(near >= 4, `${c.name} ${x},${y} ${near.toFixed(2)} from the border`);
     }
   }
   // Side by side, not over one another.
