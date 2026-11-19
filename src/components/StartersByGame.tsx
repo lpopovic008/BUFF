@@ -869,7 +869,8 @@ function GameBox({
   // with its game, for the floor to follow (see FloorCameraControls) — not a bye's.
   return (
     <div data-game={map ? id : undefined}>
-      <div ref={box} className="flex flex-col px-2 py-1.5">
+      {/* Its header marked, for the map to show just the games whose headers are in sight (see StartersByGame). */}
+      <div ref={box} data-game-head={map ? id : undefined} className="flex flex-col px-2 py-1.5">
         {map ? (
           // Just the matchup swipes over, out to the box's edges, to show the button that hides the game.
           <Swipeable
@@ -1117,6 +1118,7 @@ export function StartersByGame({
   selectedPlayers,
   onSelectPlayer,
   onViewsChange,
+  onGamesInView,
 }: {
   games: GameStarters[];
   /** The teams on their bye this week, with any starters on them — listed last, under their own header. */
@@ -1139,6 +1141,9 @@ export function StartersByGame({
   onSelectPlayer: (playerId: string, gameId: string) => void;
   /** Told each box's view (see viewPlayers) whenever one changes, by id — shut when missing — so the map can count the same players. */
   onViewsChange?: (views: Map<string, number>) => void;
+  /** Told the games whose headers are in sight, by id, as the list scrolls — those last in sight kept while none are
+   * (scrolled down to the byes, say). */
+  onGamesInView?: (ids: Set<string>) => void;
 }) {
   const legendByLeagueId = new Map(legend.map((l) => [l.leagueId, l]));
   // Every box — each game, then each bye — with what it can list.
@@ -1169,6 +1174,40 @@ export function StartersByGame({
     if (barView && added.length > 0) setViews((prev) => new Map([...prev, ...openTo(barView, added)]));
   }
   useEffect(() => onViewsChange?.(views), [views, onViewsChange]);
+  // The games whose headers are in sight (half of each at least, on the screen under the header and ticker, and not
+  // scrolled or folded out of their list's view), told as they come and go.
+  const [root, setRoot] = useState<HTMLDivElement | null>(null);
+  const tellInView = useRef(onGamesInView);
+  useEffect(() => {
+    tellInView.current = onGamesInView;
+  });
+  const gameIds = games.map((g) => g.game.id).join(",");
+  // How far down the screen the header and the ticker reach (px).
+  const coveredTop = () => {
+    const css = getComputedStyle(document.documentElement);
+    return Math.round((parseFloat(css.getPropertyValue("--header-h")) || 0) + (parseFloat(css.getPropertyValue("--ticker-h")) || 0));
+  };
+  useEffect(() => {
+    if (!root) return;
+    const seen = new Set<string>();
+    let told = "";
+    const observer = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        const id = (e.target as HTMLElement).dataset.gameHead;
+        if (!id) continue;
+        // In sight once half of it shows — not a sliver at the list's edge.
+        if (e.isIntersecting && e.intersectionRatio >= 0.5) seen.add(id);
+        else seen.delete(id);
+      }
+      const key = [...seen].sort().join(",");
+      if (seen.size === 0 || key === told) return;
+      told = key;
+      tellInView.current?.(new Set(seen));
+      // Not up behind the see-through header and ticker.
+    }, { threshold: [0, 0.5, 1], rootMargin: `${-coveredTop()}px 0px 0px 0px` });
+    root.querySelectorAll<HTMLElement>("[data-game-head]").forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [root, gameIds]);
   const closeTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   useEffect(() => {
     const timers = closeTimers.current;
@@ -1267,7 +1306,7 @@ export function StartersByGame({
 
   return (
     // Room over the bar, under the ticker; the games start right under it.
-    <div className="flex flex-col gap-0.5 md:pt-3.5">
+    <div ref={setRoot} className="flex flex-col gap-0.5 md:pt-3.5">
       {nothingToShow ? null : (
         // Every box to one view at once.
         <div className="grid grid-cols-3" role="group" aria-label="Show in every game">

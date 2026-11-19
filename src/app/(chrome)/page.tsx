@@ -351,7 +351,9 @@ export default function DashboardPage() {
             // Under the ticker, the kickoff countdown over it.
             highest: Math.max(height * 0.24, (parseFloat(css.getPropertyValue("--header-h")) || 0) + (parseFloat(css.getPropertyValue("--ticker-h")) || 0) + 3 * rootPx),
           })
-        : fitProjector({ width, height, share: HORIZON_SHARE, centerX: width / 2, bottom: height - tabBar, maxWidth: width - 2 * rootPx, highest: horizonY });
+        : // On a phone, as big as fits across the screen and down from the horizon, its foot as low as leaves the beam
+          // a little room over the spot.
+          fitProjector({ width, height, share: HORIZON_SHARE, centerX: width / 2, bottom: height - tabBar, maxWidth: width - 1.5 * rootPx, highest: horizonY + 0.5 * rootPx, beamGap: 5.5 * rootPx });
       // Its switch's top: 0.75rem off the bottom (or a phone's tab bar), and 2.5rem tall.
       const redZoneLine = height - (desk ? 0 : tabBar) - 3.25 * rootPx;
       setStand({
@@ -623,6 +625,14 @@ export default function DashboardPage() {
     () => mappedGames.filter((g) => !hiddenBlocks.has(kickoffBlockLabel(g.game)) && !offMap.has(g.game.id)),
     [mappedGames, hiddenBlocks, offMap]
   );
+  // Of those, the ones projected on the map: just the games whose headers are in sight in the starters list, as it's
+  // scrolled (all of them until it says) — the fields on the floor still every one.
+  const [gamesInView, setGamesInView] = useState<Set<string> | null>(null);
+  const projectedGames = useMemo(() => {
+    if (!gamesInView) return games;
+    const inView = games.filter((g) => gamesInView.has(g.game.id));
+    return inView.length > 0 ? inView : games;
+  }, [games, gamesInView]);
   // The games being played (of those), and those about to be (FIELD_LEAD_MS from kickoff on), each on a field of its own
   // on the floor (see FloorFields) — on a phone, laid in front of the Red Zone's switch, or above the Red Zone while
   // it's up (none, stretched up over the floor). The time they're checked against moves on as the next one's due.
@@ -736,7 +746,7 @@ export default function DashboardPage() {
       <FloorGrid share={horizon} camera={floorCamera} tilt={floorTilt} hidden={fieldsUp} />
       {mapOut ? (
         // From tablet width up, the countdown to the next kickoff lit over it.
-        <FloorProjection place={stand.projector} games={games} map={mapCamera} floor={floorCamera} countdown={desktop ? kickoffs : undefined} />
+        <FloorProjection place={stand.projector} games={projectedGames} map={mapCamera} floor={floorCamera} countdown={desktop ? kickoffs : undefined} />
       ) : null}
     </div>
   );
@@ -859,6 +869,7 @@ export default function DashboardPage() {
         selectedPlayers={graphFor}
         onSelectPlayer={pickGraph}
         onViewsChange={setListViews}
+        onGamesInView={setGamesInView}
       />
     );
   // The room's height; how far up from its bottom the floor's lowest grid line is, and the Red Zone's foot.
@@ -930,7 +941,7 @@ export default function DashboardPage() {
           risesAtFirst={false}
         />
         {redZoneStage}
-        {mapOut ? <FloorProjectionTags place={stand.projector} games={games} map={mapCamera} floor={floorCamera} /> : null}
+        {mapOut ? <FloorProjectionTags place={stand.projector} games={projectedGames} map={mapCamera} floor={floorCamera} /> : null}
         {/* The games being played, the one in view across the floor's front, the rest behind it. */}
         {stand && fieldsFloor ? (
           <FloorFields games={fieldGames} width={stand.projector.width} height={stand.room} share={stand.projector.share} floor={fieldsFloor} focused />
@@ -992,7 +1003,7 @@ export default function DashboardPage() {
         </div>
       </div>
       {mapOut ? (
-        <FloorProjectionTags place={stand.projector} games={games} map={mapCamera} floor={floorCamera} />
+        <FloorProjectionTags place={stand.projector} games={projectedGames} map={mapCamera} floor={floorCamera} />
       ) : null}
       {/* Its reflection: what's at its foot, in the floor. */}
       <FloorReflection source={startersList} className="pb-16" style={{ paddingTop: `calc(${UNDER_TICKER})` }} />

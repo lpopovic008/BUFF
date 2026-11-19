@@ -51,7 +51,8 @@ export interface ProjectorPlace {
  * The projector on a `width` x `height` screen (its horizon `share` of the way down): its spot on the floor near the
  * floor's front edge (screen y `bottom`) about screen x `centerX` — in the middle of the grid square there; its frame
  * floating over the middle of the floor above it, as large as fits under screen y `highest` and within `maxWidth`
- * across.
+ * across — its foot 60% of the way down the floor, or (`beamGap`) that far over the spot, as low as it can be with
+ * room for the beam.
  */
 export function fitProjector({
   width,
@@ -61,6 +62,7 @@ export function fitProjector({
   bottom,
   maxWidth,
   highest,
+  beamGap,
 }: {
   width: number;
   height: number;
@@ -69,6 +71,7 @@ export function fitProjector({
   bottom: number;
   maxWidth: number;
   highest: number;
+  beamGap?: number;
 }): ProjectorPlace {
   const horizon = height * share;
   const floor = bottom - horizon;
@@ -79,7 +82,7 @@ export function fitProjector({
   const depth = (Math.round(rough / GRID_PX - 0.5) + 0.5) * GRID_PX;
   const across = Math.round((centerX - width / 2) / floorScale(rough) / GRID_PX) * GRID_PX;
   const [sourceX, sourceY] = floorPoint(across, depth, width, height, share);
-  const frameBottom = horizon + floor * 0.6;
+  const frameBottom = beamGap !== undefined ? sourceY - beamGap : horizon + floor * 0.6;
   const aspect = MAP_W / MAP_H;
   const frameW = Math.max(40, Math.min(maxWidth, (frameBottom - highest) * aspect));
   const frameH = frameW / aspect;
