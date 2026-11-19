@@ -37,11 +37,36 @@ const pieceName = (a: TradeAsset) => (a.became ? `${a.label} → ${a.became.name
 const ROW = 50;
 const blockHeight = (side: TradeSide) => 108 + Math.max(1, side.got.length + (side.faab > 0 ? 1 : 0) + (side.added > 0 ? 1 : 0)) * ROW + 90;
 
+/** Labels' heights (screen y's) moved apart just enough not to overlap (`gap` apart), kept between `top` and `bottom`, in their order. */
+function spreadPx(ys: number[], gap: number, top: number, bottom: number): number[] {
+  const order = ys.map((y, i) => ({ y: Math.min(bottom, Math.max(top, y)), i })).sort((a, b) => a.y - b.y);
+  for (let k = 1; k < order.length; k++) order[k].y = Math.max(order[k].y, order[k - 1].y + gap);
+  const over = order.length > 0 ? order[order.length - 1].y - bottom : 0;
+  if (over > 0) for (const o of order) o.y -= over;
+  for (let k = order.length - 2; k >= 0; k--) order[k].y = Math.min(order[k].y, order[k + 1].y - gap);
+  const out = Array<number>(ys.length);
+  for (const o of order) out[o.i] = o.y;
+  return out;
+}
+
+/**
+ * Where a value's label goes inside the chart beside a point on a line at screen y `at`: just above it or just below,
+ * whichever leaves more room from the other lines there (`others`) and the labels already put beside them (`placed`)
+ * — kept between `top` and `bottom`. `h`: a label's height; `pad`: the room between it and its line.
+ */
+function roomForPx(at: number, others: number[], placed: number[], h: number, pad: number, top: number, bottom: number): number {
+  const keep = (c: number) => Math.min(bottom - h / 2, Math.max(top + h / 2, c));
+  const [above, below] = [keep(at - pad - h / 2), keep(at + pad + h / 2)];
+  const clearance = (c: number) => Math.min(Infinity, ...others.map((o) => Math.abs(o - c)), ...placed.map((p) => Math.abs(p - c) - h / 2));
+  return clearance(below) > clearance(above) + 1 ? below : above;
+}
+
 /**
  * Draws `trade` (in league `leagueName`) onto `canvas` in export theme `themeId`: its league and date over each side's
  * block — the team (the one worth the most now marked ahead), what it got with each piece's grade then → now, any FAAB
  * and added value, and its total then → now — then every piece's value week by week on one chart from nothing up
- * (each in its side's color), and the source at the foot.
+ * (each in its side's color, named by its start, a drafted pick's dotted where it was drafted and named by its end for
+ * who it became), and the source at the foot.
  */
 export function drawTradeGraphic(canvas: HTMLCanvasElement, trade: AnalyzedTrade, leagueName: string, themeId?: string) {
   const { theme, font } = exportTheme(themeId);
@@ -58,8 +83,8 @@ export function drawTradeGraphic(canvas: HTMLCanvasElement, trade: AnalyzedTrade
   for (let i = 0; i < trade.sides.length; i += perRow) rows.push(trade.sides.slice(i, i + perRow));
   const rowHeights = rows.map((r) => Math.max(...r.map(blockHeight)));
   const HEADER = 170;
-  const CHART = 420;
-  const FOOTER = 24;
+  const CHART = 510;
+  const FOOTER = 64;
   const height = PAD + HEADER + rowHeights.reduce((a, b) => a + b + GAP, 0) + CHART + FOOTER + PAD;
 
   const scale = 2;
@@ -215,22 +240,33 @@ export function drawTradeGraphic(canvas: HTMLCanvasElement, trade: AnalyzedTrade
     y += rowHeights[ri] + GAP;
   });
 
-  // Every piece's value week by week since the trade, on one scale.
-  const lines = trade.sides.flatMap((side) => side.got.map((a) => ({ color: colorOf(side), points: a.path.map((p) => ({ day: p.day, value: p.value ?? 0 })) })));
+  // Every piece's value week by week since the trade, on one scale: its name at the left by where its line starts,
+  // and at the right by where it ends its value now — or, a pick that's become a player, his name, a dot on the line
+  // where it did and its value now inside the chart by the line's end. Every line's value when traded inside it by
+  // its start. Inside labels go over or under their line, wherever there's more room.
+  const lines = trade.sides.flatMap((side) =>
+    side.got.map((a) => ({ asset: a, color: colorOf(side), points: a.path.map((p) => ({ day: p.day, value: p.value ?? 0 })) }))
+  );
   const days = trade.sides[0]?.path.map((p) => p.day) ?? [];
   const [first, last] = [days[0] ?? 0, days[days.length - 1] ?? 0];
   const chart = { x: PAD, y: y + 40, w: WIDTH - 2 * PAD, h: CHART - 110 };
   type(18, "800");
   ctx.fillStyle = C.muted;
   ctx.fillText("VALUE OVER TIME", PAD, y + 18);
+  const named = lines.some((l) => l.asset.became);
+  const NAME_W = 190;
+  const plot = { x: chart.x + NAME_W + 14, y: chart.y, w: chart.w - NAME_W - 14 - (named ? NAME_W + 14 : 64), h: chart.h };
   const values = lines.flatMap((l) => l.points.map((p) => p.value));
   if (values.length > 0 && last > first) {
     // From nothing up to the highest, and room over it as wide as a fair trade's sides can be apart (FAIR_SHARE): how
     // far apart two lines are is how far apart their values are, so pieces close enough to be a fair trade draw close.
-    const lo = 0;
     const span = Math.max(1, Math.max(...values) * (1 + FAIR_SHARE));
-    const px = (day: number) => chart.x + 16 + ((day - first) / (last - first)) * (chart.w - 32);
-    const py = (v: number) => chart.y + 16 + (1 - (v - lo) / span) * (chart.h - 32);
+    const px = (day: number) => plot.x + ((day - first) / (last - first)) * plot.w;
+    const py = (v: number) => plot.y + 16 + (1 - v / span) * (plot.h - 32);
+    // Its edges: a faint line up either side.
+    ctx.fillStyle = C.hairline;
+    ctx.fillRect(plot.x, plot.y, 2, plot.h);
+    ctx.fillRect(plot.x + plot.w - 2, plot.y, 2, plot.h);
     ctx.lineWidth = 3;
     ctx.lineJoin = "round";
     for (const l of lines) {
@@ -240,23 +276,108 @@ export function drawTradeGraphic(canvas: HTMLCanvasElement, trade: AnalyzedTrade
       l.points.forEach((p, i) => (i === 0 ? ctx.moveTo(px(p.day), py(p.value)) : ctx.lineTo(px(p.day), py(p.value))));
       ctx.stroke();
     }
+    const startY = lines.map((l) => py(l.points[0]?.value ?? 0));
+    const endY = lines.map((l) => py(l.points[l.points.length - 1]?.value ?? 0));
+    // Where each pick became a player.
+    for (const l of lines) {
+      const at = l.asset.became?.at;
+      if (at === undefined || at < first || at > last) continue;
+      const point = l.points.find((p) => p.day >= at) ?? l.points[l.points.length - 1];
+      if (!point) continue;
+      ctx.beginPath();
+      ctx.arc(px(at), py(point.value), 8, 0, Math.PI * 2);
+      ctx.fillStyle = l.color;
+      ctx.fill();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = C.bgBottom;
+      ctx.stroke();
+    }
+    // The names and values at either side, moved apart only as far as they'd otherwise overlap — a tick then joining
+    // a moved one to its line.
+    const LABEL = 30;
+    // A name in the biggest of these that fits, before it's cut short.
+    const fitType = (text: string, room: number) => {
+      for (const size of [22, 19, 17]) {
+        type(size, "700");
+        if (ctx.measureText(text).width <= room) return;
+      }
+    };
+    const lefts = spreadPx(startY, LABEL, plot.y + 12, plot.y + plot.h - 12);
+    const rights = spreadPx(endY, LABEL, plot.y + 12, plot.y + plot.h - 12);
+    ctx.lineWidth = 2;
+    lines.forEach((l, i) => {
+      ctx.textBaseline = "middle";
+      ctx.textAlign = "right";
+      fitType(l.asset.label, NAME_W - 12);
+      ctx.fillStyle = l.color;
+      ctx.fillText(fit(ctx, l.asset.label, NAME_W - 12), plot.x - 14, lefts[i]);
+      if (Math.abs(lefts[i] - startY[i]) > 1) {
+        ctx.strokeStyle = l.color;
+        ctx.beginPath();
+        ctx.moveTo(plot.x - 10, lefts[i]);
+        ctx.lineTo(plot.x, startY[i]);
+        ctx.stroke();
+      }
+      ctx.textAlign = "left";
+      const became = l.asset.became;
+      if (became) {
+        fitType(became.name, NAME_W);
+        ctx.fillStyle = l.color;
+        ctx.fillText(fit(ctx, became.name, NAME_W), plot.x + plot.w + 14, rights[i]);
+      } else {
+        type(22, "800");
+        ctx.fillStyle = C.primary;
+        ctx.fillText(l.asset.now !== null ? String(grade(l.asset.now)) : "–", plot.x + plot.w + 14, rights[i]);
+      }
+      if (Math.abs(rights[i] - endY[i]) > 1) {
+        ctx.strokeStyle = l.color;
+        ctx.beginPath();
+        ctx.moveTo(plot.x + plot.w, endY[i]);
+        ctx.lineTo(plot.x + plot.w + 10, rights[i]);
+        ctx.stroke();
+      }
+    });
+    // The values inside: each line's when traded by its start; a drafted pick's now by its end.
+    const H = 22;
+    const placedStarts: number[] = [];
+    lines.forEach((l, i) => {
+      const at = roomForPx(startY[i], startY.filter((_, j) => j !== i), placedStarts, H, 6, plot.y, plot.y + plot.h);
+      placedStarts.push(at);
+      type(20, "800");
+      ctx.fillStyle = l.color;
+      ctx.textAlign = "left";
+      ctx.fillText(String(grade(l.points[0]?.value ?? 0)), plot.x + 10, at);
+    });
+    const placedEnds: number[] = [];
+    lines.forEach((l, i) => {
+      if (!l.asset.became) return;
+      const at = roomForPx(endY[i], endY.filter((_, j) => j !== i), placedEnds, H, 6, plot.y, plot.y + plot.h);
+      placedEnds.push(at);
+      type(20, "800");
+      ctx.fillStyle = l.color;
+      ctx.textAlign = "right";
+      ctx.fillText(l.asset.now !== null ? String(grade(l.asset.now)) : "–", plot.x + plot.w - 10, at);
+    });
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
   }
   type(20, "600");
   ctx.fillStyle = C.muted;
   // The chart starts the day it was made.
-  ctx.fillText(new Date(trade.at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }), chart.x, chart.y + chart.h + 32);
+  ctx.fillText(new Date(trade.at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }), plot.x, chart.y + chart.h + 32);
   const nowLabel = "Now";
-  ctx.fillText(nowLabel, chart.x + chart.w - ctx.measureText(nowLabel).width, chart.y + chart.h + 32);
-  // Each side's color, in the middle under it.
+  ctx.fillText(nowLabel, plot.x + plot.w - ctx.measureText(nowLabel).width, chart.y + chart.h + 32);
+  // Each side's color, in the middle under it, a row of its own.
+  const keyY = chart.y + chart.h + 74;
   type(20, "700");
   const keys = trade.sides.map((s) => fit(ctx, s.team, 220));
   const keyW = keys.reduce((sum, k) => sum + 22 + ctx.measureText(k).width + 28, -28);
   let kx = WIDTH / 2 - keyW / 2;
   trade.sides.forEach((side, i) => {
     ctx.fillStyle = colorOf(side);
-    ctx.fillRect(kx, chart.y + chart.h + 18, 14, 14);
+    ctx.fillRect(kx, keyY - 14, 14, 14);
     kx += 22;
-    ctx.fillText(keys[i], kx, chart.y + chart.h + 32);
+    ctx.fillText(keys[i], kx, keyY);
     kx += ctx.measureText(keys[i]).width + 28;
   });
 
