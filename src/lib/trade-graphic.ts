@@ -145,7 +145,7 @@ export function drawTradeGraphic(canvas: HTMLCanvasElement, trade: AnalyzedTrade
       const totalThen = grade(side.then + side.added);
       const totalNow = grade(side.now + side.added);
       // One place for every arrow (the total's too): as far left as the widest row needs, right of it each row's
-      // value now straight after its arrow, and the pieces' changes in a column of their own.
+      // value now straight after its arrow, and its change at the block's right edge.
       const widthIn = (size: number, weight: string, text: string) => {
         type(size, weight);
         return ctx.measureText(text).width;
@@ -162,7 +162,7 @@ export function drawTradeGraphic(canvas: HTMLCanvasElement, trade: AnalyzedTrade
       const thenRight = arrowMid - arrowW / 2 - colGap;
       const nowLeft = arrowMid + arrowW / 2 + colGap;
       const thenW = Math.max(0, ...pieces.map((r) => widthIn(26, "600", r.then!)));
-      // A row's then → now and change — in `big` type for the total, its change straight after its value.
+      // A row's then → now and change — in `big` type for the total.
       const numbers = (at: number, then: string, now: string, delta: number | null, nowColor: string, big = false) => {
         ctx.textAlign = "right";
         type(big ? 30 : 26, "600");
@@ -174,9 +174,11 @@ export function drawTradeGraphic(canvas: HTMLCanvasElement, trade: AnalyzedTrade
         type(big ? 42 : 26, "800");
         ctx.fillStyle = nowColor;
         ctx.fillText(now, nowLeft, at);
-        const deltaX = big ? nowLeft + ctx.measureText(now).width + colGap : nowLeft + pieceNowW + colGap;
+        // The change at the block's right edge, every row's lined up there.
+        ctx.textAlign = "right";
         ctx.fillStyle = delta === null || delta === 0 ? C.muted : delta > 0 ? C.win : C.loss;
-        ctx.fillText(signed(delta), deltaX, at);
+        ctx.fillText(signed(delta), right, at);
+        ctx.textAlign = "left";
       };
       for (const r of rowsOf) {
         by += ROW;
