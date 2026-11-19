@@ -4,6 +4,7 @@
 import { COUNTRY_OUTLINES, CountryOutline } from "./country-outlines";
 import { isOutsideUS, NFLGame } from "./nfl-schedule";
 import { TEAM_CITIES, TeamCity } from "./team-cities";
+import { US_PROJECTED_OUTLINE_PATH } from "./us-outline";
 
 /**
  * A game's [x, y] in the US map's viewBox, or null when it can't be plotted —
@@ -81,13 +82,66 @@ export function internationalSlotPosition(index: number): [number, number] {
 
 /**
  * Where the countries of games abroad are drawn small on the US map (map units): under California, Arizona and New
- * Mexico, left of Texas — inside the lower 48's own extent, so the map's fitted the same with them as without.
+ * Mexico, left of Texas, no lower than the lower 48 go (Texas's tip) — inside the lower 48's own extent, so the map's
+ * fitted the same with them as without.
  */
-const ABROAD_AREA = { left: 26, top: 151, right: 114, bottom: 184 };
-/** The most a country's drawn across (or down), in map units: small, beside the states. */
-const COUNTRY_MOST = 30;
-/** Between two countries side by side (map units). */
-const COUNTRY_GAP = 5;
+const ABROAD_AREA = { left: 25, right: 113 };
+/** The most a country's drawn across (or down), in map units. */
+const COUNTRY_MOST = 60;
+/** Between two countries side by side, and between a country and the border over it (map units). */
+const COUNTRY_GAP = 4;
+const BORDER_GAP = 2.5;
+
+/** The lower 48's outline's points (map units). */
+const US_POINTS = [...US_PROJECTED_OUTLINE_PATH.matchAll(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g)].map((m) => [Number(m[1]), Number(m[2])] as const);
+/** As low as the lower 48 go (map units). */
+const US_BOTTOM = Math.max(...US_POINTS.map((p) => p[1]));
+
+/** How far down the lower 48 reach (their southern border) about each map x in the abroad area, a unit apart. */
+let southProfile: number[] | null = null;
+function southAt(x: number): number {
+  if (!southProfile) {
+    const rings = US_PROJECTED_OUTLINE_PATH.split("M")
+      .filter(Boolean)
+      .map((ring) => [...ring.matchAll(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g)].map((m) => [Number(m[1]), Number(m[2])]));
+    const profile = new Array<number>(ABROAD_AREA.right + 2).fill(-Infinity);
+    for (const ring of rings)
+      ring.forEach(([ax, ay], i) => {
+        const [bx, by] = ring[(i + 1) % ring.length];
+        for (let c = Math.max(0, Math.floor(Math.min(ax, bx))); c <= Math.min(profile.length - 1, Math.ceil(Math.max(ax, bx))); c++) {
+          // The segment's lowest within a unit either side of column c.
+          const lo = Math.max(Math.min(ax, bx), c - 1);
+          const hi = Math.min(Math.max(ax, bx), c + 1);
+          if (lo > hi) continue;
+          const yAt = (x: number) => (ax === bx ? Math.max(ay, by) : ay + ((by - ay) * (x - ax)) / (bx - ax));
+          profile[c] = Math.max(profile[c], yAt(lo), yAt(hi));
+        }
+      });
+    southProfile = profile;
+  }
+  const c = Math.round(Math.min(southProfile.length - 1, Math.max(0, x)));
+  return southProfile[c];
+}
+
+/**
+ * Where a country `scale` times its outline's size goes in a stretch of the map from `from` to `to` across: tucked up
+ * under the border as close as it comes (BORDER_GAP), as near the stretch's middle as it'll go — or null if it won't
+ * go anywhere in it without reaching lower than the lower 48 do.
+ */
+function tuckUnder(outline: CountryOutline, scale: number, from: number, to: number): { left: number; top: number } | null {
+  const width = outline.width * scale;
+  const height = outline.height * scale;
+  if (width > to - from) return null;
+  const pts = outline.path.match(/-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?/g)?.map((p) => p.split(",").map(Number)) ?? [];
+  const middle = (from + to - width) / 2;
+  let best: { left: number; top: number } | null = null;
+  for (let left = from; left <= to - width + 1e-9; left += 1) {
+    const top = Math.max(...pts.map(([x, y]) => southAt(left + x * scale) + BORDER_GAP - y * scale));
+    if (top + height > US_BOTTOM) continue;
+    if (!best || Math.abs(left - middle) < Math.abs(best.left - middle)) best = { left, top };
+  }
+  return best;
+}
 /** How far apart games in the same city are pinned (map units), so each shows. */
 const SAME_CITY_STEP = 3;
 
@@ -132,23 +186,23 @@ function countryOf(game: NFLGame): CountryOutline | null {
 
 /**
  * The games played abroad on the US map: each country they're in drawn small under California, Arizona and New Mexico
- * (side by side, smaller the more there are), and each game pinned in its own country at the city it's played in (its
+ * (side by side, each in its share of the stretch there, as big as fits tucked up under the border — see tuckUnder),
+ * and each game pinned in its own country at the city it's played in (its
  * middle, for a city not on file). A country not on file has its games in holding spots there instead (see
  * internationalSlotPosition).
  */
 export function abroadOnMap(games: NFLGame[]): { countries: AbroadCountry[]; positions: Map<string, [number, number]> } {
   const abroad = games.filter(isOutsideUS);
   const outlines = [...new Set(abroad.map(countryOf).filter((c): c is CountryOutline => c !== null))];
-  const area = { width: ABROAD_AREA.right - ABROAD_AREA.left, height: ABROAD_AREA.bottom - ABROAD_AREA.top };
-  // As big as lets them all fit across, up to the most.
-  const most = Math.min(COUNTRY_MOST, area.height, (area.width - (outlines.length - 1) * COUNTRY_GAP) / Math.max(1, outlines.length));
-  const sized = outlines.map((c) => ({ outline: c, scale: most / Math.max(c.width, c.height) }));
-  const across = sized.reduce((sum, c) => sum + c.outline.width * c.scale, 0) + (sized.length - 1) * COUNTRY_GAP;
-  let left = ABROAD_AREA.left + (area.width - across) / 2;
-  const placed = sized.map(({ outline, scale }) => {
-    const at = { outline, scale, left, top: ABROAD_AREA.top };
-    left += outline.width * scale + COUNTRY_GAP;
-    return at;
+  // Each its share of the stretch across, and as big in it as fits.
+  const share = (ABROAD_AREA.right - ABROAD_AREA.left - (outlines.length - 1) * COUNTRY_GAP) / Math.max(1, outlines.length);
+  const placed = outlines.map((outline, i) => {
+    const from = ABROAD_AREA.left + i * (share + COUNTRY_GAP);
+    for (let most = COUNTRY_MOST; ; most *= 0.96) {
+      const scale = most / Math.max(outline.width, outline.height);
+      const at = tuckUnder(outline, scale, from, from + share);
+      if (at || most < 4) return { outline, scale, left: at?.left ?? from, top: at?.top ?? US_BOTTOM - outline.height * scale };
+    }
   });
   const r = (v: number) => Math.round(v * 100) / 100;
   const countries = placed.map(({ outline, scale, left: x0, top: y0 }) => ({

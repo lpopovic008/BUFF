@@ -72,6 +72,26 @@ test("a game abroad is pinned at its city in its country, drawn small under the 
   assert.equal(positions.has("1"), false);
 });
 
+/** Whether map point (x, y) is inside the lower 48 (any ring of its outline, by crossings). */
+function insideUS(x: number, y: number): boolean {
+  let inside = false;
+  for (const ring of US_PROJECTED_OUTLINE_PATH.split("M").filter(Boolean)) {
+    const pts = [...ring.matchAll(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g)].map((m) => [Number(m[1]), Number(m[2])]);
+    pts.forEach(([ax, ay], i) => {
+      const [bx, by] = pts[(i + 1) % pts.length];
+      if (ay > y !== by > y && x < ax + ((y - ay) * (bx - ax)) / (by - ay)) inside = !inside;
+    });
+  }
+  return inside;
+}
+
+test("a country abroad alone is drawn bigger than it is beside others", () => {
+  const alone = abroadOnMap([abroad("a", "Melbourne", "Australia")]).countries[0];
+  const beside = abroadOnMap([abroad("a", "Melbourne", "Australia"), abroad("b", "London", "UK")]).countries[0];
+  assert.ok(alone.width >= 40, `${alone.width}`);
+  assert.ok(beside.width < alone.width);
+});
+
 test("countries abroad sit within the lower 48's extent, clear of its outline, so the map's fit is the same", () => {
   const { countries } = abroadOnMap([
     abroad("a", "London", "England"),
@@ -84,8 +104,13 @@ test("countries abroad sit within the lower 48's extent, clear of its outline, s
   for (const c of countries) {
     assert.ok(c.left >= MAP_BOUNDS.minX && c.left + c.width <= MAP_BOUNDS.maxX, c.name);
     assert.ok(c.top >= MAP_BOUNDS.minY && c.top + c.height <= MAP_BOUNDS.maxY, c.name);
-    const inside = us.filter(([x, y]) => x >= c.left && x <= c.left + c.width && y >= c.top && y <= c.top + c.height);
-    assert.deepEqual(inside, [], c.name);
+    // Every point of its outline outside the lower 48, and clear of their border.
+    const own = [...c.path.matchAll(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g)].map((m) => [Number(m[1]), Number(m[2])]);
+    for (const [x, y] of own) {
+      assert.ok(!insideUS(x, y), `${c.name} ${x},${y} inside the US`);
+      const near = Math.min(...us.map(([ux, uy]) => Math.hypot(ux - x, uy - y)));
+      assert.ok(near >= 1.5, `${c.name} ${x},${y} ${near.toFixed(2)} from the border`);
+    }
   }
   // Side by side, not over one another.
   for (let i = 1; i < countries.length; i++) assert.ok(countries[i].left >= countries[i - 1].left + countries[i - 1].width, countries[i].name);
