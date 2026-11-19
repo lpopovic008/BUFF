@@ -5,6 +5,7 @@
 
 import { exportTheme } from "./recap-graphic";
 import { shownGrade, valueGrade } from "./player-values";
+import { FAIR_SHARE } from "./trade-monitor";
 import type { AnalyzedTrade, TradeAsset, TradeSide } from "./trades";
 
 const WIDTH = 1080;
@@ -31,16 +32,16 @@ function fit(ctx: CanvasRenderingContext2D, text: string, width: number): string
 /** A piece's name as the picture gives it: a pick with whoever it became. */
 const pieceName = (a: TradeAsset) => (a.became ? `${a.label} → ${a.became.name}` : a.label);
 
-/** A piece's row, and how tall one side's block is: its team and heading, a row a piece (its FAAB and added value
- * too; "Nothing" with none), then its total. */
+/** A piece's row, and how tall one side's block is: its team, a row a piece (its FAAB and added value too; "Nothing"
+ * with none), then its total. */
 const ROW = 50;
-const blockHeight = (side: TradeSide) => 140 + Math.max(1, side.got.length + (side.faab > 0 ? 1 : 0) + (side.added > 0 ? 1 : 0)) * ROW + 90;
+const blockHeight = (side: TradeSide) => 108 + Math.max(1, side.got.length + (side.faab > 0 ? 1 : 0) + (side.added > 0 ? 1 : 0)) * ROW + 90;
 
 /**
- * Draws `trade` (in league `leagueName`) onto `canvas` in export theme `themeId`: its date and league over each side's
+ * Draws `trade` (in league `leagueName`) onto `canvas` in export theme `themeId`: its league and date over each side's
  * block — the team (the one worth the most now marked ahead), what it got with each piece's grade then → now, any FAAB
- * and added value, and its total then → now — then every piece's value week by week on one chart, each in its side's
- * color, and the source at the foot.
+ * and added value, and its total then → now — then every piece's value week by week on one chart from nothing up
+ * (each in its side's color), and the source at the foot.
  */
 export function drawTradeGraphic(canvas: HTMLCanvasElement, trade: AnalyzedTrade, leagueName: string, themeId?: string) {
   const { theme, font } = exportTheme(themeId);
@@ -93,7 +94,7 @@ export function drawTradeGraphic(canvas: HTMLCanvasElement, trade: AnalyzedTrade
   type(26, "600");
   ctx.fillStyle = C.muted;
   const made = new Date(trade.at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-  ctx.fillText(`Made ${made} · values then → now`, PAD, y + 140);
+  ctx.fillText(made, PAD, y + 140);
   y += HEADER;
 
   // Each side's block.
@@ -108,23 +109,26 @@ export function drawTradeGraphic(canvas: HTMLCanvasElement, trade: AnalyzedTrade
       ctx.fillRect(x, y, colW, 6);
       const inner = colW - 48;
       let by = y + 60;
-      // The team; under it what it got, and whether it's ahead now.
-      type(34, "800");
-      ctx.fillStyle = color;
-      ctx.fillText(fit(ctx, `${side.team}${side.mine ? " (you)" : ""}`, inner), x + 24, by);
-      by += 46;
-      type(18, "800");
-      ctx.fillStyle = C.muted;
-      ctx.fillText("GOT", x + 24, by);
+      // The team, and whether it's ahead now (at the right) — the name smaller before it's cut short.
+      let tagW = 0;
       if (side === leader && side.now > 0) {
+        type(18, "800");
         const tag = "AHEAD NOW";
-        const tagW = ctx.measureText(tag).width + 20;
+        tagW = ctx.measureText(tag).width + 20;
         ctx.fillStyle = C.accent;
-        ctx.fillRect(x + colW - 24 - tagW, by - 22, tagW, 30);
+        ctx.fillRect(x + colW - 24 - tagW, by - 24, tagW, 30);
         ctx.fillStyle = C.accentInk;
-        ctx.fillText(tag, x + colW - 24 - tagW + 10, by);
+        ctx.fillText(tag, x + colW - 24 - tagW + 10, by - 2);
       }
-      by += 10;
+      const team = `${side.team}${side.mine ? " (you)" : ""}`;
+      const teamRoom = inner - (tagW > 0 ? tagW + 12 : 0);
+      for (const size of [34, 29, 25]) {
+        type(size, "800");
+        if (ctx.measureText(team).width <= teamRoom) break;
+      }
+      ctx.fillStyle = color;
+      ctx.fillText(fit(ctx, team, teamRoom), x + 24, by);
+      by += 14;
       // Each piece: its name, its grade then → now and the change.
       const line = (name: string, right: { then: string; now: string; delta: number | null } | string, muted = false) => {
         by += ROW;
@@ -209,13 +213,15 @@ export function drawTradeGraphic(canvas: HTMLCanvasElement, trade: AnalyzedTrade
   const chart = { x: PAD, y: y + 40, w: WIDTH - 2 * PAD, h: CHART - 110 };
   type(18, "800");
   ctx.fillStyle = C.muted;
-  ctx.fillText("EACH PIECE'S VALUE, TRADE TO NOW", PAD, y + 18);
+  ctx.fillText("VALUE OVER TIME", PAD, y + 18);
   ctx.fillStyle = C.card;
   ctx.fillRect(chart.x, chart.y, chart.w, chart.h);
   const values = lines.flatMap((l) => l.points.map((p) => p.value));
   if (values.length > 0 && last > first) {
-    const [lo, hi] = [Math.min(...values), Math.max(...values)];
-    const span = hi - lo || 1;
+    // From nothing up to the highest, and room over it as wide as a fair trade's sides can be apart (FAIR_SHARE): how
+    // far apart two lines are is how far apart their values are, so pieces close enough to be a fair trade draw close.
+    const lo = 0;
+    const span = Math.max(1, Math.max(...values) * (1 + FAIR_SHARE));
     const px = (day: number) => chart.x + 16 + ((day - first) / (last - first)) * (chart.w - 32);
     const py = (v: number) => chart.y + 16 + (1 - (v - lo) / span) * (chart.h - 32);
     ctx.lineWidth = 3;
@@ -230,7 +236,8 @@ export function drawTradeGraphic(canvas: HTMLCanvasElement, trade: AnalyzedTrade
   }
   type(20, "600");
   ctx.fillStyle = C.muted;
-  ctx.fillText(new Date(first || trade.at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }), chart.x, chart.y + chart.h + 32);
+  // The chart starts the day it was made.
+  ctx.fillText(new Date(trade.at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }), chart.x, chart.y + chart.h + 32);
   const nowLabel = "Now";
   ctx.fillText(nowLabel, chart.x + chart.w - ctx.measureText(nowLabel).width, chart.y + chart.h + 32);
   // Each side's color, in the middle under it.
