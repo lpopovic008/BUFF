@@ -213,8 +213,8 @@ function TickerTeamRow({ team, fitWidth, dense, small, open }: { team: MatchupRo
 
 /**
  * `tight`: its standing and score closer together, and its line set closer (its box opened, see MatchupRows — the
- * all-time wins and the line under it taking some of its room); left out, it's never opened. `small`: its name and
- * score in the League page's lineups' size, the rest a step under it.
+ * all-time wins and the line under it taking some of its room); left out, it's never opened. `small`: its name (in
+ * bold) and score in the League page's lineups' size, the rest a step under it.
  */
 function TeamLine({ team, fitWidth, dense, small = false, tight }: { team: MatchupRowTeam; fitWidth: boolean; dense: boolean; small?: boolean; tight?: boolean }) {
   const { name, points, standing, mine = false, winning = false } = team;
@@ -236,7 +236,7 @@ function TeamLine({ team, fitWidth, dense, small = false, tight }: { team: Match
         <span className={`w-[2ch] shrink-0 text-right ${minor} font-medium tabular-nums ${winning ? "" : "text-series-4"}`}>{rank ?? ""}</span>
         <span
           className={`${main} ${fitWidth ? "min-w-0 truncate" : ""} ${
-            winning ? "font-bold" : mine && HIGHLIGHT_MINE ? MY_TEAM_NAME_CLASS : "font-medium text-ink-primary"
+            winning ? "font-bold" : small ? "font-bold text-ink-primary" : mine && HIGHLIGHT_MINE ? MY_TEAM_NAME_CLASS : "font-medium text-ink-primary"
           }`}
         >
           {name}
