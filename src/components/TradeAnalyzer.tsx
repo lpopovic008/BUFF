@@ -6,6 +6,9 @@ import { useLeagueTrades } from "@/hooks/useLeagueTrades";
 import { AnalyzedTrade, filterTrades, TRADE_SIDE_COLORS, TRADE_SORTS, TradeFilter, tradeGap, TradeSide, TradeSort } from "@/lib/trades";
 import { TradeViewer } from "@/components/TradeViewer";
 import { shownGrade, valueGrade } from "@/lib/player-values";
+import { canvasFile, drawTradeGraphic } from "@/lib/trade-graphic";
+import { getHomeView } from "@/lib/localStore";
+import { ImageIcon } from "@/components/ui/Icon";
 
 // Each side's color (see TRADE_SIDE_COLORS).
 const SIDE_COLORS = TRADE_SIDE_COLORS;
@@ -148,12 +151,72 @@ function TradeChart({ trade, colorOf }: { trade: AnalyzedTrade; colorOf: (side: 
 }
 
 /**
+ * The trade as a picture to send to the league (see trade-graphic.ts), in the export theme picked in Settings: handed
+ * to the share sheet where there is one (a phone's — Messages, the group chat), else copied to paste, else saved.
+ */
+function TradeExport({ trade, leagueName }: { trade: AnalyzedTrade; leagueName: string }) {
+  const [status, setStatus] = useState<"idle" | "copied" | "saved" | "error">("idle");
+  const settle = (next: typeof status) => {
+    setStatus(next);
+    window.setTimeout(() => setStatus("idle"), 2200);
+  };
+  const exportIt = async () => {
+    let file: File;
+    try {
+      const canvas = document.createElement("canvas");
+      drawTradeGraphic(canvas, trade, leagueName, getHomeView().exportTheme);
+      const day = new Date(trade.at).toISOString().slice(0, 10);
+      file = canvasFile(canvas, `trade-${day}.png`);
+    } catch {
+      settle("error");
+      return;
+    }
+    // Straight to the share sheet, in this same tap.
+    if (navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: `${leagueName} trade` });
+        return;
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+      }
+    }
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": file })]);
+      settle("copied");
+      return;
+    } catch {
+      // On to saving it.
+    }
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = file.name;
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    settle("saved");
+  };
+  const label = status === "copied" ? "Copied" : status === "saved" ? "Saved" : status === "error" ? "Couldn't export" : "Export";
+  return (
+    <button
+      type="button"
+      onClick={exportIt}
+      title="Export this trade as a picture to send to your league"
+      aria-live="polite"
+      className="ml-auto flex shrink-0 items-center gap-1 border border-border px-1.5 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide text-ink-primary transition-colors hover:border-ink-primary"
+    >
+      <ImageIcon className="h-3.5 w-3.5" />
+      {label}
+    </button>
+  );
+}
+
+/**
  * A trade: its date at the top left and its teams beside it, each in its color (yours underlined; whoever's haul is
- * worth the most now on the plate); its pieces on one chart (see TradeChart); and under it, each side's FAAB, added
+ * worth the most now on the plate), and at the right a way to export it as a picture; its pieces on one chart (see TradeChart); and under it, each side's FAAB, added
  * value and totals, then and now. `height`: as tall as that (px), the chart taking what's left — else as tall as it
  * needs.
  */
-function TradeCard({ trade, height }: { trade: AnalyzedTrade; height?: number | null }) {
+function TradeCard({ trade, leagueName, height }: { trade: AnalyzedTrade; leagueName: string; height?: number | null }) {
   const worth = (s: TradeSide) => s.now + s.added;
   const leader = trade.sides.reduce((best, s) => (worth(s) > worth(best) ? s : best), trade.sides[0]);
   const madeOn = new Date(trade.at);
@@ -179,6 +242,7 @@ function TradeCard({ trade, height }: { trade: AnalyzedTrade; height?: number | 
             </span>
           );
         })}
+        <TradeExport trade={trade} leagueName={leagueName} />
       </div>
       <TradeChart trade={trade} colorOf={colorOf} />
       {/* Each side's totals, in its color: what it got at its whole grades, added up — and any FAAB and added value. */}
@@ -384,7 +448,7 @@ export function TradeAnalyzer({
   ) : (
     <ol ref={list} className="flex flex-col gap-3">
       {shown.map((trade) => (
-        <TradeCard key={trade.id} trade={trade} height={columns ? cardHeight : null} />
+        <TradeCard key={trade.id} trade={trade} leagueName={leagueName} height={columns ? cardHeight : null} />
       ))}
     </ol>
   );
@@ -435,7 +499,7 @@ export function TradeAnalyzer({
           trades={data!.trades}
           valueAt={data!.valueAt}
           season={filter.season}
-          renderTrade={(trade) => <TradeCard trade={trade} />}
+          renderTrade={(trade) => <TradeCard trade={trade} leagueName={leagueName} />}
         />
       </PlateCard>
     ) : null}

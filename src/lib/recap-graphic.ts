@@ -249,6 +249,14 @@ function applyTheme(id: string | undefined): RecapTheme {
   return theme;
 }
 
+/** Export theme `id` (the default, if there's no such one) and the type it's set in — for other graphics drawn in the
+ * same looks (see trade-graphic.ts), without touching this one's. */
+export function exportTheme(id: string | undefined): { theme: RecapTheme; font: string } {
+  const theme = RECAP_THEMES.find((t) => t.id === id) ?? RECAP_THEMES.find((t) => t.id === DEFAULT_RECAP_THEME)!;
+  const font = theme.font === "app" && typeof document !== "undefined" ? getComputedStyle(document.body).fontFamily || SYSTEM_STACK : SYSTEM_STACK;
+  return { theme, font };
+}
+
 export interface MatchupTeam {
   name: string;
   avatarUrl: string | null;
