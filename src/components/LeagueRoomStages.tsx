@@ -8,7 +8,7 @@ import { MatchupGraph, MatchupSide } from "@/components/MatchupGraph";
 import type { LineupNumbers } from "@/components/PlayerCareer";
 import { type LineNote, LineupPlayerRow } from "@/components/LeagueMatchupCarousel";
 import { BenchCandidate, BenchFilterKey, benchFilters, benchList, StarterInSlot } from "@/lib/bench-groups";
-import { ChartGame, ChartStat, chartColumn, FloorStairs, FloorStatBars, useChartPan, useStairs, ValueLine, WallLine } from "@/components/PlayerStageCharts";
+import { ChartGame, ChartStat, chartColumn, FloorStairs, FloorStatBars, stairStep, statRows, useChartPan, useStairs, ValueLine, WallLine } from "@/components/PlayerStageCharts";
 import { loadValueHistory } from "@/hooks/useLeagueTrades";
 import { normalizeName } from "@/lib/name-match";
 import { collegeLogo } from "@/lib/college-logos";
@@ -417,11 +417,13 @@ export function PlayerStage({
 
   const { floor, room } = places;
   // The wall's line and the floor's bars: every game across, the middle one in the middle of the screen, each game's
-  // column as wide as lets them all fit (see chartColumn); slid down the stairs together.
+  // column as wide as lets them all fit (see chartColumn); each of the stairs' steps as big as lets every stat's row fit
+  // (see stairStep).
   const horizon = room.height * HORIZON_SHARE;
   const games = columns?.length ?? 0;
   const { pan, set: setPan, settle: settlePan } = useChartPan(view, (games - 1) / 2);
-  const col = chartColumn(games, horizon, floor.bottom - 20, floor.left, floor.left + floor.width);
+  const step = stairStep(statRows(chartStats.primary.length, chartStats.secondary.length), horizon, floor.bottom - 20);
+  const col = chartColumn(games, horizon, floor.bottom - 20, floor.left, floor.left + floor.width, step);
   // The floor made stairs for his stats while they're up on it.
   const stairs = useStairs(up && !floorless && !table && !valueView);
   const seasonButton = (key: string, label: string, on: boolean, onPick: () => void, buttonTitle?: string) => (
@@ -499,7 +501,7 @@ export function PlayerStage({
           ) : null}
         </div>
       </div>
-      {floorless ? null : <FloorStairs room={room} horizon={horizon} pan={pan} q={stairs} col={col} onAway={places.onFloorAway} />}
+      {floorless ? null : <FloorStairs room={room} horizon={horizon} pan={pan} q={stairs} col={col} step={step} onAway={places.onFloorAway} />}
       {floorless ? null : table && details ? (
         <div
           data-floor-ui
@@ -522,6 +524,7 @@ export function PlayerStage({
               left={floor.left}
               right={floor.left + floor.width}
               col={col}
+              step={step}
               picked={pick}
               onPick={(i) => setPickedCol({ view, i })}
               pan={pan}

@@ -196,10 +196,40 @@ const NEAREST = (PERSPECTIVE_PX / SIN) * 0.97;
 /** How the floor magnifies what's `d` px back from the hinge and `h` px up off it (see grid-room's floorScale). */
 const scaleOf = (d: number, h: number) => PERSPECTIVE_PX / (PERSPECTIVE_PX - Math.min(d * SIN + h * COS, NEAREST));
 
-/** A step of the stairs (see FloorStairs): this high and this deep — low and shallow, so more of them, and more of
- * the stats' rows, show. */
+/** A step of the stairs (see FloorStairs) at its biggest: this high and this deep. Shrunk, both alike, as far as lets
+ * every one of his stats' rows onto the floor at once (see stairStep). */
 const RISE = 36;
 const TREAD = 24;
+/** The least a step's shrunk to: past it, the stairs are slid instead. */
+const LEAST_STEP = 0.3;
+/** Steps between the primary stats and the secondary ones. */
+const BLOCK_GAP = 1;
+
+/** A step of the stairs: how high (`rise`) and how deep (`tread`), px on the floor. */
+export type StairStep = { rise: number; tread: number };
+
+/** How many steps his stats take: his primary ones, a step between, his secondary ones. */
+export function statRows(primary: number, secondary: number): number {
+  return primary + (secondary > 0 ? BLOCK_GAP + secondary : 0);
+}
+
+/** Where on the screen (y) the front of row `r`'s step is, the stairs slid `z` rows (see stairLens). */
+const stepFront = (horizon: number, step: StairStep, r: number, z = 0) => {
+  const d = (r - z + 2) * step.tread;
+  const h = -(r - z + 1) * step.rise;
+  return horizon + (Math.min(d, NEAREST) * COS - h * SIN) * scaleOf(d, h);
+};
+
+/**
+ * The biggest step (see RISE, TREAD) that fits all `rows` of his stats on the stairs at once, the last one's front
+ * still above screen y `bottom` (the floor's horizon at `horizon`) — or the least step, slid down for the rest.
+ */
+export function stairStep(rows: number, horizon: number, bottom: number): StairStep {
+  let k = 1;
+  while (k > LEAST_STEP && stepFront(horizon, { rise: RISE * k, tread: TREAD * k }, Math.max(0, rows - 1)) > bottom) k -= 0.01;
+  k = Math.max(LEAST_STEP, k);
+  return { rise: RISE * k, tread: TREAD * k };
+}
 /** The widest a game's column is (at the wall), however few games there are. */
 const MOST_COLUMN = 72;
 
@@ -208,12 +238,12 @@ const MOST_COLUMN = 72;
  * however far down the stairs the floor shows (to screen y `bottom`, its horizon at `horizon`) — and the wall's line's
  * slots over them, the same width.
  */
-export function chartColumn(n: number, horizon: number, bottom: number, left: number, right: number): number {
+export function chartColumn(n: number, horizon: number, bottom: number, left: number, right: number, step: StairStep): number {
   // The biggest the stairs show anything: at the front of the lowest step on the screen.
   let s = 1;
-  for (let k = 1; k < 60; k++) {
-    const d = k * TREAD;
-    const h = -(k - 1) * RISE;
+  for (let k = 1; k < 200; k++) {
+    const d = k * step.tread;
+    const h = -(k - 1) * step.rise;
     const scale = scaleOf(d, h);
     if (horizon + (d * COS - h * SIN) * scale > bottom) break;
     s = scale;
@@ -388,22 +418,22 @@ export function useStairs(up: boolean) {
 
 /**
  * The floor as a flight of stairs going down toward you from the wall, slid down them as the stats are (`pan.z`), `q`
- * of the way from flat: each step low (RISE) and shallow (TREAD), its columns `col` wide. Row `z` of the
+ * of the way from flat: each step `step` high and deep (see stairStep), its columns `col` wide. Row `z` of the
  * stats (whole rows, `r`) sits on the step under the one at the wall — the landing — its games across, centered on the
  * screen. Where floor point (`a` games across from the middle one, `z` rows), `up` px off row `r`'s step, shows on
  * the screen; and the step's own edges.
  */
-function stairLens(screenWidth: number, horizon: number, pan: ChartPan, q: number, col: number) {
+function stairLens(screenWidth: number, horizon: number, pan: ChartPan, q: number, col: number, { rise, tread }: StairStep) {
   const W = screenWidth;
   const project = (across: number, d: number, h: number): [number, number, number] => {
     const s = scaleOf(d, h);
     return [W / 2 + across * s, horizon + (Math.min(d, NEAREST) * COS - h * SIN) * s, s];
   };
   // Row r's step: how far back from the wall it starts, and how far down it is.
-  const back = (r: number) => (r - pan.z + 1) * TREAD;
-  const down = (r: number) => -(r - pan.z + 1) * RISE * q;
-  const at = (a: number, z: number, r: number, up = 0) => project((a - pan.x) * col, (z - pan.z + 1) * TREAD, down(r) + up);
-  return { project, back, down, at };
+  const back = (r: number) => (r - pan.z + 1) * tread;
+  const down = (r: number) => -(r - pan.z + 1) * rise * q;
+  const at = (a: number, z: number, r: number, up = 0) => project((a - pan.x) * col, (z - pan.z + 1) * tread, down(r) + up);
+  return { project, back, down, at, tread };
 }
 
 /**
@@ -418,6 +448,7 @@ export function FloorStairs({
   pan,
   q,
   col,
+  step,
   onAway,
 }: {
   room: { width: number; height: number };
@@ -425,6 +456,7 @@ export function FloorStairs({
   pan: ChartPan;
   q: number;
   col: number;
+  step: StairStep;
   onAway?: (away: boolean) => void;
 }) {
   const away = q > 0.001;
@@ -434,7 +466,7 @@ export function FloorStairs({
   useEffect(() => () => onAway?.(false), [onAway]);
   if (!away || !onAway) return null;
   const { width: W, height: H } = room;
-  const { project, back, down } = stairLens(W, horizon, pan, q, col);
+  const { project, back, down, tread } = stairLens(W, horizon, pan, q, col, step);
   const fullDepth = H * FULL_DEPTH_SHARE;
   const fade = (d: number) => LINE_OPACITY * Math.min(1, FAR_OPACITY + (1 - FAR_OPACITY) * (Math.max(0, d) / fullDepth));
   // The lines running back: one between every two games' columns, as far across as shows.
@@ -444,7 +476,7 @@ export function FloorStairs({
   const drawn: React.ReactNode[] = [];
   for (let r = Math.floor(pan.z) - 1; r < Math.floor(pan.z) + 200; r++) {
     const d0 = back(r);
-    const d1 = d0 + TREAD;
+    const d1 = d0 + tread;
     // Its riser, from the step behind's front edge down to its own back edge — then its tread.
     const [, yTop] = project(0, d0, down(r - 1));
     const [, yBase, sBase] = project(0, d0, down(r));
@@ -487,11 +519,9 @@ export function FloorStairs({
   );
 }
 
-/** The tallest bar, in px on the floor (a stat's best): short of the step behind by its value's room over it, so a
- * row never hides the next. */
-const TALLEST = 26;
-/** Steps between the primary stats and the secondary ones. */
-const BLOCK_GAP = 1;
+/** The tallest bar (a stat's best), as a share of a step's rise: short of the step behind by its value's room over it,
+ * so a row never hides the next. */
+const TALLEST_SHARE = 0.72;
 
 const TIER_FILL: Record<StatTier, string> = { good: "var(--status-good)", mid: "var(--series-4)", bad: "var(--status-critical)" };
 
@@ -516,6 +546,7 @@ export function FloorStatBars({
   left,
   right,
   col,
+  step,
   picked,
   onPick,
   pan,
@@ -536,6 +567,8 @@ export function FloorStatBars({
   right: number;
   /** A game's column's width at the wall (see chartColumn). */
   col: number;
+  /** The stairs' step (see stairStep). */
+  step: StairStep;
   picked: number;
   onPick: (i: number) => void;
   pan: ChartPan;
@@ -553,15 +586,17 @@ export function FloorStatBars({
     { name: "Secondary", stats: secondary, z0: primary.length + BLOCK_GAP },
   ].filter((b) => b.stats.length > 0);
   const last = blocks.length > 0 ? blocks[blocks.length - 1].z0 + blocks[blocks.length - 1].stats.length - 1 : 0;
-  // Slid down the stairs as far as brings the last row up to the step under the landing.
-  const maxZ = Math.max(0, last);
+  // Every row on the floor at once where they fit (see stairStep); else slid down the stairs as far as brings the last
+  // row up to the step under the landing.
+  const maxZ = stepFront(horizon, step, last) <= bottom + 1 ? 0 : Math.max(0, last);
   const clampZ = (z: number) => Math.max(0, Math.min(maxZ, z));
-  const { project, back, down, at } = stairLens(W, horizon, pan, q, col);
+  const { project, back, down, at, tread } = stairLens(W, horizon, pan, q, col, step);
+  const tallest = step.rise * TALLEST_SHARE;
 
   // Which row's step is under screen y (its riser and tread), and how big things are there.
   const rowAt = (y: number) => {
     for (let r = Math.floor(pan.z) - 1; r < Math.floor(pan.z) + 200; r++) {
-      const [, yFront, s] = project(0, back(r) + TREAD, down(r));
+      const [, yFront, s] = project(0, back(r) + tread, down(r));
       if (y < yFront) return { r, s, pitch: Math.max(8, yFront - project(0, back(r), down(r - 1))[1]) };
     }
     return null;
@@ -618,7 +653,7 @@ export function FloorStatBars({
         drawn.push(<polygon key={`${b.name}-${s.key}-lit`} points={pts(face)} fill="var(--ink-primary)" fillOpacity={0.08} />);
       }
       // The y axis, standing at the step's back left corner, up to a stat's best.
-      const [yb, yt] = [at(firstEdge, r + 0.25, r), at(firstEdge, r + 0.25, r, TALLEST * rise)];
+      const [yb, yt] = [at(firstEdge, r + 0.25, r), at(firstEdge, r + 0.25, r, tallest * rise)];
       drawn.push(<line key={`${b.name}-${s.key}-y`} x1={yb[0]} y1={yb[1]} x2={yt[0]} y2={yt[1]} stroke="var(--ink-primary)" strokeOpacity={0.45} />);
       drawn.push(<line key={`${b.name}-${s.key}-y-best`} x1={yt[0] - 3} y1={yt[1]} x2={yt[0] + 3} y2={yt[1]} stroke="var(--ink-primary)" strokeOpacity={0.45} />);
       for (const i of order) {
@@ -636,7 +671,7 @@ export function FloorStatBars({
           );
           continue;
         }
-        const tall = Math.max(1.5, (TALLEST * Math.max(0, v)) / most) * rise;
+        const tall = Math.max(1.5, (tallest * Math.max(0, v)) / most) * rise;
         const tier = g.tiers[s.key];
         const fill = tier ? TIER_FILL[tier] : "var(--ink-primary)";
         const [fl, fr, bl, br] = [at(x0, z1, r), at(x1, z1, r), at(x0, z0, r), at(x1, z0, r)];
