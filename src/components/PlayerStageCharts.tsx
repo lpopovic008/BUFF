@@ -438,9 +438,9 @@ function stairLens(screenWidth: number, horizon: number, pan: ChartPan, q: numbe
 
 /**
  * The room's floor while a player's card is up, as stairs (see stairLens) across the whole room — drawn in place of
- * the room's own grid (which is put away, `onAway`, while it's anything but flat): each of its lines across a step's
- * edge, its lines running back a game's column apart, faded toward the horizon as the grid's are, each step's face (its
- * riser) faintly lit.
+ * the room's own grid (which is put away, `onAway`, while it's anything but flat): a line across each step's edge, a
+ * line running back down either side of the games, faded toward the horizon as the grid's are, each step's face (its
+ * riser) faintly lit. Kept that sparse so the bars on it read.
  */
 export function FloorStairs({
   room,
@@ -469,15 +469,14 @@ export function FloorStairs({
   const { project, back, down, tread } = stairLens(W, horizon, pan, q, col, step);
   const fullDepth = H * FULL_DEPTH_SHARE;
   const fade = (d: number) => LINE_OPACITY * Math.min(1, FAR_OPACITY + (1 - FAR_OPACITY) * (Math.max(0, d) / fullDepth));
-  // The lines running back: one between every two games' columns, as far across as shows.
-  const reach = W / 2 / col + 2;
-  const columns: number[] = [];
-  for (let i = Math.floor(pan.x - reach); i <= Math.ceil(pan.x + reach); i++) columns.push((i + 0.5 - pan.x) * col);
+  // The lines running back: down either side of the games (the middle one's in the middle, see useChartPan).
+  const columns = [-(pan.x + 0.5) * col, (pan.x + 0.5) * col];
   const drawn: React.ReactNode[] = [];
   for (let r = Math.floor(pan.z) - 1; r < Math.floor(pan.z) + 200; r++) {
     const d0 = back(r);
     const d1 = d0 + tread;
-    // Its riser, from the step behind's front edge down to its own back edge — then its tread.
+    // Its riser, from the step behind's front edge (the step's one line across) down to its own back edge — then its
+    // tread.
     const [, yTop] = project(0, d0, down(r - 1));
     const [, yBase, sBase] = project(0, d0, down(r));
     const [, yFront, sFront] = project(0, d1, down(r));
@@ -489,7 +488,6 @@ export function FloorStairs({
       drawn.push(<rect key={`riser-${r}`} x={0} y={yTop} width={W} height={riser} fill="var(--ink-primary)" fillOpacity={0.03 * q} />);
       drawn.push(<line key={`nose-${r}`} x1={0} x2={W} y1={yTop} y2={yTop} stroke="var(--ink-primary)" strokeOpacity={o} strokeWidth={1} />);
     }
-    drawn.push(<line key={`base-${r}`} x1={0} x2={W} y1={yBase} y2={yBase} stroke="var(--ink-primary)" strokeOpacity={o} strokeWidth={1} />);
     const path = columns
       .map((c) => {
         const [xt] = project(c, d0, down(r - 1));
