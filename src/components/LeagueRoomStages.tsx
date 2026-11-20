@@ -208,29 +208,30 @@ function PlayerHeader({ player, bio, numbers, onClose }: { player: ResolvedPlaye
 
 const stat = (label: string, key: string): ChartStat => ({ label, key });
 /**
- * Each position's stats on the floor's bars (see FloorStatBars): its primary ones, as Sleeper leads with them, and its
- * secondary ones behind them.
+ * Each position's stats on the floor's bars (see FloorStatBars), as Sleeper's game logs show them: the ones it leads
+ * with (a passer's passing, a back's rushing, a receiver's receiving) as the primary ones, and the rest it shows
+ * behind them — no fumbles or two-point conversions, which it doesn't.
  */
 const CHART_STATS: Record<string, { primary: ChartStat[]; secondary: ChartStat[] }> = {
   QB: {
-    primary: [stat("PYd", "pass_yd"), stat("PTD", "pass_td"), stat("Int", "pass_int"), stat("RYd", "rush_yd"), stat("RTD", "rush_td")],
-    secondary: [stat("Cmp", "pass_cmp"), stat("Att", "pass_att"), stat("Car", "rush_att"), stat("Sack", "pass_sack"), stat("Fum", "fum_lost")],
+    primary: [stat("Cmp", "pass_cmp"), stat("Att", "pass_att"), stat("PYd", "pass_yd"), stat("PTD", "pass_td"), stat("Int", "pass_int")],
+    secondary: [stat("Car", "rush_att"), stat("RYd", "rush_yd"), stat("RTD", "rush_td")],
   },
   RB: {
-    primary: [stat("Car", "rush_att"), stat("RYd", "rush_yd"), stat("RTD", "rush_td"), stat("Rec", "rec"), stat("RcYd", "rec_yd"), stat("RcTD", "rec_td")],
-    secondary: [stat("Tgt", "rec_tgt"), stat("Fum", "fum_lost"), stat("2Pt", "rush_2pt")],
+    primary: [stat("Car", "rush_att"), stat("RYd", "rush_yd"), stat("RTD", "rush_td")],
+    secondary: [stat("Tgt", "rec_tgt"), stat("Rec", "rec"), stat("RcYd", "rec_yd"), stat("RcTD", "rec_td")],
   },
   WR: {
     primary: [stat("Tgt", "rec_tgt"), stat("Rec", "rec"), stat("RcYd", "rec_yd"), stat("RcTD", "rec_td")],
-    secondary: [stat("Car", "rush_att"), stat("RYd", "rush_yd"), stat("RTD", "rush_td"), stat("Fum", "fum_lost")],
+    secondary: [stat("Car", "rush_att"), stat("RYd", "rush_yd"), stat("RTD", "rush_td")],
   },
   TE: {
     primary: [stat("Tgt", "rec_tgt"), stat("Rec", "rec"), stat("RcYd", "rec_yd"), stat("RcTD", "rec_td")],
-    secondary: [stat("Car", "rush_att"), stat("RYd", "rush_yd"), stat("RTD", "rush_td"), stat("Fum", "fum_lost")],
+    secondary: [stat("Car", "rush_att"), stat("RYd", "rush_yd"), stat("RTD", "rush_td")],
   },
   K: {
-    primary: [stat("FG", "fgm"), stat("FGA", "fga"), stat("XP", "xpm")],
-    secondary: [stat("50+", "fgm_50p"), stat("XPA", "xpa"), stat("Miss", "fgmiss")],
+    primary: [stat("FG", "fgm"), stat("FGA", "fga"), stat("XP", "xpm"), stat("XPA", "xpa")],
+    secondary: [stat("40-49", "fgm_40_49"), stat("50+", "fgm_50p")],
   },
   DEF: {
     primary: [stat("Sack", "sack"), stat("Int", "int"), stat("FR", "fum_rec"), stat("TD", "def_td"), stat("PA", "pts_allow")],
