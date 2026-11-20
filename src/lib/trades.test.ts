@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { addedValues, AnalyzedTrade, analyzeTrades, DraftResult, evenValue, filterTrades, nflDraftDay, pickTrends, processedValue, TradeSeason, tradeGaps, TradeSide } from "./trades";
+import { addedValues, AnalyzedTrade, analyzeTrades, DraftResult, evenValue, filterTrades, nflDraftDay, pickTrends, playerRoute, processedValue, TradeSeason, tradedPlayers, tradeGaps, TradeSide } from "./trades";
 import { DAY_MS, ValueHistory, ValueSeries, valueOn } from "./value-history";
 import { SleeperTransaction } from "./sleeper";
 
@@ -194,7 +194,7 @@ test("filterTrades finds trades by season and team slot, in the order picked", (
     // Slot 3 under the name it had that season.
     trade("c", 2, "2025", 100, 900, [[1, "Alpha", true, ["2026 1st"]], [3, "Old Gamma", false, ["CeeDee Lamb"]]]),
   ];
-  const all = { season: null, team: null, sort: "newest" } as const;
+  const all = { season: null, team: null, player: null, sort: "newest" } as const;
   const ids = (f: Partial<Parameters<typeof filterTrades>[1]>) => filterTrades(trades, { ...all, ...f }).map((t) => t.id);
   assert.deepEqual(ids({}), ["b", "c", "a"]);
   assert.deepEqual(ids({ season: "2025" }), ["b", "c"]);
@@ -207,6 +207,28 @@ test("filterTrades finds trades by season and team slot, in the order picked", (
   assert.deepEqual(ids({ sort: "closest" }), ["c", "a", "b"]);
   assert.deepEqual(ids({ sort: "oldest" }), ["a", "c", "b"]);
   assert.deepEqual(ids({ sort: "pieces" }), ["a", "b", "c"]);
+  // A player's trades: as themselves, or as the pick that became them.
+  assert.deepEqual(ids({ player: "Josh Allen" }), ["b"]);
+  assert.deepEqual(ids({ player: "Jahmyr Gibbs" }), ["a"]);
+  assert.deepEqual(ids({ player: "Nobody" }), []);
+});
+
+test("playerRoute follows a player from team to team, oldest trade first", () => {
+  const asset = (label: string, became?: string) => ({ label, position: became ? "PICK" : "WR", became: became ? { name: became, position: null, drafted: null, now: null } : undefined, then: null, thenEstimated: false, now: null, nowEstimated: false, path: [] });
+  const side = (rosterId: number, team: string, got: ReturnType<typeof asset>[]) => ({ rosterId, team, mine: false, got, faab: 0, then: 0, now: 0, added: 0, path: [] });
+  const trade = (id: string, at: number, sides: ReturnType<typeof side>[]) => ({ id, at, season: "2025", sides, then: { gap: 0, ahead: null }, gap: { gap: 0, ahead: null }, widest: { gap: 0, ahead: null, day: 0 } }) as AnalyzedTrade;
+  const trades = [
+    trade("late", 5, [side(3, "Gamma", [asset("Puka Nacua")]), side(2, "Beta", [asset("Drake London")])]),
+    trade("early", 1, [side(2, "Beta", [asset("2024 1st", "Puka Nacua")]), side(1, "Alpha", [asset("Mike Evans")])]),
+  ];
+  assert.deepEqual(playerRoute(trades, "Puka Nacua"), {
+    from: { rosterId: 1, team: "Alpha" },
+    stops: [
+      { rosterId: 2, team: "Beta", asPick: "2024 1st", at: 1 },
+      { rosterId: 3, team: "Gamma", asPick: null, at: 5 },
+    ],
+  });
+  assert.deepEqual(tradedPlayers(trades), ["Drake London", "Mike Evans", "Puka Nacua"]);
 });
 
 test("a side's totals add up each piece at its whole grade, as shown", () => {

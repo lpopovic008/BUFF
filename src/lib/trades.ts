@@ -240,7 +240,56 @@ export interface TradeFilter {
   season: string | null;
   /** A team slot (roster id — the same slot season to season, whoever's had it), or null for every team's. */
   team: number | null;
+  /** A player, by name — the trades they were in, as themselves or as the pick that became them — or null for anyone's. */
+  player: string | null;
   sort: TradeSort;
+}
+
+/** Whether a piece is `player`: them, or a pick that became them. */
+export function isPlayer(asset: TradeAsset, player: string): boolean {
+  return asset.label === player || asset.became?.name === player;
+}
+
+/** Every player the trades moved, as themselves or as a pick that became them, A to Z. */
+export function tradedPlayers(trades: AnalyzedTrade[]): string[] {
+  const names = new Set<string>();
+  for (const t of trades)
+    for (const side of t.sides)
+      for (const asset of side.got) {
+        if (asset.position !== "PICK") names.add(asset.label);
+        if (asset.became) names.add(asset.became.name);
+      }
+  return [...names].sort((a, b) => a.localeCompare(b));
+}
+
+/** A stop on a player's way round the league (see playerRoute): the team they went to, and the pick they went as, if one. */
+export interface RouteStop {
+  rosterId: number;
+  team: string;
+  /** Traded as a pick that became them: the pick ("2025 1st"). */
+  asPick: string | null;
+  at: number;
+}
+
+/**
+ * Where a player's been traded, oldest first: the team that first traded them away (in a two-team trade — in a
+ * bigger one, who gave them isn't known), then each team that got them — as themselves, or as the pick that
+ * became them.
+ */
+export function playerRoute(trades: AnalyzedTrade[], player: string): { from: { rosterId: number; team: string } | null; stops: RouteStop[] } {
+  const moves = trades
+    .flatMap((t) =>
+      t.sides.flatMap((side) =>
+        side.got.filter((a) => isPlayer(a, player)).map((a) => ({ trade: t, side, asPick: a.label === player ? null : a.label }))
+      )
+    )
+    .sort((a, b) => a.trade.at - b.trade.at);
+  const first = moves[0];
+  const giver = first && first.trade.sides.length === 2 ? first.trade.sides.find((s) => s !== first.side) : undefined;
+  return {
+    from: giver ? { rosterId: giver.rosterId, team: giver.team } : null,
+    stops: moves.map((m) => ({ rosterId: m.side.rosterId, team: m.side.team, asPick: m.asPick, at: m.trade.at })),
+  };
 }
 
 /** The trades that match a filter, in its order. */
@@ -259,6 +308,7 @@ export function filterTrades(trades: AnalyzedTrade[], filter: TradeFilter): Anal
   return trades
     .filter((t) => filter.season === null || t.season === filter.season)
     .filter((t) => filter.team === null || t.sides.some((s) => s.rosterId === filter.team))
+    .filter((t) => filter.player === null || t.sides.some((s) => s.got.some((a) => isPlayer(a, filter.player!))))
     // Best first; newest first among equals.
     .sort((a, b) => key[filter.sort](b) - key[filter.sort](a) || b.at - a.at);
 }

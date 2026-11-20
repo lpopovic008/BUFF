@@ -268,28 +268,38 @@ export function FloorCameraControls({
   // bottom. Going back down: once it's sunk, the floor back home, and the map on the next games. (Up already when these
   // first show: slid all the same.)
   const wasUp = useRef(false);
+  const slideAway = useCallback(() => {
+    let squares = 1;
+    while (squares < 200 && projectorView(place, HOME_CAMERA, { zoom: 1, x: 0, d: squares * GRID_PX }).frame.top <= place.height + 8) squares++;
+    store.glide({ zoom: 1, x: 0, d: squares * GRID_PX }, false);
+  }, [place, store]);
   useEffect(() => {
     if (wasUp.current === redZoneUp) return;
     wasUp.current = redZoneUp;
     if (redZoneUp) {
       // (With no map out, there's nothing to slide out of its way.)
-      if (!map) return;
-      let squares = 1;
-      while (squares < 200 && projectorView(place, HOME_CAMERA, { zoom: 1, x: 0, d: squares * GRID_PX }).frame.top <= place.height + 8) squares++;
-      store.glide({ zoom: 1, x: 0, d: squares * GRID_PX }, false);
+      if (map) slideAway();
       return;
     }
     window.setTimeout(() => {
       store.glide(HOME_CAMERA, true);
       goToNextGames();
     }, RED_ZONE_SINK_MS);
-  }, [redZoneUp, place, store, goToNextGames, map]);
-  // The map put away (the week's under way): the floor back home, and the whole map in its frame again.
+  }, [redZoneUp, place, store, goToNextGames, map, slideAway]);
+  // The map put away (a game's on): the floor back home, and the whole map in its frame again. Out again with the Red
+  // Zone up: the floor slid out of its way, as it was.
+  const wasOut = useRef<boolean | null>(null);
   useEffect(() => {
-    if (map) return;
+    if (wasOut.current === map) return;
+    const first = wasOut.current === null;
+    wasOut.current = map;
+    if (map) {
+      if (!first && redZoneUp) slideAway();
+      return;
+    }
     store.glide(HOME_CAMERA, true);
     picture.glide(HOME_CAMERA, true);
-  }, [map, store, picture]);
+  }, [map, store, picture, redZoneUp, slideAway]);
   // Its switch becoming the Red Zone's header as it comes up (and back), step by step (see RISE_AT_MS and the rest): the
   // header's title (`data-rz-title`) its switch while it's up; the rest of the header (`data-rz-head`) and its plays
   // (`data-rz-plays`) brought in after it.

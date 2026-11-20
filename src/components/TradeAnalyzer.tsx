@@ -1,9 +1,9 @@
 "use client";
 
-import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { PlateCard } from "@/components/ui/PlateCard";
 import { useLeagueTrades } from "@/hooks/useLeagueTrades";
-import { AnalyzedTrade, filterTrades, TRADE_SIDE_COLORS, TRADE_SORTS, TradeFilter, tradeGap, TradeSide, TradeSort } from "@/lib/trades";
+import { AnalyzedTrade, filterTrades, playerRoute, TRADE_SIDE_COLORS, TRADE_SORTS, TradeFilter, tradedPlayers, tradeGap, TradeSide, TradeSort } from "@/lib/trades";
 import { TradeViewer } from "@/components/TradeViewer";
 import { shownGrade, valueGrade } from "@/lib/player-values";
 import { canvasFile, drawTradeGraphic } from "@/lib/trade-graphic";
@@ -368,7 +368,65 @@ function TradeCard({ trade, leagueName, height }: { trade: AnalyzedTrade; league
 
 const FIELD = "min-w-0 border border-border bg-page px-2 py-1 text-xs text-ink-primary outline-none focus:border-ink-primary";
 
-/** Finding trades: a season, a team slot (by its latest name), and the order they're in. */
+/**
+ * A player's way round the league, as far as trades have taken them: the team that first traded them away, then each
+ * team that got them (by its latest name), with the pick they went as, where they went as one.
+ */
+function PlayerRoute({ trades, teams, player }: { trades: AnalyzedTrade[]; teams: { rosterId: number; name: string }[]; player: string }) {
+  const route = useMemo(() => playerRoute(trades, player), [trades, player]);
+  const nameOf = (rosterId: number, then: string) => teams.find((t) => t.rosterId === rosterId)?.name ?? then;
+  const stops = [
+    ...(route.from ? [{ key: "from", team: nameOf(route.from.rosterId, route.from.team), note: null as string | null }] : []),
+    ...route.stops.map((s, i) => ({ key: `${i}`, team: nameOf(s.rosterId, s.team), note: s.asPick ? `as ${s.asPick}` : null })),
+  ];
+  if (stops.length === 0) return null;
+  return (
+    <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-ink-secondary" aria-label={`Where ${player} has been traded`}>
+      {stops.map((stop, i) => (
+        <span key={stop.key} className="flex items-center gap-1.5">
+          {i > 0 ? <span aria-hidden className="text-ink-muted">→</span> : null}
+          {/* Where they are now, as far as trades go: on the theme's tag plate. */}
+          <span className={i === stops.length - 1 ? "bg-[var(--map-tag)] px-1 font-bold text-[var(--map-tag-ink)]" : "font-medium text-ink-primary"}>{stop.team}</span>
+          {stop.note ? <span className="text-ink-muted">({stop.note})</span> : null}
+        </span>
+      ))}
+    </p>
+  );
+}
+
+/** Finding a player: typed and picked from everyone the trades moved — cleared, anyone's. */
+function PlayerSearch({ players, player, onChange }: { players: string[]; player: string | null; onChange: (player: string | null) => void }) {
+  const listId = useId();
+  const [text, setText] = useState(player ?? "");
+  // Typed out in full (any case), they're picked.
+  const pickFrom = (value: string) => {
+    setText(value);
+    const typed = value.trim().toLowerCase();
+    if (typed === "") return onChange(null);
+    const match = players.find((p) => p.toLowerCase() === typed);
+    if (match) onChange(match);
+  };
+  return (
+    <>
+      <input
+        type="search"
+        aria-label="Player"
+        placeholder="Any player"
+        list={listId}
+        value={text}
+        onChange={(e) => pickFrom(e.target.value)}
+        className={`${FIELD} w-40 ${player ? "border-ink-primary" : ""}`}
+      />
+      <datalist id={listId}>
+        {players.map((p) => (
+          <option key={p} value={p} />
+        ))}
+      </datalist>
+    </>
+  );
+}
+
+/** Finding trades: a season, a team slot (by its latest name), a player, and the order they're in. */
 function TradeFilters({
   trades,
   teams,
@@ -381,7 +439,9 @@ function TradeFilters({
   onChange: (next: TradeFilter) => void;
 }) {
   const seasons = useMemo(() => [...new Set(trades.map((t) => t.season))].sort().reverse(), [trades]);
+  const players = useMemo(() => tradedPlayers(trades), [trades]);
   return (
+    <div className="flex flex-col gap-2">
     <div className="flex flex-wrap gap-2">
       <select aria-label="Season" value={filter.season ?? ""} onChange={(e) => onChange({ ...filter, season: e.target.value || null })} className={FIELD}>
         <option value="">All seasons</option>
@@ -399,6 +459,7 @@ function TradeFilters({
           </option>
         ))}
       </select>
+      <PlayerSearch players={players} player={filter.player} onChange={(player) => onChange({ ...filter, player })} />
       <select aria-label="Sort" value={filter.sort} onChange={(e) => onChange({ ...filter, sort: e.target.value as TradeSort })} className={FIELD}>
         {TRADE_SORTS.map((s) => (
           <option key={s.id} value={s.id}>
@@ -407,10 +468,13 @@ function TradeFilters({
         ))}
       </select>
     </div>
+    {/* A player picked: the teams they've been traded to, in turn. */}
+    {filter.player ? <PlayerRoute trades={trades} teams={teams} player={filter.player} /> : null}
+    </div>
   );
 }
 
-const NO_FILTER: TradeFilter = { season: null, team: null, sort: "newest" };
+const NO_FILTER: TradeFilter = { season: null, team: null, player: null, sort: "newest" };
 
 /**
  * How far down its column the line a trade card's read at is, scrolled to its top: the card across it is the trade
@@ -454,7 +518,7 @@ export function TradeAnalyzer({
   const data = useLeagueTrades(leagueId, sleeperUserId);
   const [filter, setFilter] = useState<TradeFilter>(NO_FILTER);
   const shown = useMemo(() => (data ? filterTrades(data.trades, filter) : []), [data, filter]);
-  const filtered = filter.season !== null || filter.team !== null;
+  const filtered = filter.season !== null || filter.team !== null || filter.player !== null;
   // The trade shown, in columns: the card read, or the trade picked on the timeline.
   const [shownId, setShownId] = useState<string | null>(null);
   const list = useRef<HTMLOListElement>(null);

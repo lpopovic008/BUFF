@@ -453,9 +453,12 @@ export function RedZone({
   onEmptyChange,
   onFitChange,
   scoringByLeague = NO_SCORING,
+  onPlayPick,
 }: {
   /** Your starters, grouped by the game they're playing in. */
   starters: GameStarters[];
+  /** A play tapped (or clicked): to be acted out again. */
+  onPlayPick?: (entry: FeedEntry) => void;
   /** The starters you're facing, grouped the same way — their plays join yours under VS. */
   opponents: GameStarters[];
   /** Every game of the week. */
@@ -693,6 +696,14 @@ export function RedZone({
   // With no game on, the header runs across the top instead of down the side — and with no plays, it's just
   // the header (any teams in the red zone in it), across the top, no room kept for them.
   const empty = entries.length === 0 && !pinned;
+  // A play tapped (not something in it that's tapped for itself): told, to be acted out again.
+  const pickPlay = (e: React.MouseEvent) => {
+    const target = e.target instanceof Element ? e.target : null;
+    if (!target || target.closest("a, button, input, select, label")) return;
+    const key = target.closest<HTMLElement>("li[data-play]")?.dataset.play;
+    const entry = key ? [...(pinned ? [pinned] : []), ...entries].find((x) => `${x.game.id}-${x.play.id}` === key) : undefined;
+    if (entry) onPlayPick?.(entry);
+  };
   const across = !live || empty || fill;
   useEffect(() => onEmptyChange?.(empty), [empty, onEmptyChange]);
   return (
@@ -784,7 +795,13 @@ export function RedZone({
       {empty ? (
         feed.loading ? <p className="py-1 text-xs text-ink-muted max-md:px-2">Loading play-by-play…</p> : null
       ) : (
-        <div data-rz-plays className={`relative flex min-w-0 flex-1 flex-col gap-2 py-1 ${fill ? "min-h-0" : "md:min-h-0"} ${across ? "max-md:px-2" : "pl-1.5 max-md:pr-2"}`}>
+        <div
+          data-rz-plays
+          onClick={onPlayPick ? pickPlay : undefined}
+          className={`relative flex min-w-0 flex-1 flex-col gap-2 py-1 ${fill ? "min-h-0" : "md:min-h-0"} ${across ? "max-md:px-2" : "pl-1.5 max-md:pr-2"} ${
+            onPlayPick ? "[&_li[data-play]]:cursor-pointer" : ""
+          }`}
+        >
           {/* The play by a graph's cursor when it isn't among these plays, laid over the top of them (see spotlight). */}
           {pinned ? (
             <ol aria-label="The play by the graph's cursor" className="absolute left-1.5 right-0 top-1 z-20 bg-page shadow-md max-md:right-2">

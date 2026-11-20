@@ -7,7 +7,7 @@ import { FLOOR_TILT, floorAt, floorPoint, floorScale } from "@/lib/grid-room";
 import { FloorTiltStore, tiltFor } from "@/lib/floor-tilt";
 import { nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import type { NFLGame } from "@/lib/nfl-schedule";
-import { playFromLastPlay } from "@/lib/play-by-play";
+import { GamePlay, playFromLastPlay } from "@/lib/play-by-play";
 import { PlayScene, sceneFor } from "@/lib/play-scene";
 import { teamColor, teamName } from "@/lib/team-colors";
 
@@ -100,7 +100,7 @@ interface FieldState {
   los: number | null;
   /** The play going on (when it started, and whether it's been told it's done moving), those waiting, and the last
    * one sent down it — acted out again when the field's tapped. */
-  playing: (FieldPlay & { start: number; told: boolean }) | null;
+  playing: (FieldPlay & { start: number; told: boolean; replay?: number }) | null;
   waiting: FieldPlay[];
   last: FieldPlay | null;
   /** Whether it came on before its game's kickoff (and jets are to fly over it as that comes), and the flyover going on
@@ -193,6 +193,8 @@ export function FloorFields({
   focused = false,
   onPick,
   onPlayed,
+  replay = null,
+  onReplayed,
   tilt: tiltStore,
 }: {
   /** The games being played, in order. */
@@ -208,6 +210,13 @@ export function FloorFields({
   onPick?: (gameId: string) => void;
   /** Told when a field's done acting out the plays sent down it, and which game's it is. */
   onPlayed?: (gameId: string) => void;
+  /**
+   * A play picked to be acted out again on its game's field (one of `games`), each pick its own `key` — on a phone,
+   * its field brought to the front while it's on. Nothing waiting cuts it short.
+   */
+  replay?: { game: NFLGame; play: GamePlay; key: number } | null;
+  /** Told when the picked play's over (or couldn't be acted out), with its `key`. */
+  onReplayed?: (key: number) => void;
   /** How far the floor's laid back, eased here to suit how many fields there are (from tablet width up) — for what
    * draws the floor to follow. */
   tilt?: FloorTiltStore;
@@ -235,10 +244,14 @@ export function FloorFields({
   }, [tiltStore]);
   const pick = useRef(onPick);
   const played = useRef(onPlayed);
+  const replayed = useRef(onReplayed);
   useEffect(() => {
     pick.current = onPick;
     played.current = onPlayed;
-  }, [onPick, onPlayed]);
+    replayed.current = onReplayed;
+  }, [onPick, onPlayed, onReplayed]);
+  // On a phone, the game that was in view before a picked play's field was brought to the front for it.
+  const frontBefore = useRef<string | null>(null);
 
   // Laid out again: where each field goes for the games on, and the room as it is — straight there (`glued`), as the
   // floor's tilting under them.
@@ -311,6 +324,38 @@ export function FloorFields({
     order.current = arranged.current ? [...order.current.filter((id) => ids.includes(id)), ...ids.filter((id) => !order.current.includes(id))] : ids;
     relay.current();
   }, [games]);
+
+  // A play picked to be acted out again: sent down its game's field (laid by the effect above) straight away, in place
+  // of whatever's on — on a phone, its field brought to the front till it's over.
+  const replayKey = replay?.key ?? null;
+  useEffect(() => {
+    if (!replay) return;
+    const { game, play, key } = replay;
+    const state = fields.current.get(game.id);
+    const scene = state ? sceneFor(play, [game.homeTeam, game.awayTeam]) : null;
+    if (!state || !scene) {
+      queueMicrotask(() => replayed.current?.(key));
+      return;
+    }
+    // Snapped from where the play says — or, it not saying, where the game stands now.
+    const { possession, toGo } = state.situation;
+    const nowLos = possession && toGo !== null ? spotOf(dirOf(game, possession), toGo) : null;
+    const place = (s: PlayScene): FieldPlace => {
+      const dir = dirOf(game, s.offense);
+      return { dir, los: s.toGoal !== null && s.kind !== "kickoff" ? spotOf(dir, s.toGoal) : (nowLos ?? 50) };
+    };
+    const seed = [...play.id].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 1e6, 7);
+    const sent: FieldPlay = { flight: flightFor(scene, place, seed), offense: scene.offense, los: place(scene).los, distance: scene.toGo };
+    state.playing = { ...sent, start: performance.now(), told: false, replay: key };
+    if (room.current.focused && front.current !== game.id) {
+      frontBefore.current = front.current;
+      front.current = game.id;
+      relay.current();
+    }
+    kick.current();
+    // (Read once per pick: `replay` itself is new each render.)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [replayKey]);
 
   useEffect(() => {
     const el = ref.current;
@@ -406,7 +451,17 @@ export function FloorFields({
             f.playing.told = true;
             played.current?.(id);
           }
-          if (t > f.playing.flight.length || (t > f.playing.flight.settled && f.waiting.length > 0)) {
+          if (t > f.playing.flight.length || (t > f.playing.flight.settled && f.waiting.length > 0 && f.playing.replay === undefined)) {
+            // A picked play over: told so, and on a phone, the game that was in view back in front.
+            const over = f.playing.replay;
+            if (over !== undefined) {
+              if (frontBefore.current !== null && order.current.includes(frontBefore.current)) {
+                front.current = frontBefore.current;
+                relay.current();
+              }
+              frontBefore.current = null;
+              queueMicrotask(() => replayed.current?.(over));
+            }
             const next = f.waiting.shift();
             f.playing = next ? { ...next, start: now, told: false } : null;
             if (next) f.last = next;

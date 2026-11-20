@@ -20,6 +20,9 @@ import { ByeTeam, LeagueLegendEntry, StartersByGame, viewPlayers } from "@/compo
 import { NFL_TEAMS } from "@/lib/nfl-logos";
 import { PointsGraphGrid } from "@/components/PointsGraph";
 import { RedZone } from "@/components/RedZone";
+import type { FeedEntry } from "@/hooks/useRedZoneFeed";
+import type { GamePlay } from "@/lib/play-by-play";
+import type { NFLGame } from "@/lib/nfl-schedule";
 import { useConfig } from "@/hooks/useConfig";
 import { MatchupTarget, useDashboardMatchups } from "@/hooks/useDashboardMatchups";
 import { useAsItStands, useSummariesAsItStands } from "@/hooks/useAsItStands";
@@ -62,6 +65,8 @@ const RED_ZONE_FLOAT_REM = 0.125;
 const RED_ZONE_REM = 10.5;
 /** How long before its kickoff a game's field comes onto the floor (see FloorFields, which flies jets over it then). */
 const FIELD_LEAD_MS = 5 * 60_000;
+/** The longest a Red Zone play picked to be acted out again holds the floor, should its field never say it's over. */
+const REPLAY_MOST_MS = 30_000;
 // From tablet width up, the player graphs at the back of the room: from under the ticker down to the horizon.
 // From tablet width up, how far down the starters list's first row sits: under the header and ticker, and the gap.
 const UNDER_TICKER = "var(--header-h, 0px) + var(--ticker-h, 0px) + 0.625rem";
@@ -261,6 +266,43 @@ export default function DashboardPage() {
     setRedZoneLevel(desktop ? 1 : 0);
     setRedZoneDragTop(null);
   };
+  // A Red Zone play picked to be acted out again on its game's field (see FloorFields' replay) — a field of its own
+  // laid for it if its game hasn't one, the map out of its way. On a phone, the Red Zone's let down to its first step
+  // while it plays, so the floor's in sight; once it's over, the page goes back just as it was.
+  const [replay, setReplay] = useState<{
+    game: NFLGame;
+    play: GamePlay;
+    key: number;
+    restore: { level: 0 | 1 | 2; dragTop: number | null } | null;
+  } | null>(null);
+  const pickPlay = (entry: FeedEntry) => {
+    const lowered = !desktop && (redZoneLevel !== 0 || redZoneDragTop !== null);
+    setReplay({
+      game: entry.game,
+      play: entry.play,
+      key: (replay?.key ?? 0) + 1,
+      restore: replay?.restore ?? (lowered ? { level: redZoneLevel, dragTop: redZoneDragTop } : null),
+    });
+    if (lowered) {
+      setRedZoneLevel(0);
+      setRedZoneDragTop(null);
+    }
+  };
+  const replayed = (key: number) => {
+    if (replay?.key !== key) return;
+    if (replay.restore && redZoneUp) {
+      setRedZoneLevel(replay.restore.level);
+      setRedZoneDragTop(replay.restore.dragTop);
+    }
+    setReplay(null);
+  };
+  // (Never left hanging: a play's over in seconds, however it went.)
+  const replayKey = replay?.key ?? null;
+  useEffect(() => {
+    if (replayKey === null) return;
+    const id = window.setTimeout(() => setReplay((r) => (r?.key === replayKey ? null : r)), REPLAY_MOST_MS);
+    return () => window.clearTimeout(id);
+  }, [replayKey]);
   useEffect(() => {
     if (!redZoneSinking) return;
     const done = setTimeout(() => {
@@ -653,6 +695,18 @@ export default function DashboardPage() {
         .map((g) => g.game),
     [games, fieldsClock]
   );
+  // With a play picked to be acted out again whose game has no field on the floor: just that game's, while it's on.
+  const replayGame = replay ? (weekGames.find((g) => g.id === replay.game.id) ?? replay.game) : null;
+  const shownFieldGames = useMemo(
+    () => (replayGame && !fieldGames.some((g) => g.id === replayGame.id) ? [replayGame] : fieldGames),
+    [fieldGames, replayGame]
+  );
+  const fieldReplay = useMemo(
+    () => (replay && replayGame ? { game: replayGame, play: replay.play, key: replay.key } : null),
+    // (A pick's own key says when it's another.)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [replay?.key]
+  );
   const fieldsFloor = useMemo(() => {
     if (!stand) return null;
     if (desktop || !redZoneUp) return stand.fields;
@@ -662,7 +716,7 @@ export default function DashboardPage() {
     return { ...stand.fields, front: Math.min(stand.fields.front, top - 0.5 * stand.rootPx) };
   }, [stand, desktop, redZoneUp, redZoneDragTop, redZoneLevel]);
   // Whether there are fields on the floor: then the floor's bare — no grid lines, no map.
-  const fieldsUp = fieldsFloor !== null && fieldGames.length > 0;
+  const fieldsUp = fieldsFloor !== null && shownFieldGames.length > 0;
   // The floor, slid toward you for the Red Zone; and the projected map moved and zoomed in its frame (see
   // FloorCameraControls), at home on the next games to kick off.
   const [floorCamera] = useState(createFloorCameraStore);
@@ -728,13 +782,13 @@ export default function DashboardPage() {
   // The map's projected over the middle of the floor (see FloorProjection), its games standing up off it in front of
   // everything (FloorProjectionTags) — out of the way while the Red Zone takes the screen (⇕).
   const mapShown = stand !== null && weekGames.length > 0;
-  // The map's only out between weeks: till the week's first game kicks off, and again once they're all over — and
-  // never with fields on the floor.
+  // The map's out whenever no game's being played: before the week's first kickoff, between one window's games and
+  // the next's, and once they're all over — never with fields on the floor (a game about to kick off lays its own).
   // (From tablet width up, put away too while player graphs stand at the back of the room, where its frame floats.)
   const mapOut =
     mapShown &&
     !fieldsUp &&
-    (weekGames.every((g) => g.state === "pre") || weekGames.every((g) => g.state === "post")) &&
+    !weekGames.some((g) => g.state === "in") &&
     !(desktop && graphed.length > 0 && !redZoneTall);
   const roomView = (
     <div
@@ -785,6 +839,7 @@ export default function DashboardPage() {
         // tablet width up it's always up.
         onSwitchOff={desktop ? undefined : () => switchRedZone(false)}
         scoringByLeague={scoringByLeague}
+        onPlayPick={pickPlay}
       />
     ) : null;
   // The Red Zone, up out of the floor in front of you (its switch beside the map's way home, see FloorCameraControls):
@@ -944,7 +999,16 @@ export default function DashboardPage() {
         {mapOut ? <FloorProjectionTags place={stand.projector} games={projectedGames} map={mapCamera} floor={floorCamera} /> : null}
         {/* The games being played, the one in view across the floor's front, the rest behind it. */}
         {stand && fieldsFloor ? (
-          <FloorFields games={fieldGames} width={stand.projector.width} height={stand.room} share={stand.projector.share} floor={fieldsFloor} focused />
+          <FloorFields
+            games={shownFieldGames}
+            width={stand.projector.width}
+            height={stand.room}
+            share={stand.projector.share}
+            floor={fieldsFloor}
+            focused
+            replay={fieldReplay}
+            onReplayed={replayed}
+          />
         ) : null}
         {floorControls}
       </div>
@@ -1009,7 +1073,16 @@ export default function DashboardPage() {
       <FloorReflection source={startersList} className="pb-16" style={{ paddingTop: `calc(${UNDER_TICKER})` }} />
       {/* The games being played, a field each, on the floor between the Red Zone and the starters list. */}
       {stand && fieldsFloor ? (
-        <FloorFields games={fieldGames} width={stand.projector.width} height={stand.room} share={stand.projector.share} floor={fieldsFloor} tilt={floorTilt} />
+        <FloorFields
+          games={shownFieldGames}
+          width={stand.projector.width}
+          height={stand.room}
+          share={stand.projector.share}
+          floor={fieldsFloor}
+          tilt={floorTilt}
+          replay={fieldReplay}
+          onReplayed={replayed}
+        />
       ) : null}
       {redZoneStage}
       {floorControls}
