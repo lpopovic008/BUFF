@@ -50,13 +50,16 @@ function spreadPx(ys: number[], gap: number, top: number, bottom: number): numbe
 }
 
 /**
- * Where a value's label goes inside the chart beside a point on a line at screen y `at`: just above it or just below,
- * whichever leaves more room from the other lines there (`others`) and the labels already put beside them (`placed`)
- * — kept between `top` and `bottom`. `h`: a label's height; `pad`: the room between it and its line.
+ * Where a value's label goes inside the chart beside a point on a line at screen y `at`: just above it or just below —
+ * never past another line (`others`) where the other side isn't — else whichever leaves more room from the other lines
+ * and the labels already put beside them (`placed`) — kept between `top` and `bottom`. `h`: a label's height; `pad`: the room between it and its line.
  */
 function roomForPx(at: number, others: number[], placed: number[], h: number, pad: number, top: number, bottom: number): number {
   const keep = (c: number) => Math.min(bottom - h / 2, Math.max(top + h / 2, c));
   const [above, below] = [keep(at - pad - h / 2), keep(at + pad + h / 2)];
+  // Never past another line where the other side isn't, so it's read with its own line.
+  const crosses = (c: number) => others.some((o) => (o - at) * (o - c) < 0);
+  if (crosses(above) !== crosses(below)) return crosses(above) ? below : above;
   const clearance = (c: number) => Math.min(Infinity, ...others.map((o) => Math.abs(o - c)), ...placed.map((p) => Math.abs(p - c) - h / 2));
   return clearance(below) > clearance(above) + 1 ? below : above;
 }
@@ -343,8 +346,16 @@ export function drawTradeGraphic(canvas: HTMLCanvasElement, trade: AnalyzedTrade
         ctx.stroke();
       }
     });
-    // The values inside: each line's when traded by its start; a drafted pick's now by its end.
+    // The values inside: each line's when traded by its start; a drafted pick's now by its end — each outlined in the
+    // chart's background, so a line passing behind it doesn't cut through it.
     const H = 22;
+    const valueText = (text: string, x: number, at: number) => {
+      ctx.lineWidth = 6;
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = C.bgBottom;
+      ctx.strokeText(text, x, at);
+      ctx.fillText(text, x, at);
+    };
     const placedStarts: number[] = [];
     lines.forEach((l, i) => {
       const at = roomForPx(startY[i], startY.filter((_, j) => j !== i), placedStarts, H, 6, plot.y, plot.y + plot.h);
@@ -352,7 +363,7 @@ export function drawTradeGraphic(canvas: HTMLCanvasElement, trade: AnalyzedTrade
       type(20, "800");
       ctx.fillStyle = l.color;
       ctx.textAlign = "left";
-      ctx.fillText(String(grade(l.points[0]?.value ?? 0)), plot.x + 10, at);
+      valueText(String(grade(l.points[0]?.value ?? 0)), plot.x + 10, at);
     });
     const placedEnds: number[] = [];
     lines.forEach((l, i) => {
@@ -362,7 +373,7 @@ export function drawTradeGraphic(canvas: HTMLCanvasElement, trade: AnalyzedTrade
       type(20, "800");
       ctx.fillStyle = l.color;
       ctx.textAlign = "right";
-      ctx.fillText(l.asset.now !== null ? String(grade(l.asset.now)) : "–", plot.x + plot.w - 10, at);
+      valueText(l.asset.now !== null ? String(grade(l.asset.now)) : "–", plot.x + plot.w - 10, at);
     });
     ctx.textAlign = "left";
     ctx.textBaseline = "alphabetic";

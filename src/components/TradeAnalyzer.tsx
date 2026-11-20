@@ -65,15 +65,17 @@ function closestDay(trade: AnalyzedTrade): number | null {
 
 /**
  * Where a value's label goes inside the chart beside a point on a line at `at` (percent down): just above it or just
- * below, whichever leaves more room from the other lines there (`others`, percent down) and the labels already put
- * beside them (`placed`) — kept inside the chart. `h`: a label's height, and `pad` the room between it and its line
- * (percent).
+ * below — never past another line (`others`, percent down) where the other side isn't, so it's read with its own;
+ * else whichever leaves more room from the other lines and the labels already put beside them (`placed`) — kept
+ * inside the chart. `h`: a label's height, and `pad` the room between it and its line (percent).
  */
 function roomFor(at: number, others: number[], placed: number[], h: number, pad: number): number {
   const keep = (c: number) => Math.min(100 - h / 2, Math.max(h / 2, c));
-  const candidates = [keep(at - pad - h / 2), keep(at + pad + h / 2)];
+  const [above, below] = [keep(at - pad - h / 2), keep(at + pad + h / 2)];
+  const crosses = (c: number) => others.some((o) => (o - at) * (o - c) < 0);
+  if (crosses(above) !== crosses(below)) return crosses(above) ? below : above;
   const clearance = (c: number) => Math.min(Infinity, ...others.map((o) => Math.abs(o - c)), ...placed.map((p) => Math.abs(p - c) - h / 2));
-  return clearance(candidates[1]) > clearance(candidates[0]) + 0.5 ? candidates[1] : candidates[0];
+  return clearance(below) > clearance(above) + 0.5 ? below : above;
 }
 
 /**
