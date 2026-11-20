@@ -262,13 +262,17 @@ const REFLECTION_FADE = "linear-gradient(to top, rgba(0, 0, 0, 0.35), transparen
  */
 const DOSSIER_BACK = 0.25;
 
-/** How tall who a player is stands on the floor (px, as shown), where its foot is (screen y), and how far back it's been
- * moved (px) — see PlayerDossier. */
-function dossierPlace(floor: StagePlaces["floor"]): { tall: number; foot: number; back: number } {
+/** How far over the floor who a player is stands (see PlayerDossier), a share of how tall it stands: lifted off it, its
+ * reflection as far under it, so the two stand clear of each other. */
+const DOSSIER_LIFT = 0.07;
+
+/** How tall who a player is stands on the floor (px, as shown), where its foot is (screen y), how far back it's been
+ * moved and how far it's lifted over the floor there (px) — see PlayerDossier. */
+function dossierPlace(floor: StagePlaces["floor"]): { tall: number; foot: number; back: number; lift: number } {
   const floorTall = floor.bottom - floor.top;
   const tall = Math.max(24, Math.min(160, (floorTall - 8) / (1 + REFLECTION_SHARE)));
   const back = tall * DOSSIER_BACK;
-  return { tall, foot: floor.top + (floorTall - tall * (1 + REFLECTION_SHARE)) / 2 + tall - back, back };
+  return { tall, foot: floor.top + (floorTall - tall * (1 + REFLECTION_SHARE)) / 2 + tall - back, back, lift: Math.max(3, tall * DOSSIER_LIFT) };
 }
 /** A photo's edges faded out, so it stands free of its own background. */
 const PHOTO_FADE = "radial-gradient(ellipse 72% 78% at 50% 46%, #000 62%, transparent 100%)";
@@ -316,7 +320,7 @@ function PlayerDossier({
   const horizon = room.height * share;
   // How tall it stands, and where: a little back from the middle of the floor, it and its reflection under it (see
   // dossierPlace) — how far back that is on the floor, and how much nearer than the wall it shows things there.
-  const { tall, foot } = dossierPlace(floor);
+  const { tall, foot, lift } = dossierPlace(floor);
   const depth = floorDepth(foot, room.height, share);
   const scale = floorScale(depth);
   const side = floor.width * 0.24;
@@ -350,12 +354,15 @@ function PlayerDossier({
     <Fragment key={key}>
       {/* Each centred on its foot's middle as a whole box, so the reflection's fade covers all of it. */}
       <div aria-hidden className="absolute" style={{ ...standing(x, turn), transform: `${standing(x, turn).transform} scaleY(-1)` }}>
-        <div className="absolute bottom-0 left-0 -translate-x-1/2" style={{ maskImage: REFLECTION_FADE, WebkitMaskImage: REFLECTION_FADE }}>
+        {/* Lifted off the floor, its reflection as far under it (turned over, its bottom's the floor's surface). */}
+        <div className="absolute left-0 -translate-x-1/2" style={{ bottom: lift, maskImage: REFLECTION_FADE, WebkitMaskImage: REFLECTION_FADE }}>
           {draw(true)}
         </div>
       </div>
       <div className="absolute" style={standing(x, turn)}>
-        <div className="absolute bottom-0 left-0 -translate-x-1/2">{draw(false)}</div>
+        <div className="absolute left-0 -translate-x-1/2" style={{ bottom: lift }}>
+          {draw(false)}
+        </div>
       </div>
     </Fragment>
   );
@@ -716,9 +723,11 @@ export function PlayerStage({
           value: null,
           future,
           bye: !future,
+          // A week still to come: what he's projected for it.
+          projected: future ? projected : null,
           opponent: future ? opponent : null,
           tag: String(week),
-          label: `Week ${week}: ${future ? `still to come${opponent ? `, against ${opponent}` : ""}` : "bye"}`,
+          label: `Week ${week}: ${future ? `still to come${opponent ? `, against ${opponent}` : ""}${projected !== null ? ` (projected ${projected.toFixed(1)})` : ""}` : "bye"}`,
         };
       }
       const points = seasonPoints(w.stats, scoring);
@@ -830,8 +839,8 @@ export function PlayerStage({
         data-floor-ui
         aria-label={player.name}
         className={`fixed z-[6] flex flex-col gap-2 transition-[opacity,transform] ease-out ${up ? "opacity-100" : "translate-y-2 opacity-0"}`}
-        // Ending as much higher as who he is stands back past the horizon (see DOSSIER_BACK), clear of it.
-        style={{ ...places.wall, paddingBottom: dossierPlace(floor).back, transitionDuration: `${STAGE_MS}ms` }}
+        // Ending as much higher as who he is stands back past the horizon and is lifted (see DOSSIER_BACK, DOSSIER_LIFT), clear of it.
+        style={{ ...places.wall, paddingBottom: dossierPlace(floor).back + dossierPlace(floor).lift, transitionDuration: `${STAGE_MS}ms` }}
       >
         {picker}
         {controls}

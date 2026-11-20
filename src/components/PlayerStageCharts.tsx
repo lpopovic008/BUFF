@@ -15,7 +15,7 @@ export interface ChartGame {
   value: number | null;
   /** Its stat line, in Sleeper's keys — none for a week he didn't play. */
   stats?: Record<string, number> | null;
-  /** What he was projected for it (a week he played), drawn faintly by his points. */
+  /** What he was projected for it (a week he played, or one still to come), drawn faintly by his points. */
   projected?: number | null;
   label: string;
   /** A week still to come this season (nothing to draw for it yet). */
@@ -67,12 +67,15 @@ const MOST_COLUMN = 72;
 const LINE_SHARE = 0.25;
 const LINE_LEAST_PX = 48;
 const ROWS_GAP_PX = 6;
-/** The size of the stats' names at the side (px, as big as they're drawn at most), and of the numbers on the line and
- * the rows; a character's width in the app's monospaced font, a share of its size. */
+/** The size of the stats' names at the side (px, as big as they're drawn at most); the sizes the numbers on the line,
+ * the rows and the weeks are drawn at, least and most — as big as their week's slot lets them be; and a character's
+ * width in the app's monospaced font, a share of its size. */
 const NAME_PX = 8;
-const POINTS_PX = 9;
-const STAT_PX = 7.5;
+const POINTS_PX = [10, 13] as const;
+const STAT_PX = [9, 12] as const;
+const WEEK_PX = [9, 13] as const;
 const CHAR = 0.6;
+const between = ([least, most]: readonly [number, number], v: number) => Math.min(most, Math.max(least, v));
 /** The shortest stretch of the points line drawn between two numbers (px). */
 const LEAST_STRETCH_PX = 5;
 
@@ -118,10 +121,14 @@ export function WallLine({ games, label, stats = [] }: { games: ChartGame[]; lab
   const x = (i: number) => w / 2 + (i - (n - 1) / 2) * col;
   // Where the first game's slot starts: the stats' names end just short of it.
   const first = x(0) - col / 2;
+  // The numbers as big as their slots let them be: the weeks', his points', his stats'.
+  const weekPx = between(WEEK_PX, (col - 2) / (Math.max(2, ...games.map((g) => g.tag.length)) * CHAR));
+  const pointsPx = between(POINTS_PX, col * 0.5);
+  const statPx = between(STAT_PX, col * 0.46);
   // Along the top: each week's opponent's logo, as big as its slot lets it be, and the week under it.
-  const logo = Math.max(9, Math.min(16, col - 6));
+  const logo = Math.max(9, Math.min(18, col - 6));
   const faced = games.some((g) => g.opponent);
-  const weekY = (faced ? logo + 3 : 0) + 9;
+  const weekY = (faced ? logo + 3 : 0) + weekPx;
   const header = weekY + 4;
   // The points line, about a quarter of the wall (no less than leaves it LINE_LEAST_PX to draw in); the rows of stats
   // sharing the rest, down to the wall's foot.
@@ -129,18 +136,18 @@ export function WallLine({ games, label, stats = [] }: { games: ChartGame[]; lab
   const rowH = stats.length > 0 ? Math.max(14, (h - lineBlock) / stats.length) : 0;
   const rowsTop = h - rowH * stats.length;
   // His points, from none at the line's foot to his most at its top — room over and under for their numbers.
-  const plotTop = header + POINTS_PX;
-  const plotBottom = (stats.length > 0 ? rowsTop - ROWS_GAP_PX : h) - POINTS_PX * 0.6;
-  const most = Math.max(5, ...games.map((g) => Math.max(g.value ?? 0, g.value !== null ? (g.projected ?? 0) : 0)));
+  const plotTop = header + pointsPx;
+  const plotBottom = (stats.length > 0 ? rowsTop - ROWS_GAP_PX : h) - pointsPx * 0.6;
+  const most = Math.max(5, ...games.map((g) => Math.max(g.value ?? 0, g.projected ?? 0)));
   const best = Math.max(...games.map((g) => g.value ?? -1));
   const y = (v: number) => plotTop + Math.max(0, plotBottom - plotTop) * (1 - v / most);
   // Each game's points: to the tenth where there's the room, else whole.
-  const tenths = col >= 26;
+  const tenths = col >= 4 * pointsPx * CHAR + 2;
   const pointsText = (v: number) => (tenths ? v.toFixed(1) : `${Math.round(v)}`);
   // The games with points, in order (a game he missed at none), joined one to the next — each stretch stopping short
   // of the numbers at its ends, so it never runs through them.
-  const points = games.flatMap((g, i) => (g.value === null ? [] : [{ x: x(i), y: y(g.value), half: (pointsText(g.value).length * POINTS_PX * CHAR) / 2 + 2 }]));
-  const halfTall = POINTS_PX * 0.55 + 1;
+  const points = games.flatMap((g, i) => (g.value === null ? [] : [{ x: x(i), y: y(g.value), half: (pointsText(g.value).length * pointsPx * CHAR) / 2 + 2 }]));
+  const halfTall = pointsPx * 0.55 + 1;
   const segments = points.slice(1).flatMap((q, k) => {
     const p = points[k];
     const [dx, dy] = [q.x - p.x, q.y - p.y];
@@ -161,22 +168,24 @@ export function WallLine({ games, label, stats = [] }: { games: ChartGame[]; lab
             g.opponent ? <image key={`${g.key}-faced`} href={nflLogoUrl(g.opponent)} x={x(i) - logo / 2} y={0} width={logo} height={logo} opacity={0.85} aria-hidden /> : null
           )}
           {games.map((g, i) => (
-            <text key={`${g.key}-week`} x={x(i)} y={weekY} textAnchor="middle" className="fill-[var(--ink-muted)] text-[0.5625rem] tabular-nums" aria-hidden>
+            <text key={`${g.key}-week`} x={x(i)} y={weekY} textAnchor="middle" className="fill-[var(--ink-secondary)] font-semibold tabular-nums" style={{ fontSize: weekPx }} aria-hidden>
               {g.tag}
             </text>
           ))}
-          {/* What he was projected each week he played: a faint ring, over or under his points. */}
+          {/* What he was projected each week he played, and each still to come: a faint ring, over or under his points. */}
           {games.map((g, i) =>
-            g.value !== null && g.projected != null ? (
+            (g.value !== null || g.future) && g.projected != null ? (
               <circle key={`${g.key}-projected`} cx={x(i)} cy={y(Math.max(0, g.projected))} r={2.75} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.35} strokeWidth={1.25} pointerEvents="none" />
             ) : null
           )}
           {/* A row for each stat: a stepped line, flat across each game's slot at its level, its number over it. */}
           {stats.map((stat, r) => {
             const bandTop = rowsTop + r * rowH;
-            const foot = bandTop + rowH - 3;
-            // Room over the highest step for its number.
-            const tallest = Math.max(0, rowH - 3 - STAT_PX - 3);
+            // The steps the whole height of the row: each one's number over it where there's the room in the row, under it
+            // where there isn't (a step at the row's top) — no room kept empty between rows for them.
+            const foot = bandTop + rowH - 2;
+            const tallest = Math.max(0, rowH - 4);
+            const capTall = statPx * 0.75;
             const valueOf = (g: ChartGame) => (g.stats && Number.isFinite(g.stats[stat.key]) ? g.stats[stat.key] : 0);
             const top = Math.max(0, ...games.map((g) => (g.stats ? valueOf(g) : 0)));
             // Each game's level, and what it was: what he had of it (none, a game he missed); none to draw for a bye or
@@ -191,7 +200,7 @@ export function WallLine({ games, label, stats = [] }: { games: ChartGame[]; lab
             let byes = "";
             // The last game drawn: where its step ended, and whether a bye's come since.
             let prev: { x: number; y: number; gap: boolean } | null = null;
-            const numbers: { x: number; y: number; value: number }[] = [];
+            const numbers: { x: number; at: number; value: number }[] = [];
             games.forEach((g, i) => {
               const level = levelOf(g);
               if (level === null) {
@@ -212,7 +221,7 @@ export function WallLine({ games, label, stats = [] }: { games: ChartGame[]; lab
               }
               d += `H${to.toFixed(1)}`;
               prev = { x: to, y: at, gap: false };
-              numbers.push({ x: x(i), y: at - 2.5, value: level.value });
+              numbers.push({ x: x(i), at, value: level.value });
             });
             return (
               <g key={stat.key} aria-hidden>
@@ -225,18 +234,26 @@ export function WallLine({ games, label, stats = [] }: { games: ChartGame[]; lab
                 </text>
                 <path d={d} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.55} strokeWidth={1.25} strokeLinejoin="miter" />
                 {byes ? <path d={byes} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.3} strokeWidth={1} strokeDasharray="2 2" /> : null}
-                {numbers.map((num, k) => (
-                  <text
-                    key={k}
-                    x={num.x}
-                    y={num.y}
-                    textAnchor="middle"
-                    className={`tabular-nums ${num.value === 0 ? "fill-[var(--ink-muted)]" : "fill-[var(--ink-secondary)] font-semibold"}`}
-                    style={{ fontSize: STAT_PX, opacity: num.value === 0 ? 0.6 : 1 }}
-                  >
-                    {statText(num.value)}
-                  </text>
-                ))}
+                {numbers.map((num, k) => {
+                  // Over its step where the row has the room, else under it — and where numbers this wide would run
+                  // into the next one's, every other one the other way, so side by side they don't.
+                  const above = num.at - 2 - capTall >= bandTop - 1;
+                  const below = num.at + 2 + capTall <= bandTop + rowH + 1;
+                  const crowded = statText(num.value).length * statPx * CHAR > col - 2;
+                  const under = !above || (crowded && k % 2 === 1 && below);
+                  return (
+                    <text
+                      key={k}
+                      x={num.x}
+                      y={under ? num.at + capTall + 2.5 : num.at - 2.5}
+                      textAnchor="middle"
+                      className={`tabular-nums ${num.value === 0 ? "fill-[var(--ink-muted)]" : "fill-[var(--ink-primary)] font-semibold"}`}
+                      style={{ fontSize: statPx, opacity: num.value === 0 ? 0.6 : 1 }}
+                    >
+                      {statText(num.value)}
+                    </text>
+                  );
+                })}
               </g>
             );
           })}
@@ -250,13 +267,13 @@ export function WallLine({ games, label, stats = [] }: { games: ChartGame[]; lab
               <text
                 key={g.key}
                 x={x(i)}
-                y={y(g.value) + POINTS_PX * 0.35}
+                y={y(g.value) + pointsPx * 0.35}
                 textAnchor="middle"
                 role="img"
                 aria-label={g.label}
                 {...halo}
                 className={`tabular-nums ${starred ? "fill-[var(--ink-primary)] font-extrabold" : "fill-[var(--ink-primary)] font-semibold"}`}
-                style={{ fontSize: POINTS_PX }}
+                style={{ fontSize: pointsPx }}
               >
                 {pointsText(g.value)}
               </text>
