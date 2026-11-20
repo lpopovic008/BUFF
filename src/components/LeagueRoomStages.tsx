@@ -15,7 +15,7 @@ import { nflLogoUrl } from "@/lib/nfl-logos";
 import { ordinal } from "@/lib/format";
 import { StatTier, statTier } from "@/lib/stat-tiers";
 import { playerHeadshotUrl } from "@/lib/sleeper";
-import { CareerWeek, getCareer, getSeasonWeeks, seasonPoints, seasonRank } from "@/lib/career-stats";
+import { CareerWeek, getCareer, getSeasonProjections, getSeasonWeeks, seasonPoints, seasonRank } from "@/lib/career-stats";
 import { HORIZON_SHARE } from "@/lib/grid-room";
 import { getPlayerBio, PlayerBio, ResolvedPlayer } from "@/lib/players";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
@@ -320,6 +320,17 @@ export function PlayerStage({
     };
   }, [player.playerId, openSeason]);
   const seasonWeeks = openSeason && weeks?.season === openSeason ? weeks.weeks : null;
+  // What Sleeper projected him for each week of it, as it loads.
+  const [projections, setProjections] = useState<{ season: string; byWeek: Map<number, Record<string, number>> } | null>(null);
+  useEffect(() => {
+    if (!openSeason) return;
+    let cancelled = false;
+    getSeasonProjections(player.playerId, Number(openSeason)).then((byWeek) => !cancelled && setProjections({ season: openSeason, byWeek }));
+    return () => {
+      cancelled = true;
+    };
+  }, [player.playerId, openSeason]);
+  const seasonProjections = openSeason && projections?.season === openSeason ? projections.byWeek : null;
   const [table, setTable] = useState(false);
   // His value over time (KTC's, see value-history.ts), in place of his seasons while it's picked.
   const [valueView, setValueView] = useState(startOn === "value");
@@ -371,13 +382,16 @@ export function PlayerStage({
         return { key: `w${week}`, value: null, tag: String(week), stats: null, tiers: {}, future, label: `Week ${week}: ${future ? "still to come" : "didn't play"}`, short: `Week ${week}` };
       }
       const points = seasonPoints(w.stats, scoring);
+      const projectedLine = seasonProjections?.get(week);
+      const projected = projectedLine ? seasonPoints(projectedLine, scoring) : null;
       return {
         key: `w${week}`,
         value: points,
+        projected,
         tag: String(week),
         stats: w.stats,
         tiers: tiersOf(player.position, allStats, w.stats),
-        label: `Week ${week}${w.opponent ? ` against ${w.opponent}` : ""}: ${points.toFixed(1)} points, ${chartStats.primary.map((r) => `${whole(w.stats[r.key])} ${r.label}`).join(", ")}`,
+        label: `Week ${week}${w.opponent ? ` against ${w.opponent}` : ""}: ${points.toFixed(1)} points${projected !== null ? ` (projected ${projected.toFixed(1)})` : ""}, ${chartStats.primary.map((r) => `${whole(w.stats[r.key])} ${r.label}`).join(", ")}`,
         short: `${openSeason} · Week ${week}${w.opponent ? ` · vs ${w.opponent}` : ""} · ${points.toFixed(1)} pts`,
       };
     });

@@ -19,6 +19,8 @@ interface SeasonEntry {
 }
 
 const STATS_BASE = "https://api.sleeper.app/stats/nfl/player";
+/** Sleeper's projections, a player at a time — the same shape as his stats. */
+const PROJECTIONS_BASE = "https://api.sleeper.app/projections/nfl/player";
 const cache = new Map<string, Promise<CareerSeason[]>>();
 
 async function seasonOf(playerId: string, season: number): Promise<SeasonEntry | null> {
@@ -169,23 +171,51 @@ const weeksCache = new Map<string, Promise<CareerWeek[]>>();
 export function getSeasonWeeks(playerId: string, season: number): Promise<CareerWeek[]> {
   const key = `${playerId}-${season}`;
   if (!weeksCache.has(key)) {
-    const promise = (async () => {
-      try {
-        const res = await fetch(`${STATS_BASE}/${encodeURIComponent(playerId)}?season_type=regular&season=${season}&grouping=week`);
-        if (!res.ok) return [];
-        const data = (await res.json()) as Record<string, WeekEntry | null> | WeekEntry[] | null;
-        const entries: [number, WeekEntry | null][] = Array.isArray(data)
-          ? data.map((e) => [Number(e?.week), e])
-          : Object.entries(data ?? {}).map(([k, e]) => [Number(e?.week ?? k), e]);
-        return entries
-          .filter(([week, e]) => Number.isFinite(week) && week > 0 && e?.stats && (e.stats.gp ?? 1) > 0)
-          .map(([week, e]) => ({ week, team: e!.team ?? null, opponent: e!.opponent ?? null, stats: e!.stats! }))
-          .sort((a, b) => a.week - b.week);
-      } catch {
-        return [];
-      }
-    })();
-    weeksCache.set(key, promise);
+    weeksCache.set(
+      key,
+      weekEntries(`${STATS_BASE}/${encodeURIComponent(playerId)}?season_type=regular&season=${season}&grouping=week`).then((entries) =>
+        entries.filter(([, e]) => (e.stats.gp ?? 1) > 0).map(([week, e]) => ({ week, team: e.team ?? null, opponent: e.opponent ?? null, stats: e.stats }))
+      )
+    );
   }
   return weeksCache.get(key)!;
+}
+
+const projectionsCache = new Map<string, Promise<Map<number, Record<string, number>>>>();
+
+/**
+ * What Sleeper projected for a player each week of a regular season (his projected stat line, by week) — the same
+ * shape as his weeks' stats (see getSeasonWeeks), from its projections. Empty on any failure. Fetched once a tab.
+ */
+export function getSeasonProjections(playerId: string, season: number): Promise<Map<number, Record<string, number>>> {
+  const key = `${playerId}-${season}`;
+  if (!projectionsCache.has(key)) {
+    projectionsCache.set(
+      key,
+      weekEntries(`${PROJECTIONS_BASE}/${encodeURIComponent(playerId)}?season_type=regular&season=${season}&grouping=week`).then(
+        (entries) => new Map(entries.map(([week, e]) => [week, e.stats]))
+      )
+    );
+  }
+  return projectionsCache.get(key)!;
+}
+
+/**
+ * A player's season's weeks from one of Sleeper's by-week endpoints, in order, those with a stat line. Sleeper answers
+ * with the weeks keyed by number (null on a bye), or a list of them; either's read. Empty on any failure.
+ */
+async function weekEntries(url: string): Promise<[number, WeekEntry & { stats: Record<string, number> }][]> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    const data = (await res.json()) as Record<string, WeekEntry | null> | WeekEntry[] | null;
+    const entries: [number, WeekEntry | null][] = Array.isArray(data)
+      ? data.map((e) => [Number(e?.week), e])
+      : Object.entries(data ?? {}).map(([k, e]) => [Number(e?.week ?? k), e]);
+    return entries
+      .filter((entry): entry is [number, WeekEntry & { stats: Record<string, number> }] => Number.isFinite(entry[0]) && entry[0] > 0 && !!entry[1]?.stats)
+      .sort((a, b) => a[0] - b[0]);
+  } catch {
+    return [];
+  }
 }

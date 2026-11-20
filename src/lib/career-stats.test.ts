@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { careerColumns, careerTotals, seasonPoints, seasonRank } from "./career-stats";
+import { careerColumns, careerTotals, getSeasonProjections, getSeasonWeeks, seasonPoints, seasonRank } from "./career-stats";
 
 test("careerColumns leads with the position's main job", () => {
   assert.deepEqual(
@@ -36,4 +36,29 @@ test("a season's points and rank go by the league's scoring", () => {
   assert.equal(seasonRank(stats, { rec: 0.5 }), 6);
   assert.equal(seasonRank(stats, { rec: 0 }), 9);
   assert.equal(seasonRank({}, undefined), null);
+});
+
+test("a season's projections and weeks are read by week from Sleeper's by-player endpoints, either shape", async () => {
+  const real = globalThis.fetch;
+  const asked: string[] = [];
+  globalThis.fetch = (async (url: string) => {
+    asked.push(url);
+    const body = url.includes("/projections/")
+      ? { "1": { week: 1, stats: { pts_ppr: 18.4, pass_yd: 260 } }, "2": null, "3": { stats: { pts_ppr: 20.1 } } }
+      : [{ week: 1, team: "KC", opponent: "LV", stats: { gp: 1, pass_yd: 300 } }, { week: 2, stats: { gp: 0 } }];
+    return new Response(JSON.stringify(body), { status: 200 });
+  }) as typeof fetch;
+  try {
+    const projected = await getSeasonProjections("p9", 2026);
+    assert.deepEqual([...projected.keys()], [1, 3]);
+    assert.equal(projected.get(3)?.pts_ppr, 20.1);
+    const weeks = await getSeasonWeeks("p9", 2026);
+    assert.deepEqual(
+      weeks.map((w) => w.week),
+      [1]
+    );
+    assert.ok(asked.some((u) => u.startsWith("https://api.sleeper.app/projections/nfl/player/p9?") && u.includes("grouping=week")));
+  } finally {
+    globalThis.fetch = real;
+  }
 });

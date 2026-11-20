@@ -18,6 +18,8 @@ export interface ChartGame {
   /** Under the line's x axis: the week (or the year). */
   tag: string;
   value: number | null;
+  /** What he was projected for it (a week he played), drawn faintly by his points. */
+  projected?: number | null;
   stats: Record<string, number> | null;
   tiers: Record<string, StatTier | null>;
   label: string;
@@ -279,7 +281,7 @@ export function WallLine({
   const h = box?.height ?? 0;
   const pad = { left: 26, right: 0, top: 22, bottom: 18 };
   const n = games.length;
-  const most = Math.max(5, ...games.map((g) => g.value ?? 0));
+  const most = Math.max(5, ...games.map((g) => Math.max(g.value ?? 0, g.value !== null ? (g.projected ?? 0) : 0)));
   const top = Math.ceil(most / 5) * 5;
   const best = Math.max(...games.map((g) => g.value ?? -1));
   // Game i's slot: over its column on the floor, where that column meets the wall.
@@ -324,6 +326,12 @@ export function WallLine({
               {g.tag}
             </text>
           ))}
+          {/* What he was projected each week he played: a faint ring, over or under his points. */}
+          {games.map((g, i) =>
+            g.value !== null && g.projected != null ? (
+              <circle key={`${g.key}-projected`} cx={x(i)} cy={y(Math.max(0, g.projected))} r={2.75} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.35} strokeWidth={1.25} pointerEvents="none" />
+            ) : null
+          )}
           {runs.map((run, k) => (
             <polyline
               key={k}
