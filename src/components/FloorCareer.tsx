@@ -29,6 +29,8 @@ export interface CareerStage {
   back?: boolean;
   /** Bumped to put away whatever card is up (something else on the page wanting the room). */
   closeAt?: number;
+  /** Told whose card's opened, and when it's put away (not when what it was opened from is gone, the card with it). */
+  onCard?: (player: ResolvedPlayer | null) => void;
 }
 
 /** A season of his, as his card shows it: his team, stats, fantasy points under the league's scoring, and finish. */

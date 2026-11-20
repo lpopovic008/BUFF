@@ -42,11 +42,15 @@ export interface ResolvedMatchupGame {
 }
 
 export interface LeagueMatchupCarouselData {
+  /** The league it's of (another's kept on while the next one's loading). */
+  leagueId: string;
   games: ResolvedMatchupGame[];
   /** A dynasty league — its starters' value ranks are by dynasty values, else redraft. */
   dynasty: boolean;
   /** Every position the league's lineups can start (see lineupPositions) — the bench's columns. */
   positions: string[];
+  /** Any player's numbers as this league has them (see ResolvedSlot), whether he's in its lineups or not. */
+  ranksOf: (playerId: string) => Pick<ResolvedSlot, "valueRank" | "seasonRank" | "ppg">;
 }
 
 /** Every matchup for a league's week, full starting lineups resolved to names, reloaded on every live-clock tick so points update live during games. */
@@ -115,7 +119,11 @@ export function useLeagueMatchupCarousel(leagueId: string | null, week: number |
         })),
       }));
       if (!cancelled) {
-        setData({ games: withNames, dynasty: isDynastyLeague(league), positions: lineupPositions(league.roster_positions) });
+        const ranksOf = (playerId: string) => {
+          const season = seasonLines.get(playerId);
+          return { valueRank: valueRanks.get(playerId) ?? null, seasonRank: season?.rank ?? null, ppg: season?.ppg ?? null };
+        };
+        setData({ leagueId: id, games: withNames, dynasty: isDynastyLeague(league), positions: lineupPositions(league.roster_positions), ranksOf });
       }
     }
 

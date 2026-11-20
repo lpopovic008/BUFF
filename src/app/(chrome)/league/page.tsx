@@ -12,7 +12,7 @@ import { ScrollThumb } from "@/components/ScrollThumb";
 import { useSwipePager } from "@/hooks/useSwipePager";
 import { LIST_MOVE, useListScroll } from "@/hooks/useListScroll";
 import { LeagueSwitcher, LeagueTitle, RoomLeague } from "@/components/LeagueSwitcher";
-import { BriefMatchups, CareerStageContext, MatchupList, MatchupProviders, MatchupSlide, MatchupStack, useLineNoteOf, useLineupNumbers, useMatchupHeadToHead } from "@/components/LeagueMatchupCarousel";
+import { BriefMatchups, CareerStageContext, CarriedCard, MatchupList, MatchupProviders, MatchupSlide, MatchupStack, useLineNoteOf, useLineupNumbers, useMatchupHeadToHead } from "@/components/LeagueMatchupCarousel";
 import { RoomBench, RoomGraph, StagePlaces, useStageShown, wallStyle } from "@/components/LeagueRoomStages";
 import { WriteupsPanel } from "@/components/LeagueRoomWriteups";
 import { ActionTiles, CloseButton, FLOOR_ACTIONS, FloorAction, FloorButtonSwiper, floorButtonRow, FrontPanel } from "@/components/LeagueRoomFloor";
@@ -29,6 +29,7 @@ import { avatarUrl, getCurrentWeek } from "@/lib/sleeper";
 import { setHeaderWeek } from "@/lib/header-week";
 import { setHeaderBare, useBackStep, useHeaderSlot } from "@/lib/header-slot";
 import { visibleLeagues } from "@/lib/localStore";
+import type { ResolvedPlayer } from "@/lib/players";
 
 /** The NFL regular season's weeks, all of which the header's week picker offers. */
 const NFL_WEEKS = 18;
@@ -671,7 +672,13 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
   }, [side, slider]);
   // The lineups step aside only while the payouts have the floor, or a player's card's up (a stage of his own, see
   // PlayerStage) — the room's stages are in the right-hand column.
-  const fullStage = action === "payouts" || floorAway || cardUp;
+  // Whose card is up, if anyone's: another league picked while it is, it's carried on into that league — opened there
+  // as if from its lineups, once they're in (see CarriedCard).
+  const [cardPlayer, setCardPlayer] = useState<ResolvedPlayer | null>(null);
+  const [carry, setCarry] = useState<{ player: ResolvedPlayer; leagueId: string } | null>(null);
+  // (The lineups kept out of sight while a carried card's on its way, so they don't flash up between the two.)
+  const carryPending = carry !== null;
+  const fullStage = action === "payouts" || floorAway || cardUp || carryPending;
   // The room's horizon where it's always been with the lineups up: just high enough over the columns' foot for the
   // floor to show a row of the floor's buttons (see floorButtonRow) — the floor as it was, with them up in the right-hand
   // column now. Up where the home page's is only while the payouts have the floor, or a player's card's up.
@@ -706,6 +713,7 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
   const openLeague = (id: string) => {
     if (id === leagueId) return setFolded((was) => !was);
     setFolded(false);
+    setCarry(cardUp && cardPlayer ? { player: cardPlayer, leagueId: id } : null);
     onPick(id);
   };
   // A tile pressed: its panel up — or, already up, down again.
@@ -786,6 +794,7 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
         places: cardPlaces ?? undefined,
         back: true,
         closeAt: closeCardAt,
+        onCard: setCardPlayer,
       }
     : null;
   return (
@@ -867,6 +876,11 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
                         fitHeight={`calc((var(--room-h, 100vh) * ${lineupShare} - (${UNDER_HEADER}) - ${OVER_HORIZON}) / ${middleZoom})`}
                       />
                     )}
+              {/* A card carried on from the league picked before, opened as if from these lineups — in a place of its own,
+                  there once the league's in whether or not it has matchups this week. */}
+              {carousel?.leagueId === leagueId
+                ? providers(carry && carry.leagueId === leagueId ? <CarriedCard player={carry.player} ranksOf={carousel.ranksOf} onOpened={() => setCarry(null)} /> : null)
+                : null}
             </div>
             </div>
           </div>

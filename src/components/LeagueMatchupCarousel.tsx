@@ -1043,6 +1043,16 @@ export function MatchupProviders({
     onShow(true);
     return () => onShow(false);
   }, [onShow, shown]);
+  // The page told whose card's up, and when it's put away — not when this goes (another league picked, say), so the
+  // page can carry it on (see CarriedCard).
+  const onCard = stage?.onCard;
+  const told = useRef<string | null>(null);
+  useEffect(() => {
+    const id = card?.player.playerId ?? null;
+    if (id === told.current) return;
+    told.current = id;
+    onCard?.(card?.player ?? null);
+  }, [card, onCard]);
   // Put away when the page asks (see CareerStage's closeAt).
   const closeAt = stage?.closeAt;
   const closedAt = useRef(closeAt);
@@ -1095,6 +1105,32 @@ export function MatchupProviders({
     </LineToneContext.Provider>
     </ProjectedContext.Provider>
   );
+}
+
+/**
+ * A player's card carried on from another league (another picked while it was up): opened here, from inside
+ * MatchupProviders, as if from this league's lineups — his numbers as this league has them (`ranksOf`, see
+ * useLeagueMatchupCarousel), his points under its scoring. Once, then `onOpened`.
+ */
+export function CarriedCard({
+  player,
+  ranksOf,
+  onOpened,
+}: {
+  player: ResolvedPlayer;
+  ranksOf: (playerId: string) => Pick<ResolvedSlot, "valueRank" | "seasonRank" | "ppg">;
+  onOpened: () => void;
+}) {
+  const open = useContext(PlayerCardContext);
+  const numbersOf = useLineupNumbers();
+  const opened = useRef(false);
+  useEffect(() => {
+    if (opened.current || !open) return;
+    opened.current = true;
+    open(player, numbersOf({ slot: "", player, livePoints: 0, ...ranksOf(player.playerId) }));
+    onOpened();
+  });
+  return null;
 }
 
 /** Every matchup down a column, each a box in the league ticker's format (yours first in its box), to pick the one shown (`pickedId`). */
