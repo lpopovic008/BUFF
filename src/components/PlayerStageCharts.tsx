@@ -59,18 +59,18 @@ export interface ChartStat {
   key: string;
 }
 
-/** The widest a game's slot is, however few games there are. */
-const MOST_COLUMN = 72;
+/** How far in from the wall's edges the first and last games' slots start (px). */
+const EDGE_PX = 4;
+/** The room kept between one stat's row and the next (px). */
+const ROW_SPACE_PX = 8;
 
 /** How much of the wall the points line takes, over the stats' rows (its logos and weeks over it included); the least
  * it's drawn in (px); and the gap between it and the rows. */
 const LINE_SHARE = 0.25;
 const LINE_LEAST_PX = 48;
 const ROWS_GAP_PX = 6;
-/** The size of the stats' names at the side (px, as big as they're drawn at most); the sizes the numbers on the line,
- * the rows and the weeks are drawn at, least and most — as big as their week's slot lets them be; and a character's
- * width in the app's monospaced font, a share of its size. */
-const NAME_PX = 8;
+/** The sizes the numbers on the line, the rows and the weeks are drawn at, least and most — as big as their week's slot
+ * lets them be; and a character's width in the app's monospaced font, a share of its size. */
 const POINTS_PX = [10, 13] as const;
 const STAT_PX = [9, 12] as const;
 const WEEK_PX = [9, 13] as const;
@@ -79,32 +79,20 @@ const between = ([least, most]: readonly [number, number], v: number) => Math.mi
 /** The shortest stretch of the points line drawn between two numbers (px). */
 const LEAST_STRETCH_PX = 5;
 
-/** The words of `text` laid in lines no wider than `width` (px) at `px` — a word too long for one on a line of its own. */
-function wrap(text: string, width: number, px: number): string[] {
-  const most = Math.max(1, Math.floor(width / (px * CHAR)));
-  const lines: string[] = [];
-  for (const word of text.split(" ")) {
-    const last = lines.at(-1);
-    if (last !== undefined && last.length + 1 + word.length <= most) lines[lines.length - 1] = `${last} ${word}`;
-    else lines.push(word);
-  }
-  return lines;
-}
-
 /** A stat's number as it's shown on its row: whole, or to the tenth. */
 const statText = (v: number) => (Number.isInteger(v) ? `${v}` : v.toFixed(1));
 
 /**
  * His fantasy points as a line across the back wall: a slot for every game of the season (all 18 weeks, those to come
- * too — or every season of his), as wide as lets them all fit (up to MOST_COLUMN), centered, along the top his
+ * too — or every season of his), across the whole wall, a little in from its edges (EDGE_PX), along the top his
  * opponent's logo each week and the week under it; his points written where each game's point is (his best bold), all
  * joined in one line that stops short of each number (on across his byes, at none for a game he missed), a faint ring
  * at what he was projected. Under it, a row for each of his `stats` (see ChartStat): a stepped line, flat across each
  * game's slot at what he had of it (against his best at it), its number over it, and straight up or down to the next at
- * the slots' edge — at none for a game he missed, a faint dashed line across his byes — the stat's name spelled out at
- * its left, in as many lines as it takes within its row. The line takes about a quarter of the wall (LINE_SHARE), the
- * rows the rest; the names' column at the left as wide as the gap at the right, so the games sit in the middle. Fills
- * the room it's given on the wall; never reaches the floor.
+ * the slots' edge — at none for a game he missed, a faint dashed line across his byes — a little room kept between one
+ * row and the next (ROW_SPACE_PX). The stats' names aren't drawn (no room's been found for them that wouldn't take
+ * any from the rows); a row's name shows over it on hover, and is read out. The line takes about a quarter of the wall
+ * (LINE_SHARE), the rows the rest. Fills the room it's given on the wall; never reaches the floor.
  */
 export function WallLine({ games, label, stats = [] }: { games: ChartGame[]; label: string; stats?: ChartStat[] }) {
   const [svg, setSvg] = useState<SVGSVGElement | null>(null);
@@ -112,15 +100,9 @@ export function WallLine({ games, label, stats = [] }: { games: ChartGame[]; lab
   const w = box?.width ?? 0;
   const h = box?.height ?? 0;
   const n = games.length;
-  // The stats' names' column: as wide as their longest word (no more than a sixth of the wall), and as wide a gap at
-  // the right, the games' slots between.
-  const longest = Math.max(0, ...stats.flatMap((s) => s.label.split(" ").map((word) => word.length)));
-  const side = stats.length > 0 ? Math.min(w / 6, Math.ceil(longest * NAME_PX * CHAR) + 6) : 4;
-  // Each game's slot: as wide as fits them all between, up to the most.
-  const col = Math.max(8, Math.min(MOST_COLUMN, (w - 2 * side) / Math.max(1, n)));
-  const x = (i: number) => w / 2 + (i - (n - 1) / 2) * col;
-  // Where the first game's slot starts: the stats' names end just short of it.
-  const first = x(0) - col / 2;
+  // Each game's slot: the whole wall shared between them, a little in from its edges.
+  const col = Math.max(8, (w - 2 * EDGE_PX) / Math.max(1, n));
+  const x = (i: number) => EDGE_PX + (i + 0.5) * col;
   // The numbers as big as their slots let them be: the weeks', his points', his stats'.
   const weekPx = between(WEEK_PX, (col - 2) / (Math.max(2, ...games.map((g) => g.tag.length)) * CHAR));
   const pointsPx = between(POINTS_PX, col * 0.5);
@@ -181,10 +163,11 @@ export function WallLine({ games, label, stats = [] }: { games: ChartGame[]; lab
           {/* A row for each stat: a stepped line, flat across each game's slot at its level, its number over it. */}
           {stats.map((stat, r) => {
             const bandTop = rowsTop + r * rowH;
-            // The steps the whole height of the row: each one's number over it where there's the room in the row, under it
-            // where there isn't (a step at the row's top) — no room kept empty between rows for them.
-            const foot = bandTop + rowH - 2;
-            const tallest = Math.max(0, rowH - 4);
+            // The steps the height of the row, but for a little room kept clear between it and the next (ROW_SPACE_PX):
+            // each one's number over it where there's the room in the row, under it where there isn't (a step at the
+            // row's top) — no more room kept for them.
+            const foot = bandTop + rowH - ROW_SPACE_PX / 2;
+            const tallest = Math.max(0, rowH - ROW_SPACE_PX - 2);
             const capTall = statPx * 0.75;
             const valueOf = (g: ChartGame) => (g.stats && Number.isFinite(g.stats[stat.key]) ? g.stats[stat.key] : 0);
             const top = Math.max(0, ...games.map((g) => (g.stats ? valueOf(g) : 0)));
@@ -192,10 +175,6 @@ export function WallLine({ games, label, stats = [] }: { games: ChartGame[]; lab
             // one to come.
             const levelOf = (g: ChartGame): { at: number; value: number } | null =>
               g.stats ? { at: foot - (top > 0 ? (tallest * Math.max(0, valueOf(g))) / top : 0), value: valueOf(g) } : g.missed ? { at: foot, value: 0 } : null;
-            // Its name in as many lines as it takes beside it, smaller where they'd stand taller than the row.
-            const nameLines = wrap(stat.label, side - 6, NAME_PX);
-            const namePx = Math.min(NAME_PX, (rowH - 2) / (nameLines.length * 1.1));
-            const nameTop = bandTop + (rowH - nameLines.length * namePx * 1.1) / 2 + namePx * 0.85;
             let d = "";
             let byes = "";
             // The last game drawn: where its step ended, and whether a bye's come since.
@@ -224,21 +203,16 @@ export function WallLine({ games, label, stats = [] }: { games: ChartGame[]; lab
               numbers.push({ x: x(i), at, value: level.value });
             });
             return (
-              <g key={stat.key} aria-hidden>
-                <text x={first - 5} y={nameTop} textAnchor="end" className="fill-[var(--ink-muted)] font-bold uppercase" style={{ fontSize: namePx }}>
-                  {nameLines.map((line, k) => (
-                    <tspan key={k} x={first - 5} dy={k === 0 ? 0 : namePx * 1.1}>
-                      {line}
-                    </tspan>
-                  ))}
-                </text>
+              <g key={stat.key} role="img" aria-label={stat.label}>
+                {/* Its name, over it on hover (and read out): no room on the wall's taken for it. */}
+                <title>{stat.label}</title>
                 <path d={d} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.55} strokeWidth={1.25} strokeLinejoin="miter" />
                 {byes ? <path d={byes} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.3} strokeWidth={1} strokeDasharray="2 2" /> : null}
                 {numbers.map((num, k) => {
                   // Over its step where the row has the room, else under it — and where numbers this wide would run
                   // into the next one's, every other one the other way, so side by side they don't.
-                  const above = num.at - 2 - capTall >= bandTop - 1;
-                  const below = num.at + 2 + capTall <= bandTop + rowH + 1;
+                  const above = num.at - 2 - capTall >= bandTop + 1;
+                  const below = num.at + 2 + capTall <= bandTop + rowH - 1;
                   const crowded = statText(num.value).length * statPx * CHAR > col - 2;
                   const under = !above || (crowded && k % 2 === 1 && below);
                   return (
