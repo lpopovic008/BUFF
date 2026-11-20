@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useState } from "react";
+import { useId, useLayoutEffect, useState } from "react";
 import { nflLogoUrl } from "@/lib/nfl-logos";
 import type { StatTier } from "@/lib/stat-tiers";
 
@@ -80,8 +80,8 @@ const between = ([least, most]: readonly [number, number], v: number) => Math.mi
 /** The shortest stretch of the points line drawn between two numbers (px). */
 const LEAST_STRETCH_PX = 5;
 
-/** How faint a step's fill is in its grade's color (see WallLine's `grade`). */
-const GRADE_FILL = 0.16;
+/** How strong a step's fill is in its grade's color at the row's foot (see WallLine's `grade`), fading to none at the step. */
+const GRADE_FILL = 0.35;
 const GRADE_COLOR: Record<StatTier, string> = { good: "var(--status-good)", mid: "var(--status-warning)", bad: "var(--status-critical)" };
 
 /** A stat's number as it's shown on its row: whole, or to the tenth. */
@@ -157,11 +157,23 @@ export function WallLine({
     if (a + b >= 1 || (1 - a - b) * Math.hypot(dx, dy) < LEAST_STRETCH_PX) return [];
     return [`M${(p.x + dx * a).toFixed(1)},${(p.y + dy * a).toFixed(1)}L${(q.x - dx * b).toFixed(1)},${(q.y - dy * b).toFixed(1)}`];
   });
+  const id = useId().replace(/:/g, "");
   const halo = { stroke: "var(--page)", strokeWidth: 3, paintOrder: "stroke" as const };
   return (
     <svg ref={setSvg} role="group" aria-label={label} className="absolute inset-0 block h-full w-full select-none overflow-visible">
       {w > 0 && h > 0 ? (
         <>
+          {/* Each grade's wash: its color at a step's foot, fading up to nothing at the step. */}
+          {grade ? (
+            <defs>
+              {(Object.keys(GRADE_COLOR) as StatTier[]).map((tier) => (
+                <linearGradient key={tier} id={`${id}-${tier}`} x1="0" y1="1" x2="0" y2="0">
+                  <stop offset="0" stopColor={GRADE_COLOR[tier]} stopOpacity={GRADE_FILL} />
+                  <stop offset="1" stopColor={GRADE_COLOR[tier]} stopOpacity={0} />
+                </linearGradient>
+              ))}
+            </defs>
+          ) : null}
           {/* Along the top: who he played each week, and the week under it. */}
           {games.map((g, i) =>
             g.opponent ? <image key={`${g.key}-faced`} href={nflLogoUrl(g.opponent)} x={x(i) - logo / 2} y={0} width={logo} height={logo} opacity={0.85} aria-hidden /> : null
@@ -198,7 +210,7 @@ export function WallLine({
             let prev: { x: number; y: number; gap: boolean } | null = null;
             const numbers: { x: number; at: number; value: number }[] = [];
             // Each game he played's step filled down to the row's foot, faintly, in its grade's color.
-            const fills: { from: number; at: number; color: string }[] = [];
+            const fills: { from: number; at: number; tier: StatTier }[] = [];
             games.forEach((g, i) => {
               const level = levelOf(g);
               if (level === null) {
@@ -221,14 +233,14 @@ export function WallLine({
               prev = { x: to, y: at, gap: false };
               numbers.push({ x: x(i), at, value: level.value });
               const tier = g.stats && grade ? grade(stat.key, level.value) : null;
-              if (tier && at < foot) fills.push({ from, at, color: GRADE_COLOR[tier] });
+              if (tier && at < foot) fills.push({ from, at, tier });
             });
             return (
               <g key={stat.key} role="img" aria-label={stat.label}>
                 {/* Its name, over it on hover (and read out): no room on the wall's taken for it. */}
                 <title>{stat.label}</title>
                 {fills.map((f, k) => (
-                  <rect key={k} x={f.from} y={f.at} width={col} height={foot - f.at} fill={f.color} fillOpacity={GRADE_FILL} />
+                  <rect key={k} x={f.from} y={f.at} width={col} height={foot - f.at} fill={`url(#${id}-${f.tier})`} />
                 ))}
                 <path d={d} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.55} strokeWidth={1.25} strokeLinejoin="miter" />
                 {byes ? <path d={byes} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.3} strokeWidth={1} strokeDasharray="2 2" /> : null}
