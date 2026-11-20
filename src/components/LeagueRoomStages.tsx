@@ -233,10 +233,25 @@ function Upright({ up, order, className = "", children }: { up: boolean; order: 
 
 const TILT_SIN = Math.sin((FLOOR_TILT * Math.PI) / 180);
 const TILT_COS = Math.cos((FLOOR_TILT * Math.PI) / 180);
-/** How much of what stands on the floor its reflection shows, under it (a share of its height). */
+/** How much room under what stands on the floor its reflection's given (a share of its height). */
 const REFLECTION_SHARE = 0.45;
-/** A reflection's fade: faint at the foot of what it reflects, gone a little way down. */
-const REFLECTION_FADE = `linear-gradient(to top, rgba(0, 0, 0, 0.3), transparent ${REFLECTION_SHARE * 100}%)`;
+/** A reflection's fade: faint at the foot of what it reflects, gone most of the way down it — all of it reflected. */
+const REFLECTION_FADE = "linear-gradient(to top, rgba(0, 0, 0, 0.35), transparent 75%)";
+/**
+ * How far back on the floor who a player is stands (see PlayerDossier) from the middle of its strip, a share of how tall
+ * it stands: shown as big as ever, so it looks bigger, farther away — its top rising past the horizon that far, the
+ * wall's charts ending that much higher to leave it the room.
+ */
+const DOSSIER_BACK = 0.25;
+
+/** How tall who a player is stands on the floor (px, as shown), where its foot is (screen y), and how far back it's been
+ * moved (px) — see PlayerDossier. */
+function dossierPlace(floor: StagePlaces["floor"]): { tall: number; foot: number; back: number } {
+  const floorTall = floor.bottom - floor.top;
+  const tall = Math.max(24, Math.min(160, (floorTall - 8) / (1 + REFLECTION_SHARE)));
+  const back = tall * DOSSIER_BACK;
+  return { tall, foot: floor.top + (floorTall - tall * (1 + REFLECTION_SHARE)) / 2 + tall - back, back };
+}
 /** A photo's edges faded out, so it stands free of its own background. */
 const PHOTO_FADE = "radial-gradient(ellipse 72% 78% at 50% 46%, #000 62%, transparent 100%)";
 /** Free-floating text kept clear of the floor's lines behind it. */
@@ -281,11 +296,9 @@ function PlayerDossier({
     return () => observer.disconnect();
   }, [factsBox]);
   const horizon = room.height * share;
-  // How tall it stands, and where: in the middle of the floor, it and its reflection under it together — how far back
-  // that is on the floor, and how much nearer than the wall it shows things there.
-  const floorTall = floor.bottom - floor.top;
-  const tall = Math.max(24, Math.min(160, (floorTall - 8) / (1 + REFLECTION_SHARE)));
-  const foot = floor.top + (floorTall - tall * (1 + REFLECTION_SHARE)) / 2 + tall;
+  // How tall it stands, and where: a little back from the middle of the floor, it and its reflection under it (see
+  // dossierPlace) — how far back that is on the floor, and how much nearer than the wall it shows things there.
+  const { tall, foot } = dossierPlace(floor);
   const depth = floorDepth(foot, room.height, share);
   const scale = floorScale(depth);
   const side = floor.width * 0.24;
@@ -317,13 +330,14 @@ function PlayerDossier({
   // faint and fading away from it. Its content (`draw`) told which it's drawing.
   const piece = (key: string, x: number, turn: number, draw: (reflected: boolean) => React.ReactNode) => (
     <Fragment key={key}>
+      {/* Each centred on its foot's middle as a whole box, so the reflection's fade covers all of it. */}
       <div aria-hidden className="absolute" style={{ ...standing(x, turn), transform: `${standing(x, turn).transform} scaleY(-1)` }}>
-        <div className="absolute bottom-0 left-0" style={{ maskImage: REFLECTION_FADE, WebkitMaskImage: REFLECTION_FADE }}>
+        <div className="absolute bottom-0 left-0 -translate-x-1/2" style={{ maskImage: REFLECTION_FADE, WebkitMaskImage: REFLECTION_FADE }}>
           {draw(true)}
         </div>
       </div>
       <div className="absolute" style={standing(x, turn)}>
-        <div className="absolute bottom-0 left-0">{draw(false)}</div>
+        <div className="absolute bottom-0 left-0 -translate-x-1/2">{draw(false)}</div>
       </div>
     </Fragment>
   );
@@ -337,7 +351,7 @@ function PlayerDossier({
     >
       {/* His photo, over his team's logo, facing the middle. */}
       {piece("photo", leftX, SIDE_TURN, () => (
-        <div className="-translate-x-1/2">
+        <div>
           <Upright up={up} order={0}>
             <div className="relative" style={{ width: sideWide, height: photo }}>
               {player.team ? (
@@ -366,7 +380,7 @@ function PlayerDossier({
       ))}
       {/* His name on a line, his number at its end; his position, height and weight under it. */}
       {piece("name", middleX, 0, (reflected) => (
-        <div className="flex -translate-x-1/2 flex-col items-center text-center" style={{ width: middle }}>
+        <div className="flex flex-col items-center text-center" style={{ width: middle }}>
           <Upright up={up} order={1}>
             {reflected ? (
               <span aria-hidden className="block whitespace-nowrap font-extrabold uppercase leading-[1.05] tracking-wide text-ink-primary" style={{ fontSize: size }}>
@@ -394,7 +408,7 @@ function PlayerDossier({
       ))}
       {/* His college, age and years, and ranks, facing the middle — drawn smaller where they'd stand taller than he does. */}
       {piece("facts", rightX, -SIDE_TURN, (reflected) => (
-        <div style={{ transform: `translateX(-50%) scale(${factsHeight > tall ? tall / factsHeight : 1})`, transformOrigin: "50% 100%" }}>
+        <div style={{ transform: `scale(${factsHeight > tall ? tall / factsHeight : 1})`, transformOrigin: "50% 100%" }}>
           <Upright up={up} order={3}>
             <div
               ref={reflected ? undefined : setFactsBox}
@@ -749,7 +763,8 @@ export function PlayerStage({
         data-floor-ui
         aria-label={player.name}
         className={`fixed z-[6] flex flex-col gap-2 transition-[opacity,transform] ease-out ${up ? "opacity-100" : "translate-y-2 opacity-0"}`}
-        style={{ ...places.wall, transitionDuration: `${STAGE_MS}ms` }}
+        // Ending as much higher as who he is stands back past the horizon (see DOSSIER_BACK), clear of it.
+        style={{ ...places.wall, paddingBottom: dossierPlace(floor).back, transitionDuration: `${STAGE_MS}ms` }}
       >
         {picker}
         {controls}

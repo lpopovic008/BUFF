@@ -61,6 +61,13 @@ export interface ChartStat {
 /** The widest a game's slot is, however few games there are. */
 const MOST_COLUMN = 72;
 
+/** How much of the wall the points line takes, over the stats' rows; room over it for the best week's points; the least
+ * it's drawn in (px); and the gap between it and the rows. */
+const LINE_SHARE = 0.25;
+const LINE_TOP_PX = 22;
+const LINE_LEAST_PX = 48;
+const ROWS_GAP_PX = 6;
+
 /**
  * His fantasy points as a line across the back wall: a slot along the x axis for every game of the season (all 18
  * weeks, those to come too — or every season of his), as wide as lets them all fit (up to MOST_COLUMN), centered, the
@@ -69,7 +76,8 @@ const MOST_COLUMN = 72;
  * faint ring at what he was projected, and under each week's number his opponent's logo. Under it all, a row for each
  * of his `stats` (see ChartStat): a stepped line, flat across each game's slot at what he had of it (against his best
  * at it) and straight up or down to the next at the slots' edge — at none for a game he missed, a faint dashed line
- * across his byes — the stat's name at its left. Fills the room it's given on the wall; never reaches the floor.
+ * across his byes — the stat's name at its left, the rows sharing the three quarters of the wall under the line
+ * (LINE_SHARE). Fills the room it's given on the wall; never reaches the floor.
  */
 export function WallLine({ games, label, stats = [] }: { games: ChartGame[]; label: string; stats?: ChartStat[] }) {
   const [svg, setSvg] = useState<SVGSVGElement | null>(null);
@@ -81,13 +89,16 @@ export function WallLine({ games, label, stats = [] }: { games: ChartGame[]; lab
   const left = 34;
   // Each game's slot: as wide as fits them all right of it, up to the most.
   const col = Math.max(8, Math.min(MOST_COLUMN, (w - left) / Math.max(1, n)));
-  // The rows of bars, along the wall's foot: each as tall as lets them all take about half of it.
-  const rowH = stats.length > 0 ? Math.max(14, Math.min(30, (h * 0.5) / stats.length)) : 0;
-  const rowsTop = h - rowH * stats.length;
   // Each week's opponent's logo under its number, as big as its slot lets it be.
   const logo = Math.max(9, Math.min(16, col - 6));
   const faced = games.some((g) => g.opponent);
-  const pad = { left: 26, right: 0, top: 22, bottom: (faced ? 18 + logo + 4 : 18) + (h - rowsTop) + (stats.length > 0 ? 6 : 0) };
+  // The points line along the top, about a quarter of the wall (no less than leaves it LINE_LEAST_PX to draw in), its
+  // weeks and who he faced under it; the rows of stats sharing the rest, down to the wall's foot.
+  const axis = faced ? 18 + logo + 4 : 18;
+  const lineBlock = stats.length > 0 ? Math.min(h, Math.max(LINE_TOP_PX + LINE_LEAST_PX + axis + ROWS_GAP_PX, h * LINE_SHARE)) : h;
+  const rowH = stats.length > 0 ? Math.max(14, (h - lineBlock) / stats.length) : 0;
+  const rowsTop = h - rowH * stats.length;
+  const pad = { left: 26, right: 0, top: LINE_TOP_PX, bottom: axis + (h - rowsTop) + (stats.length > 0 ? ROWS_GAP_PX : 0) };
   const most = Math.max(5, ...games.map((g) => Math.max(g.value ?? 0, g.value !== null ? (g.projected ?? 0) : 0)));
   const top = Math.ceil(most / 5) * 5;
   const best = Math.max(...games.map((g) => g.value ?? -1));
