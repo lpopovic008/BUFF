@@ -13,9 +13,10 @@ import { loadValueHistory } from "@/hooks/useLeagueTrades";
 import { normalizeName } from "@/lib/name-match";
 import { nflLogoUrl } from "@/lib/nfl-logos";
 import { ordinal } from "@/lib/format";
-import { getNFLState, playerHeadshotUrl } from "@/lib/sleeper";
+import { getNFLState, playerHeadshotUrl, playerPhotoUrl } from "@/lib/sleeper";
 import { CareerWeek, getCareer, getSeasonProjections, getSeasonWeeks, seasonPoints, seasonRank, type WeekProjection } from "@/lib/career-stats";
 import { getPlayerBio, PlayerBio, ResolvedPlayer } from "@/lib/players";
+import { FLOOR_TILT, floorDepth, floorScale, HORIZON_SHARE, PERSPECTIVE_PX } from "@/lib/grid-room";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import type { ResolvedSlot } from "@/hooks/useLeagueMatchupCarousel";
 import { getTeamSeason, type NFLGame, type TeamSeason } from "@/lib/nfl-schedule";
@@ -207,18 +208,13 @@ const RISE_MS = 650;
 const RISE_STAGGER_MS = 90;
 /** How far the dossier's side pieces are turned to face its middle (degrees). */
 const SIDE_TURN = 28;
-/** How near the eye the side pieces are seen from as they turn (px): near enough for the turn to show. */
-const TURN_PERSPECTIVE = 380;
 
-/**
- * Something standing up off the floor, its foot on it: risen out of the floor (`up`), else sunk back into it — `order`
- * pieces after the first, a moment apart. Turned `turn` degrees about its upright to face the floor's middle.
- */
-function Upright({ up, order, turn = 0, className = "", style, children }: { up: boolean; order: number; turn?: number; className?: string; style?: React.CSSProperties; children: React.ReactNode }) {
+/** Something risen up out of the floor (`up`), else sunk back into it — `order` pieces after the first, a moment apart. */
+function Upright({ up, order, className = "", children }: { up: boolean; order: number; className?: string; children: React.ReactNode }) {
   return (
-    <div className={`overflow-hidden ${className}`} style={{ ...style, transform: turn ? `perspective(${TURN_PERSPECTIVE}px) rotateY(${turn}deg)` : undefined, transformOrigin: "50% 100%" }}>
+    <div className={`overflow-hidden ${className}`}>
       <div
-        className="h-full transition-transform"
+        className="h-full transition-transform motion-reduce:transition-none"
         style={{
           transform: up ? "translateY(0)" : "translateY(105%)",
           transitionDuration: `${RISE_MS}ms`,
@@ -246,39 +242,60 @@ function nameFit(name: string, number: string, width: number): { lines: string[]
   return { lines, size: Math.min(MOST, width / (longest * letter)) };
 }
 
-/** A soft shadow on the floor at the foot of what stands there, `width` across. */
-function FootShadow({ width }: { width: number }) {
-  return <span aria-hidden className="absolute -bottom-1.5 left-1/2 h-3 -translate-x-1/2 rounded-[50%] bg-ink-primary/10 blur-[3px]" style={{ width }} />;
-}
+const TILT_SIN = Math.sin((FLOOR_TILT * Math.PI) / 180);
+const TILT_COS = Math.cos((FLOOR_TILT * Math.PI) / 180);
+/** A photo's edges faded out, so it stands free of its own background. */
+const PHOTO_FADE = "radial-gradient(ellipse 72% 78% at 50% 46%, #000 62%, transparent 100%)";
+/** Free-floating text kept clear of the floor's lines behind it. */
+const OVER_FLOOR: React.CSSProperties = { textShadow: "0 0 3px var(--page), 0 0 6px var(--page)" };
 
 /**
- * Who a player is, standing up off the room's floor as a dossier, risen out of it one piece after another: on its
- * left his photo over his team's logo, turned to face the middle; in the middle his name, big (his jersey number at
- * its end), his position, height and weight under it smaller; and on its right, as tall as his photo and turned to
- * face the middle too, his college, age, years in the league, and his trade-value and season ranks.
+ * Who a player is, standing up off the room's floor as a dossier, risen out of it one piece after another — free of
+ * any box, each piece standing on the floor and square to it, seen as the floor is (the room's own perspective, see
+ * grid-room.ts): on its left his photo over his team's logo, turned to face the middle; in the middle his name, big
+ * (his jersey number at its end), his position, height and weight under it smaller; and on its right, as tall as his
+ * photo and turned to face the middle too, his college, age, years in the league, and his trade-value and season
+ * ranks. A soft shadow on the floor at each one's foot.
  */
-function PlayerDossier({ player, bio, numbers, floor, up }: { player: ResolvedPlayer; bio: PlayerBio | null; numbers: LineupNumbers | null; floor: StagePlaces["floor"]; up: boolean }) {
+function PlayerDossier({
+  player,
+  bio,
+  numbers,
+  floor,
+  room,
+  up,
+}: {
+  player: ResolvedPlayer;
+  bio: PlayerBio | null;
+  numbers: LineupNumbers | null;
+  floor: StagePlaces["floor"];
+  room: StagePlaces["room"];
+  up: boolean;
+}) {
   const [photoFailed, setPhotoFailed] = useState(false);
   // How tall what's on the right stands, for his photo to stand as tall.
-  const [factsCell, setFactsCell] = useState<HTMLDivElement | null>(null);
+  const [factsBox, setFactsBox] = useState<HTMLDivElement | null>(null);
   const [factsHeight, setFactsHeight] = useState(0);
   useEffect(() => {
-    if (!factsCell) return;
-    const measure = () => setFactsHeight(factsCell.offsetHeight);
+    if (!factsBox) return;
+    const measure = () => setFactsHeight(factsBox.offsetHeight);
     measure();
     const observer = new ResizeObserver(measure);
-    observer.observe(factsCell);
+    observer.observe(factsBox);
     return () => observer.disconnect();
-  }, [factsCell]);
-  const height = floor.bottom - 24 - floor.top;
-  // Where it all stands: well toward the front of the floor, over the column picked's readout.
-  const foot = floor.top + height * 0.82;
+  }, [factsBox]);
+  const horizon = room.height * HORIZON_SHARE;
+  // Where it all stands: well toward the front of the floor, over the column picked's readout — how far back that is
+  // on the floor, and how much nearer than the wall it shows things there.
+  const foot = floor.top + (floor.bottom - 24 - floor.top) * 0.82;
+  const depth = floorDepth(foot, room.height, HORIZON_SHARE);
+  const scale = floorScale(depth);
   const side = floor.width * 0.24;
   const middle = floor.width - 2 * side;
   const number = bio?.number ? ` #${bio.number}` : "";
   const { lines, size } = nameFit(player.name.toUpperCase(), number, middle - 8);
   const sub = [player.position, bio?.height ? feet(bio.height) : null, bio?.weight ? `${bio.weight} lb` : null].filter(Boolean);
-  const photo = Math.min(side - 8, (foot - floor.top) * 0.9);
+  const photo = Math.max(factsHeight, Math.min(side * 0.8, (foot - floor.top) * 0.9));
   const years = bio?.yearsExp != null ? (bio.yearsExp === 0 ? "Rookie" : `${ordinal(bio.yearsExp + 1)} yr`) : null;
   const facts: { label: string; value: string | null; className?: string }[] = [
     { label: "College", value: collegeName(bio?.college) },
@@ -287,67 +304,109 @@ function PlayerDossier({ player, bio, numbers, floor, up }: { player: ResolvedPl
     { label: numbers?.dynasty ? "Dynasty" : "Redraft", value: numbers?.valueRank != null ? `${player.position}${numbers.valueRank}` : null, className: "text-series-4" },
     { label: "Season", value: numbers?.seasonRank != null ? `${player.position}${numbers.seasonRank}` : null, className: "text-series-1" },
   ];
-  const panel = "border border-ink-primary/40 bg-page/75 backdrop-blur-[3px]";
+  // A piece standing on the floor at screen x `x` (its foot's middle): put there in the room, square to the floor
+  // (leaning back with it from upright), turned `turn` degrees to face the middle, and drawn as big there as it's sized.
+  const standing = (x: number, turn = 0): React.CSSProperties => ({
+    left: room.width / 2,
+    top: horizon,
+    transform: `translate3d(${(x - room.width / 2) / scale}px, ${depth * TILT_COS}px, ${depth * TILT_SIN}px) rotateX(${FLOOR_TILT - 90}deg) rotateY(${turn}deg) scale(${1 / scale})`,
+  });
+  // Its shadow, lying on the floor at its foot (lying flat: the floor's tilt from upright).
+  const shadow = (x: number, width: number) => (
+    <div
+      aria-hidden
+      className="absolute"
+      style={{
+        left: room.width / 2,
+        top: horizon,
+        transform: `translate3d(${(x - room.width / 2) / scale}px, ${depth * TILT_COS}px, ${depth * TILT_SIN}px) rotateX(${FLOOR_TILT}deg) scale(${1 / scale})`,
+      }}
+    >
+      {/* Mostly behind its foot (away from you, on the floor), a little in front. */}
+      <span className="absolute left-0 top-0 block -translate-x-1/2 -translate-y-[70%] rounded-[50%] bg-ink-primary/10 blur-[4px]" style={{ width, height: width * 0.4 }} />
+    </div>
+  );
+  // The sides a little in from the floor's edges: turned, their outer edges come toward you, and grow.
+  const [leftX, middleX, rightX] = [floor.left + side * 0.55, floor.left + floor.width / 2, floor.left + floor.width - side * 0.55];
+  const sideWide = side * 0.8;
   return (
     <div
-      className="pointer-events-none fixed z-[7] grid items-end"
-      style={{ top: floor.top, left: floor.left, width: floor.width, height: foot - floor.top, gridTemplateColumns: `${side}px ${middle}px ${side}px` }}
+      className="pointer-events-none fixed inset-0 z-[7]"
+      style={{ perspective: PERSPECTIVE_PX, perspectiveOrigin: `${room.width / 2}px ${horizon}px` }}
     >
+      {shadow(leftX, side * 0.85)}
+      {shadow(middleX, middle * 0.7)}
+      {shadow(rightX, side * 0.85)}
       {/* His photo, over his team's logo, facing the middle — as tall as what's on the right. */}
-      <div className="relative flex justify-center" style={{ height: Math.max(factsHeight, Math.min(photo, side - 10)) }}>
-        <Upright up={up} order={0} turn={SIDE_TURN} className="h-full">
-          <div className={`relative h-full ${panel}`} style={{ width: side - 10, minHeight: Math.min(photo, side - 10) }}>
-            {player.team ? (
-              // eslint-disable-next-line @next/next/no-img-element -- a static SVG on a static export
-              <img src={nflLogoUrl(player.team)} alt="" className="absolute inset-[8%] h-[84%] w-[84%] object-contain opacity-40" />
-            ) : null}
-            {photoFailed ? null : (
-              // eslint-disable-next-line @next/next/no-img-element -- a remote Sleeper photo on a static export
-              <img src={playerHeadshotUrl(player.playerId)} alt="" onError={() => setPhotoFailed(true)} className="absolute inset-x-0 bottom-0 h-[90%] w-full object-cover object-top" />
-            )}
-          </div>
-        </Upright>
-        <FootShadow width={side - 4} />
+      <div className="absolute" style={standing(leftX, SIDE_TURN)}>
+        <div className="absolute bottom-0 left-0 -translate-x-1/2">
+          <Upright up={up} order={0}>
+            <div className="relative" style={{ width: sideWide, height: photo }}>
+              {player.team ? (
+                // eslint-disable-next-line @next/next/no-img-element -- a static SVG on a static export
+                <img
+                  src={nflLogoUrl(player.team)}
+                  alt=""
+                  // Behind his photo, faint; standing on the floor in its place, without one.
+                  className={`absolute object-contain ${photoFailed ? "inset-x-[6%] bottom-0 h-[70%] w-[88%] object-bottom opacity-90" : "inset-[6%] h-[88%] w-[88%] opacity-35"}`}
+                />
+              ) : null}
+              {photoFailed ? null : (
+                // eslint-disable-next-line @next/next/no-img-element -- a remote Sleeper photo on a static export
+                <img
+                  src={playerPhotoUrl(player.playerId)}
+                  alt=""
+                  onError={() => setPhotoFailed(true)}
+                  className="absolute inset-x-0 bottom-0 h-[92%] w-full object-contain object-bottom"
+                  // Its edges faded into the floor, so it stands free of its picture's own background.
+                  style={{ maskImage: PHOTO_FADE, WebkitMaskImage: PHOTO_FADE }}
+                />
+              )}
+            </div>
+          </Upright>
+        </div>
       </div>
       {/* His name, big, his number at its end; his position, height and weight under it. */}
-      <div className="relative flex flex-col items-center gap-1 text-center">
-        <Upright up={up} order={1}>
-          <h3 className="font-extrabold uppercase leading-[1.05] tracking-wide text-ink-primary" style={{ fontSize: size }}>
-            {lines.map((line, i) => (
-              <span key={i} className="block whitespace-nowrap">
-                {line}
-                {i === lines.length - 1 && number ? <span className="text-ink-muted">{number}</span> : null}
-              </span>
-            ))}
-          </h3>
-        </Upright>
-        <Upright up={up} order={2}>
-          <p className="whitespace-nowrap pb-0.5 font-bold uppercase tracking-wide text-ink-secondary" style={{ fontSize: Math.max(11, Math.min(18, size * 0.42)) }}>
-            {sub.map((part, i) => (
-              <span key={i}>
-                {i > 0 ? " · " : ""}
-                <span className={i === 0 ? (POSITION_TEXT_COLOR[player.position] ?? "") : ""}>{part}</span>
-              </span>
-            ))}
-          </p>
-        </Upright>
-        <FootShadow width={middle * 0.7} />
+      <div className="absolute" style={standing(middleX)}>
+        <div className="absolute bottom-0 left-0 flex -translate-x-1/2 flex-col items-center gap-1 text-center" style={{ width: middle }}>
+          <Upright up={up} order={1}>
+            <h3 className="font-extrabold uppercase leading-[1.05] tracking-wide text-ink-primary" style={{ fontSize: size, ...OVER_FLOOR }}>
+              {lines.map((line, i) => (
+                <span key={i} className="block whitespace-nowrap">
+                  {line}
+                  {i === lines.length - 1 && number ? <span className="text-ink-muted">{number}</span> : null}
+                </span>
+              ))}
+            </h3>
+          </Upright>
+          <Upright up={up} order={2}>
+            <p className="whitespace-nowrap pb-0.5 font-bold uppercase tracking-wide text-ink-secondary" style={{ fontSize: Math.max(11, Math.min(18, size * 0.42)), ...OVER_FLOOR }}>
+              {sub.map((part, i) => (
+                <span key={i}>
+                  {i > 0 ? " · " : ""}
+                  <span className={i === 0 ? (POSITION_TEXT_COLOR[player.position] ?? "") : ""}>{part}</span>
+                </span>
+              ))}
+            </p>
+          </Upright>
+        </div>
       </div>
       {/* His college, age, years in the league and ranks, facing the middle. */}
-      <div ref={setFactsCell} className="relative flex justify-center">
-        <Upright up={up} order={3} turn={-SIDE_TURN}>
-          <dl className={`flex flex-col justify-between gap-1 px-2 py-1.5 ${panel}`} style={{ width: side - 10, minHeight: Math.min(photo, side - 10) }}>
-            {facts.map((f) =>
-              f.value ? (
-                <div key={f.label} className="leading-tight">
-                  <dt className="text-[0.5625rem] font-bold uppercase tracking-wide text-ink-muted">{f.label}</dt>
-                  <dd className={`text-[0.625rem] font-extrabold uppercase sm:text-xs ${f.className ?? "text-ink-primary"}`}>{f.value}</dd>
-                </div>
-              ) : null
-            )}
-          </dl>
-        </Upright>
-        <FootShadow width={side - 4} />
+      <div className="absolute" style={standing(rightX, -SIDE_TURN)}>
+        <div ref={setFactsBox} className="absolute bottom-0 left-0 -translate-x-1/2">
+          <Upright up={up} order={3}>
+            <dl className="flex flex-col gap-1 break-words" style={{ width: sideWide, ...OVER_FLOOR }}>
+              {facts.map((f) =>
+                f.value ? (
+                  <div key={f.label} className="leading-tight">
+                    <dt className="text-[0.5625rem] font-bold uppercase tracking-wide text-ink-muted">{f.label}</dt>
+                    <dd className={`text-[0.6875rem] font-extrabold uppercase sm:text-xs ${f.className ?? "text-ink-primary"}`}>{f.value}</dd>
+                  </div>
+                ) : null
+              )}
+            </dl>
+          </Upright>
+        </div>
       </div>
     </div>
   );
@@ -688,7 +747,7 @@ export function PlayerStage({
       ) : (
         <div className={`transition-opacity ease-out ${up ? "opacity-100" : "pointer-events-none opacity-0"}`} style={{ transitionDuration: `${STAGE_MS}ms` }}>
           {/* Who he is, standing up off the floor. */}
-          <PlayerDossier player={player} bio={bio} numbers={numbers} floor={floor} up={up} />
+          <PlayerDossier player={player} bio={bio} numbers={numbers} floor={floor} room={places.room} up={up} />
           {/* The column picked, read out along the floor's front. */}
           <p
             aria-live="polite"
