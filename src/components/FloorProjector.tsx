@@ -104,44 +104,56 @@ function outlineRings(view: ProjectorView, d = US_PROJECTED_OUTLINE_PATH): [numb
   return mapRings(d).map((ring) => ring.map(([x, y]) => projectorPoint(view, x, y)));
 }
 
-/** How many steps round the lens the haze's edge is found at, and how far apart (px) the map's edge is looked along. */
-const HAZE_STEPS = 360;
-const HAZE_LOOK_PX = 6;
+/** How many steps round the lens the haze's edge is found at. */
+const HAZE_STEPS = 480;
 
 /**
  * The haze of light from the lens (`lens`) to the map: every point between them, as far out as any of `rings` (screen
- * px; a ring's points joined round, a pair's just the one stretch) goes, a step of angle at a time round the lens —
- * one shape, drawn quickly however the map's zoomed, rather than a wedge for every stretch of its edge.
+ * px; a ring's points joined round, a pair's just the one stretch) goes — round the lens a step of angle at a time, a ray
+ * out at each to the farthest stretch of their edges it crosses. One shape, drawn quickly however the map's zoomed,
+ * rather than a wedge for every stretch of the map's edge; and every ray finds the edge, so there are no gaps in it.
  */
 function hazeShape([sx, sy]: [number, number], rings: [number, number][][]): string {
-  const angle = (x: number, y: number) => Math.atan2(x - sx, sy - y);
-  const points: [number, number, number][] = [];
+  const segments: [number, number, number, number][] = [];
   for (const ring of rings) {
     const closed = ring.length > 2;
     for (let i = 0; i < ring.length - (closed ? 0 : 1); i++) {
       const [ax, ay] = ring[i];
       const [bx, by] = ring[(i + 1) % ring.length];
-      const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) / HAZE_LOOK_PX));
-      for (let k = 0; k < n; k++) {
-        const x = ax + ((bx - ax) * k) / n;
-        const y = ay + ((by - ay) * k) / n;
-        points.push([angle(x, y), x, y]);
-      }
-      if (!closed) points.push([angle(bx, by), bx, by]);
+      segments.push([ax - sx, ay - sy, bx - sx, by - sy]);
     }
   }
-  if (points.length === 0) return "";
+  if (segments.length === 0) return "";
+  // The angles the map spans, seen from the lens (none straight up; turning clockwise).
+  const angle = (x: number, y: number) => Math.atan2(x, -y);
   let [lo, hi] = [Infinity, -Infinity];
-  for (const [a] of points) [lo, hi] = [Math.min(lo, a), Math.max(hi, a)];
-  // The farthest point from the lens at each step round it.
-  const far: ([number, number, number] | null)[] = new Array(HAZE_STEPS).fill(null);
+  for (const [ax, ay, bx, by] of segments) [lo, hi] = [Math.min(lo, angle(ax, ay), angle(bx, by)), Math.max(hi, angle(ax, ay), angle(bx, by))];
+  // Each stretch filed under the steps whose rays can cross it (those within the angles its ends span), so each ray
+  // looks at just those.
   const span = hi - lo || 1;
-  for (const [a, x, y] of points) {
-    const i = Math.min(HAZE_STEPS - 1, Math.floor(((a - lo) / span) * HAZE_STEPS));
-    const r = (x - sx) ** 2 + (y - sy) ** 2;
-    if (!far[i] || r > far[i]![0]) far[i] = [r, x, y];
+  const stepOf = (a: number) => ((a - lo) / span) * HAZE_STEPS;
+  const near: [number, number, number, number][][] = Array.from({ length: HAZE_STEPS + 1 }, () => []);
+  for (const seg of segments) {
+    const [from, to] = [stepOf(angle(seg[0], seg[1])), stepOf(angle(seg[2], seg[3]))];
+    for (let k = Math.max(0, Math.floor(Math.min(from, to))); k <= Math.min(HAZE_STEPS, Math.ceil(Math.max(from, to))); k++) near[k].push(seg);
   }
-  return `M${sx},${sy}${far.map((p) => (p ? `L${p[1].toFixed(1)},${p[2].toFixed(1)}` : "")).join("")}Z`;
+  let d = `M${sx},${sy}`;
+  for (let k = 0; k <= HAZE_STEPS; k++) {
+    const a = lo + (span * k) / HAZE_STEPS;
+    const [dx, dy] = [Math.sin(a), -Math.cos(a)];
+    // How far out the ray crosses the farthest stretch: the lens + t·(dx, dy) = a + u·(b − a), u within the stretch.
+    let far = 0;
+    for (const [ax, ay, bx, by] of near[k]) {
+      const [ex, ey] = [bx - ax, by - ay];
+      const det = dx * -ey + ex * dy;
+      if (Math.abs(det) < 1e-9) continue;
+      const t = (ax * -ey + ex * ay) / det;
+      const u = (dx * ay - dy * ax) / det;
+      if (t > far && u >= 0 && u <= 1) far = t;
+    }
+    if (far > 0) d += `L${(sx + dx * far).toFixed(1)},${(sy + dy * far).toFixed(1)}`;
+  }
+  return `${d}Z`;
 }
 
 /** How many rays of light go from the lens to the map's edge, about. */
