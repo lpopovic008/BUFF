@@ -32,6 +32,8 @@ export interface StagePlaces {
   wall: React.CSSProperties;
   floor: { top: number; bottom: number; left: number; width: number };
   room: { width: number; height: number };
+  /** Where the room's horizon is (a share of its height), if not the stages' own (HORIZON_SHARE). */
+  share?: number;
 }
 
 /** In (or on its way), and drawn at all: kept drawn while it goes. */
@@ -228,20 +230,6 @@ function Upright({ up, order, className = "", children }: { up: boolean; order: 
   );
 }
 
-/** The name's lines (his first name over the rest, if one line would leave it small) and how big (px) to fit `width`. */
-function nameFit(name: string, number: string, width: number): { lines: string[]; size: number } {
-  // About how wide a letter of the name is, a share of its size (bold, uppercase, spaced out a little).
-  const letter = 0.64;
-  const MOST = 52;
-  const one = `${name}${number}`;
-  const oneSize = width / (one.length * letter);
-  const words = name.split(" ");
-  if (oneSize >= 22 || words.length < 2) return { lines: [name], size: Math.min(MOST, oneSize) };
-  const lines = [words[0], words.slice(1).join(" ")];
-  const longest = Math.max(lines[0].length, lines[1].length + number.length);
-  return { lines, size: Math.min(MOST, width / (longest * letter)) };
-}
-
 const TILT_SIN = Math.sin((FLOOR_TILT * Math.PI) / 180);
 const TILT_COS = Math.cos((FLOOR_TILT * Math.PI) / 180);
 /** A photo's edges faded out, so it stands free of its own background. */
@@ -250,12 +238,13 @@ const PHOTO_FADE = "radial-gradient(ellipse 72% 78% at 50% 46%, #000 62%, transp
 const OVER_FLOOR: React.CSSProperties = { textShadow: "0 0 3px var(--page), 0 0 6px var(--page)" };
 
 /**
- * Who a player is, standing up off the room's floor as a dossier, risen out of it one piece after another — free of
- * any box, each piece standing on the floor and square to it, seen as the floor is (the room's own perspective, see
- * grid-room.ts): on its left his photo over his team's logo, turned to face the middle; in the middle his name, big
- * (his jersey number at its end), his position, height and weight under it smaller; and on its right, as tall as his
- * photo and turned to face the middle too, his college, age, years in the league, and his trade-value and season
- * ranks. A soft shadow on the floor at each one's foot.
+ * Who a player is, standing up off the room's floor in a strip, risen out of it one piece after another — free of any
+ * box, each piece standing on the floor and square to it, seen as the floor is (the room's own perspective, see
+ * grid-room.ts, its horizon `share` of the way down): on its left his photo over his team's logo, turned to face the
+ * middle; in the middle his name on a line (his jersey number at its end), his position, height and weight under it
+ * smaller; and on its right, turned to face the middle too, his college, age and years in the league, and his
+ * trade-value and season ranks. All of it as big as the floor's strip lets it stand. A soft shadow on the floor at each
+ * one's foot.
  */
 function PlayerDossier({
   player,
@@ -263,6 +252,7 @@ function PlayerDossier({
   numbers,
   floor,
   room,
+  share,
   up,
 }: {
   player: ResolvedPlayer;
@@ -270,10 +260,11 @@ function PlayerDossier({
   numbers: LineupNumbers | null;
   floor: StagePlaces["floor"];
   room: StagePlaces["room"];
+  share: number;
   up: boolean;
 }) {
   const [photoFailed, setPhotoFailed] = useState(false);
-  // How tall what's on the right stands, for his photo to stand as tall.
+  // How tall his facts stand as they're set: drawn smaller where that's taller than the floor's strip lets them be.
   const [factsBox, setFactsBox] = useState<HTMLDivElement | null>(null);
   const [factsHeight, setFactsHeight] = useState(0);
   useEffect(() => {
@@ -284,26 +275,31 @@ function PlayerDossier({
     observer.observe(factsBox);
     return () => observer.disconnect();
   }, [factsBox]);
-  const horizon = room.height * HORIZON_SHARE;
-  // Where it all stands: well toward the front of the floor, over the column picked's readout — how far back that is
-  // on the floor, and how much nearer than the wall it shows things there.
-  const foot = floor.top + (floor.bottom - 24 - floor.top) * 0.82;
-  const depth = floorDepth(foot, room.height, HORIZON_SHARE);
+  const horizon = room.height * share;
+  // Where it all stands: at the floor's front — how far back that is on the floor, how much nearer than the wall it
+  // shows things there, and how tall the strip lets it stand.
+  const foot = floor.bottom - 4;
+  const depth = floorDepth(foot, room.height, share);
   const scale = floorScale(depth);
+  const tall = Math.max(24, foot - floor.top);
   const side = floor.width * 0.24;
   const middle = floor.width - 2 * side;
   const number = bio?.number ? ` #${bio.number}` : "";
-  const { lines, size } = nameFit(player.name.toUpperCase(), number, middle - 8);
+  // The name on a line, as big as fits across the middle and up the strip over what's under it.
+  const subSize = Math.max(9, Math.min(15, tall * 0.18));
+  const name = player.name.toUpperCase();
+  const size = Math.max(11, Math.min(48, (middle - 8) / (`${name}${number}`.length * 0.64), (tall - subSize * 1.4 - 4) / 1.05));
   const sub = [player.position, bio?.height ? feet(bio.height) : null, bio?.weight ? `${bio.weight} lb` : null].filter(Boolean);
-  const photo = Math.max(factsHeight, Math.min(side * 0.8, (foot - floor.top) * 0.9));
+  const photo = Math.min(side * 0.8, tall);
   const years = bio?.yearsExp != null ? (bio.yearsExp === 0 ? "Rookie" : `${ordinal(bio.yearsExp + 1)} yr`) : null;
-  const facts: { label: string; value: string | null; className?: string }[] = [
-    { label: "College", value: collegeName(bio?.college) },
-    { label: "Age", value: bio?.age ? String(bio.age) : null },
-    { label: "Exp", value: years },
-    { label: numbers?.dynasty ? "Dynasty" : "Redraft", value: numbers?.valueRank != null ? `${player.position}${numbers.valueRank}` : null, className: "text-series-4" },
-    { label: "Season", value: numbers?.seasonRank != null ? `${player.position}${numbers.seasonRank}` : null, className: "text-series-1" },
-  ];
+  // His facts, in short lines: college; age; years; his ranks.
+  const factSize = Math.max(8, Math.min(13, tall / 4.6));
+  const ranks = [
+    numbers?.valueRank != null ? { label: numbers.dynasty ? "Dynasty" : "Redraft", value: `${player.position}${numbers.valueRank}`, className: "text-series-4" } : null,
+    numbers?.seasonRank != null ? { label: "Season", value: `${player.position}${numbers.seasonRank}`, className: "text-series-1" } : null,
+  ].filter((r): r is { label: string; value: string; className: string } => r !== null);
+  const ageYears = [bio?.age ? `${bio.age} yrs` : null, years].filter((part): part is string => !!part);
+  const college = collegeName(bio?.college);
   // A piece standing on the floor at screen x `x` (its foot's middle): put there in the room, square to the floor
   // (leaning back with it from upright), turned `turn` degrees to face the middle, and drawn as big there as it's sized.
   const standing = (x: number, turn = 0): React.CSSProperties => ({
@@ -337,7 +333,7 @@ function PlayerDossier({
       {shadow(leftX, side * 0.85)}
       {shadow(middleX, middle * 0.7)}
       {shadow(rightX, side * 0.85)}
-      {/* His photo, over his team's logo, facing the middle — as tall as what's on the right. */}
+      {/* His photo, over his team's logo, facing the middle. */}
       <div className="absolute" style={standing(leftX, SIDE_TURN)}>
         <div className="absolute bottom-0 left-0 -translate-x-1/2">
           <Upright up={up} order={0}>
@@ -348,7 +344,7 @@ function PlayerDossier({
                   src={nflLogoUrl(player.team)}
                   alt=""
                   // Behind his photo, faint; standing on the floor in its place, without one.
-                  className={`absolute object-contain ${photoFailed ? "inset-x-[6%] bottom-0 h-[70%] w-[88%] object-bottom opacity-90" : "inset-[6%] h-[88%] w-[88%] opacity-35"}`}
+                  className={`absolute object-contain ${photoFailed ? "inset-x-[6%] bottom-0 h-[80%] w-[88%] object-bottom opacity-90" : "inset-[6%] h-[88%] w-[88%] opacity-35"}`}
                 />
               ) : null}
               {photoFailed ? null : (
@@ -357,7 +353,7 @@ function PlayerDossier({
                   src={playerPhotoUrl(player.playerId)}
                   alt=""
                   onError={() => setPhotoFailed(true)}
-                  className="absolute inset-x-0 bottom-0 h-[92%] w-full object-contain object-bottom"
+                  className="absolute inset-x-0 bottom-0 h-[96%] w-full object-contain object-bottom"
                   // Its edges faded into the floor, so it stands free of its picture's own background.
                   style={{ maskImage: PHOTO_FADE, WebkitMaskImage: PHOTO_FADE }}
                 />
@@ -366,21 +362,17 @@ function PlayerDossier({
           </Upright>
         </div>
       </div>
-      {/* His name, big, his number at its end; his position, height and weight under it. */}
+      {/* His name on a line, his number at its end; his position, height and weight under it. */}
       <div className="absolute" style={standing(middleX)}>
-        <div className="absolute bottom-0 left-0 flex -translate-x-1/2 flex-col items-center gap-1 text-center" style={{ width: middle }}>
+        <div className="absolute bottom-0 left-0 flex -translate-x-1/2 flex-col items-center text-center" style={{ width: middle }}>
           <Upright up={up} order={1}>
-            <h3 className="font-extrabold uppercase leading-[1.05] tracking-wide text-ink-primary" style={{ fontSize: size, ...OVER_FLOOR }}>
-              {lines.map((line, i) => (
-                <span key={i} className="block whitespace-nowrap">
-                  {line}
-                  {i === lines.length - 1 && number ? <span className="text-ink-muted">{number}</span> : null}
-                </span>
-              ))}
+            <h3 className="whitespace-nowrap font-extrabold uppercase leading-[1.05] tracking-wide text-ink-primary" style={{ fontSize: size, ...OVER_FLOOR }}>
+              {name}
+              {number ? <span className="text-ink-muted">{number}</span> : null}
             </h3>
           </Upright>
           <Upright up={up} order={2}>
-            <p className="whitespace-nowrap pb-0.5 font-bold uppercase tracking-wide text-ink-secondary" style={{ fontSize: Math.max(11, Math.min(18, size * 0.42)), ...OVER_FLOOR }}>
+            <p className="whitespace-nowrap font-bold uppercase tracking-wide text-ink-secondary" style={{ fontSize: subSize, ...OVER_FLOOR }}>
               {sub.map((part, i) => (
                 <span key={i}>
                   {i > 0 ? " · " : ""}
@@ -391,20 +383,34 @@ function PlayerDossier({
           </Upright>
         </div>
       </div>
-      {/* His college, age, years in the league and ranks, facing the middle. */}
+      {/* His college, age and years, and ranks, facing the middle. */}
       <div className="absolute" style={standing(rightX, -SIDE_TURN)}>
-        <div ref={setFactsBox} className="absolute bottom-0 left-0 -translate-x-1/2">
+        <div
+          className="absolute bottom-0 left-0"
+          style={{ transform: `translateX(-50%) scale(${factsHeight > tall ? tall / factsHeight : 1})`, transformOrigin: "50% 100%" }}
+        >
           <Upright up={up} order={3}>
-            <dl className="flex flex-col gap-1 break-words" style={{ width: sideWide, ...OVER_FLOOR }}>
-              {facts.map((f) =>
-                f.value ? (
-                  <div key={f.label} className="leading-tight">
-                    <dt className="text-[0.5625rem] font-bold uppercase tracking-wide text-ink-muted">{f.label}</dt>
-                    <dd className={`text-[0.6875rem] font-extrabold uppercase sm:text-xs ${f.className ?? "text-ink-primary"}`}>{f.value}</dd>
-                  </div>
-                ) : null
-              )}
-            </dl>
+            <div ref={setFactsBox} className="flex flex-col font-extrabold uppercase leading-tight" style={{ width: sideWide, fontSize: factSize, ...OVER_FLOOR }}>
+              {college ? <span className="break-words text-ink-primary">{college}</span> : null}
+              {ageYears.map((part) => (
+                <span key={part} className="whitespace-nowrap text-ink-secondary">
+                  {part}
+                </span>
+              ))}
+              {ranks.length > 0 ? (
+                // Each rank whole, the next on a line of its own where they don't fit side by side.
+                <span className="flex flex-wrap gap-x-[0.6em]">
+                  {ranks.map((r) => (
+                    <span key={r.label} className="whitespace-nowrap">
+                      <span className="text-ink-muted" style={{ fontSize: factSize * 0.8 }}>
+                        {r.label}{" "}
+                      </span>
+                      <span className={r.className}>{r.value}</span>
+                    </span>
+                  ))}
+                </span>
+              ) : null}
+            </div>
           </Upright>
         </div>
       </div>
@@ -696,7 +702,7 @@ export function PlayerStage({
   // His seasons to look into (or his career), every number there is, and his value over time — on the floor, with
   // the card's way out; on the wall where there's no floor.
   const controls = (
-    <div className="flex flex-wrap items-center gap-1">
+    <div className={`flex items-center gap-1 ${floorless ? "flex-wrap" : "overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"}`}>
       {seasons === null ? (
         <span className="text-xs text-ink-muted">Loading…</span>
       ) : seasons.length === 0 ? (
@@ -718,12 +724,18 @@ export function PlayerStage({
           onClick={onClose}
           aria-label={`Close ${player.name}`}
           title="Close"
-          className="ml-auto flex h-7 w-6 items-center justify-center text-xl font-bold leading-none text-ink-primary transition-transform active:scale-90"
+          className="ml-auto flex h-7 w-6 shrink-0 items-center justify-center text-xl font-bold leading-none text-ink-primary transition-transform active:scale-90"
         >
           ×
         </button>
       )}
     </div>
+  );
+  // The game picked (or his value now), read out over his charts.
+  const readoutLine = (
+    <p aria-live="polite" className="truncate text-center text-[0.6875rem] font-semibold tabular-nums text-ink-secondary">
+      {readout}
+    </p>
   );
   // His points game by game, with his stats under them (see WallLine) — or his value over time (see ValueLine).
   const chart = valueView ? (
@@ -756,6 +768,7 @@ export function PlayerStage({
         {picker}
         <section aria-label={player.name} className="flex flex-col gap-2">
           <PlayerHeader player={player} bio={bio} numbers={numbers} onClose={onClose} />
+          {readoutLine}
           <div className="flex flex-col gap-1">
             <span className="text-[0.625rem] font-bold uppercase tracking-wide text-ink-muted">Seasons played</span>
             {controls}
@@ -766,11 +779,12 @@ export function PlayerStage({
     </div>
   ) : (
     <>
-      {/* The wall: his points and his stats, nothing else. */}
+      {/* The wall: his points and his stats, the game picked read out over them. */}
       <div
-        className={`fixed z-[6] flex flex-col transition-[opacity,transform] ease-out ${up ? "opacity-100" : "translate-y-2 opacity-0"}`}
+        className={`fixed z-[6] flex flex-col gap-1 transition-[opacity,transform] ease-out ${up ? "opacity-100" : "translate-y-2 opacity-0"}`}
         style={{ ...places.wall, transitionDuration: `${STAGE_MS}ms` }}
       >
+        {readoutLine}
         {chart}
       </div>
       {/* Across the back of the floor: the bench to pick from (if it's the bench's), his seasons, and the way out. */}
@@ -795,16 +809,7 @@ export function PlayerStage({
       ) : (
         <div className={`transition-opacity ease-out ${up ? "opacity-100" : "pointer-events-none opacity-0"}`} style={{ transitionDuration: `${STAGE_MS}ms` }}>
           {/* Who he is, standing up off the floor. */}
-          <PlayerDossier player={player} bio={bio} numbers={numbers} floor={below} room={places.room} up={up} />
-          {/* The column picked, read out along the floor's front. */}
-          <p
-            aria-live="polite"
-            data-floor-ui
-            className="fixed z-[7] truncate text-center text-[0.6875rem] font-semibold tabular-nums text-ink-secondary"
-            style={{ top: floor.bottom - 16, left: floor.left, width: floor.width }}
-          >
-            {readout}
-          </p>
+          <PlayerDossier player={player} bio={bio} numbers={numbers} floor={below} room={places.room} share={places.share ?? HORIZON_SHARE} up={up} />
         </div>
       )}
     </>

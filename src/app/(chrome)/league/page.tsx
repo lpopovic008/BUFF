@@ -450,7 +450,8 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
   const eleven = useElevenShare(scene, room?.height ?? null);
   const lineupShare = row ? Math.min(row.share, eleven ?? row.share) : HORIZON_SHARE;
   const buttons = row ? { ...row, share: lineupShare } : null;
-  useShareFor(onShare, lineupShare, (action !== null && !writeups) || cardUp || floorAway);
+  // A player's card keeps the horizon where it is: his charts on the wall, who he is on the floor in front.
+  useShareFor(onShare, lineupShare, (action !== null && !writeups) || floorAway);
   const stagePlaces: StagePlaces | null = room
     ? {
         wall: {
@@ -463,15 +464,28 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
         room,
       }
     : null;
-  // A player's card: his own stage, the lineups stepping aside.
+  // A player's card: his own stage, the lineups stepping aside — under the horizon where it is, not raised for it.
+  const cardPlaces: StagePlaces | null = room
+    ? {
+        wall: {
+          top: `calc(${UNDER_SWITCHER})`,
+          height: `calc(${room.height * lineupShare - PANEL_GAP_PX}px - (${UNDER_SWITCHER}))`,
+          left: PANEL_GAP_PX,
+          width: room.width - 2 * PANEL_GAP_PX,
+        },
+        floor: { top: room.height * lineupShare + PANEL_GAP_PX, bottom: room.height - tabBar - PANEL_GAP_PX, left: PANEL_GAP_PX, width: room.width - 2 * PANEL_GAP_PX },
+        room,
+        share: lineupShare,
+      }
+    : null;
   const cardStage = room
     ? {
-        top: room.height * HORIZON_SHARE + PANEL_GAP_PX,
+        top: room.height * lineupShare + PANEL_GAP_PX,
         bottom: room.height - tabBar - PANEL_GAP_PX,
         className: "inset-x-2",
         room,
         onShow: setCardUp,
-        places: stagePlaces ?? undefined,
+        places: cardPlaces ?? undefined,
       }
     : null;
   return (
@@ -712,7 +726,8 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
   // floor to show a row of the floor's buttons (see floorButtonRow) — the floor as it was, with them up in the right-hand
   // column now. Up where the home page's is only while the payouts have the floor, or a player's card's up.
   const lineupShare = room && middleBox ? floorButtonRow(room.width, room.height, room.height - FOOT_PX, middleBox.width).share : HORIZON_SHARE;
-  useShareFor(onShare, lineupShare, cardUp || floorAway);
+  // A player's card keeps the horizon where it is: his charts on the wall, who he is on the floor in front.
+  useShareFor(onShare, lineupShare, floorAway);
   // The bench's and the score graph's stages in the right-hand column: under its buttons down to the horizon, and on the
   // floor in front of it.
   const columnPlaces: StagePlaces | null =
@@ -720,19 +735,6 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
       ? {
           wall: { top: sideBox.under + PANEL_GAP_PX, height: Math.max(0, room.height * lineupShare - 2 * PANEL_GAP_PX - sideBox.under), left: sideBox.left, width: sideBox.width },
           floor: { top: room.height * lineupShare + PANEL_GAP_PX, bottom: room.height - 12, left: sideBox.left, width: sideBox.width },
-          room,
-        }
-      : null;
-  const stagePlaces: StagePlaces | null =
-    room && middleBox
-      ? {
-          wall: {
-            top: `calc(${UNDER_HEADER})`,
-            height: `calc(${room.height * HORIZON_SHARE - PANEL_GAP_PX}px - (${UNDER_HEADER}))`,
-            left: middleBox.left,
-            width: middleBox.width,
-          },
-          floor: { top: room.height * HORIZON_SHARE + PANEL_GAP_PX, bottom: room.height - 12, left: middleBox.left, width: middleBox.width },
           room,
         }
       : null;
@@ -806,15 +808,30 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
   const column = "absolute inset-x-0 bottom-0 top-0 touch-none overflow-y-auto overscroll-none pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
   const columnPad = { paddingTop: `calc(${UNDER_HEADER})` };
   // A player's card comes up out of the floor in front, between the columns (where the floor's panels do).
+  // A player's card: under the horizon where it is, not raised for it.
+  const cardPlaces: StagePlaces | null =
+    room && middleBox
+      ? {
+          wall: {
+            top: `calc(${UNDER_HEADER})`,
+            height: `calc(${room.height * lineupShare - PANEL_GAP_PX}px - (${UNDER_HEADER}))`,
+            left: middleBox.left,
+            width: middleBox.width,
+          },
+          floor: { top: room.height * lineupShare + PANEL_GAP_PX, bottom: room.height - 12, left: middleBox.left, width: middleBox.width },
+          room,
+          share: lineupShare,
+        }
+      : null;
   const cardStage = room
     ? {
-        top: room.height * HORIZON_SHARE + PANEL_GAP_PX,
+        top: room.height * lineupShare + PANEL_GAP_PX,
         bottom: room.height - 12,
         left: middleBox?.left,
         width: middleBox?.width,
         room,
         onShow: setCardUp,
-        places: stagePlaces ?? undefined,
+        places: cardPlaces ?? undefined,
         back: true,
         closeAt: closeCardAt,
       }

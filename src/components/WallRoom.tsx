@@ -187,15 +187,16 @@ export function WallRoom({
     };
   }, []);
 
-  // The horizon: low, the back wall most of the screen — but as the League Room's while a card's up, for its floor.
+  // The horizon: low, the back wall most of the screen — as the League Room's while something's laid on the floor; a
+  // player's card keeps it where it is (his charts on the wall, who he is on the floor in front).
   const up = card !== null;
-  const share = useEasedShare(up || floor ? HORIZON_SHARE : WALL_SHARE);
+  const share = useEasedShare(floor && !up ? HORIZON_SHARE : WALL_SHARE);
   // What's on the floor, once the horizon's there for it.
   const floorShown = floor && !up && roomSize && Math.abs(share - HORIZON_SHARE) < 1e-3 ? floor({ ...roomSize, share, bottom: roomSize.height - tabBar }) : null;
   const stage =
     roomSize && stageBox
       ? {
-          top: roomSize.height * HORIZON_SHARE + STAGE_GAP_PX,
+          top: roomSize.height * WALL_SHARE + STAGE_GAP_PX,
           bottom: roomSize.height - tabBar - STAGE_GAP_PX,
           left: stageBox.left,
           width: stageBox.width,
@@ -204,12 +205,13 @@ export function WallRoom({
           places: {
             wall: {
               top: `calc(${UNDER_HEADER})`,
-              height: `calc(${roomSize.height * HORIZON_SHARE - STAGE_GAP_PX}px - (${UNDER_HEADER}))`,
+              height: `calc(${roomSize.height * WALL_SHARE - STAGE_GAP_PX}px - (${UNDER_HEADER}))`,
               left: stageBox.left,
               width: stageBox.width,
             },
-            floor: { top: roomSize.height * HORIZON_SHARE + STAGE_GAP_PX, bottom: roomSize.height - tabBar - STAGE_GAP_PX, left: stageBox.left, width: stageBox.width },
+            floor: { top: roomSize.height * WALL_SHARE + STAGE_GAP_PX, bottom: roomSize.height - tabBar - STAGE_GAP_PX, left: stageBox.left, width: stageBox.width },
             room: roomSize,
+            share: WALL_SHARE,
           },
         }
       : null;
