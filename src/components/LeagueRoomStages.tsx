@@ -351,8 +351,8 @@ function PlayerDossier({
     numbers?.valueRank != null ? { label: numbers.dynasty ? "Dynasty" : "Redraft", value: `${player.position}${numbers.valueRank}`, className: "text-series-4" } : null,
     numbers?.seasonRank != null ? { label: "Season", value: `${player.position}${numbers.seasonRank}`, className: "text-series-1" } : null,
   ].filter((r): r is { label: string; value: string; className: string } => r !== null);
-  // His age and his years in the league, on one line.
-  const ageYears = [bio?.age ? `${bio.age} yrs` : null, years].filter((part): part is string => !!part).join(" · ");
+  // His age and his years in the league, on one line (each whole, the years on a line of their own where they don't fit).
+  const ageYears = [bio?.age ? `${bio.age} yrs` : null, years].filter((part): part is string => !!part);
   const college = collegeName(bio?.college);
   // A piece standing on the floor at screen x `x` (its foot's middle): put there in the room, square to the floor
   // (leaning back with it from upright), turned `turn` degrees to face the middle, and drawn as big there as it's sized.
@@ -436,7 +436,7 @@ function PlayerDossier({
                 <span key={i}>
                   {i > 0 ? " · " : ""}
                   <span className={i === 0 ? (POSITION_TEXT_COLOR[player.position] ?? "") : ""}>{part}</span>
-                  {i === 0 && number ? <span className="text-ink-muted"> {number}</span> : null}
+                  {i === 0 && number ? <span className="text-ink-muted"> · {number}</span> : null}
                 </span>
               ))}
             </p>
@@ -453,7 +453,16 @@ function PlayerDossier({
               style={{ width: sideWide, fontSize: factSize, ...(reflected ? {} : OVER_FLOOR) }}
             >
               {college ? <span className="break-words text-ink-primary">{college}</span> : null}
-              {ageYears ? <span className="whitespace-nowrap text-ink-secondary">{ageYears}</span> : null}
+              {ageYears.length > 0 ? (
+                <span className="flex flex-wrap gap-x-[0.4em] text-ink-secondary">
+                  {ageYears.map((part, i) => (
+                    <span key={part} className="whitespace-nowrap">
+                      {i > 0 ? "· " : ""}
+                      {part}
+                    </span>
+                  ))}
+                </span>
+              ) : null}
               {ranks.length > 0 ? (
                 // Each rank whole, the next on a line of its own where they don't fit side by side.
                 <span className="flex flex-wrap gap-x-[0.6em]">

@@ -210,8 +210,10 @@ export function useListScroll(el: HTMLElement | null) {
 
     // Scrolled by a finger, a wheel or trackpad, from code, or by the browser bringing something into view: followed as
     // it goes.
+    // (Wherever the browser has it — past an end too, a phone's bounce, or a fraction of a pixel past where it was
+    // measured to end — so what's drawn from it never sticks there; only not while a mouse's drag or glide moves it.)
     const scrolled = () => {
-      if (frame || drag?.scrolling || at < 0 || at > maxTop) return;
+      if (frame || drag?.scrolling) return;
       if (el.scrollTop === at) return;
       at = el.scrollTop;
       positions.set(el, at);
@@ -220,7 +222,7 @@ export function useListScroll(el: HTMLElement | null) {
     // Shorter or taller now: back within its ends, unless it's being moved.
     const resize = new ResizeObserver(() => {
       measure();
-      if (!frame && !drag?.scrolling && at > maxTop) show(maxTop);
+      if (!frame && !drag?.scrolling && at > maxTop + 1) show(maxTop);
     });
     resize.observe(el);
     const observeContents = () => {

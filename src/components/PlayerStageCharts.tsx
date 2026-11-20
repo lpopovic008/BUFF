@@ -80,8 +80,10 @@ const between = ([least, most]: readonly [number, number], v: number) => Math.mi
 /** The shortest stretch of the points line drawn between two numbers (px). */
 const LEAST_STRETCH_PX = 5;
 
-/** How strong a step's fill is in its grade's color at the row's foot (see WallLine's `grade`), fading to none at the step. */
-const GRADE_FILL = 0.35;
+/** How strong a step's fill is in its grade's color at the row's foot (see WallLine's `grade`), and how far up the step
+ * it's faded to none. */
+const GRADE_FILL = 0.25;
+const GRADE_REACH = 0.5;
 const GRADE_COLOR: Record<StatTier, string> = { good: "var(--status-good)", mid: "var(--status-warning)", bad: "var(--status-critical)" };
 
 /** A stat's number as it's shown on its row: whole, or to the tenth. */
@@ -98,7 +100,7 @@ const statText = (v: number) => (Number.isInteger(v) ? `${v}` : v.toFixed(1));
  * row and the next (ROW_SPACE_PX). The stats' names aren't drawn (no room's been found for them that wouldn't take
  * any from the rows); a row's name shows over it on hover, and is read out. The line takes about a quarter of the wall
  * (LINE_SHARE), the rows the rest. With `grade` (how good a game's stat was), each game's step is filled down to its
- * row's foot in a faint wash of its grade's color — green, yellow or red. Fills the room it's given on the wall; never
+ * row's foot in a faint wash of its grade's color — green, yellow or red — gone halfway up it. Fills the room it's given on the wall; never
  * reaches the floor.
  */
 export function WallLine({
@@ -169,7 +171,7 @@ export function WallLine({
               {(Object.keys(GRADE_COLOR) as StatTier[]).map((tier) => (
                 <linearGradient key={tier} id={`${id}-${tier}`} x1="0" y1="1" x2="0" y2="0">
                   <stop offset="0" stopColor={GRADE_COLOR[tier]} stopOpacity={GRADE_FILL} />
-                  <stop offset="1" stopColor={GRADE_COLOR[tier]} stopOpacity={0} />
+                  <stop offset={GRADE_REACH} stopColor={GRADE_COLOR[tier]} stopOpacity={0} />
                 </linearGradient>
               ))}
             </defs>
