@@ -109,6 +109,8 @@ function TradeChart({ trade, colorOf }: { trade: AnalyzedTrade; colorOf: (side: 
   // Percent down the chart, a little room kept at the top and bottom; and across it.
   const y = (value: number) => 4 + (1 - (value - lo) / span) * 92;
   const x = (day: number) => (last > first ? ((day - first) / (last - first)) * 100 : 0);
+  // A trade made today has its values only for today: each line drawn flat across the chart at its value.
+  const today = last <= first;
   const gap = (LABEL_PX / Math.max(1, tall)) * 100;
   const firstValue = (l: (typeof lines)[number]) => l.points[0]?.value ?? l.asset.then ?? 0;
   const lastValue = (l: (typeof lines)[number]) => l.points[l.points.length - 1]?.value ?? l.asset.now ?? 0;
@@ -170,16 +172,16 @@ function TradeChart({ trade, colorOf }: { trade: AnalyzedTrade; colorOf: (side: 
       <div className="relative border-x border-border">
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 h-full w-full" aria-hidden>
           {/* The week the sides were farthest apart, and the week they were closest. */}
-          {[widest, closest].map((at, i) =>
+          {(today ? [] : [widest, closest]).map((at, i) =>
             at === null ? null : (
               <line key={i} x1={at} x2={at} y1={0} y2={100} stroke="var(--ink-primary)" strokeOpacity={0.3} strokeWidth={1} vectorEffect="non-scaling-stroke" />
             )
           )}
           {lines.map((l, i) =>
-            l.points.length > 1 ? (
+            l.points.length > 1 || today ? (
               <polyline
                 key={i}
-                points={l.points.map((p) => `${x(p.day)},${y(p.value)}`).join(" ")}
+                points={today || l.points.length < 2 ? `0,${y(lastValue(l))} 100,${y(lastValue(l))}` : l.points.map((p) => `${x(p.day)},${y(p.value)}`).join(" ")}
                 fill="none"
                 stroke={l.color}
                 strokeWidth={1.5}

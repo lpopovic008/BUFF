@@ -284,3 +284,19 @@ test("analyzeTrades turns a drafted pick into whoever it became at the NFL draft
   for (const p of path.filter((p) => p.day < day(2026, 4, 25))) assert.equal(p.value, valueOn(picks, picks.players.own, true, p.day));
   for (const p of path.filter((p) => p.day >= day(2026, 4, 25))) assert.equal(p.value, 6200);
 });
+
+test("analyzeTrades gives a trade made since the last week's values two points: the day it was made, and today", () => {
+  const late: SleeperTransaction = { ...trade, transaction_id: "t9", created: 1022 * DAY_MS, draft_picks: [], waiver_budget: [] };
+  const lateSeasons: TradeSeason[] = [{ ...seasons[0], trades: [late] }];
+  const [t] = analyzeTrades(lateSeasons, drafts, history, bySleeperId, players, true, 1024 * DAY_MS);
+  assert.deepEqual(
+    t.sides[1].got[0].path.map((p) => [p.day, p.value]),
+    [
+      [1022, 8600],
+      [1024, 8600],
+    ]
+  );
+  // One made today: just today (the chart draws it flat across).
+  const [now] = analyzeTrades(lateSeasons, drafts, history, bySleeperId, players, true, 1022 * DAY_MS);
+  assert.equal(now.sides[1].got[0].path.length, 1);
+});

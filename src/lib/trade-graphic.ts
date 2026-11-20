@@ -257,11 +257,13 @@ export function drawTradeGraphic(canvas: HTMLCanvasElement, trade: AnalyzedTrade
   const NAME_W = 190;
   const plot = { x: chart.x + NAME_W + 14, y: chart.y, w: chart.w - NAME_W - 14 - (named ? NAME_W + 14 : 64), h: chart.h };
   const values = lines.flatMap((l) => l.points.map((p) => p.value));
-  if (values.length > 0 && last > first) {
+  // (A trade made today has its values only for today: each line drawn flat across at its value.)
+  const today = last <= first;
+  if (values.length > 0) {
     // From nothing up to the highest, and room over it as wide as a fair trade's sides can be apart (FAIR_SHARE): how
     // far apart two lines are is how far apart their values are, so pieces close enough to be a fair trade draw close.
     const span = Math.max(1, Math.max(...values) * (1 + FAIR_SHARE));
-    const px = (day: number) => plot.x + ((day - first) / (last - first)) * plot.w;
+    const px = (day: number) => (today ? plot.x : plot.x + ((day - first) / (last - first)) * plot.w);
     const py = (v: number) => plot.y + 16 + (1 - v / span) * (plot.h - 32);
     // Its edges: a faint line up either side.
     ctx.fillStyle = C.hairline;
@@ -270,10 +272,14 @@ export function drawTradeGraphic(canvas: HTMLCanvasElement, trade: AnalyzedTrade
     ctx.lineWidth = 3;
     ctx.lineJoin = "round";
     for (const l of lines) {
-      if (l.points.length < 2) continue;
+      if (l.points.length === 0) continue;
       ctx.strokeStyle = l.color;
       ctx.beginPath();
-      l.points.forEach((p, i) => (i === 0 ? ctx.moveTo(px(p.day), py(p.value)) : ctx.lineTo(px(p.day), py(p.value))));
+      if (today || l.points.length < 2) {
+        const v = py(l.points[l.points.length - 1].value);
+        ctx.moveTo(plot.x, v);
+        ctx.lineTo(plot.x + plot.w, v);
+      } else l.points.forEach((p, i) => (i === 0 ? ctx.moveTo(px(p.day), py(p.value)) : ctx.lineTo(px(p.day), py(p.value))));
       ctx.stroke();
     }
     const startY = lines.map((l) => py(l.points[0]?.value ?? 0));

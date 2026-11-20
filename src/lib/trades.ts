@@ -404,9 +404,11 @@ export function analyzeTrades(
       const faab = new Map<number, number>();
       for (const w of t.waiver_budget ?? []) faab.set(w.receiver, (faab.get(w.receiver) ?? 0) + w.amount);
 
-      // Each week from the trade to now, the last point today.
+      // Each week from the trade to now, the last point today — and, for a trade made since the last week's values, the
+      // day it was made, so it has two points to draw between (one made today has just the one, see TradeChart).
       const days: number[] = [];
       for (let i = Math.max(0, Math.ceil((day - history.from) / history.step)); gridDay(history, i) < today; i++) days.push(gridDay(history, i));
+      if (days.length === 0 && day < today) days.push(day);
       days.push(today);
       for (const entries of assets.values()) for (const a of entries) a.asset.path = days.map((d) => ({ day: d, value: a.on(d), estimated: a.estimated(d) }));
 
