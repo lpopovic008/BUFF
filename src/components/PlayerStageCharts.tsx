@@ -70,9 +70,11 @@ const MOST_COLUMN = 72;
  * y axis his points, a dot on each game he played — a cross
  * at none on a game he missed — all joined in one line, on across his byes; its points over it, his best starred, the
  * one picked lit, a faint ring at what he was projected, and under each week's number his opponent's logo. Under it
- * all, a row of bars for each of his `stats` (see ChartStat), each game's right under its slot, as tall as it went
- * against his best at it — the picked game's lit, its value at the row's right end, the stat's name at its left. Each
- * dot is a button (the arrow keys move along them). Fills the room it's given on the wall; never reaches the floor.
+ * all, a row for each of his `stats` (see ChartStat): a stepped line, flat across each game's slot at what he had of
+ * it (against his best at it) and straight up or down to the next at the slots' edge — at none for a game he missed,
+ * a faint dashed line across his byes — the picked game's step lit, its value at the row's right end, the stat's name at its left.
+ * Each dot is a button (the arrow keys move along them). Fills the room it's given on the wall; never reaches the
+ * floor.
  */
 export function WallLine({
   games,
@@ -153,7 +155,7 @@ export function WallLine({
               <circle key={`${g.key}-projected`} cx={x(i)} cy={y(Math.max(0, g.projected))} r={2.75} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.35} strokeWidth={1.25} pointerEvents="none" />
             ) : null
           )}
-          {/* A row of bars for each stat: each game's (one he played) under its slot, the picked one's lit. */}
+          {/* A row for each stat: a stepped line, flat across each game's slot at its level, the picked game's step lit. */}
           {stats.map((stat, r) => {
             const foot = rowsTop + (r + 1) * rowH - 2;
             const tallest = rowH - 6;
@@ -166,13 +168,44 @@ export function WallLine({
                 <text x={x(0) - col / 2 - 4} y={foot - 1} textAnchor="end" className="fill-[var(--ink-muted)] text-[0.5rem] font-bold uppercase">
                   {stat.label}
                 </text>
-                {games.map((g, i) => {
-                  if (!g.stats) return null;
-                  const v = valueOf(g);
-                  const tall = most > 0 ? Math.max(1, (tallest * Math.max(0, v)) / most) : 1;
-                  const barW = Math.max(2, Math.min(10, col * 0.42));
-                  return <rect key={g.key} x={x(i) - barW / 2} y={foot - tall} width={barW} height={tall} fill="var(--ink-primary)" fillOpacity={i === picked ? 0.95 : 0.3} />;
-                })}
+                {(() => {
+                  // Each game's level: what he had of it (none, a game he missed); none to draw for a bye or one to come.
+                  const level = (g: ChartGame) => (g.stats ? foot - (most > 0 ? (tallest * Math.max(0, valueOf(g))) / most : 0) : g.missed ? foot : null);
+                  let d = "";
+                  let byes = "";
+                  // The last game drawn: where its step ended, and whether a bye's come since.
+                  let last: { x: number; y: number; gap: boolean } | null = null;
+                  games.forEach((g, i) => {
+                    const at = level(g);
+                    if (at === null) {
+                      if (last) last.gap = true;
+                      // Nothing past a week still to come.
+                      if (g.future) last = null;
+                      return;
+                    }
+                    const [from, to] = [x(i) - col / 2, x(i) + col / 2];
+                    if (last?.gap) {
+                      // Across his bye: faint and dashed, from the last game's step to this one's.
+                      byes += `M${last.x.toFixed(1)},${last.y.toFixed(1)}L${from.toFixed(1)},${at.toFixed(1)}`;
+                      d += `M${from.toFixed(1)},${at.toFixed(1)}`;
+                    } else {
+                      // Straight up or down from the last game's level at the slots' edge (or the first step).
+                      d += last === null ? `M${from.toFixed(1)},${at.toFixed(1)}` : `V${at.toFixed(1)}`;
+                    }
+                    d += `H${to.toFixed(1)}`;
+                    last = { x: to, y: at, gap: false };
+                  });
+                  const lit = games[picked] ? level(games[picked]) : null;
+                  return (
+                    <>
+                      <path d={d} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.55} strokeWidth={1.25} strokeLinejoin="miter" />
+                      {byes ? <path d={byes} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.3} strokeWidth={1} strokeDasharray="2 2" /> : null}
+                      {lit !== null ? (
+                        <line x1={x(picked) - col / 2} x2={x(picked) + col / 2} y1={lit} y2={lit} stroke="var(--ink-primary)" strokeWidth={2.25} />
+                      ) : null}
+                    </>
+                  );
+                })()}
                 {pickedGame?.stats ? (
                   <text x={x(n - 1) + col / 2 + 5} y={foot - 1} className="fill-[var(--ink-primary)] text-[0.5625rem] font-bold tabular-nums">
                     {statText(valueOf(pickedGame))}
