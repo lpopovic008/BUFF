@@ -70,37 +70,46 @@ function useSeasonPayouts(leagueId: string, fallback: LeagueProfile | null) {
   return { season: shown, plan, ledger, changePlan };
 }
 
+/** What one season paid each manager, by Sleeper user id. */
+interface SeasonEarnings {
+  leagueId: string;
+  season: string;
+  byOwner: Map<string, number>;
+}
+
 /**
- * What each manager has won across every season, by Sleeper user id — each
- * season's results played through its payout rules (see startingPlan), the
- * week being played only "as it stands". Read afresh whenever All-time opens,
- * so a season's rules just edited count. Undefined while loading; null when
- * no season pays anything.
+ * What each manager has won in every season that pays out, oldest season first,
+ * by Sleeper user id — each season's results played through its payout rules
+ * (see startingPlan), the week being played only "as it stands". Read afresh
+ * whenever All-time opens, so a season's rules just edited count. Undefined
+ * while loading; empty when no season pays anything.
  */
-function useAllTimeEarnings(seasons: SeasonRecord[], fallback: LeagueProfile | null): Map<string, number> | null | undefined {
+function useAllTimeEarnings(seasons: SeasonRecord[], fallback: LeagueProfile | null): SeasonEarnings[] | undefined {
   const asItStands = useAsItStands();
   const key = `${seasons.map((s) => s.leagueId).join(",")}:${asItStands}`;
-  const [earnings, setEarnings] = useState<{ key: string; value: Map<string, number> | null } | null>(null);
+  const [earnings, setEarnings] = useState<{ key: string; value: SeasonEarnings[] } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     Promise.all(
-      seasons.map(async (record) => {
+      seasons.map(async (record): Promise<SeasonEarnings | null> => {
         const season = await loadLeagueSeason(record.leagueId).catch(() => null);
         if (!season) return null;
         const plan = startingPlan(record.leagueId, season, fallback);
         if (plan.rules.length === 0) return null;
         const ledger = computePlanLedger(plan, (asItStands ? season : finishedWeeksOnly(season)).results);
         const owners = new Map(record.standings.map((row) => [row.rosterId, row.ownerId]));
-        return ledger.managers.map((m) => [owners.get(m.rosterId) ?? null, m.total] as const);
+        const byOwner = new Map<string, number>();
+        for (const m of ledger.managers) {
+          const owner = owners.get(m.rosterId);
+          if (owner) byOwner.set(owner, (byOwner.get(owner) ?? 0) + m.total);
+        }
+        return { leagueId: record.leagueId, season: record.season, byOwner };
       })
     ).then((perSeason) => {
       if (cancelled) return;
-      const totals = new Map<string, number>();
-      for (const [owner, total] of perSeason.flatMap((s) => s ?? [])) {
-        if (owner) totals.set(owner, (totals.get(owner) ?? 0) + total);
-      }
-      setEarnings({ key: `${seasons.map((s) => s.leagueId).join(",")}:${asItStands}`, value: perSeason.some((s) => s) ? totals : null });
+      const paying = perSeason.filter((s): s is SeasonEarnings => s !== null).reverse();
+      setEarnings({ key: `${seasons.map((s) => s.leagueId).join(",")}:${asItStands}`, value: paying });
     });
     return () => {
       cancelled = true;
@@ -110,12 +119,100 @@ function useAllTimeEarnings(seasons: SeasonRecord[], fallback: LeagueProfile | n
   return earnings?.key === key ? earnings.value : undefined;
 }
 
-/** All-time: every manager's career across the league's seasons, with what they've won when the league pays out. */
+/** A manager's payouts, season by season, and in all. */
+type PayoutRow = { userId: string; displayName: string; total: number; bySeason: Record<string, number> };
+
+/**
+ * All-time payouts: what each manager has been paid in every season that pays
+ * out, a column a season (oldest first), and their total — the most paid first.
+ */
+function AllTimePayouts({ managers, earnings }: { managers: ManagerCareerStats[]; earnings: SeasonEarnings[] }) {
+  const rows = useMemo<PayoutRow[]>(
+    () =>
+      managers
+        .map((m) => {
+          const bySeason = Object.fromEntries(earnings.map((s) => [s.leagueId, s.byOwner.get(m.userId) ?? 0]));
+          const total = Object.values(bySeason).reduce((sum, amount) => sum + amount, 0);
+          return { userId: m.userId, displayName: m.displayName, total, bySeason };
+        })
+        // The most paid first, until a column is sorted.
+        .sort((a, b) => b.total - a.total),
+    [managers, earnings]
+  );
+  const columns = useMemo(
+    () => ({
+      manager: (row: PayoutRow) => row.displayName,
+      total: (row: PayoutRow) => row.total,
+      ...Object.fromEntries(earnings.map((s) => [s.leagueId, (row: PayoutRow) => row.bySeason[s.leagueId] ?? 0])),
+    }),
+    [earnings]
+  );
+  const { sorted, sortState, toggleSort } = useTableSort(rows, columns);
+  const paid = rows.reduce((sum, row) => sum + row.total, 0);
+
+  return (
+    <div className="flex flex-col gap-4 border-t border-grid pt-4">
+      <div className="flex items-baseline justify-between gap-3">
+        <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Money paid out, all-time</h4>
+        <span className="text-xs text-ink-secondary">
+          {formatMoney(paid)} over {earnings.length} season{earnings.length === 1 ? "" : "s"}
+        </span>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs sm:text-sm">
+          <thead>
+            <tr className="border-b border-grid text-xs uppercase tracking-wide text-ink-muted">
+              <SortHeader sortKey="manager" state={sortState} onSort={toggleSort}>
+                Manager
+              </SortHeader>
+              {earnings.map((s) => (
+                <SortHeader key={s.leagueId} sortKey={s.leagueId} state={sortState} onSort={toggleSort} align="right">
+                  {s.season}
+                </SortHeader>
+              ))}
+              <SortHeader sortKey="total" state={sortState} onSort={toggleSort} align="right">
+                Total
+              </SortHeader>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((row) => (
+              <tr key={row.userId} className="border-b border-grid last:border-0">
+                <td className="py-2 pr-2 font-medium text-ink-primary sm:pr-3">{row.displayName}</td>
+                {earnings.map((s) => (
+                  <td key={s.leagueId} className="whitespace-nowrap py-2 pr-2 text-right tabular-nums text-ink-secondary sm:pr-3">
+                    {formatMoney(row.bySeason[s.leagueId] ?? 0)}
+                  </td>
+                ))}
+                <td className="whitespace-nowrap py-2 pr-2 text-right font-semibold tabular-nums text-ink-primary sm:pr-3">
+                  {formatMoney(row.total)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/** All-time: every manager's career across the league's seasons, then what they've been paid when the league pays out. */
 function AllTime({ seasons, managers, profile }: { seasons: SeasonRecord[]; managers: ManagerCareerStats[]; profile: LeagueProfile | null }) {
   const earnings = useAllTimeEarnings(seasons, profile);
+  // Each manager's all-time total, for the leaderboard's Earned column.
+  const totals = useMemo(() => {
+    if (!earnings || earnings.length === 0) return null;
+    const sums = new Map<string, number>();
+    for (const s of earnings) for (const [owner, amount] of s.byOwner) sums.set(owner, (sums.get(owner) ?? 0) + amount);
+    return sums;
+  }, [earnings]);
   return (
     <PlateCard title="All-time">
-      <CareerLeaderboard managers={managers} earnings={earnings ?? null} />
+      <div className="flex flex-col gap-4">
+        <CareerLeaderboard managers={managers} earnings={totals} />
+        {earnings === undefined ? <p className="text-sm text-ink-muted">Loading money data…</p> : null}
+        {earnings && earnings.length > 0 ? <AllTimePayouts managers={managers} earnings={earnings} /> : null}
+      </div>
     </PlateCard>
   );
 }
