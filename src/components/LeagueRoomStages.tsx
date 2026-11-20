@@ -284,7 +284,7 @@ const OVER_FLOOR: React.CSSProperties = { textShadow: "0 0 3px var(--page), 0 0 
  * Who a player is, standing up off the room's floor in a strip, risen out of it one piece after another — free of any
  * box, each piece standing on the floor and square to it, seen as the floor is (the room's own perspective, see
  * grid-room.ts, its horizon `share` of the way down): on its left his photo over his team's logo, turned to face the
- * middle; in the middle his name on a line (his jersey number at its end), his position, height and weight under it
+ * middle; in the middle his name on a line, his position (his jersey number just after it), height and weight under it
  * smaller; and on its right, turned to face the middle too, his college, age and years in the league, and his
  * trade-value and season ranks. All of it as big as the floor's strip lets it stand. A soft shadow on the floor at each
  * one's foot.
@@ -326,11 +326,11 @@ function PlayerDossier({
   const scale = floorScale(depth);
   const side = floor.width * 0.24;
   const middle = floor.width - 2 * side;
-  const number = bio?.number ? ` #${bio.number}` : "";
+  const number = bio?.number ? `#${bio.number}` : null;
   // The name on a line, as big as fits across the middle and up the strip over what's under it.
   const subSize = Math.max(9, Math.min(15, tall * 0.18));
   const name = player.name.toUpperCase();
-  const size = Math.max(11, Math.min(48, (middle - 8) / (`${name}${number}`.length * 0.64), (tall - subSize * 1.4 - 4) / 1.05));
+  const size = Math.max(11, Math.min(48, (middle - 8) / (name.length * 0.64), (tall - subSize * 1.4 - 4) / 1.05));
   const sub = [player.position, bio?.height ? feet(bio.height) : null, bio?.weight ? `${bio.weight} lb` : null].filter(Boolean);
   const photo = Math.min(side * 0.8, tall);
   const years = bio?.yearsExp != null ? (bio.yearsExp === 0 ? "Rookie" : `${ordinal(bio.yearsExp + 1)} yr`) : null;
@@ -404,19 +404,17 @@ function PlayerDossier({
           </Upright>
         </div>
       ))}
-      {/* His name on a line, his number at its end; his position, height and weight under it. */}
+      {/* His name on a line; his position (his number just after it), height and weight under it. */}
       {piece("name", middleX, 0, (reflected) => (
         <div className="flex flex-col items-center text-center" style={{ width: middle }}>
           <Upright up={up} order={1}>
             {reflected ? (
               <span aria-hidden className="block whitespace-nowrap font-extrabold uppercase leading-[1.05] tracking-wide text-ink-primary" style={{ fontSize: size }}>
                 {name}
-                {number ? <span className="text-ink-muted">{number}</span> : null}
               </span>
             ) : (
               <h3 className="whitespace-nowrap font-extrabold uppercase leading-[1.05] tracking-wide text-ink-primary" style={{ fontSize: size, ...OVER_FLOOR }}>
                 {name}
-                {number ? <span className="text-ink-muted">{number}</span> : null}
               </h3>
             )}
           </Upright>
@@ -426,6 +424,7 @@ function PlayerDossier({
                 <span key={i}>
                   {i > 0 ? " · " : ""}
                   <span className={i === 0 ? (POSITION_TEXT_COLOR[player.position] ?? "") : ""}>{part}</span>
+                  {i === 0 && number ? <span className="text-ink-muted"> {number}</span> : null}
                 </span>
               ))}
             </p>
