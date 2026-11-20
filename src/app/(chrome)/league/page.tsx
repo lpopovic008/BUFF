@@ -13,7 +13,7 @@ import { useSwipePager } from "@/hooks/useSwipePager";
 import { LIST_MOVE, useListScroll } from "@/hooks/useListScroll";
 import { LeagueSwitcher, LeagueTitle, RoomLeague } from "@/components/LeagueSwitcher";
 import { BriefMatchups, CareerStageContext, MatchupList, MatchupProviders, MatchupSlide, MatchupStack, useLineNoteOf, useLineupNumbers, useMatchupHeadToHead } from "@/components/LeagueMatchupCarousel";
-import { RoomBench, RoomGraph, StagePlaces, useStageShown } from "@/components/LeagueRoomStages";
+import { RoomBench, RoomGraph, StagePlaces, useStageShown, wallStyle } from "@/components/LeagueRoomStages";
 import { WriteupsPanel } from "@/components/LeagueRoomWriteups";
 import { ActionTiles, CloseButton, FLOOR_ACTIONS, FloorAction, FloorButtonSwiper, floorButtonRow, FrontPanel } from "@/components/LeagueRoomFloor";
 import type { MatchupSide } from "@/components/MatchupGraph";
@@ -51,11 +51,9 @@ const FOOT_PX = 52;
 // From laptop width up, how wide each side column is against the middle one: the middle wider, not dominating.
 const SIDE_SHARE = 1;
 const MIDDLE_SHARE = 1.6;
-// What's in each column is made for a side column this wide, and a middle one this wide (px): wider, it's all drawn
-// bigger to fit (CSS zoom), up to so much bigger — never smaller.
-const SIDE_MADE_FOR = 300;
+// The lineups in the middle are made for a column this wide (px): wider, everything in all three columns is drawn that
+// much bigger (CSS zoom), up to so much bigger — never smaller — so their text is the same size across them.
 const MIDDLE_MADE_FOR = 640;
-const SIDE_MOST_ZOOM = 1.5;
 const MIDDLE_MOST_ZOOM = 1.35;
 
 /** One league as the room shows it: its official summary, as it stands (see useSummariesAsItStands), and its unfinished weeks' matchups. */
@@ -680,6 +678,10 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
   const lineupShare = room && middleBox ? floorButtonRow(room.width, room.height, room.height - FOOT_PX, middleBox.width).share : HORIZON_SHARE;
   // A player's card keeps the horizon where it is: his charts on the wall, who he is on the floor in front.
   useShareFor(onShare, lineupShare, floorAway);
+  // The columns' contents drawn bigger as the middle one's wider than its lineups are made for — all three by as much,
+  // so their text is the same size side to side (inside what each list moves, so its scrolling, and its reflection's
+  // copy, go on as they were).
+  const middleZoom = middleBox ? Math.min(MIDDLE_MOST_ZOOM, Math.max(1, middleBox.width / MIDDLE_MADE_FOR)) : 1;
   // The bench's and the score graph's stages in the right-hand column: under its buttons down to the horizon, and on the
   // floor in front of it.
   const columnPlaces: StagePlaces | null =
@@ -688,6 +690,8 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
           wall: { top: sideBox.under + PANEL_GAP_PX, height: Math.max(0, room.height * lineupShare - 2 * PANEL_GAP_PX - sideBox.under), left: sideBox.left, width: sideBox.width },
           floor: { top: room.height * lineupShare + PANEL_GAP_PX, bottom: room.height - 12, left: sideBox.left, width: sideBox.width },
           room,
+          // Its text as big as the columns' (see middleZoom).
+          zoom: middleZoom,
         }
       : null;
   const { leagueId, standings, owners, myRosterId, carousel, allTime, providers } = useLeagueRoom(rooms[index], week, userId);
@@ -753,10 +757,6 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
     matchupColumn?.scrollTo({ top: 0 });
   }, [leagueId, week, lineupColumn, matchupColumn]);
 
-  // Each column's contents drawn bigger to fit it as it's wider than they're made for (inside what its list moves, so
-  // its scrolling, and its reflection's copy, go on as they were).
-  const sideZoom = middleBox ? Math.min(SIDE_MOST_ZOOM, Math.max(1, (middleBox.left - 32) / SIDE_MADE_FOR)) : 1;
-  const middleZoom = middleBox ? Math.min(MIDDLE_MOST_ZOOM, Math.max(1, middleBox.width / MIDDLE_MADE_FOR)) : 1;
   const column = "absolute inset-x-0 bottom-0 top-0 touch-none overflow-y-auto overscroll-none pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
   const columnPad = { paddingTop: `calc(${UNDER_HEADER})` };
   // A player's card comes up out of the floor in front, between the columns (where the floor's panels do).
@@ -802,7 +802,7 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
         >
           <div ref={setLeagueColumn} data-scroll-list className={column} style={columnPad}>
             <div>
-            <div style={{ zoom: sideZoom }}>
+            <div style={{ zoom: middleZoom }}>
             <ul className="flex flex-col gap-1" aria-label="Your leagues">
               {leagues.map((league) => {
                 const on = league.leagueId === leagueId;
@@ -825,8 +825,7 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
                     </button>
                     {/* Its matchups, picking the one whose lineups are in the middle — with the write-ups up, each box opened
                         a little to each team's PF and PA. */}
-                    {/* Not drawn bigger with the column (see sideZoom): its text the lineups' size. */}
-                    {open ? <div className="pb-2 pt-1" style={{ zoom: 1 / sideZoom }}>{matchups(writeups)}</div> : null}
+                    {open ? <div className="pb-2 pt-1">{matchups(writeups)}</div> : null}
                   </li>
                 );
               })}
@@ -888,7 +887,7 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
             <div ref={setSlider}>
               <ActionTiles active={action} onPick={press} />
             </div>
-            {underButtons ? <div className="pt-3" style={{ zoom: sideZoom }}>{underButtons}</div> : null}
+            {underButtons ? <div className="pt-3" style={{ zoom: middleZoom }}>{underButtons}</div> : null}
             </div>
           </div>
           <ScrollThumb source={matchupColumn} />
@@ -1028,7 +1027,7 @@ function RoomStageContent({ kind, places, onClose, back, league, week, userId, m
   const game =
     (matchupId !== undefined ? games.find((g) => g.matchupId === matchupId) : undefined) ?? games.find((g) => g.teams.some((t) => t.rosterId === myRosterId)) ?? games[0];
   const note = (text: string) => (
-    <div data-floor-ui className="fixed z-[7] text-sm text-ink-secondary" style={{ top: places.wall.top, left: places.wall.left, width: places.wall.width }}>
+    <div data-floor-ui className="fixed z-[7] text-sm text-ink-secondary" style={wallStyle(places, { top: places.wall.top, left: places.wall.left, width: places.wall.width })}>
       <div className="flex items-center gap-2">
         <span className="min-w-0 flex-1">{text}</span>
         <CloseButton onClose={onClose} />

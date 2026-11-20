@@ -28,14 +28,15 @@ export interface ChartGame {
   opponent?: string | null;
 }
 
-/** Keeps track of an element's size, and where it is across the screen. */
+/** Keeps track of an element's size (its own px, however much bigger a zoom around it draws it), and where it is across the screen. */
 function useBox(el: Element | null) {
   const [box, setBox] = useState<{ left: number; width: number; height: number } | null>(null);
   useLayoutEffect(() => {
     if (!el) return;
     const measure = () => {
       const r = el.getBoundingClientRect();
-      setBox((was) => (was && was.left === r.left && was.width === r.width && was.height === r.height ? was : { left: r.left, width: r.width, height: r.height }));
+      const [width, height] = [el.clientWidth || r.width, el.clientHeight || r.height];
+      setBox((was) => (was && was.left === r.left && was.width === width && was.height === height ? was : { left: r.left, width, height }));
     };
     measure();
     const observer = new ResizeObserver(measure);

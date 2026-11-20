@@ -35,6 +35,24 @@ export interface StagePlaces {
   room: { width: number; height: number };
   /** Where the room's horizon is (a share of its height), if not the stages' own (HORIZON_SHARE). */
   share?: number;
+  /** What's on the wall drawn this much bigger (CSS zoom), where it is, as what's around it is (see wallStyle). */
+  zoom?: number;
+}
+
+/**
+ * Where a stage stands on the wall (`places.wall`), drawn as big as `places.zoom` says: a zoom draws its place bigger
+ * too, so its place is given that much smaller, to stand just where it would.
+ */
+export function wallStyle(places: StagePlaces, wall: React.CSSProperties = places.wall): React.CSSProperties {
+  const z = places.zoom ?? 1;
+  if (z === 1) return wall;
+  const out: React.CSSProperties = { ...wall, zoom: z };
+  for (const k of ["top", "left", "width", "height", "right", "bottom"] as const) {
+    const v = wall[k];
+    if (typeof v === "number") out[k] = v / z;
+    else if (typeof v === "string") out[k] = `calc((${v}) / ${z})`;
+  }
+  return out;
 }
 
 /** In (or on its way), and drawn at all: kept drawn while it goes. */
@@ -111,7 +129,7 @@ export function RoomGraph({
       <div
         data-floor-ui
         className={`fixed z-[6] flex flex-col transition-[opacity,transform] ease-out ${up ? "opacity-100" : "translate-y-2 opacity-0"}`}
-        style={{ ...places.wall, transitionDuration: `${STAGE_MS}ms` }}
+        style={{ ...wallStyle(places), transitionDuration: `${STAGE_MS}ms` }}
       >
         <MatchupGraph mine={mine} theirs={theirs} weekGames={weekGames} scoring={scoring} />
       </div>
@@ -791,7 +809,7 @@ export function PlayerStage({
     <div
       data-floor-ui
       className={`fixed z-[6] overflow-y-auto transition-[opacity,transform] ease-out [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${up ? "opacity-100" : "translate-y-2 opacity-0"}`}
-      style={{ ...places.wall, transitionDuration: `${STAGE_MS}ms` }}
+      style={{ ...wallStyle(places), transitionDuration: `${STAGE_MS}ms` }}
     >
       <div className="flex h-full min-h-fit flex-col gap-2">
         {picker}
@@ -875,7 +893,11 @@ export function RoomBench({
   const slot = players.find((b) => b.player!.playerId === shownId) ?? players[0];
   if (!slot) {
     return (
-      <div data-floor-ui className="fixed z-[7] flex items-center gap-2 text-sm text-ink-secondary" style={{ top: stage.places.wall.top, left: stage.places.wall.left, width: stage.places.wall.width }}>
+      <div
+        data-floor-ui
+        className="fixed z-[7] flex items-center gap-2 text-sm text-ink-secondary"
+        style={wallStyle(stage.places, { top: stage.places.wall.top, left: stage.places.wall.left, width: stage.places.wall.width })}
+      >
         <span className="min-w-0 flex-1">No one&rsquo;s on your bench.</span>
         <CloseButton onClose={stage.onClose} />
       </div>
@@ -909,7 +931,7 @@ export function RoomBench({
       <div
         data-floor-ui
         className={`fixed z-[7] flex flex-col gap-2 transition-opacity ease-out ${stage.up ? "opacity-100" : "pointer-events-none opacity-0"}`}
-        style={{ ...stage.places.wall, transitionDuration: `${STAGE_MS}ms` }}
+        style={{ ...wallStyle(stage.places), transitionDuration: `${STAGE_MS}ms` }}
       >
         <div className="flex items-start gap-2">
           <div className="min-w-0 flex-1">{filterRow}</div>

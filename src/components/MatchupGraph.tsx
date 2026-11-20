@@ -352,7 +352,10 @@ export function MatchupGraph({
   const follow = (e: React.PointerEvent<HTMLDivElement>) => {
     const el = plotRef.current;
     if (!el || !plot) return;
-    setCursor({ at: timeAt(e.clientX - el.getBoundingClientRect().left) });
+    // In its own px: drawn bigger by a zoom around it, the pointer's are that much bigger.
+    const r = el.getBoundingClientRect();
+    const scale = el.clientWidth > 0 ? r.width / el.clientWidth : 1;
+    setCursor({ at: timeAt((e.clientX - r.left) / scale) });
   };
   // A press on the graph, as on the player graphs: with the cursor up, a tap (no drag) takes it away; a drag
   // moves it. A mouse just hovering moves it too — but not straight back after a tap took it away, until it
