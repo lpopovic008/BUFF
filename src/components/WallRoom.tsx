@@ -152,8 +152,6 @@ export function WallRoom({
   // The room's size as it's drawn (not 100vh, which a browser's toolbars can make taller than the screen).
   const [room, setRoom] = useState<HTMLDivElement | null>(null);
   const [roomSize, setRoomSize] = useState<{ width: number; height: number } | null>(null);
-  // The room's grid put away while a player's card makes the floor stairs (see FloorStairs).
-  const [gridAway, setGridAway] = useState(false);
   useEffect(() => {
     if (!room) return;
     const measure = () => setRoomSize({ width: room.clientWidth || window.innerWidth, height: room.clientHeight || window.innerHeight });
@@ -212,7 +210,6 @@ export function WallRoom({
             },
             floor: { top: roomSize.height * HORIZON_SHARE + STAGE_GAP_PX, bottom: roomSize.height - tabBar - STAGE_GAP_PX, left: stageBox.left, width: stageBox.width },
             room: roomSize,
-            onFloorAway: setGridAway,
           },
         }
       : null;
@@ -224,7 +221,7 @@ export function WallRoom({
       <div style={roomSize ? { ["--room-h" as string]: `${roomSize.height}px` } : undefined}>
         <h1 className="sr-only">{title}</h1>
         <div ref={setRoom} aria-hidden className="grid-room" style={{ ["--horizon" as string]: `${share * 100}%` }}>
-          <FloorGrid share={share} away={gridAway} />
+          <FloorGrid share={share} />
         </div>
         <div className="fixed inset-x-0 top-0 flex gap-4 px-4" style={columnHeight}>
           {children}

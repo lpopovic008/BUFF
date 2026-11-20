@@ -8,15 +8,13 @@ import { MatchupGraph, MatchupSide } from "@/components/MatchupGraph";
 import type { LineupNumbers } from "@/components/PlayerCareer";
 import { type LineNote, LineupPlayerRow } from "@/components/LeagueMatchupCarousel";
 import { BenchCandidate, BenchFilterKey, benchFilters, benchList, StarterInSlot } from "@/lib/bench-groups";
-import { ChartGame, ChartStat, chartColumn, FloorStairs, FloorStatBars, stairStep, statRows, useChartPan, useStairs, ValueLine, WallLine } from "@/components/PlayerStageCharts";
+import { ChartGame, ValueLine, WallLine } from "@/components/PlayerStageCharts";
 import { loadValueHistory } from "@/hooks/useLeagueTrades";
 import { normalizeName } from "@/lib/name-match";
 import { nflLogoUrl } from "@/lib/nfl-logos";
 import { ordinal } from "@/lib/format";
-import { StatTier, statTier } from "@/lib/stat-tiers";
 import { getNFLState, playerHeadshotUrl } from "@/lib/sleeper";
 import { CareerWeek, getCareer, getSeasonProjections, getSeasonWeeks, seasonPoints, seasonRank, type WeekProjection } from "@/lib/career-stats";
-import { HORIZON_SHARE } from "@/lib/grid-room";
 import { getPlayerBio, PlayerBio, ResolvedPlayer } from "@/lib/players";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import type { ResolvedSlot } from "@/hooks/useLeagueMatchupCarousel";
@@ -33,8 +31,6 @@ export interface StagePlaces {
   wall: React.CSSProperties;
   floor: { top: number; bottom: number; left: number; width: number };
   room: { width: number; height: number };
-  /** Told while a stage draws the floor itself (a player's stairs, see FloorStairs): the room's own grid put away. */
-  onFloorAway?: (away: boolean) => void;
 }
 
 /** In (or on its way), and drawn at all: kept drawn while it goes. */
@@ -206,49 +202,161 @@ function PlayerHeader({ player, bio, numbers, onClose }: { player: ResolvedPlaye
   );
 }
 
-const stat = (label: string, key: string): ChartStat => ({ label, key });
+/** How long a piece of a player's dossier takes to rise up off the floor (ms), and how far apart they start. */
+const RISE_MS = 650;
+const RISE_STAGGER_MS = 90;
+/** How far the dossier's side pieces are turned to face its middle (degrees). */
+const SIDE_TURN = 28;
+/** How near the eye the side pieces are seen from as they turn (px): near enough for the turn to show. */
+const TURN_PERSPECTIVE = 380;
+
 /**
- * Each position's stats on the floor's bars (see FloorStatBars), as Sleeper's game logs show them: the ones it leads
- * with (a passer's passing, a back's rushing, a receiver's receiving) as the primary ones, and the rest it shows
- * behind them — no fumbles or two-point conversions, which it doesn't.
+ * Something standing up off the floor, its foot on it: risen out of the floor (`up`), else sunk back into it — `order`
+ * pieces after the first, a moment apart. Turned `turn` degrees about its upright to face the floor's middle.
  */
-const CHART_STATS: Record<string, { primary: ChartStat[]; secondary: ChartStat[] }> = {
-  QB: {
-    primary: [stat("Cmp", "pass_cmp"), stat("Att", "pass_att"), stat("PYd", "pass_yd"), stat("PTD", "pass_td"), stat("Int", "pass_int")],
-    secondary: [stat("Car", "rush_att"), stat("RYd", "rush_yd"), stat("RTD", "rush_td")],
-  },
-  RB: {
-    primary: [stat("Car", "rush_att"), stat("RYd", "rush_yd"), stat("RTD", "rush_td")],
-    secondary: [stat("Tgt", "rec_tgt"), stat("Rec", "rec"), stat("RcYd", "rec_yd"), stat("RcTD", "rec_td")],
-  },
-  WR: {
-    primary: [stat("Tgt", "rec_tgt"), stat("Rec", "rec"), stat("RcYd", "rec_yd"), stat("RcTD", "rec_td")],
-    secondary: [stat("Car", "rush_att"), stat("RYd", "rush_yd"), stat("RTD", "rush_td")],
-  },
-  TE: {
-    primary: [stat("Tgt", "rec_tgt"), stat("Rec", "rec"), stat("RcYd", "rec_yd"), stat("RcTD", "rec_td")],
-    secondary: [stat("Car", "rush_att"), stat("RYd", "rush_yd"), stat("RTD", "rush_td")],
-  },
-  K: {
-    primary: [stat("FG", "fgm"), stat("FGA", "fga"), stat("XP", "xpm"), stat("XPA", "xpa")],
-    secondary: [stat("40-49", "fgm_40_49"), stat("50+", "fgm_50p")],
-  },
-  DEF: {
-    primary: [stat("Sack", "sack"), stat("Int", "int"), stat("FR", "fum_rec"), stat("TD", "def_td"), stat("PA", "pts_allow")],
-    secondary: [stat("Saf", "safe"), stat("Blk", "blk_kick"), stat("YdA", "yds_allow")],
-  },
-};
+function Upright({ up, order, turn = 0, className = "", style, children }: { up: boolean; order: number; turn?: number; className?: string; style?: React.CSSProperties; children: React.ReactNode }) {
+  return (
+    <div className={`overflow-hidden ${className}`} style={{ ...style, transform: turn ? `perspective(${TURN_PERSPECTIVE}px) rotateY(${turn}deg)` : undefined, transformOrigin: "50% 100%" }}>
+      <div
+        className="h-full transition-transform"
+        style={{
+          transform: up ? "translateY(0)" : "translateY(105%)",
+          transitionDuration: `${RISE_MS}ms`,
+          transitionDelay: `${up ? order * RISE_STAGGER_MS : 0}ms`,
+          transitionTimingFunction: "cubic-bezier(0.2, 0.8, 0.2, 1)",
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/** The name's lines (his first name over the rest, if one line would leave it small) and how big (px) to fit `width`. */
+function nameFit(name: string, number: string, width: number): { lines: string[]; size: number } {
+  // About how wide a letter of the name is, a share of its size (bold, uppercase, spaced out a little).
+  const letter = 0.64;
+  const MOST = 52;
+  const one = `${name}${number}`;
+  const oneSize = width / (one.length * letter);
+  const words = name.split(" ");
+  if (oneSize >= 22 || words.length < 2) return { lines: [name], size: Math.min(MOST, oneSize) };
+  const lines = [words[0], words.slice(1).join(" ")];
+  const longest = Math.max(lines[0].length, lines[1].length + number.length);
+  return { lines, size: Math.min(MOST, width / (longest * letter)) };
+}
+
+/** A soft shadow on the floor at the foot of what stands there, `width` across. */
+function FootShadow({ width }: { width: number }) {
+  return <span aria-hidden className="absolute -bottom-1.5 left-1/2 h-3 -translate-x-1/2 rounded-[50%] bg-ink-primary/10 blur-[3px]" style={{ width }} />;
+}
+
+/**
+ * Who a player is, standing up off the room's floor as a dossier, risen out of it one piece after another: on its
+ * left his photo over his team's logo, turned to face the middle; in the middle his name, big (his jersey number at
+ * its end), his position, height and weight under it smaller; and on its right, as tall as his photo and turned to
+ * face the middle too, his college, age, years in the league, and his trade-value and season ranks.
+ */
+function PlayerDossier({ player, bio, numbers, floor, up }: { player: ResolvedPlayer; bio: PlayerBio | null; numbers: LineupNumbers | null; floor: StagePlaces["floor"]; up: boolean }) {
+  const [photoFailed, setPhotoFailed] = useState(false);
+  // How tall what's on the right stands, for his photo to stand as tall.
+  const [factsCell, setFactsCell] = useState<HTMLDivElement | null>(null);
+  const [factsHeight, setFactsHeight] = useState(0);
+  useEffect(() => {
+    if (!factsCell) return;
+    const measure = () => setFactsHeight(factsCell.offsetHeight);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(factsCell);
+    return () => observer.disconnect();
+  }, [factsCell]);
+  const height = floor.bottom - 24 - floor.top;
+  // Where it all stands: well toward the front of the floor, over the column picked's readout.
+  const foot = floor.top + height * 0.82;
+  const side = floor.width * 0.24;
+  const middle = floor.width - 2 * side;
+  const number = bio?.number ? ` #${bio.number}` : "";
+  const { lines, size } = nameFit(player.name.toUpperCase(), number, middle - 8);
+  const sub = [player.position, bio?.height ? feet(bio.height) : null, bio?.weight ? `${bio.weight} lb` : null].filter(Boolean);
+  const photo = Math.min(side - 8, (foot - floor.top) * 0.9);
+  const years = bio?.yearsExp != null ? (bio.yearsExp === 0 ? "Rookie" : `${ordinal(bio.yearsExp + 1)} yr`) : null;
+  const facts: { label: string; value: string | null; className?: string }[] = [
+    { label: "College", value: collegeName(bio?.college) },
+    { label: "Age", value: bio?.age ? String(bio.age) : null },
+    { label: "Exp", value: years },
+    { label: numbers?.dynasty ? "Dynasty" : "Redraft", value: numbers?.valueRank != null ? `${player.position}${numbers.valueRank}` : null, className: "text-series-4" },
+    { label: "Season", value: numbers?.seasonRank != null ? `${player.position}${numbers.seasonRank}` : null, className: "text-series-1" },
+  ];
+  const panel = "border border-ink-primary/40 bg-page/75 backdrop-blur-[3px]";
+  return (
+    <div
+      className="pointer-events-none fixed z-[7] grid items-end"
+      style={{ top: floor.top, left: floor.left, width: floor.width, height: foot - floor.top, gridTemplateColumns: `${side}px ${middle}px ${side}px` }}
+    >
+      {/* His photo, over his team's logo, facing the middle — as tall as what's on the right. */}
+      <div className="relative flex justify-center" style={{ height: Math.max(factsHeight, Math.min(photo, side - 10)) }}>
+        <Upright up={up} order={0} turn={SIDE_TURN} className="h-full">
+          <div className={`relative h-full ${panel}`} style={{ width: side - 10, minHeight: Math.min(photo, side - 10) }}>
+            {player.team ? (
+              // eslint-disable-next-line @next/next/no-img-element -- a static SVG on a static export
+              <img src={nflLogoUrl(player.team)} alt="" className="absolute inset-[8%] h-[84%] w-[84%] object-contain opacity-40" />
+            ) : null}
+            {photoFailed ? null : (
+              // eslint-disable-next-line @next/next/no-img-element -- a remote Sleeper photo on a static export
+              <img src={playerHeadshotUrl(player.playerId)} alt="" onError={() => setPhotoFailed(true)} className="absolute inset-x-0 bottom-0 h-[90%] w-full object-cover object-top" />
+            )}
+          </div>
+        </Upright>
+        <FootShadow width={side - 4} />
+      </div>
+      {/* His name, big, his number at its end; his position, height and weight under it. */}
+      <div className="relative flex flex-col items-center gap-1 text-center">
+        <Upright up={up} order={1}>
+          <h3 className="font-extrabold uppercase leading-[1.05] tracking-wide text-ink-primary" style={{ fontSize: size }}>
+            {lines.map((line, i) => (
+              <span key={i} className="block whitespace-nowrap">
+                {line}
+                {i === lines.length - 1 && number ? <span className="text-ink-muted">{number}</span> : null}
+              </span>
+            ))}
+          </h3>
+        </Upright>
+        <Upright up={up} order={2}>
+          <p className="whitespace-nowrap pb-0.5 font-bold uppercase tracking-wide text-ink-secondary" style={{ fontSize: Math.max(11, Math.min(18, size * 0.42)) }}>
+            {sub.map((part, i) => (
+              <span key={i}>
+                {i > 0 ? " · " : ""}
+                <span className={i === 0 ? (POSITION_TEXT_COLOR[player.position] ?? "") : ""}>{part}</span>
+              </span>
+            ))}
+          </p>
+        </Upright>
+        <FootShadow width={middle * 0.7} />
+      </div>
+      {/* His college, age, years in the league and ranks, facing the middle. */}
+      <div ref={setFactsCell} className="relative flex justify-center">
+        <Upright up={up} order={3} turn={-SIDE_TURN}>
+          <dl className={`flex flex-col justify-between gap-1 px-2 py-1.5 ${panel}`} style={{ width: side - 10, minHeight: Math.min(photo, side - 10) }}>
+            {facts.map((f) =>
+              f.value ? (
+                <div key={f.label} className="leading-tight">
+                  <dt className="text-[0.5625rem] font-bold uppercase tracking-wide text-ink-muted">{f.label}</dt>
+                  <dd className={`text-[0.625rem] font-extrabold uppercase sm:text-xs ${f.className ?? "text-ink-primary"}`}>{f.value}</dd>
+                </div>
+              ) : null
+            )}
+          </dl>
+        </Upright>
+        <FootShadow width={side - 4} />
+      </div>
+    </div>
+  );
+}
 
 /** A game (or a season) as the stage picks and reads it out. */
 interface StageGame extends ChartGame {
   short: string;
 }
-
-/** A stat's value as it's painted: whole (Sleeper leaves a stat out when it's none). */
-const whole = (v: number | undefined) => String(Math.round(v !== undefined && Number.isFinite(v) ? v : 0));
-/** How good each of a game's stats was (see statTier) — or a season's, by what it came to a game (`games`). */
-const tiersOf = (position: string, stats: ChartStat[], line: Record<string, number>, games = 1): Record<string, StatTier | null> =>
-  Object.fromEntries(stats.map((r) => [r.key, games > 0 ? statTier(position, r.key, (Number.isFinite(line[r.key]) ? line[r.key] : 0) / games) : null]));
 
 /**
  * A player as a stage: on the back wall (under `picker`, if there is one), who he is (see PlayerHeader), his numbers
@@ -381,8 +489,6 @@ export function PlayerStage({
     };
   }, [valueView, player.name, player.position, valueFormat]);
 
-  const chartStats = CHART_STATS[player.position] ?? CHART_STATS.WR;
-  const allStats = [...chartStats.primary, ...chartStats.secondary];
   // The games: every week of the season picked (all of it, the weeks still to come too), a gap where he didn't play;
   // or every season of his.
   const columns: StageGame[] | null = (() => {
@@ -392,8 +498,6 @@ export function PlayerStage({
         key: s.season,
         value: s.points,
         tag: `'${s.season.slice(-2)}`,
-        stats: s.stats,
-        tiers: tiersOf(player.position, allStats, s.stats, s.stats.gp ?? 0),
         label: `${s.season}${s.team ? `, ${s.team}` : ""}: ${s.points.toFixed(1)} points${s.rank ? `, ${player.position}${s.rank}` : ""}`,
         short: `${s.season}${s.team ? ` · ${s.team}` : ""} · ${Math.round(s.stats.gp ?? 0)} GP · ${s.points.toFixed(1)} pts · ${
           s.stats.gp ? (s.points / s.stats.gp).toFixed(1) : "–"
@@ -437,8 +541,6 @@ export function PlayerStage({
             projected,
             opponent,
             tag: String(week),
-            stats: null,
-            tiers: {},
             label: `Week ${week}${opponent ? ` against ${opponent}` : ""}: didn't play, 0 points`,
             short: `${openSeason} · Week ${week}${opponent ? ` · vs ${opponent}` : ""} · Didn't play · 0 pts`,
           };
@@ -451,8 +553,6 @@ export function PlayerStage({
           bye: !future,
           opponent: future ? opponent : null,
           tag: String(week),
-          stats: null,
-          tiers: {},
           label: `Week ${week}: ${future ? `still to come${opponent ? `, against ${opponent}` : ""}` : "bye"}`,
           short: `Week ${week}`,
         };
@@ -464,9 +564,7 @@ export function PlayerStage({
         projected,
         opponent: w.opponent ?? game?.opponent ?? null,
         tag: String(week),
-        stats: w.stats,
-        tiers: tiersOf(player.position, allStats, w.stats),
-        label: `Week ${week}${w.opponent ? ` against ${w.opponent}` : ""}: ${points.toFixed(1)} points${projected !== null ? ` (projected ${projected.toFixed(1)})` : ""}, ${chartStats.primary.map((r) => `${whole(w.stats[r.key])} ${r.label}`).join(", ")}`,
+        label: `Week ${week}${w.opponent ? ` against ${w.opponent}` : ""}: ${points.toFixed(1)} points${projected !== null ? ` (projected ${projected.toFixed(1)})` : ""}`,
         short: `${openSeason} · Week ${week}${w.opponent ? ` · vs ${w.opponent}` : ""} · ${points.toFixed(1)} pts`,
       };
     });
@@ -491,17 +589,7 @@ export function PlayerStage({
           : "No regular-season stats yet"
         : columns[pick].short;
 
-  const { floor, room } = places;
-  // The wall's line and the floor's bars: every game across, the middle one in the middle of the screen, each game's
-  // column as wide as lets them all fit (see chartColumn); each of the stairs' steps as big as lets every stat's row fit
-  // (see stairStep).
-  const horizon = room.height * HORIZON_SHARE;
-  const games = columns?.length ?? 0;
-  const { pan, set: setPan, settle: settlePan } = useChartPan(view, (games - 1) / 2);
-  const step = stairStep(statRows(chartStats.primary.length, chartStats.secondary.length), horizon, floor.bottom - 20);
-  const col = chartColumn(games, horizon, floor.bottom - 20, floor.left, floor.left + floor.width, step);
-  // The floor made stairs for his stats while they're up on it.
-  const stairs = useStairs(up && !floorless && !table && !valueView);
+  const { floor } = places;
   const seasonButton = (key: string, label: string, on: boolean, onPick: () => void, buttonTitle?: string) => (
     <button
       key={key}
@@ -528,9 +616,23 @@ export function PlayerStage({
         <div className="flex h-full min-h-fit flex-col gap-2">
           {picker}
           <section aria-label={player.name} className="flex flex-col gap-2">
-            <PlayerHeader player={player} bio={bio} numbers={numbers} onClose={onClose} />
+            {/* Who he is: here when there's no floor for it (else standing on the floor, see PlayerDossier). */}
+            {floorless ? <PlayerHeader player={player} bio={bio} numbers={numbers} onClose={onClose} /> : null}
             <div className="flex flex-col gap-1">
-              <span className="text-[0.625rem] font-bold uppercase tracking-wide text-ink-muted">Seasons played</span>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[0.625rem] font-bold uppercase tracking-wide text-ink-muted">Seasons played</span>
+                {floorless ? null : (
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    aria-label={`Close ${player.name}`}
+                    title="Close"
+                    className="-my-1 flex h-7 w-6 items-center justify-center text-xl font-bold leading-none text-ink-primary transition-transform active:scale-90"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
               <div className="flex flex-wrap gap-1">
                 {seasons === null ? (
                   <span className="text-xs text-ink-muted">Loading…</span>
@@ -570,14 +672,11 @@ export function PlayerStage({
                   if (!openSeason && seasons?.[i]) setChosen(seasons[i].season);
                 }}
                 label={openSeason ? `${player.name}'s ${openSeason}, week by week` : `${player.name}'s fantasy points by season`}
-                col={col}
-                screenWidth={room.width}
               />
             </div>
           ) : null}
         </div>
       </div>
-      {floorless ? null : <FloorStairs room={room} horizon={horizon} pan={pan} q={stairs} col={col} step={step} onAway={places.onFloorAway} />}
       {floorless ? null : table && details ? (
         <div
           data-floor-ui
@@ -588,28 +687,8 @@ export function PlayerStage({
         </div>
       ) : (
         <div className={`transition-opacity ease-out ${up ? "opacity-100" : "pointer-events-none opacity-0"}`} style={{ transitionDuration: `${STAGE_MS}ms` }}>
-          {columns && columns.length > 0 && !valueView ? (
-            <FloorStatBars
-              key={`bars-${view}`}
-              games={columns}
-              primary={chartStats.primary}
-              secondary={chartStats.secondary}
-              screenWidth={room.width}
-              horizon={horizon}
-              bottom={floor.bottom - 20}
-              left={floor.left}
-              right={floor.left + floor.width}
-              col={col}
-              step={step}
-              picked={pick}
-              onPick={(i) => setPickedCol({ view, i })}
-              pan={pan}
-              onPan={setPan}
-              onSettle={settlePan}
-              q={stairs}
-              up={up}
-            />
-          ) : null}
+          {/* Who he is, standing up off the floor. */}
+          <PlayerDossier player={player} bio={bio} numbers={numbers} floor={floor} up={up} />
           {/* The column picked, read out along the floor's front. */}
           <p
             aria-live="polite"
