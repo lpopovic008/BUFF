@@ -57,6 +57,28 @@ function useProjectorView(place: ProjectorPlace, map?: FloorCameraStore, floor?:
   return useMemo(() => projectorView(place, picture, moved), [place, picture, moved]);
 }
 
+/** How long the projector's to have held still (ms) for its glow to come back. */
+const STILL_MS = 180;
+
+/** Whether the projector's picture (`map`) and the floor under it (`floor`) are holding still — not while either's moving. */
+function useStill(map?: FloorCameraStore, floor?: FloorCameraStore): boolean {
+  const [still, setStill] = useState(true);
+  useEffect(() => {
+    let timer = 0;
+    const moved = () => {
+      setStill(false);
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setStill(true), STILL_MS);
+    };
+    const off = [map?.subscribe(moved), floor?.subscribe(moved)];
+    return () => {
+      window.clearTimeout(timer);
+      off.forEach((o) => o?.());
+    };
+  }, [map, floor]);
+  return still;
+}
+
 /** One device pixel, in CSS px — a wire, whatever the browser's zoom. */
 function useWire(): number {
   const [wire, setWire] = useState(1);
@@ -82,17 +104,44 @@ function outlineRings(view: ProjectorView, d = US_PROJECTED_OUTLINE_PATH): [numb
   return mapRings(d).map((ring) => ring.map(([x, y]) => projectorPoint(view, x, y)));
 }
 
-/** The lower 48's mainland (its longest ring), in map units. */
-const MAINLAND = mapRings(US_PROJECTED_OUTLINE_PATH).reduce((a, b) => (b.length > a.length ? b : a), []);
+/** How many steps round the lens the haze's edge is found at, and how far apart (px) the map's edge is looked along. */
+const HAZE_STEPS = 360;
+const HAZE_LOOK_PX = 6;
 
-/** The point of an outline (`d`, map units) nearest the mainland's, and that point of the mainland's. */
-function nearestMainland(d: string): [[number, number], [number, number]] | null {
-  const pts = mapRings(d).flat();
-  if (!pts.length || !MAINLAND.length) return null;
-  const apart = (a: [number, number], b: [number, number]) => (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2;
-  let best: [[number, number], [number, number]] = [pts[0], MAINLAND[0]];
-  for (const p of pts) for (const m of MAINLAND) if (apart(p, m) < apart(...best)) best = [p, m];
-  return best;
+/**
+ * The haze of light from the lens (`lens`) to the map: every point between them, as far out as any of `rings` (screen
+ * px; a ring's points joined round, a pair's just the one stretch) goes, a step of angle at a time round the lens —
+ * one shape, drawn quickly however the map's zoomed, rather than a wedge for every stretch of its edge.
+ */
+function hazeShape([sx, sy]: [number, number], rings: [number, number][][]): string {
+  const angle = (x: number, y: number) => Math.atan2(x - sx, sy - y);
+  const points: [number, number, number][] = [];
+  for (const ring of rings) {
+    const closed = ring.length > 2;
+    for (let i = 0; i < ring.length - (closed ? 0 : 1); i++) {
+      const [ax, ay] = ring[i];
+      const [bx, by] = ring[(i + 1) % ring.length];
+      const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) / HAZE_LOOK_PX));
+      for (let k = 0; k < n; k++) {
+        const x = ax + ((bx - ax) * k) / n;
+        const y = ay + ((by - ay) * k) / n;
+        points.push([angle(x, y), x, y]);
+      }
+      if (!closed) points.push([angle(bx, by), bx, by]);
+    }
+  }
+  if (points.length === 0) return "";
+  let [lo, hi] = [Infinity, -Infinity];
+  for (const [a] of points) [lo, hi] = [Math.min(lo, a), Math.max(hi, a)];
+  // The farthest point from the lens at each step round it.
+  const far: ([number, number, number] | null)[] = new Array(HAZE_STEPS).fill(null);
+  const span = hi - lo || 1;
+  for (const [a, x, y] of points) {
+    const i = Math.min(HAZE_STEPS - 1, Math.floor(((a - lo) / span) * HAZE_STEPS));
+    const r = (x - sx) ** 2 + (y - sy) ** 2;
+    if (!far[i] || r > far[i]![0]) far[i] = [r, x, y];
+  }
+  return `M${sx},${sy}${far.map((p) => (p ? `L${p[1].toFixed(1)},${p[2].toFixed(1)}` : "")).join("")}Z`;
 }
 
 /** How many rays of light go from the lens to the map's edge, about. */
@@ -185,8 +234,11 @@ export function FloorProjection({
   countdown?: number[];
 }) {
   const view = useProjectorView(place, map, floor);
+  // Its glow left off while it's moving (zoomed, panned, slid with the floor): blurred afresh every frame, it's the
+  // costliest thing to draw — back as soon as it's still.
+  const still = useStill(map, floor);
   const sites = useMemo(() => mapSites(games), [games]);
-  const abroad = useMemo(() => abroadOnMap(games.map((entry) => entry.game)).countries.map((c) => ({ ...c, bridge: nearestMainland(c.path) })), [games]);
+  const abroad = useMemo(() => abroadOnMap(games.map((entry) => entry.game)).countries, [games]);
   const wire = useWire();
   const id = useId().replace(/:/g, "");
   const countdown = useCountdown(kickoffs);
@@ -201,19 +253,12 @@ export function FloorProjection({
     // The rays go to the mainland's edge (its longest ring), not its islands.
     const mainland = rings.reduce((a, b) => (b.length > a.length ? b : a), []);
     const [sx, sy] = view.source;
-    // The light's haze: a fan from the lens to every stretch of the map's edge (and over the countdown), so it ends
-    // where the map does — no straight edges across from coast to coast. Each wedge wound the same way, so they add up.
-    const wedge = ([ax, ay]: [number, number], [bx, by]: [number, number]) => {
-      const turn = (ax - sx) * (by - sy) - (ay - sy) * (bx - sx);
-      const [p, q] = turn >= 0 ? [[ax, ay], [bx, by]] : [[bx, by], [ax, ay]];
-      return `M${sx},${sy}L${p[0].toFixed(1)},${p[1].toFixed(1)}L${q[0].toFixed(1)},${q[1].toFixed(1)}Z`;
-    };
-    // And to the countries abroad, drawn small under the southwest — each joined to the lower 48's light by a wedge
-    // from its point nearest the mainland's to that one, so no dark gap's left between them.
+    // The light's haze: everything between the lens and the map's edge (the countries abroad's too, and over the
+    // countdown), so it ends where the map does — no straight edges across from coast to coast. One shape: round the
+    // lens, a step of angle at a time, out as far as the map's edge goes that way (see hazeShape).
     const countryRings = abroad.map((c) => outlineRings(view, c.path));
-    const bridges = abroad.flatMap(({ bridge }) => (bridge ? [wedge(projectorPoint(view, ...bridge[0]), projectorPoint(view, ...bridge[1]))] : []));
-    const fan = [...rings, ...countryRings.flat()].flatMap((ring) => ring.map((p, i) => wedge(p, ring[(i + 1) % ring.length]))).concat(bridges);
-    if (counting) fan.push(wedge([clock.x - clock.wide / 2, clock.y - COUNTDOWN_PX], [clock.x + clock.wide / 2, clock.y - COUNTDOWN_PX]));
+    const edges = [...rings, ...countryRings.flat()];
+    if (counting) edges.push([[clock.x - clock.wide / 2, clock.y - COUNTDOWN_PX], [clock.x + clock.wide / 2, clock.y - COUNTDOWN_PX]]);
     // Its outermost rays: to the points of the edge farthest round either way from the lens.
     const angle = ([x, y]: [number, number]) => Math.atan2(x - sx, sy - y);
     const outer = edge.length ? [edge.reduce((a, b) => (angle(b) < angle(a) ? b : a)), edge.reduce((a, b) => (angle(b) > angle(a) ? b : a))] : [];
@@ -224,7 +269,7 @@ export function FloorProjection({
     return {
       outline: projectorPath(view, US_PROJECTED_OUTLINE_PATH),
       countries: namedApart(abroad.map((c) => ({ name: c.name, d: projectorPath(view, c.path), under: projectorPoint(view, c.left + c.width / 2, c.top + c.height) }))),
-      haze: fan.join(""),
+      haze: hazeShape([sx, sy], edges),
       rays: rays.map(([x, y]) => `M${sx},${sy}L${x.toFixed(1)},${y.toFixed(1)}`).join(""),
       outer: outer.map(([x, y]) => `M${sx},${sy}L${x.toFixed(1)},${y.toFixed(1)}`).join(""),
       top,
@@ -289,13 +334,13 @@ export function FloorProjection({
         opacity={0.07}
         clipPath={`url(#${id}-land)`}
       />
-      <path d={drawn.outline} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.5} strokeWidth={wire * 3} strokeLinejoin="round" filter={`url(#${id}-glow)`} />
+      {still ? <path d={drawn.outline} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.5} strokeWidth={wire * 3} strokeLinejoin="round" filter={`url(#${id}-glow)`} /> : null}
       <path d={drawn.outline} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.85} strokeWidth={wire * 1.25} strokeLinejoin="round" />
       {/* The countries games are being played in abroad, lit as the states are, each named under it — coming up with them. */}
       {drawn.countries.map((c) => (
         <g key={c.name} style={{ animation: "fade-in 400ms ease-out" }}>
           <path d={c.d} fill="var(--ink-primary)" fillOpacity={0.06} />
-          <path d={c.d} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.5} strokeWidth={wire * 3} strokeLinejoin="round" filter={`url(#${id}-glow)`} />
+          {still ? <path d={c.d} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.5} strokeWidth={wire * 3} strokeLinejoin="round" filter={`url(#${id}-glow)`} /> : null}
           <path d={c.d} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.85} strokeWidth={wire * 1.25} strokeLinejoin="round" />
           <text
             x={c.under[0]}
@@ -318,9 +363,11 @@ export function FloorProjection({
       {/* The countdown to the next kickoff, lit over the map as it is: glowing, see-through. */}
       {countdown !== null ? (
         <g fontSize={COUNTDOWN_PX} fontWeight={700} textAnchor="middle" style={{ fontVariantNumeric: "tabular-nums" }}>
-          <text x={clock.x} y={clock.y} fill="var(--ink-primary)" fillOpacity={0.5} filter={`url(#${id}-glow)`}>
-            {countdown}
-          </text>
+          {still ? (
+            <text x={clock.x} y={clock.y} fill="var(--ink-primary)" fillOpacity={0.5} filter={`url(#${id}-glow)`}>
+              {countdown}
+            </text>
+          ) : null}
           <text x={clock.x} y={clock.y} fill="var(--ink-primary)" fillOpacity={0.85}>
             {countdown}
           </text>

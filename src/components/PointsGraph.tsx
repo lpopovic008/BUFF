@@ -414,10 +414,10 @@ export function PointsGraph({
 
       <div
         ref={plotRef}
-        // touch-none: the page itself never scrolls under a finger on the graph — a sideways drag moves its cursor, and
-        // an up-and-down one scrolls the list it's in (data-sideways-only, see useListScroll).
+        // A sideways drag moves its cursor; an up-and-down one scrolls the list it's in, as the browser does (pan-y) —
+        // and a mouse's, as useListScroll does (data-sideways-only).
         data-sideways-only={compact ? undefined : ""}
-        className={`relative flex-1 select-none ${compact ? "min-h-0" : "min-h-[8rem] touch-none"}`}
+        className={`relative flex-1 select-none ${compact ? "min-h-0" : "min-h-[8rem] touch-pan-y"}`}
         {...plotHandlers}
       >
         {plot && size ? (

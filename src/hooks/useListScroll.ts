@@ -33,15 +33,6 @@ const MOVING = 0.1;
 /** How much of a finger's last moves its speed is taken from (ms), and how long it may have held still before letting go and still fling (ms). */
 const FLING_WINDOW_MS = 80;
 const STILL_MS = 50;
-/**
- * A wheel's step bigger than this (px) is a mouse's notch, eased into; smaller, a trackpad's, followed as it comes. A
- * notch goes this much further than the browser's own step, eased toward with this time constant (ms).
- */
-const NOTCH_PX = 40;
-const NOTCH_GAIN = 1.25;
-const NOTCH_EASE_MS = 70;
-/** How long after a trackpad stops pushing past an end the list springs back (ms). */
-const WHEEL_SETTLE_MS = 120;
 
 /** How far a list follows a pull `x` past its end, at height `d` (iOS's rubber band). */
 const rubber = (x: number, d: number) => Math.sign(x) * (1 - 1 / ((Math.abs(x) * RUBBER) / d + 1)) * d;
@@ -49,19 +40,25 @@ const rubber = (x: number, d: number) => Math.sign(x) * (1 - 1 / ((Math.abs(x) *
 const unrubber = (f: number, d: number) => Math.sign(f) * ((Math.abs(f) * d) / ((d - Math.min(Math.abs(f), d - 1)) * RUBBER));
 
 /**
- * A list (`el`: a box of overflow auto holding one element, its contents) scrolled the way an iPhone scrolls — dragged
- * by a finger or the mouse, flicked to glide on and slow as iOS's lists do, pulled past either end on a rubber band
- * and sprung back, a glide into an end bouncing off it, a touch on a gliding list just stopping it — and by a wheel or
- * trackpad. The page moves it, not the browser, so that everything drawn from it moves in the very same frame
- * (LIST_MOVE). Within its ends it's the box's own scroll (scrollTop, scroll events, scrolling it from code all as
- * usual); past them, its contents are moved that far, on the graphics card. Drags that start sideways, or on
- * something that takes the finger itself (touch-action none, or data-own-touch — but for one marked
- * data-sideways-only, its up-and-down drags), or a mouse's in a text box, are left alone.
+ * A list (`el`: a box of overflow auto holding one element, its contents) scrolled smoothly, and everything drawn from
+ * it (its reflection, its scroll thumb) told each time it moves (LIST_MOVE). A finger and a wheel or trackpad scroll it
+ * as the browser does — off the page's own thread, so it keeps up however busy the page is (a phone's momentum and
+ * bounce its own), up-and-down only, sideways drags left to the page. A mouse can drag it too, as a finger would:
+ * flicked to glide on and slow as iOS's lists do, pulled past either end on a rubber band and sprung back, a glide
+ * into an end bouncing off it, a click on a gliding list just stopping it. Within its ends it's the box's own scroll
+ * (scrollTop, scroll events, scrolling it from code all as usual); past them, its contents are moved that far, on the
+ * graphics card. A mouse's drags that start sideways, or on something that takes the pointer itself (touch-action
+ * none, or data-own-touch — but for one marked data-sideways-only, its up-and-down drags), or in a text box, are left
+ * alone.
  */
 export function useListScroll(el: HTMLElement | null) {
   useEffect(() => {
     if (!el) return;
     el.setAttribute("data-scroll-list", "");
+    // A finger scrolls it up and down as the browser does; sideways is the page's. Its own bounce at its ends, none
+    // carried on to what's behind it.
+    el.style.setProperty("touch-action", "pan-y");
+    el.style.setProperty("overscroll-behavior-y", "contain");
     const contents = () => el.firstElementChild as HTMLElement | null;
     // How far it scrolls: its contents' own height (not what they're moved by) and its padding, less its height.
     let maxTop = 0;
@@ -142,13 +139,14 @@ export function useListScroll(el: HTMLElement | null) {
     let drag: { id: number; x: number; y: number; from: number; scrolling: boolean | null; samples: [number, number][] } | null = null;
     let swallowClick = false;
     const down = (e: PointerEvent) => {
-      if (e.pointerType === "mouse" && e.button !== 0) return;
+      // A finger (or pen) scrolls it as the browser does.
+      if (e.pointerType !== "mouse" || e.button !== 0) return;
       const own = (e.target as Element).closest(".touch-none, [data-own-touch]");
       // Something that takes the finger itself — unless it only takes sideways drags (a graph's cursor), whose
       // up-and-down ones still scroll the list.
       if (own && own !== el && el.contains(own) && !own.hasAttribute("data-sideways-only")) return;
       // A mouse in a text box selects its text, as ever.
-      if (e.pointerType === "mouse" && (e.target as Element).closest("input, textarea, select, [contenteditable='true']")) return;
+      if ((e.target as Element).closest("input, textarea, select, [contenteditable='true']")) return;
       // A touch on a gliding list stops it, and is no tap on what's under it.
       swallowClick = Math.abs(speed) > MOVING;
       stop();
@@ -203,60 +201,15 @@ export function useListScroll(el: HTMLElement | null) {
       e.preventDefault();
     };
 
-    // A wheel: a mouse's notch eased into over a moment, a trackpad's scroll followed as it comes — pushed on past an
-    // end, on the rubber band, until it's let go a moment and springs back.
-    let pushed: number | null = null;
-    let settle = 0;
-    // Where a mouse's notches are headed.
-    let notchTarget: number | null = null;
-    const wheel = (e: WheelEvent) => {
-      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
-      e.preventDefault();
-      const delta = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? el.clientHeight : 1);
-      window.clearTimeout(settle);
-      if (Math.abs(delta) >= NOTCH_PX) {
-        pushed = null;
-        // Notches in a row add up: each goes on from where the last was headed, not from where it's got to.
-        const base = frame && notchTarget !== null ? notchTarget : at;
-        const target = Math.min(maxTop, Math.max(0, base + delta * NOTCH_GAIN));
-        notchTarget = target;
-        let last = 0;
-        // Eased toward it, a little of the way left each frame — so it glides on and settles, however fast the notches.
-        return run((t) => {
-          const next = at + (target - at) * (1 - Math.exp(-(t - last) / NOTCH_EASE_MS));
-          last = t;
-          if (Math.abs(target - next) < 0.5) {
-            show(target);
-            notchTarget = null;
-            return false;
-          }
-          // Settled where it can go no further (its end, a pixel or two short of where it was measured to be): done,
-          // rather than holding it there for good.
-          const was = at;
-          show(next);
-          if (Math.abs(at - was) < 0.01) {
-            notchTarget = null;
-            return false;
-          }
-          return true;
-        });
-      }
+    // A wheel, or a finger, taking over from a mouse's glide: the glide stopped, where it's got to.
+    const takeOver = () => {
+      if (!frame) return;
       stop();
-      const raw = (pushed ?? at) + delta;
-      if (raw >= 0 && raw <= maxTop) {
-        pushed = null;
-        return show(raw);
-      }
-      pushed = raw;
-      const end = raw < 0 ? 0 : maxTop;
-      show(end + rubber(raw - end, el.clientHeight || 1));
-      settle = window.setTimeout(() => {
-        pushed = null;
-        glide(at, 0);
-      }, WHEEL_SETTLE_MS);
+      if (at < 0 || at > maxTop) show(Math.min(maxTop, Math.max(0, at)));
     };
 
-    // Scrolled from code (or by the browser, bringing something into view): followed as it goes.
+    // Scrolled by a finger, a wheel or trackpad, from code, or by the browser bringing something into view: followed as
+    // it goes.
     const scrolled = () => {
       if (frame || drag?.scrolling || at < 0 || at > maxTop) return;
       if (el.scrollTop === at) return;
@@ -283,11 +236,11 @@ export function useListScroll(el: HTMLElement | null) {
     el.addEventListener("pointerup", up);
     el.addEventListener("pointercancel", up);
     el.addEventListener("click", click, true);
-    el.addEventListener("wheel", wheel, { passive: false });
     el.addEventListener("scroll", scrolled, { passive: true });
+    el.addEventListener("wheel", takeOver, { passive: true });
+    el.addEventListener("touchstart", takeOver, { passive: true });
     return () => {
       stop();
-      window.clearTimeout(settle);
       resize.disconnect();
       swapped.disconnect();
       el.removeEventListener("pointerdown", down);
@@ -295,9 +248,12 @@ export function useListScroll(el: HTMLElement | null) {
       el.removeEventListener("pointerup", up);
       el.removeEventListener("pointercancel", up);
       el.removeEventListener("click", click, true);
-      el.removeEventListener("wheel", wheel);
       el.removeEventListener("scroll", scrolled);
+      el.removeEventListener("wheel", takeOver);
+      el.removeEventListener("touchstart", takeOver);
       el.removeAttribute("data-scroll-list");
+      el.style.removeProperty("touch-action");
+      el.style.removeProperty("overscroll-behavior-y");
       contents()?.style.removeProperty("transform");
       positions.delete(el);
     };

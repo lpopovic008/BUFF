@@ -6,6 +6,12 @@ import { LIST_MOVE, listPosition } from "@/hooks/useListScroll";
 /** How far down the floor a reflection reaches, and how strong it is at its top. */
 const REACH = "5rem";
 const STRENGTH = 0.2;
+/**
+ * Changes to what it reflects are copied together, at most this often (ms) — and not while it's being scrolled, until
+ * it's been still this long (ms): copying it all is the costliest thing it does.
+ */
+const RECOPY_EVERY_MS = 200;
+const STILL_FOR_MS = 150;
 
 interface Timing {
   riseAt: number | null;
@@ -92,7 +98,10 @@ export function FloorReflection({
     // whole; for one within it, its copy's contents. And anything else scrolling within it, paired with its copy.
     let lists: [HTMLElement, HTMLElement][] = [];
     let inner: [HTMLElement, HTMLElement][] = [];
+    // When it last moved: a change isn't copied while it's being scrolled.
+    let movedAt = 0;
     const follow = () => {
+      movedAt = performance.now();
       for (const [list, moved] of lists) moved.style.transform = `translate3d(0,${-listPosition(list)}px,0)`;
       for (const [from, to] of inner) to.scrollTop = from.scrollTop;
     };
@@ -146,9 +155,30 @@ export function FloorReflection({
       // A list moved past an end (its contents moved) isn't a change to copy.
       const moved = (r: MutationRecord) =>
         r.attributeName === "style" && r.target instanceof Element && (r.target.hasAttribute("data-scroll-list") || !!r.target.parentElement?.hasAttribute("data-scroll-list"));
-      if (records.some((r) => !left(r) && !moved(r))) recopy();
+      if (records.some((r) => !left(r) && !moved(r))) recopySoon();
+    };
+    // Copied again once the changes have stopped coming for a moment, and it's not being scrolled.
+    let pending = 0;
+    let copiedAt = 0;
+    const recopySoon = () => {
+      if (pending) return;
+      const wait = () => Math.max(RECOPY_EVERY_MS - (performance.now() - copiedAt), STILL_FOR_MS - (performance.now() - movedAt), 0);
+      const later = () => {
+        const left = wait();
+        if (left > 0) {
+          pending = window.setTimeout(later, left);
+          return;
+        }
+        pending = 0;
+        // Going down into the floor meanwhile: kept as it was as it goes.
+        if (timing.current.sinkAt !== null) return;
+        copiedAt = performance.now();
+        recopy();
+      };
+      pending = window.setTimeout(later, wait());
     };
     recopy();
+    copiedAt = performance.now();
     // Its lists' moves, and other scrolls within it (which don't bubble), caught on their way down.
     source.addEventListener(LIST_MOVE, follow, { capture: true });
     source.addEventListener("scroll", follow, { capture: true, passive: true });
@@ -163,6 +193,7 @@ export function FloorReflection({
       source.removeEventListener(LIST_MOVE, follow, { capture: true });
       source.removeEventListener("scroll", follow, { capture: true });
       mutations.disconnect();
+      window.clearTimeout(pending);
       resize.disconnect();
       window.removeEventListener("resize", place);
       document.removeEventListener("animationend", place, true);
