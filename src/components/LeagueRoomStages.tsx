@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { ChevronLeftIcon } from "@/components/ui/Icon";
 import { CloseButton } from "@/components/LeagueRoomFloor";
 import { SeasonLine } from "@/components/FloorCareer";
@@ -232,6 +232,10 @@ function Upright({ up, order, className = "", children }: { up: boolean; order: 
 
 const TILT_SIN = Math.sin((FLOOR_TILT * Math.PI) / 180);
 const TILT_COS = Math.cos((FLOOR_TILT * Math.PI) / 180);
+/** How much of what stands on the floor its reflection shows, under it (a share of its height). */
+const REFLECTION_SHARE = 0.45;
+/** A reflection's fade: faint at the foot of what it reflects, gone a little way down. */
+const REFLECTION_FADE = `linear-gradient(to top, rgba(0, 0, 0, 0.3), transparent ${REFLECTION_SHARE * 100}%)`;
 /** A photo's edges faded out, so it stands free of its own background. */
 const PHOTO_FADE = "radial-gradient(ellipse 72% 78% at 50% 46%, #000 62%, transparent 100%)";
 /** Free-floating text kept clear of the floor's lines behind it. */
@@ -276,12 +280,13 @@ function PlayerDossier({
     return () => observer.disconnect();
   }, [factsBox]);
   const horizon = room.height * share;
-  // Where it all stands: at the floor's front — how far back that is on the floor, how much nearer than the wall it
-  // shows things there, and how tall the strip lets it stand.
-  const foot = floor.bottom - 4;
+  // How tall it stands, and where: in the middle of the floor, it and its reflection under it together — how far back
+  // that is on the floor, and how much nearer than the wall it shows things there.
+  const floorTall = floor.bottom - floor.top;
+  const tall = Math.max(24, Math.min(160, (floorTall - 8) / (1 + REFLECTION_SHARE)));
+  const foot = floor.top + (floorTall - tall * (1 + REFLECTION_SHARE)) / 2 + tall;
   const depth = floorDepth(foot, room.height, share);
   const scale = floorScale(depth);
-  const tall = Math.max(24, foot - floor.top);
   const side = floor.width * 0.24;
   const middle = floor.width - 2 * side;
   const number = bio?.number ? ` #${bio.number}` : "";
@@ -307,20 +312,19 @@ function PlayerDossier({
     top: horizon,
     transform: `translate3d(${(x - room.width / 2) / scale}px, ${depth * TILT_COS}px, ${depth * TILT_SIN}px) rotateX(${FLOOR_TILT - 90}deg) rotateY(${turn}deg) scale(${1 / scale})`,
   });
-  // Its shadow, lying on the floor at its foot (lying flat: the floor's tilt from upright).
-  const shadow = (x: number, width: number) => (
-    <div
-      aria-hidden
-      className="absolute"
-      style={{
-        left: room.width / 2,
-        top: horizon,
-        transform: `translate3d(${(x - room.width / 2) / scale}px, ${depth * TILT_COS}px, ${depth * TILT_SIN}px) rotateX(${FLOOR_TILT}deg) scale(${1 / scale})`,
-      }}
-    >
-      {/* Mostly behind its foot (away from you, on the floor), a little in front. */}
-      <span className="absolute left-0 top-0 block -translate-x-1/2 -translate-y-[70%] rounded-[50%] bg-ink-primary/10 blur-[4px]" style={{ width, height: width * 0.4 }} />
-    </div>
+  // A piece standing on the floor, and its reflection in the floor under it: the same, turned over about its foot,
+  // faint and fading away from it. Its content (`draw`) told which it's drawing.
+  const piece = (key: string, x: number, turn: number, draw: (reflected: boolean) => React.ReactNode) => (
+    <Fragment key={key}>
+      <div aria-hidden className="absolute" style={{ ...standing(x, turn), transform: `${standing(x, turn).transform} scaleY(-1)` }}>
+        <div className="absolute bottom-0 left-0" style={{ maskImage: REFLECTION_FADE, WebkitMaskImage: REFLECTION_FADE }}>
+          {draw(true)}
+        </div>
+      </div>
+      <div className="absolute" style={standing(x, turn)}>
+        <div className="absolute bottom-0 left-0">{draw(false)}</div>
+      </div>
+    </Fragment>
   );
   // The sides a little in from the floor's edges: turned, their outer edges come toward you, and grow.
   const [leftX, middleX, rightX] = [floor.left + side * 0.55, floor.left + floor.width / 2, floor.left + floor.width - side * 0.55];
@@ -330,12 +334,9 @@ function PlayerDossier({
       className="pointer-events-none fixed inset-0 z-[7]"
       style={{ perspective: PERSPECTIVE_PX, perspectiveOrigin: `${room.width / 2}px ${horizon}px` }}
     >
-      {shadow(leftX, side * 0.85)}
-      {shadow(middleX, middle * 0.7)}
-      {shadow(rightX, side * 0.85)}
       {/* His photo, over his team's logo, facing the middle. */}
-      <div className="absolute" style={standing(leftX, SIDE_TURN)}>
-        <div className="absolute bottom-0 left-0 -translate-x-1/2">
+      {piece("photo", leftX, SIDE_TURN, () => (
+        <div className="-translate-x-1/2">
           <Upright up={up} order={0}>
             <div className="relative" style={{ width: sideWide, height: photo }}>
               {player.team ? (
@@ -361,18 +362,25 @@ function PlayerDossier({
             </div>
           </Upright>
         </div>
-      </div>
+      ))}
       {/* His name on a line, his number at its end; his position, height and weight under it. */}
-      <div className="absolute" style={standing(middleX)}>
-        <div className="absolute bottom-0 left-0 flex -translate-x-1/2 flex-col items-center text-center" style={{ width: middle }}>
+      {piece("name", middleX, 0, (reflected) => (
+        <div className="flex -translate-x-1/2 flex-col items-center text-center" style={{ width: middle }}>
           <Upright up={up} order={1}>
-            <h3 className="whitespace-nowrap font-extrabold uppercase leading-[1.05] tracking-wide text-ink-primary" style={{ fontSize: size, ...OVER_FLOOR }}>
-              {name}
-              {number ? <span className="text-ink-muted">{number}</span> : null}
-            </h3>
+            {reflected ? (
+              <span aria-hidden className="block whitespace-nowrap font-extrabold uppercase leading-[1.05] tracking-wide text-ink-primary" style={{ fontSize: size }}>
+                {name}
+                {number ? <span className="text-ink-muted">{number}</span> : null}
+              </span>
+            ) : (
+              <h3 className="whitespace-nowrap font-extrabold uppercase leading-[1.05] tracking-wide text-ink-primary" style={{ fontSize: size, ...OVER_FLOOR }}>
+                {name}
+                {number ? <span className="text-ink-muted">{number}</span> : null}
+              </h3>
+            )}
           </Upright>
           <Upright up={up} order={2}>
-            <p className="whitespace-nowrap font-bold uppercase tracking-wide text-ink-secondary" style={{ fontSize: subSize, ...OVER_FLOOR }}>
+            <p className="whitespace-nowrap font-bold uppercase tracking-wide text-ink-secondary" style={{ fontSize: subSize, ...(reflected ? {} : OVER_FLOOR) }}>
               {sub.map((part, i) => (
                 <span key={i}>
                   {i > 0 ? " · " : ""}
@@ -382,15 +390,16 @@ function PlayerDossier({
             </p>
           </Upright>
         </div>
-      </div>
-      {/* His college, age and years, and ranks, facing the middle. */}
-      <div className="absolute" style={standing(rightX, -SIDE_TURN)}>
-        <div
-          className="absolute bottom-0 left-0"
-          style={{ transform: `translateX(-50%) scale(${factsHeight > tall ? tall / factsHeight : 1})`, transformOrigin: "50% 100%" }}
-        >
+      ))}
+      {/* His college, age and years, and ranks, facing the middle — drawn smaller where they'd stand taller than he does. */}
+      {piece("facts", rightX, -SIDE_TURN, (reflected) => (
+        <div style={{ transform: `translateX(-50%) scale(${factsHeight > tall ? tall / factsHeight : 1})`, transformOrigin: "50% 100%" }}>
           <Upright up={up} order={3}>
-            <div ref={setFactsBox} className="flex flex-col font-extrabold uppercase leading-tight" style={{ width: sideWide, fontSize: factSize, ...OVER_FLOOR }}>
+            <div
+              ref={reflected ? undefined : setFactsBox}
+              className="flex flex-col font-extrabold uppercase leading-tight"
+              style={{ width: sideWide, fontSize: factSize, ...(reflected ? {} : OVER_FLOOR) }}
+            >
               {college ? <span className="break-words text-ink-primary">{college}</span> : null}
               {ageYears.map((part) => (
                 <span key={part} className="whitespace-nowrap text-ink-secondary">
@@ -413,7 +422,7 @@ function PlayerDossier({
             </div>
           </Upright>
         </div>
-      </div>
+      ))}
     </div>
   );
 }
@@ -432,11 +441,6 @@ const CHART_STATS: Record<string, ChartStat[]> = {
   K: [stat("FG", "fgm"), stat("FGA", "fga"), stat("XP", "xpm"), stat("XPA", "xpa"), stat("40-49", "fgm_40_49"), stat("50+", "fgm_50p")],
   DEF: [stat("Sack", "sack"), stat("Int", "int"), stat("FR", "fum_rec"), stat("TD", "def_td"), stat("PA", "pts_allow"), stat("Saf", "safe"), stat("Blk", "blk_kick"), stat("YdA", "yds_allow")],
 };
-
-/** A game (or a season) as the stage picks and reads it out. */
-interface StageGame extends ChartGame {
-  short: string;
-}
 
 /**
  * A player as a stage: on the back wall (under `picker`, if there is one), who he is (see PlayerHeader), his numbers
@@ -571,7 +575,7 @@ export function PlayerStage({
 
   // The games: every week of the season picked (all of it, the weeks still to come too), a gap where he didn't play;
   // or every season of his.
-  const columns: StageGame[] | null = (() => {
+  const columns: ChartGame[] | null = (() => {
     if (seasons === null) return null;
     if (!openSeason) {
       return seasons.map((s) => ({
@@ -580,9 +584,6 @@ export function PlayerStage({
         stats: s.stats,
         tag: `'${s.season.slice(-2)}`,
         label: `${s.season}${s.team ? `, ${s.team}` : ""}: ${s.points.toFixed(1)} points${s.rank ? `, ${player.position}${s.rank}` : ""}`,
-        short: `${s.season}${s.team ? ` · ${s.team}` : ""} · ${Math.round(s.stats.gp ?? 0)} GP · ${s.points.toFixed(1)} pts · ${
-          s.stats.gp ? (s.points / s.stats.gp).toFixed(1) : "–"
-        } a game${s.rank ? ` · ${player.position}${s.rank}` : ""}`,
       }));
     }
     if (!seasonWeeks) return null;
@@ -599,7 +600,7 @@ export function PlayerStage({
       }
       return fallbackTeam;
     };
-    return Array.from({ length }, (_, k): StageGame => {
+    return Array.from({ length }, (_, k): ChartGame => {
       const week = k + 1;
       const w = byWeek.get(week);
       const projectedLine = seasonProjections?.get(week);
@@ -623,7 +624,6 @@ export function PlayerStage({
             opponent,
             tag: String(week),
             label: `Week ${week}${opponent ? ` against ${opponent}` : ""}: didn't play, 0 points`,
-            short: `${openSeason} · Week ${week}${opponent ? ` · vs ${opponent}` : ""} · Didn't play · 0 pts`,
           };
         }
         const future = !behind && !bye;
@@ -635,7 +635,6 @@ export function PlayerStage({
           opponent: future ? opponent : null,
           tag: String(week),
           label: `Week ${week}: ${future ? `still to come${opponent ? `, against ${opponent}` : ""}` : "bye"}`,
-          short: `Week ${week}`,
         };
       }
       const points = seasonPoints(w.stats, scoring);
@@ -647,43 +646,12 @@ export function PlayerStage({
         opponent: w.opponent ?? game?.opponent ?? null,
         tag: String(week),
         label: `Week ${week}${w.opponent ? ` against ${w.opponent}` : ""}: ${points.toFixed(1)} points${projected !== null ? ` (projected ${projected.toFixed(1)})` : ""}`,
-        short: `${openSeason} · Week ${week}${w.opponent ? ` · vs ${w.opponent}` : ""} · ${points.toFixed(1)} pts`,
       };
     });
   })();
 
-  // The column read out: his latest, until another's picked — in whatever's shown.
-  const [pickedCol, setPickedCol] = useState<{ view: string; i: number } | null>(null);
   const view = shown ?? "loading";
-  const lastPlayed = columns ? columns.map((c, i) => (c.value === null || c.missed ? -1 : i)).reduce((a, b) => Math.max(a, b), -1) : -1;
-  const pick = pickedCol?.view === view && columns?.[pickedCol.i]?.value != null ? pickedCol.i : lastPlayed;
-  const readout = valueView
-    ? valuePoints === null
-      ? "Loading…"
-      : valuePoints.length > 0
-        ? `KTC ${valueFormat === "oneQB" ? "1QB" : "superflex"} value now · ${Math.floor(valuePoints[valuePoints.length - 1].value / 100)}`
-        : "No value history for him"
-    : !columns
-      ? "Loading…"
-      : lastPlayed < 0
-        ? openSeason
-          ? `No games in ${openSeason}`
-          : "No regular-season stats yet"
-        : columns[pick].short;
-
   const { floor } = places;
-  // How tall the row across the back of the floor stands: the rest of the floor's under it.
-  const [floorBar, setFloorBar] = useState<HTMLDivElement | null>(null);
-  const [floorBarHeight, setFloorBarHeight] = useState(0);
-  useEffect(() => {
-    if (!floorBar) return;
-    const measure = () => setFloorBarHeight(floorBar.offsetHeight);
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(floorBar);
-    return () => observer.disconnect();
-  }, [floorBar]);
-  const below = { ...floor, top: floor.top + floorBarHeight + 8 };
   const seasonButton = (key: string, label: string, on: boolean, onPick: () => void, buttonTitle?: string) => (
     <button
       key={key}
@@ -699,10 +667,10 @@ export function PlayerStage({
     </button>
   );
 
-  // His seasons to look into (or his career), every number there is, and his value over time — on the floor, with
-  // the card's way out; on the wall where there's no floor.
+  // Over his charts: his seasons to look into (or his career) and every number there is; at the right, his value over
+  // time, and the card's way out.
   const controls = (
-    <div className={`flex items-center gap-1 ${floorless ? "flex-wrap" : "overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"}`}>
+    <div className="flex flex-wrap items-center gap-1">
       {seasons === null ? (
         <span className="text-xs text-ink-muted">Loading…</span>
       ) : seasons.length === 0 ? (
@@ -716,41 +684,36 @@ export function PlayerStage({
           {details ? seasonButton("table", "Table", table, () => (setTable((t) => !t), setValueView(false)), "Every number there is") : null}
         </>
       )}
-      {/* His value over time: KTC's, from when it first listed him. */}
-      {seasonButton("value", "Value over time", valueView, () => (setValueView(true), setTable(false)), "His trade value, KTC's, over time")}
-      {floorless ? null : (
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label={`Close ${player.name}`}
-          title="Close"
-          className="ml-auto flex h-7 w-6 shrink-0 items-center justify-center text-xl font-bold leading-none text-ink-primary transition-transform active:scale-90"
-        >
-          ×
-        </button>
-      )}
+      {/* His value over time (KTC's, from when it first listed him), and the way out: at the right. */}
+      <span className="ml-auto flex items-center gap-1">
+        {seasonButton("value", "Value over time", valueView, () => (setValueView(true), setTable(false)), "His trade value, KTC's, over time")}
+        {floorless ? null : (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={`Close ${player.name}`}
+            title="Close"
+            className="flex h-7 w-6 shrink-0 items-center justify-center text-xl font-bold leading-none text-ink-primary transition-transform active:scale-90"
+          >
+            ×
+          </button>
+        )}
+      </span>
     </div>
   );
-  // The game picked (or his value now), read out over his charts.
-  const readoutLine = (
-    <p aria-live="polite" className="truncate text-center text-[0.6875rem] font-semibold tabular-nums text-ink-secondary">
-      {readout}
-    </p>
-  );
-  // His points game by game, with his stats under them (see WallLine) — or his value over time (see ValueLine).
-  const chart = valueView ? (
+  // His points game by game, with his stats under them (see WallLine) — or every number there is, or his value over
+  // time (see ValueLine).
+  const chart = table && details ? (
+    <div data-floor-ui className="min-h-[8rem] flex-1 overflow-y-auto border border-border bg-surface-raised/90">
+      {details}
+    </div>
+  ) : valueView ? (
     <div className="relative min-h-[8rem] flex-1">{valuePoints ? <ValueLine points={valuePoints} label={`${player.name}'s trade value over time`} /> : null}</div>
   ) : columns && columns.length > 0 ? (
     <div className="relative min-h-[8rem] flex-1">
       <WallLine
         key={`line-${view}`}
         games={columns}
-        picked={pick}
-        onPick={(i) => {
-          setPickedCol({ view, i });
-          // A season's dot looks into that season.
-          if (!openSeason && seasons?.[i]) setChosen(seasons[i].season);
-        }}
         label={openSeason ? `${player.name}'s ${openSeason}, week by week` : `${player.name}'s fantasy points by season`}
         stats={CHART_STATS[player.position] ?? CHART_STATS.WR}
       />
@@ -768,7 +731,6 @@ export function PlayerStage({
         {picker}
         <section aria-label={player.name} className="flex flex-col gap-2">
           <PlayerHeader player={player} bio={bio} numbers={numbers} onClose={onClose} />
-          {readoutLine}
           <div className="flex flex-col gap-1">
             <span className="text-[0.625rem] font-bold uppercase tracking-wide text-ink-muted">Seasons played</span>
             {controls}
@@ -779,39 +741,21 @@ export function PlayerStage({
     </div>
   ) : (
     <>
-      {/* The wall: his points and his stats, the game picked read out over them. */}
+      {/* The wall: the bench to pick from (if it's the bench's), his seasons and his value over time over his charts. */}
       <div
-        className={`fixed z-[6] flex flex-col gap-1 transition-[opacity,transform] ease-out ${up ? "opacity-100" : "translate-y-2 opacity-0"}`}
-        style={{ ...places.wall, transitionDuration: `${STAGE_MS}ms` }}
-      >
-        {readoutLine}
-        {chart}
-      </div>
-      {/* Across the back of the floor: the bench to pick from (if it's the bench's), his seasons, and the way out. */}
-      <div
-        ref={setFloorBar}
         data-floor-ui
         aria-label={player.name}
-        className={`fixed z-[8] flex flex-col gap-1.5 overflow-y-auto transition-opacity ease-out [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${up ? "opacity-100" : "pointer-events-none opacity-0"}`}
-        style={{ top: floor.top, left: floor.left, width: floor.width, maxHeight: (floor.bottom - floor.top) * 0.45, transitionDuration: `${STAGE_MS}ms` }}
+        className={`fixed z-[6] flex flex-col gap-2 transition-[opacity,transform] ease-out ${up ? "opacity-100" : "translate-y-2 opacity-0"}`}
+        style={{ ...places.wall, transitionDuration: `${STAGE_MS}ms` }}
       >
         {picker}
         {controls}
+        {chart}
       </div>
-      {table && details ? (
-        <div
-          data-floor-ui
-          className={`fixed z-[7] overflow-y-auto border border-border bg-surface-raised/90 backdrop-blur-[3px] transition-opacity ease-out ${up ? "opacity-100" : "opacity-0"}`}
-          style={{ top: below.top, left: floor.left, width: floor.width, height: Math.max(0, floor.bottom - below.top), transitionDuration: `${STAGE_MS}ms` }}
-        >
-          {details}
-        </div>
-      ) : (
-        <div className={`transition-opacity ease-out ${up ? "opacity-100" : "pointer-events-none opacity-0"}`} style={{ transitionDuration: `${STAGE_MS}ms` }}>
-          {/* Who he is, standing up off the floor. */}
-          <PlayerDossier player={player} bio={bio} numbers={numbers} floor={below} room={places.room} share={places.share ?? HORIZON_SHARE} up={up} />
-        </div>
-      )}
+      {/* Who he is, standing up off the floor. */}
+      <div className={`transition-opacity ease-out ${up ? "opacity-100" : "pointer-events-none opacity-0"}`} style={{ transitionDuration: `${STAGE_MS}ms` }}>
+        <PlayerDossier player={player} bio={bio} numbers={numbers} floor={floor} room={places.room} share={places.share ?? HORIZON_SHARE} up={up} />
+      </div>
     </>
   );
 }
