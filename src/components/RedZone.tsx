@@ -267,7 +267,7 @@ interface FeedRowProps {
   index: number;
   /** The play by a player graph's cursor: lit up. */
   spotlit?: boolean;
-  /** Its game's latest play: "Latest" after its matchup, lit like a map tag. */
+  /** Its game's latest play: its time lit like a map tag. */
   latest?: boolean;
 }
 
@@ -319,8 +319,16 @@ const FeedRow = memo(function FeedRow({ entry, starterById, legendByLeagueId, ar
       {/* Too narrow for it all on a line (a column of its own), the snap goes under the rest, still at the right. */}
       <span className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[0.6875rem] leading-none">
         <span className="flex min-w-0 items-center gap-1.5 whitespace-nowrap">
-          {time ? <span className="tabular-nums text-ink-muted">{time}</span> : null}
-          {/* The matchup and its score after the play — and on its game's latest play, "Latest" after it, lit like a map tag. */}
+          {/* When it was — on its game's latest play, lit like a map tag. */}
+          {time ? (
+            <span
+              className={`tabular-nums ${latest ? "bg-[var(--map-tag)] px-1 py-0.5 font-bold text-[var(--map-tag-ink)]" : "text-ink-muted"}`}
+              title={latest ? "This game's latest play" : undefined}
+            >
+              {time}
+            </span>
+          ) : null}
+          {/* The matchup and its score after the play. */}
           <span className="flex items-center gap-1" title={`${game.awayTeam} @ ${game.homeTeam}`}>
             <TeamLogo team={game.awayTeam} side={14} />
             {score ? <span className="font-semibold tabular-nums text-ink-primary">{score.away}</span> : null}
@@ -328,11 +336,6 @@ const FeedRow = memo(function FeedRow({ entry, starterById, legendByLeagueId, ar
             {score ? <span className="font-semibold tabular-nums text-ink-primary">{score.home}</span> : null}
             <TeamLogo team={game.homeTeam} side={14} />
           </span>
-          {latest ? (
-            <span className="bg-[var(--map-tag)] px-1 py-0.5 font-bold uppercase tracking-wide text-[var(--map-tag-ink)]" title="This game's latest play">
-              Latest
-            </span>
-          ) : null}
         </span>
         {/* The snap: down and distance, where on the field, then when. */}
         <span className="ml-auto flex shrink-0 items-center gap-1.5 whitespace-nowrap tabular-nums text-ink-muted">
