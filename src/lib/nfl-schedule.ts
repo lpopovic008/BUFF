@@ -292,3 +292,64 @@ export function gameClock(detail: string): string {
   if (/^half/i.test(detail.trim())) return "Half";
   return detail;
 }
+
+/** A team's regular season, as its schedule has it: the week it's off, and who it plays each week (and whether that's
+ * been played). */
+export interface TeamSeason {
+  byeWeek: number | null;
+  games: Map<number, { opponent: string; final: boolean }>;
+}
+
+const ESPN_TEAM_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams";
+const teamSeasons = new Map<string, Promise<TeamSeason | null>>();
+
+/**
+ * A team's regular season (see TeamSeason) from ESPN's team schedule, by its Sleeper-style abbreviation — its bye as
+ * ESPN names it, or the one week of the season it has no game. Null on any failure. Fetched once a tab.
+ */
+export function getTeamSeason(team: string, season: number): Promise<TeamSeason | null> {
+  const key = `${team}-${season}`;
+  if (!teamSeasons.has(key)) {
+    const espn = Object.entries(ESPN_TO_SLEEPER_TEAM).find(([, sleeper]) => sleeper === team)?.[0] ?? team;
+    teamSeasons.set(
+      key,
+      (async () => {
+        try {
+          const res = await fetch(`${ESPN_TEAM_URL}/${espn.toLowerCase()}/schedule?season=${season}&seasontype=2`);
+          if (!res.ok) return null;
+          return parseTeamSeason(await res.json(), team);
+        } catch {
+          return null;
+        }
+      })()
+    );
+  }
+  return teamSeasons.get(key)!;
+}
+
+/** ESPN's team schedule read as `team`'s season (see getTeamSeason); null if it holds no games. */
+export function parseTeamSeason(data: unknown, team: string): TeamSeason | null {
+  if (!isRecord(data) || !Array.isArray(data.events)) return null;
+  const games = new Map<number, { opponent: string; final: boolean }>();
+  for (const event of data.events) {
+    if (!isRecord(event)) continue;
+    const week = isRecord(event.week) ? Number(event.week.number) : NaN;
+    const comp = Array.isArray(event.competitions) && isRecord(event.competitions[0]) ? event.competitions[0] : null;
+    if (!Number.isFinite(week) || !comp || !Array.isArray(comp.competitors)) continue;
+    const opponent = comp.competitors
+      .map((c) => teamAbbr(c))
+      .map((abbr) => (abbr ? normalizeTeam(abbr) : null))
+      .find((abbr): abbr is string => !!abbr && abbr !== team);
+    if (!opponent) continue;
+    const type = isRecord(comp.status) && isRecord(comp.status.type) ? comp.status.type : null;
+    games.set(week, { opponent, final: type?.completed === true || type?.state === "post" });
+  }
+  if (games.size === 0) return null;
+  let byeWeek = typeof data.byeWeek === "number" && data.byeWeek > 0 ? data.byeWeek : null;
+  if (byeWeek === null) {
+    const last = Math.max(...games.keys());
+    const off = Array.from({ length: last }, (_, i) => i + 1).filter((w) => !games.has(w));
+    if (off.length === 1) byeWeek = off[0];
+  }
+  return { byeWeek, games };
+}

@@ -152,6 +152,8 @@ export interface CareerWeek {
   team: string | null;
   opponent: string | null;
   stats: Record<string, number>;
+  /** Whether he played in it (Sleeper's line for a game he sat out has him playing none). */
+  played: boolean;
 }
 
 interface WeekEntry {
@@ -164,9 +166,8 @@ interface WeekEntry {
 const weeksCache = new Map<string, Promise<CareerWeek[]>>();
 
 /**
- * A player's regular season week by week (the same endpoint as his seasons, grouped by week) — the weeks he played,
- * in order. Sleeper answers with the weeks keyed by number (null on a bye), or a list of them; either's read. Empty on
- * any failure. Fetched once a tab.
+ * A player's regular season week by week (the same endpoint as his seasons, grouped by week) — the weeks Sleeper has
+ * a line for him, in order, those he sat out marked. Empty on any failure. Fetched once a tab.
  */
 export function getSeasonWeeks(playerId: string, season: number): Promise<CareerWeek[]> {
   const key = `${playerId}-${season}`;
@@ -174,26 +175,32 @@ export function getSeasonWeeks(playerId: string, season: number): Promise<Career
     weeksCache.set(
       key,
       weekEntries(`${STATS_BASE}/${encodeURIComponent(playerId)}?season_type=regular&season=${season}&grouping=week`).then((entries) =>
-        entries.filter(([, e]) => (e.stats.gp ?? 1) > 0).map(([week, e]) => ({ week, team: e.team ?? null, opponent: e.opponent ?? null, stats: e.stats }))
+        entries.map(([week, e]) => ({ week, team: e.team ?? null, opponent: e.opponent ?? null, stats: e.stats, played: (e.stats.gp ?? 1) > 0 }))
       )
     );
   }
   return weeksCache.get(key)!;
 }
 
-const projectionsCache = new Map<string, Promise<Map<number, Record<string, number>>>>();
+/** What Sleeper projected for a player one week: his stat line, and who he'd play. */
+export interface WeekProjection {
+  stats: Record<string, number>;
+  opponent: string | null;
+}
+
+const projectionsCache = new Map<string, Promise<Map<number, WeekProjection>>>();
 
 /**
  * What Sleeper projected for a player each week of a regular season (his projected stat line, by week) — the same
  * shape as his weeks' stats (see getSeasonWeeks), from its projections. Empty on any failure. Fetched once a tab.
  */
-export function getSeasonProjections(playerId: string, season: number): Promise<Map<number, Record<string, number>>> {
+export function getSeasonProjections(playerId: string, season: number): Promise<Map<number, WeekProjection>> {
   const key = `${playerId}-${season}`;
   if (!projectionsCache.has(key)) {
     projectionsCache.set(
       key,
       weekEntries(`${PROJECTIONS_BASE}/${encodeURIComponent(playerId)}?season_type=regular&season=${season}&grouping=week`).then(
-        (entries) => new Map(entries.map(([week, e]) => [week, e.stats]))
+        (entries) => new Map(entries.map(([week, e]) => [week, { stats: e.stats, opponent: e.opponent ?? null }]))
       )
     );
   }

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { FAR_OPACITY, FULL_DEPTH_SHARE, HORIZON_OPACITY, LINE_OPACITY } from "@/components/FloorGrid";
 import { FLOOR_TILT, PERSPECTIVE_PX } from "@/lib/grid-room";
 import type { StatTier } from "@/lib/stat-tiers";
+import { nflLogoUrl } from "@/lib/nfl-logos";
 
 // A player's card's charts (see PlayerStage): his fantasy points game by game as a line on the back wall, and his
 // stats game by game as bars standing on the room's floor below it, the floor made a flight of stairs going down
@@ -25,6 +26,12 @@ export interface ChartGame {
   label: string;
   /** A week still to come this season (nothing to draw for it yet). */
   future?: boolean;
+  /** His team's bye: nothing to draw, his line running on across it. */
+  bye?: boolean;
+  /** A game his team played that he didn't: counted as none (`value` 0), marked as missed. */
+  missed?: boolean;
+  /** Who he played (or plays) that week: their logo under it. */
+  opponent?: string | null;
 }
 
 /** A stat the floor's bars show: its name and its key in a game's stats. */
@@ -256,9 +263,10 @@ export function chartColumn(n: number, horizon: number, bottom: number, left: nu
 /**
  * His fantasy points as a line across the back wall: a slot along the x axis for every game of the season (all 18
  * weeks, those to come too — or every season of his), each right over its column of bars on the floor (`col` px wide,
- * all of them centered on a screen `screenWidth` wide), the y axis his points, a dot on each game he played joined to
- * the next he played (a week he didn't, left open), its points over it, his best starred, the one picked lit. Each dot
- * is a button (the arrow keys move along them). Fills the room it's given on the wall; never reaches the floor.
+ * all of them centered on a screen `screenWidth` wide), the y axis his points, a dot on each game he played — a cross
+ * at none on a game he missed — all joined in one line, on across his byes; its points over it, his best starred, the
+ * one picked lit, a faint ring at what he was projected, and under each week's number his opponent's logo. Each dot is
+ * a button (the arrow keys move along them). Fills the room it's given on the wall; never reaches the floor.
  */
 export function WallLine({
   games,
@@ -279,23 +287,19 @@ export function WallLine({
   const box = useBox(svg);
   const w = box?.width ?? 0;
   const h = box?.height ?? 0;
-  const pad = { left: 26, right: 0, top: 22, bottom: 18 };
   const n = games.length;
+  // Each week's opponent's logo under its number, as big as its slot lets it be.
+  const logo = Math.max(9, Math.min(16, col - 6));
+  const faced = games.some((g) => g.opponent);
+  const pad = { left: 26, right: 0, top: 22, bottom: faced ? 18 + logo + 4 : 18 };
   const most = Math.max(5, ...games.map((g) => Math.max(g.value ?? 0, g.value !== null ? (g.projected ?? 0) : 0)));
   const top = Math.ceil(most / 5) * 5;
   const best = Math.max(...games.map((g) => g.value ?? -1));
   // Game i's slot: over its column on the floor, where that column meets the wall.
   const x = (i: number) => screenWidth / 2 + (i - (n - 1) / 2) * col - (box?.left ?? 0);
   const y = (v: number) => pad.top + (h - pad.top - pad.bottom) * (1 - v / top);
-  // The line, in runs of games he played in a row.
-  const runs: [number, number][][] = [];
-  games.forEach((g, i) => {
-    if (g.value === null) return;
-    const point: [number, number] = [x(i), y(g.value)];
-    const prev = games[i - 1];
-    if (i > 0 && prev?.value !== null && runs.length > 0) runs[runs.length - 1].push(point);
-    else runs.push([point]);
-  });
+  // The line, through every game with points (a game he missed at none), on across his byes.
+  const runs: [number, number][][] = [games.flatMap((g, i): [number, number][] => (g.value === null ? [] : [[x(i), y(g.value)]]))];
   const ticks = [0, top / 2, top];
   // Each dot's points over it: to the tenth where there's the room, else whole.
   const tenths = col >= 26;
@@ -326,6 +330,12 @@ export function WallLine({
               {g.tag}
             </text>
           ))}
+          {/* Under each week, who he played. */}
+          {games.map((g, i) =>
+            g.opponent ? (
+              <image key={`${g.key}-faced`} href={nflLogoUrl(g.opponent)} x={x(i) - logo / 2} y={h - pad.bottom + 16} width={logo} height={logo} opacity={i === picked ? 1 : 0.8} aria-hidden />
+            ) : null
+          )}
           {/* What he was projected each week he played: a faint ring, over or under his points. */}
           {games.map((g, i) =>
             g.value !== null && g.projected != null ? (
@@ -374,7 +384,18 @@ export function WallLine({
               >
                 {/* Its whole slot, to tap. */}
                 <rect x={x(i) - col / 2} y={pad.top} width={col} height={Math.max(0, h - pad.top - pad.bottom)} fill="transparent" />
-                <circle cx={x(i)} cy={y(g.value)} r={lit ? 4 : 2.75} fill={lit ? "var(--ink-primary)" : "var(--page)"} stroke="var(--ink-primary)" strokeWidth={1.5} />
+                {g.missed ? (
+                  // A game he missed: a cross at none.
+                  <path
+                    d={`M${x(i) - 3.5},${y(0) - 3.5}l7,7m0,-7l-7,7`}
+                    stroke="var(--ink-primary)"
+                    strokeOpacity={lit ? 1 : 0.7}
+                    strokeWidth={lit ? 2 : 1.5}
+                    strokeLinecap="round"
+                  />
+                ) : (
+                  <circle cx={x(i)} cy={y(g.value)} r={lit ? 4 : 2.75} fill={lit ? "var(--ink-primary)" : "var(--page)"} stroke="var(--ink-primary)" strokeWidth={1.5} />
+                )}
                 <text
                   x={x(i)}
                   y={y(g.value) - 7}
@@ -670,8 +691,8 @@ export function FloorStatBars({
         const [x0, x1] = [i - 0.18, i + 0.18];
         const [z0, z1] = [r + 0.25, r + 0.75];
         if (v === null) {
-          // A week he didn't play: its footprint, empty. Nothing yet for a week to come.
-          if (g.future) continue;
+          // A week he didn't play: its footprint, empty. Nothing yet for a week to come, nor his bye.
+          if (g.future || g.bye) continue;
           drawn.push(
             <polygon key={`${b.name}-${g.key}-${s.key}`} points={pts([at(x0, z0, r), at(x1, z0, r), at(x1, z1, r), at(x0, z1, r)])} fill="none" stroke="var(--ink-muted)" strokeOpacity={0.45} strokeDasharray="2 2" />
           );

@@ -51,11 +51,14 @@ test("a season's projections and weeks are read by week from Sleeper's by-player
   try {
     const projected = await getSeasonProjections("p9", 2026);
     assert.deepEqual([...projected.keys()], [1, 3]);
-    assert.equal(projected.get(3)?.pts_ppr, 20.1);
+    assert.equal(projected.get(3)?.stats.pts_ppr, 20.1);
     const weeks = await getSeasonWeeks("p9", 2026);
     assert.deepEqual(
-      weeks.map((w) => w.week),
-      [1]
+      weeks.map((w) => [w.week, w.played]),
+      [
+        [1, true],
+        [2, false],
+      ]
     );
     assert.ok(asked.some((u) => u.startsWith("https://api.sleeper.app/projections/nfl/player/p9?") && u.includes("grouping=week")));
   } finally {

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { ballSpot, gameClock, isOutsideUS, parseScoreboard, periodBreak } from "./nfl-schedule";
+import { ballSpot, gameClock, isOutsideUS, parseScoreboard, parseTeamSeason, periodBreak } from "./nfl-schedule";
 
 function competitor(homeAway: "home" | "away", abbreviation: string, score: string) {
   return { homeAway, team: { abbreviation }, score };
@@ -213,4 +213,22 @@ test("periodBreak: the quarter just over, while the game's paused before the nex
   assert.equal(periodBreak("End of 3rd Quarter"), 3);
   assert.equal(periodBreak("4:31 - 2nd"), null);
   assert.equal(periodBreak(null), null);
+});
+
+test("a team's season reads its bye and each week's opponent from ESPN's team schedule", () => {
+  const event = (week: number, home: string, away: string, completed: boolean) => ({
+    week: { number: week },
+    competitions: [{ competitors: [{ homeAway: "home", team: { abbreviation: home } }, { homeAway: "away", team: { abbreviation: away } }], status: { type: { completed, state: completed ? "post" : "pre" } } }],
+  });
+  const season = parseTeamSeason({ byeWeek: 10, events: [event(1, "KC", "LAC", true), event(2, "WSH", "KC", false)] }, "KC");
+  assert.equal(season?.byeWeek, 10);
+  assert.deepEqual(season?.games.get(1), { opponent: "LAC", final: true });
+  // ESPN's Washington as Sleeper spells it.
+  assert.deepEqual(season?.games.get(2), { opponent: "WAS", final: false });
+});
+
+test("without ESPN naming a bye, it's the one week of the season with no game", () => {
+  const events = [1, 2, 3, 5, 6].map((week) => ({ week: { number: week }, competitions: [{ competitors: [{ team: { abbreviation: "DET" } }, { team: { abbreviation: "GB" } }] }] }));
+  assert.equal(parseTeamSeason({ events }, "DET")?.byeWeek, 4);
+  assert.equal(parseTeamSeason({ events: [] }, "DET"), null);
 });

@@ -14,13 +14,13 @@ import { normalizeName } from "@/lib/name-match";
 import { nflLogoUrl } from "@/lib/nfl-logos";
 import { ordinal } from "@/lib/format";
 import { StatTier, statTier } from "@/lib/stat-tiers";
-import { playerHeadshotUrl } from "@/lib/sleeper";
-import { CareerWeek, getCareer, getSeasonProjections, getSeasonWeeks, seasonPoints, seasonRank } from "@/lib/career-stats";
+import { getNFLState, playerHeadshotUrl } from "@/lib/sleeper";
+import { CareerWeek, getCareer, getSeasonProjections, getSeasonWeeks, seasonPoints, seasonRank, type WeekProjection } from "@/lib/career-stats";
 import { HORIZON_SHARE } from "@/lib/grid-room";
 import { getPlayerBio, PlayerBio, ResolvedPlayer } from "@/lib/players";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import type { ResolvedSlot } from "@/hooks/useLeagueMatchupCarousel";
-import type { NFLGame } from "@/lib/nfl-schedule";
+import { getTeamSeason, type NFLGame, type TeamSeason } from "@/lib/nfl-schedule";
 
 /** How long a stage takes to come in, or go (ms) — as the room's panels rise. */
 export const STAGE_MS = 450;
@@ -321,7 +321,7 @@ export function PlayerStage({
   }, [player.playerId, openSeason]);
   const seasonWeeks = openSeason && weeks?.season === openSeason ? weeks.weeks : null;
   // What Sleeper projected him for each week of it, as it loads.
-  const [projections, setProjections] = useState<{ season: string; byWeek: Map<number, Record<string, number>> } | null>(null);
+  const [projections, setProjections] = useState<{ season: string; byWeek: Map<number, WeekProjection> } | null>(null);
   useEffect(() => {
     if (!openSeason) return;
     let cancelled = false;
@@ -331,6 +331,37 @@ export function PlayerStage({
     };
   }, [player.playerId, openSeason]);
   const seasonProjections = openSeason && projections?.season === openSeason ? projections.byWeek : null;
+  // The schedules of the teams he was on that season (see getTeamSeason): their byes, and who they played each week.
+  const seasonTeams = [...new Set((seasonWeeks ?? []).map((w) => w.team).filter((t): t is string => !!t))];
+  const fallbackTeam = seasons?.find((s) => s.season === openSeason)?.team ?? player.team ?? null;
+  if (seasonTeams.length === 0 && fallbackTeam) seasonTeams.push(fallbackTeam);
+  const teamsKey = seasonWeeks ? seasonTeams.join(",") : "";
+  const [schedules, setSchedules] = useState<{ key: string; byTeam: Map<string, TeamSeason | null> } | null>(null);
+  useEffect(() => {
+    if (!openSeason || !teamsKey) return;
+    let cancelled = false;
+    const teams = teamsKey.split(",");
+    Promise.all(teams.map((t) => getTeamSeason(t, Number(openSeason)))).then(
+      (found) => !cancelled && setSchedules({ key: `${openSeason}:${teamsKey}`, byTeam: new Map(teams.map((t, i) => [t, found[i]])) })
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [openSeason, teamsKey]);
+  const teamSchedules = schedules?.key === `${openSeason}:${teamsKey}` ? schedules.byTeam : null;
+  // The NFL's week now (this season's weeks before it are behind us): a week past the last in the playoffs or after.
+  const [nflNow, setNflNow] = useState<{ season: string; week: number } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    getNFLState().then((s) => {
+      if (cancelled || !s) return;
+      const week = s.season_type === "regular" ? s.week : s.season_type === "pre" ? 0 : 99;
+      setNflNow({ season: s.season, week });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const [table, setTable] = useState(false);
   // His value over time (KTC's, see value-history.ts), in place of his seasons while it's picked.
   const [valueView, setValueView] = useState(startOn === "value");
@@ -371,23 +402,67 @@ export function PlayerStage({
     }
     if (!seasonWeeks) return null;
     const byWeek = new Map(seasonWeeks.map((w) => [w.week, w]));
-    const last = Math.max(0, ...seasonWeeks.map((w) => w.week));
+    const last = Math.max(0, ...seasonWeeks.filter((w) => w.played).map((w) => w.week));
     const length = Math.max(last, Number(openSeason) >= 2021 ? 18 : 17);
     const thisSeason = Number(openSeason) === season;
-    return Array.from({ length }, (_, k) => {
+    const now = nflNow?.season === openSeason ? nflNow.week : null;
+    // The team he was on a week: his that week, or the nearest week's he has one for.
+    const teamOn = (week: number) => {
+      for (let d = 0; d < length; d++) {
+        const t = byWeek.get(week - d)?.team ?? byWeek.get(week + d)?.team;
+        if (t) return t;
+      }
+      return fallbackTeam;
+    };
+    return Array.from({ length }, (_, k): StageGame => {
       const week = k + 1;
       const w = byWeek.get(week);
-      if (!w) {
-        const future = thisSeason && week > last;
-        return { key: `w${week}`, value: null, tag: String(week), stats: null, tiers: {}, future, label: `Week ${week}: ${future ? "still to come" : "didn't play"}`, short: `Week ${week}` };
+      const projectedLine = seasonProjections?.get(week);
+      const projected = projectedLine ? seasonPoints(projectedLine.stats, scoring) : null;
+      const team = teamOn(week);
+      const schedule = team ? teamSchedules?.get(team) : null;
+      const game = schedule?.games.get(week);
+      if (!w?.played) {
+        // A week with no game for him: his team's bye (the line runs on across it), one still to come, or one he
+        // missed — counted as none, when his team played it (its schedule says, or Sleeper has him down for it).
+        const behind = game?.final || !thisSeason || (now !== null ? week < now : week <= last);
+        const bye = schedule ? schedule.byeWeek === week || !game : false;
+        const hadGame = !!game || !!w || !!projectedLine?.opponent;
+        const opponent = game?.opponent ?? w?.opponent ?? projectedLine?.opponent ?? null;
+        if (!bye && hadGame && behind) {
+          return {
+            key: `w${week}`,
+            value: 0,
+            missed: true,
+            projected,
+            opponent,
+            tag: String(week),
+            stats: null,
+            tiers: {},
+            label: `Week ${week}${opponent ? ` against ${opponent}` : ""}: didn't play, 0 points`,
+            short: `${openSeason} · Week ${week}${opponent ? ` · vs ${opponent}` : ""} · Didn't play · 0 pts`,
+          };
+        }
+        const future = !behind && !bye;
+        return {
+          key: `w${week}`,
+          value: null,
+          future,
+          bye: !future,
+          opponent: future ? opponent : null,
+          tag: String(week),
+          stats: null,
+          tiers: {},
+          label: `Week ${week}: ${future ? `still to come${opponent ? `, against ${opponent}` : ""}` : "bye"}`,
+          short: `Week ${week}`,
+        };
       }
       const points = seasonPoints(w.stats, scoring);
-      const projectedLine = seasonProjections?.get(week);
-      const projected = projectedLine ? seasonPoints(projectedLine, scoring) : null;
       return {
         key: `w${week}`,
         value: points,
         projected,
+        opponent: w.opponent ?? game?.opponent ?? null,
         tag: String(week),
         stats: w.stats,
         tiers: tiersOf(player.position, allStats, w.stats),
@@ -400,7 +475,7 @@ export function PlayerStage({
   // The column read out: his latest, until another's picked — in whatever's shown.
   const [pickedCol, setPickedCol] = useState<{ view: string; i: number } | null>(null);
   const view = shown ?? "loading";
-  const lastPlayed = columns ? columns.map((c, i) => (c.value === null ? -1 : i)).reduce((a, b) => Math.max(a, b), -1) : -1;
+  const lastPlayed = columns ? columns.map((c, i) => (c.value === null || c.missed ? -1 : i)).reduce((a, b) => Math.max(a, b), -1) : -1;
   const pick = pickedCol?.view === view && columns?.[pickedCol.i]?.value != null ? pickedCol.i : lastPlayed;
   const readout = valueView
     ? valuePoints === null
