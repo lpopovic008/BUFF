@@ -19,6 +19,7 @@ import { getPlayerBio, PlayerBio, ResolvedPlayer } from "@/lib/players";
 import { FLOOR_TILT, floorDepth, floorScale, HORIZON_SHARE, PERSPECTIVE_PX } from "@/lib/grid-room";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import { useBackStep } from "@/lib/header-slot";
+import { statTier } from "@/lib/stat-tiers";
 import type { ResolvedSlot } from "@/hooks/useLeagueMatchupCarousel";
 import { getTeamSeason, type NFLGame, type TeamSeason } from "@/lib/nfl-schedule";
 
@@ -809,6 +810,8 @@ export function PlayerStage({
         games={columns}
         label={openSeason ? `${player.name}'s ${openSeason}, week by week` : `${player.name}'s fantasy points by season`}
         stats={CHART_STATS[player.position] ?? CHART_STATS.WR}
+        // A season's games each graded by how good they were for his position (not his seasons, in his career).
+        grade={openSeason ? (key, value) => statTier(player.position, key, value) : undefined}
       />
     </div>
   ) : null;

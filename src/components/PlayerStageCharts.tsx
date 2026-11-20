@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useState } from "react";
 import { nflLogoUrl } from "@/lib/nfl-logos";
+import type { StatTier } from "@/lib/stat-tiers";
 
 // A player's card's charts (see PlayerStage), on the back wall: his fantasy points game by game as a line, his stats
 // game by game as rows of bars under it (see WallLine) — or his value over time (see ValueLine).
@@ -79,6 +80,10 @@ const between = ([least, most]: readonly [number, number], v: number) => Math.mi
 /** The shortest stretch of the points line drawn between two numbers (px). */
 const LEAST_STRETCH_PX = 5;
 
+/** How faint a step's fill is in its grade's color (see WallLine's `grade`). */
+const GRADE_FILL = 0.16;
+const GRADE_COLOR: Record<StatTier, string> = { good: "var(--status-good)", mid: "var(--status-warning)", bad: "var(--status-critical)" };
+
 /** A stat's number as it's shown on its row: whole, or to the tenth. */
 const statText = (v: number) => (Number.isInteger(v) ? `${v}` : v.toFixed(1));
 
@@ -92,9 +97,21 @@ const statText = (v: number) => (Number.isInteger(v) ? `${v}` : v.toFixed(1));
  * the slots' edge — at none for a game he missed, a faint dashed line across his byes — a little room kept between one
  * row and the next (ROW_SPACE_PX). The stats' names aren't drawn (no room's been found for them that wouldn't take
  * any from the rows); a row's name shows over it on hover, and is read out. The line takes about a quarter of the wall
- * (LINE_SHARE), the rows the rest. Fills the room it's given on the wall; never reaches the floor.
+ * (LINE_SHARE), the rows the rest. With `grade` (how good a game's stat was), each game's step is filled down to its
+ * row's foot in a faint wash of its grade's color — green, yellow or red. Fills the room it's given on the wall; never
+ * reaches the floor.
  */
-export function WallLine({ games, label, stats = [] }: { games: ChartGame[]; label: string; stats?: ChartStat[] }) {
+export function WallLine({
+  games,
+  label,
+  stats = [],
+  grade,
+}: {
+  games: ChartGame[];
+  label: string;
+  stats?: ChartStat[];
+  grade?: (key: string, value: number) => StatTier | null;
+}) {
   const [svg, setSvg] = useState<SVGSVGElement | null>(null);
   const box = useBox(svg);
   const w = box?.width ?? 0;
@@ -180,6 +197,8 @@ export function WallLine({ games, label, stats = [] }: { games: ChartGame[]; lab
             // The last game drawn: where its step ended, and whether a bye's come since.
             let prev: { x: number; y: number; gap: boolean } | null = null;
             const numbers: { x: number; at: number; value: number }[] = [];
+            // Each game he played's step filled down to the row's foot, faintly, in its grade's color.
+            const fills: { from: number; at: number; color: string }[] = [];
             games.forEach((g, i) => {
               const level = levelOf(g);
               if (level === null) {
@@ -201,11 +220,16 @@ export function WallLine({ games, label, stats = [] }: { games: ChartGame[]; lab
               d += `H${to.toFixed(1)}`;
               prev = { x: to, y: at, gap: false };
               numbers.push({ x: x(i), at, value: level.value });
+              const tier = g.stats && grade ? grade(stat.key, level.value) : null;
+              if (tier && at < foot) fills.push({ from, at, color: GRADE_COLOR[tier] });
             });
             return (
               <g key={stat.key} role="img" aria-label={stat.label}>
                 {/* Its name, over it on hover (and read out): no room on the wall's taken for it. */}
                 <title>{stat.label}</title>
+                {fills.map((f, k) => (
+                  <rect key={k} x={f.from} y={f.at} width={col} height={foot - f.at} fill={f.color} fillOpacity={GRADE_FILL} />
+                ))}
                 <path d={d} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.55} strokeWidth={1.25} strokeLinejoin="miter" />
                 {byes ? <path d={byes} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.3} strokeWidth={1} strokeDasharray="2 2" /> : null}
                 {numbers.map((num, k) => {
