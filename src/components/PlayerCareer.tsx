@@ -7,6 +7,7 @@ import { getPlayerBio, PlayerBio, ResolvedPlayer } from "@/lib/players";
 import { nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import { ordinal } from "@/lib/format";
+import { useBackStep } from "@/lib/header-slot";
 import { CareerStage, FloorCareer, FLOOR_RISE_MS } from "@/components/FloorCareer";
 import { PlayerStage } from "@/components/LeagueRoomStages";
 
@@ -146,6 +147,8 @@ export function PlayerCareer({
     window.clearTimeout(leaving.current);
     leaving.current = window.setTimeout(onClose, FLOOR_RISE_MS);
   }, [stage, onClose]);
+  // A back button's one step back: the card put away, not the page gone back from.
+  useBackStep(true, close);
   const [career, setCareer] = useState<CareerSeason[] | null>(null);
   const [bio, setBio] = useState<PlayerBio | null>(null);
 

@@ -18,6 +18,7 @@ import { CareerWeek, getCareer, getSeasonProjections, getSeasonWeeks, seasonPoin
 import { getPlayerBio, PlayerBio, ResolvedPlayer } from "@/lib/players";
 import { FLOOR_TILT, floorDepth, floorScale, HORIZON_SHARE, PERSPECTIVE_PX } from "@/lib/grid-room";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
+import { useBackStep } from "@/lib/header-slot";
 import type { ResolvedSlot } from "@/hooks/useLeagueMatchupCarousel";
 import { getTeamSeason, type NFLGame, type TeamSeason } from "@/lib/nfl-schedule";
 
@@ -555,6 +556,8 @@ export function PlayerStage({
     };
   }, []);
   const [table, setTable] = useState(false);
+  // Open over his charts, a back button's one step back puts the table away before the card.
+  useBackStep(table, () => setTable(false));
   // His value over time (KTC's, see value-history.ts), in place of his seasons while it's picked.
   const [valueView, setValueView] = useState(startOn === "value");
   const [valuePoints, setValuePoints] = useState<{ day: number; value: number }[] | null>(null);

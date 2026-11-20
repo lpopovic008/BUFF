@@ -17,8 +17,8 @@ export function appPages(pathname: string) {
   ];
 }
 
-/** The pages standing in the room, whose floor runs right under the tab bar. */
-const ROOM_PAGES = new Set(["/", "/league"]);
+/** The pages standing in the room, whose floor runs right under the tab bar to the screen's bottom. */
+const ROOM_PAGES = new Set(["/", "/league", "/values", "/monitor"]);
 
 const tabClass = (active: boolean) =>
   `flex h-full items-center justify-center transition-colors ${
@@ -58,7 +58,7 @@ export function TabBar() {
       // Its background down to the screen's bottom edge, its row of buttons sitting above the phone's home indicator,
       // as far above it as it is above the screen's bottom, 8px: the indicator's top is 13px up an iPhone's 34px safe
       // area, so the row's bottom is 21px up — the safe area less 13px (none on a phone without one). No line along its
-      // top; on the home page (and the League page), nothing behind it at all — the room's floor right under its buttons.
+      // top; on the pages standing in the room (ROOM_PAGES), nothing behind it at all — the room's floor right under its buttons.
       className={`fixed inset-x-0 bottom-0 z-50 pb-[max(0px,calc(env(safe-area-inset-bottom)-13px))] [transform:translateZ(0)] md:hidden ${
         ROOM_PAGES.has(pathname) ? "" : "bg-page/95 backdrop-blur"
       }`}

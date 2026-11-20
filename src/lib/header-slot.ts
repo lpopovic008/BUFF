@@ -2,7 +2,7 @@
 // the left and the app's logo on the right, the page's own content in the middle — put there by the page, into the
 // header's middle (its slot), with a portal.
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 
 let bare = false;
 let slot: HTMLElement | null = null;
@@ -37,16 +37,41 @@ export function useHeaderSlot(): HTMLElement | null {
   return useSyncExternalStore(subscribe, () => slot, () => null);
 }
 
-let back: (() => void) | null = null;
+// What's open over a page, in the order it opened (a floor's panel, a player's card over it, a list dropped down…):
+// a back button closes the last of them — one step back — and only with nothing open goes back a page.
+const steps: (() => void)[] = [];
 
-/** What the cleared header's back button does instead of going back a page (null: going back a page). */
-export function setHeaderBack(fn: (() => void) | null): void {
-  if (fn === back) return;
-  back = fn;
-  notify();
+/**
+ * While `open`, something's up that a back button closes (`close`), one step back, before it goes back a page — the
+ * last opened first.
+ */
+export function useBackStep(open: boolean, close: () => void): void {
+  const latest = useRef(close);
+  useEffect(() => {
+    latest.current = close;
+  });
+  useEffect(() => {
+    if (!open) return;
+    const step = () => latest.current();
+    steps.push(step);
+    notify();
+    return () => {
+      const at = steps.lastIndexOf(step);
+      if (at >= 0) steps.splice(at, 1);
+      notify();
+    };
+  }, [open]);
 }
 
-/** What the cleared header's back button does, if a page has said (else it goes back a page). */
-export function useHeaderBack(): (() => void) | null {
-  return useSyncExternalStore(subscribe, () => back, () => null);
+/** One step back: what's open last closed (true) — or nothing open (false), for the page to be gone back from. */
+export function takeBackStep(): boolean {
+  const step = steps.at(-1);
+  if (!step) return false;
+  step();
+  return true;
+}
+
+/** Whether anything's open for a back button to close. */
+export function useHasBackStep(): boolean {
+  return useSyncExternalStore(subscribe, () => steps.length > 0, () => false);
 }

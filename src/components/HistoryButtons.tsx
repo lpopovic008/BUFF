@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/ui/Icon";
+import { takeBackStep, useHasBackStep } from "@/lib/header-slot";
 
 // The size of the page's other icon buttons (IconButton "md"), so they line up on one row.
 const HISTORY_BUTTON =
@@ -40,9 +41,11 @@ function useHistoryFlags(): { canGoBack: boolean; canGoForward: boolean } {
 export function HistoryButtons() {
   const router = useRouter();
   const { canGoBack, canGoForward } = useHistoryFlags();
+  // Back's one step: what's open on the page closed first (see useBackStep), then the page gone back from.
+  const open = useHasBackStep();
   return (
     <div className="flex gap-1">
-      <button type="button" aria-label="Back" title="Back" disabled={!canGoBack} onClick={() => router.back()} className={HISTORY_BUTTON}>
+      <button type="button" aria-label="Back" title="Back" disabled={!canGoBack && !open} onClick={() => takeBackStep() || router.back()} className={HISTORY_BUTTON}>
         <ChevronLeftIcon />
       </button>
       <button type="button" aria-label="Forward" title="Forward" disabled={!canGoForward} onClick={() => router.forward()} className={HISTORY_BUTTON}>

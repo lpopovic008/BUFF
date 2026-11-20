@@ -8,7 +8,7 @@ import { useCombinedRecord } from "@/hooks/useCombinedRecord";
 import { appPages } from "@/components/TabBar";
 import { useHeaderWeek } from "@/lib/header-week";
 import { WeekPicker, weekLabel } from "@/components/WeekPicker";
-import { setHeaderSlot, useHeaderBack, useHeaderBare } from "@/lib/header-slot";
+import { setHeaderSlot, takeBackStep, useHeaderBare } from "@/lib/header-slot";
 import { ChevronLeftIcon } from "@/components/ui/Icon";
 
 /** The app's walkie-talkie on its own, no tile — flat, in the text's color, its speaker grille cut through. */
@@ -52,8 +52,6 @@ export function NavBar() {
   const [profile, ...tabs] = appPages(usePathname());
   // A page that's taken the header over (see header-slot.ts).
   const bare = useHeaderBare();
-  // What its back button does, where the page has taken it over (closing what's open in it).
-  const back = useHeaderBack();
   const router = useRouter();
 
   useEffect(() => {
@@ -79,9 +77,13 @@ export function NavBar() {
             type="button"
             aria-label="Back"
             title="Back"
-            // Whatever the page says (closing what it has open) — else back where you came from, or, with nowhere to go
-            // back to (opened from a link), home.
-            onClick={() => (back ? back() : window.history.length > 1 ? router.back() : router.push("/"))}
+            // One step back: what's open last closed (a player's card, a floor's panel…, see useBackStep) — with nothing
+            // open, back where you came from, or, with nowhere to go back to (opened from a link), home.
+            onClick={() => {
+              if (takeBackStep()) return;
+              if (window.history.length > 1) router.back();
+              else router.push("/");
+            }}
             className={BARE_HEADER_BUTTON}
           >
             <ChevronLeftIcon width={18} height={18} />

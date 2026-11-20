@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDownIcon } from "@/components/ui/Icon";
 import { useSwipePager } from "@/hooks/useSwipePager";
-import { setHeaderBare, useHeaderSlot } from "@/lib/header-slot";
+import { setHeaderBare, useBackStep, useHeaderSlot } from "@/lib/header-slot";
 
 /** A league as the League Room lists it: its name and logo. */
 export interface RoomLeague {
@@ -64,6 +64,8 @@ export function LeagueSwitcher({
 }) {
   const own = useRef<HTMLElement | null>(null);
   const [open, setOpen] = useState(false);
+  // Dropped down, a back button's one step back puts it away.
+  useBackStep(open, () => setOpen(false));
 
   // A tap anywhere else puts the list away.
   useEffect(() => {

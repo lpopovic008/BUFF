@@ -27,7 +27,7 @@ import { useLineupDetails } from "@/hooks/useLineupDetails";
 import { getLeagueSummary, LeagueSummary, teamStandings } from "@/lib/league-data";
 import { avatarUrl, getCurrentWeek } from "@/lib/sleeper";
 import { setHeaderWeek } from "@/lib/header-week";
-import { setHeaderBack, setHeaderBare, useHeaderSlot } from "@/lib/header-slot";
+import { setHeaderBare, useBackStep, useHeaderSlot } from "@/lib/header-slot";
 import { visibleLeagues } from "@/lib/localStore";
 
 /** The NFL regular season's weeks, all of which the header's week picker offers. */
@@ -361,10 +361,7 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
   // A player's card up on the floor (see cardStage): the floor's buttons make way.
   const [cardUp, setCardUp] = useState(false);
   // The header's back button closes the floor's panel while one's up.
-  useEffect(() => {
-    setHeaderBack(action ? close : null);
-    return () => setHeaderBack(null);
-  }, [action, close]);
+  useBackStep(action !== null, close);
   // The tab bar's top: the floor's buttons and panels stop above it.
   const [tabBar, setTabBar] = useState(0);
   useEffect(() => {
