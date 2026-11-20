@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { ChevronLeftIcon } from "@/components/ui/Icon";
 import { CloseButton } from "@/components/LeagueRoomFloor";
+import { FloorReflection } from "@/components/FloorReflection";
 import { SeasonLine } from "@/components/FloorCareer";
 import { MatchupGraph, MatchupSide } from "@/components/MatchupGraph";
 import type { LineupNumbers } from "@/components/PlayerCareer";
@@ -36,24 +37,29 @@ export interface StagePlaces {
   room: { width: number; height: number };
   /** Where the room's horizon is (a share of its height), if not the stages' own (HORIZON_SHARE). */
   share?: number;
-  /** What's on the wall drawn this much bigger (CSS zoom), where it is, as what's around it is (see wallStyle). */
+  /** What's on the wall drawn this much bigger (CSS zoom), where it is, as what's around it is (see wallZoom). */
   zoom?: number;
+  /** What stands on the wall reflected in the floor at its foot, as the columns around it are. */
+  reflect?: boolean;
 }
 
 /**
- * Where a stage stands on the wall (`places.wall`), drawn as big as `places.zoom` says: a zoom draws its place bigger
- * too, so its place is given that much smaller, to stand just where it would.
+ * What's in a stage on the wall drawn as big as `places.zoom` says: for a box inside it, as tall as it (a zoom draws its
+ * contents bigger, the box still filling its place), so that the stage itself stands just where it's placed and its
+ * reflection's copy of what's in it is drawn as big.
  */
-export function wallStyle(places: StagePlaces, wall: React.CSSProperties = places.wall): React.CSSProperties {
+export function wallZoom(places: StagePlaces): React.CSSProperties | undefined {
   const z = places.zoom ?? 1;
-  if (z === 1) return wall;
-  const out: React.CSSProperties = { ...wall, zoom: z };
-  for (const k of ["top", "left", "width", "height", "right", "bottom"] as const) {
-    const v = wall[k];
-    if (typeof v === "number") out[k] = v / z;
-    else if (typeof v === "string") out[k] = `calc((${v}) / ${z})`;
-  }
-  return out;
+  return z === 1 ? undefined : { zoom: z };
+}
+
+/** A stage on the wall reflected in the floor at its foot (`source`), as columns are — there as it's up, going as it goes. */
+function WallReflection({ source, up }: { source: HTMLElement | null; up: boolean }) {
+  return (
+    <div className={`transition-opacity ease-out ${up ? "opacity-100" : "opacity-0"}`} style={{ transitionDuration: `${STAGE_MS}ms` }}>
+      <FloorReflection source={source} />
+    </div>
+  );
 }
 
 /** In (or on its way), and drawn at all: kept drawn while it goes. */
@@ -124,16 +130,21 @@ export function RoomGraph({
   scoring?: Record<string, number>;
 }) {
   const { floor } = places;
+  const [wall, setWall] = useState<HTMLDivElement | null>(null);
   return (
     <>
       {/* The graph on the back wall. */}
       <div
+        ref={setWall}
         data-floor-ui
         className={`fixed z-[6] flex flex-col transition-[opacity,transform] ease-out ${up ? "opacity-100" : "translate-y-2 opacity-0"}`}
-        style={{ ...wallStyle(places), transitionDuration: `${STAGE_MS}ms` }}
+        style={{ ...places.wall, transitionDuration: `${STAGE_MS}ms` }}
       >
-        <MatchupGraph mine={mine} theirs={theirs} weekGames={weekGames} scoring={scoring} />
+        <div className="flex h-full min-h-0 flex-col" style={wallZoom(places)}>
+          <MatchupGraph mine={mine} theirs={theirs} weekGames={weekGames} scoring={scoring} />
+        </div>
       </div>
+      {places.reflect ? <WallReflection source={wall} up={up} /> : null}
       {/* Its title on the floor. */}
       <div
         data-floor-ui
@@ -340,7 +351,8 @@ function PlayerDossier({
     numbers?.valueRank != null ? { label: numbers.dynasty ? "Dynasty" : "Redraft", value: `${player.position}${numbers.valueRank}`, className: "text-series-4" } : null,
     numbers?.seasonRank != null ? { label: "Season", value: `${player.position}${numbers.seasonRank}`, className: "text-series-1" } : null,
   ].filter((r): r is { label: string; value: string; className: string } => r !== null);
-  const ageYears = [bio?.age ? `${bio.age} yrs` : null, years].filter((part): part is string => !!part);
+  // His age and his years in the league, on one line.
+  const ageYears = [bio?.age ? `${bio.age} yrs` : null, years].filter((part): part is string => !!part).join(" · ");
   const college = collegeName(bio?.college);
   // A piece standing on the floor at screen x `x` (its foot's middle): put there in the room, square to the floor
   // (leaning back with it from upright), turned `turn` degrees to face the middle, and drawn as big there as it's sized.
@@ -441,11 +453,7 @@ function PlayerDossier({
               style={{ width: sideWide, fontSize: factSize, ...(reflected ? {} : OVER_FLOOR) }}
             >
               {college ? <span className="break-words text-ink-primary">{college}</span> : null}
-              {ageYears.map((part) => (
-                <span key={part} className="whitespace-nowrap text-ink-secondary">
-                  {part}
-                </span>
-              ))}
+              {ageYears ? <span className="whitespace-nowrap text-ink-secondary">{ageYears}</span> : null}
               {ranks.length > 0 ? (
                 // Each rank whole, the next on a line of its own where they don't fit side by side.
                 <span className="flex flex-wrap gap-x-[0.6em]">
@@ -820,9 +828,9 @@ export function PlayerStage({
     <div
       data-floor-ui
       className={`fixed z-[6] overflow-y-auto transition-[opacity,transform] ease-out [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${up ? "opacity-100" : "translate-y-2 opacity-0"}`}
-      style={{ ...wallStyle(places), transitionDuration: `${STAGE_MS}ms` }}
+      style={{ ...places.wall, transitionDuration: `${STAGE_MS}ms` }}
     >
-      <div className="flex h-full min-h-fit flex-col gap-2">
+      <div className="flex h-full min-h-fit flex-col gap-2" style={wallZoom(places)}>
         {picker}
         <section aria-label={player.name} className="flex flex-col gap-2">
           <PlayerHeader player={player} bio={bio} numbers={numbers} onClose={onClose} />
@@ -875,6 +883,8 @@ export function RoomBench({
   noteOf: (playerId: string) => LineNote | undefined;
 }) {
   const players = bench.filter((b) => b.player);
+  // Its list on the wall (from laptop width up), reflected in the floor at its foot (see WallReflection).
+  const [wall, setWall] = useState<HTMLDivElement | null>(null);
   const [filter, setFilter] = useState<BenchFilterKey>("projected");
   const { filters, list } = useMemo(() => {
     const candidate = (b: ResolvedSlot): BenchCandidate => {
@@ -904,13 +914,11 @@ export function RoomBench({
   const slot = players.find((b) => b.player!.playerId === shownId) ?? players[0];
   if (!slot) {
     return (
-      <div
-        data-floor-ui
-        className="fixed z-[7] flex items-center gap-2 text-sm text-ink-secondary"
-        style={wallStyle(stage.places, { top: stage.places.wall.top, left: stage.places.wall.left, width: stage.places.wall.width })}
-      >
-        <span className="min-w-0 flex-1">No one&rsquo;s on your bench.</span>
-        <CloseButton onClose={stage.onClose} />
+      <div data-floor-ui className="fixed z-[7] text-sm text-ink-secondary" style={{ top: stage.places.wall.top, left: stage.places.wall.left, width: stage.places.wall.width }}>
+        <div className="flex items-center gap-2" style={wallZoom(stage.places)}>
+          <span className="min-w-0 flex-1">No one&rsquo;s on your bench.</span>
+          <CloseButton onClose={stage.onClose} />
+        </div>
       </div>
     );
   }
@@ -939,11 +947,14 @@ export function RoomBench({
   // the lineups' right-hand side is (his photo at the right edge) and opening his card where theirs do.
   if (stage.floorless) {
     return (
+      <>
       <div
+        ref={setWall}
         data-floor-ui
-        className={`fixed z-[7] flex flex-col gap-2 transition-opacity ease-out ${stage.up ? "opacity-100" : "pointer-events-none opacity-0"}`}
-        style={{ ...wallStyle(stage.places), transitionDuration: `${STAGE_MS}ms` }}
+        className={`fixed z-[7] transition-opacity ease-out ${stage.up ? "opacity-100" : "pointer-events-none opacity-0"}`}
+        style={{ ...stage.places.wall, transitionDuration: `${STAGE_MS}ms` }}
       >
+        <div className="flex h-full min-h-0 flex-col gap-2" style={wallZoom(stage.places)}>
         <div className="flex items-start gap-2">
           <div className="min-w-0 flex-1">{filterRow}</div>
           <CloseButton onClose={stage.onClose} />
@@ -965,7 +976,10 @@ export function RoomBench({
             })}
           </ul>
         )}
+        </div>
       </div>
+      {stage.places.reflect ? <WallReflection source={wall} up={stage.up} /> : null}
+      </>
     );
   }
   const picker = (

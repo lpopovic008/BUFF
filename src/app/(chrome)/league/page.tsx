@@ -13,7 +13,7 @@ import { useSwipePager } from "@/hooks/useSwipePager";
 import { LIST_MOVE, useListScroll } from "@/hooks/useListScroll";
 import { LeagueSwitcher, LeagueTitle, RoomLeague } from "@/components/LeagueSwitcher";
 import { BriefMatchups, CareerStageContext, CarriedCard, MatchupList, MatchupProviders, MatchupSlide, MatchupStack, useLineNoteOf, useLineupNumbers, useMatchupHeadToHead } from "@/components/LeagueMatchupCarousel";
-import { RoomBench, RoomGraph, StagePlaces, useStageShown, wallStyle } from "@/components/LeagueRoomStages";
+import { RoomBench, RoomGraph, StagePlaces, useStageShown, wallZoom } from "@/components/LeagueRoomStages";
 import { WriteupsPanel } from "@/components/LeagueRoomWriteups";
 import { ActionTiles, CloseButton, FLOOR_ACTIONS, FloorAction, FloorButtonSwiper, floorButtonRow, FrontPanel } from "@/components/LeagueRoomFloor";
 import type { MatchupSide } from "@/components/MatchupGraph";
@@ -697,8 +697,9 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
           wall: { top: sideBox.under + PANEL_GAP_PX, height: Math.max(0, room.height * lineupShare - 2 * PANEL_GAP_PX - sideBox.under), left: sideBox.left, width: sideBox.width },
           floor: { top: room.height * lineupShare + PANEL_GAP_PX, bottom: room.height - 12, left: sideBox.left, width: sideBox.width },
           room,
-          // Its text as big as the columns' (see middleZoom).
+          // Its text as big as the columns' (see middleZoom); reflected in the floor as they are.
           zoom: middleZoom,
+          reflect: true,
         }
       : null;
   const { leagueId, standings, owners, myRosterId, carousel, allTime, providers } = useLeagueRoom(rooms[index], week, userId);
@@ -1041,8 +1042,8 @@ function RoomStageContent({ kind, places, onClose, back, league, week, userId, m
   const game =
     (matchupId !== undefined ? games.find((g) => g.matchupId === matchupId) : undefined) ?? games.find((g) => g.teams.some((t) => t.rosterId === myRosterId)) ?? games[0];
   const note = (text: string) => (
-    <div data-floor-ui className="fixed z-[7] text-sm text-ink-secondary" style={wallStyle(places, { top: places.wall.top, left: places.wall.left, width: places.wall.width })}>
-      <div className="flex items-center gap-2">
+    <div data-floor-ui className="fixed z-[7] text-sm text-ink-secondary" style={{ top: places.wall.top, left: places.wall.left, width: places.wall.width }}>
+      <div className="flex items-center gap-2" style={wallZoom(places)}>
         <span className="min-w-0 flex-1">{text}</span>
         <CloseButton onClose={onClose} />
       </div>
