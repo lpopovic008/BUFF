@@ -5,7 +5,6 @@
 
 import { exportTheme } from "./recap-graphic";
 import { shownGrade, valueGrade } from "./player-values";
-import { FAIR_SHARE } from "./trade-monitor";
 import type { AnalyzedTrade, TradeAsset, TradeSide } from "./trades";
 
 const WIDTH = 1080;
@@ -71,7 +70,7 @@ function roomForPx(at: number, others: number[], placed: number[], h: number, pa
 /**
  * Draws `trade` (in league `leagueName`) onto `canvas` in export theme `themeId`: its league and date over each side's
  * block — the team (the one worth the most now marked ahead), what it got with each piece's grade then → now, any FAAB
- * and added value, and its total then → now — then every piece's value week by week on one chart from nothing up
+ * and added value, and its total then → now — then every piece's value week by week on one chart, its lowest to its highest
  * (each in its side's color, named by its start, a drafted pick's dotted where it was drafted and named by its end for
  * who it became), and the source at the foot.
  */
@@ -267,10 +266,12 @@ export function drawTradeGraphic(canvas: HTMLCanvasElement, trade: AnalyzedTrade
   // (A trade made today has its values only for today: each line drawn flat across at its value.)
   const today = last <= first;
   if (values.length > 0) {
-    // From nothing up to the highest, and room over it as wide as a fair trade's sides can be apart (FAIR_SHARE): how
-    // far apart two lines are is how far apart their values are, so pieces close enough to be a fair trade draw close.
-    const span = Math.max(1, Math.max(...values) * (1 + FAIR_SHARE));
-    const py = (v: number) => plot.y + 16 + (1 - v / span) * (plot.h - 32);
+    // From the trade's lowest value to its highest, over the chart's whole height — the lines as far apart as it lets
+    // them be (as the page's chart, see TradeChart).
+    const [lo, hi] = [Math.min(...values), Math.max(...values)];
+    const span = hi - lo || 1;
+    // (Room kept over the highest and under the lowest for a value's label beside its line.)
+    const py = (v: number) => plot.y + 32 + (1 - (v - lo) / span) * (plot.h - 64);
     // Each line's start and end, and its name's place by its start: moved apart only as far as they'd otherwise
     // overlap. Where names had to be, each line starts at its name, level with it, and runs in to its first value
     // over the chart's first stretch (LEAD_IN) — the weeks drawn across the rest.
