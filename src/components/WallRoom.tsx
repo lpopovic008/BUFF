@@ -7,12 +7,9 @@ import { FloorReflection } from "@/components/FloorReflection";
 import { ScrollThumb } from "@/components/ScrollThumb";
 import { LineupNumbers, PlayerCareer } from "@/components/PlayerCareer";
 import { useListScroll } from "@/hooks/useListScroll";
-import { HORIZON_SHARE } from "@/lib/grid-room";
+import { HORIZON_SHARE, WALL_SHARE } from "@/lib/grid-room";
 import { ResolvedPlayer } from "@/lib/players";
 
-// A room whose columns stand on its back wall, as the League Room's do (see .grid-room): its horizon low, the back
-// wall most of the screen — the floor in front of it a strip for what stands on it to be reflected in.
-const WALL_SHARE = 0.8;
 // From laptop width up, three columns stand in the room; narrower, one.
 const WIDE = "(min-width: 1280px)";
 const onWideChange = (listener: () => void) => {

@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getLeague, getLeagueRosters } from "@/lib/sleeper";
+import { avatarUrl, getLeague, getLeagueRosters } from "@/lib/sleeper";
 
 export interface MyLeagueOption {
   leagueId: string;
   leagueName: string;
+  /** The league's avatar, if it has one. */
+  logo: string | null;
   rosterId: number;
   wins: number;
   losses: number;
@@ -34,6 +36,7 @@ export function useMyLeagues(leagueIds: string[], sleeperUserId: string | null):
           return {
             leagueId,
             leagueName: league.name,
+            logo: avatarUrl(league.avatar, "full"),
             rosterId: myRoster.roster_id,
             wins: myRoster.settings.wins ?? 0,
             losses: myRoster.settings.losses ?? 0,

@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
-import { HORIZON_SHARE } from "@/lib/grid-room";
+import { HORIZON_SHARE, WALL_SHARE } from "@/lib/grid-room";
 import { FloorGrid } from "@/components/FloorGrid";
 import { FloorReflection } from "@/components/FloorReflection";
 import { ScrollThumb } from "@/components/ScrollThumb";
@@ -317,49 +317,6 @@ function useFloorAction(initial: FloorAction | null = null) {
   return { action, last, pick, close };
 }
 
-/** How many of an open lineup's starters show above the horizon on a phone, and how far apart (px) — any more scrolled to. */
-const LINEUP_SHOWN = 11;
-const LINEUP_GAP_PX = 10;
-
-/**
- * Where a phone's horizon goes (a share of the room's `height`) to show an open matchup's header and the first
- * LINEUP_SHOWN of its starters (LINEUP_GAP_PX apart) under the header and the league switcher: measured off a header
- * and a lineup's row in `scene` once they're drawn (and again as they change). Null till then.
- */
-function useElevenShare(scene: HTMLElement | null, height: number | null): number | null {
-  const [share, setShare] = useState<number | null>(null);
-  useEffect(() => {
-    if (!scene || !height) return;
-    let frame = 0;
-    const measure = () => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        const header = scene.querySelector<HTMLElement>("[data-matchup-header]");
-        const row = scene.querySelector<HTMLElement>("[data-lineup-row]");
-        if (!header || !row) return;
-        const css = getComputedStyle(document.documentElement);
-        const rem = parseFloat(css.fontSize) || 16;
-        // Under the switcher (the header's height and a gap), the matchup's header and the lineup's padding (1.25rem,
-        // see MatchupStack), the rows, and the gap over the horizon.
-        const above = (parseFloat(css.getPropertyValue("--header-h")) || 0) + 0.5 * rem + header.getBoundingClientRect().height + 1.25 * rem;
-        const rows = LINEUP_SHOWN * row.getBoundingClientRect().height + (LINEUP_SHOWN - 1) * LINEUP_GAP_PX;
-        const next = Math.round(((above + rows + 0.5 * rem) / height) * 1e4) / 1e4;
-        setShare((was) => (was === next ? was : next));
-      });
-    };
-    measure();
-    const observer = new MutationObserver(measure);
-    observer.observe(scene, { childList: true, subtree: true });
-    window.addEventListener("resize", measure);
-    return () => {
-      cancelAnimationFrame(frame);
-      observer.disconnect();
-      window.removeEventListener("resize", measure);
-    };
-  }, [scene, height]);
-  return share;
-}
-
 /**
  * Tells `onBottom` where an element's bottom is on screen (y) — no lower than the bottom of the list it's scrolled in
  * — as it changes size, or its list scrolls.
@@ -443,13 +400,11 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
   // The bench's and the score graph's stages: on the back wall where the lineups were (they step aside), and the floor.
   // A player's card too: a stage of his own (see PlayerStage).
   const fullStage = action === "bench" || action === "graph" || action === "payouts" || floorAway || cardUp;
-  // The horizon as high as leaves room for an open lineup's first eleven starters, a little apart (see elevenShare) —
-  // the rest scrolled to — and the floor under it, the room's buttons standing on it just in front of the horizon
-  // (see floorButtonRow); no lower than they'd have it, before the lineups are measured.
-  const row = room ? floorButtonRow(room.width, room.height, room.height - tabBar, room.width - 2 * PANEL_GAP_PX) : null;
-  const eleven = useElevenShare(scene, room?.height ?? null);
-  const lineupShare = row ? Math.min(row.share, eleven ?? row.share) : HORIZON_SHARE;
-  const buttons = row ? { ...row, share: lineupShare } : null;
+  // The horizon low, as the Values page's and the Trade Monitor's are (WALL_SHARE): the lineups on the back wall, most
+  // of the screen, and the floor in front of them a strip, the room's buttons standing on it just in front of the
+  // horizon, as big as it leaves room for (see floorButtonRow).
+  const lineupShare = WALL_SHARE;
+  const buttons = room ? floorButtonRow(room.width, room.height, room.height - tabBar, room.width - 2 * PANEL_GAP_PX, lineupShare) : null;
   // A player's card keeps the horizon where it is: his charts on the wall, who he is on the floor in front.
   useShareFor(onShare, lineupShare, (action !== null && !writeups) || floorAway);
   const stagePlaces: StagePlaces | null = room

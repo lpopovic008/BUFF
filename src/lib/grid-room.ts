@@ -4,6 +4,11 @@
 
 /** How far down the screen the horizon sits: nearer the middle (short of it), for more floor. */
 export const HORIZON_SHARE = 0.56;
+/**
+ * A room whose columns stand on its back wall (see WallRoom, and the League Room on a phone): its horizon low, the back
+ * wall most of the screen — the floor in front of it a strip for what stands on it to be reflected in.
+ */
+export const WALL_SHARE = 0.8;
 /** The room's CSS perspective, in px. */
 export const PERSPECTIVE_PX = 520;
 /** How far the floor is laid back from upright, in degrees — as it lies; the home page lays it back less (looks down

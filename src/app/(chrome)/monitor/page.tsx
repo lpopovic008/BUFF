@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { PlateCard } from "@/components/ui/PlateCard";
 import { PickButton } from "@/components/ui/PickButton";
+import { HeaderLeagueSwitcher } from "@/components/LeagueSwitcher";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { PlayerCareer } from "@/components/PlayerCareer";
 import { TradeCalculator } from "@/components/TradeCalculator";
@@ -205,8 +206,10 @@ export default function MonitorPage() {
   const picked = myLeagues?.find((l) => l.leagueId === pickedId) ?? myLeagues?.[0] ?? null;
   const [calcFloor, setCalcFloor] = useState<CalcFloor | null>(null);
 
+  // Your leagues to pick from: from laptop width up, a column of their own; on a phone, switched in the page header (see
+  // HeaderLeagueSwitcher), as the League Room's are.
   const leagues =
-    myLeagues && myLeagues.length > 0 ? (
+    wide && myLeagues && myLeagues.length > 0 ? (
       <ul className="grid grid-cols-2 gap-2 xl:grid-cols-1" aria-label="Your leagues">
         {myLeagues.map((l) => (
           <li key={l.leagueId}>
@@ -227,6 +230,13 @@ export default function MonitorPage() {
           <MonitorColumns wide={wide} leagues={leagues} middle={waiting} />
         )}
       </WallRoom>
+      {!wide && picked && myLeagues ? (
+        <HeaderLeagueSwitcher
+          leagues={myLeagues.map((l) => ({ leagueId: l.leagueId, name: l.leagueName, logo: l.logo }))}
+          selectedId={picked.leagueId}
+          onSelect={setPickedId}
+        />
+      ) : null}
     </TradeCalcFloorContext.Provider>
   );
 }

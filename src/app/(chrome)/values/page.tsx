@@ -6,6 +6,7 @@ import { SearchIcon, CrownIcon, CalendarIcon, SuperflexIcon, OneQBIcon, PlusCirc
 import { IconButton } from "@/components/ui/IconButton";
 import { TradeAnalyzer } from "@/components/TradeAnalyzer";
 import { PickButton } from "@/components/ui/PickButton";
+import { HeaderLeagueSwitcher } from "@/components/LeagueSwitcher";
 import { useConfig } from "@/hooks/useConfig";
 import { useMyLeagues } from "@/hooks/useMyLeagues";
 import { visibleLeagues } from "@/lib/localStore";
@@ -331,13 +332,20 @@ export default function ValuesPage() {
       ) : (
         <RoomColumn label="Values" className="flex-1" stage>
           <div className="flex flex-col gap-4">
-            {picks}
             {picked ? null : filters}
             {main}
           </div>
         </RoomColumn>
       )}
     </WallRoom>
+    {/* On a phone, All players and each of your teams switched in the page header, as the League Room's leagues are. */}
+    {desktop ? null : (
+      <HeaderLeagueSwitcher
+        leagues={[{ leagueId: ALL_PLAYERS, name: "All players", logo: null }, ...(myLeagues ?? []).map((l) => ({ leagueId: l.leagueId, name: l.leagueName, logo: l.logo }))]}
+        selectedId={picked?.leagueId ?? ALL_PLAYERS}
+        onSelect={setPickedId}
+      />
+    )}
     </TradeFloorContext.Provider>
   );
 }

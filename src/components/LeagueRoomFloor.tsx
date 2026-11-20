@@ -214,28 +214,35 @@ export interface FloorButtonRow {
  * The floor's buttons as a row of them standing upright across it, as wide together as `span` (px, across the screen's
  * middle) allows: just in front of where their tops would rise past the horizon, so they never stand over what's above
  * it — and the horizon (`share`) just high enough over `bottom` (screen y) for the floor to show them and their
- * reflections: the room looked at as straight on as they allow.
+ * reflections: the room looked at as straight on as they allow. Or, with the horizon where it's to be (`fixedShare`),
+ * as wide as the floor under it leaves room for.
  */
-export function floorButtonRow(screenW: number, screenH: number, bottom: number, span: number): FloorButtonRow {
+export function floorButtonRow(screenW: number, screenH: number, bottom: number, span: number, fixedShare?: number): FloorButtonRow {
   const n = FLOOR_ACTIONS.length;
   const units = n + (n - 1) * BLOCK.gap;
   const wanted = Math.min(span, units * MOST_FACE_PX);
   const depthFor = (w: number) => (w * BLOCK.height * SIN) / COS + w * BLOCK.thick + CLEAR;
   const scaleAt = (d: number) => PERSPECTIVE_PX / (PERSPECTIVE_PX - Math.min(d * SIN, PERSPECTIVE_PX * 0.97));
+  // How far under the horizon the floor has to reach for buttons `w` wide, and as much of their reflections as shows.
+  const belowFor = (w: number) => {
+    const d = depthFor(w);
+    const front = standing(0, d, 0, screenW, 0)[1];
+    const reflected = standing(0, d, -w * BLOCK.height, screenW, 0)[1];
+    return front + (reflected - front) * REFLECTION_SHOWN + UNDER_PX;
+  };
+  // With the horizon where it's to be (`fixedShare`), the floor under it as far as they can reach.
+  const room = fixedShare === undefined ? Infinity : bottom - fixedShare * screenH;
   // As wide as fits: a wider button stands nearer, and so shows bigger still.
   let [lo, hi] = [2, 200];
   for (let i = 0; i < 40; i++) {
     const w = (lo + hi) / 2;
-    if (depthFor(w) * SIN < PERSPECTIVE_PX * 0.9 && w * units * scaleAt(depthFor(w)) <= wanted) lo = w;
+    if (depthFor(w) * SIN < PERSPECTIVE_PX * 0.9 && w * units * scaleAt(depthFor(w)) <= wanted && belowFor(w) <= room) lo = w;
     else hi = w;
   }
   const width = lo;
   const height = width * BLOCK.height;
   const depth = depthFor(width);
-  const front = standing(0, depth, 0, screenW, 0)[1];
-  const reflected = standing(0, depth, -height, screenW, 0)[1];
-  const below = front + (reflected - front) * REFLECTION_SHOWN + UNDER_PX;
-  const share = Math.min(LOWEST_SHARE, Math.max(HORIZON_SHARE, (bottom - below) / screenH));
+  const share = fixedShare ?? Math.min(LOWEST_SHARE, Math.max(HORIZON_SHARE, (bottom - belowFor(width)) / screenH));
   return { share, width, height, thick: width * BLOCK.thick, gap: width * BLOCK.gap, depth };
 }
 

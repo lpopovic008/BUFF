@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ChevronDownIcon } from "@/components/ui/Icon";
+import { useSwipePager } from "@/hooks/useSwipePager";
+import { setHeaderBare, useHeaderSlot } from "@/lib/header-slot";
 
 /** A league as the League Room lists it: its name and logo. */
 export interface RoomLeague {
@@ -129,4 +132,37 @@ export function LeagueSwitcher({
       ) : null}
     </nav>
   );
+}
+
+/**
+ * A page's leagues (or whatever it picks between) switched in the page header on a phone, as the League Room's are
+ * (see LeagueSwitcher): the header cleared down to its back button and the app's logo, the one picked named in its
+ * middle — swiped sideways to the next, or tapped to drop them all down to pick from.
+ */
+export function HeaderLeagueSwitcher({
+  leagues,
+  selectedId,
+  onSelect,
+}: {
+  leagues: RoomLeague[];
+  selectedId: string;
+  onSelect: (leagueId: string) => void;
+}) {
+  useEffect(() => {
+    setHeaderBare(true);
+    return () => setHeaderBare(false);
+  }, []);
+  const slot = useHeaderSlot();
+  const [bar, setBar] = useState<HTMLElement | null>(null);
+  const [names, setNames] = useState<HTMLDivElement | null>(null);
+  const index = Math.max(0, leagues.findIndex((l) => l.leagueId === selectedId));
+  useSwipePager({
+    surfaces: [bar],
+    tracks: [names],
+    follow: null,
+    count: leagues.length,
+    index,
+    onPick: (page) => onSelect(leagues[page].leagueId),
+  });
+  return slot ? createPortal(<LeagueSwitcher leagues={leagues} selectedId={selectedId} onSelect={onSelect} bar={setBar} track={setNames} />, slot) : null;
 }

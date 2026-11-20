@@ -13,6 +13,8 @@ export const HORIZON_OPACITY = LINE_OPACITY * 0.4;
 export const FAR_OPACITY = 0.4;
 export const FULL_DEPTH_SHARE = 0.6;
 const FADE_STOPS = 8;
+/** Narrower than this (px), the room's on a phone. */
+const PHONE_PX = 768;
 
 /**
  * A mask (`id`) fading what's on the floor back toward the horizon: whole from screen y `whole` down, as faint as `far`
@@ -99,6 +101,11 @@ export function FloorGrid({
   const wire = view ? 1 / view.dpr : 1;
   const snap = (y: number) => (view ? (Math.floor(y * view.dpr) + 0.5) / view.dpr : y);
   const horizon = view ? view.height * share : 0;
+  // The horizon: a device pixel wide, as the grid's lines are — on a phone a whole CSS pixel, on a whole one, or on its
+  // dense screen it's a hairline that all but vanishes.
+  const phone = view ? view.width < PHONE_PX : false;
+  const horizonWire = phone ? 1 : wire;
+  const horizonY = phone ? Math.floor(horizon) + 0.5 : snap(horizon);
   const fullDepth = view ? view.height * FULL_DEPTH_SHARE : 1;
   const bottomDepth = view ? floorDepth(view.height, view.height, share, tilt) : 0;
   // Every line one shape, stroked with the fade back to the horizon: nothing made anew, or masked, as the floor moves.
@@ -128,7 +135,7 @@ export function FloorGrid({
               <stop offset="1" stopColor="var(--ink-primary)" stopOpacity="0" />
             </linearGradient>
           </defs>
-          <line x1={0} x2={view.width} y1={snap(horizon)} y2={snap(horizon)} stroke="url(#floor-grid-horizon)" strokeWidth={wire} />
+          <line x1={0} x2={view.width} y1={horizonY} y2={horizonY} stroke="url(#floor-grid-horizon)" strokeWidth={horizonWire} />
           {/* Faded away while something else lines the floor (a play's field, see FloorPlay) — the horizon kept. */}
           <path
             d={d}
