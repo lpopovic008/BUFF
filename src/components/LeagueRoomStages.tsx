@@ -11,7 +11,6 @@ import { BenchCandidate, BenchFilterKey, benchFilters, benchList, StarterInSlot 
 import { ChartGame, ChartStat, chartColumn, FloorStairs, FloorStatBars, stairStep, statRows, useChartPan, useStairs, ValueLine, WallLine } from "@/components/PlayerStageCharts";
 import { loadValueHistory } from "@/hooks/useLeagueTrades";
 import { normalizeName } from "@/lib/name-match";
-import { collegeAbbreviation } from "@/lib/college-abbreviations";
 import { nflLogoUrl } from "@/lib/nfl-logos";
 import { ordinal } from "@/lib/format";
 import { StatTier, statTier } from "@/lib/stat-tiers";
@@ -131,23 +130,15 @@ export function RoomGraph({
 /** "6'2\"" from inches. */
 const feet = (inches: number) => `${Math.floor(inches / 12)}'${inches % 12}"`;
 
-/** His college's short name (see collegeAbbreviation), its whole name said and on hover. */
-function CollegeMark({ college }: { college: string | null }) {
-  const short = collegeAbbreviation(college);
-  if (!college || !short) return null;
-  return (
-    <span title={college} className="block shrink-0 whitespace-nowrap text-right text-xs font-extrabold uppercase leading-tight tracking-wide text-ink-primary sm:text-sm">
-      <span aria-hidden>{short}</span>
-      <span className="sr-only">{college}</span>
-    </span>
-  );
-}
+/** His college's whole name, "St." spelled out as State. */
+const collegeName = (college: string | null | undefined) => college?.trim().replace(/\bSt\.(?=\s|$)/g, "State") || null;
 
 /**
  * Who a player is, across the top of his stage, in two lines: his photo over his team's logo beside them both; his
  * name and position, and his way out at the end of that line; under them his height and weight (and number). On the
  * right, each two lines level with those two: his trade-value rank over his season rank, his age over his years in
- * the league, and his college's short name between the two.
+ * the league, and his college's name between the two — on a phone, where there's no room for it there, on a line of
+ * its own under his height and weight.
  */
 function PlayerHeader({ player, bio, numbers, onClose }: { player: ResolvedPlayer; bio: PlayerBio | null; numbers: LineupNumbers | null; onClose: () => void }) {
   const [photoFailed, setPhotoFailed] = useState(false);
@@ -155,6 +146,7 @@ function PlayerHeader({ player, bio, numbers, onClose }: { player: ResolvedPlaye
   const under = [size, bio?.number ? `#${bio.number}` : null].filter(Boolean).join(" · ");
   const years = bio?.yearsExp != null ? (bio.yearsExp === 0 ? "Rookie" : `${ordinal(bio.yearsExp + 1)} yr`) : null;
   const small = "whitespace-nowrap text-right text-[0.6875rem] font-semibold uppercase leading-tight";
+  const college = collegeName(bio?.college);
   const rank = (value: number | null | undefined, className: string, label: string, said: string) =>
     value != null ? (
       <span className={small} title={said}>
@@ -168,7 +160,7 @@ function PlayerHeader({ player, bio, numbers, onClose }: { player: ResolvedPlaye
       <span />
     );
   return (
-    <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto_auto_auto] grid-rows-[auto_auto] items-end gap-x-1.5 sm:gap-x-2.5">
+    <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto_auto_auto] grid-rows-[auto_auto_auto] items-end gap-x-1.5 sm:grid-rows-[auto_auto] sm:gap-x-2.5">
       {/* His photo in front of his team's logo, both centered. */}
       <div className="relative row-span-2 h-14 w-14 self-center sm:h-16 sm:w-16">
         {player.team ? (
@@ -193,10 +185,13 @@ function PlayerHeader({ player, bio, numbers, onClose }: { player: ResolvedPlaye
       {/* His age over his years in the league. */}
       <span className={`col-start-4 row-start-1 text-ink-secondary ${small}`}>{bio?.age ? `${bio.age} yrs` : ""}</span>
       <span className={`col-start-4 row-start-2 text-ink-secondary ${small}`}>{years ?? ""}</span>
-      {/* His college, between the two. */}
-      <div className="col-start-5 row-span-2 row-start-1 self-center">
-        <CollegeMark college={bio?.college ?? null} />
-      </div>
+      {/* His college, between the two — on a phone, under his height and weight. */}
+      {college ? (
+        <>
+          <span className="col-start-5 row-span-2 row-start-1 hidden max-w-[9rem] self-center text-right text-[0.6875rem] font-bold uppercase leading-tight text-ink-primary sm:block">{college}</span>
+          <span className="col-span-3 col-start-2 row-start-3 truncate text-[0.6875rem] font-bold uppercase leading-tight text-ink-primary sm:hidden">{college}</span>
+        </>
+      ) : null}
       {/* His way out, on his name's line. */}
       <button
         type="button"
