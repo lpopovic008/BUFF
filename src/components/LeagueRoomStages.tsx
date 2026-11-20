@@ -8,7 +8,7 @@ import { MatchupGraph, MatchupSide } from "@/components/MatchupGraph";
 import type { LineupNumbers } from "@/components/PlayerCareer";
 import { type LineNote, LineupPlayerRow } from "@/components/LeagueMatchupCarousel";
 import { BenchCandidate, BenchFilterKey, benchFilters, benchList, StarterInSlot } from "@/lib/bench-groups";
-import { ChartGame, ValueLine, WallLine } from "@/components/PlayerStageCharts";
+import { ChartGame, ChartStat, ValueLine, WallLine } from "@/components/PlayerStageCharts";
 import { loadValueHistory } from "@/hooks/useLeagueTrades";
 import { normalizeName } from "@/lib/name-match";
 import { nflLogoUrl } from "@/lib/nfl-logos";
@@ -412,6 +412,21 @@ function PlayerDossier({
   );
 }
 
+const stat = (label: string, key: string): ChartStat => ({ label, key });
+/**
+ * Each position's stats, a row of bars each under his points on the wall (see WallLine), as Sleeper's game logs show
+ * them: the ones it leads with (a passer's passing, a back's rushing, a receiver's receiving) first, then the rest it
+ * shows — no fumbles or two-point conversions, which it doesn't.
+ */
+const CHART_STATS: Record<string, ChartStat[]> = {
+  QB: [stat("Cmp", "pass_cmp"), stat("Att", "pass_att"), stat("PYd", "pass_yd"), stat("PTD", "pass_td"), stat("Int", "pass_int"), stat("Car", "rush_att"), stat("RYd", "rush_yd"), stat("RTD", "rush_td")],
+  RB: [stat("Car", "rush_att"), stat("RYd", "rush_yd"), stat("RTD", "rush_td"), stat("Tgt", "rec_tgt"), stat("Rec", "rec"), stat("RcYd", "rec_yd"), stat("RcTD", "rec_td")],
+  WR: [stat("Tgt", "rec_tgt"), stat("Rec", "rec"), stat("RcYd", "rec_yd"), stat("RcTD", "rec_td"), stat("Car", "rush_att"), stat("RYd", "rush_yd"), stat("RTD", "rush_td")],
+  TE: [stat("Tgt", "rec_tgt"), stat("Rec", "rec"), stat("RcYd", "rec_yd"), stat("RcTD", "rec_td"), stat("Car", "rush_att"), stat("RYd", "rush_yd"), stat("RTD", "rush_td")],
+  K: [stat("FG", "fgm"), stat("FGA", "fga"), stat("XP", "xpm"), stat("XPA", "xpa"), stat("40-49", "fgm_40_49"), stat("50+", "fgm_50p")],
+  DEF: [stat("Sack", "sack"), stat("Int", "int"), stat("FR", "fum_rec"), stat("TD", "def_td"), stat("PA", "pts_allow"), stat("Saf", "safe"), stat("Blk", "blk_kick"), stat("YdA", "yds_allow")],
+};
+
 /** A game (or a season) as the stage picks and reads it out. */
 interface StageGame extends ChartGame {
   short: string;
@@ -556,6 +571,7 @@ export function PlayerStage({
       return seasons.map((s) => ({
         key: s.season,
         value: s.points,
+        stats: s.stats,
         tag: `'${s.season.slice(-2)}`,
         label: `${s.season}${s.team ? `, ${s.team}` : ""}: ${s.points.toFixed(1)} points${s.rank ? `, ${player.position}${s.rank}` : ""}`,
         short: `${s.season}${s.team ? ` · ${s.team}` : ""} · ${Math.round(s.stats.gp ?? 0)} GP · ${s.points.toFixed(1)} pts · ${
@@ -620,6 +636,7 @@ export function PlayerStage({
       return {
         key: `w${week}`,
         value: points,
+        stats: w.stats,
         projected,
         opponent: w.opponent ?? game?.opponent ?? null,
         tag: String(week),
@@ -649,6 +666,18 @@ export function PlayerStage({
         : columns[pick].short;
 
   const { floor } = places;
+  // How tall the row across the back of the floor stands: the rest of the floor's under it.
+  const [floorBar, setFloorBar] = useState<HTMLDivElement | null>(null);
+  const [floorBarHeight, setFloorBarHeight] = useState(0);
+  useEffect(() => {
+    if (!floorBar) return;
+    const measure = () => setFloorBarHeight(floorBar.offsetHeight);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(floorBar);
+    return () => observer.disconnect();
+  }, [floorBar]);
+  const below = { ...floor, top: floor.top + floorBarHeight + 8 };
   const seasonButton = (key: string, label: string, on: boolean, onPick: () => void, buttonTitle?: string) => (
     <button
       key={key}
@@ -664,90 +693,109 @@ export function PlayerStage({
     </button>
   );
 
-  return (
+  // His seasons to look into (or his career), every number there is, and his value over time — on the floor, with
+  // the card's way out; on the wall where there's no floor.
+  const controls = (
+    <div className="flex flex-wrap items-center gap-1">
+      {seasons === null ? (
+        <span className="text-xs text-ink-muted">Loading…</span>
+      ) : seasons.length === 0 ? (
+        <span className="text-xs text-ink-muted">No seasons yet</span>
+      ) : (
+        <>
+          {seasonButton("career", "Career", !table && !valueView && shown === "career", () => (setChosen("career"), setTable(false), setValueView(false)), "Every season he's played")}
+          {[...seasons].reverse().map((s) =>
+            seasonButton(s.season, s.season, !table && !valueView && shown === s.season, () => (setChosen(s.season), setTable(false), setValueView(false)), `His ${s.season} week by week`)
+          )}
+          {details ? seasonButton("table", "Table", table, () => (setTable((t) => !t), setValueView(false)), "Every number there is") : null}
+        </>
+      )}
+      {/* His value over time: KTC's, from when it first listed him. */}
+      {seasonButton("value", "Value over time", valueView, () => (setValueView(true), setTable(false)), "His trade value, KTC's, over time")}
+      {floorless ? null : (
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label={`Close ${player.name}`}
+          title="Close"
+          className="ml-auto flex h-7 w-6 items-center justify-center text-xl font-bold leading-none text-ink-primary transition-transform active:scale-90"
+        >
+          ×
+        </button>
+      )}
+    </div>
+  );
+  // His points game by game, with his stats under them (see WallLine) — or his value over time (see ValueLine).
+  const chart = valueView ? (
+    <div className="relative min-h-[8rem] flex-1">{valuePoints ? <ValueLine points={valuePoints} label={`${player.name}'s trade value over time`} /> : null}</div>
+  ) : columns && columns.length > 0 ? (
+    <div className="relative min-h-[8rem] flex-1">
+      <WallLine
+        key={`line-${view}`}
+        games={columns}
+        picked={pick}
+        onPick={(i) => {
+          setPickedCol({ view, i });
+          // A season's dot looks into that season.
+          if (!openSeason && seasons?.[i]) setChosen(seasons[i].season);
+        }}
+        label={openSeason ? `${player.name}'s ${openSeason}, week by week` : `${player.name}'s fantasy points by season`}
+        stats={CHART_STATS[player.position] ?? CHART_STATS.WR}
+      />
+    </div>
+  ) : null;
+
+  return floorless ? (
+    // No floor: who he is, his seasons and his chart, all on the wall.
+    <div
+      data-floor-ui
+      className={`fixed z-[6] overflow-y-auto transition-[opacity,transform] ease-out [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${up ? "opacity-100" : "translate-y-2 opacity-0"}`}
+      style={{ ...places.wall, transitionDuration: `${STAGE_MS}ms` }}
+    >
+      <div className="flex h-full min-h-fit flex-col gap-2">
+        {picker}
+        <section aria-label={player.name} className="flex flex-col gap-2">
+          <PlayerHeader player={player} bio={bio} numbers={numbers} onClose={onClose} />
+          <div className="flex flex-col gap-1">
+            <span className="text-[0.625rem] font-bold uppercase tracking-wide text-ink-muted">Seasons played</span>
+            {controls}
+          </div>
+        </section>
+        {chart}
+      </div>
+    </div>
+  ) : (
     <>
-      {/* Who he is and his seasons, on the back wall. */}
+      {/* The wall: his points and his stats, nothing else. */}
       <div
-        data-floor-ui
-        className={`fixed z-[6] overflow-y-auto transition-[opacity,transform] ease-out [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${up ? "opacity-100" : "translate-y-2 opacity-0"}`}
+        className={`fixed z-[6] flex flex-col transition-[opacity,transform] ease-out ${up ? "opacity-100" : "translate-y-2 opacity-0"}`}
         style={{ ...places.wall, transitionDuration: `${STAGE_MS}ms` }}
       >
-        <div className="flex h-full min-h-fit flex-col gap-2">
-          {picker}
-          <section aria-label={player.name} className="flex flex-col gap-2">
-            {/* Who he is: here when there's no floor for it (else standing on the floor, see PlayerDossier). */}
-            {floorless ? <PlayerHeader player={player} bio={bio} numbers={numbers} onClose={onClose} /> : null}
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[0.625rem] font-bold uppercase tracking-wide text-ink-muted">Seasons played</span>
-                {floorless ? null : (
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    aria-label={`Close ${player.name}`}
-                    title="Close"
-                    className="-my-1 flex h-7 w-6 items-center justify-center text-xl font-bold leading-none text-ink-primary transition-transform active:scale-90"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {seasons === null ? (
-                  <span className="text-xs text-ink-muted">Loading…</span>
-                ) : seasons.length === 0 ? (
-                  <span className="text-xs text-ink-muted">None yet</span>
-                ) : (
-                  <>
-                    {seasonButton("career", "Career", !table && !valueView && shown === "career", () => (setChosen("career"), setTable(false), setValueView(false)), "Every season he's played")}
-                    {[...seasons].reverse().map((s) =>
-                      seasonButton(s.season, s.season, !table && !valueView && shown === s.season, () => (setChosen(s.season), setTable(false), setValueView(false)), `His ${s.season} week by week`)
-                    )}
-                    {details ? seasonButton("table", "Table", table, () => (setTable((t) => !t), setValueView(false)), "Every number there is") : null}
-                  </>
-                )}
-              </div>
-              {/* His value over time: KTC's, from when it first listed him. */}
-              <div className="flex gap-1 pt-0.5">
-                {seasonButton("value", "Value over time", valueView, () => (setValueView(true), setTable(false)), "His trade value, KTC's, over time")}
-              </div>
-            </div>
-          </section>
-          {/* His points game by game, a line across the rest of the wall down to the floor (see WallLine) — or his value
-              over time (see ValueLine). */}
-          {valueView ? (
-            <div className="relative min-h-[8rem] flex-1">
-              {valuePoints ? <ValueLine points={valuePoints} label={`${player.name}'s trade value over time`} /> : null}
-            </div>
-          ) : columns && columns.length > 0 ? (
-            <div className="relative min-h-[8rem] flex-1">
-              <WallLine
-                key={`line-${view}`}
-                games={columns}
-                picked={pick}
-                onPick={(i) => {
-                  setPickedCol({ view, i });
-                  // A season's dot looks into that season.
-                  if (!openSeason && seasons?.[i]) setChosen(seasons[i].season);
-                }}
-                label={openSeason ? `${player.name}'s ${openSeason}, week by week` : `${player.name}'s fantasy points by season`}
-              />
-            </div>
-          ) : null}
-        </div>
+        {chart}
       </div>
-      {floorless ? null : table && details ? (
+      {/* Across the back of the floor: the bench to pick from (if it's the bench's), his seasons, and the way out. */}
+      <div
+        ref={setFloorBar}
+        data-floor-ui
+        aria-label={player.name}
+        className={`fixed z-[8] flex flex-col gap-1.5 overflow-y-auto transition-opacity ease-out [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${up ? "opacity-100" : "pointer-events-none opacity-0"}`}
+        style={{ top: floor.top, left: floor.left, width: floor.width, maxHeight: (floor.bottom - floor.top) * 0.45, transitionDuration: `${STAGE_MS}ms` }}
+      >
+        {picker}
+        {controls}
+      </div>
+      {table && details ? (
         <div
           data-floor-ui
           className={`fixed z-[7] overflow-y-auto border border-border bg-surface-raised/90 backdrop-blur-[3px] transition-opacity ease-out ${up ? "opacity-100" : "opacity-0"}`}
-          style={{ top: floor.top, left: floor.left, width: floor.width, height: Math.max(0, floor.bottom - floor.top), transitionDuration: `${STAGE_MS}ms` }}
+          style={{ top: below.top, left: floor.left, width: floor.width, height: Math.max(0, floor.bottom - below.top), transitionDuration: `${STAGE_MS}ms` }}
         >
           {details}
         </div>
       ) : (
         <div className={`transition-opacity ease-out ${up ? "opacity-100" : "pointer-events-none opacity-0"}`} style={{ transitionDuration: `${STAGE_MS}ms` }}>
           {/* Who he is, standing up off the floor. */}
-          <PlayerDossier player={player} bio={bio} numbers={numbers} floor={floor} room={places.room} up={up} />
+          <PlayerDossier player={player} bio={bio} numbers={numbers} floor={below} room={places.room} up={up} />
           {/* The column picked, read out along the floor's front. */}
           <p
             aria-live="polite"

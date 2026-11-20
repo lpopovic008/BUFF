@@ -3,16 +3,18 @@
 import { useLayoutEffect, useState } from "react";
 import { nflLogoUrl } from "@/lib/nfl-logos";
 
-// A player's card's charts (see PlayerStage), on the back wall: his fantasy points game by game as a line (see
-// WallLine), or his value over time (see ValueLine).
+// A player's card's charts (see PlayerStage), on the back wall: his fantasy points game by game as a line, his stats
+// game by game as rows of bars under it (see WallLine) — or his value over time (see ValueLine).
 
 /** A game of his (or a season), as the charts draw it: its points — null for a week he didn't play (or hasn't yet) —
- * and how it's read out. */
+ * its stats, and how it's read out. */
 export interface ChartGame {
   key: string;
   /** Under the line's x axis: the week (or the year). */
   tag: string;
   value: number | null;
+  /** Its stat line, in Sleeper's keys — none for a week he didn't play. */
+  stats?: Record<string, number> | null;
   /** What he was projected for it (a week he played), drawn faintly by his points. */
   projected?: number | null;
   label: string;
@@ -50,6 +52,15 @@ function useBox(el: Element | null) {
   return box;
 }
 
+/** A stat the rows of bars show: its name and its key in a game's stats. */
+export interface ChartStat {
+  label: string;
+  key: string;
+}
+
+/** A stat's value as it's read: whole, or to the tenth where it isn't. */
+const statText = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1));
+
 /** The widest a game's slot is, however few games there are. */
 const MOST_COLUMN = 72;
 
@@ -58,36 +69,45 @@ const MOST_COLUMN = 72;
  * weeks, those to come too — or every season of his), as wide as lets them all fit (up to MOST_COLUMN), centered, the
  * y axis his points, a dot on each game he played — a cross
  * at none on a game he missed — all joined in one line, on across his byes; its points over it, his best starred, the
- * one picked lit, a faint ring at what he was projected, and under each week's number his opponent's logo. Each dot is
- * a button (the arrow keys move along them). Fills the room it's given on the wall; never reaches the floor.
+ * one picked lit, a faint ring at what he was projected, and under each week's number his opponent's logo. Under it
+ * all, a row of bars for each of his `stats` (see ChartStat), each game's right under its slot, as tall as it went
+ * against his best at it — the picked game's lit, its value at the row's right end, the stat's name at its left. Each
+ * dot is a button (the arrow keys move along them). Fills the room it's given on the wall; never reaches the floor.
  */
 export function WallLine({
   games,
   picked,
   onPick,
   label,
+  stats = [],
 }: {
   games: ChartGame[];
   picked: number;
   onPick: (i: number) => void;
   label: string;
+  stats?: ChartStat[];
 }) {
   const [svg, setSvg] = useState<SVGSVGElement | null>(null);
   const box = useBox(svg);
   const w = box?.width ?? 0;
   const h = box?.height ?? 0;
   const n = games.length;
-  // Each game's slot: as wide as fits them all right of the y axis's numbers, up to the most.
-  const col = Math.max(8, Math.min(MOST_COLUMN, (w - 34) / Math.max(1, n)));
+  // Room at the left for the y axis's numbers (and the rows' names), and at the right for the rows' picked values.
+  const [left, right] = [34, stats.length > 0 ? 30 : 0];
+  // Each game's slot: as wide as fits them all between, up to the most.
+  const col = Math.max(8, Math.min(MOST_COLUMN, (w - left - right) / Math.max(1, n)));
+  // The rows of bars, along the wall's foot: each as tall as lets them all take about half of it.
+  const rowH = stats.length > 0 ? Math.max(14, Math.min(30, (h * 0.5) / stats.length)) : 0;
+  const rowsTop = h - rowH * stats.length;
   // Each week's opponent's logo under its number, as big as its slot lets it be.
   const logo = Math.max(9, Math.min(16, col - 6));
   const faced = games.some((g) => g.opponent);
-  const pad = { left: 26, right: 0, top: 22, bottom: faced ? 18 + logo + 4 : 18 };
+  const pad = { left: 26, right: 0, top: 22, bottom: (faced ? 18 + logo + 4 : 18) + (h - rowsTop) + (stats.length > 0 ? 6 : 0) };
   const most = Math.max(5, ...games.map((g) => Math.max(g.value ?? 0, g.value !== null ? (g.projected ?? 0) : 0)));
   const top = Math.ceil(most / 5) * 5;
   const best = Math.max(...games.map((g) => g.value ?? -1));
-  // Game i's slot: the slots all centered in what's right of the y axis's numbers.
-  const x = (i: number) => 30 + (w - 30) / 2 + (i - (n - 1) / 2) * col;
+  // Game i's slot: the slots all centered between.
+  const x = (i: number) => left + (w - left - right) / 2 + (i - (n - 1) / 2) * col;
   const y = (v: number) => pad.top + (h - pad.top - pad.bottom) * (1 - v / top);
   // The line, through every game with points (a game he missed at none), on across his byes.
   const runs: [number, number][][] = [games.flatMap((g, i): [number, number][] => (g.value === null ? [] : [[x(i), y(g.value)]]))];
@@ -133,6 +153,34 @@ export function WallLine({
               <circle key={`${g.key}-projected`} cx={x(i)} cy={y(Math.max(0, g.projected))} r={2.75} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.35} strokeWidth={1.25} pointerEvents="none" />
             ) : null
           )}
+          {/* A row of bars for each stat: each game's (one he played) under its slot, the picked one's lit. */}
+          {stats.map((stat, r) => {
+            const foot = rowsTop + (r + 1) * rowH - 2;
+            const tallest = rowH - 6;
+            const valueOf = (g: ChartGame) => (g.stats && Number.isFinite(g.stats[stat.key]) ? g.stats[stat.key] : 0);
+            const most = Math.max(0, ...games.map((g) => (g.stats ? valueOf(g) : 0)));
+            const pickedGame = games[picked];
+            return (
+              <g key={stat.key} aria-hidden>
+                <line x1={x(0) - col / 2} x2={x(n - 1) + col / 2} y1={foot} y2={foot} stroke="var(--ink-primary)" strokeOpacity={0.15} />
+                <text x={x(0) - col / 2 - 4} y={foot - 1} textAnchor="end" className="fill-[var(--ink-muted)] text-[0.5rem] font-bold uppercase">
+                  {stat.label}
+                </text>
+                {games.map((g, i) => {
+                  if (!g.stats) return null;
+                  const v = valueOf(g);
+                  const tall = most > 0 ? Math.max(1, (tallest * Math.max(0, v)) / most) : 1;
+                  const barW = Math.max(2, Math.min(10, col * 0.42));
+                  return <rect key={g.key} x={x(i) - barW / 2} y={foot - tall} width={barW} height={tall} fill="var(--ink-primary)" fillOpacity={i === picked ? 0.95 : 0.3} />;
+                })}
+                {pickedGame?.stats ? (
+                  <text x={x(n - 1) + col / 2 + 5} y={foot - 1} className="fill-[var(--ink-primary)] text-[0.5625rem] font-bold tabular-nums">
+                    {statText(valueOf(pickedGame))}
+                  </text>
+                ) : null}
+              </g>
+            );
+          })}
           {runs.map((run, k) => (
             <polyline
               key={k}
@@ -173,8 +221,8 @@ export function WallLine({
                   }
                 }}
               >
-                {/* Its whole slot, to tap. */}
-                <rect x={x(i) - col / 2} y={pad.top} width={col} height={Math.max(0, h - pad.top - pad.bottom)} fill="transparent" />
+                {/* Its whole slot, to tap — down through its bars. */}
+                <rect x={x(i) - col / 2} y={pad.top} width={col} height={Math.max(0, h - pad.top)} fill="transparent" />
                 {g.missed ? (
                   // A game he missed: a cross at none.
                   <path
