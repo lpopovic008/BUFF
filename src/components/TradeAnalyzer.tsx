@@ -52,6 +52,10 @@ function spread(ys: number[], gap: number): number[] {
   return out;
 }
 
+/** How far into the chart (percent of its width) its lines run in from their names, where the names had to be moved
+ * apart to fit, to their first values. */
+const LEAD_IN = 7;
+
 /** The day the sides were closest together, any week since the trade (see tradeGap). */
 function closestDay(trade: AnalyzedTrade): number | null {
   const days = trade.sides[0]?.path.map((p) => p.day) ?? [];
@@ -110,24 +114,27 @@ function TradeChart({ trade, colorOf }: { trade: AnalyzedTrade; colorOf: (side: 
   const span = hi - lo || 1;
   // Percent down the chart, a little room kept at the top and bottom; and across it.
   const y = (value: number) => 4 + (1 - (value - lo) / span) * 92;
-  const x = (day: number) => (last > first ? ((day - first) / (last - first)) * 100 : 0);
   // A trade made today has its values only for today: each line drawn flat across the chart at its value.
   const today = last <= first;
   const gap = (LABEL_PX / Math.max(1, tall)) * 100;
   const firstValue = (l: (typeof lines)[number]) => l.points[0]?.value ?? l.asset.then ?? 0;
   const lastValue = (l: (typeof lines)[number]) => l.points[l.points.length - 1]?.value ?? l.asset.now ?? 0;
-  // Where each line starts and ends on the chart — its name, and its value now (or who it became), beside them, moved
-  // apart only as far as they'd otherwise overlap (a tick then joining a name to its line's start).
+  // Where each line starts and ends on the chart — its name by its start, and its value now (or who it became) by its
+  // end, moved apart only as far as they'd otherwise overlap (a tick then joining a value to its line's end).
   const starts = lines.map((l) => y(firstValue(l)));
   const ends = lines.map((l) => y(lastValue(l)));
   const lefts = spread(starts, gap);
   const rights = spread(ends, gap);
+  // Where names had to be moved apart, each line starts at its name, level with it, and runs in to its first value
+  // over the chart's first stretch (LEAD_IN) — the weeks drawn across the rest.
+  const lead = lefts.some((at, i) => Math.abs(at - starts[i]) > 0.5) ? LEAD_IN : 0;
+  const x = (day: number) => lead + (last > first ? ((day - first) / (last - first)) * (100 - lead) : 0);
   const named = lines.some((l) => l.asset.became);
   // The values inside the chart: every line's when traded by its start, and a drafted pick's now by its end.
   const h = (11 / Math.max(1, tall)) * 100;
   const pad = (3 / Math.max(1, tall)) * 100;
   const startAt: number[] = [];
-  starts.forEach((s, i) => startAt.push(roomFor(s, starts.filter((_, j) => j !== i), startAt, h, pad)));
+  lefts.forEach((s, i) => startAt.push(roomFor(s, lefts.filter((_, j) => j !== i), startAt, h, pad)));
   const endAt = new Map<number, number>();
   lines.forEach((l, i) => {
     if (l.asset.became) endAt.set(i, roomFor(ends[i], ends.filter((_, j) => j !== i), [...endAt.values()], h, pad));
@@ -153,17 +160,10 @@ function TradeChart({ trade, colorOf }: { trade: AnalyzedTrade; colorOf: (side: 
     >
       {/* Each piece's name, right beside where its line starts. */}
       <div className="relative">
-        <svg viewBox="0 0 8 100" preserveAspectRatio="none" className="absolute inset-y-0 right-0 h-full w-2 overflow-visible" aria-hidden>
-          {lines.map((l, i) =>
-            Math.abs(lefts[i] - starts[i]) > 0.5 ? (
-              <line key={i} x1={0} y1={lefts[i]} x2={8} y2={starts[i]} stroke={l.color} strokeWidth={1} vectorEffect="non-scaling-stroke" />
-            ) : null
-          )}
-        </svg>
         {lines.map((l, i) => (
           <span
             key={i}
-            className={`${label} right-2.5 max-w-[calc(100%-0.625rem)] truncate font-semibold`}
+            className={`${label} right-1.5 max-w-[calc(100%-0.375rem)] truncate font-semibold`}
             style={{ top: `${lefts[i]}%`, color: l.color }}
             title={[l.asset.label, l.asset.became ? `became ${l.asset.became.name}` : null, l.asset.pickOf ? `(${l.asset.pickOf})` : null].filter(Boolean).join(" ")}
           >
@@ -183,7 +183,13 @@ function TradeChart({ trade, colorOf }: { trade: AnalyzedTrade; colorOf: (side: 
             l.points.length > 1 || today ? (
               <polyline
                 key={i}
-                points={today || l.points.length < 2 ? `0,${y(lastValue(l))} 100,${y(lastValue(l))}` : l.points.map((p) => `${x(p.day)},${y(p.value)}`).join(" ")}
+                points={[
+                  // From its name, level with it, in to its first value…
+                  `0,${lefts[i]}`,
+                  ...(lead > 0 ? [`${lead},${starts[i]}`] : []),
+                  // …then week by week (or, a trade made today, flat across).
+                  ...(today || l.points.length < 2 ? [`100,${y(lastValue(l))}`] : l.points.map((p) => `${x(p.day)},${y(p.value)}`)),
+                ].join(" ")}
                 fill="none"
                 stroke={l.color}
                 strokeWidth={1.5}

@@ -49,6 +49,10 @@ function spreadPx(ys: number[], gap: number, top: number, bottom: number): numbe
   return out;
 }
 
+/** How far into the chart (a share of its width) its lines run in from their names, where the names had to be moved
+ * apart to fit, to their first values. */
+const LEAD_IN = 0.07;
+
 /**
  * Where a value's label goes inside the chart beside a point on a line at screen y `at`: just above it or just below —
  * never past another line (`others`) where the other side isn't — else whichever leaves more room from the other lines
@@ -266,8 +270,16 @@ export function drawTradeGraphic(canvas: HTMLCanvasElement, trade: AnalyzedTrade
     // From nothing up to the highest, and room over it as wide as a fair trade's sides can be apart (FAIR_SHARE): how
     // far apart two lines are is how far apart their values are, so pieces close enough to be a fair trade draw close.
     const span = Math.max(1, Math.max(...values) * (1 + FAIR_SHARE));
-    const px = (day: number) => (today ? plot.x : plot.x + ((day - first) / (last - first)) * plot.w);
     const py = (v: number) => plot.y + 16 + (1 - v / span) * (plot.h - 32);
+    // Each line's start and end, and its name's place by its start: moved apart only as far as they'd otherwise
+    // overlap. Where names had to be, each line starts at its name, level with it, and runs in to its first value
+    // over the chart's first stretch (LEAD_IN) — the weeks drawn across the rest.
+    const LABEL = 30;
+    const startY = lines.map((l) => py(l.points[0]?.value ?? 0));
+    const endY = lines.map((l) => py(l.points[l.points.length - 1]?.value ?? 0));
+    const lefts = spreadPx(startY, LABEL, plot.y + 12, plot.y + plot.h - 12);
+    const lead = lefts.some((at, i) => Math.abs(at - startY[i]) > 1) ? plot.w * LEAD_IN : 0;
+    const px = (day: number) => (today ? plot.x + lead : plot.x + lead + ((day - first) / (last - first)) * (plot.w - lead));
     // Its edges: a faint line up either side.
     ctx.fillStyle = C.hairline;
     ctx.fillRect(plot.x, plot.y, 2, plot.h);
@@ -278,15 +290,15 @@ export function drawTradeGraphic(canvas: HTMLCanvasElement, trade: AnalyzedTrade
       if (l.points.length === 0) continue;
       ctx.strokeStyle = l.color;
       ctx.beginPath();
-      if (today || l.points.length < 2) {
-        const v = py(l.points[l.points.length - 1].value);
-        ctx.moveTo(plot.x, v);
-        ctx.lineTo(plot.x + plot.w, v);
-      } else l.points.forEach((p, i) => (i === 0 ? ctx.moveTo(px(p.day), py(p.value)) : ctx.lineTo(px(p.day), py(p.value))));
+      // From its name, level with it, in to its first value…
+      const i = lines.indexOf(l);
+      ctx.moveTo(plot.x, lefts[i]);
+      if (lead > 0) ctx.lineTo(plot.x + lead, startY[i]);
+      // …then week by week (or, a trade made today, flat across).
+      if (today || l.points.length < 2) ctx.lineTo(plot.x + plot.w, py(l.points[l.points.length - 1].value));
+      else l.points.forEach((p) => ctx.lineTo(px(p.day), py(p.value)));
       ctx.stroke();
     }
-    const startY = lines.map((l) => py(l.points[0]?.value ?? 0));
-    const endY = lines.map((l) => py(l.points[l.points.length - 1]?.value ?? 0));
     // Where each pick became a player.
     for (const l of lines) {
       const at = l.asset.became?.at;
@@ -301,9 +313,8 @@ export function drawTradeGraphic(canvas: HTMLCanvasElement, trade: AnalyzedTrade
       ctx.strokeStyle = C.bgBottom;
       ctx.stroke();
     }
-    // The names and values at either side, moved apart only as far as they'd otherwise overlap — a tick then joining
-    // a moved one to its line.
-    const LABEL = 30;
+    // The names at the left, each level with its line's start; the values (or who a pick became) at the right, moved
+    // apart only as far as they'd otherwise overlap — a tick then joining a moved one to its line's end.
     // A name in the biggest of these that fits, before it's cut short.
     const fitType = (text: string, room: number) => {
       for (const size of [22, 19, 17]) {
@@ -311,7 +322,6 @@ export function drawTradeGraphic(canvas: HTMLCanvasElement, trade: AnalyzedTrade
         if (ctx.measureText(text).width <= room) return;
       }
     };
-    const lefts = spreadPx(startY, LABEL, plot.y + 12, plot.y + plot.h - 12);
     const rights = spreadPx(endY, LABEL, plot.y + 12, plot.y + plot.h - 12);
     ctx.lineWidth = 2;
     lines.forEach((l, i) => {
@@ -320,13 +330,6 @@ export function drawTradeGraphic(canvas: HTMLCanvasElement, trade: AnalyzedTrade
       fitType(l.asset.label, NAME_W - 12);
       ctx.fillStyle = l.color;
       ctx.fillText(fit(ctx, l.asset.label, NAME_W - 12), plot.x - 14, lefts[i]);
-      if (Math.abs(lefts[i] - startY[i]) > 1) {
-        ctx.strokeStyle = l.color;
-        ctx.beginPath();
-        ctx.moveTo(plot.x - 10, lefts[i]);
-        ctx.lineTo(plot.x, startY[i]);
-        ctx.stroke();
-      }
       ctx.textAlign = "left";
       const became = l.asset.became;
       if (became) {
@@ -358,7 +361,7 @@ export function drawTradeGraphic(canvas: HTMLCanvasElement, trade: AnalyzedTrade
     };
     const placedStarts: number[] = [];
     lines.forEach((l, i) => {
-      const at = roomForPx(startY[i], startY.filter((_, j) => j !== i), placedStarts, H, 6, plot.y, plot.y + plot.h);
+      const at = roomForPx(lefts[i], lefts.filter((_, j) => j !== i), placedStarts, H, 6, plot.y, plot.y + plot.h);
       placedStarts.push(at);
       type(20, "800");
       ctx.fillStyle = l.color;
