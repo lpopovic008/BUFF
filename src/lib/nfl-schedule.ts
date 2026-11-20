@@ -83,6 +83,8 @@ export interface NFLGame {
    */
   homeRecord?: string;
   awayRecord?: string;
+  /** Where it's on, nationally, as ESPN lists it: TV networks and streaming services ("CBS", "Prime Video"). */
+  broadcasts?: string[];
 }
 
 // ESPN writes "USA"; the others are here so a spelling change doesn't silently
@@ -143,6 +145,7 @@ export function parseScoreboard(data: unknown): NFLGame[] {
       live: state === "in" ? parseSituation(comp.situation, teamById) : null,
       ...withRecord("homeRecord", recordOf(home)),
       ...withRecord("awayRecord", recordOf(away)),
+      ...withBroadcasts(broadcastsOf(comp)),
     });
   }
   return games;
@@ -258,6 +261,27 @@ function recordOf(competitor: unknown): string | null {
 }
 
 const withRecord = (key: "homeRecord" | "awayRecord", record: string | null) => (record ? { [key]: record } : {});
+
+/**
+ * Where a game's on, as ESPN lists it: its national TV networks and streaming services, each once, in ESPN's order
+ * ("NBC", "Peacock") — from its geo-broadcasts (each a network or a stream, by market), only the national ones where
+ * any are marked so; else its plain broadcast names. Empty when it lists none.
+ */
+export function broadcastsOf(comp: Record<string, unknown>): string[] {
+  const names: string[] = [];
+  const add = (name: unknown) => {
+    if (typeof name === "string" && name.trim() && !names.includes(name.trim())) names.push(name.trim());
+  };
+  const geo = Array.isArray(comp.geoBroadcasts) ? comp.geoBroadcasts.filter(isRecord) : [];
+  const national = geo.filter((g) => isRecord(g.market) && typeof g.market.type === "string" && g.market.type.toLowerCase() === "national");
+  for (const g of national.length > 0 ? national : geo) if (isRecord(g.media)) add(g.media.shortName);
+  if (names.length === 0 && Array.isArray(comp.broadcasts)) {
+    for (const b of comp.broadcasts.filter(isRecord)) if (Array.isArray(b.names)) b.names.forEach(add);
+  }
+  return names;
+}
+
+const withBroadcasts = (names: string[]) => (names.length > 0 ? { broadcasts: names } : {});
 
 function scoreOf(competitor: unknown): number {
   if (!isRecord(competitor)) return 0;

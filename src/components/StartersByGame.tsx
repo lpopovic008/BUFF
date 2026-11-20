@@ -153,8 +153,9 @@ function TeamLine({ game, side, shown = true }: { game: NFLGame; side: "away" | 
 
 /**
  * A game yet to kick off, on one line: the away team at the left end and the home team at the right (logo
- * outermost, record inside it), the kickoff time between them — each team's color faint at its own end (see
- * .team-bar). The time's gone while its block is switched off.
+ * outermost, record inside it), the kickoff time between them, where it's on (its TV networks and streaming
+ * services) small under it — each team's color faint at its own end (see .team-bar). The time's gone while its block
+ * is switched off.
  */
 function PreGameHeader({ game, shown = true }: { game: NFLGame; shown?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -175,8 +176,18 @@ function PreGameHeader({ game, shown = true }: { game: NFLGame; shown?: boolean 
         </span>
         {record(game.awayRecord)}
       </span>
-      <span className="whitespace-nowrap text-ink-muted" title={pieces[0]}>
-        <StatusText text={time ?? ""} />
+      <span className="flex min-w-0 flex-col items-center leading-tight">
+        <span className="whitespace-nowrap text-ink-muted" title={pieces[0]}>
+          <StatusText text={time ?? ""} />
+        </span>
+        {game.broadcasts?.length ? (
+          <span
+            className={`max-w-full truncate text-[0.5625rem] font-semibold uppercase tracking-wide text-ink-secondary transition-opacity duration-150 ${visible ? "" : "opacity-0"}`}
+            title={`On ${game.broadcasts.join(", ")}`}
+          >
+            {game.broadcasts.join(" · ")}
+          </span>
+        ) : null}
       </span>
       <span className="flex items-center justify-end gap-1.5">
         {record(game.homeRecord)}

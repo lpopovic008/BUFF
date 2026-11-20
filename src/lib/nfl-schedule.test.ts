@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { ballSpot, gameClock, isOutsideUS, parseScoreboard, parseTeamSeason, periodBreak } from "./nfl-schedule";
+import { ballSpot, broadcastsOf, gameClock, isOutsideUS, parseScoreboard, parseTeamSeason, periodBreak } from "./nfl-schedule";
 
 function competitor(homeAway: "home" | "away", abbreviation: string, score: string) {
   return { homeAway, team: { abbreviation }, score };
@@ -231,4 +231,11 @@ test("without ESPN naming a bye, it's the one week of the season with no game", 
   const events = [1, 2, 3, 5, 6].map((week) => ({ week: { number: week }, competitions: [{ competitors: [{ team: { abbreviation: "DET" } }, { team: { abbreviation: "GB" } }] }] }));
   assert.equal(parseTeamSeason({ events }, "DET")?.byeWeek, 4);
   assert.equal(parseTeamSeason({ events: [] }, "DET"), null);
+});
+
+test("a game's broadcasts are its national networks and streams, each once, else its plain broadcast names", () => {
+  const geo = (shortName: string, market = "National") => ({ type: { shortName: "TV" }, market: { type: market }, media: { shortName } });
+  assert.deepEqual(broadcastsOf({ geoBroadcasts: [geo("NBC"), geo("Peacock"), geo("NBC"), geo("KSHB", "Home")] }), ["NBC", "Peacock"]);
+  assert.deepEqual(broadcastsOf({ broadcasts: [{ market: "national", names: ["Prime Video"] }] }), ["Prime Video"]);
+  assert.deepEqual(broadcastsOf({}), []);
 });
