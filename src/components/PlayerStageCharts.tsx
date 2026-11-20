@@ -61,23 +61,46 @@ export interface ChartStat {
 /** The widest a game's slot is, however few games there are. */
 const MOST_COLUMN = 72;
 
-/** How much of the wall the points line takes, over the stats' rows; room over it for the best week's points; the least
+/** How much of the wall the points line takes, over the stats' rows (its logos and weeks over it included); the least
  * it's drawn in (px); and the gap between it and the rows. */
 const LINE_SHARE = 0.25;
-const LINE_TOP_PX = 22;
 const LINE_LEAST_PX = 48;
 const ROWS_GAP_PX = 6;
+/** The size of the stats' names at the side (px, as big as they're drawn at most), and of the numbers on the line and
+ * the rows; a character's width in the app's monospaced font, a share of its size. */
+const NAME_PX = 8;
+const POINTS_PX = 9;
+const STAT_PX = 7.5;
+const CHAR = 0.6;
+/** The shortest stretch of the points line drawn between two numbers (px). */
+const LEAST_STRETCH_PX = 5;
+
+/** The words of `text` laid in lines no wider than `width` (px) at `px` — a word too long for one on a line of its own. */
+function wrap(text: string, width: number, px: number): string[] {
+  const most = Math.max(1, Math.floor(width / (px * CHAR)));
+  const lines: string[] = [];
+  for (const word of text.split(" ")) {
+    const last = lines.at(-1);
+    if (last !== undefined && last.length + 1 + word.length <= most) lines[lines.length - 1] = `${last} ${word}`;
+    else lines.push(word);
+  }
+  return lines;
+}
+
+/** A stat's number as it's shown on its row: whole, or to the tenth. */
+const statText = (v: number) => (Number.isInteger(v) ? `${v}` : v.toFixed(1));
 
 /**
- * His fantasy points as a line across the back wall: a slot along the x axis for every game of the season (all 18
- * weeks, those to come too — or every season of his), as wide as lets them all fit (up to MOST_COLUMN), centered, the
- * y axis his points, a dot on each game he played — a cross
- * at none on a game he missed — all joined in one line, on across his byes; its points over it, his best starred, a
- * faint ring at what he was projected, and under each week's number his opponent's logo. Under it all, a row for each
- * of his `stats` (see ChartStat): a stepped line, flat across each game's slot at what he had of it (against his best
- * at it) and straight up or down to the next at the slots' edge — at none for a game he missed, a faint dashed line
- * across his byes — the stat's name at its left, the rows sharing the three quarters of the wall under the line
- * (LINE_SHARE). Fills the room it's given on the wall; never reaches the floor.
+ * His fantasy points as a line across the back wall: a slot for every game of the season (all 18 weeks, those to come
+ * too — or every season of his), as wide as lets them all fit (up to MOST_COLUMN), centered, along the top his
+ * opponent's logo each week and the week under it; his points written where each game's point is (his best bold), all
+ * joined in one line that stops short of each number (on across his byes, at none for a game he missed), a faint ring
+ * at what he was projected. Under it, a row for each of his `stats` (see ChartStat): a stepped line, flat across each
+ * game's slot at what he had of it (against his best at it), its number over it, and straight up or down to the next at
+ * the slots' edge — at none for a game he missed, a faint dashed line across his byes — the stat's name spelled out at
+ * its left, in as many lines as it takes within its row. The line takes about a quarter of the wall (LINE_SHARE), the
+ * rows the rest; the names' column at the left as wide as the gap at the right, so the games sit in the middle. Fills
+ * the room it's given on the wall; never reaches the floor.
  */
 export function WallLine({ games, label, stats = [] }: { games: ChartGame[]; label: string; stats?: ChartStat[] }) {
   const [svg, setSvg] = useState<SVGSVGElement | null>(null);
@@ -85,152 +108,157 @@ export function WallLine({ games, label, stats = [] }: { games: ChartGame[]; lab
   const w = box?.width ?? 0;
   const h = box?.height ?? 0;
   const n = games.length;
-  // Room at the left for the y axis's numbers (and the rows' names).
-  const left = 34;
-  // Each game's slot: as wide as fits them all right of it, up to the most.
-  const col = Math.max(8, Math.min(MOST_COLUMN, (w - left) / Math.max(1, n)));
-  // Each week's opponent's logo under its number, as big as its slot lets it be.
+  // The stats' names' column: as wide as their longest word (no more than a sixth of the wall), and as wide a gap at
+  // the right, the games' slots between.
+  const longest = Math.max(0, ...stats.flatMap((s) => s.label.split(" ").map((word) => word.length)));
+  const side = stats.length > 0 ? Math.min(w / 6, Math.ceil(longest * NAME_PX * CHAR) + 6) : 4;
+  // Each game's slot: as wide as fits them all between, up to the most.
+  const col = Math.max(8, Math.min(MOST_COLUMN, (w - 2 * side) / Math.max(1, n)));
+  const x = (i: number) => w / 2 + (i - (n - 1) / 2) * col;
+  // Where the first game's slot starts: the stats' names end just short of it.
+  const first = x(0) - col / 2;
+  // Along the top: each week's opponent's logo, as big as its slot lets it be, and the week under it.
   const logo = Math.max(9, Math.min(16, col - 6));
   const faced = games.some((g) => g.opponent);
-  // The points line along the top, about a quarter of the wall (no less than leaves it LINE_LEAST_PX to draw in), its
-  // weeks and who he faced under it; the rows of stats sharing the rest, down to the wall's foot.
-  const axis = faced ? 18 + logo + 4 : 18;
-  const lineBlock = stats.length > 0 ? Math.min(h, Math.max(LINE_TOP_PX + LINE_LEAST_PX + axis + ROWS_GAP_PX, h * LINE_SHARE)) : h;
+  const weekY = (faced ? logo + 3 : 0) + 9;
+  const header = weekY + 4;
+  // The points line, about a quarter of the wall (no less than leaves it LINE_LEAST_PX to draw in); the rows of stats
+  // sharing the rest, down to the wall's foot.
+  const lineBlock = stats.length > 0 ? Math.min(h, Math.max(header + LINE_LEAST_PX + ROWS_GAP_PX, h * LINE_SHARE)) : h;
   const rowH = stats.length > 0 ? Math.max(14, (h - lineBlock) / stats.length) : 0;
   const rowsTop = h - rowH * stats.length;
-  const pad = { left: 26, right: 0, top: LINE_TOP_PX, bottom: axis + (h - rowsTop) + (stats.length > 0 ? ROWS_GAP_PX : 0) };
+  // His points, from none at the line's foot to his most at its top — room over and under for their numbers.
+  const plotTop = header + POINTS_PX;
+  const plotBottom = (stats.length > 0 ? rowsTop - ROWS_GAP_PX : h) - POINTS_PX * 0.6;
   const most = Math.max(5, ...games.map((g) => Math.max(g.value ?? 0, g.value !== null ? (g.projected ?? 0) : 0)));
-  const top = Math.ceil(most / 5) * 5;
   const best = Math.max(...games.map((g) => g.value ?? -1));
-  // Game i's slot: the slots all centered right of the y axis's numbers.
-  const x = (i: number) => left + (w - left) / 2 + (i - (n - 1) / 2) * col;
-  const y = (v: number) => pad.top + (h - pad.top - pad.bottom) * (1 - v / top);
-  // The line, through every game with points (a game he missed at none), on across his byes.
-  const runs: [number, number][][] = [games.flatMap((g, i): [number, number][] => (g.value === null ? [] : [[x(i), y(g.value)]]))];
-  const ticks = [0, top / 2, top];
-  // Each dot's points over it: to the tenth where there's the room, else whole.
+  const y = (v: number) => plotTop + Math.max(0, plotBottom - plotTop) * (1 - v / most);
+  // Each game's points: to the tenth where there's the room, else whole.
   const tenths = col >= 26;
-  const stroke = { stroke: "var(--page)", strokeWidth: 3, paintOrder: "stroke" as const };
+  const pointsText = (v: number) => (tenths ? v.toFixed(1) : `${Math.round(v)}`);
+  // The games with points, in order (a game he missed at none), joined one to the next — each stretch stopping short
+  // of the numbers at its ends, so it never runs through them.
+  const points = games.flatMap((g, i) => (g.value === null ? [] : [{ x: x(i), y: y(g.value), half: (pointsText(g.value).length * POINTS_PX * CHAR) / 2 + 2 }]));
+  const halfTall = POINTS_PX * 0.55 + 1;
+  const segments = points.slice(1).flatMap((q, k) => {
+    const p = points[k];
+    const [dx, dy] = [q.x - p.x, q.y - p.y];
+    // How far along the stretch it leaves the box round each end's number.
+    const out = (half: number) => Math.min(dx ? half / Math.abs(dx) : Infinity, dy ? halfTall / Math.abs(dy) : Infinity);
+    const [a, b] = [out(p.half), out(q.half)];
+    // Too little left between them to read as a line (numbers side by side): none.
+    if (a + b >= 1 || (1 - a - b) * Math.hypot(dx, dy) < LEAST_STRETCH_PX) return [];
+    return [`M${(p.x + dx * a).toFixed(1)},${(p.y + dy * a).toFixed(1)}L${(q.x - dx * b).toFixed(1)},${(q.y - dy * b).toFixed(1)}`];
+  });
+  const halo = { stroke: "var(--page)", strokeWidth: 3, paintOrder: "stroke" as const };
   return (
     <svg ref={setSvg} role="group" aria-label={label} className="absolute inset-0 block h-full w-full select-none overflow-visible">
       {w > 0 && h > 0 ? (
         <>
-          {/* The y axis, its points, and a faint line across at each — under the games. */}
-          {ticks.map((t) => (
-            <g key={t}>
-              <line x1={Math.min(pad.left, x(0) - col / 2)} x2={Math.max(w, x(n - 1) + col / 2)} y1={y(t)} y2={y(t)} stroke="var(--ink-primary)" strokeOpacity={t === 0 ? 0.5 : 0.12} />
-              <text x={x(0) - col / 2 - 4} y={y(t) + 3} textAnchor="end" className="fill-[var(--ink-muted)] text-[0.5625rem] tabular-nums">
-                {t}
-              </text>
-            </g>
-          ))}
-          <line x1={x(0) - col / 2} x2={x(0) - col / 2} y1={pad.top} y2={h - pad.bottom} stroke="var(--ink-primary)" strokeOpacity={0.5} />
-          {/* The x axis: a slot for every game. */}
+          {/* Along the top: who he played each week, and the week under it. */}
+          {games.map((g, i) =>
+            g.opponent ? <image key={`${g.key}-faced`} href={nflLogoUrl(g.opponent)} x={x(i) - logo / 2} y={0} width={logo} height={logo} opacity={0.85} aria-hidden /> : null
+          )}
           {games.map((g, i) => (
-            <text
-              key={g.key}
-              x={x(i)}
-              y={h - pad.bottom + 12}
-              textAnchor="middle"
-              className="fill-[var(--ink-muted)] text-[0.5625rem] tabular-nums"
-            >
+            <text key={`${g.key}-week`} x={x(i)} y={weekY} textAnchor="middle" className="fill-[var(--ink-muted)] text-[0.5625rem] tabular-nums" aria-hidden>
               {g.tag}
             </text>
           ))}
-          {/* Under each week, who he played. */}
-          {games.map((g, i) =>
-            g.opponent ? (
-              <image key={`${g.key}-faced`} href={nflLogoUrl(g.opponent)} x={x(i) - logo / 2} y={h - pad.bottom + 16} width={logo} height={logo} opacity={0.85} aria-hidden />
-            ) : null
-          )}
           {/* What he was projected each week he played: a faint ring, over or under his points. */}
           {games.map((g, i) =>
             g.value !== null && g.projected != null ? (
               <circle key={`${g.key}-projected`} cx={x(i)} cy={y(Math.max(0, g.projected))} r={2.75} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.35} strokeWidth={1.25} pointerEvents="none" />
             ) : null
           )}
-          {/* A row for each stat: a stepped line, flat across each game's slot at its level. */}
+          {/* A row for each stat: a stepped line, flat across each game's slot at its level, its number over it. */}
           {stats.map((stat, r) => {
-            const foot = rowsTop + (r + 1) * rowH - 2;
-            const tallest = rowH - 6;
+            const bandTop = rowsTop + r * rowH;
+            const foot = bandTop + rowH - 3;
+            // Room over the highest step for its number.
+            const tallest = Math.max(0, rowH - 3 - STAT_PX - 3);
             const valueOf = (g: ChartGame) => (g.stats && Number.isFinite(g.stats[stat.key]) ? g.stats[stat.key] : 0);
-            const most = Math.max(0, ...games.map((g) => (g.stats ? valueOf(g) : 0)));
+            const top = Math.max(0, ...games.map((g) => (g.stats ? valueOf(g) : 0)));
+            // Each game's level, and what it was: what he had of it (none, a game he missed); none to draw for a bye or
+            // one to come.
+            const levelOf = (g: ChartGame): { at: number; value: number } | null =>
+              g.stats ? { at: foot - (top > 0 ? (tallest * Math.max(0, valueOf(g))) / top : 0), value: valueOf(g) } : g.missed ? { at: foot, value: 0 } : null;
+            // Its name in as many lines as it takes beside it, smaller where they'd stand taller than the row.
+            const nameLines = wrap(stat.label, side - 6, NAME_PX);
+            const namePx = Math.min(NAME_PX, (rowH - 2) / (nameLines.length * 1.1));
+            const nameTop = bandTop + (rowH - nameLines.length * namePx * 1.1) / 2 + namePx * 0.85;
+            let d = "";
+            let byes = "";
+            // The last game drawn: where its step ended, and whether a bye's come since.
+            let prev: { x: number; y: number; gap: boolean } | null = null;
+            const numbers: { x: number; y: number; value: number }[] = [];
+            games.forEach((g, i) => {
+              const level = levelOf(g);
+              if (level === null) {
+                if (prev) prev.gap = true;
+                // Nothing past a week still to come.
+                if (g.future) prev = null;
+                return;
+              }
+              const at = level.at;
+              const [from, to] = [x(i) - col / 2, x(i) + col / 2];
+              if (prev?.gap) {
+                // Across his bye: faint and dashed, from the last game's step to this one's.
+                byes += `M${prev.x.toFixed(1)},${prev.y.toFixed(1)}L${from.toFixed(1)},${at.toFixed(1)}`;
+                d += `M${from.toFixed(1)},${at.toFixed(1)}`;
+              } else {
+                // Straight up or down from the last game's level at the slots' edge (or the first step).
+                d += prev === null ? `M${from.toFixed(1)},${at.toFixed(1)}` : `V${at.toFixed(1)}`;
+              }
+              d += `H${to.toFixed(1)}`;
+              prev = { x: to, y: at, gap: false };
+              numbers.push({ x: x(i), y: at - 2.5, value: level.value });
+            });
             return (
               <g key={stat.key} aria-hidden>
-                <line x1={x(0) - col / 2} x2={x(n - 1) + col / 2} y1={foot} y2={foot} stroke="var(--ink-primary)" strokeOpacity={0.15} />
-                <text x={x(0) - col / 2 - 4} y={foot - 1} textAnchor="end" className="fill-[var(--ink-muted)] text-[0.5rem] font-bold uppercase">
-                  {stat.label}
+                <text x={first - 5} y={nameTop} textAnchor="end" className="fill-[var(--ink-muted)] font-bold uppercase" style={{ fontSize: namePx }}>
+                  {nameLines.map((line, k) => (
+                    <tspan key={k} x={first - 5} dy={k === 0 ? 0 : namePx * 1.1}>
+                      {line}
+                    </tspan>
+                  ))}
                 </text>
-                {(() => {
-                  // Each game's level: what he had of it (none, a game he missed); none to draw for a bye or one to come.
-                  const level = (g: ChartGame) => (g.stats ? foot - (most > 0 ? (tallest * Math.max(0, valueOf(g))) / most : 0) : g.missed ? foot : null);
-                  let d = "";
-                  let byes = "";
-                  // The last game drawn: where its step ended, and whether a bye's come since.
-                  let last: { x: number; y: number; gap: boolean } | null = null;
-                  games.forEach((g, i) => {
-                    const at = level(g);
-                    if (at === null) {
-                      if (last) last.gap = true;
-                      // Nothing past a week still to come.
-                      if (g.future) last = null;
-                      return;
-                    }
-                    const [from, to] = [x(i) - col / 2, x(i) + col / 2];
-                    if (last?.gap) {
-                      // Across his bye: faint and dashed, from the last game's step to this one's.
-                      byes += `M${last.x.toFixed(1)},${last.y.toFixed(1)}L${from.toFixed(1)},${at.toFixed(1)}`;
-                      d += `M${from.toFixed(1)},${at.toFixed(1)}`;
-                    } else {
-                      // Straight up or down from the last game's level at the slots' edge (or the first step).
-                      d += last === null ? `M${from.toFixed(1)},${at.toFixed(1)}` : `V${at.toFixed(1)}`;
-                    }
-                    d += `H${to.toFixed(1)}`;
-                    last = { x: to, y: at, gap: false };
-                  });
-                  return (
-                    <>
-                      <path d={d} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.55} strokeWidth={1.25} strokeLinejoin="miter" />
-                      {byes ? <path d={byes} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.3} strokeWidth={1} strokeDasharray="2 2" /> : null}
-                    </>
-                  );
-                })()}
+                <path d={d} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.55} strokeWidth={1.25} strokeLinejoin="miter" />
+                {byes ? <path d={byes} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.3} strokeWidth={1} strokeDasharray="2 2" /> : null}
+                {numbers.map((num, k) => (
+                  <text
+                    key={k}
+                    x={num.x}
+                    y={num.y}
+                    textAnchor="middle"
+                    className={`tabular-nums ${num.value === 0 ? "fill-[var(--ink-muted)]" : "fill-[var(--ink-secondary)] font-semibold"}`}
+                    style={{ fontSize: STAT_PX, opacity: num.value === 0 ? 0.6 : 1 }}
+                  >
+                    {statText(num.value)}
+                  </text>
+                ))}
               </g>
             );
           })}
-          {runs.map((run, k) => (
-            <polyline
-              key={k}
-              points={run.map(([px, py]) => `${px.toFixed(1)},${py.toFixed(1)}`).join(" ")}
-              fill="none"
-              stroke="var(--ink-primary)"
-              strokeWidth={1.75}
-              strokeLinejoin="round"
-              strokeLinecap="round"
-            />
-          ))}
-          {/* Each game he played: a dot (a cross at none, one he missed), its points over it, his best starred. */}
+          {/* His points' line, stopping short of each number. */}
+          <path d={segments.join("")} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.8} strokeWidth={1.5} strokeLinecap="round" />
+          {/* His points each game he played, where its point is (none, one he missed); his best bold. */}
           {games.map((g, i) => {
             if (g.value === null) return null;
             const starred = g.value === best && best > 0;
             return (
-              <g key={g.key} aria-label={g.label} role="img">
-                {g.missed ? (
-                  <path d={`M${x(i) - 3.5},${y(0) - 3.5}l7,7m0,-7l-7,7`} stroke="var(--ink-primary)" strokeOpacity={0.7} strokeWidth={1.5} strokeLinecap="round" />
-                ) : (
-                  <circle cx={x(i)} cy={y(g.value)} r={2.75} fill="var(--page)" stroke="var(--ink-primary)" strokeWidth={1.5} />
-                )}
-                <text
-                  x={x(i)}
-                  y={y(g.value) - 7}
-                  textAnchor="middle"
-                  {...stroke}
-                  className={`text-[0.5625rem] tabular-nums ${starred ? "fill-[var(--ink-primary)] font-bold" : "fill-[var(--ink-secondary)] font-semibold"}`}
-                >
-                  {starred && tenths ? "★" : ""}
-                  {tenths ? g.value.toFixed(1) : Math.round(g.value)}
-                </text>
-              </g>
+              <text
+                key={g.key}
+                x={x(i)}
+                y={y(g.value) + POINTS_PX * 0.35}
+                textAnchor="middle"
+                role="img"
+                aria-label={g.label}
+                {...halo}
+                className={`tabular-nums ${starred ? "fill-[var(--ink-primary)] font-extrabold" : "fill-[var(--ink-primary)] font-semibold"}`}
+                style={{ fontSize: POINTS_PX }}
+              >
+                {pointsText(g.value)}
+              </text>
             );
           })}
         </>

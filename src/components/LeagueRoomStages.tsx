@@ -449,12 +449,61 @@ const stat = (label: string, key: string): ChartStat => ({ label, key });
  * shows — no fumbles or two-point conversions, which it doesn't.
  */
 const CHART_STATS: Record<string, ChartStat[]> = {
-  QB: [stat("Cmp", "pass_cmp"), stat("Att", "pass_att"), stat("PYd", "pass_yd"), stat("PTD", "pass_td"), stat("Int", "pass_int"), stat("Car", "rush_att"), stat("RYd", "rush_yd"), stat("RTD", "rush_td")],
-  RB: [stat("Car", "rush_att"), stat("RYd", "rush_yd"), stat("RTD", "rush_td"), stat("Tgt", "rec_tgt"), stat("Rec", "rec"), stat("RcYd", "rec_yd"), stat("RcTD", "rec_td")],
-  WR: [stat("Tgt", "rec_tgt"), stat("Rec", "rec"), stat("RcYd", "rec_yd"), stat("RcTD", "rec_td"), stat("Car", "rush_att"), stat("RYd", "rush_yd"), stat("RTD", "rush_td")],
-  TE: [stat("Tgt", "rec_tgt"), stat("Rec", "rec"), stat("RcYd", "rec_yd"), stat("RcTD", "rec_td"), stat("Car", "rush_att"), stat("RYd", "rush_yd"), stat("RTD", "rush_td")],
-  K: [stat("FG", "fgm"), stat("FGA", "fga"), stat("XP", "xpm"), stat("XPA", "xpa"), stat("40-49", "fgm_40_49"), stat("50+", "fgm_50p")],
-  DEF: [stat("Sack", "sack"), stat("Int", "int"), stat("FR", "fum_rec"), stat("TD", "def_td"), stat("PA", "pts_allow"), stat("Saf", "safe"), stat("Blk", "blk_kick"), stat("YdA", "yds_allow")],
+  QB: [
+    stat("Completions", "pass_cmp"),
+    stat("Attempts", "pass_att"),
+    stat("Passing Yards", "pass_yd"),
+    stat("Passing Touchdowns", "pass_td"),
+    stat("Interceptions", "pass_int"),
+    stat("Carries", "rush_att"),
+    stat("Rushing Yards", "rush_yd"),
+    stat("Rushing Touchdowns", "rush_td"),
+  ],
+  RB: [
+    stat("Carries", "rush_att"),
+    stat("Rushing Yards", "rush_yd"),
+    stat("Rushing Touchdowns", "rush_td"),
+    stat("Targets", "rec_tgt"),
+    stat("Receptions", "rec"),
+    stat("Receiving Yards", "rec_yd"),
+    stat("Receiving Touchdowns", "rec_td"),
+  ],
+  WR: [
+    stat("Targets", "rec_tgt"),
+    stat("Receptions", "rec"),
+    stat("Receiving Yards", "rec_yd"),
+    stat("Receiving Touchdowns", "rec_td"),
+    stat("Carries", "rush_att"),
+    stat("Rushing Yards", "rush_yd"),
+    stat("Rushing Touchdowns", "rush_td"),
+  ],
+  TE: [
+    stat("Targets", "rec_tgt"),
+    stat("Receptions", "rec"),
+    stat("Receiving Yards", "rec_yd"),
+    stat("Receiving Touchdowns", "rec_td"),
+    stat("Carries", "rush_att"),
+    stat("Rushing Yards", "rush_yd"),
+    stat("Rushing Touchdowns", "rush_td"),
+  ],
+  K: [
+    stat("Field Goals", "fgm"),
+    stat("Field Goal Attempts", "fga"),
+    stat("Extra Points", "xpm"),
+    stat("Extra Point Attempts", "xpa"),
+    stat("40–49 Yard Field Goals", "fgm_40_49"),
+    stat("50+ Yard Field Goals", "fgm_50p"),
+  ],
+  DEF: [
+    stat("Sacks", "sack"),
+    stat("Interceptions", "int"),
+    stat("Fumble Recoveries", "fum_rec"),
+    stat("Touchdowns", "def_td"),
+    stat("Points Allowed", "pts_allow"),
+    stat("Safeties", "safe"),
+    stat("Blocked Kicks", "blk_kick"),
+    stat("Yards Allowed", "yds_allow"),
+  ],
 };
 
 /**
