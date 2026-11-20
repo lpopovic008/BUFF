@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useContext, useEffect, useState } from "react";
+import { TradeCalcFloorContext } from "@/components/FloorTradeCalc";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { TradeMonitor } from "@/hooks/useTradeMonitor";
 import { ordinal } from "@/lib/format";
@@ -105,7 +106,8 @@ function Side({
 /**
  * A trade with any other team in the league, weighed the way KTC's calculator weighs one: what you'd give and
  * get — players and future picks — each side's value with the added value fewer, better pieces are due, who comes
- * out ahead (or that it's fair), and what it does to both rosters' ranks at each position.
+ * out ahead (or that it's fair), and what it does to both rosters' ranks at each position. In a room with a floor for
+ * it (see TradeCalcFloorContext), what's in it stands on the floor too.
  */
 export function TradeCalculator({ monitor, onOpen }: { monitor: TradeMonitor; onOpen: (p: MonitorPlayer) => void }) {
   const mine = monitor.teams.find((t) => t.mine);
@@ -115,6 +117,9 @@ export function TradeCalculator({ monitor, onOpen }: { monitor: TradeMonitor; on
   const [give, setGive] = useState<string[]>([]);
   const [get, setGet] = useState<string[]>([]);
   const teamName = (rosterId: number) => monitor.teams.find((t) => t.rosterId === rosterId)?.name ?? `Team ${rosterId}`;
+  // What's in it, on the room's floor where there's one.
+  const toFloor = useContext(TradeCalcFloorContext);
+  const floorKey = `${partnerId}|${give.join(",")}|${get.join(",")}`;
 
   // A team's pieces, most valuable first: its players and its picks.
   const piecesOf = (rosterId: number): Piece[] => {
@@ -134,9 +139,22 @@ export function TradeCalculator({ monitor, onOpen }: { monitor: TradeMonitor; on
     return [...players, ...picks].sort((a, b) => (b.value ?? -1) - (a.value ?? -1));
   };
 
+  const ours = mine ? piecesOf(mine.rosterId) : [];
+  const theirs = partnerId != null ? piecesOf(partnerId) : [];
+  useEffect(() => {
+    if (!toFloor) return;
+    const find = (id: string) => [...ours, ...theirs].find((p) => p.id === id);
+    const of = (ids: string[]) => ids.flatMap((id) => {
+      const p = find(id);
+      return p ? [{ id: p.id, label: p.label, position: p.position, value: p.value }] : [];
+    });
+    toFloor(give.length + get.length > 0 ? { give: of(give), get: of(get) } : null);
+    // (What's in it is the key's: it says when that changes.)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [toFloor, floorKey]);
+  useEffect(() => (toFloor ? () => toFloor(null) : undefined), [toFloor]);
+
   if (!mine || partnerId == null) return <p className="py-4 text-center text-sm text-ink-secondary">You need a team in this league to trade.</p>;
-  const ours = piecesOf(mine.rosterId);
-  const theirs = piecesOf(partnerId);
   const value = (id: string) => [...ours, ...theirs].find((p) => p.id === id)?.value ?? 0;
   const verdict = weighTrade(give.map(value), get.map(value));
   const any = give.length + get.length > 0;

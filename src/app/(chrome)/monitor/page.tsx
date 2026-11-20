@@ -6,6 +6,7 @@ import { PickButton } from "@/components/ui/PickButton";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { PlayerCareer } from "@/components/PlayerCareer";
 import { TradeCalculator } from "@/components/TradeCalculator";
+import { CalcFloor, FloorTradeCalc, TradeCalcFloorContext } from "@/components/FloorTradeCalc";
 import { RoomColumn, WallRoom, useWideRoom } from "@/components/WallRoom";
 import { useConfig } from "@/hooks/useConfig";
 import { useMyLeagues } from "@/hooks/useMyLeagues";
@@ -202,6 +203,7 @@ export default function MonitorPage() {
   const myLeagues = useMyLeagues(leagueIds, config.sleeperUserId);
   const [pickedId, setPickedId] = useState<string | null>(null);
   const picked = myLeagues?.find((l) => l.leagueId === pickedId) ?? myLeagues?.[0] ?? null;
+  const [calcFloor, setCalcFloor] = useState<CalcFloor | null>(null);
 
   const leagues =
     myLeagues && myLeagues.length > 0 ? (
@@ -216,13 +218,16 @@ export default function MonitorPage() {
   const waiting = myLeagues ? <Empty>Add a Sleeper league in Settings to watch its trade market.</Empty> : <Empty>Loading your leagues…</Empty>;
 
   return (
-    <WallRoom title="Trade Monitor">
-      {picked ? (
-        <LeagueMonitor key={picked.leagueId} leagueId={picked.leagueId} myUserId={config.sleeperUserId} wide={wide} leagues={leagues} />
-      ) : (
-        <MonitorColumns wide={wide} leagues={leagues} middle={waiting} />
-      )}
-    </WallRoom>
+    // What's in the trade calculator, standing on the room's floor (see FloorTradeCalc) — the horizon dropped for it.
+    <TradeCalcFloorContext.Provider value={setCalcFloor}>
+      <WallRoom title="Trade Monitor" floor={picked && calcFloor ? (room) => <FloorTradeCalc calc={calcFloor} room={room} /> : null}>
+        {picked ? (
+          <LeagueMonitor key={picked.leagueId} leagueId={picked.leagueId} myUserId={config.sleeperUserId} wide={wide} leagues={leagues} />
+        ) : (
+          <MonitorColumns wide={wide} leagues={leagues} middle={waiting} />
+        )}
+      </WallRoom>
+    </TradeCalcFloorContext.Provider>
   );
 }
 
