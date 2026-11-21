@@ -134,7 +134,7 @@ function PlayerLine({
           <TeamLogo team={line.team} side={13} />
         </span>
       ) : line.playerId ? (
-        <PlayerHeadshot playerId={line.playerId} size={18} />
+        <PlayerHeadshot playerId={line.playerId} size={FACE_PX} />
       ) : (
         <span className="h-[1.125rem] w-[1.125rem] shrink-0 rounded-full border border-border bg-page" aria-hidden />
       )}
@@ -188,8 +188,8 @@ function scoreLabel(type: string, text: string): string {
 /** One of a play's marks: its abbreviation, and the color it's drawn in. */
 interface PlayMark {
   label: string;
-  /** Classes for its fill and the ink on it. */
-  className: string;
+  /** Its color, a CSS color. */
+  color: string;
 }
 
 /**
@@ -201,21 +201,28 @@ function playMarks(entry: FeedEntry): PlayMark[] {
   const { play, players } = entry;
   const defense = players.length > 0 && players.every((p) => p.position === "DEF");
   const marks: PlayMark[] = [];
-  if (play.scoring) marks.push({ label: scoreLabel(play.type, play.text), className: "bg-status-good text-white" });
-  if (play.turnover) marks.push({ label: "TO", className: defense ? "bg-status-good text-white" : "bg-status-critical text-white" });
-  if (play.redZone && !play.scoring) marks.push({ label: "RZ", className: "bg-status-critical text-white" });
-  if (play.yards >= 20 && !play.scoring) marks.push({ label: `+${play.yards}`, className: "bg-ink-primary text-surface-raised" });
+  if (play.scoring) marks.push({ label: scoreLabel(play.type, play.text), color: "var(--status-good)" });
+  if (play.turnover) marks.push({ label: "TO", color: defense ? "var(--status-good)" : "var(--status-critical)" });
+  if (play.redZone && !play.scoring) marks.push({ label: "RZ", color: "var(--status-critical)" });
+  if (play.yards >= 20 && !play.scoring) marks.push({ label: `+${play.yards}`, color: "var(--ink-primary)" });
   return marks;
 }
 
+/** How wide a play's faceshots are (px, see PlayerLine) — and so its mark's wash. */
+const FACE_PX = 18;
+
 /**
- * A marked play's strip down the left of its row, in its first mark's color.
- * The marks' abbreviations are only read out, for now.
+ * A marked play's wash down the left of its row, in its first mark's color: from the row's left edge, fading out to
+ * nothing across the width of its faceshots — behind them, so their colors stay their own. The marks' abbreviations
+ * are only read out, for now.
  */
 function MarkColumn({ marks }: { marks: PlayMark[] }) {
   if (marks.length === 0) return null;
   return (
-    <span className={`pointer-events-none absolute inset-y-0 left-0 w-[3px] ${marks[0].className}`}>
+    <span
+      className="pointer-events-none absolute inset-y-0 left-0 -z-10"
+      style={{ width: FACE_PX, background: `linear-gradient(to right, ${marks[0].color}, transparent)` }}
+    >
       <span className="sr-only">{marks.map((m) => m.label).join(", ")}</span>
     </span>
   );
@@ -303,8 +310,8 @@ const FeedRow = memo(function FeedRow({ entry, starterById, legendByLeagueId, ar
   return (
     <li
       data-play={`${game.id}-${play.id}`}
-      // Every row leaves room down its left for a marked play's strip (see MarkColumn).
-      className={`relative flex flex-col gap-1 py-2 pl-3 pr-1 ${
+      // Its own stacking context, so a marked play's wash lies behind its faceshots (see MarkColumn).
+      className={`relative isolate flex flex-col gap-1 py-2 pr-1 ${
         spotlit ? "bg-[color-mix(in_srgb,var(--ink-primary)_8%,var(--surface-raised))] outline outline-1 -outline-offset-1 outline-ink-primary" : ""
       }`}
       style={{
@@ -719,9 +726,10 @@ export function RedZone({
         data-rz-head
         onPointerUp={onHeadTap}
         // Dragged to set the Red Zone's height (see the page), so no scrolling or zooming from it.
-        // Across the top, its title just where the Red Zone's switch stands below it (1rem in, and the switch's own
-        // 0.75rem), so the switch turns into it where it stands (see FloorCameraControls).
-        className={`relative shrink-0 touch-none select-none ${resizable ? "cursor-ns-resize" : ""} ${across ? "pl-7 max-md:pr-2" : "w-7"}`}
+        // Across the top on a phone, its title just where the Red Zone's switch stands below it (1rem in, and the
+        // switch's own 0.75rem), so the switch turns into it where it stands (see FloorCameraControls); wider, against
+        // the left edge with its plays.
+        className={`relative shrink-0 touch-none select-none ${resizable ? "cursor-ns-resize" : ""} ${across ? "pl-7 max-md:pr-2 md:pl-0" : "w-7"}`}
       >
         <div className={across ? `flex items-center gap-2 ${fill ? "py-0.5" : "py-1"}` : "absolute inset-0 flex flex-col items-center gap-1.5 px-0.5 py-1.5"}>
           {/* The title, ⇕ after it (under it, down the side). */}
@@ -798,7 +806,7 @@ export function RedZone({
         <div
           data-rz-plays
           onClick={onPlayPick ? pickPlay : undefined}
-          className={`relative flex min-w-0 flex-1 flex-col gap-2 py-1 ${fill ? "min-h-0" : "md:min-h-0"} ${across ? "max-md:px-2" : "pl-1.5 max-md:pr-2"} ${
+          className={`relative flex min-w-0 flex-1 flex-col gap-2 py-1 ${fill ? "min-h-0" : "md:min-h-0"} ${across ? "max-md:px-4" : "pl-1.5 max-md:pr-2"} ${
             onPlayPick ? "[&_li[data-play]]:cursor-pointer" : ""
           }`}
         >
