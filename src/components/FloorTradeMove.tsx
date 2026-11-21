@@ -56,8 +56,10 @@ const FACE_FULL_WIDTH_PX = 1000;
 const FACE_LEAST_SHARE = 0.6;
 /** About how wide a photo's name is (px, nearest you): the room kept for it from the screen's edges. */
 const NAME_ROOM_PX = 120;
-/** How far further out a photo stands past one too close in front of it (photos' widths): far enough its name clears. */
-const STACK_FACES = 1.6;
+/** Photos spread down a column (crowded at their dots): each this much further back than the one before (shares of
+ * the column), the last no further back than so much of the way. */
+const SPREAD_STEP = 0.45;
+const SPREAD_MOST = 0.75;
 /** How long a moving piece's photo takes to rise up out of the floor (ms). */
 const RISE_MS = 600;
 /** A photo's reflection in the floor: strongest at its foot, gone a little way down. */
@@ -86,16 +88,15 @@ function Rising({ children }: { children: React.ReactNode }) {
 
 /**
  * A trade played out on the room's floor: each of the trading teams' lineups a column running from the front of the
- * floor to the back, side by side across it (its name at its front end), each piece a dot in its position's color
- * placed down its column by its value as the trade was made — the most valuable nearest you, the room between any two
- * as deep as the difference in their values. Each that changes hands has his photo standing up out of the floor beside
- * its dot, out toward the screen's edge (see PieceFace), named with what it was worth then under it, reflected in the
- * floor. Nothing else moves
- * as it plays: those that change hands go straight across, at the same depth, to their place in the other column,
- * kept open — a dashed ring marking each open place (where it'll land, then where it left) and a line along the floor,
- * in the color of the team that got it, from where it stood to where it landed. In front of them, nearest you, the
- * league's trades on a line across the floor by when (see FloorTimeline), the one shown marked, any picked from there.
- * `room`: the screen it's on, its horizon `share` of the way down, the floor's front edge at screen y `bottom`.
+ * floor to the back, side by side across it (its name at its front end), each piece a dot in its position's color,
+ * evenly spaced down its column in its order — the most valuable nearest you. Each that changes hands has his photo
+ * standing up out of the floor out beside his team's column, toward the screen's edge (see PieceFace) — level with his
+ * dot where there's room, spread evenly down the column where they'd crowd — named with what he was worth then under
+ * it, reflected in the floor. As it plays, those that change hands go across to their place in the other column, the
+ * rest closing up — a dashed ring marking each open place (where it'll land, then where it left) and a line along the
+ * floor, in the color of the team that got it, from where it stood to where it landed. In front of them, nearest you,
+ * the league's trades on a line across the floor by when (see FloorTimeline), the one shown marked, any picked from
+ * there. `room`: the screen it's on, its horizon `share` of the way down, the floor's front edge at screen y `bottom`.
  */
 export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width: number; height: number; share: number; bottom: number } }) {
   const [played, setPlayed] = useState(false);
@@ -108,23 +109,13 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
   const n = Math.max(1, rosters.length);
   const before = rosters.map((r) => [...r.before].sort(order));
   const after = rosters.map((r) => [...r.after].sort(order));
-  // Each piece's place down its column: by its value, the most valuable nearest you, the room between any two as deep
-  // as the difference in their values (on one scale for every column, so a piece that changes hands goes straight
-  // across from its place in one to its place in the other); those with none at the back.
   const all = [...new Set(rosters.flatMap((r) => [...r.before, ...r.after]))];
   const valueOf = move.valueOf ?? ((id: string) => people.get(id)?.value ?? null);
   const values = new Map(all.map((id) => [id, valueOf(id)]));
-  const valued = [...values.values()].filter((v): v is number => v !== null);
-  const [lowest, highest] = [Math.min(...valued), Math.max(...valued)];
   const teamColor = (rosterId: number) => move.colors?.get(rosterId) ?? "var(--ink-primary)";
-  const along = (id: string) => {
-    const v = values.get(id) ?? null;
-    if (v === null || !(highest > lowest)) return v === null ? 1 : 0.5;
-    return (highest - v) / (highest - lowest);
-  };
 
-  // The floor the columns lie on: from a little in front of the horizon to the timeline nearest you, the most
-  // valuable at the front; and across it, each team's column as far apart as the screen lets the nearest pieces be.
+  // The floor the columns lie on: from a little in front of the horizon to the timeline nearest you; and across it,
+  // each team's column as far apart as the screen lets the nearest pieces be.
   const horizon = height * share;
   const floor = bottom - horizon;
   const back = floorDepth(horizon + floor * 0.1, height, share);
@@ -134,14 +125,20 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
   const nearest = floorScale(front);
   const span = (width * 0.62) / nearest;
   const laneX = (lane: number) => (-0.5 + (lane + 0.5) / n) * span;
-  const depthOf = (id: string) => front - along(id) * (front - back);
-  const place = (lane: number, id: string) => {
-    const d = depthOf(id);
+  // `t` of the way from the front of a column to its back, on the floor.
+  const pointAt = (lane: number, t: number) => {
+    const d = front - t * (front - back);
     const [x, y] = floorPoint(laneX(lane), d, width, height, share);
     return { x, y, d, s: floorScale(d) / nearest };
   };
+  // Each piece's place down its column: in its order (the most valuable nearest you), each the same way on from the
+  // one before, the column's first at its front and its last at its back.
+  const place = (lane: number, list: string[], id: string) => {
+    const row = list.indexOf(id);
+    return pointAt(lane, list.length > 1 ? row / (list.length - 1) : 0);
+  };
   const spots = new Map<string, ReturnType<typeof place>>();
-  (played ? after : before).forEach((list, lane) => list.forEach((id) => spots.set(id, place(lane, id))));
+  (played ? after : before).forEach((list, lane) => list.forEach((id) => spots.set(id, place(lane, list, id))));
   const ids = [...new Set([...before.flat(), ...after.flat()])];
   const colorOf = (id: string) => (people.get(id)?.position === PICK ? "var(--ink-muted)" : (POSITION_COLOR_VAR[people.get(id)?.position ?? ""] ?? "var(--ink-muted)"));
   // Each column's ends: its line along the floor, and its name at its front end.
@@ -154,23 +151,23 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
   const drawOrder = [...ids].sort((a, b) => (spots.get(a)?.d ?? 0) - (spots.get(b)?.d ?? 0));
   // Which way is out, for each column: toward the screen's nearer edge (the middle one, if there's one, to the right).
   const outward = (lane: number) => (laneX(lane) < 0 ? -1 : 1);
-  // Each moving piece's photo out beside its dot, as big as the screen's width lets it be (smaller on a phone); photos
-  // standing so close in one column that one would all but hide the next (pieces worth about the same) stood further
-  // out, one past the other — but never so far its name runs off the screen.
+  // Each moving piece's photo out beside its column, as big as the screen's width lets it be (smaller on a phone):
+  // level with its dot where they all have room; where they'd crowd each other, spread evenly down the column from
+  // its front instead (no further back than SPREAD_MOST of the way, where they'd be drawn too small), in the same order — the floor's perspective spacing them across as they go back. Never so far out its
+  // name runs off the screen.
   const faceScale = Math.min(1, Math.max(FACE_LEAST_SHARE, width / FACE_FULL_WIDTH_PX));
-  const out = new Map<string, number>();
+  const faces = new Map<string, { x: number; y: number; s: number }>();
   (played ? after : before).forEach((list, lane) => {
-    const faces = list.filter((id) => moved.has(id) && spots.has(id)).sort((a, b) => spots.get(a)!.y - spots.get(b)!.y);
-    let steps = 0;
-    faces.forEach((id, i) => {
-      const at = spots.get(id)!;
+    const going = list.filter((id) => moved.has(id) && spots.has(id));
+    const level = going.map((id) => spots.get(id)!);
+    // Crowded: one near enough the one behind it that, standing, it'd reach up over that one's name.
+    const crowded = level.some((at, i) => i > 0 && at.y - level[i - 1].y < FACE_PX * faceScale * at.s * 1.15 + 14);
+    going.forEach((id, i) => {
+      const at = crowded ? pointAt(lane, i * Math.min(SPREAD_STEP, SPREAD_MOST / Math.max(1, going.length - 1))) : level[i];
       const size = FACE_PX * faceScale * at.s;
-      // (Close: near enough that this one, standing, would reach up over the name under the one behind it.)
-      const close = i > 0 && at.y - spots.get(faces[i - 1])!.y < size * 1.15 + 14;
-      steps = close ? steps + 1 : 0;
-      const x = at.x + outward(lane) * (size * (0.5 + steps * STACK_FACES) + FACE_OUT_PX * faceScale * at.s);
+      const x = at.x + outward(lane) * (size * 0.5 + FACE_OUT_PX * faceScale * at.s);
       const room = Math.max(size, NAME_ROOM_PX * Math.max(0.75, at.s)) / 2 + 4;
-      out.set(id, Math.min(width - room, Math.max(room, x)) - at.x);
+      faces.set(id, { x: Math.min(width - room, Math.max(room, x)), y: at.y, s: at.s });
     });
   });
 
@@ -187,9 +184,9 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
         {before.flatMap((list, lane) =>
           list.map((id) => {
             if (!moved.has(id)) return null;
-            const from = place(lane, id);
+            const from = place(lane, list, id);
             const toLane = after.findIndex((l) => l.includes(id));
-            const to = toLane >= 0 ? place(toLane, id) : null;
+            const to = toLane >= 0 ? place(toLane, after[toLane], id) : null;
             // In the color of the team that got it.
             const lineColor = toLane >= 0 ? teamColor(rosters[toLane].rosterId) : colorOf(id);
             const open = played ? from : to;
@@ -230,6 +227,7 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
         const going = moved.has(id);
         const person = people.get(id);
         const dot = (going ? MOVED_DOT_PX : DOT_PX) * at.s;
+
         return (
           <div
             key={id}
@@ -239,14 +237,27 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
           >
             {/* Its dot on its column's line, flattened as the floor is. */}
             <span className="absolute block -translate-x-1/2 -translate-y-1/2 rounded-[50%]" style={{ width: dot, height: dot * 0.55, background: colorOf(id) }} />
-            {going ? (
-              <div className="absolute left-0 top-0 transition-transform duration-700 ease-[cubic-bezier(.6,.05,.25,1)]" style={{ transform: `translateX(${out.get(id) ?? 0}px)` }}>
-                <PieceFace id={id} person={person} value={values.get(id) ?? null} scale={at.s * faceScale} />
-              </div>
-            ) : null}
           </div>
         );
       })}
+      {/* Each moving piece's photo out beside its column, nearer ones in front — a faint line along the floor to its
+          dot where it doesn't stand level with it. */}
+      <svg className="absolute inset-0 h-full w-full overflow-visible">
+        {[...faces].map(([id, face]) => {
+          const at = spots.get(id);
+          if (!at || Math.abs(face.y - at.y) < 2) return null;
+          return <line key={`to-${id}`} x1={at.x} y1={at.y} x2={face.x} y2={face.y} stroke={colorOf(id)} strokeOpacity={0.45} strokeWidth={1} strokeDasharray="2 3" className="transition-all duration-700" />;
+        })}
+      </svg>
+      {[...faces].sort(([, a], [, b]) => a.y - b.y).map(([id, face]) => (
+        <div
+          key={`face-${id}`}
+          className="absolute left-0 top-0 transition-transform duration-700 ease-[cubic-bezier(.6,.05,.25,1)] motion-reduce:transition-none"
+          style={{ transform: `translate(${face.x}px, ${face.y}px)` }}
+        >
+          <PieceFace id={id} person={people.get(id)} value={values.get(id) ?? null} scale={face.s * faceScale} />
+        </div>
+      ))}
     </div>
   );
 }
