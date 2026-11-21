@@ -64,9 +64,23 @@ const HEAD_SHARE = 0.2;
 const nameScale = (scale: number) => Math.max(0.9, Math.min(1.15, scale));
 /** How wide each letter of a photo's name is (px, at its usual size): 0.6em of its 11px monospaced type. */
 const NAME_LETTER_PX = 6.6;
-/** Where a pick's name starts, out from its middle (its ring's edge, in shares of the photo's width); and the least of
- *  it that's shown before the rest is cut off with "…" (px). */
-const PICK_NAME_AT = 0.76 * 0.36;
+/** How tall a photo's name's line is (px, at its usual size): its 11px type, 1.25 high. */
+const NAME_LINE_PX = 13.75;
+/** How far clear of the head (a pick's ring) a name starts (px). */
+const NAME_GAP_PX = 4;
+/** How wide a pick's ring is, in shares of its photo's width (see PieceFace). */
+const PICK_RING_SHARE = 0.76;
+/**
+ * How far out from a pick's middle its ring comes at the foot of its name's line (px), the name set level with the
+ * ring's top — so the name, all the way down, starts clear of the ring's curve. `w`: the photo's width; `zoom`: its
+ * name's scale (see nameScale).
+ */
+const pickNameOut = (w: number, zoom: number) => {
+  const r = (w * PICK_RING_SHARE) / 2;
+  const foot = Math.min(r, NAME_LINE_PX * zoom);
+  return Math.sqrt(r * r - (r - foot) * (r - foot));
+};
+/** The least of a pick's name that's shown before the rest is cut off with "…" (px). */
 const PICK_NAME_LEAST_PX = 64;
 /** Photos spread down a column (crowded at their dots): each this much further back than the one before (shares of
  * the column), the last no further back than so much of the way. */
@@ -188,14 +202,14 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
       const placed = Math.min(width - size / 2 - 4, Math.max(size / 2 + 4, x));
       const zoom = nameScale(at.s * faceScale);
       if (people.get(id)?.position === PICK) {
-        const start = placed + side * (size * PICK_NAME_AT + 3);
+        const start = placed + side * (pickNameOut(size, zoom) + NAME_GAP_PX);
         const room = side > 0 ? width - 4 - start : start - 4;
         const shift = Math.max(0, PICK_NAME_LEAST_PX - room);
         faces.set(id, { x: placed, y: at.y, s: at.s, side, nameShift: -side * shift, nameRoom: (room + shift) / zoom });
         return;
       }
       const letters = (people.get(id)?.name ?? id).length;
-      const nameEnd = placed + side * (size * NAME_AT + letters * NAME_LETTER_PX * zoom);
+      const nameEnd = placed + side * (size * NAME_AT + NAME_GAP_PX + letters * NAME_LETTER_PX * zoom);
       const overflow = side > 0 ? nameEnd - (width - 4) : 4 - nameEnd;
       faces.set(id, { x: placed, y: at.y, s: at.s, side, nameShift: overflow > 0 ? -side * overflow : 0 });
     });
@@ -327,8 +341,7 @@ function PieceFace({
   // — how far down from the top of the box (px), and out from its middle (px).
   const nameAt = (() => {
     if (pick) {
-      const ring = w * 0.76;
-      return { down: h * 0.96 - ring + ring * 0.12, out: w * PICK_NAME_AT };
+      return { down: h * 0.96 - w * PICK_RING_SHARE, out: pickNameOut(w, nameScale(scale)) };
     }
     if (photoFailed) return { down: h * 0.2, out: w * 0.3 };
     const box = h * 0.96;
@@ -382,11 +395,13 @@ function PieceFace({
         className="absolute top-0 overflow-hidden text-ellipsis whitespace-nowrap text-[0.6875rem] font-bold leading-tight text-ink-primary"
         style={{
           maxWidth: nameRoom,
-          left: side * (nameAt.out + 3) + nameShift,
+          left: side * (nameAt.out + NAME_GAP_PX) + nameShift,
           marginTop: -h + nameAt.down,
           transform: side > 0 ? "none" : "translateX(-100%)",
           scale: nameScale(scale),
-          transformOrigin: side > 0 ? "left top" : "right top",
+          // Scaled about the corner it starts from, the head's side: on the left, that's its right end — where it is
+          // once it's been moved its own width back (that move's made before the scale, about the same point).
+          transformOrigin: "left top",
           textShadow: "0 0 3px var(--page), 0 0 6px var(--page)",
         }}
       >
