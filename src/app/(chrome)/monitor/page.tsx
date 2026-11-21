@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { HeaderLeagueSwitcher, RoomLeagueList } from "@/components/LeagueSwitcher";
+import { HeaderLeagueSwitcher, LeagueDropdown } from "@/components/LeagueSwitcher";
 import { TradeAnalyzer } from "@/components/TradeAnalyzer";
 import { StatusChip } from "@/components/AssetRow";
 import { SectionTitle } from "@/components/ui/SectionTitle";
@@ -156,10 +156,10 @@ const PHONE_VIEWS: { id: PhoneView; label: string }[] = [
 
 /**
  * The Trade Monitor, in a room as the League Room is: the page itself never scrolls; its columns stand on the back
- * wall, each scrolling on its own and reflected in the floor in front of them. From laptop width up: your leagues on
- * the left, as the League Room lists them; the trade calculator in the middle, staying put over the league's trades
- * scrolled through under it; and where the league stands — its playoff picture and each team's positions — on the
- * right. On the floor, what's in the calculator — with nothing in it, the trade read in the middle (or, with a player
+ * wall, each scrolling on its own and reflected in the floor in front of them. From laptop width up: the trade
+ * calculator on the left, the first team's side over the second's; in the middle, your league picked from a dropdown,
+ * staying put over its trades scrolled through under it; and where the league stands — its playoff picture and each
+ * team's positions — on the right. On the floor, what's in the calculator — with nothing in it, the trade read in the middle (or, with a player
  * searched for, his way round the league). On a phone, one column, switched between the trades, the calculator and
  * the standings; the leagues in the page header.
  */
@@ -185,12 +185,12 @@ export default function MonitorPage() {
           ? (room: Parameters<typeof FloorTradeCalc>[0]["room"]) => <FloorTradeMove key={floorMove.key} move={floorMove} room={room} />
           : null;
 
-  // Your leagues to pick from: from laptop width up, a column of their own as the League Room's; on a phone, switched
-  // in the page header (see HeaderLeagueSwitcher), as the League Room's are.
+  // Your leagues to pick from: from laptop width up, dropped down from the top of the middle column, over the trades;
+  // on a phone, switched in the page header (see HeaderLeagueSwitcher), as the League Room's are.
   const roomLeagues = (myLeagues ?? []).map((l) => ({ leagueId: l.leagueId, name: l.leagueName, logo: l.logo }));
   const leagues =
     myLeagues && myLeagues.length > 0 ? (
-      <RoomLeagueList leagues={roomLeagues} selectedId={picked?.leagueId ?? null} onSelect={setPickedId} label="Your leagues" />
+      <LeagueDropdown leagues={roomLeagues} selectedId={picked?.leagueId ?? null} onSelect={setPickedId} label="Your leagues" />
     ) : null;
   const waiting = myLeagues ? <Empty>Add a Sleeper league in Settings to watch its trade market.</Empty> : <Empty>Loading your leagues…</Empty>;
 
@@ -211,11 +211,14 @@ export default function MonitorPage() {
               />
             ) : wide ? (
               <>
-                <RoomColumn label="Your leagues" style={{ flex: "1 1 0%" }}>
-                  {leagues}
+                <RoomColumn label="Trade calculator" style={{ flex: "1 1 0%" }}>
+                  {null}
                 </RoomColumn>
                 <RoomColumn label="Trades" style={{ flex: "1.6 1 0%" }}>
-                  {waiting}
+                  <div className="flex flex-col gap-3">
+                    {leagues}
+                    {waiting}
+                  </div>
                 </RoomColumn>
                 <RoomColumn label="Where the league stands" style={{ flex: "1 1 0%" }}>
                   {null}
@@ -260,6 +263,7 @@ function LeagueMonitor({
       numbers: { valueRank: p.valueRank ?? null, dynasty: monitor.dynasty, seasonRank: null, ppg: null, opponent: null, bye: false, defenseRank: null },
     });
   const calc = monitor ? <TradeCalculator monitor={monitor} onOpen={open} /> : null;
+  const stackedCalc = monitor ? <TradeCalculator monitor={monitor} onOpen={open} stacked /> : monitor === undefined ? <Empty>Reading the league…</Empty> : null;
   const standings =
     monitor === undefined ? <Empty>Reading the league…</Empty> : monitor === null ? <Empty>Couldn&rsquo;t load this league from Sleeper.</Empty> : <Standings monitor={monitor} fit={wide} />;
 
@@ -278,17 +282,18 @@ function LeagueMonitor({
         if (wide) {
           return (
             <>
-              <RoomColumn label="Your leagues" style={{ flex: "1 1 0%" }}>
-                {leagues}
+              {/* The calculator a column of its own, the first team's side over the second's. */}
+              <RoomColumn label="Trade calculator" style={{ flex: "1 1 0%" }}>
+                {stackedCalc}
               </RoomColumn>
-              {/* The calculator staying put over the trades, scrolled through under it. */}
+              {/* The league picked staying put over its trades, scrolled through under it. */}
               <RoomColumn
                 label="Trades"
                 style={{ flex: "1.6 1 0%" }}
                 stage
                 head={
                   <div className="flex flex-col gap-3">
-                    <div className="max-h-[45vh] overflow-y-auto overscroll-contain [scrollbar-width:none]">{calc}</div>
+                    {leagues}
                     {tradesHead}
                   </div>
                 }

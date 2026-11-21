@@ -67,12 +67,15 @@ export function RoomLeagueList({
   onSelect,
   label,
   under,
+  zoomed = true,
 }: {
   leagues: RoomLeague[];
   selectedId: string | null;
   onSelect: (leagueId: string) => void;
   label: string;
   under?: React.ReactNode;
+  /** Drawn bigger with its column (see roomTextZoom) — not where it's dropped down from something else. */
+  zoomed?: boolean;
 }) {
   // Its text as big as the League Room's: drawn bigger as its column is wider, by as much as the League Room draws its
   // columns' (see roomTextZoom) — its column a side one, the middle MIDDLE_OVER_SIDE as wide.
@@ -80,15 +83,15 @@ export function RoomLeagueList({
   const [zoom, setZoom] = useState(1);
   useEffect(() => {
     const column = box?.parentElement;
-    if (!column) return;
+    if (!column || !zoomed) return;
     const measure = () => setZoom(roomTextZoom(column.clientWidth * MIDDLE_OVER_SIDE));
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(column);
     return () => observer.disconnect();
-  }, [box]);
+  }, [box, zoomed]);
   return (
-    <ul ref={setBox} className="flex flex-col gap-1" aria-label={label} style={zoom === 1 ? undefined : { zoom }}>
+    <ul ref={setBox} className="flex flex-col gap-1" aria-label={label} style={zoom === 1 || !zoomed ? undefined : { zoom }}>
       {leagues.map((league) => {
         const on = league.leagueId === selectedId;
         return (
@@ -108,6 +111,62 @@ export function RoomLeagueList({
         );
       })}
     </ul>
+  );
+}
+
+/**
+ * The league picked, as a header: its logo and name against the left edge, a chevron at the right — tapped, every
+ * league to pick from dropped down under it (see RoomLeagueList), put away again by a pick, a tap anywhere else, or
+ * Escape.
+ */
+export function LeagueDropdown({ leagues, selectedId, onSelect, label }: { leagues: RoomLeague[]; selectedId: string | null; onSelect: (leagueId: string) => void; label: string }) {
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: PointerEvent) => {
+      if (!box.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const key = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("pointerdown", away);
+    document.addEventListener("keydown", key);
+    return () => {
+      document.removeEventListener("pointerdown", away);
+      document.removeEventListener("keydown", key);
+    };
+  }, [open]);
+  const picked = leagues.find((l) => l.leagueId === selectedId) ?? leagues[0];
+  if (!picked) return null;
+  return (
+    <div ref={box} className="relative">
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={`${label}: ${picked.name}`}
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center gap-2 border-b border-ink-primary/60 py-1.5 text-ink-primary"
+      >
+        <span className="min-w-0 flex-1">
+          <LeagueTitle league={picked} start />
+        </span>
+        <ChevronDownIcon width={14} height={14} className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`} aria-hidden />
+      </button>
+      {open ? (
+        <div className="absolute inset-x-0 top-full z-30 mt-1 border border-border bg-page p-1 shadow-lg">
+          <RoomLeagueList
+            leagues={leagues}
+            selectedId={picked.leagueId}
+            onSelect={(id) => {
+              onSelect(id);
+              setOpen(false);
+            }}
+            label={label}
+            zoomed={false}
+          />
+        </div>
+      ) : null}
+    </div>
   );
 }
 

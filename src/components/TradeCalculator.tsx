@@ -58,6 +58,8 @@ function PieceSearch({ pool, label, onAdd }: { pool: Piece[]; label: string; onA
     onAdd(piece.id);
     setText("");
     setLit(0);
+    // Put away once one's added (typing brings it back), so it isn't left over what's under it.
+    setOpen(false);
   };
   return (
     <div ref={box} className="relative">
@@ -191,7 +193,16 @@ function Side({
  * out. Cleared at the top right. In a room with a floor for it (see TradeCalcFloorContext), what's in it stands on
  * the floor too.
  */
-export function TradeCalculator({ monitor, onOpen }: { monitor: TradeMonitor; onOpen: (p: MonitorPlayer) => void }) {
+export function TradeCalculator({
+  monitor,
+  onOpen,
+  stacked = false,
+}: {
+  monitor: TradeMonitor;
+  onOpen: (p: MonitorPlayer) => void;
+  /** The two sides one over the other (a column of its own), not side by side: the first team's over the second's. */
+  stacked?: boolean;
+}) {
   const mine = monitor.teams.find((t) => t.mine);
   const [leftTeam, setLeftTeam] = useState<number | null>(null);
   const [rightTeam, setRightTeam] = useState<number | null>(null);
@@ -306,7 +317,7 @@ export function TradeCalculator({ monitor, onOpen }: { monitor: TradeMonitor; on
           Clear
         </button>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className={stacked ? "flex flex-col gap-4" : "grid grid-cols-2 gap-3"}>
         <Side
           team={
             <select aria-label="Left side's team" value={leftTeam ?? ""} onChange={(e) => pickTeam("left", e.target.value === "" ? null : Number(e.target.value))} className={SELECT}>
@@ -389,9 +400,11 @@ export function TradeCalculator({ monitor, onOpen }: { monitor: TradeMonitor; on
 
           {/* What it does to both rosters: each team's rank at each position, where it'd change. */}
           {ranks ? (
-            <div className="grid grid-cols-2 gap-3">
+            <div className={stacked ? "flex flex-col gap-1" : "grid grid-cols-2 gap-3"}>
               {ranks.map(({ rosterId, was, will }) => (
                 <div key={rosterId} className="flex min-w-0 flex-wrap items-baseline gap-x-2 text-[0.6875rem]">
+                  {/* One over the other, each named. */}
+                  {stacked ? <span className="w-full truncate text-[0.625rem] font-bold uppercase tracking-wide text-ink-muted">{teamName(rosterId)}</span> : null}
                   {MONITOR_POSITIONS.map((p) => {
                     const change = was[p].rank - will[p].rank;
                     return (
