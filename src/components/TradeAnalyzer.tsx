@@ -143,7 +143,8 @@ function TradeChart({ trade, colorOf }: { trade: AnalyzedTrade; colorOf: (side: 
     const at = l.asset.became?.at;
     if (at === undefined || at < first || at > last) return [];
     const point = l.points.find((p) => p.day >= at) ?? l.points[l.points.length - 1];
-    return point ? [{ i, left: x(at), top: y(point.value), color: l.color, name: l.asset.became!.name }] : [];
+    // On its line: at the line's point for that week, not the day itself (which falls between two of its points).
+    return point ? [{ i, left: x(point.day), top: y(point.value), color: l.color, name: l.asset.became!.name }] : [];
   });
   const widest = x(trade.widest.day);
   const closestOn = closestDay(trade);
@@ -211,7 +212,7 @@ function TradeChart({ trade, colorOf }: { trade: AnalyzedTrade; colorOf: (side: 
         {dots.map((d) => (
           <span
             key={`dot-${d.i}`}
-            className="absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-[var(--page)]"
+            className="absolute h-[5px] w-[5px] -translate-x-1/2 -translate-y-1/2 rounded-full ring-1 ring-[var(--page)]"
             style={{ left: `${d.left}%`, top: `${d.top}%`, background: d.color }}
             title={`Drafted: ${d.name}`}
           />
