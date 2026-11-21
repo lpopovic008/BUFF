@@ -64,6 +64,10 @@ const HEAD_SHARE = 0.2;
 const nameScale = (scale: number) => Math.max(0.9, Math.min(1.15, scale));
 /** How wide each letter of a photo's name is (px, at its usual size): 0.6em of its 11px monospaced type. */
 const NAME_LETTER_PX = 6.6;
+/** Where a pick's name starts, out from its middle (its ring's edge, in shares of the photo's width); and the least of
+ *  it that's shown before the rest is cut off with "…" (px). */
+const PICK_NAME_AT = 0.76 * 0.36;
+const PICK_NAME_LEAST_PX = 64;
 /** Photos spread down a column (crowded at their dots): each this much further back than the one before (shares of
  * the column), the last no further back than so much of the way. */
 const SPREAD_STEP = 0.45;
@@ -156,6 +160,8 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
     from: floorPoint(laneX(lane), back, width, height, share),
     to: floorPoint(laneX(lane), front, width, height, share),
   }));
+  // How far apart the columns' front ends are (px), side by side.
+  const laneGap = lanes.length > 1 ? Math.abs(lanes[1].to[0] - lanes[0].to[0]) : 0;
   // Nearer pieces in front of farther ones.
   const drawOrder = [...ids].sort((a, b) => (spots.get(a)?.d ?? 0) - (spots.get(b)?.d ?? 0));
   // Which way is out, for each column: toward the screen's nearer edge (the middle one, if there's one, to the right).
@@ -165,7 +171,7 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
   // its front instead (no further back than SPREAD_MOST of the way, where they'd be drawn too small), in the same order — the floor's perspective spacing them across as they go back. Never so far out its
   // name runs off the screen.
   const faceScale = Math.min(1, Math.max(FACE_LEAST_SHARE, width / FACE_FULL_WIDTH_PX));
-  const faces = new Map<string, { x: number; y: number; s: number; side: -1 | 1; nameShift: number }>();
+  const faces = new Map<string, { x: number; y: number; s: number; side: -1 | 1; nameShift: number; nameRoom?: number }>();
   (played ? after : before).forEach((list, lane) => {
     const going = list.filter((id) => moved.has(id) && spots.has(id));
     const level = going.map((id) => spots.get(id)!);
@@ -176,12 +182,20 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
       const size = FACE_PX * faceScale * at.s;
       const x = at.x + outward(lane) * (size * 0.5 + FACE_OUT_PX * faceScale * at.s);
       // The photo kept on the screen; its name, running outward from just off his head, moved back in just as far as it'd
-      // run off the screen's edge (it's set in a monospaced face: as wide as its letters).
+      // run off the screen's edge (it's set in a monospaced face: as wide as its letters). A pick's, left where it starts
+      // and cut off with "…" at the edge instead — moved back in only as far as it takes to show some of it.
       const side = outward(lane);
       const placed = Math.min(width - size / 2 - 4, Math.max(size / 2 + 4, x));
-      const value = values.get(id);
-      const letters = (people.get(id)?.name ?? id).length + (value != null ? String(shownGrade(valueGrade(value))).length + 1 : 0);
-      const nameEnd = placed + side * (size * NAME_AT + letters * NAME_LETTER_PX * nameScale(at.s * faceScale));
+      const zoom = nameScale(at.s * faceScale);
+      if (people.get(id)?.position === PICK) {
+        const start = placed + side * (size * PICK_NAME_AT + 3);
+        const room = side > 0 ? width - 4 - start : start - 4;
+        const shift = Math.max(0, PICK_NAME_LEAST_PX - room);
+        faces.set(id, { x: placed, y: at.y, s: at.s, side, nameShift: -side * shift, nameRoom: (room + shift) / zoom });
+        return;
+      }
+      const letters = (people.get(id)?.name ?? id).length;
+      const nameEnd = placed + side * (size * NAME_AT + letters * NAME_LETTER_PX * zoom);
       const overflow = side > 0 ? nameEnd - (width - 4) : 4 - nameEnd;
       faces.set(id, { x: placed, y: at.y, s: at.s, side, nameShift: overflow > 0 ? -side * overflow : 0 });
     });
@@ -228,11 +242,13 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
           })
         )}
       </svg>
+      {/* Each team's name under its column's front end — no wider than the gap to the next column, so they never run
+          into each other. */}
       {lanes.map((lane) => (
         <span
           key={lane.rosterId}
           className="absolute max-w-[40vw] -translate-x-1/2 truncate whitespace-nowrap text-[0.6875rem] font-extrabold uppercase tracking-wide"
-          style={{ left: lane.to[0], top: lane.to[1] + 8, color: teamColor(lane.rosterId) }}
+          style={{ left: lane.to[0], top: lane.to[1] + 8, color: teamColor(lane.rosterId), maxWidth: laneGap > 0 ? Math.min(width * 0.4, laneGap - 8) : undefined }}
         >
           {teamName(lane.rosterId)}
         </span>
@@ -271,7 +287,7 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
           className="absolute left-0 top-0 transition-transform duration-700 ease-[cubic-bezier(.6,.05,.25,1)] motion-reduce:transition-none"
           style={{ transform: `translate(${face.x}px, ${face.y}px)` }}
         >
-          <PieceFace id={id} person={people.get(id)} value={values.get(id) ?? null} scale={face.s * faceScale} side={face.side} nameShift={face.nameShift} />
+          <PieceFace id={id} person={people.get(id)} scale={face.s * faceScale} side={face.side} nameShift={face.nameShift} nameRoom={face.nameRoom} />
         </div>
       ))}
     </div>
@@ -280,25 +296,26 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
 
 /**
  * A piece that changes hands, standing up out of the floor beside its dot as he stands on his player card: his photo,
- * no frame round it, its edges faded away (his team's logo where there's no photo; a pick's, a ring) — his name and
- * what he was worth then just off the edge of his head (a pick's ring) on the `side` it stands out to — risen up out of the floor as it
+ * no frame round it, its edges faded away (his team's logo where there's no photo; a pick's, a ring) — his name just
+ * off the edge of his head (a pick's ring) on the `side` it stands out to — risen up out of the floor as it
  * comes, and reflected in the floor under it, faint and fading away from its foot.
  */
 function PieceFace({
   id,
   person,
-  value,
   scale,
   side,
   nameShift = 0,
+  nameRoom,
 }: {
   id: string;
   person: TimelinePlayer | undefined;
-  value: number | null;
   scale: number;
   side: -1 | 1;
   /** How far its name's moved back from where it'd start (px): kept on the screen. */
   nameShift?: number;
+  /** How wide its name may run before it's cut off with "…" (px, before it's scaled) — a pick's, to the screen's edge. */
+  nameRoom?: number;
 }) {
   const [photoFailed, setPhotoFailed] = useState(false);
   // The photo's own shape (its width over its height), once it's in: how much of its box it fills.
@@ -311,7 +328,7 @@ function PieceFace({
   const nameAt = (() => {
     if (pick) {
       const ring = w * 0.76;
-      return { down: h * 0.96 - ring + ring * 0.12, out: ring * 0.36 };
+      return { down: h * 0.96 - ring + ring * 0.12, out: w * PICK_NAME_AT };
     }
     if (photoFailed) return { down: h * 0.2, out: w * 0.3 };
     const box = h * 0.96;
@@ -359,11 +376,12 @@ function PieceFace({
           <Rising>{face(true)}</Rising>
         </div>
       </div>
-      {/* His name, and what he was worth then, just off the outer edge of his head (a pick's ring) and running outward
-          — plain, kept clear of the floor's lines behind it. */}
+      {/* His name just off the outer edge of his head (a pick's ring) and running outward — plain, kept clear of the
+          floor's lines behind it. */}
       <span
-        className="absolute top-0 whitespace-nowrap text-[0.6875rem] font-bold leading-tight text-ink-primary"
+        className="absolute top-0 overflow-hidden text-ellipsis whitespace-nowrap text-[0.6875rem] font-bold leading-tight text-ink-primary"
         style={{
+          maxWidth: nameRoom,
           left: side * (nameAt.out + 3) + nameShift,
           marginTop: -h + nameAt.down,
           transform: side > 0 ? "none" : "translateX(-100%)",
@@ -373,7 +391,6 @@ function PieceFace({
         }}
       >
         {person?.name ?? id}
-        {value != null ? <span className="ml-1 tabular-nums text-ink-muted">{shownGrade(valueGrade(value))}</span> : null}
       </span>
     </>
   );
