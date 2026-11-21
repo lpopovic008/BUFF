@@ -264,7 +264,7 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
 
 /**
  * A piece that changes hands, standing up out of the floor beside its dot as he stands on his player card: his photo,
- * no frame round it, its edges faded away, his team's logo faint behind it (a pick's, a ring) — his name and what he
+ * no frame round it, its edges faded away (his team's logo where there's no photo; a pick's, a ring) — his name and what he
  * was worth then under it — risen up out of the floor as it comes, and reflected in the floor under it, faint and
  * fading away from its foot.
  */
@@ -281,9 +281,10 @@ function PieceFace({ id, person, value, scale }: { id: string; person: TimelineP
         </span>
       ) : (
         <>
-          {person?.team ? (
+          {/* No logo behind his photo — just standing in for it where there's no photo. */}
+          {photoFailed && person?.team ? (
             // eslint-disable-next-line @next/next/no-img-element -- a static SVG on a static export
-            <img src={nflLogoUrl(person.team)} alt="" className={`absolute object-contain ${photoFailed ? "inset-x-[6%] bottom-0 h-[80%] w-[88%] object-bottom opacity-90" : "inset-[6%] h-[88%] w-[88%] opacity-35"}`} />
+            <img src={nflLogoUrl(person.team)} alt="" className="absolute inset-x-[6%] bottom-0 h-[80%] w-[88%] object-contain object-bottom opacity-90" />
           ) : null}
           {photoFailed ? null : (
             // eslint-disable-next-line @next/next/no-img-element -- a remote Sleeper photo on a static export
