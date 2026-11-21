@@ -1,9 +1,9 @@
 // What a play was, read off ESPN's line for it — a pass, a run, a sack, a kick, a kneel, a flag — and who did it: told
-// by the ball on a live game's field on the floor (see ball-flight), and in a few words in the Red Zone (playSummary).
+// by the ball on a live game's field on the floor (see ball-flight).
 // The offense is read as driving left to right.
 
 import { normalizeTeam } from "./nfl-schedule";
-import { cleanPlayText, GamePlay, playAction, SHORT_NAME } from "./play-by-play";
+import { GamePlay, playAction, SHORT_NAME } from "./play-by-play";
 
 export type SceneKind =
   | "pass"
@@ -398,50 +398,4 @@ function recoveredGain(text: string, offense: string): number | null {
 function recoveredBy(text: string): string | null {
   const m = new RegExp(String.raw`RECOVERED by [A-Z]{2,3}-${NAME}`).exec(text);
   return m ? m[1] : null;
-}
-
-/**
- * A play in a few words, for when no one in it did anything to count (see play-lines' playAction) or there was a
- * flag: the flag's what and how far ("Offensive Holding · 10 yards", "· declined", "· no play"); otherwise what the
- * play was ("Kneel", "48 yard punt · fair catch", "Onside kick · recovered by KC") — or, failing that, the first
- * sentence of ESPN's own line.
- */
-export function playSummary(play: GamePlay, teams: [home: string, away: string]): string {
-  const pen = penaltyOf(play.text);
-  if (pen) return [pen.name, pen.declined ? "declined" : pen.yards ? `${pen.yards} yards` : null, pen.noPlay && !pen.declined ? "no play" : null].filter(Boolean).join(" · ");
-  const s = sceneFor(play, teams);
-  const lower = (text: string | null | undefined) => text?.toLowerCase() ?? null;
-  const parts = (...bits: (string | null | undefined | false)[]) => bits.filter(Boolean).join(" · ");
-  const back = (scene: PlayScene) => (scene.returner && scene.air ? `${scene.air} yard return` : null);
-  switch (s?.kind) {
-    case "kneel":
-      return "Kneel";
-    case "spike":
-      return "Spike";
-    case "punt":
-      return s.blocked ? "Blocked punt" : parts(`${s.yards} yard punt`, lower(s.kickResult), back(s));
-    case "kickoff":
-      return s.onside
-        ? parts("Onside kick", s.recoveredBy ? `recovered by ${s.recoveredBy.team}` : lower(s.kickResult))
-        : parts(`${s.yards} yard kickoff`, lower(s.kickResult), back(s));
-    case "fieldGoal":
-      return `${s.yards} yard FG ${s.blocked ? "blocked" : s.good ? "good" : "no good"}`;
-    case "extraPoint":
-      return `Extra point ${s.blocked ? "blocked" : s.good ? "good" : "no good"}`;
-    case "fumble":
-      return parts("Fumbled snap", s.fumbleLost && "lost");
-    case "sack":
-      return `Sack · ${s.yards} yards`;
-    case "run":
-      return `${s.yards} yard run`;
-    case "pass":
-      return `${s.yards} yard pass`;
-    case "incomplete":
-      return "Incomplete pass";
-    case "interception":
-      return "Interception";
-  }
-  // ESPN's own words, to the end of the first sentence ("J.Allen"'s dot isn't one).
-  const clean = cleanPlayText(play.text);
-  return clean.match(/^.*?[a-z0-9)]\.(?=\s|$)/)?.[0] ?? clean;
 }

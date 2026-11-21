@@ -95,6 +95,7 @@ export function RecapEditor({
   onRemoveSection,
   onAddSection,
   room = false,
+  only,
 }: {
   model: RecapModel | null;
   onModelChange: (model: RecapModel) => void;
@@ -121,6 +122,8 @@ export function RecapEditor({
   onAddSection?: (key: RecapSectionKey) => void;
   /** In the League Room's write-ups panel (see RecapSectionsEditor's `room`). */
   room?: boolean;
+  /** Just one part of it (see RecapSectionsEditor's `only`). */
+  only?: string;
 }) {
   if (!model) {
     return (
@@ -169,6 +172,7 @@ export function RecapEditor({
       onRemoveSection={onRemoveSection}
       onAddSection={onAddSection}
       room={room}
+      only={only}
     />
   );
   // In the League Room, plain text: as wide as it's given, nothing scaled.

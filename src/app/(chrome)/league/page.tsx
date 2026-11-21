@@ -402,7 +402,8 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
   const lineupShare = WALL_SHARE;
   const buttons = room ? floorButtonRow(room.width, room.height, room.height - tabBar, room.width - 2 * PANEL_GAP_PX, lineupShare) : null;
   // A player's card keeps the horizon where it is: his charts on the wall, who he is on the floor in front.
-  useShareFor(onShare, lineupShare, (action !== null && !writeups) || floorAway);
+  // The write-ups drop it to the stages' too: a section at a time on the back wall, its folders on the floor.
+  useShareFor(onShare, lineupShare, action !== null || floorAway);
   const stagePlaces: StagePlaces | null = room
     ? {
         wall: {
@@ -445,7 +446,7 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
         <div
           className={`absolute inset-x-0 top-0 overflow-hidden transition-opacity duration-300 ${fullStage ? "pointer-events-none opacity-0" : ""}`}
           inert={fullStage}
-          style={{ height: `calc(var(--room-h, 100svh) * ${lineupShare})` }}
+          style={{ height: `calc(var(--room-h, 100svh) * ${writeups ? HORIZON_SHARE : lineupShare})` }}
         >
           <div ref={setPanes} className="flex h-full will-change-transform">
             {rooms.map((r, i) => (
@@ -485,15 +486,17 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
               onPick={pick}
             />
           ) : null}
-          {/* The write-ups: up to just under the matchups, the rest of the screen. */}
+          {/* The write-ups: a section at a time on the back wall, from just under the matchups down to the horizon — each
+              picked from its folder on the floor. */}
           <WriteupsPanel
             open={writeups}
             leagueId={leagues[index].leagueId}
             currentWeek={currentWeek}
-            top={(briefEnd ?? room.height * HORIZON_SHARE) + PANEL_GAP_PX}
-            bottom={room.height - tabBar}
+            top={(briefEnd ?? room.height * 0.3) + PANEL_GAP_PX}
+            bottom={room.height * HORIZON_SHARE - PANEL_GAP_PX}
             className="inset-x-2"
             onClose={close}
+            folders={{ width: room.width, height: room.height, share: HORIZON_SHARE, bottom: room.height - tabBar }}
           />
           {stagePlaces ? (
             <>

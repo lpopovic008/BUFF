@@ -5,7 +5,6 @@ import { ExpandVerticalIcon } from "@/components/ui/Icon";
 import { Ordinals } from "@/components/Ordinals";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { LeagueLegendEntry, LeagueMark } from "@/components/LeagueMark";
-import { penaltyOf, playSummary } from "@/lib/play-scene";
 import { FeedEntry, FeedScope, RedZoneNow, useRedZoneFeed } from "@/hooks/useRedZoneFeed";
 import { useLiveMode } from "@/hooks/useLiveTick";
 import { useTeamPlayers } from "@/hooks/useTeamPlayers";
@@ -101,7 +100,7 @@ function LinePoints({ line, mine, at, scoring }: { line: PlayLine; mine: boolean
 }
 
 /**
- * One person in a play: their photo (a defense's logo), position and name,
+ * One person in a play: their photo (a defense's logo), name and position,
  * the leagues you start them in (in full), how their game is going, and what the play
  * was worth to them.
  */
@@ -110,12 +109,9 @@ function PlayerLine({
   starter,
   legendByLeagueId,
   at,
-  action,
   leagues = true,
 }: {
   line: PlayLine;
-  /** What he did on the play, said beside his name (simple descriptions) — none in full. */
-  action?: string;
   /** Whether the leagues you start him in are marked by his name (in full, not with simple descriptions). */
   leagues?: boolean;
   /** Set when they're one of your starters. */
@@ -139,15 +135,15 @@ function PlayerLine({
         <span className="h-[1.125rem] w-[1.125rem] shrink-0 rounded-full border border-border bg-page" aria-hidden />
       )}
       <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-1.5">
+        <span data-rz-name className="min-w-0 break-words text-[0.8125rem] font-bold text-ink-primary max-md:leading-tight">
+          {line.name}
+        </span>
+        {/* His position, after his name. */}
         {line.position ? (
           <span className={`shrink-0 text-[0.625rem] font-semibold uppercase ${POSITION_TEXT_COLOR[line.position] ?? "text-ink-muted"}`}>
             {line.position}
           </span>
         ) : null}
-        <span data-rz-name className="min-w-0 break-words text-[0.8125rem] font-bold text-ink-primary max-md:leading-tight">
-          {line.name}
-        </span>
-        {action ? <span className="text-[0.75rem] font-semibold text-ink-secondary">{action}</span> : null}
         {leagues && starter && starter.leagueIds.length > 0 ? (
           <span className="flex shrink-0 items-center gap-0.5 self-center">
             {starter.leagueIds.map((id) => (
@@ -292,15 +288,10 @@ const FeedRow = memo(function FeedRow({ entry, starterById, legendByLeagueId, ar
   const [slot] = useState(index);
   const { play, players, lines, game } = entry;
   const hasPoints = lines.some((l) => !!l.delta);
-  // Simple descriptions (unless switched to full): each player's line says what he did, and ESPN's description is
-  // left out — the play said in a few words instead when no one's line can say what happened (a punt), and when
-  // there's a flag, just what it was for and how far (see playSummary).
+  // Simple descriptions (unless switched to full): no description of the play at all — just whoever did something on
+  // it or got points from it, with their game's stats and what it was worth. In full, ESPN's description.
   const full = useFullPlays();
-  const acted = full ? [] : lines.filter((l) => playAction(l.did));
-  const simple = acted.length > 0;
-  const flag = full ? null : penaltyOf(play.text);
-  const summary = full || (simple && !flag) ? null : playSummary(play, [game.homeTeam, game.awayTeam]);
-  const shown = simple ? lines.filter((l) => playAction(l.did) || l.delta) : hasPoints ? lines : [];
+  const shown = full ? (hasPoints ? lines : []) : lines.filter((l) => playAction(l.did) || l.delta);
   const good = play.scoring || (play.turnover && players.length > 0 && players.every((p) => p.position === "DEF"));
   const time = clockTime(play.at);
   const defense = play.offense ? ([game.homeTeam, game.awayTeam].find((t) => t !== play.offense) ?? null) : null;
@@ -371,21 +362,20 @@ const FeedRow = memo(function FeedRow({ entry, starterById, legendByLeagueId, ar
               starter={line.playerId ? starterById.get(line.playerId) : undefined}
               legendByLeagueId={legendByLeagueId}
               at={play.at ?? 0}
-              action={simple ? playAction(line.did) : undefined}
               leagues={full}
             />
           ))}
         </ul>
       ) : null}
-      {/* What happened, led by the team with the ball (a flag, by the team it's on): in a few words, or ESPN's own. */}
-      {full || summary ? (
+      {/* What happened, in full: led by the team with the ball, ESPN's own description. */}
+      {full ? (
         <span className="break-words text-[0.75rem] leading-snug text-ink-secondary">
-          {(flag?.team ?? play.offense) ? (
+          {play.offense ? (
             <span className="mr-1.5 inline-flex translate-y-[0.15em] align-baseline">
-              <TeamLogo team={(flag?.team ?? play.offense)!} side={14} />
+              <TeamLogo team={play.offense} side={14} />
             </span>
           ) : null}
-          {summary ?? play.text}
+          {play.text}
         </span>
       ) : null}
     </li>

@@ -637,6 +637,7 @@ export function RecapSectionsEditor({
   onRemoveSection,
   onAddSection,
   room = false,
+  only,
 }: {
   model: RecapModel;
   onChange: (model: RecapModel) => void;
@@ -661,6 +662,11 @@ export function RecapSectionsEditor({
    * another, and a section to add at the bottom on any screen (there's no contents down the side there).
    */
   room?: boolean;
+  /**
+   * Just one part of it (on a phone in the League Room, picked on the floor): the title ("title"), one section (its
+   * key), or the section to add ("add") — none, all of it.
+   */
+  only?: string;
 }) {
   // In the League Room, the write-up as plain text (see .recap-text in recap-neon.css): each section's words alone,
   // one after another, as little room as they take — what's to be picked or written, plain boxes.
@@ -886,29 +892,33 @@ export function RecapSectionsEditor({
 
   return (
     <div className={text ? "recap-text" : "recap-neon app-theme"}>
-      <span className="rn-badge">Commi$h</span>
-      <div data-recap-section="title" className="rn-title-row">
-        <TitleField value={model.title} onChange={(v) => set("title", v)} />
-        <div className="rn-underline" />
-      </div>
+      {only === undefined ? <span className="rn-badge">Commi$h</span> : null}
+      {only === undefined || only === "title" ? (
+        <div data-recap-section="title" className="rn-title-row">
+          <TitleField value={model.title} onChange={(v) => set("title", v)} />
+          <div className="rn-underline" />
+        </div>
+      ) : null}
 
       {/* The sections in the recap's own order (see RecapModel.layout), next week's previews under their heading. */}
-      {layout.map((key) => (
-        <div key={key} className="contents">
-          {key === firstUpcoming ? (
-            <>
-              <div className="rn-divider" />
-              <p data-recap-section="upcoming" className={`${text ? "" : recapDisplayFont.className} rn-upcoming-title`}>
-                {upcomingWeekLabel(model.upcomingWeek)}
-              </p>
-            </>
-          ) : null}
-          {card(key)}
-        </div>
-      ))}
+      {layout
+        .filter((key) => only === undefined || only === key)
+        .map((key) => (
+          <div key={key} className="contents">
+            {key === firstUpcoming && only === undefined ? (
+              <>
+                <div className="rn-divider" />
+                <p data-recap-section="upcoming" className={`${text ? "" : recapDisplayFont.className} rn-upcoming-title`}>
+                  {upcomingWeekLabel(model.upcomingWeek)}
+                </p>
+              </>
+            ) : null}
+            {card(key)}
+          </div>
+        ))}
 
       {/* On a phone, where there's no contents down the side: a section to add. */}
-      {onAddSection && missing.length > 0 ? (
+      {onAddSection && missing.length > 0 && (only === undefined || only === "add") ? (
         <label className={`rn-add-section ${room ? "" : "md:hidden"}`}>
           <span>+ Add a section</span>
           <select

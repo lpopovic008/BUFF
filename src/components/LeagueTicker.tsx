@@ -179,13 +179,14 @@ export interface MatchupRowTeam {
  * (`fitWidth`) a name too long for it ends in an ellipsis.
  */
 function TickerTeamRow({ team, fitWidth, dense, small }: { team: MatchupRowTeam; fitWidth: boolean; dense: boolean; small: boolean }) {
-  const row = <TeamLine team={team} fitWidth={fitWidth} dense={dense} small={small} />;
+  // With a line under it, set tight, so the two read as one.
+  const row = <TeamLine team={team} fitWidth={fitWidth} dense={dense || !!team.below} small={small} />;
   if (!team.below) return row;
-  // Its line under it, past the place's column, so it starts where the name does.
+  // Its line under it, past the place's column, so it starts where the name does — close under it.
   return (
     <div>
       {row}
-      <div className="flex items-baseline gap-1.5 pt-0.5 leading-none">
+      <div className="flex items-baseline gap-1.5 leading-none">
         <span aria-hidden className={`w-[2ch] shrink-0 ${small ? "text-[0.6875rem]" : "text-xs"}`} />
         <div className="min-w-0 flex-1">{team.below}</div>
       </div>
