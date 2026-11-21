@@ -3,6 +3,7 @@
 // stars and breakouts on other rosters to go after, and a trade calculator. Pure — the loading is useTradeMonitor.ts.
 
 import { addedValues } from "./trades";
+import { shownGrade, valueGrade } from "./player-values";
 
 /** A rostered player as the monitor weighs them. */
 export interface MonitorPlayer {
@@ -298,7 +299,7 @@ export function futurePicks(
   );
 }
 
-/** How far apart a trade's sides can be and still be fair: this share of the bigger side. */
+/** How far apart a trade's sides can be and still be fair: this share of the bigger side, as their totals are shown. */
 export const FAIR_SHARE = 0.05;
 
 /** A trade weighed: each side's total — its pieces plus KTC's added value — and who comes out ahead. */
@@ -307,12 +308,15 @@ export interface TradeVerdict {
   get: { plain: number; added: number; total: number };
   /** What you get less what you give: ahead when it's over 0. */
   margin: number;
+  /** The same as the totals are shown, in whole grades (see shownGrade): what you're ahead or behind by on screen. */
+  shownMargin: number;
   fair: boolean;
 }
 
 /**
  * A trade as KTC's calculator weighs it: each side's values added up, the side with fewer, better pieces due
- * added value on top (see addedValues), and fair when the sides are within FAIR_SHARE of each other.
+ * added value on top (see addedValues), and fair when the sides are within FAIR_SHARE of each other — by their totals
+ * as they're shown (whole grades), so a trade that reads within 5% on screen is called fair.
  */
 export function weighTrade(give: number[], get: number[]): TradeVerdict {
   const [addGive, addGet] = addedValues(give, get);
@@ -320,7 +324,11 @@ export function weighTrade(give: number[], get: number[]): TradeVerdict {
   const g = { plain: sum(give), added: addGive, total: sum(give) + addGive };
   const r = { plain: sum(get), added: addGet, total: sum(get) + addGet };
   const margin = r.total - g.total;
-  return { give: g, get: r, margin, fair: Math.abs(margin) <= FAIR_SHARE * Math.max(g.total, r.total) };
+  const [shownGive, shownGet] = [shownGrade(valueGrade(g.total)), shownGrade(valueGrade(r.total))];
+  const shownMargin = shownGet - shownGive;
+  // (A hair over, for the floating point in a share of a whole number: 5% of 60 is 3, not just under.)
+  const fair = Math.abs(shownMargin) <= FAIR_SHARE * Math.max(shownGive, shownGet) + 1e-9;
+  return { give: g, get: r, margin, shownMargin, fair };
 }
 
 /** The league's teams after a trade: what `mine` gives goes to `theirs`, and what it gets comes over. */

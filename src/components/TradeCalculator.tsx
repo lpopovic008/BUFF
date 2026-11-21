@@ -359,7 +359,7 @@ export function TradeCalculator({ monitor, onOpen }: { monitor: TradeMonitor; on
               verdict.fair ? "text-ink-primary" : winner === "You" ? "text-status-good" : leftName === "You" || rightName === "You" ? "text-status-critical" : "text-ink-primary"
             }`}
           >
-            {verdict.fair ? "Fair" : `${winner} ${winner === "You" ? "win" : "wins"} by ${grade(Math.abs(verdict.margin))}`}
+            {verdict.fair ? "Fair" : `${winner} ${winner === "You" ? "win" : "wins"} by ${Math.abs(verdict.shownMargin)}`}
           </span>
 
           {/* What would even it out: ahead, pieces of the left side's to add; behind, pieces of the right's to ask for. */}

@@ -120,6 +120,10 @@ test("weighTrade adds KTC's value for the fewer, better pieces and calls it fair
   // Even swaps are fair; lopsided ones aren't.
   assert.equal(weighTrade([5000], [5100]).fair, true);
   assert.equal(weighTrade([5000], [7000]).fair, false);
+  // Within 5% as the totals are shown (whole grades): 63 against 60 is fair, though 6399 against 6000 is over 6%.
+  assert.equal(weighTrade([6399], [6000]).fair, true);
+  assert.equal(weighTrade([6399], [6000]).shownMargin, -3);
+  assert.equal(weighTrade([6000], [5600]).fair, false);
   assert.ok(weighTrade([5000], [7000]).margin > 0);
 });
 
