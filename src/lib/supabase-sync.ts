@@ -13,15 +13,26 @@
 // tradeoff, same reasoning: this is for one person's own devices, never two
 // people editing at once, so comparing "when did each side last actually
 // change" is enough; there's no real multi-writer conflict to resolve.
+//
+// Except for what's typed into write-ups (see localStore.ts's TypedData):
+// that's never replaced wholesale either way. Every pull and every push merges
+// the two copies first (see mergeTypedData, merge-keep.ts), so nothing typed on
+// one device is ever lost to an older or emptier copy from another — and
+// anything typed but not yet saved is saved first (see pending-saves.ts).
 
 import {
   exportAllData,
   importAllData,
+  mergeTypedData,
   onLocalWrite,
   getSyncState,
+  saveSyncBase,
   saveSyncState,
   SyncState,
+  TypedData,
 } from "./localStore";
+import { sameJson } from "./merge-keep";
+import { flushPendingSaves } from "./pending-saves";
 import { supabase } from "./supabase";
 
 export type SyncAction = "pull" | "push" | "noop";
@@ -44,13 +55,22 @@ export function decideSyncAction(local: SyncState, remoteUpdatedAt: number | nul
   return remoteUpdatedAt > local.lastLocalWriteAt ? "pull" : "push";
 }
 
-/** Writes this browser's current data to this user's row, creating it on the first push from any device. */
+/**
+ * Writes this browser's current data to this user's row, creating it on the first push from any device — what's
+ * typed into write-ups merged with the row's own first (see mergeTypedData), so anything typed on another device
+ * since this one last synced is kept, not written over.
+ */
 export async function pushToSupabase(userId: string): Promise<void> {
+  flushPendingSaves();
+  const { data: row, error: readError } = await supabase.from("app_data").select("data").eq("user_id", userId).maybeSingle();
+  if (readError) throw new Error(readError.message);
+  if (row?.data) mergeTypedData(row.data as Partial<TypedData>);
   const data = JSON.parse(exportAllData());
   const { error } = await supabase
     .from("app_data")
     .upsert({ user_id: userId, data, updated_at: new Date().toISOString() });
   if (error) throw new Error(error.message);
+  saveSyncBase({ recaps: data.recaps ?? {}, bowlPicks: data.bowlPicks ?? {} });
   saveSyncState({ ...getSyncState(), lastSyncedAt: Date.now() });
 }
 
@@ -71,18 +91,29 @@ export async function reconcile(userId: string): Promise<SyncAction> {
   if (error) throw new Error(error.message);
 
   const remoteUpdatedAt = row ? new Date(row.updated_at).getTime() : null;
-  const action = decideSyncAction(getSyncState(), remoteUpdatedAt);
+  let action = decideSyncAction(getSyncState(), remoteUpdatedAt);
 
   if (action === "pull" && row) {
-    importAllData(JSON.stringify(row.data));
+    flushPendingSaves();
+    const remote = row.data as Partial<TypedData> & Record<string, unknown>;
+    // Everything but what's typed into write-ups as the account has it; that, merged (see mergeTypedData).
+    const untyped = () => ({ ...JSON.parse(exportAllData()), recaps: undefined, bowlPicks: undefined });
+    const before = untyped();
+    importAllData(JSON.stringify({ ...remote, recaps: undefined, bowlPicks: undefined }));
+    // Nothing changed here but what's typed: no reload needed for it (an open write-up takes the merge in as it is).
+    if (sameJson(untyped(), before)) action = "noop";
+    const merged = mergeTypedData(remote);
     saveSyncState({ lastLocalWriteAt: remoteUpdatedAt!, lastSyncedAt: remoteUpdatedAt! });
+    // Anything typed here the account didn't have yet goes up to it.
+    if (!sameJson(merged.recaps, remote.recaps ?? {}) || !sameJson(merged.bowlPicks, remote.bowlPicks ?? {})) await pushToSupabase(userId);
+    else saveSyncBase(merged);
   } else if (action === "push") {
     await pushToSupabase(userId);
   }
   return action;
 }
 
-const PUSH_DEBOUNCE_MS = 3000;
+const PUSH_DEBOUNCE_MS = 1500;
 let pushTimer: ReturnType<typeof setTimeout> | null = null;
 let stopListening: (() => void) | null = null;
 
@@ -94,18 +125,37 @@ let stopListening: (() => void) | null = null;
  */
 export function startAutoSync(userId: string): () => void {
   stopAutoSync();
-  stopListening = onLocalWrite(() => {
+  const push = () => {
+    if (pushTimer) clearTimeout(pushTimer);
+    pushTimer = null;
+    pushToSupabase(userId).catch(() => {
+      // Best-effort — a failed background push (offline, brief network
+      // blip) just leaves this browser's storage ahead of Postgres; the
+      // next reconcile or push catches it up, so there's nothing useful
+      // to surface here.
+    });
+  };
+  const stopWrites = onLocalWrite(() => {
     saveSyncState({ ...getSyncState(), lastLocalWriteAt: Date.now() });
     if (pushTimer) clearTimeout(pushTimer);
-    pushTimer = setTimeout(() => {
-      pushToSupabase(userId).catch(() => {
-        // Best-effort — a failed background push (offline, brief network
-        // blip) just leaves this browser's storage ahead of Postgres; the
-        // next reconcile or push catches it up, so there's nothing useful
-        // to surface here.
-      });
-    }, PUSH_DEBOUNCE_MS);
+    pushTimer = setTimeout(push, PUSH_DEBOUNCE_MS);
   });
+  // The page going away (closed, reloaded, sent to the background): anything not yet saved, saved, and anything not
+  // yet pushed, pushed now rather than after the wait.
+  const leaving = () => {
+    flushPendingSaves();
+    if (pushTimer) push();
+  };
+  const hidden = () => {
+    if (document.visibilityState === "hidden") leaving();
+  };
+  window.addEventListener("pagehide", leaving);
+  document.addEventListener("visibilitychange", hidden);
+  stopListening = () => {
+    stopWrites();
+    window.removeEventListener("pagehide", leaving);
+    document.removeEventListener("visibilitychange", hidden);
+  };
   return stopAutoSync;
 }
 

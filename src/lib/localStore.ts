@@ -3,7 +3,8 @@
 // so everything lives in this browser's localStorage instead. That means
 // settings and saved recaps are per-browser, not synced across devices.
 
-import type { RecapModel } from "./recap-model";
+import { joinRecapModel, type RecapModel } from "./recap-model";
+import { mergeCollections, sameJson } from "./merge-keep";
 import type { PayoutPlan } from "./payout-plan";
 
 const CONFIG_KEY = "commish:config";
@@ -482,7 +483,60 @@ export function saveSyncState(state: SyncState): void {
   window.localStorage.setItem(SYNC_STATE_KEY, JSON.stringify(state));
 }
 
-/** Exports everything as a JSON blob the user can save as a manual backup or move to another browser. */
+const SYNC_BASE_KEY = "commish:sync-base";
+
+/** What's typed into write-ups: each saved write-up, and the names (and teams) of its Matchups of the Week. */
+export interface TypedData {
+  recaps: Record<string, SavedRecap>;
+  bowlPicks: Record<string, RecapBowlPicks>;
+}
+
+/**
+ * What's typed (see TypedData) as this browser and the account last agreed on — the base the two are merged against
+ * (see mergeTypedData). Like SyncState, about this browser alone: never synced, and writing it never fires onLocalWrite.
+ */
+function getSyncBase(): TypedData | null {
+  if (!isBrowser()) return null;
+  try {
+    const raw = window.localStorage.getItem(SYNC_BASE_KEY);
+    return raw ? (JSON.parse(raw) as TypedData) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveSyncBase(data: TypedData): void {
+  if (!isBrowser()) return;
+  try {
+    window.localStorage.setItem(SYNC_BASE_KEY, JSON.stringify(data));
+  } catch {
+    // Storage full: the next merge just keeps everything both sides have.
+  }
+}
+
+/**
+ * Merges the account's copy of what's typed into write-ups into this browser's, so nothing typed on either side is
+ * ever lost (see merge-keep.ts): what only one side changed since they last agreed, that side's; what both changed,
+ * both kept, one added onto the other. A write-up whose sections were merged has its flat text worked out afresh
+ * from them. Writes the result here (when it's changed anything) and returns it.
+ */
+export function mergeTypedData(remote: Partial<TypedData>): TypedData {
+  const base = getSyncBase();
+  const [localRecaps, localPicks] = [readRecaps(), readBowlPicks()];
+  const recaps = mergeCollections(base?.recaps, localRecaps, remote.recaps ?? {});
+  for (const [key, recap] of Object.entries(recaps)) {
+    const was = localRecaps[key];
+    if (recap.model && (!was || !sameJson(was.model, recap.model))) recaps[key] = { ...recap, body: joinRecapModel(recap.model) };
+    // Saved the later of the two.
+    const other = remote.recaps?.[key];
+    if (was && other) recaps[key] = { ...recaps[key], savedAt: was.savedAt > other.savedAt ? was.savedAt : other.savedAt };
+  }
+  const bowlPicks = mergeCollections(base?.bowlPicks, localPicks, remote.bowlPicks ?? {});
+  if (!sameJson(recaps, localRecaps)) writeRecaps(recaps);
+  if (!sameJson(bowlPicks, localPicks)) writeBowlPicks(bowlPicks);
+  return { recaps, bowlPicks };
+}
+
 /** A player you've marked from his card: one you're interested in getting (buy), or looking to get rid of (sell). */
 export type PlayerMark = "buy" | "sell";
 
@@ -506,6 +560,7 @@ export function savePlayerMarks(marks: Record<string, PlayerMark>): void {
   notifyLocalWrite();
 }
 
+/** Exports everything as a JSON blob the user can save as a manual backup or move to another browser. */
 export function exportAllData(): string {
   return JSON.stringify(
     {

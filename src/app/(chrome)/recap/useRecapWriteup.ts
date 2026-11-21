@@ -571,6 +571,12 @@ export function useRecapWriteup(leagueId: string | null, week: number | null) {
     // reset never gets mistaken for a real edit and auto-saved over
     // whatever this week already had.
     loaded: Boolean(leagueId) && !error && week !== null && !!header && (isPreseason || !!recapData),
+    // What's saved changed under the editor (synced in from another device) and was merged with what's typed here:
+    // shown here, as merged.
+    onMerged: (saved) => {
+      if (saved.model) setModel({ ...EMPTY_RECAP_MODEL, ...saved.model });
+      else setPlainBody(saved.body);
+    },
     writeupDocId: money?.profile.writeupDocId,
     googleClientId,
     bowlMatchup,

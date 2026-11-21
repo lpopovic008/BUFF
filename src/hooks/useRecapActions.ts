@@ -8,8 +8,10 @@
 // RecapEditor itself; pulled out once the buttons needed to render somewhere
 // else in the tree entirely.
 
-import { useEffect, useRef, useState } from "react";
-import { getHomeView, saveRecap } from "@/lib/localStore";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { getHomeView, getRecap, onLocalWrite, saveRecap, SavedRecap } from "@/lib/localStore";
+import { mergeKeep, sameJson } from "@/lib/merge-keep";
+import { onFlush } from "@/lib/pending-saves";
 import { RecapModel, joinRecapModel } from "@/lib/recap-model";
 import { drawRecapGraphic, drawRecapGraphicParts, RecapGraphicExtras } from "@/lib/recap-graphic";
 import {
@@ -58,7 +60,18 @@ export interface RecapActionsArgs {
   ledger: PayoutLedger | null;
   /** Player id -> display name, for the High Scorer podium's top-3-player photos. */
   playerNames: Record<string, string>;
+  /**
+   * What's saved changed under the editor (typed on another device, and synced in — see supabase-sync.ts) and was
+   * merged with what's typed here (see mergeKeep): the editor's to show it.
+   */
+  onMerged?: (saved: SavedRecap) => void;
 }
+
+/** How soon after an edit the write-up's saved (ms): quickly, so there's never much typed and not yet saved. */
+const SAVE_AFTER_MS = 400;
+
+/** Whether two saved write-ups say the same: their text and their sections, whenever they were saved. */
+const sameContent = (a: SavedRecap | null, b: SavedRecap | null) => (a === null || b === null ? a === b : a.body === b.body && sameJson(a.model ?? null, b.model ?? null));
 
 export function useRecapActions(args: RecapActionsArgs) {
   const [copied, setCopied] = useState(false);
@@ -77,12 +90,6 @@ export function useRecapActions(args: RecapActionsArgs) {
   const [lastSavedAt, setLastSavedAt] = useState(args.savedAt);
   const [docStatus, setDocStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [docError, setDocError] = useState<string | null>(null);
-  // Tracks the last body auto-saved (see the effect below) — a ref rather
-  // than state since it's only ever read/written from that effect, never
-  // rendered. Never needs resetting on a week switch: the new week's body
-  // is different text by construction, so it naturally won't match
-  // whatever the previous week last saved.
-  const lastSavedBodyRef = useRef<string | null>(null);
 
   // A new week's own recap is a clean slate for every action's status — this
   // hook lives in the page component now (see recap/page.tsx), which doesn't
@@ -253,31 +260,83 @@ export function useRecapActions(args: RecapActionsArgs) {
     }
   }
 
-  // Auto-saves to this browser's local archive shortly after an edit
-  // settles — no more manual "Save to archive" click needed. This is also
-  // what account sync (see supabase-sync.ts's onLocalWrite listener) pushes
-  // up, so a saved write-up shows up on any other device signed into the
-  // same account without a separate step.
+  // Auto-saves to this browser's local archive moments after each edit — and right away whenever the editor goes
+  // (another week, another page), the page goes away (closed, reloaded, backgrounded), or account sync is about to
+  // read or replace what's saved (see pending-saves.ts): nothing typed is ever left unsaved. This is also what account
+  // sync (see supabase-sync.ts's onLocalWrite listener) pushes up, so a saved write-up shows up on any other device
+  // signed into the same account without a separate step.
+  //
+  // Never written over blindly: what's typed here is merged (see mergeKeep) with whatever's saved, against what this
+  // editor last read or wrote (`base`) — so text that came in from another device in the meantime is kept, added
+  // onto, never erased; and when only the saved copy changed (synced in), the editor's shown it.
+  const base = useRef<{ key: string; recap: SavedRecap | null } | null>(null);
+  const latest = useRef({ args, body, key: weekKey });
+  useEffect(() => {
+    latest.current = { args, body, key: weekKey };
+  });
+  // Set while this editor writes, so its own write isn't taken for a change from elsewhere.
+  const writing = useRef(false);
+  const save = useCallback(() => {
+    const { args: a, body: text, key } = latest.current;
+    if (!a.loaded) return;
+    const stored = getRecap(a.leagueId, a.season, a.week);
+    if (!base.current || base.current.key !== key) base.current = { key, recap: stored };
+    const was = base.current.recap;
+    const now = new Date().toISOString();
+    const mine: SavedRecap = { leagueId: a.leagueId, season: a.season, week: a.week, title: a.title, body: text, model: a.model ?? undefined, savedAt: now };
+    const edited = !sameContent(mine, was);
+    const changedUnder = !sameContent(stored, was);
+    if (!edited && !changedUnder) return;
+    if (!edited) {
+      // Only what's saved changed: shown here, as it is.
+      base.current = { key, recap: stored };
+      if (stored) a.onMerged?.(stored);
+      return;
+    }
+    let out = mine;
+    if (changedUnder && stored) {
+      // Both changed: merged, nothing of either lost.
+      const merged = mergeKeep(was ?? undefined, mine, stored) as SavedRecap;
+      out = { ...merged, body: merged.model ? joinRecapModel(merged.model) : merged.body, savedAt: now };
+    }
+    writing.current = true;
+    try {
+      saveRecap(out);
+    } finally {
+      writing.current = false;
+    }
+    base.current = { key, recap: out };
+    setLastSavedAt(now);
+    if (!sameContent(out, mine)) {
+      latest.current = { ...latest.current, args: { ...a, model: out.model ?? null, plainBody: out.model ? a.plainBody : out.body }, body: out.body };
+      a.onMerged?.(out);
+    }
+  }, []);
+  // What's being edited as it stands: saved moments after it settles — and right away, should the editor go first.
+  const contentNow = `${body}\u0000${JSON.stringify(args.model ?? null)}`;
   useEffect(() => {
     if (!args.loaded) return;
-    if (lastSavedBodyRef.current === body) return;
-    const timer = setTimeout(() => {
-      const now = new Date().toISOString();
-      saveRecap({
-        leagueId: args.leagueId,
-        season: args.season,
-        week: args.week,
-        title: args.title,
-        body,
-        model: args.model ?? undefined,
-        savedAt: now,
-      });
-      lastSavedBodyRef.current = body;
-      setLastSavedAt(now);
-    }, 1500);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [args.loaded, body, args.leagueId, args.season, args.week, args.title]);
+    const timer = setTimeout(save, SAVE_AFTER_MS);
+    return () => {
+      clearTimeout(timer);
+      save();
+    };
+  }, [args.loaded, contentNow, weekKey, save]);
+  // Saved now whenever something's about to read or replace what's stored, or the page goes away; and what's saved
+  // changing from elsewhere (synced in), merged in here.
+  useEffect(() => {
+    const stopFlush = onFlush(() => save());
+    const stopWrites = onLocalWrite(() => {
+      if (!writing.current) save();
+    });
+    const leaving = () => save();
+    window.addEventListener("pagehide", leaving);
+    return () => {
+      stopFlush();
+      stopWrites();
+      window.removeEventListener("pagehide", leaving);
+    };
+  }, [save]);
 
   /** Appends the write-up currently shown to the commish's Google Doc — whatever's been hand-edited, not the auto-generated draft. Prompts a Google sign-in popup the first time (or once the cached token expires). */
   async function handleSaveToDoc() {
