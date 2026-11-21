@@ -134,8 +134,8 @@ function PlayerLine({
       ) : (
         <span className="h-[1.125rem] w-[1.125rem] shrink-0 rounded-full border border-border bg-page" aria-hidden />
       )}
-      <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-1.5">
-        <span data-rz-name className="min-w-0 break-words text-[0.8125rem] font-bold text-ink-primary max-md:leading-tight">
+      <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-1.5 leading-tight">
+        <span data-rz-name className="min-w-0 break-words text-[0.8125rem] font-bold leading-tight text-ink-primary">
           {line.name}
         </span>
         {/* His position, after his name. */}
@@ -153,7 +153,7 @@ function PlayerLine({
         ) : null}
         {/* On phones the stat line always gets a line of its own (kept, empty, for someone without one), so every player is the same height. */}
         {summary.length > 0 ? (
-          <span className="whitespace-nowrap text-[0.6875rem] tabular-nums text-ink-muted max-md:basis-full max-md:leading-tight">
+          <span className="whitespace-nowrap text-[0.6875rem] leading-tight tabular-nums text-ink-muted max-md:basis-full">
             {summary.map((part, i) => (
               <span key={i} className={part.tone === "good" ? "font-semibold text-status-good" : part.tone === "bad" ? "font-semibold text-status-critical" : undefined}>
                 {part.text}
@@ -161,7 +161,7 @@ function PlayerLine({
             ))}
           </span>
         ) : (
-          <span className="hidden text-[0.6875rem] max-md:block max-md:basis-full max-md:leading-tight" aria-hidden>
+          <span className="hidden text-[0.6875rem] leading-tight max-md:block max-md:basis-full" aria-hidden>
             {"\u00a0"}
           </span>
         )}
