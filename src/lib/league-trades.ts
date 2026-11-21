@@ -129,6 +129,8 @@ function withPicks(
 export interface TimelinePlayer {
   name: string;
   position: string | null;
+  /** A player's NFL team, where he has one — behind his photo on the floor (see FloorTradeMove). */
+  team?: string | null;
   value: number | null;
   becomes?: string;
 }
@@ -209,7 +211,7 @@ export async function loadLeagueTrades(leagueId: string, myUserId: string | null
   const people = new Map<string, TimelinePlayer>(
     resolved.map((p) => {
       const series = bySleeperId.get(p.playerId);
-      return [p.playerId, { name: p.name, position: p.position || null, value: series ? valueOn(history, series, superflex, today) : null }];
+      return [p.playerId, { name: p.name, position: p.position || null, team: p.team ?? null, value: series ? valueOn(history, series, superflex, today) : null }];
     })
   );
   // The draft picks: their season and round, whose they first were, who they became, and what they're worth now —

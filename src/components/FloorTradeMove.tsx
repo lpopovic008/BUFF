@@ -4,7 +4,8 @@ import { createContext, useEffect, useRef, useState } from "react";
 import { PICK, TimelinePlayer } from "@/lib/league-trades";
 import { floorDepth, floorPoint, floorScale } from "@/lib/grid-room";
 import type { TradeRoster } from "@/lib/trade-viewer";
-import { PlayerHeadshot } from "@/components/PlayerHeadshot";
+import { nflLogoUrl } from "@/lib/nfl-logos";
+import { playerPhotoUrl } from "@/lib/sleeper";
 import { POSITION_COLOR_VAR } from "@/lib/position-colors";
 import { shownGrade, valueGrade } from "@/lib/player-values";
 
@@ -43,16 +44,20 @@ export const TradeFloorContext = createContext<((move: FloorMove | null) => void
 
 /** How long the rosters hold as they were before the trade plays out (ms). */
 const HOLD_MS = 450;
-/** A piece that stays put: a dot this big (px, nearest you); one that moves, a dot this big, its card this wide over it. */
+/** A piece that stays put: a dot this big (px, nearest you); one that moves, a dot this big, its photo this wide beside it. */
 const DOT_PX = 6;
 const MOVED_DOT_PX = 8;
-const CARD_PX = 30;
-/** How far apart across a column two cards standing too close are moved, each to its side (cards' widths): their names clear. */
-const NUDGE_CARDS = 1.7;
-/** How long a moving piece's card takes to rise up out of the floor (ms). */
+const FACE_PX = 40;
+/** How far out from its dot a moving piece's photo stands, toward the screen's edge (px, nearest you), past half its width. */
+const FACE_OUT_PX = 10;
+/** How far further out a photo stands past one too close in front of it (photos' widths): far enough its name clears. */
+const STACK_FACES = 2.9;
+/** How long a moving piece's photo takes to rise up out of the floor (ms). */
 const RISE_MS = 600;
-/** A card's reflection in the floor: strongest at its foot, gone a little way down. */
+/** A photo's reflection in the floor: strongest at its foot, gone a little way down. */
 const REFLECTION_FADE = "linear-gradient(to top, rgba(0, 0, 0, 0.35), transparent 75%)";
+/** A photo's edges faded away, so the player stands free of its picture's own background (as on his card, see PlayerDossier). */
+const PHOTO_FADE = "radial-gradient(ellipse 72% 78% at 50% 46%, #000 62%, transparent 100%)";
 
 /** Something standing up off the floor, its foot on it, risen up out of it as it comes. */
 function Rising({ children }: { children: React.ReactNode }) {
@@ -77,8 +82,9 @@ function Rising({ children }: { children: React.ReactNode }) {
  * A trade played out on the room's floor: each of the trading teams' lineups a column running from the front of the
  * floor to the back, side by side across it (its name at its front end), each piece a dot in its position's color
  * placed down its column by its value as the trade was made — the most valuable nearest you, the room between any two
- * as deep as the difference in their values. Each that changes hands has its card standing up out of the floor over
- * its dot (a pick's, a ring), named with what it was worth then, reflected in the floor under it. Nothing else moves
+ * as deep as the difference in their values. Each that changes hands has his photo standing up out of the floor beside
+ * its dot, out toward the screen's edge (see PieceFace), named with what it was worth then under it, reflected in the
+ * floor. Nothing else moves
  * as it plays: those that change hands go straight across, at the same depth, to their place in the other column,
  * kept open — a dashed ring marking each open place (where it'll land, then where it left) and a line along the floor,
  * in the color of the team that got it, from where it stood to where it landed. In front of them, nearest you, the
@@ -140,22 +146,19 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
   }));
   // Nearer pieces in front of farther ones.
   const drawOrder = [...ids].sort((a, b) => (spots.get(a)?.d ?? 0) - (spots.get(b)?.d ?? 0));
-  // Cards standing so close in one column that one would all but hide the other (pieces worth about the same) are
-  // moved a little apart across it, one to each side, each still over its own dot.
-  const nudge = new Map<string, number>();
-  (played ? after : before).forEach((list) => {
-    const cards = list.filter((id) => moved.has(id) && spots.has(id)).sort((a, b) => spots.get(a)!.y - spots.get(b)!.y);
-    // Each card's side: 0 where it stands clear of the one before it, else the other side from it (the one before
-    // moved to the right, if it was standing straight).
-    const sides: number[] = [];
-    cards.forEach((id, i) => {
+  // Which way is out, for each column: toward the screen's nearer edge (the middle one, if there's one, to the right).
+  const outward = (lane: number) => (laneX(lane) < 0 ? -1 : 1);
+  // Each moving piece's photo out beside its dot; photos standing so close in one column that one would all but hide
+  // the next (pieces worth about the same) stood further out, one past the other.
+  const out = new Map<string, number>();
+  (played ? after : before).forEach((list, lane) => {
+    const faces = list.filter((id) => moved.has(id) && spots.has(id)).sort((a, b) => spots.get(a)!.y - spots.get(b)!.y);
+    let steps = 0;
+    faces.forEach((id, i) => {
       const at = spots.get(id)!;
-      const close = i > 0 && at.y - spots.get(cards[i - 1])!.y < CARD_PX * 1.25 * at.s * 0.5;
-      if (close && sides[i - 1] === 0) sides[i - 1] = 1;
-      sides.push(close ? -sides[i - 1] : 0);
-    });
-    cards.forEach((id, i) => {
-      if (sides[i]) nudge.set(id, sides[i] * CARD_PX * spots.get(id)!.s * NUDGE_CARDS);
+      const close = i > 0 && at.y - spots.get(faces[i - 1])!.y < FACE_PX * 1.15 * at.s * 0.6;
+      steps = close ? steps + 1 : 0;
+      out.set(id, outward(lane) * (FACE_PX * at.s * (0.5 + steps * STACK_FACES) + FACE_OUT_PX * at.s));
     });
   });
 
@@ -225,8 +228,8 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
             {/* Its dot on its column's line, flattened as the floor is. */}
             <span className="absolute block -translate-x-1/2 -translate-y-1/2 rounded-[50%]" style={{ width: dot, height: dot * 0.55, background: colorOf(id) }} />
             {going ? (
-              <div className="absolute left-0 top-0 transition-transform duration-300" style={{ transform: `translateX(${nudge.get(id) ?? 0}px)` }}>
-                <PieceCard id={id} person={person} value={values.get(id) ?? null} color={colorOf(id)} scale={at.s} />
+              <div className="absolute left-0 top-0 transition-transform duration-700 ease-[cubic-bezier(.6,.05,.25,1)]" style={{ transform: `translateX(${out.get(id) ?? 0}px)` }}>
+                <PieceFace id={id} person={person} value={values.get(id) ?? null} scale={at.s} />
               </div>
             ) : null}
           </div>
@@ -237,47 +240,62 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
 }
 
 /**
- * A piece that changes hands, standing up out of the floor over its dot like its player card: his face (a pick's,
- * its ring) framed in his position's color, his name and what he was worth then on the theme's tag over it — risen up
- * out of the floor as it comes, and reflected in the floor under it, faint and fading away from its foot.
+ * A piece that changes hands, standing up out of the floor beside its dot as he stands on his player card: his photo,
+ * no frame round it, its edges faded away, his team's logo faint behind it (a pick's, a ring) — his name and what he
+ * was worth then under it — risen up out of the floor as it comes, and reflected in the floor under it, faint and
+ * fading away from its foot.
  */
-function PieceCard({ id, person, value, color, scale }: { id: string; person: TimelinePlayer | undefined; value: number | null; color: string; scale: number }) {
-  const w = CARD_PX * scale;
+function PieceFace({ id, person, value, scale }: { id: string; person: TimelinePlayer | undefined; value: number | null; scale: number }) {
+  const [photoFailed, setPhotoFailed] = useState(false);
+  const w = FACE_PX * scale;
+  const h = w * 1.15;
   const pick = person?.position === PICK;
-  const card = (reflected: boolean) => (
-    <div className="flex flex-col items-center gap-0.5" aria-hidden={reflected || undefined}>
-      <span
-        className="max-w-[7rem] truncate whitespace-nowrap bg-[var(--map-tag)] px-1 text-[0.5625rem] font-bold leading-[1.35] text-[var(--map-tag-ink)]"
-        style={{ scale: Math.max(0.75, scale), transformOrigin: "bottom center" }}
-      >
-        {person?.name ?? id}
-        {value != null ? <span className="ml-1 tabular-nums opacity-70">{shownGrade(valueGrade(value))}</span> : null}
-      </span>
-      <span className="block overflow-hidden border-2 bg-surface-raised" style={{ width: w, height: w * 1.25, borderColor: color }}>
-        {pick ? (
-          <span className="flex h-full w-full items-center justify-center font-bold text-ink-secondary" style={{ fontSize: Math.max(7, w * 0.3) }}>
-            PK
-          </span>
-        ) : (
-          <span className="flex h-full w-full items-end justify-center">
-            <PlayerHeadshot playerId={id} size={Math.round(w)} />
-          </span>
-        )}
-      </span>
+  const face = (reflected: boolean) => (
+    <div className="relative" style={{ width: w, height: h }} aria-hidden={reflected || undefined}>
+      {pick ? (
+        <span className="absolute inset-x-[12%] bottom-[4%] flex aspect-square items-center justify-center rounded-full border-2 border-ink-muted font-bold text-ink-secondary" style={{ fontSize: Math.max(7, w * 0.22) }}>
+          PICK
+        </span>
+      ) : (
+        <>
+          {person?.team ? (
+            // eslint-disable-next-line @next/next/no-img-element -- a static SVG on a static export
+            <img src={nflLogoUrl(person.team)} alt="" className={`absolute object-contain ${photoFailed ? "inset-x-[6%] bottom-0 h-[80%] w-[88%] object-bottom opacity-90" : "inset-[6%] h-[88%] w-[88%] opacity-35"}`} />
+          ) : null}
+          {photoFailed ? null : (
+            // eslint-disable-next-line @next/next/no-img-element -- a remote Sleeper photo on a static export
+            <img
+              src={playerPhotoUrl(id)}
+              alt=""
+              onError={() => setPhotoFailed(true)}
+              className="absolute inset-x-0 bottom-0 h-[96%] w-full object-contain object-bottom"
+              style={{ maskImage: PHOTO_FADE, WebkitMaskImage: PHOTO_FADE }}
+            />
+          )}
+        </>
+      )}
     </div>
   );
   return (
     <>
-      {/* Standing on the floor: its foot at its dot, everything above it. */}
-      <div className="absolute bottom-0 left-0 -translate-x-1/2">
-        <Rising>{card(false)}</Rising>
+      {/* Standing on the floor: its foot level with its dot, everything above it. */}
+      <div className="absolute bottom-0 left-0" style={{ transform: "translateX(-50%)" }}>
+        <Rising>{face(false)}</Rising>
       </div>
       {/* Its reflection: the same turned over about its foot, fading away from it. */}
       <div className="absolute bottom-0 left-0" style={{ transform: "translateX(-50%) scaleY(-1)", transformOrigin: "bottom center" }}>
         <div style={{ maskImage: REFLECTION_FADE, WebkitMaskImage: REFLECTION_FADE }}>
-          <Rising>{card(true)}</Rising>
+          <Rising>{face(true)}</Rising>
         </div>
       </div>
+      {/* His name, and what he was worth then, under him. */}
+      <span
+        className="absolute left-0 top-0 mt-0.5 max-w-[7rem] truncate whitespace-nowrap bg-[var(--map-tag)] px-1 text-[0.5625rem] font-bold leading-[1.35] text-[var(--map-tag-ink)]"
+        style={{ transform: "translateX(-50%)", scale: Math.max(0.75, scale), transformOrigin: "top center" }}
+      >
+        {person?.name ?? id}
+        {value != null ? <span className="ml-1 tabular-nums opacity-70">{shownGrade(valueGrade(value))}</span> : null}
+      </span>
     </>
   );
 }
