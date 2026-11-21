@@ -47,11 +47,17 @@ const HOLD_MS = 450;
 /** A piece that stays put: a dot this big (px, nearest you); one that moves, a dot this big, its photo this wide beside it. */
 const DOT_PX = 6;
 const MOVED_DOT_PX = 8;
-const FACE_PX = 40;
+const FACE_PX = 84;
 /** How far out from its dot a moving piece's photo stands, toward the screen's edge (px, nearest you), past half its width. */
-const FACE_OUT_PX = 10;
+const FACE_OUT_PX = 44;
+/** How wide a screen has to be for the photos to be drawn full size (px); narrower, they're drawn that much smaller,
+ * down to so much of it. */
+const FACE_FULL_WIDTH_PX = 1000;
+const FACE_LEAST_SHARE = 0.6;
+/** About how wide a photo's name is (px, nearest you): the room kept for it from the screen's edges. */
+const NAME_ROOM_PX = 120;
 /** How far further out a photo stands past one too close in front of it (photos' widths): far enough its name clears. */
-const STACK_FACES = 2.9;
+const STACK_FACES = 1.6;
 /** How long a moving piece's photo takes to rise up out of the floor (ms). */
 const RISE_MS = 600;
 /** A photo's reflection in the floor: strongest at its foot, gone a little way down. */
@@ -148,17 +154,23 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
   const drawOrder = [...ids].sort((a, b) => (spots.get(a)?.d ?? 0) - (spots.get(b)?.d ?? 0));
   // Which way is out, for each column: toward the screen's nearer edge (the middle one, if there's one, to the right).
   const outward = (lane: number) => (laneX(lane) < 0 ? -1 : 1);
-  // Each moving piece's photo out beside its dot; photos standing so close in one column that one would all but hide
-  // the next (pieces worth about the same) stood further out, one past the other.
+  // Each moving piece's photo out beside its dot, as big as the screen's width lets it be (smaller on a phone); photos
+  // standing so close in one column that one would all but hide the next (pieces worth about the same) stood further
+  // out, one past the other — but never so far its name runs off the screen.
+  const faceScale = Math.min(1, Math.max(FACE_LEAST_SHARE, width / FACE_FULL_WIDTH_PX));
   const out = new Map<string, number>();
   (played ? after : before).forEach((list, lane) => {
     const faces = list.filter((id) => moved.has(id) && spots.has(id)).sort((a, b) => spots.get(a)!.y - spots.get(b)!.y);
     let steps = 0;
     faces.forEach((id, i) => {
       const at = spots.get(id)!;
-      const close = i > 0 && at.y - spots.get(faces[i - 1])!.y < FACE_PX * 1.15 * at.s * 0.6;
+      const size = FACE_PX * faceScale * at.s;
+      // (Close: near enough that this one, standing, would reach up over the name under the one behind it.)
+      const close = i > 0 && at.y - spots.get(faces[i - 1])!.y < size * 1.15 + 14;
       steps = close ? steps + 1 : 0;
-      out.set(id, outward(lane) * (FACE_PX * at.s * (0.5 + steps * STACK_FACES) + FACE_OUT_PX * at.s));
+      const x = at.x + outward(lane) * (size * (0.5 + steps * STACK_FACES) + FACE_OUT_PX * faceScale * at.s);
+      const room = Math.max(size, NAME_ROOM_PX * Math.max(0.75, at.s)) / 2 + 4;
+      out.set(id, Math.min(width - room, Math.max(room, x)) - at.x);
     });
   });
 
@@ -229,7 +241,7 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
             <span className="absolute block -translate-x-1/2 -translate-y-1/2 rounded-[50%]" style={{ width: dot, height: dot * 0.55, background: colorOf(id) }} />
             {going ? (
               <div className="absolute left-0 top-0 transition-transform duration-700 ease-[cubic-bezier(.6,.05,.25,1)]" style={{ transform: `translateX(${out.get(id) ?? 0}px)` }}>
-                <PieceFace id={id} person={person} value={values.get(id) ?? null} scale={at.s} />
+                <PieceFace id={id} person={person} value={values.get(id) ?? null} scale={at.s * faceScale} />
               </div>
             ) : null}
           </div>
@@ -291,7 +303,7 @@ function PieceFace({ id, person, value, scale }: { id: string; person: TimelineP
       {/* His name, and what he was worth then, under him. */}
       <span
         className="absolute left-0 top-0 mt-0.5 max-w-[7rem] truncate whitespace-nowrap bg-[var(--map-tag)] px-1 text-[0.5625rem] font-bold leading-[1.35] text-[var(--map-tag-ink)]"
-        style={{ transform: "translateX(-50%)", scale: Math.max(0.75, scale), transformOrigin: "top center" }}
+        style={{ transform: "translateX(-50%)", scale: Math.max(0.9, Math.min(1.15, scale)), transformOrigin: "top center" }}
       >
         {person?.name ?? id}
         {value != null ? <span className="ml-1 tabular-nums opacity-70">{shownGrade(valueGrade(value))}</span> : null}
