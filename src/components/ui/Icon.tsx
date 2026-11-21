@@ -180,13 +180,17 @@ export function CheckIcon(props: IconProps) {
 }
 
 /** The standings' bars standing on a floor running back to the horizon — the League page. */
+/**
+ * The League Room: a room seen from its open front — its back wall framed in the middle, the walls, ceiling and floor
+ * running out from its corners, a line down the floor's middle toward you.
+ */
 export function LeagueRoomIcon(props: IconProps) {
   return (
     <svg {...base(props)}>
-      <rect x="4.5" y="6.5" width="2.5" height="5.5" />
-      <rect x="8.75" y="3.5" width="2.5" height="8.5" />
-      <rect x="13" y="5" width="2.5" height="7" />
-      <path d="M2.5 12h15M10 12v5M6.5 12l-3 5M13.5 12l3 5" strokeWidth={1.25} />
+      <rect x="2.75" y="3" width="14.5" height="14" />
+      <rect x="7" y="6.5" width="6" height="5" />
+      <path d="M2.75 3L7 6.5M17.25 3L13 6.5M2.75 17L7 11.5M17.25 17L13 11.5" strokeWidth={1.25} />
+      <path d="M10 11.5V17" strokeWidth={1.25} />
     </svg>
   );
 }

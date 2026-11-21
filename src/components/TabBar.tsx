@@ -20,12 +20,11 @@ export function appPages(pathname: string) {
 /** The pages standing in the room, whose floor runs right under the tab bar to the screen's bottom. */
 const ROOM_PAGES = new Set(["/", "/league", "/values", "/monitor"]);
 
+// Each button is its whole column of the bar, to tap; the one you're on lit by just a small square of the theme's
+// tag color around its icon, not the whole column.
 const tabClass = (active: boolean) =>
-  `flex h-full items-center justify-center transition-colors ${
-    active
-      ? "bg-[color-mix(in_srgb,var(--map-tag)_80%,transparent)] text-[var(--map-tag-ink)]"
-      : "text-ink-secondary hover:text-ink-primary active:scale-90"
-  }`;
+  `flex h-full items-center justify-center transition-colors ${active ? "" : "text-ink-secondary hover:text-ink-primary active:scale-90"}`;
+const iconClass = (active: boolean) => `flex items-center justify-center p-1.5 ${active ? "bg-[var(--map-tag)] text-[var(--map-tag-ink)]" : ""}`;
 
 /**
  * On a phone, the app's pages along the bottom of the screen: Profile & settings,
@@ -67,7 +66,9 @@ export function TabBar() {
       <div className="grid h-16" style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}>
         {tabs.map(({ href, label, icon: Icon, active }) => (
           <Link key={href} href={href} aria-label={label} title={label} aria-current={active ? "page" : undefined} className={tabClass(active)}>
-            <Icon width={22} height={22} />
+            <span className={iconClass(active)}>
+              <Icon width={22} height={22} />
+            </span>
           </Link>
         ))}
       </div>
