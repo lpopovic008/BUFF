@@ -167,9 +167,7 @@ export interface MatchupRowTeam {
   mine?: boolean;
   /** The matchup's winner (or, as it stands, its leader): its name and score lit like a map tag. */
   winning?: boolean;
-  /** How many times it's beaten the other team, all time — at its row's left while the box is opened (see MatchupRows). */
-  wins?: number | null;
-  /** A line under its row while the box is opened, starting where its name does. */
+  /** A line under its row, starting where its name does. */
   below?: React.ReactNode;
 }
 
@@ -180,43 +178,23 @@ export interface MatchupRowTeam {
  * never cut short — the entry grows to fit them; in a fixed-width box
  * (`fitWidth`) a name too long for it ends in an ellipsis.
  */
-function TickerTeamRow({ team, fitWidth, dense, small, open }: { team: MatchupRowTeam; fitWidth: boolean; dense: boolean; small: boolean; open?: boolean }) {
-  const row = <TeamLine team={team} fitWidth={fitWidth} dense={dense} small={small} tight={open} />;
-  if (open === undefined) return row;
-  // Opened (see MatchupRows): its all-time wins over the other team coming in at its left, and its line under it
-  // opening — both going again as it shuts — its own line set closer to make room for it.
+function TickerTeamRow({ team, fitWidth, dense, small }: { team: MatchupRowTeam; fitWidth: boolean; dense: boolean; small: boolean }) {
+  const row = <TeamLine team={team} fitWidth={fitWidth} dense={dense} small={small} />;
+  if (!team.below) return row;
+  // Its line under it, past the place's column, so it starts where the name does.
   return (
-    <div className="flex items-baseline">
-      <span
-        className={`shrink-0 overflow-hidden whitespace-nowrap text-right text-xs font-bold tabular-nums text-ink-primary transition-[width,margin-right,opacity] duration-500 ease-out ${
-          open ? "mr-1.5 w-[2ch] opacity-100" : "mr-0 w-0 opacity-0"
-        }`}
-        title="Times it's beaten the other team, all time"
-      >
-        {team.wins ?? ""}
-      </span>
-      <div className="min-w-0 flex-1">
-        {row}
-        <div className={`grid transition-[grid-template-rows,opacity] duration-500 ease-out ${open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
-          <div className="min-h-0 overflow-hidden">
-            {/* Past the place's column, so it starts where the name does. */}
-            <div className="flex items-baseline gap-1.5 leading-none">
-              <span aria-hidden className="w-[2ch] shrink-0 text-xs" />
-              <div className="min-w-0 flex-1">{team.below}</div>
-            </div>
-          </div>
-        </div>
+    <div>
+      {row}
+      <div className="flex items-baseline gap-1.5 pt-0.5 leading-none">
+        <span aria-hidden className={`w-[2ch] shrink-0 ${small ? "text-[0.6875rem]" : "text-xs"}`} />
+        <div className="min-w-0 flex-1">{team.below}</div>
       </div>
     </div>
   );
 }
 
-/**
- * `tight`: its standing and score closer together, and its line set closer (its box opened, see MatchupRows — the
- * all-time wins and the line under it taking some of its room); left out, it's never opened. `small`: its name (in
- * bold) and score in the League page's lineups' size, the rest a step under it.
- */
-function TeamLine({ team, fitWidth, dense, small = false, tight }: { team: MatchupRowTeam; fitWidth: boolean; dense: boolean; small?: boolean; tight?: boolean }) {
+/** `small`: its name (in bold) and score in the League page's lineups' size, the rest a step under it. */
+function TeamLine({ team, fitWidth, dense, small = false }: { team: MatchupRowTeam; fitWidth: boolean; dense: boolean; small?: boolean }) {
   const { name, points, standing, mine = false, winning = false } = team;
   const [minor, main, score] = small ? ["text-[0.6875rem]", "text-[0.8125rem]", "text-[0.8125rem]"] : ["text-xs", "text-sm", "text-base"];
   const { rank, record, streak } = standing ?? {};
@@ -225,9 +203,7 @@ function TeamLine({ team, fitWidth, dense, small = false, tight }: { team: Match
   // through score — is one unbroken plate, like a map tag.
   return (
     <div
-      className={`flex items-center justify-between ${tight ? "gap-2" : "gap-4"} ${dense || tight ? "[&_span]:leading-tight" : ""} ${
-        tight === undefined ? "" : "transition-[column-gap] duration-500 [&_span]:transition-[line-height] [&_span]:duration-500"
-      } ${
+      className={`flex items-center justify-between gap-4 ${dense ? "[&_span]:leading-tight" : ""} ${
         winning ? "-mx-1.5 bg-[var(--map-tag)] px-1.5 text-[var(--map-tag-ink)]" : ""
       }`}
     >
@@ -271,23 +247,17 @@ export function MatchupRows({
   fitWidth = false,
   dense = false,
   small = false,
-  open,
 }: {
   teams: MatchupRowTeam[];
   fitWidth?: boolean;
   dense?: boolean;
   /** Set as small as the League page's lineups (see TeamLine). */
   small?: boolean;
-  /** Opened, or shut (or, left out, neither): each team's all-time wins over the other at its left and its line
-   * (`below`) under it, coming in and going again as it opens and shuts. */
-  open?: boolean;
 }) {
   return (
-    <div
-      className={`flex flex-col ${dense || open ? "" : "gap-y-1"} ${open === undefined ? "" : "transition-[row-gap] duration-500"} ${fitWidth ? "min-w-0" : ""}`}
-    >
+    <div className={`flex flex-col ${dense ? "" : "gap-y-1"} ${fitWidth ? "min-w-0" : ""}`}>
       {teams.map((team, i) => (
-        <TickerTeamRow key={i} team={team} fitWidth={fitWidth} dense={dense} small={small} open={open} />
+        <TickerTeamRow key={i} team={team} fitWidth={fitWidth} dense={dense} small={small} />
       ))}
     </div>
   );

@@ -96,7 +96,7 @@ const statText = (v: number) => (Number.isInteger(v) ? `${v}` : v.toFixed(1));
  * joined in one line that stops short of each number (on across his byes, at none for a game he missed), a faint ring
  * at what he was projected. Under it, a row for each of his `stats` (see ChartStat): a stepped line, flat across each
  * game's slot at what he had of it (against his best at it), its number over it, and straight up or down to the next at
- * the slots' edge — at none for a game he missed, a faint dashed line across his byes — a little room kept between one
+ * the slots' edge — at none for a game he missed, nothing across his byes — a little room kept between one
  * row and the next (ROW_SPACE_PX). The stats' names aren't drawn (no room's been found for them that wouldn't take
  * any from the rows); a row's name shows over it on hover, and is read out. The line takes about a quarter of the wall
  * (LINE_SHARE), the rows the rest. With `grade` (how good a game's stat was), each game's step is filled down to its
@@ -207,7 +207,6 @@ export function WallLine({
             const levelOf = (g: ChartGame): { at: number; value: number } | null =>
               g.stats ? { at: foot - (top > 0 ? (tallest * Math.max(0, valueOf(g))) / top : 0), value: valueOf(g) } : g.missed ? { at: foot, value: 0 } : null;
             let d = "";
-            let byes = "";
             // The last game drawn: where its step ended, and whether a bye's come since.
             let prev: { x: number; y: number; gap: boolean } | null = null;
             const numbers: { x: number; at: number; value: number }[] = [];
@@ -224,8 +223,7 @@ export function WallLine({
               const at = level.at;
               const [from, to] = [x(i) - col / 2, x(i) + col / 2];
               if (prev?.gap) {
-                // Across his bye: faint and dashed, from the last game's step to this one's.
-                byes += `M${prev.x.toFixed(1)},${prev.y.toFixed(1)}L${from.toFixed(1)},${at.toFixed(1)}`;
+                // After his bye: a step of its own, nothing drawn across the bye.
                 d += `M${from.toFixed(1)},${at.toFixed(1)}`;
               } else {
                 // Straight up or down from the last game's level at the slots' edge (or the first step).
@@ -245,7 +243,6 @@ export function WallLine({
                   <rect key={k} x={f.from} y={f.at} width={col} height={foot - f.at} fill={`url(#${id}-${f.tier})`} />
                 ))}
                 <path d={d} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.55} strokeWidth={1.25} strokeLinejoin="miter" />
-                {byes ? <path d={byes} fill="none" stroke="var(--ink-primary)" strokeOpacity={0.3} strokeWidth={1} strokeDasharray="2 2" /> : null}
                 {numbers.map((num, k) => {
                   // Over its step where the row has the room, else under it — and where numbers this wide would run
                   // into the next one's, every other one the other way, so side by side they don't.

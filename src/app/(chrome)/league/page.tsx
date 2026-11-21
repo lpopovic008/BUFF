@@ -613,9 +613,8 @@ function LeaguePane({
 function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, room, floorAway, onFloorAway, onShare, share = HORIZON_SHARE }: RoomProps) {
   // The bench open from the start, in the right-hand column under the room's buttons.
   const { action, pick, close } = useFloorAction("bench");
-  // The write-ups up: the write-up the whole middle column, from under the header to the screen's bottom; the matchups
-  // under your league on the left opened a little (see MatchupList); and its contents in the right-hand column under
-  // the room's buttons.
+  // The write-ups up: the write-up the whole middle column, from under the header to the screen's bottom; and its
+  // contents in the right-hand column under the room's buttons.
   const writeups = action === "writeups";
   // Where the header ends (and a gap under it): the write-up's top.
   const [underHeader, setUnderHeader] = useState(0);
@@ -726,7 +725,7 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
     if (action === next && !cardUp) close();
     else pick(next);
   };
-  const matchups = (opened: boolean) =>
+  const matchups = () =>
     shownGame
       ? providers(
           <MatchupList
@@ -735,9 +734,8 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
             standings={standings}
             pickedId={shownGame.matchupId}
             onPick={(id) => setPicked({ leagueId, week, id })}
-            // With the write-ups up, each box opened a little: the all-time wins, PF and PA, and projected.
-            // (No all-time head-to-head in them for now.)
-            opened={{ open: opened, owners, allTime: null }}
+            // Under each team, its PF and PA ranks and its projected total.
+            details
             small
           />
         )
@@ -833,9 +831,9 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
                         <LeagueTitle league={league} start />
                       </span>
                     </button>
-                    {/* Its matchups, picking the one whose lineups are in the middle — with the write-ups up, each box opened
-                        a little to each team's PF and PA. */}
-                    {open ? <div className="pb-2 pt-1">{matchups(writeups)}</div> : null}
+                    {/* Its matchups, picking the one whose lineups are in the middle — each team's PF and PA ranks and
+                        projected total under it. */}
+                    {open ? <div className="pb-2 pt-1">{matchups()}</div> : null}
                   </li>
                 );
               })}
