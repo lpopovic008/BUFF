@@ -54,8 +54,12 @@ const FACE_OUT_PX = 30;
  * down to so much of it. */
 const FACE_FULL_WIDTH_PX = 1000;
 const FACE_LEAST_SHARE = 0.6;
-/** How far out from the middle of a photo its name starts, at its top (photos' widths): about where its picture's edge is. */
-const NAME_AT = 0.38;
+/** How much of the screen's width the trading teams' columns spread across, nearest you. */
+const COLUMNS_SHARE = 0.4;
+/** About how far out from the middle of a photo its name starts (photos' widths): just past the head (see PieceFace). */
+const NAME_AT = 0.24;
+/** How far out from the middle of a player's photo the edge of his head comes, as a share of the picture's width. */
+const HEAD_SHARE = 0.2;
 /** How big a photo's name is drawn for the photo's scale: a little smaller far back, a little bigger near, never much. */
 const nameScale = (scale: number) => Math.max(0.9, Math.min(1.15, scale));
 /** How wide each letter of a photo's name is (px, at its usual size): 0.6em of its 11px monospaced type. */
@@ -95,8 +99,8 @@ function Rising({ children }: { children: React.ReactNode }) {
  * floor to the back, side by side across it (its name at its front end), each piece a dot in its position's color,
  * evenly spaced down its column in its order — the most valuable nearest you. Each that changes hands has his photo
  * standing up out of the floor out beside his team's column, toward the screen's edge (see PieceFace) — level with his
- * dot where there's room, spread evenly down the column where they'd crowd — named with what he was worth then off
- * its top outer corner, reflected in the floor. As it plays, those that change hands go across to their place in the other column, the
+ * dot where there's room, spread evenly down the column where they'd crowd — named with what he was worth then just
+ * off his head, reflected in the floor. As it plays, those that change hands go across to their place in the other column, the
  * rest closing up — a dashed ring marking each open place (where it'll land, then where it left) and a line along the
  * floor, in the color of the team that got it, from where it stood to where it landed. In front of them, nearest you,
  * the league's trades on a line across the floor by when (see FloorTimeline), the one shown marked, any picked from
@@ -127,7 +131,8 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
   // The timeline in front of them, nearest you.
   const timelineDepth = floorDepth(bottom - floor * 0.1, height, share);
   const nearest = floorScale(front);
-  const span = (width * 0.62) / nearest;
+  // (Close together, leaving room out past them for the photos of what changes hands, and their names.)
+  const span = (width * COLUMNS_SHARE) / nearest;
   const laneX = (lane: number) => (-0.5 + (lane + 0.5) / n) * span;
   // `t` of the way from the front of a column to its back, on the floor.
   const pointAt = (lane: number, t: number) => {
@@ -170,7 +175,7 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
       const at = crowded ? pointAt(lane, i * Math.min(SPREAD_STEP, SPREAD_MOST / Math.max(1, going.length - 1))) : level[i];
       const size = FACE_PX * faceScale * at.s;
       const x = at.x + outward(lane) * (size * 0.5 + FACE_OUT_PX * faceScale * at.s);
-      // The photo kept on the screen; its name, running outward off its top corner, moved back in just as far as it'd
+      // The photo kept on the screen; its name, running outward from just off his head, moved back in just as far as it'd
       // run off the screen's edge (it's set in a monospaced face: as wide as its letters).
       const side = outward(lane);
       const placed = Math.min(width - size / 2 - 4, Math.max(size / 2 + 4, x));
@@ -276,7 +281,7 @@ export function FloorTradeMove({ move, room }: { move: FloorMove; room: { width:
 /**
  * A piece that changes hands, standing up out of the floor beside its dot as he stands on his player card: his photo,
  * no frame round it, its edges faded away (his team's logo where there's no photo; a pick's, a ring) — his name and
- * what he was worth then coming off its top corner on the `side` it stands out to — risen up out of the floor as it
+ * what he was worth then just off the edge of his head (a pick's ring) on the `side` it stands out to — risen up out of the floor as it
  * comes, and reflected in the floor under it, faint and fading away from its foot.
  */
 function PieceFace({
@@ -296,9 +301,24 @@ function PieceFace({
   nameShift?: number;
 }) {
   const [photoFailed, setPhotoFailed] = useState(false);
+  // The photo's own shape (its width over its height), once it's in: how much of its box it fills.
+  const [ratio, setRatio] = useState<number | null>(null);
   const w = FACE_PX * scale;
   const h = w * 1.15;
   const pick = person?.position === PICK;
+  // Where his name goes: level with the top of his head (a pick's ring, its top), just off its edge on the outer side
+  // — how far down from the top of the box (px), and out from its middle (px).
+  const nameAt = (() => {
+    if (pick) {
+      const ring = w * 0.76;
+      return { down: h * 0.96 - ring + ring * 0.12, out: ring * 0.36 };
+    }
+    if (photoFailed) return { down: h * 0.2, out: w * 0.3 };
+    const box = h * 0.96;
+    const drawnW = ratio ? Math.min(w, box * ratio) : w;
+    const drawnH = ratio ? drawnW / ratio : box;
+    return { down: h - drawnH + drawnH * 0.06, out: drawnW * HEAD_SHARE };
+  })();
   const face = (reflected: boolean) => (
     <div className="relative" style={{ width: w, height: h }} aria-hidden={reflected || undefined}>
       {pick ? (
@@ -318,6 +338,7 @@ function PieceFace({
               src={playerPhotoUrl(id)}
               alt=""
               onError={() => setPhotoFailed(true)}
+              onLoad={(e) => e.currentTarget.naturalHeight > 0 && setRatio(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight)}
               className="absolute inset-x-0 bottom-0 h-[96%] w-full object-contain object-bottom"
               style={{ maskImage: PHOTO_FADE, WebkitMaskImage: PHOTO_FADE }}
             />
@@ -338,13 +359,13 @@ function PieceFace({
           <Rising>{face(true)}</Rising>
         </div>
       </div>
-      {/* His name, and what he was worth then, coming off the photo's top outer corner and running outward — plain,
-          kept clear of the floor's lines behind it. */}
+      {/* His name, and what he was worth then, just off the outer edge of his head (a pick's ring) and running outward
+          — plain, kept clear of the floor's lines behind it. */}
       <span
         className="absolute top-0 whitespace-nowrap text-[0.6875rem] font-bold leading-tight text-ink-primary"
         style={{
-          left: side * w * NAME_AT + nameShift,
-          marginTop: -h,
+          left: side * (nameAt.out + 3) + nameShift,
+          marginTop: -h + nameAt.down,
           transform: side > 0 ? "none" : "translateX(-100%)",
           scale: nameScale(scale),
           transformOrigin: side > 0 ? "left top" : "right top",

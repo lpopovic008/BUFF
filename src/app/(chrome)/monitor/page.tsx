@@ -331,10 +331,8 @@ function LeagueMonitor({
             className="flex-1"
             stage
             head={
-              <div className="flex flex-col gap-2">
-                {tabs}
-                {view === "trades" ? tradesHead : null}
-              </div>
+              // (On a phone, the trades alone: no filters or count over them.)
+              <div className="flex flex-col gap-2">{tabs}</div>
             }
           >
             {view === "trades" ? cards : view === "calc" ? (calc ?? standings) : standings}
