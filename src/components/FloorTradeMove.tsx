@@ -47,15 +47,15 @@ const HOLD_MS = 450;
 /** A piece that stays put: a dot this big (px, nearest you); one that moves, a dot this big, its photo this wide beside it. */
 const DOT_PX = 6;
 const MOVED_DOT_PX = 8;
-const FACE_PX = 84;
+const FACE_PX = 124;
 /** How far out from its dot a moving piece's photo stands, toward the screen's edge (px, nearest you), past half its width. */
-const FACE_OUT_PX = 44;
+const FACE_OUT_PX = 30;
 /** How wide a screen has to be for the photos to be drawn full size (px); narrower, they're drawn that much smaller,
  * down to so much of it. */
 const FACE_FULL_WIDTH_PX = 1000;
 const FACE_LEAST_SHARE = 0.6;
 /** About how wide a photo's name is (px, nearest you): the room kept for it from the screen's edges. */
-const NAME_ROOM_PX = 120;
+const NAME_ROOM_PX = 130;
 /** Photos spread down a column (crowded at their dots): each this much further back than the one before (shares of
  * the column), the last no further back than so much of the way. */
 const SPREAD_STEP = 0.45;
@@ -311,13 +311,13 @@ function PieceFace({ id, person, value, scale }: { id: string; person: TimelineP
           <Rising>{face(true)}</Rising>
         </div>
       </div>
-      {/* His name, and what he was worth then, under him. */}
+      {/* His name, and what he was worth then, under him — plain, kept clear of the floor's lines behind it. */}
       <span
-        className="absolute left-0 top-0 mt-0.5 max-w-[7rem] truncate whitespace-nowrap bg-[var(--map-tag)] px-1 text-[0.5625rem] font-bold leading-[1.35] text-[var(--map-tag-ink)]"
-        style={{ transform: "translateX(-50%)", scale: Math.max(0.9, Math.min(1.15, scale)), transformOrigin: "top center" }}
+        className="absolute left-0 top-0 mt-0.5 max-w-[9rem] truncate whitespace-nowrap text-[0.6875rem] font-bold leading-tight text-ink-primary"
+        style={{ transform: "translateX(-50%)", scale: Math.max(0.9, Math.min(1.15, scale)), transformOrigin: "top center", textShadow: "0 0 3px var(--page), 0 0 6px var(--page)" }}
       >
         {person?.name ?? id}
-        {value != null ? <span className="ml-1 tabular-nums opacity-70">{shownGrade(valueGrade(value))}</span> : null}
+        {value != null ? <span className="ml-1 tabular-nums text-ink-muted">{shownGrade(valueGrade(value))}</span> : null}
       </span>
     </>
   );
