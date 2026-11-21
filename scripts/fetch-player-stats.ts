@@ -21,6 +21,12 @@
  * the team the player faced (`opponent`), so each one's points are added to that
  * defense's total against the player's position — for the lineups' matchup ranks.
  *
+ * And every player's raw season totals — attempts, carries, targets, yards,
+ * snaps and the rest (SEASON_KEYS) — written apart, to
+ * public/data/season-stats.json, for the Values page's stat filters (yards a
+ * carry, targets a game...): fetched by the page when it needs them, not
+ * bundled into the app as player-stats.json is.
+ *
  * Sums every completed week of the season (1 through the current week — a
  * player's still-in-progress or future week simply has no `gp`/points in
  * that week's entry, so it naturally doesn't contribute).
@@ -38,6 +44,41 @@ import type { DefenseAllowedLine, PlayerStatLine, PlayerStatsSnapshot } from "..
 const DRY_RUN = process.argv.includes("--dry-run");
 const PROBE = process.argv.includes("--probe");
 const OUT_PATH = path.join(process.cwd(), "src", "data", "player-stats.json");
+const SEASON_OUT_PATH = path.join(process.cwd(), "public", "data", "season-stats.json");
+
+/**
+ * The raw stats summed over the season for each player (Sleeper's keys) — what the Values page's stat filters are
+ * worked out from (see src/lib/season-stats.ts). Any Sleeper doesn't give a player simply sums to 0.
+ */
+const SEASON_KEYS = [
+  "gp",
+  "pts_ppr",
+  "pts_half_ppr",
+  "pts_std",
+  "off_snp",
+  "tm_off_snp",
+  "pass_att",
+  "pass_cmp",
+  "pass_yd",
+  "pass_td",
+  "pass_int",
+  "pass_sack",
+  "pass_fd",
+  "rush_att",
+  "rush_yd",
+  "rush_td",
+  "rush_fd",
+  "rush_rz_att",
+  "rec_tgt",
+  "rec",
+  "rec_yd",
+  "rec_td",
+  "rec_fd",
+  "rec_air_yd",
+  "rec_yar",
+  "rec_rz_tgt",
+  "fum_lost",
+];
 
 const POSITIONS = ["QB", "RB", "WR", "TE", "K", "DEF"];
 
@@ -111,6 +152,7 @@ async function main() {
   console.log(`Season ${season}, summing weeks 1 through ${currentWeek}.`);
 
   const byPlayer = new Map<string, PlayerStatLine>();
+  const seasonTotals = new Map<string, number[]>();
   const allowed = new Map<string, DefenseAllowedLine>();
   // Each defense's games, as the weeks it faced anyone.
   const defenseWeeks = new Map<string, Set<number>>();
@@ -140,6 +182,12 @@ async function main() {
       existing.ptsHalfPpr += entry.stats.pts_half_ppr ?? 0;
       existing.ptsStd += entry.stats.pts_std ?? 0;
       byPlayer.set(entry.player_id, existing);
+      const totals = seasonTotals.get(entry.player_id) ?? SEASON_KEYS.map(() => 0);
+      SEASON_KEYS.forEach((key, i) => {
+        const v = entry.stats![key];
+        if (typeof v === "number" && Number.isFinite(v)) totals[i] += v;
+      });
+      seasonTotals.set(entry.player_id, totals);
 
       const defense = entry.opponent;
       if (defense && position) {
@@ -178,6 +226,18 @@ async function main() {
 
   await fs.writeFile(OUT_PATH, JSON.stringify(snapshot, null, 2) + "\n");
   console.log(`Wrote ${path.relative(process.cwd(), OUT_PATH)}`);
+
+  // Each player's totals in SEASON_KEYS' order, one line each — compact, as the page fetches it whole.
+  const seasonFile = {
+    updatedAt: snapshot.updatedAt,
+    season,
+    throughWeek: snapshot.throughWeek,
+    keys: SEASON_KEYS,
+    players: Object.fromEntries([...seasonTotals.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([id, totals]) => [id, totals.map(round)])),
+  };
+  await fs.mkdir(path.dirname(SEASON_OUT_PATH), { recursive: true });
+  await fs.writeFile(SEASON_OUT_PATH, JSON.stringify(seasonFile) + "\n");
+  console.log(`Wrote ${path.relative(process.cwd(), SEASON_OUT_PATH)} (${seasonTotals.size} players)`);
 }
 
 main().catch((err) => {

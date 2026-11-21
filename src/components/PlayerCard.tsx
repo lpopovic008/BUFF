@@ -57,6 +57,8 @@ export function PlayerCard({
   rank,
   playerId,
   onOpen,
+  stat = null,
+  mark = null,
 }: {
   player: PlayerValue;
   grade: number;
@@ -64,6 +66,10 @@ export function PlayerCard({
   playerId: string | null;
   /** Opens their player card (see PlayerCareer) — none for a player Sleeper doesn't know. */
   onOpen?: () => void;
+  /** The stat being looked at ("4.8 YPC"), under their name. */
+  stat?: string | null;
+  /** Marked to buy or sell (see PlayerMarks): tagged so, at the top right in place of the rank. */
+  mark?: "buy" | "sell" | null;
 }) {
   const team = teamOf(player);
   const title = `${player.name} · ${player.position}${team ? ` · ${team}` : ""} · ${grade.toFixed(2)}`;
@@ -73,7 +79,16 @@ export function PlayerCard({
         {team ? (
           <span className="absolute left-1 top-1 border border-ink-primary px-1 text-[0.625rem] font-bold leading-tight text-ink-primary">{team}</span>
         ) : null}
-        <span className="absolute right-1.5 top-1 text-[0.625rem] tabular-nums leading-tight text-ink-muted">{rank}</span>
+        {mark ? (
+          <span
+            className={`absolute right-1 top-1 border px-1 text-[0.5625rem] font-extrabold uppercase leading-tight ${mark === "buy" ? "border-status-good text-status-good" : "border-status-critical text-status-critical"}`}
+            title={mark === "buy" ? "Marked to buy" : "Marked to sell"}
+          >
+            {mark}
+          </span>
+        ) : (
+          <span className="absolute right-1.5 top-1 text-[0.625rem] tabular-nums leading-tight text-ink-muted">{rank}</span>
+        )}
         <CardFace player={player} playerId={playerId} />
         <span className={`absolute bottom-1 left-1.5 text-[0.75rem] font-bold leading-none ${POSITION_TEXT_COLOR[player.position] ?? "text-ink-secondary"}`}>
           {player.position}
@@ -83,6 +98,7 @@ export function PlayerCard({
         </span>
       </div>
       <span className="line-clamp-2 break-words text-center text-[0.75rem] font-semibold leading-tight text-ink-primary">{player.name}</span>
+      {stat ? <span className="-mt-0.5 text-center text-[0.6875rem] font-bold tabular-nums uppercase leading-tight text-ink-secondary">{stat}</span> : null}
     </>
   );
   return (

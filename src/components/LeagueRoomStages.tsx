@@ -1,5 +1,6 @@
 "use client";
 
+import { PlayerMarks } from "@/components/PlayerMarks";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { ChevronLeftIcon } from "@/components/ui/Icon";
 import { CloseButton } from "@/components/LeagueRoomFloor";
@@ -222,6 +223,10 @@ function PlayerHeader({ player, bio, numbers, onClose }: { player: ResolvedPlaye
           <span className="col-span-3 col-start-2 row-start-3 truncate text-[0.6875rem] font-bold uppercase leading-tight text-ink-primary sm:hidden">{college}</span>
         </>
       ) : null}
+      {/* Marking him to buy or sell (see PlayerMarks), on a line of its own under the rest. */}
+      <span className="col-span-2 col-start-5 row-start-3 justify-self-end pt-1 text-[0.625rem] sm:col-span-5 sm:col-start-2 sm:justify-self-start">
+        <PlayerMarks playerId={player.playerId} name={player.name} />
+      </span>
       {/* His way out, on his name's line. */}
       <button
         type="button"
@@ -476,6 +481,10 @@ function PlayerDossier({
                   ))}
                 </span>
               ) : null}
+              {/* Marking him to buy or sell (see PlayerMarks). */}
+              <span className="pt-[0.3em]">
+                <PlayerMarks playerId={player.playerId} name={player.name} size={Math.max(9, factSize * 0.8)} reflected={reflected} />
+              </span>
             </div>
           </Upright>
         </div>

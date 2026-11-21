@@ -12,6 +12,7 @@ const BOWL_PICKS_KEY = "commish:bowl-picks";
 const DRAFT_TARGETS_KEY = "commish:draft-targets";
 const PAYOUT_PLANS_KEY = "commish:payout-plans";
 const RECAP_LAYOUTS_KEY = "commish:recap-layouts";
+const PLAYER_MARKS_KEY = "commish:player-marks";
 
 export interface TrackedLeague {
   leagueId: string;
@@ -482,6 +483,29 @@ export function saveSyncState(state: SyncState): void {
 }
 
 /** Exports everything as a JSON blob the user can save as a manual backup or move to another browser. */
+/** A player you've marked from his card: one you're interested in getting (buy), or looking to get rid of (sell). */
+export type PlayerMark = "buy" | "sell";
+
+/**
+ * The players you've marked, by Sleeper player id — on the Values page's lists of who to buy and sell in each of your
+ * leagues. Per-browser like everything else here (and synced with the rest, signed in).
+ */
+export function getPlayerMarks(): Record<string, PlayerMark> {
+  if (!isBrowser()) return {};
+  try {
+    const raw = window.localStorage.getItem(PLAYER_MARKS_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, PlayerMark>) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function savePlayerMarks(marks: Record<string, PlayerMark>): void {
+  if (!isBrowser()) return;
+  window.localStorage.setItem(PLAYER_MARKS_KEY, JSON.stringify(marks));
+  notifyLocalWrite();
+}
+
 export function exportAllData(): string {
   return JSON.stringify(
     {
@@ -491,6 +515,7 @@ export function exportAllData(): string {
       draftTargets: getDraftTargets(),
       payoutPlans: readPayoutPlans(),
       recapLayouts: readRecapLayouts(),
+      playerMarks: getPlayerMarks(),
     },
     null,
     2
@@ -505,6 +530,7 @@ export function importAllData(json: string): void {
     draftTargets?: string[];
     payoutPlans?: Record<string, PayoutPlan>;
     recapLayouts?: Record<string, string[]>;
+    playerMarks?: Record<string, PlayerMark>;
   };
   if (parsed.config) saveConfig(parsed.config);
   if (parsed.recaps) writeRecaps(parsed.recaps);
@@ -512,4 +538,5 @@ export function importAllData(json: string): void {
   if (parsed.draftTargets) saveDraftTargets(parsed.draftTargets);
   if (parsed.payoutPlans) writePayoutPlans(parsed.payoutPlans);
   if (parsed.recapLayouts) writeRecapLayouts(parsed.recapLayouts);
+  if (parsed.playerMarks) savePlayerMarks(parsed.playerMarks);
 }

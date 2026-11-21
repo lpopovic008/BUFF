@@ -1,7 +1,7 @@
 "use client";
 
-import { ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
-import { PlateCard } from "@/components/ui/PlateCard";
+import { ReactNode, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
+import { PlayerPathFloorContext } from "@/components/FloorPlayerPath";
 import { useLeagueTrades } from "@/hooks/useLeagueTrades";
 import { AnalyzedTrade, filterTrades, playerRoute, TRADE_SIDE_COLORS, TRADE_SORTS, TradeFilter, tradedPlayers, tradeGap, TradeSide, TradeSort } from "@/lib/trades";
 import { TradeViewer } from "@/components/TradeViewer";
@@ -154,7 +154,7 @@ function TradeChart({ trade, colorOf }: { trade: AnalyzedTrade; colorOf: (side: 
   return (
     <div
       ref={box}
-      className={`grid min-h-[11rem] flex-1 ${named ? "grid-cols-[minmax(0,8rem)_minmax(0,1fr)_minmax(0,8rem)]" : "grid-cols-[minmax(0,8rem)_minmax(0,1fr)_2rem]"} gap-x-0 gap-y-1.5`}
+      className={`grid min-h-[5rem] flex-1 ${named ? "grid-cols-[minmax(0,8rem)_minmax(0,1fr)_minmax(0,8rem)]" : "grid-cols-[minmax(0,8rem)_minmax(0,1fr)_2rem]"} gap-x-0 gap-y-1.5`}
       role="img"
       aria-label="Each piece's value from the trade to now"
     >
@@ -366,33 +366,7 @@ function TradeCard({ trade, leagueName, height }: { trade: AnalyzedTrade; league
   );
 }
 
-const FIELD = "min-w-0 border border-border bg-page px-2 py-1 text-xs text-ink-primary outline-none focus:border-ink-primary";
-
-/**
- * A player's way round the league, as far as trades have taken them: the team that first traded them away, then each
- * team that got them (by its latest name), with the pick they went as, where they went as one.
- */
-function PlayerRoute({ trades, teams, player }: { trades: AnalyzedTrade[]; teams: { rosterId: number; name: string }[]; player: string }) {
-  const route = useMemo(() => playerRoute(trades, player), [trades, player]);
-  const nameOf = (rosterId: number, then: string) => teams.find((t) => t.rosterId === rosterId)?.name ?? then;
-  const stops = [
-    ...(route.from ? [{ key: "from", team: nameOf(route.from.rosterId, route.from.team), note: null as string | null }] : []),
-    ...route.stops.map((s, i) => ({ key: `${i}`, team: nameOf(s.rosterId, s.team), note: s.asPick ? `as ${s.asPick}` : null })),
-  ];
-  if (stops.length === 0) return null;
-  return (
-    <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-ink-secondary" aria-label={`Where ${player} has been traded`}>
-      {stops.map((stop, i) => (
-        <span key={stop.key} className="flex items-center gap-1.5">
-          {i > 0 ? <span aria-hidden className="text-ink-muted">→</span> : null}
-          {/* Where they are now, as far as trades go: on the theme's tag plate. */}
-          <span className={i === stops.length - 1 ? "bg-[var(--map-tag)] px-1 font-bold text-[var(--map-tag-ink)]" : "font-medium text-ink-primary"}>{stop.team}</span>
-          {stop.note ? <span className="text-ink-muted">({stop.note})</span> : null}
-        </span>
-      ))}
-    </p>
-  );
-}
+const FIELD = "min-w-0 border-b border-border bg-transparent py-1 text-xs text-ink-primary outline-none focus:border-ink-primary";
 
 /** Finding a player: typed and picked from everyone the trades moved — cleared, anyone's. */
 function PlayerSearch({ players, player, onChange }: { players: string[]; player: string | null; onChange: (player: string | null) => void }) {
@@ -415,7 +389,7 @@ function PlayerSearch({ players, player, onChange }: { players: string[]; player
         list={listId}
         value={text}
         onChange={(e) => pickFrom(e.target.value)}
-        className={`${FIELD} w-40 ${player ? "border-ink-primary" : ""}`}
+        className={`${FIELD} w-32 ${player ? "border-ink-primary" : ""}`}
       />
       <datalist id={listId}>
         {players.map((p) => (
@@ -426,7 +400,10 @@ function PlayerSearch({ players, player, onChange }: { players: string[]; player
   );
 }
 
-/** Finding trades: a season, a team slot (by its latest name), a player, and the order they're in. */
+/**
+ * Finding trades: a season, a team slot (by its latest name), a player (his way round the league on the room's floor,
+ * see FloorPlayerPath), and the order they're in — on one line where they fit.
+ */
 function TradeFilters({
   trades,
   teams,
@@ -441,36 +418,32 @@ function TradeFilters({
   const seasons = useMemo(() => [...new Set(trades.map((t) => t.season))].sort().reverse(), [trades]);
   const players = useMemo(() => tradedPlayers(trades), [trades]);
   return (
-    <div className="flex flex-col gap-2">
-    <div className="flex flex-wrap gap-2">
-      <select aria-label="Season" value={filter.season ?? ""} onChange={(e) => onChange({ ...filter, season: e.target.value || null })} className={FIELD}>
-        <option value="">All seasons</option>
-        {seasons.map((s) => (
-          <option key={s} value={s}>
-            {s}
-          </option>
-        ))}
-      </select>
-      <select aria-label="Team" value={filter.team ?? ""} onChange={(e) => onChange({ ...filter, team: e.target.value === "" ? null : Number(e.target.value) })} className={`${FIELD} max-w-[12rem]`}>
-        <option value="">All teams</option>
-        {teams.map((t) => (
-          <option key={t.rosterId} value={t.rosterId}>
-            {t.name}
-          </option>
-        ))}
-      </select>
-      <PlayerSearch players={players} player={filter.player} onChange={(player) => onChange({ ...filter, player })} />
-      <select aria-label="Sort" value={filter.sort} onChange={(e) => onChange({ ...filter, sort: e.target.value as TradeSort })} className={FIELD}>
-        {TRADE_SORTS.map((s) => (
-          <option key={s.id} value={s.id}>
-            {s.label}
-          </option>
-        ))}
-      </select>
-    </div>
-    {/* A player picked: the teams they've been traded to, in turn. */}
-    {filter.player ? <PlayerRoute trades={trades} teams={teams} player={filter.player} /> : null}
-    </div>
+      <div className="flex flex-wrap gap-x-2.5 gap-y-1">
+        <select aria-label="Season" value={filter.season ?? ""} onChange={(e) => onChange({ ...filter, season: e.target.value || null })} className={FIELD}>
+          <option value="">All seasons</option>
+          {seasons.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+        <select aria-label="Team" value={filter.team ?? ""} onChange={(e) => onChange({ ...filter, team: e.target.value === "" ? null : Number(e.target.value) })} className={`${FIELD} max-w-[9rem]`}>
+          <option value="">All teams</option>
+          {teams.map((t) => (
+            <option key={t.rosterId} value={t.rosterId}>
+              {t.name}
+            </option>
+          ))}
+        </select>
+        <PlayerSearch players={players} player={filter.player} onChange={(player) => onChange({ ...filter, player })} />
+        <select aria-label="Sort" value={filter.sort} onChange={(e) => onChange({ ...filter, sort: e.target.value as TradeSort })} className={FIELD}>
+          {TRADE_SORTS.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.label}
+            </option>
+          ))}
+        </select>
+      </div>
   );
 }
 
@@ -497,32 +470,33 @@ function offFill(column: HTMLElement, card: HTMLElement): number {
 /**
  * Every trade in a league, all its seasons, newest first: what each side got, what it was worth when traded
  * and now — in KTC dynasty values (superflex or 1QB, as the league plays), shown as the values page's grades —
- * and each side's haul from the trade to now on a little chart. Filters above find a season's or a team's, and
- * reorder them. Over them, the trades one at a time on a timeline (see TradeViewer).
+ * and each side's haul from the trade to now on a little chart. Filters find a season's, a team's or a player's,
+ * and reorder them.
  *
- * `layout`, where it's given, puts the two in columns of their own: the timeline (with the filters under it) and the
- * cards, scrolled through — the card a little way down its column the trade shown on the timeline (and on the room's
- * floor), and a trade picked on the timeline scrolled to.
+ * Laid out by `children` (handed the filters, the count and the cards): the cards scrolled through in a column of
+ * their own, each as tall as the column shows — the card a little way down it the trade shown on the room's floor
+ * (see TradeViewer), a trade picked there scrolled to. With a player searched for, his way round the league on the
+ * floor instead (see FloorPlayerPath).
  */
 export function TradeAnalyzer({
   leagueId,
   leagueName,
   sleeperUserId,
-  layout,
+  children,
 }: {
   leagueId: string;
   leagueName: string;
   sleeperUserId: string | null;
-  layout?: (parts: { timeline: ReactNode; cards: ReactNode }) => ReactNode;
+  children: (parts: { filters: ReactNode; count: ReactNode; cards: ReactNode }) => ReactNode;
 }) {
   const data = useLeagueTrades(leagueId, sleeperUserId);
   const [filter, setFilter] = useState<TradeFilter>(NO_FILTER);
   const shown = useMemo(() => (data ? filterTrades(data.trades, filter) : []), [data, filter]);
   const filtered = filter.season !== null || filter.team !== null || filter.player !== null;
-  // The trade shown, in columns: the card read, or the trade picked on the timeline.
+  // The trade shown: the card read, or the trade picked on the floor.
   const [shownId, setShownId] = useState<string | null>(null);
   const list = useRef<HTMLOListElement>(null);
-  // A trade picked on the timeline scrolled to — not then taken for the cards being scrolled through, for a moment.
+  // A trade picked on the floor scrolled to — not then taken for the cards being scrolled through, for a moment.
   const pickedAt = useRef(0);
   const showPicked = (id: string) => {
     setShownId(id);
@@ -534,11 +508,10 @@ export function TradeAnalyzer({
     column.scrollTo({ top: Math.max(0, column.scrollTop + offFill(column, card)) });
   };
   // The card across the line it's read at, as its column's scrolled.
-  const columns = !!layout;
   useEffect(() => {
     const el = list.current;
     const column = el?.closest<HTMLElement>("[data-scroll-list]");
-    if (!columns || !el || !column) return;
+    if (!el || !column) return;
     const read = () => {
       if (performance.now() - pickedAt.current < 400) return;
       const most = column.scrollHeight - column.clientHeight;
@@ -570,13 +543,13 @@ export function TradeAnalyzer({
       window.clearTimeout(settle);
       column.removeEventListener("scroll", scrolled);
     };
-  }, [columns, shown]);
+  }, [shown]);
 
-  // In columns, each card as tall as its column shows: one trade fills it.
+  // Each card as tall as its column shows: one trade fills it.
   const [cardHeight, setCardHeight] = useState<number | null>(null);
   useEffect(() => {
     const column = list.current?.closest<HTMLElement>("[data-scroll-list]");
-    if (!columns || !column) return;
+    if (!column) return;
     const measure = () => {
       const style = getComputedStyle(column);
       const room = column.clientHeight - (parseFloat(style.paddingTop) || 0) - (parseFloat(style.paddingBottom) || 0);
@@ -586,9 +559,25 @@ export function TradeAnalyzer({
     const observer = new ResizeObserver(measure);
     observer.observe(column);
     return () => observer.disconnect();
-  }, [columns, shown]);
+  }, [shown]);
 
-  const hasTimeline = !!data && data.timeline.some((c) => c.kind === "trade");
+  // A player searched for: his way round the league, on the room's floor where there's one.
+  const toPathFloor = useContext(PlayerPathFloorContext);
+  const route = useMemo(() => (data && filter.player ? playerRoute(data.trades, filter.player) : null), [data, filter.player]);
+  useEffect(() => {
+    if (!toPathFloor) return;
+    if (!data || !route || route.stops.length === 0 || !filter.player) return toPathFloor(null);
+    const playerId = [...data.people].find(([, p]) => p.name === filter.player)?.[0] ?? null;
+    toPathFloor({
+      player: filter.player,
+      playerId,
+      stops: [...(route.from ? [{ rosterId: route.from.rosterId, at: null }] : []), ...route.stops.map((s) => ({ rosterId: s.rosterId, at: s.at, asPick: s.asPick }))],
+      teams: data.teams,
+      now: Date.now(),
+    });
+  }, [toPathFloor, data, route, filter.player]);
+  useEffect(() => (toPathFloor ? () => toPathFloor(null) : undefined), [toPathFloor]);
+
   const filters = data && data.trades.length > 0 ? <TradeFilters trades={data.trades} teams={data.teams} filter={filter} onChange={setFilter} /> : null;
   const count = data ? <span className="tabular-nums">{filtered ? `${shown.length} of ${data.trades.length}` : data.trades.length} trades</span> : null;
   const cardList = !data ? (
@@ -600,67 +589,27 @@ export function TradeAnalyzer({
   ) : (
     <ol ref={list} className="flex flex-col gap-3">
       {shown.map((trade) => (
-        <TradeCard key={trade.id} trade={trade} leagueName={leagueName} height={columns ? cardHeight : null} />
+        <TradeCard key={trade.id} trade={trade} leagueName={leagueName} height={cardHeight} />
       ))}
     </ol>
   );
 
-  if (layout) {
-    return (
-      <>
-        {layout({
-          // The trade shown (the timeline's on the room's floor), the way to step and replay, and under it the filters.
-          timeline: (
-            <div className="flex flex-col gap-3">
-              {hasTimeline ? (
-                <PlateCard title="Trade" bodyClassName="p-2">
-                  <TradeViewer
-                    timeline={data!.timeline}
-                    people={data!.people}
-                    teams={data!.teams}
-                    trades={data!.trades}
-                    valueAt={data!.valueAt}
-                    season={filter.season}
-                    shownId={shownId}
-                    onShow={showPicked}
-                    narrow
-                  />
-                </PlateCard>
-              ) : null}
-              {data ? (
-                <PlateCard title={leagueName} aside={count} bodyClassName="p-2">
-                  {filters ?? <p className="py-2 text-center text-sm text-ink-secondary">{data.trades.length === 0 ? "No trades yet." : "Loading trades…"}</p>}
-                </PlateCard>
-              ) : null}
-            </div>
-          ),
-          cards: cardList,
-        })}
-      </>
-    );
-  }
   return (
-    <div className="flex flex-col gap-3">
-    {/* The trades one at a time: a timeline, the rosters they changed, and their cards. */}
-    {hasTimeline ? (
-      <PlateCard title="Trade" bodyClassName="p-2 sm:p-3">
+    <>
+      {children({ filters, count, cards: cardList })}
+      {/* The trade shown, on the room's floor (and nothing of it here: its card's in the column). */}
+      {data && data.timeline.some((c) => c.kind === "trade") ? (
         <TradeViewer
-          timeline={data!.timeline}
-          people={data!.people}
-          teams={data!.teams}
-          trades={data!.trades}
-          valueAt={data!.valueAt}
+          timeline={data.timeline}
+          people={data.people}
+          teams={data.teams}
+          trades={data.trades}
+          valueAt={data.valueAt}
           season={filter.season}
-          renderTrade={(trade) => <TradeCard trade={trade} leagueName={leagueName} />}
+          shownId={shownId}
+          onShow={showPicked}
         />
-      </PlateCard>
-    ) : null}
-    <PlateCard title={leagueName} aside={count} bodyClassName="p-2 sm:p-3">
-      <div className="flex flex-col gap-3">
-        {filters}
-        {cardList}
-      </div>
-    </PlateCard>
-    </div>
+      ) : null}
+    </>
   );
 }

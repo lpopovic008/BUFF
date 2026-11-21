@@ -45,6 +45,47 @@ export function LeagueTitle({
 }
 
 /**
+ * Leagues to pick from, as the League Room's left column lists them: each its logo and name against the left edge,
+ * the one picked lit like the header's page tabs — and under it, whatever goes with it there (`under`).
+ */
+export function RoomLeagueList({
+  leagues,
+  selectedId,
+  onSelect,
+  label,
+  under,
+}: {
+  leagues: RoomLeague[];
+  selectedId: string | null;
+  onSelect: (leagueId: string) => void;
+  label: string;
+  under?: React.ReactNode;
+}) {
+  return (
+    <ul className="flex flex-col gap-1" aria-label={label}>
+      {leagues.map((league) => {
+        const on = league.leagueId === selectedId;
+        return (
+          <li key={league.leagueId}>
+            <button
+              type="button"
+              aria-current={on || undefined}
+              onClick={() => onSelect(league.leagueId)}
+              className={`flex w-full items-center gap-2 px-3 py-2 transition-colors ${on ? "bg-[var(--map-tag)] text-[var(--map-tag-ink)]" : "text-ink-secondary hover:text-ink-primary"}`}
+            >
+              <span className="min-w-0 flex-1">
+                <LeagueTitle league={league} start />
+              </span>
+            </button>
+            {on && under ? <div className="pb-2 pt-1">{under}</div> : null}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+/**
  * On a phone, the league you're looking at in the middle of the page header (see header-slot.ts): its name, centred —
  * swiped sideways to the next league (or back) along with its lineups under it (see useSwipePager: `bar` is swiped,
  * `track` slides), or tapped to drop down every league to pick from, right across the screen under the header.

@@ -1,299 +1,414 @@
 "use client";
 
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useId, useMemo, useRef, useState } from "react";
 import { TradeCalcFloorContext } from "@/components/FloorTradeCalc";
 import { PlayerHeadshot } from "@/components/PlayerHeadshot";
 import { TradeMonitor } from "@/hooks/useTradeMonitor";
 import { ordinal } from "@/lib/format";
 import { shownGrade, valueGrade } from "@/lib/player-values";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
-import { afterTrade, evenUps, FAIR_SHARE, MONITOR_POSITIONS, MonitorPlayer, positionalNeeds, weighTrade } from "@/lib/trade-monitor";
+import { afterTrade, evenUps, MONITOR_POSITIONS, MonitorPlayer, positionalNeeds, weighTrade } from "@/lib/trade-monitor";
 
-/** A piece a team could trade: a player, or a future draft pick. */
+/** A piece a team could trade: a player, or a future draft pick — and whose it is. */
 interface Piece {
   id: string;
   label: string;
   /** A player's position, or "PICK". */
   position: string;
   value: number | null;
+  owner: number;
   player?: MonitorPlayer;
 }
 
 const grade = (value: number) => shownGrade(valueGrade(value));
+/** How many names a search offers at once. */
+const MOST_OFFERED = 6;
+const SELECT = "w-full min-w-0 truncate border-b border-border bg-transparent py-1 text-xs font-bold uppercase tracking-wide text-ink-primary outline-none focus:border-ink-primary";
 
-/** One side of the trade: what's in it, and a list to add more from that team's roster and picks. */
+/**
+ * Finding a piece to add by its name: typed, the closest matches offered under it as it's typed (names starting with
+ * it first, then any with it in them), the first taken with Enter. Focused before anything's typed, the most
+ * valuable there are to add.
+ */
+function PieceSearch({ pool, label, onAdd }: { pool: Piece[]; label: string; onAdd: (id: string) => void }) {
+  const [text, setText] = useState("");
+  const [open, setOpen] = useState(false);
+  const [lit, setLit] = useState(0);
+  const listId = useId();
+  const box = useRef<HTMLDivElement>(null);
+  const offered = useMemo(() => {
+    const typed = text.trim().toLowerCase();
+    if (!typed) return pool.slice(0, MOST_OFFERED);
+    const words = (p: Piece) => p.label.toLowerCase();
+    const starts = pool.filter((p) => words(p).startsWith(typed) || words(p).split(" ").some((w) => w.startsWith(typed)));
+    const within = pool.filter((p) => !starts.includes(p) && words(p).includes(typed));
+    return [...starts, ...within].slice(0, MOST_OFFERED);
+  }, [pool, text]);
+  // A tap anywhere else puts the list away.
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: PointerEvent) => {
+      if (!box.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", away);
+    return () => document.removeEventListener("pointerdown", away);
+  }, [open]);
+  const add = (piece: Piece | undefined) => {
+    if (!piece) return;
+    onAdd(piece.id);
+    setText("");
+    setLit(0);
+  };
+  return (
+    <div ref={box} className="relative">
+      <input
+        type="search"
+        value={text}
+        onChange={(e) => {
+          setText(e.target.value);
+          setLit(0);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") return setOpen(false);
+          if (e.key !== "ArrowDown" && e.key !== "ArrowUp" && e.key !== "Enter") return;
+          e.preventDefault();
+          if (e.key === "ArrowDown") setLit((i) => Math.min(offered.length - 1, i + 1));
+          else if (e.key === "ArrowUp") setLit((i) => Math.max(0, i - 1));
+          else add(offered[lit]);
+        }}
+        placeholder="+ Add a player or pick"
+        aria-label={label}
+        aria-controls={listId}
+        aria-expanded={open}
+        role="combobox"
+        aria-autocomplete="list"
+        className="w-full min-w-0 border-b border-border bg-transparent py-1 text-xs text-ink-primary outline-none placeholder:text-ink-muted focus:border-ink-primary"
+      />
+      {open && offered.length > 0 ? (
+        <ul id={listId} role="listbox" className="absolute inset-x-0 top-full z-30 mt-0.5 border border-border bg-page shadow-lg">
+          {offered.map((p, i) => (
+            <li key={p.id} role="option" aria-selected={i === lit}>
+              <button
+                type="button"
+                onPointerDown={(e) => e.preventDefault()}
+                onClick={() => add(p)}
+                onPointerEnter={() => setLit(i)}
+                className={`flex w-full items-center gap-1.5 px-1.5 py-1 text-left text-xs ${i === lit ? "bg-[var(--map-tag)] text-[var(--map-tag-ink)]" : "text-ink-primary"}`}
+              >
+                <span className="min-w-0 flex-1 truncate font-bold">{p.label}</span>
+                {p.player ? <span className={`shrink-0 text-[0.625rem] font-semibold uppercase ${i === lit ? "" : (POSITION_TEXT_COLOR[p.position] ?? "text-ink-muted")}`}>{p.position}</span> : null}
+                <span className="shrink-0 tabular-nums">{p.value != null ? grade(p.value) : "–"}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
+/** One side of the trade: what it gives, a way out for each piece, KTC's added value it's due, and a search to add more. */
 function Side({
-  title,
+  team,
   pieces,
-  chosen,
+  pool,
+  label,
+  added,
+  ownerName,
+  showOwner,
   onAdd,
   onRemove,
   onOpen,
-  added,
 }: {
-  title: string;
+  /** The side's team to pick, over the rest. */
+  team: React.ReactNode;
   pieces: Piece[];
-  chosen: string[];
+  pool: Piece[];
+  label: string;
   /** KTC's added value this side's due on top of its pieces (see weighTrade), shown as a line of its own. */
   added: number;
+  ownerName: (rosterId: number) => string;
+  /** Whose each piece is, under it — with no team picked for the side. */
+  showOwner: boolean;
   onAdd: (id: string) => void;
   onRemove: (id: string) => void;
   onOpen: (p: MonitorPlayer) => void;
 }) {
-  const byId = new Map(pieces.map((p) => [p.id, p]));
-  const left = pieces.filter((p) => !chosen.includes(p.id));
   return (
-    <div className="flex min-w-0 flex-col gap-2">
-      <h3 className="truncate border-b border-ink-primary pb-0.5 text-xs font-extrabold uppercase tracking-wide text-ink-primary">{title}</h3>
+    <div className="flex min-w-0 flex-col gap-1">
+      {/* Its team, and the search beside it where there's room (else under it). */}
+      <div className="flex min-w-0 flex-col gap-1 @md:flex-row @md:items-end @md:gap-2">
+        <div className="min-w-0 @md:w-[44%] @md:shrink-0">{team}</div>
+        <div className="min-w-0 flex-1">
+          <PieceSearch pool={pool} label={label} onAdd={onAdd} />
+        </div>
+      </div>
       <ul className="flex flex-col">
-        {chosen.map((id) => {
-          const p = byId.get(id);
-          if (!p) return null;
-          return (
-            <li key={id} className="flex items-center gap-2 border-b border-border py-1.5 last:border-b-0">
-              {p.player ? <PlayerHeadshot playerId={p.id} size={24} /> : <span className="h-6 w-6 shrink-0 rounded-full border-2 border-ink-muted" aria-hidden />}
+        {pieces.map((p) => (
+          <li key={p.id} className="flex items-center gap-1.5 py-1">
+            {p.player ? <PlayerHeadshot playerId={p.id} size={22} /> : <span className="h-[1.375rem] w-[1.375rem] shrink-0 rounded-full border-2 border-ink-muted" aria-hidden />}
+            <span className="flex min-w-0 flex-1 flex-col leading-tight">
               {p.player ? (
-                <button type="button" onClick={() => onOpen(p.player!)} className="min-w-0 truncate text-left text-sm font-bold text-ink-primary hover:underline">
+                <button type="button" onClick={() => onOpen(p.player!)} className="min-w-0 truncate text-left text-xs font-bold text-ink-primary hover:underline">
                   {p.label}
                 </button>
               ) : (
-                <span className="min-w-0 truncate text-sm font-bold text-ink-primary">{p.label}</span>
+                <span className="min-w-0 truncate text-xs font-bold text-ink-primary">{p.label}</span>
               )}
-              {p.player ? <span className={`shrink-0 text-[0.625rem] font-semibold uppercase ${POSITION_TEXT_COLOR[p.position] ?? "text-ink-muted"}`}>{p.position}</span> : null}
-              <span className="ml-auto shrink-0 text-sm font-extrabold tabular-nums text-ink-primary">{p.value != null ? grade(p.value) : "–"}</span>
-              <button
-                type="button"
-                onClick={() => onRemove(id)}
-                aria-label={`Take ${p.label} out`}
-                className="flex h-6 w-6 shrink-0 items-center justify-center border border-border text-sm text-ink-secondary hover:border-ink-primary hover:text-ink-primary"
-              >
-                ×
-              </button>
-            </li>
-          );
-        })}
+              {showOwner ? <span className="truncate text-[0.625rem] uppercase text-ink-muted">{ownerName(p.owner)}</span> : null}
+            </span>
+            {p.player ? <span className={`shrink-0 text-[0.625rem] font-semibold uppercase ${POSITION_TEXT_COLOR[p.position] ?? "text-ink-muted"}`}>{p.position}</span> : null}
+            <span className="w-6 shrink-0 text-right text-xs font-extrabold tabular-nums text-ink-primary">{p.value != null ? grade(p.value) : "–"}</span>
+            <button type="button" onClick={() => onRemove(p.id)} aria-label={`Take ${p.label} out`} className="flex h-5 w-4 shrink-0 items-center justify-center text-sm text-ink-muted hover:text-ink-primary">
+              ×
+            </button>
+          </li>
+        ))}
         {/* KTC's adjustment, as its calculator shows it: a line under the pieces, for fewer, better ones. */}
         {added > 0 ? (
-          <li className="flex items-center gap-2 border-t border-dashed border-ink-muted py-1.5" title="KTC's value adjustment: fewer, better pieces are worth more than the plain sum">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center text-sm font-extrabold text-status-good" aria-hidden>
+          <li className="flex items-center gap-1.5 py-1" title="KTC's value adjustment: fewer, better pieces are worth more than the plain sum">
+            <span className="w-[1.375rem] shrink-0 text-center text-xs font-extrabold text-status-good" aria-hidden>
               +
             </span>
-            <span className="min-w-0 truncate text-sm font-bold text-ink-secondary">Value adjustment</span>
-            <span className="ml-auto shrink-0 text-sm font-extrabold tabular-nums text-status-good">+{grade(added)}</span>
-            <span className="h-6 w-6 shrink-0" aria-hidden />
+            <span className="min-w-0 flex-1 truncate text-xs text-ink-secondary">Value adjustment</span>
+            <span className="w-6 shrink-0 text-right text-xs font-extrabold tabular-nums text-status-good">{grade(added)}</span>
+            <span className="w-4 shrink-0" aria-hidden />
           </li>
         ) : null}
       </ul>
-      <select
-        value=""
-        onChange={(e) => e.target.value && onAdd(e.target.value)}
-        aria-label={`Add to ${title}`}
-        className="min-w-0 border border-border bg-page px-2 py-1.5 text-xs text-ink-primary focus:border-ink-primary"
-      >
-        <option value="">+ Add a player or pick…</option>
-        {left.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.label}
-            {p.player ? ` · ${p.position}` : ""}
-            {p.value != null ? ` · ${grade(p.value)}` : ""}
-          </option>
-        ))}
-      </select>
     </div>
   );
 }
 
 /**
- * A trade with any other team in the league, weighed the way KTC's calculator weighs one: what you'd give and
- * get — players and future picks — each side's value with the added value fewer, better pieces are due, who comes
- * out ahead (or that it's fair), and what it does to both rosters' ranks at each position. In a room with a floor for
- * it (see TradeCalcFloorContext), what's in it stands on the floor too.
+ * A trade between any two sides in the league, weighed the way KTC's calculator weighs one: what each gives —
+ * players and future picks — each side's value with the added value fewer, better pieces are due, and who comes out
+ * ahead (or that it's fair). A team picked for each side narrows what it can give to that team's own; with only the
+ * right side's picked, the left's is yours. With no teams picked, anyone in the league can go on either side, found
+ * by name. With both sides' teams known, what it'd do to both rosters' ranks at each position, and what would even it
+ * out. Cleared at the top right. In a room with a floor for it (see TradeCalcFloorContext), what's in it stands on
+ * the floor too.
  */
 export function TradeCalculator({ monitor, onOpen }: { monitor: TradeMonitor; onOpen: (p: MonitorPlayer) => void }) {
   const mine = monitor.teams.find((t) => t.mine);
-  const others = monitor.teams.filter((t) => !t.mine);
-  // The best trade partner to start with, else the first team.
-  const [partnerId, setPartnerId] = useState(monitor.partners[0]?.rosterId ?? others[0]?.rosterId ?? null);
-  const [give, setGive] = useState<string[]>([]);
-  const [get, setGet] = useState<string[]>([]);
+  const [leftTeam, setLeftTeam] = useState<number | null>(null);
+  const [rightTeam, setRightTeam] = useState<number | null>(null);
+  const [left, setLeft] = useState<string[]>([]);
+  const [right, setRight] = useState<string[]>([]);
   const teamName = (rosterId: number) => monitor.teams.find((t) => t.rosterId === rosterId)?.name ?? `Team ${rosterId}`;
-  // What's in it, on the room's floor where there's one.
-  const toFloor = useContext(TradeCalcFloorContext);
-  const floorKey = `${partnerId}|${give.join(",")}|${get.join(",")}`;
+  // With only the right side's team picked, the left's is yours.
+  const leftOwner = leftTeam ?? (rightTeam !== null ? (mine?.rosterId ?? null) : null);
+  const rightOwner = rightTeam;
 
-  // A team's pieces, most valuable first: its players and its picks.
-  const piecesOf = (rosterId: number): Piece[] => {
-    const team = monitor.teams.find((t) => t.rosterId === rosterId);
-    const players = (team?.players ?? []).flatMap((id): Piece[] => {
-      const p = monitor.players.get(id);
-      return p ? [{ id, label: p.name, position: p.position, value: p.value, player: p }] : [];
-    });
-    const picks = monitor.picks
-      .filter((p) => p.rosterId === rosterId)
-      .map((p): Piece => ({
+  // Every team's pieces, most valuable first: its players and its picks.
+  const all = useMemo(() => {
+    const out: Piece[] = [];
+    for (const team of monitor.teams) {
+      for (const id of team.players) {
+        const p = monitor.players.get(id);
+        if (p) out.push({ id, label: p.name, position: p.position, value: p.value, owner: team.rosterId, player: p });
+      }
+    }
+    for (const p of monitor.picks) {
+      const name = monitor.teams.find((t) => t.rosterId === p.originalRosterId)?.name;
+      out.push({
         id: p.id,
-        label: `${p.season} ${ordinal(p.round)}${p.originalRosterId !== rosterId ? ` (${teamName(p.originalRosterId)})` : ""}`,
+        label: `${p.season} ${ordinal(p.round)}${p.originalRosterId !== p.rosterId ? ` (${name ?? `Team ${p.originalRosterId}`})` : ""}`,
         position: "PICK",
         value: p.value,
-      }));
-    return [...players, ...picks].sort((a, b) => (b.value ?? -1) - (a.value ?? -1));
+        owner: p.rosterId,
+      });
+    }
+    return out.sort((a, b) => (b.value ?? -1) - (a.value ?? -1));
+  }, [monitor]);
+  const byId = useMemo(() => new Map(all.map((p) => [p.id, p])), [all]);
+  const piecesIn = (ids: string[]) => ids.flatMap((id) => (byId.has(id) ? [byId.get(id)!] : []));
+  const [leftPieces, rightPieces] = [piecesIn(left), piecesIn(right)];
+  // What a side can still add: its team's, where it's known; else anyone's not the other side's team — and nothing
+  // already in the trade.
+  const chosen = new Set([...left, ...right]);
+  const poolFor = (owner: number | null, other: number | null) => all.filter((p) => !chosen.has(p.id) && (owner !== null ? p.owner === owner : p.owner !== other));
+
+  // A side's team picked: anything of another team's taken off it.
+  const pickTeam = (side: "left" | "right", rosterId: number | null) => {
+    const nextLeft = side === "left" ? rosterId : leftTeam;
+    const nextRight = side === "right" ? rosterId : rightTeam;
+    const nextLeftOwner = nextLeft ?? (nextRight !== null ? (mine?.rosterId ?? null) : null);
+    if (side === "left") setLeftTeam(rosterId);
+    else setRightTeam(rosterId);
+    setLeft((ids) => (nextLeftOwner === null ? ids : ids.filter((id) => byId.get(id)?.owner === nextLeftOwner)));
+    setRight((ids) => (nextRight === null ? ids : ids.filter((id) => byId.get(id)?.owner === nextRight)));
+  };
+  const clear = () => {
+    setLeftTeam(null);
+    setRightTeam(null);
+    setLeft([]);
+    setRight([]);
   };
 
-  const ours = mine ? piecesOf(mine.rosterId) : [];
-  const theirs = partnerId != null ? piecesOf(partnerId) : [];
+  const sideName = (owner: number | null, fallback: string) => (owner === null ? fallback : owner === mine?.rosterId ? "You" : teamName(owner));
+  const [leftName, rightName] = [sideName(leftOwner, "Side A"), sideName(rightOwner, "Side B")];
+
+  // What's in it, on the room's floor where there's one.
+  const toFloor = useContext(TradeCalcFloorContext);
+  const floorKey = `${leftName}|${rightName}|${left.join(",")}|${right.join(",")}`;
   useEffect(() => {
     if (!toFloor) return;
-    const find = (id: string) => [...ours, ...theirs].find((p) => p.id === id);
-    const of = (ids: string[]) => ids.flatMap((id) => {
-      const p = find(id);
-      return p ? [{ id: p.id, label: p.label, position: p.position, value: p.value }] : [];
-    });
-    toFloor(give.length + get.length > 0 ? { give: of(give), get: of(get) } : null);
+    const of = (pieces: Piece[]) => pieces.map((p) => ({ id: p.id, label: p.label, position: p.position, value: p.value }));
+    toFloor(left.length + right.length > 0 ? { give: of(leftPieces), get: of(rightPieces), titles: [`${leftName} ${leftName === "You" ? "give" : "gives"}`, `${rightName} ${rightName === "You" ? "give" : "gives"}`] } : null);
     // (What's in it is the key's: it says when that changes.)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toFloor, floorKey]);
   useEffect(() => (toFloor ? () => toFloor(null) : undefined), [toFloor]);
 
-  if (!mine || partnerId == null) return <p className="py-4 text-center text-sm text-ink-secondary">You need a team in this league to trade.</p>;
-  const value = (id: string) => [...ours, ...theirs].find((p) => p.id === id)?.value ?? 0;
-  const verdict = weighTrade(give.map(value), get.map(value));
-  const any = give.length + get.length > 0;
-  const before = positionalNeeds(monitor.teams, monitor.players, monitor.starters);
-  const after = positionalNeeds(afterTrade(monitor.teams, mine.rosterId, partnerId, give, get), monitor.players, monitor.starters);
-  const rankIn = (needs: typeof before, rosterId: number) => needs.find((n) => n.rosterId === rosterId)!.positions;
+  const value = (id: string) => byId.get(id)?.value ?? 0;
+  // Weighed from the left side's: what it gives, and what it gets (the right's).
+  const verdict = weighTrade(left.map(value), right.map(value));
+  const any = left.length + right.length > 0;
   const total = verdict.give.total + verdict.get.total;
-  // Ahead, pieces of yours would even it; behind, pieces of theirs.
+  const known = leftOwner !== null && rightOwner !== null;
+  const ranks = useMemo(() => {
+    if (!known || !any) return null;
+    const before = positionalNeeds(monitor.teams, monitor.players, monitor.starters);
+    const after = positionalNeeds(afterTrade(monitor.teams, leftOwner!, rightOwner!, left, right), monitor.players, monitor.starters);
+    const at = (needs: typeof before, rosterId: number) => needs.find((n) => n.rosterId === rosterId)!.positions;
+    return [leftOwner!, rightOwner!].map((rosterId) => ({ rosterId, was: at(before, rosterId), will: at(after, rosterId) }));
+  }, [known, any, monitor, leftOwner, rightOwner, left, right]);
+  // Ahead, pieces of the left side's would even it; behind, pieces of the right's — with both teams known.
   const ahead = verdict.margin > 0;
-  const balancers = evenUps(
-    give.map(value),
-    get.map(value),
-    (ahead ? ours.filter((p) => !give.includes(p.id)) : theirs.filter((p) => !get.includes(p.id))).map((p) => ({ id: p.id, value: p.value })),
-    ahead ? "give" : "get"
+  const balancers =
+    known && !verdict.fair && left.length > 0 && right.length > 0
+      ? evenUps(
+          left.map(value),
+          right.map(value),
+          poolFor(ahead ? leftOwner : rightOwner, null).map((p) => ({ id: p.id, value: p.value })),
+          ahead ? "give" : "get"
+        )
+      : [];
+  const winner = verdict.margin > 0 ? leftName : rightName;
+  const teamOptions = (
+    <>
+      {monitor.teams.map((t) => (
+        <option key={t.rosterId} value={t.rosterId}>
+          {t.mine ? `${t.name} (you)` : t.name}
+        </option>
+      ))}
+    </>
   );
 
   return (
-    <div className="flex flex-col gap-4">
-      <label className="flex flex-wrap items-center gap-2 text-[0.6875rem] font-bold uppercase tracking-wide text-ink-muted">
-        Trade with
-        <select
-          value={partnerId}
-          onChange={(e) => {
-            setPartnerId(Number(e.target.value));
-            setGet([]);
-          }}
-          className="border border-ink-primary bg-page px-1.5 py-1 text-xs font-bold uppercase text-ink-primary"
-        >
-          {others.map((t) => (
-            <option key={t.rosterId} value={t.rosterId}>
-              {t.name}
-              {monitor.partners.some((p) => p.rosterId === t.rosterId) ? " · good fit" : ""}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Side title="You give" pieces={ours} chosen={give} onAdd={(id) => setGive((g) => [...g, id])} onRemove={(id) => setGive((g) => g.filter((x) => x !== id))} onOpen={onOpen} added={verdict.give.added} />
-        <Side title={`You get from ${teamName(partnerId)}`} pieces={theirs} chosen={get} onAdd={(id) => setGet((g) => [...g, id])} onRemove={(id) => setGet((g) => g.filter((x) => x !== id))} onOpen={onOpen} added={verdict.get.added} />
+    <div className="@container flex flex-col gap-2">
+      <div className="flex items-baseline justify-between border-b border-ink-primary/60 pb-1 text-xs font-bold uppercase tracking-wide text-ink-primary">
+        <span>Trade calculator</span>
+        <button type="button" onClick={clear} disabled={!any && leftTeam === null && rightTeam === null} className="text-[0.6875rem] font-bold uppercase tracking-wide text-ink-muted hover:text-ink-primary disabled:opacity-40">
+          Clear
+        </button>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Side
+          team={
+            <select aria-label="Left side's team" value={leftTeam ?? ""} onChange={(e) => pickTeam("left", e.target.value === "" ? null : Number(e.target.value))} className={SELECT}>
+              <option value="">{rightTeam !== null && mine ? `${mine.name} (you)` : "Any team"}</option>
+              {teamOptions}
+            </select>
+          }
+          pieces={leftPieces}
+          pool={poolFor(leftOwner, rightOwner)}
+          label={`Add to what ${leftName} ${leftName === "You" ? "give" : "gives"}`}
+          added={verdict.give.added}
+          ownerName={teamName}
+          showOwner={leftOwner === null}
+          onAdd={(id) => setLeft((ids) => [...ids, id])}
+          onRemove={(id) => setLeft((ids) => ids.filter((x) => x !== id))}
+          onOpen={onOpen}
+        />
+        <Side
+          team={
+            <select aria-label="Right side's team" value={rightTeam ?? ""} onChange={(e) => pickTeam("right", e.target.value === "" ? null : Number(e.target.value))} className={SELECT}>
+              <option value="">Any team</option>
+              {teamOptions}
+            </select>
+          }
+          pieces={rightPieces}
+          pool={poolFor(rightOwner, leftOwner)}
+          label={`Add to what ${rightName} ${rightName === "You" ? "give" : "gives"}`}
+          added={verdict.get.added}
+          ownerName={teamName}
+          showOwner={rightOwner === null}
+          onAdd={(id) => setRight((ids) => [...ids, id])}
+          onRemove={(id) => setRight((ids) => ids.filter((x) => x !== id))}
+          onOpen={onOpen}
+        />
       </div>
 
       {any ? (
-        <div className="flex flex-col gap-3 border-t border-border pt-3">
+        <div className="flex flex-col gap-2 pt-1">
           {/* Who comes out ahead: each side's total (added value and all), a bar split between them, and the verdict. */}
-          <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-3">
-            <div className="flex flex-col">
-              <span className="text-[0.625rem] font-bold uppercase tracking-wide text-ink-muted">You give</span>
-              <span className="text-3xl font-extrabold leading-none tabular-nums text-ink-primary">{grade(verdict.give.total)}</span>
+          <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
+            <span className="text-xl font-extrabold leading-none tabular-nums text-ink-primary">{grade(verdict.give.total)}</span>
+            <div className="flex h-1.5 w-full gap-0.5" aria-hidden>
+              <span className="h-full bg-ink-muted" style={{ width: `${total > 0 ? (verdict.give.total / total) * 100 : 50}%` }} />
+              <span className="h-full bg-ink-primary" style={{ width: `${total > 0 ? (verdict.get.total / total) * 100 : 50}%` }} />
             </div>
-            <span
-              className={`border px-2 py-1 text-center text-xs font-extrabold uppercase tracking-wide ${
-                verdict.fair ? "border-ink-primary text-ink-primary" : verdict.margin > 0 ? "border-status-good text-status-good" : "border-status-critical text-status-critical"
-              }`}
-            >
-              {verdict.fair ? "Fair" : verdict.margin > 0 ? `You win by ${grade(verdict.margin)}` : `You lose by ${grade(-verdict.margin)}`}
-            </span>
-            <div className="flex flex-col items-end">
-              <span className="text-[0.625rem] font-bold uppercase tracking-wide text-ink-muted">You get</span>
-              <span className="text-3xl font-extrabold leading-none tabular-nums text-ink-primary">{grade(verdict.get.total)}</span>
-            </div>
+            <span className="text-xl font-extrabold leading-none tabular-nums text-ink-primary">{grade(verdict.get.total)}</span>
           </div>
-          <div className="flex h-2.5 w-full gap-0.5" aria-hidden>
-            <span className="h-full bg-ink-muted" style={{ width: `${total > 0 ? (verdict.give.total / total) * 100 : 50}%` }} />
-            <span className="h-full bg-ink-primary" style={{ width: `${total > 0 ? (verdict.get.total / total) * 100 : 50}%` }} />
-          </div>
+          <span
+            className={`text-center text-xs font-extrabold uppercase tracking-wide ${
+              verdict.fair ? "text-ink-primary" : winner === "You" ? "text-status-good" : leftName === "You" || rightName === "You" ? "text-status-critical" : "text-ink-primary"
+            }`}
+          >
+            {verdict.fair ? "Fair" : `${winner} ${winner === "You" ? "win" : "wins"} by ${grade(Math.abs(verdict.margin))}`}
+          </span>
 
-          {/* What would even it out: ahead, pieces of yours to add; behind, pieces of theirs to ask for. */}
-          {!verdict.fair && give.length > 0 && get.length > 0 ? (
-            <div className="flex flex-col gap-1.5">
-              <span className="text-[0.6875rem] font-bold uppercase tracking-wide text-ink-secondary">
-                {ahead ? "Add one of yours to even it out" : `Ask for one of ${teamName(partnerId)}'s to even it out`}
-              </span>
-              {balancers.length > 0 ? (
-                <ul className="grid gap-1.5 sm:grid-cols-2">
-                  {balancers.map((b) => {
-                    const p = [...ours, ...theirs].find((x) => x.id === b.id)!;
-                    return (
-                      <li key={b.id}>
-                        <button
-                          type="button"
-                          onClick={() => (ahead ? setGive((g) => [...g, b.id]) : setGet((g) => [...g, b.id]))}
-                          className="flex w-full items-center gap-2 border border-border px-2 py-1.5 text-left hover:border-ink-primary"
-                        >
-                          {p.player ? <PlayerHeadshot playerId={p.id} size={22} /> : <span className="h-[1.375rem] w-[1.375rem] shrink-0 rounded-full border-2 border-ink-muted" aria-hidden />}
-                          <span className="min-w-0 flex-1 truncate text-sm font-bold text-ink-primary">
-                            {p.label}
-                            {p.player ? <span className={`ml-1.5 text-[0.625rem] font-semibold uppercase ${POSITION_TEXT_COLOR[p.position] ?? "text-ink-muted"}`}>{p.position}</span> : null}
-                          </span>
-                          <span className="shrink-0 text-sm font-extrabold tabular-nums text-ink-primary">{p.value != null ? grade(p.value) : ""}</span>
-                          <span
-                            className={`shrink-0 text-[0.6875rem] font-bold uppercase ${b.verdict.fair ? "text-ink-primary" : b.verdict.margin > 0 ? "text-status-good" : "text-status-critical"}`}
-                          >
-                            {b.verdict.fair ? "→ Fair" : b.verdict.margin > 0 ? `→ Up ${grade(b.verdict.margin)}` : `→ Down ${grade(-b.verdict.margin)}`}
-                          </span>
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : (
-                <p className="text-xs text-ink-muted">Nothing on its own brings it closer: a smaller piece only adds to the other side&rsquo;s value adjustment.</p>
-              )}
+          {/* What would even it out: ahead, pieces of the left side's to add; behind, pieces of the right's to ask for. */}
+          {balancers.length > 0 ? (
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[0.625rem] font-bold uppercase tracking-wide text-ink-muted">{`Add from ${ahead ? leftName : rightName} to even it out`}</span>
+              <ul className="flex flex-wrap gap-x-3 gap-y-0.5">
+                {balancers.map((b) => {
+                  const p = byId.get(b.id)!;
+                  return (
+                    <li key={b.id}>
+                      <button
+                        type="button"
+                        onClick={() => (ahead ? setLeft((ids) => [...ids, b.id]) : setRight((ids) => [...ids, b.id]))}
+                        className="flex items-baseline gap-1 text-xs hover:underline"
+                      >
+                        <span className="font-bold text-ink-primary">{p.label}</span>
+                        <span className="tabular-nums text-ink-muted">{p.value != null ? grade(p.value) : ""}</span>
+                        <span className={`text-[0.625rem] font-bold uppercase ${b.verdict.fair ? "text-ink-primary" : "text-ink-muted"}`}>{b.verdict.fair ? "→ fair" : ""}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
           ) : null}
 
-          {/* What it does to both rosters: each team's rank at each position, before and after. */}
-          <div className="grid gap-3 sm:grid-cols-2">
-            {[mine.rosterId, partnerId].map((rosterId) => {
-              const [was, will] = [rankIn(before, rosterId), rankIn(after, rosterId)];
-              return (
-                <div key={rosterId} className="flex flex-col gap-1">
-                  <span className="truncate text-[0.6875rem] font-bold uppercase tracking-wide text-ink-secondary">
-                    {rosterId === mine.rosterId ? "Your roster" : `${teamName(rosterId)}'s roster`}
-                  </span>
-                  <div className="grid grid-cols-4 gap-1">
-                    {MONITOR_POSITIONS.map((p) => {
-                      const change = was[p].rank - will[p].rank;
-                      return (
-                        <span key={p} className="flex flex-col items-center border border-border py-1 leading-tight" title={`${p} rank among the league's ${monitor.teams.length} teams`}>
-                          <span className={`text-[0.625rem] font-semibold ${POSITION_TEXT_COLOR[p] ?? ""}`}>{p}</span>
-                          <span className={`text-xs font-extrabold tabular-nums ${change > 0 ? "text-status-good" : change < 0 ? "text-status-critical" : "text-ink-secondary"}`}>
-                            {change === 0 ? `#${will[p].rank}` : `#${was[p].rank}→#${will[p].rank}`}
-                          </span>
+          {/* What it does to both rosters: each team's rank at each position, where it'd change. */}
+          {ranks ? (
+            <div className="grid grid-cols-2 gap-3">
+              {ranks.map(({ rosterId, was, will }) => (
+                <div key={rosterId} className="flex min-w-0 flex-wrap items-baseline gap-x-2 text-[0.6875rem]">
+                  {MONITOR_POSITIONS.map((p) => {
+                    const change = was[p].rank - will[p].rank;
+                    return (
+                      <span key={p} className="whitespace-nowrap tabular-nums" title={`${p} rank among the league's ${monitor.teams.length} teams`}>
+                        <span className={`font-semibold ${POSITION_TEXT_COLOR[p] ?? ""}`}>{p}</span>{" "}
+                        <span className={`font-extrabold ${change > 0 ? "text-status-good" : change < 0 ? "text-status-critical" : "text-ink-secondary"}`}>
+                          {change === 0 ? `#${will[p].rank}` : `#${was[p].rank}→${will[p].rank}`}
                         </span>
-                      );
-                    })}
-                  </div>
+                      </span>
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
-          <p className="text-[0.6875rem] text-ink-muted">
-            Values are KTC&rsquo;s, as this league plays; picks at the middle of their round. Fair is within {Math.round(FAIR_SHARE * 100)}% of each other.
-          </p>
+              ))}
+            </div>
+          ) : null}
         </div>
-      ) : (
-        <p className="text-sm text-ink-secondary">Add what you&rsquo;d give and what you&rsquo;d want back to weigh the trade.</p>
-      )}
+      ) : null}
     </div>
   );
 }

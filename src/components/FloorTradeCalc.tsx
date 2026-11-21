@@ -19,6 +19,8 @@ export interface CalcPiece {
 export interface CalcFloor {
   give: CalcPiece[];
   get: CalcPiece[];
+  /** Each side's name at its front — "You give" and "You get", without. */
+  titles?: [string, string];
 }
 
 /**
@@ -71,8 +73,8 @@ export function FloorTradeCalc({ calc, room }: { calc: CalcFloor; room: { width:
   const span = (width * 0.9) / nearest;
   const face = Math.min(span * 0.1, MOST_FACE_PX / nearest);
   const sides = [
-    { key: "give", title: "You give", pieces: calc.give, toward: -1 },
-    { key: "get", title: "You get", pieces: calc.get, toward: 1 },
+    { key: "give", title: calc.titles?.[0] ?? "You give", pieces: calc.give, toward: -1 },
+    { key: "get", title: calc.titles?.[1] ?? "You get", pieces: calc.get, toward: 1 },
   ];
   // How many a side has, at most: how far apart they stand, back and across.
   const most = Math.max(1, ...sides.map((s) => s.pieces.length));
@@ -101,7 +103,8 @@ export function FloorTradeCalc({ calc, room }: { calc: CalcFloor; room: { width:
           <span
             key={t.key}
             className="absolute top-0 whitespace-nowrap text-[0.6875rem] font-extrabold uppercase tracking-wide text-ink-secondary"
-            style={{ left: t.x, top: t.y + 8, transform: "translateX(-50%)" }}
+            // Each ending (or starting) under its nearest piece's outer edge, so the two never run into each other.
+            style={{ left: t.x + (t.toward < 0 ? face * nearest * 0.5 : -face * nearest * 0.5), top: t.y + 8, transform: t.toward < 0 ? "translateX(-100%)" : "none" }}
           >
             {t.title}
           </span>

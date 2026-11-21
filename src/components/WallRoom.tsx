@@ -70,19 +70,22 @@ export function useWideRoom(): boolean {
 
 /**
  * A column standing in the room: on the back wall down to just over the horizon, scrolling on its own, reflected in the
- * floor. The one marked `stage` is where a player's card comes up (see WallRoom's `card`), stepping aside for it.
+ * floor. The one marked `stage` is where a player's card comes up (see WallRoom's `card`), stepping aside for it. Its
+ * `head`, where it has one, stays put at its top while what's under it scrolls.
  */
 export function RoomColumn({
   label,
   className = "",
   style,
   stage = false,
+  head,
   children,
 }: {
   label: string;
   className?: string;
   style?: React.CSSProperties;
   stage?: boolean;
+  head?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const [list, setList] = useState<HTMLDivElement | null>(null);
@@ -91,7 +94,18 @@ export function RoomColumn({
   const away = stage && !!stageOf?.up;
   // Scrolled as an iPhone scrolls, by the page, so its reflection moves with it exactly (see useListScroll).
   useListScroll(list);
-  const pad = { paddingTop: `calc(${UNDER_HEADER})` };
+  // How tall its head is: what scrolls starts under it.
+  const [headBox, setHeadBox] = useState<HTMLDivElement | null>(null);
+  const [headHeight, setHeadHeight] = useState(0);
+  useEffect(() => {
+    if (!headBox) return;
+    const measure = () => setHeadHeight(headBox.offsetHeight);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(headBox);
+    return () => observer.disconnect();
+  }, [headBox]);
+  const pad = head ? { top: headHeight, paddingTop: "0.5rem" } : { paddingTop: `calc(${UNDER_HEADER})` };
   return (
     <section
       ref={place}
@@ -100,6 +114,11 @@ export function RoomColumn({
       className={`relative min-w-0 transition-opacity duration-300 ${away ? "pointer-events-none opacity-0" : ""} ${className}`}
       style={style}
     >
+      {head ? (
+        <div ref={setHeadBox} className="absolute inset-x-0 top-0 z-20" style={{ paddingTop: `calc(${UNDER_HEADER})` }}>
+          {head}
+        </div>
+      ) : null}
       <div
         ref={setList}
         data-scroll-list
@@ -127,12 +146,15 @@ export function WallRoom({
   card = null,
   onCloseCard,
   floor,
+  floorShare = HORIZON_SHARE,
   children,
 }: {
   title: string;
   card?: RoomCard | null;
   onCloseCard?: () => void;
   floor?: ((room: { width: number; height: number; share: number; bottom: number }) => React.ReactNode) | null;
+  /** Where the horizon drops to while something's on the floor (its share of the room's height) — the League Room's, unless given. */
+  floorShare?: number;
   children: React.ReactNode;
 }) {
   // The room fits the screen: the page itself never scrolls (only its columns do).
@@ -187,9 +209,9 @@ export function WallRoom({
   // The horizon: low, the back wall most of the screen — as the League Room's while something's laid on the floor; a
   // player's card keeps it where it is (his charts on the wall, who he is on the floor in front).
   const up = card !== null;
-  const share = useEasedShare(floor && !up ? HORIZON_SHARE : WALL_SHARE);
+  const share = useEasedShare(floor && !up ? floorShare : WALL_SHARE);
   // What's on the floor, once the horizon's there for it.
-  const floorShown = floor && !up && roomSize && Math.abs(share - HORIZON_SHARE) < 1e-3 ? floor({ ...roomSize, share, bottom: roomSize.height - tabBar }) : null;
+  const floorShown = floor && !up && roomSize && Math.abs(share - floorShare) < 1e-3 ? floor({ ...roomSize, share, bottom: roomSize.height - tabBar }) : null;
   const stage =
     roomSize && stageBox
       ? {
