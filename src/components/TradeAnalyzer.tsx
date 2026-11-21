@@ -129,7 +129,6 @@ function TradeChart({ trade, colorOf }: { trade: AnalyzedTrade; colorOf: (side: 
   // over the chart's first stretch (LEAD_IN) — the weeks drawn across the rest.
   const lead = lefts.some((at, i) => Math.abs(at - starts[i]) > 0.5) ? LEAD_IN : 0;
   const x = (day: number) => lead + (last > first ? ((day - first) / (last - first)) * (100 - lead) : 0);
-  const named = lines.some((l) => l.asset.became);
   // The values inside the chart: every line's when traded by its start, and a drafted pick's now by its end.
   const h = (11 / Math.max(1, tall)) * 100;
   const pad = (3 / Math.max(1, tall)) * 100;
@@ -154,16 +153,25 @@ function TradeChart({ trade, colorOf }: { trade: AnalyzedTrade; colorOf: (side: 
   return (
     <div
       ref={box}
-      className={`grid min-h-[5rem] flex-1 ${named ? "grid-cols-[minmax(0,8rem)_minmax(0,1fr)_minmax(0,8rem)]" : "grid-cols-[minmax(0,8rem)_minmax(0,1fr)_2rem]"} gap-x-0 gap-y-1.5`}
+      // Each side as wide as its longest name (or value) needs and no wider, the chart the rest.
+      className="grid min-h-[5rem] flex-1 grid-cols-[auto_minmax(0,1fr)_auto] gap-x-0 gap-y-1.5"
       role="img"
       aria-label="Each piece's value from the trade to now"
     >
       {/* Each piece's name, right beside where its line starts. */}
       <div className="relative">
+        {/* (Unseen, its names one under another: what sets how wide it is.) */}
+        <div aria-hidden className="invisible h-0 overflow-hidden pr-1.5">
+          {lines.map((l, i) => (
+            <div key={i} className="whitespace-nowrap text-xs font-semibold leading-none">
+              {l.asset.label}
+            </div>
+          ))}
+        </div>
         {lines.map((l, i) => (
           <span
             key={i}
-            className={`${label} right-1.5 max-w-[calc(100%-0.375rem)] truncate font-semibold`}
+            className={`${label} right-1.5 font-semibold`}
             style={{ top: `${lefts[i]}%`, color: l.color }}
             title={[l.asset.label, l.asset.became ? `became ${l.asset.became.name}` : null, l.asset.pickOf ? `(${l.asset.pickOf})` : null].filter(Boolean).join(" ")}
           >
@@ -222,9 +230,17 @@ function TradeChart({ trade, colorOf }: { trade: AnalyzedTrade; colorOf: (side: 
       </div>
       {/* By where each line ends: its value now — or, a pick that's become a player, who he is. */}
       <div className="relative">
+        {/* (Unseen, what's by each line's end one under another: what sets how wide it is.) */}
+        <div aria-hidden className="invisible h-0 overflow-hidden pl-1.5">
+          {lines.map((l, i) => (
+            <div key={i} className={`whitespace-nowrap text-xs leading-none ${l.asset.became ? "font-semibold" : "font-bold tabular-nums"}`}>
+              {l.asset.became ? l.asset.became.name : <Shown value={l.asset.now} />}
+            </div>
+          ))}
+        </div>
         {lines.map((l, i) =>
           l.asset.became ? (
-            <span key={i} className={`${label} left-1.5 max-w-[calc(100%-0.375rem)] truncate font-semibold`} style={{ top: `${rights[i]}%`, color: l.color }} title={`${l.asset.label} became ${l.asset.became.name}`}>
+            <span key={i} className={`${label} left-1.5 font-semibold`} style={{ top: `${rights[i]}%`, color: l.color }} title={`${l.asset.label} became ${l.asset.became.name}`}>
               {l.asset.became.name}
             </span>
           ) : (
