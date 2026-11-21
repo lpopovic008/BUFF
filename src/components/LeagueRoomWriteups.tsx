@@ -44,10 +44,15 @@ interface PanelProps {
   /** Where the write-up's contents go (from laptop width up, the right-hand column): none, no contents. */
   contentsSlot?: HTMLElement | null;
   /**
-   * On a phone: one section at a time, picked from folders on the room's floor (see FloorFolders) — the room it's in,
-   * its horizon `share` of the way down and the floor's front at `bottom`. The panel stays put, down to `bottom` above.
+   * On a phone: one section at a time, picked from tabs standing on the room's floor (see FloorFolders) — the room it's in,
+   * its horizon `share` of the way down and the floor's front at `bottom`. The panel goes down to `bottom` above.
    */
   folders?: { width: number; height: number; share: number; bottom: number };
+  /**
+   * On a phone (`folders`), told as its header's dragged up from `top` toward the page's header: how far (px, up
+   * negative), that share of the way, and whether it's being dragged now — for what's over it to go up with it.
+   */
+  onLift?: (lift: { by: number; share: number; moving: boolean }) => void;
 }
 
 /**
@@ -55,9 +60,9 @@ interface PanelProps {
  * panel up out of the floor (on a phone to just under the week's matchups, from laptop width up the whole middle
  * column), see-through as the home page's Red Zone is — its sections one over another, every one the same size,
  * scrolling within it, a section to add at the bottom. Dragged up or down by its header (flung down, put away). From
- * laptop width up, the write-up's contents go in `contentsSlot`. On a phone (`folders`), it stays put under the
- * matchups, a section at a time, each picked from a stack of folders on the floor. Sinks back down when it's closed,
- * then leaves.
+ * laptop width up, the write-up's contents go in `contentsSlot`. On a phone (`folders`), it shows a section at a
+ * time, each picked from a row of tabs standing on the floor, and its header snaps between under the matchups and
+ * under the page's header (the matchups going up with it). Sinks back down when it's closed, then leaves.
  */
 export function WriteupsPanel(props: PanelProps) {
   const { open } = props;
@@ -83,7 +88,7 @@ export function WriteupsPanel(props: PanelProps) {
   return <PanelBody {...props} up={up} />;
 }
 
-function PanelBody({ leagueId, currentWeek, top, bottom, left, width, className = "", onClose, back, contentsSlot, folders, up }: PanelProps & { up: boolean }) {
+function PanelBody({ leagueId, currentWeek, top, bottom, left, width, className = "", onClose, back, contentsSlot, folders, onLift, up }: PanelProps & { up: boolean }) {
   // The week written up — its own, picked in the header, apart from the week the room's showing. At first, last
   // week's until Thursday, then this week's (see recapWeekFor).
   const [picked, setPicked] = useState<number | null>(null);
@@ -102,7 +107,7 @@ function PanelBody({ leagueId, currentWeek, top, bottom, left, width, className 
   // Scrolled as an iPhone scrolls (see useListScroll).
   useListScroll(list);
 
-  // On a phone, its parts as folders on the floor — the title, each section (not the upcoming week's heading, which
+  // On a phone, its parts as tabs on the floor — the title, each section (not the upcoming week's heading, which
   // isn't one), and a section to add — the one picked shown, from its top.
   const folderList: FloorFolder[] = contentsProps
     ? [
@@ -121,15 +126,16 @@ function PanelBody({ leagueId, currentWeek, top, bottom, left, width, className 
   const [dragging, setDragging] = useState(false);
   const head = useRef<HTMLDivElement>(null);
   const box = useRef<HTMLDivElement>(null);
-  const limits = useRef({ bottom, onClose });
+  const limits = useRef({ top, bottom, onClose });
   useEffect(() => {
-    limits.current = { bottom, onClose };
+    limits.current = { top, bottom, onClose };
   });
-  const still = !!folders;
+  // On a phone, its header's dragged only between where it starts, under the matchups, and the page's header — and
+  // let go, it settles at whichever's nearer: the matchups in sight, or not.
+  const snaps = !!folders;
   useEffect(() => {
     const el = head.current;
-    // On a phone it stays put, under the matchups.
-    if (!el || still) return;
+    if (!el) return;
     let drag: { id: number; y0: number; top0: number; moved: boolean; trail: [number, number][] } | null = null;
     const highest = () => {
       const css = getComputedStyle(document.documentElement);
@@ -148,7 +154,7 @@ function PanelBody({ leagueId, currentWeek, top, bottom, left, width, className 
         setDragging(true);
       }
       drag.trail = [...drag.trail.filter(([t]) => e.timeStamp - t < FLING_WINDOW_MS), [e.timeStamp, e.clientY]];
-      const lowest = limits.current.bottom - el.offsetHeight - 8;
+      const lowest = snaps ? limits.current.top : limits.current.bottom - el.offsetHeight - 8;
       setDragTop(Math.min(lowest, Math.max(highest(), drag.top0 + dy)));
     };
     const end = (e: PointerEvent) => {
@@ -157,6 +163,11 @@ function PanelBody({ leagueId, currentWeek, top, bottom, left, width, className 
       drag = null;
       if (!done.moved) return;
       setDragging(false);
+      if (snaps) {
+        const at = Math.min(limits.current.top, Math.max(highest(), done.top0 + e.clientY - done.y0));
+        setDragTop(at - highest() < limits.current.top - at ? highest() : null);
+        return;
+      }
       // Flung down: put away.
       const [t0, y0] = done.trail[0];
       const speed = (e.clientY - y0) / Math.max(1, e.timeStamp - t0);
@@ -172,9 +183,19 @@ function PanelBody({ leagueId, currentWeek, top, bottom, left, width, className 
       window.removeEventListener("pointerup", end);
       window.removeEventListener("pointercancel", end);
     };
-  }, [still]);
+  }, [snaps]);
 
   const shownTop = dragTop ?? top;
+  // How far it's up from where it starts, for what's over it to go up with it — back down when it goes.
+  useEffect(() => {
+    if (!onLift) return;
+    const css = getComputedStyle(document.documentElement);
+    const highest = (parseFloat(css.getPropertyValue("--header-h")) || 0) + 0.5 * (parseFloat(css.fontSize) || 16);
+    // (Going away, it's down again.)
+    const by = up ? shownTop - top : 0;
+    onLift({ by, share: top > highest ? Math.min(1, -by / (top - highest)) : 0, moving: dragging });
+  }, [onLift, shownTop, top, dragging, up]);
+  useEffect(() => (onLift ? () => onLift({ by: 0, share: 0, moving: false }) : undefined), [onLift]);
   return (
     <>
       <div
@@ -189,7 +210,7 @@ function PanelBody({ leagueId, currentWeek, top, bottom, left, width, className 
           style={{ transform: up ? "translateY(0)" : "translateY(100%)", transitionDuration: `${RISE_MS}ms` }}
         >
           {/* Its header: what it is, whether it's saved — and grabbed, it moves the panel. */}
-          <div ref={head} className={`flex shrink-0 touch-none select-none items-center gap-1 py-1.5 ${still ? "" : "cursor-ns-resize"}`}>
+          <div ref={head} className={`flex shrink-0 touch-none select-none items-center gap-1 py-1.5 cursor-ns-resize`}>
             {back ? (
               <button type="button" onClick={onClose} aria-label="Back" title="Back" className="-ml-1 flex h-6 w-6 items-center justify-center text-ink-secondary transition-colors hover:text-ink-primary">
                 <ChevronLeftIcon width={16} height={16} />
@@ -279,7 +300,7 @@ function PanelBody({ leagueId, currentWeek, top, bottom, left, width, className 
         </section>
       </div>
       {contentsSlot && contentsProps && ready ? createPortal(<RecapContents {...contentsProps} scroller={list} />, contentsSlot) : null}
-      {/* On a phone, its parts as folders on the floor, the one shown up. */}
+      {/* On a phone, its parts as tabs standing on the floor, the one shown jumped up. */}
       {folders && ready && !error && folderList.length > 0 ? (
         <div className={`transition-opacity ease-out ${up ? "opacity-100" : "pointer-events-none opacity-0"}`} style={{ transitionDuration: `${RISE_MS}ms` }}>
           <FloorFolders folders={folderList} picked={shownFolder} onPick={setPickedFolder} room={folders} label="Write-up sections" />

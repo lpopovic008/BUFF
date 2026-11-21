@@ -353,6 +353,9 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
   // The write-ups up: the matchups in brief, the write-up up to just under them (where they end on screen).
   const writeups = action === "writeups";
   const [briefEnd, setBriefEnd] = useState<number | null>(null);
+  // How far the write-ups' header is dragged up from under the matchups (px, up negative), that share of the way to
+  // the page's header, and whether it's being dragged now: the matchups go with it.
+  const [lift, setLift] = useState({ by: 0, share: 0, moving: false });
   // A player's card up on the floor (see cardStage): the floor's buttons make way.
   const [cardUp, setCardUp] = useState(false);
   // The header's back button closes the floor's panel while one's up.
@@ -398,8 +401,7 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
   const lineupShare = WALL_SHARE;
   const buttons = room ? floorButtonRow(room.width, room.height, room.height - tabBar, room.width - 2 * PANEL_GAP_PX, lineupShare) : null;
   // A player's card keeps the horizon where it is: his charts on the wall, who he is on the floor in front.
-  // The write-ups drop it to the stages' too: a section at a time on the back wall, its folders on the floor.
-  useShareFor(onShare, lineupShare, action !== null || floorAway);
+  useShareFor(onShare, lineupShare, (action !== null && !writeups) || floorAway);
   const stagePlaces: StagePlaces | null = room
     ? {
         wall: {
@@ -442,7 +444,12 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
         <div
           className={`absolute inset-x-0 top-0 overflow-hidden transition-opacity duration-300 ${fullStage ? "pointer-events-none opacity-0" : ""}`}
           inert={fullStage}
-          style={{ height: `calc(var(--room-h, 100svh) * ${writeups ? HORIZON_SHARE : lineupShare})` }}
+          style={{
+            height: `calc(var(--room-h, 100svh) * ${lineupShare})`,
+            // The write-ups' header dragged up: the matchups over it go up with it, fading away (see WriteupsPanel's onLift).
+            ...(writeups && lift.by !== 0 ? { transform: `translateY(${lift.by}px)`, opacity: 1 - lift.share } : null),
+            transition: lift.moving ? "none" : "transform 300ms ease-out, opacity 300ms ease-out",
+          }}
         >
           <div ref={setPanes} className="flex h-full will-change-transform">
             {rooms.map((r, i) => (
@@ -482,17 +489,18 @@ function PhoneRoom({ rooms, leagues, index, week, currentWeek, userId, onPick, r
               onPick={pick}
             />
           ) : null}
-          {/* The write-ups: a section at a time on the back wall, from just under the matchups down to the horizon — each
-              picked from its folder on the floor. */}
+          {/* The write-ups: a section at a time on the back wall, from just under the matchups (or, its header dragged
+              up, the page's header) down to the horizon — each picked from its tab on the floor. */}
           <WriteupsPanel
             open={writeups}
             leagueId={leagues[index].leagueId}
             currentWeek={currentWeek}
             top={(briefEnd ?? room.height * 0.3) + PANEL_GAP_PX}
-            bottom={room.height * HORIZON_SHARE - PANEL_GAP_PX}
+            bottom={room.height * lineupShare - PANEL_GAP_PX}
             className="inset-x-2"
             onClose={close}
-            folders={{ width: room.width, height: room.height, share: HORIZON_SHARE, bottom: room.height - tabBar }}
+            folders={{ width: room.width, height: room.height, share: lineupShare, bottom: room.height - tabBar }}
+            onLift={setLift}
           />
           {stagePlaces ? (
             <>
