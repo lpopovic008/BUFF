@@ -45,6 +45,19 @@ export function LeagueTitle({
 }
 
 /**
+ * How much bigger a room's columns draw their text (CSS zoom) for a middle column `middle` px wide: the League Room's
+ * lineups are made for a middle column MIDDLE_MADE_FOR wide, and wider, everything in its three columns is drawn that
+ * much bigger, up to MIDDLE_MOST_ZOOM — never smaller — so their text is the same size across them.
+ */
+export const MIDDLE_MADE_FOR = 640;
+export const MIDDLE_MOST_ZOOM = 1.35;
+export function roomTextZoom(middle: number): number {
+  return Math.min(MIDDLE_MOST_ZOOM, Math.max(1, middle / MIDDLE_MADE_FOR));
+}
+/** How much wider a room's middle column is than either side one (see the League Room's). */
+export const MIDDLE_OVER_SIDE = 1.6;
+
+/**
  * Leagues to pick from, as the League Room's left column lists them: each its logo and name against the left edge,
  * the one picked lit like the header's page tabs — and under it, whatever goes with it there (`under`).
  */
@@ -61,8 +74,21 @@ export function RoomLeagueList({
   label: string;
   under?: React.ReactNode;
 }) {
+  // Its text as big as the League Room's: drawn bigger as its column is wider, by as much as the League Room draws its
+  // columns' (see roomTextZoom) — its column a side one, the middle MIDDLE_OVER_SIDE as wide.
+  const [box, setBox] = useState<HTMLUListElement | null>(null);
+  const [zoom, setZoom] = useState(1);
+  useEffect(() => {
+    const column = box?.parentElement;
+    if (!column) return;
+    const measure = () => setZoom(roomTextZoom(column.clientWidth * MIDDLE_OVER_SIDE));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(column);
+    return () => observer.disconnect();
+  }, [box]);
   return (
-    <ul className="flex flex-col gap-1" aria-label={label}>
+    <ul ref={setBox} className="flex flex-col gap-1" aria-label={label} style={zoom === 1 ? undefined : { zoom }}>
       {leagues.map((league) => {
         const on = league.leagueId === selectedId;
         return (

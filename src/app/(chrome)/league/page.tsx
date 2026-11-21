@@ -11,7 +11,7 @@ import { FloorReflection } from "@/components/FloorReflection";
 import { ScrollThumb } from "@/components/ScrollThumb";
 import { useSwipePager } from "@/hooks/useSwipePager";
 import { LIST_MOVE, useListScroll } from "@/hooks/useListScroll";
-import { LeagueSwitcher, LeagueTitle, RoomLeague } from "@/components/LeagueSwitcher";
+import { LeagueSwitcher, LeagueTitle, MIDDLE_OVER_SIDE, RoomLeague, roomTextZoom } from "@/components/LeagueSwitcher";
 import { BriefMatchups, CareerStageContext, CarriedCard, MatchupList, MatchupProviders, MatchupSlide, MatchupStack, useLineNoteOf, useLineupNumbers, useMatchupHeadToHead } from "@/components/LeagueMatchupCarousel";
 import { RoomBench, RoomGraph, StagePlaces, useStageShown, wallZoom } from "@/components/LeagueRoomStages";
 import { WriteupsPanel } from "@/components/LeagueRoomWriteups";
@@ -51,11 +51,7 @@ const OVER_HORIZON = "0.5rem";
 const FOOT_PX = 52;
 // From laptop width up, how wide each side column is against the middle one: the middle wider, not dominating.
 const SIDE_SHARE = 1;
-const MIDDLE_SHARE = 1.6;
-// The lineups in the middle are made for a column this wide (px): wider, everything in all three columns is drawn that
-// much bigger (CSS zoom), up to so much bigger — never smaller — so their text is the same size across them.
-const MIDDLE_MADE_FOR = 640;
-const MIDDLE_MOST_ZOOM = 1.35;
+const MIDDLE_SHARE = MIDDLE_OVER_SIDE;
 
 /** One league as the room shows it: its official summary, as it stands (see useSummariesAsItStands), and its unfinished weeks' matchups. */
 interface RoomLeagueData {
@@ -690,7 +686,7 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
   // The columns' contents drawn bigger as the middle one's wider than its lineups are made for — all three by as much,
   // so their text is the same size side to side (inside what each list moves, so its scrolling, and its reflection's
   // copy, go on as they were).
-  const middleZoom = middleBox ? Math.min(MIDDLE_MOST_ZOOM, Math.max(1, middleBox.width / MIDDLE_MADE_FOR)) : 1;
+  const middleZoom = middleBox ? roomTextZoom(middleBox.width) : 1;
   // The bench's and the score graph's stages in the right-hand column: under its buttons down to the horizon, and on the
   // floor in front of it.
   const columnPlaces: StagePlaces | null =
