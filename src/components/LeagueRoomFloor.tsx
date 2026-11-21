@@ -165,11 +165,11 @@ function historyModel(): Solid[] {
   ];
 }
 
-/** Each button, in order (the write-ups first): what it's for, and what stands on the floor for it (see Solid). */
+/** Each button, in order (the write-ups first, the bench in the middle): what it's for, and what stands on the floor for it (see Solid). */
 export const FLOOR_ACTIONS: { id: FloorAction; label: string; model: () => Solid[] }[] = [
   { id: "writeups", label: "Write-ups", model: writeupsModel },
-  { id: "bench", label: "Bench", model: benchModel },
   { id: "graph", label: "Score graph", model: graphModel },
+  { id: "bench", label: "Bench", model: benchModel },
   { id: "payouts", label: "Payouts", model: payoutsModel },
   { id: "history", label: "League history", model: historyModel },
 ];
