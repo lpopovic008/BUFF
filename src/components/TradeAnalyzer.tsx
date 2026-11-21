@@ -176,7 +176,8 @@ function TradeChart({ trade, colorOf }: { trade: AnalyzedTrade; colorOf: (side: 
           {/* The week the sides were farthest apart, and the week they were closest. */}
           {(today ? [] : [widest, closest]).map((at, i) =>
             at === null ? null : (
-              <line key={i} x1={at} x2={at} y1={0} y2={100} stroke="var(--ink-primary)" strokeOpacity={0.3} strokeWidth={1} vectorEffect="non-scaling-stroke" />
+              // As thin and faint as the chart's ends (its border): one pixel, kept crisp rather than blurred over two.
+              <line key={i} x1={at} x2={at} y1={0} y2={100} stroke="var(--border)" strokeWidth={1} vectorEffect="non-scaling-stroke" shapeRendering="crispEdges" />
             )
           )}
           {lines.map((l, i) =>
