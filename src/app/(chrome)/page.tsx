@@ -677,7 +677,7 @@ export default function DashboardPage() {
   }, [games, gamesInView]);
   // The games being played (of those), and those about to be (FIELD_LEAD_MS from kickoff on), each on a field of its own
   // on the floor (see FloorFields) — on a phone, laid in front of the Red Zone's switch, or above the Red Zone while
-  // it's up (none, stretched up over the floor). The time they're checked against moves on as the next one's due.
+  // it's up. The time they're checked against moves on as the next one's due.
   const [fieldsClock, setFieldsClock] = useState(() => Date.now());
   useEffect(() => {
     const due = games
@@ -707,14 +707,14 @@ export default function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [replay?.key]
   );
+  // On a phone, while the Red Zone's up, they're laid in front of where its top first comes up to, and stay there however
+  // it's stretched or dragged after — still on the floor while it moves over them.
   const fieldsFloor = useMemo(() => {
     if (!stand) return null;
     if (desktop || !redZoneUp) return stand.fields;
-    const top =
-      redZoneDragTop ??
-      (redZoneLevel === 0 ? stand.redZoneFoot - (RED_ZONE_REM + RED_ZONE_FLOAT_REM) * stand.rootPx : redZoneLevel === 1 ? stand.horizon : 0);
+    const top = stand.redZoneFoot - (RED_ZONE_REM + RED_ZONE_FLOAT_REM) * stand.rootPx;
     return { ...stand.fields, front: Math.min(stand.fields.front, top - 0.5 * stand.rootPx) };
-  }, [stand, desktop, redZoneUp, redZoneDragTop, redZoneLevel]);
+  }, [stand, desktop, redZoneUp]);
   // Whether there are fields on the floor: then the floor's bare — no grid lines, no map.
   const fieldsUp = fieldsFloor !== null && shownFieldGames.length > 0;
   // The floor, slid toward you for the Red Zone; and the projected map moved and zoomed in its frame (see
