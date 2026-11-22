@@ -3,13 +3,12 @@
 import { useEffect, useRef } from "react";
 import { Card } from "@/components/ui/Card";
 import { IconButton } from "@/components/ui/IconButton";
-import { ChevronUpIcon, ChevronDownIcon, EyeIcon, EyeOffIcon, TrashIcon, DownloadIcon, UploadIcon, WalkieTalkieIcon } from "@/components/ui/Icon";
+import { DownloadIcon, UploadIcon } from "@/components/ui/Icon";
 import { useConfig } from "@/hooks/useConfig";
-import { removeLeague, moveLeague, toggleLeagueHidden, updateCommishFlags, exportAllData, importAllData } from "@/lib/localStore";
+import { updateCommishFlags, exportAllData, importAllData } from "@/lib/localStore";
 import { getLeagueUsers } from "@/lib/sleeper";
 import { defaultSeason } from "@/lib/app-defaults";
-import { DiscoverForm } from "./DiscoverForm";
-import { ExternalLeaguesSection } from "./ExternalLeaguesSection";
+import { LeaguesSection } from "./LeaguesSection";
 import { GoogleDocsSection } from "./GoogleDocsSection";
 import { AccountSection } from "./AccountSection";
 import { AppearanceSection } from "./AppearanceSection";
@@ -24,8 +23,8 @@ export default function SettingsPage() {
   const { config, loaded, refresh } = useConfig();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Commissioner marks come straight from Sleeper (is_owner), re-checked each
-  // time Settings opens so a league handed over to or from you stays right.
+  // Commissioner marks come straight from each league's site (Sleeper's is_owner, and the like elsewhere), re-checked
+  // each time Settings opens so a league handed over to or from you stays right.
   const userId = config.sleeperUserId;
   const leagueIds = config.leagues.map((l) => l.leagueId).join(",");
   useEffect(() => {
@@ -45,21 +44,6 @@ export default function SettingsPage() {
       cancelled = true;
     };
   }, [loaded, userId, leagueIds, refresh]);
-
-  function handleToggleHidden(leagueId: string) {
-    toggleLeagueHidden(leagueId);
-    refresh();
-  }
-
-  function handleRemove(leagueId: string) {
-    removeLeague(leagueId);
-    refresh();
-  }
-
-  function handleMove(leagueId: string, direction: "up" | "down") {
-    moveLeague(leagueId, direction);
-    refresh();
-  }
 
   function handleExport() {
     const blob = new Blob([exportAllData()], { type: "application/json" });
@@ -94,65 +78,8 @@ export default function SettingsPage() {
       {/* minmax(0, 1fr) columns, so a long URL or ID can't stretch the page past the screen. */}
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-6">
-          <Section title="Sleeper">
-            <DiscoverForm
-              defaultUsername={config.sleeperUsername ?? ""}
-              defaultSeason={config.season || defaultSeason()}
-              onDiscovered={refresh}
-            />
-            {config.leagues.length > 0 ? (
-              <ul className="mt-4 divide-y divide-grid border-t border-grid">
-                {config.leagues.map((league, i) => (
-                  <li key={league.leagueId} className="flex flex-nowrap items-center justify-between gap-2 py-2.5">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex shrink-0 flex-col">
-                        <IconButton
-                          icon={<ChevronUpIcon className="h-4 w-4" />}
-                          label={`Move ${league.nickname ?? league.leagueId} up`}
-                          onClick={() => handleMove(league.leagueId, "up")}
-                          disabled={i === 0}
-                          size="sm"
-                        />
-                        <IconButton
-                          icon={<ChevronDownIcon className="h-4 w-4" />}
-                          label={`Move ${league.nickname ?? league.leagueId} down`}
-                          onClick={() => handleMove(league.leagueId, "down")}
-                          disabled={i === config.leagues.length - 1}
-                          size="sm"
-                        />
-                      </div>
-                      <div
-                        className={`flex min-w-0 items-center gap-1.5 font-medium transition-opacity ${
-                          league.hidden ? "text-ink-muted opacity-50" : "text-ink-primary"
-                        }`}
-                      >
-                        <span className="truncate">{league.nickname ?? league.leagueId}</span>
-                        {league.isCommish ? (
-                          <WalkieTalkieIcon className="h-[1.3em] w-[1.3em] shrink-0 text-status-good" role="img" aria-label="Commissioner" />
-                        ) : null}
-                      </div>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1">
-                      <IconButton
-                        icon={league.hidden ? <EyeOffIcon /> : <EyeIcon />}
-                        label={league.hidden ? "Show in the app" : "Hide from the app"}
-                        onClick={() => handleToggleHidden(league.leagueId)}
-                      />
-                      <IconButton
-                        icon={<TrashIcon />}
-                        label="Remove league"
-                        onClick={() => handleRemove(league.leagueId)}
-                        variant="danger"
-                      />
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </Section>
-
-          <Section title="ESPN & Yahoo">
-            <ExternalLeaguesSection leagues={config.externalLeagues} onChange={refresh} />
+          <Section title="Leagues">
+            <LeaguesSection config={config} defaultSeason={defaultSeason()} onChange={refresh} />
           </Section>
         </div>
 

@@ -6,7 +6,7 @@
 
 import { normalizeName } from "./name-match";
 
-interface PlayerRecord {
+export interface PlayerRecord {
   full_name?: string;
   first_name?: string;
   last_name?: string;
@@ -20,19 +20,34 @@ interface PlayerRecord {
   /** Inches, as a string ("74"). */
   height?: string | null;
   weight?: string | null;
+  /** The same player's id on ESPN and on Yahoo — how a league on either is matched to him (see sites/player-map). */
+  espn_id?: string | number | null;
+  yahoo_id?: string | number | null;
 }
 
 let cache: Record<string, PlayerRecord> | null = null;
+/**
+ * Players a league on another site has that Sleeper's list doesn't (or that couldn't be matched to it), by the id the
+ * league's given them (see sites/player-map) — looked up with everyone else's.
+ */
+const extras: Record<string, PlayerRecord> = {};
+
+/** Adds players to the ones looked up here (see `extras`): a name, a position and a team each. */
+export function addPlayerRecords(records: Record<string, PlayerRecord>): void {
+  Object.assign(extras, records);
+  if (cache) Object.assign(cache, records);
+}
 let inflight: Promise<Record<string, PlayerRecord> | null> | null = null;
 
-async function loadPlayers(): Promise<Record<string, PlayerRecord> | null> {
+/** Every NFL player Sleeper knows, by Sleeper's id — and any added from another site's league (see addPlayerRecords). */
+export async function loadPlayers(): Promise<Record<string, PlayerRecord> | null> {
   if (cache) return cache;
   if (!inflight) {
     inflight = fetch("https://api.sleeper.app/v1/players/nfl")
       .then((res) => (res.ok ? res.json() : null))
       .then((data: Record<string, PlayerRecord> | null) => {
-        cache = data;
-        return data;
+        cache = data ? Object.assign(data, extras) : null;
+        return cache;
       })
       .catch(() => null)
       .finally(() => {

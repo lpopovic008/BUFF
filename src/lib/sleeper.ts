@@ -3,7 +3,10 @@
 // first via username lookup. All requests are read-only, made directly
 // from the browser (Sleeper's API is CORS-open), and de-duplicated /
 // short-cached in memory for the life of the tab so re-rendering the same
-// view doesn't refire the same request.
+// view doesn't refire the same request. A league on another site (ESPN, Yahoo, MyFantasyLeague, Fleaflicker) is
+// asked for here just the same, and answered by that site's adapter in Sleeper's shape (see sites/).
+
+import { siteAnswer } from "./sites";
 
 const BASE = "https://api.sleeper.app/v1";
 
@@ -15,6 +18,10 @@ async function sleeperFetch<T>(path: string, ttlSeconds: number): Promise<T | nu
   if (cached && Date.now() - cached.fetchedAt < ttlSeconds * 1000) {
     return cached.promise as Promise<T | null>;
   }
+
+  // A league (or its draft) on another site: answered by that site's adapter, in Sleeper's shape (see sites/).
+  const elsewhere = siteAnswer(path, ttlSeconds);
+  if (elsewhere) return elsewhere as Promise<T | null>;
 
   const promise = (async () => {
     const res = await fetch(`${BASE}${path}`);

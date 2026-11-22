@@ -6,6 +6,9 @@
 import { joinRecapModel, type RecapModel } from "./recap-model";
 import { mergeCollections, sameJson } from "./merge-keep";
 import type { PayoutPlan } from "./payout-plan";
+import { leagueReadable } from "./sites/readable";
+import { LINK_ONLY_SEASON, siteLeagueId } from "./sites/ids";
+import { yahooLeagueKey } from "./sites/urls";
 
 const CONFIG_KEY = "commish:config";
 const RECAPS_KEY = "commish:recaps";
@@ -16,7 +19,12 @@ const RECAP_LAYOUTS_KEY = "commish:recap-layouts";
 const PLAYER_MARKS_KEY = "commish:player-marks";
 
 export interface TrackedLeague {
+  /** Sleeper's id for it, or for a league on another site, one saying which site, season and league (see sites/ids). */
   leagueId: string;
+  /** A league on another site: its page there, to open it at. */
+  url?: string;
+  /** A league on another site: which of its teams is yours — its roster id here (see sites/teams). */
+  myTeam?: string;
   nickname?: string;
   /** Whether you're a commissioner of this league — Sleeper's own is_owner flag, kept current by discovery and Settings. */
   isCommish: boolean;
@@ -24,19 +32,17 @@ export interface TrackedLeague {
   hidden?: boolean;
 }
 
-/** The leagues to show anywhere in the app: every tracked one but those hidden in Settings. */
+/**
+ * The leagues to show anywhere in the app: every tracked one but those hidden in Settings — and those on another site
+ * that can't be read here yet (link only, see sites/readable).
+ */
 export function visibleLeagues(leagues: TrackedLeague[]): TrackedLeague[] {
-  return leagues.filter((l) => !l.hidden);
+  return leagues.filter((l) => !l.hidden && leagueReadable(l.leagueId));
 }
 
 /**
- * A league on another platform, tracked as an outbound link rather than a
- * full integration — this app has no ESPN/Yahoo login of its own, so
- * clicking through always opens the platform's own site in the browser's
- * normal (already logged-in-or-not) session. `leagueId`/`season` are parsed
- * from the pasted URL when possible so ESPN's public-league read API can be
- * tried client-side (see src/lib/espn.ts); Yahoo has no equivalent no-auth
- * endpoint, so its entries are link-only.
+ * A league on ESPN or Yahoo as it was kept before leagues on other sites could be read — a link, apart from the
+ * rest. Each one's moved into the one list of leagues as it's read (see withLinksMoved), so none is kept now.
  */
 export interface ExternalLeague {
   id: string;
@@ -108,10 +114,61 @@ export function getConfig(): AppConfig {
   try {
     const raw = window.localStorage.getItem(CONFIG_KEY);
     if (!raw) return DEFAULT_CONFIG;
-    return { ...DEFAULT_CONFIG, ...(JSON.parse(raw) as Partial<AppConfig>) };
+    return withLinksMoved({ ...DEFAULT_CONFIG, ...(JSON.parse(raw) as Partial<AppConfig>) });
   } catch {
     return DEFAULT_CONFIG;
   }
+}
+
+/**
+ * ESPN and Yahoo links kept apart from the leagues (see ExternalLeague) moved into them, after the rest: each as its
+ * league, where its link said which; else as a link alone (see sites/readable).
+ */
+export function withLinksMoved(config: AppConfig): AppConfig {
+  if (!config.externalLeagues?.length) return config;
+  const leagues = [...config.leagues];
+  for (const e of config.externalLeagues) {
+    const season = e.season ?? config.season;
+    const id = e.leagueId
+      ? siteLeagueId({ site: e.platform, season, id: e.platform === "yahoo" ? yahooLeagueKey(e.leagueId, season, config.season) : e.leagueId })
+      : siteLeagueId({ site: e.platform, season: LINK_ONLY_SEASON, id: e.id });
+    if (!leagues.some((l) => l.leagueId === id)) leagues.push({ leagueId: id, nickname: e.nickname, isCommish: false, url: e.url });
+  }
+  return { ...config, leagues, externalLeagues: [] };
+}
+
+/**
+ * Adds a league on another site (from its link, see sites/urls) after the rest — or, if it's there already, notes its
+ * link and the team the link's to. With no Sleeper account to know you by, you're "me" (see sites/teams).
+ */
+export function addSiteLeague(league: { leagueId: string; url: string; team?: string; nickname?: string }): AppConfig {
+  const config = getConfig();
+  const was = config.leagues.find((l) => l.leagueId === league.leagueId);
+  if (was) {
+    was.url = league.url;
+    if (league.team) was.myTeam = league.team;
+  } else {
+    config.leagues.push({ leagueId: league.leagueId, url: league.url, myTeam: league.team, nickname: league.nickname, isCommish: false });
+  }
+  if (!config.sleeperUserId) config.sleeperUserId = "me";
+  saveConfig(config);
+  return config;
+}
+
+/** Says which team is yours in a league on another site (its roster id), or (null) lets the site say. */
+export function setMyTeam(leagueId: string, team: string | null): AppConfig {
+  const config = getConfig();
+  config.leagues = config.leagues.map((l) => (l.leagueId === leagueId ? { ...l, myTeam: team ?? undefined } : l));
+  saveConfig(config);
+  return config;
+}
+
+/** Names a league (its nickname), as its site calls it once it's been read. */
+export function nameLeague(leagueId: string, name: string): AppConfig {
+  const config = getConfig();
+  config.leagues = config.leagues.map((l) => (l.leagueId === leagueId ? { ...l, nickname: name } : l));
+  saveConfig(config);
+  return config;
 }
 
 export function saveConfig(config: AppConfig): void {
@@ -132,20 +189,6 @@ export function upsertLeague(league: TrackedLeague): AppConfig {
 export function removeLeague(leagueId: string): AppConfig {
   const config = getConfig();
   config.leagues = config.leagues.filter((l) => l.leagueId !== leagueId);
-  saveConfig(config);
-  return config;
-}
-
-export function addExternalLeague(league: Omit<ExternalLeague, "id">): AppConfig {
-  const config = getConfig();
-  config.externalLeagues.push({ ...league, id: `${Date.now()}-${Math.random().toString(36).slice(2)}` });
-  saveConfig(config);
-  return config;
-}
-
-export function removeExternalLeague(id: string): AppConfig {
-  const config = getConfig();
-  config.externalLeagues = config.externalLeagues.filter((l) => l.id !== id);
   saveConfig(config);
   return config;
 }

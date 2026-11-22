@@ -1,5 +1,6 @@
 import { getUserByUsername, getUserLeagues, getLeagueUsers } from "./sleeper";
 import { AppConfig, TrackedLeague, getConfig, saveConfig } from "./localStore";
+import { siteOf } from "./sites/ids";
 
 export class UserNotFoundError extends Error {
   constructor(username: string) {
@@ -29,7 +30,8 @@ export async function discoverAndSaveLeagues(
   // Keep leagues we already track in the order the user arranged them, then
   // append anything newly joined. Re-running discovery must never reshuffle a
   // hand-picked order back into whatever order Sleeper returned.
-  const tracked: TrackedLeague[] = stored.filter((l) => found.has(l.leagueId));
+  // Leagues on other sites stay where they are (Sleeper knows nothing of them).
+  const tracked: TrackedLeague[] = stored.filter((l) => found.has(l.leagueId) || siteOf(l.leagueId) !== "sleeper");
   const knownIds = new Set(tracked.map((l) => l.leagueId));
   // is_owner is Sleeper's own commissioner flag for each league — re-read
   // for every league, so a handed-over league updates too.

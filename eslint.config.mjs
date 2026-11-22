@@ -16,6 +16,8 @@ const eslintConfig = defineConfig([
     // `cap sync`'s own copy of `out/`, and the rest is Xcode/Swift project
     // files, neither of which this config has any business linting.
     "ios/**",
+    // Supabase's Edge Functions run on Deno, not in the app (see supabase/functions).
+    "supabase/functions/**",
   ]),
 ]);
 
