@@ -102,6 +102,18 @@ function TradeChart({ trade, colorOf }: { trade: AnalyzedTrade; colorOf: (side: 
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+  // A line picked out from the rest: the one under the pointer, else the one clicked (its line, or the name or value at
+  // either end of it) — the rest faded behind it. A click anywhere but on a line lets it go.
+  const [hovered, setHovered] = useState<number | null>(null);
+  const [picked, setPicked] = useState<number | null>(null);
+  useEffect(() => {
+    if (picked === null) return;
+    const away = (e: PointerEvent) => {
+      if (!(e.target instanceof Element && box.current?.contains(e.target) && e.target.closest("[data-trade-line]"))) setPicked(null);
+    };
+    document.addEventListener("pointerdown", away, true);
+    return () => document.removeEventListener("pointerdown", away, true);
+  }, [picked]);
   const days = trade.sides[0]?.path.map((p) => p.day) ?? [];
   const [first, last] = [days[0] ?? 0, days[days.length - 1] ?? 0];
   const lines = trade.sides.flatMap((side) =>
@@ -151,12 +163,24 @@ function TradeChart({ trade, colorOf }: { trade: AnalyzedTrade; colorOf: (side: 
   const closest = closestOn !== null ? x(closestOn) : null;
   const label = "absolute -translate-y-1/2 whitespace-nowrap text-xs leading-none";
   const inside = "absolute -translate-y-1/2 whitespace-nowrap text-[0.625rem] font-bold leading-none tabular-nums";
+  const lit = hovered ?? picked;
+  // Everything of a line's — its line, its name, its values, its dot — faded while another's picked out.
+  const fade = (i: number) => (lit !== null && lit !== i ? "opacity-25" : "opacity-100");
+  // What picks a line out: pointed at, or clicked (or tapped).
+  const pickOut = (i: number) => ({
+    "data-trade-line": i,
+    onPointerEnter: (e: React.PointerEvent) => e.pointerType === "mouse" && setHovered(i),
+    onPointerLeave: () => setHovered(null),
+    onClick: () => setPicked(i),
+  });
+  // The picked-out line drawn last, over the rest.
+  const order = lines.map((_, i) => i).sort((a, b) => Number(a === lit) - Number(b === lit));
   return (
     <div
       ref={box}
       // Each side as wide as its longest name (or value) needs and no wider, the chart the rest.
       className="grid min-h-[5rem] flex-1 grid-cols-[auto_minmax(0,1fr)_auto] gap-x-0 gap-y-1.5"
-      role="img"
+      role="group"
       aria-label="Each piece's value from the trade to now"
     >
       {/* Each piece's name, right beside where its line starts. */}
@@ -172,7 +196,8 @@ function TradeChart({ trade, colorOf }: { trade: AnalyzedTrade; colorOf: (side: 
         {lines.map((l, i) => (
           <span
             key={i}
-            className={`${label} right-1.5 font-semibold`}
+            {...pickOut(i)}
+            className={`${label} right-1.5 cursor-pointer font-semibold transition-opacity ${fade(i)}`}
             style={{ top: `${lefts[i]}%`, color: l.color }}
             title={[l.asset.label, l.asset.became ? `became ${l.asset.became.name}` : null, l.asset.pickOf ? `(${l.asset.pickOf})` : null].filter(Boolean).join(" ")}
           >
@@ -189,42 +214,49 @@ function TradeChart({ trade, colorOf }: { trade: AnalyzedTrade; colorOf: (side: 
               <line key={i} x1={at} x2={at} y1={0} y2={100} stroke="var(--border)" strokeWidth={1} vectorEffect="non-scaling-stroke" shapeRendering="crispEdges" />
             )
           )}
-          {lines.map((l, i) =>
-            l.points.length > 1 || today ? (
-              <polyline
-                key={i}
-                points={[
-                  // From its name, level with it, in to its first value…
-                  `0,${lefts[i]}`,
-                  ...(lead > 0 ? [`${lead},${starts[i]}`] : []),
-                  // …then week by week (or, a trade made today, flat across).
-                  ...(today || l.points.length < 2 ? [`100,${y(lastValue(l))}`] : l.points.map((p) => `${x(p.day)},${y(p.value)}`)),
-                ].join(" ")}
-                fill="none"
-                stroke={l.color}
-                strokeWidth={1.5}
-                vectorEffect="non-scaling-stroke"
-              />
-            ) : null
-          )}
+          {order.map((i) => {
+            const l = lines[i];
+            if (l.points.length < 2 && !today) return null;
+            const points = [
+              // From its name, level with it, in to its first value…
+              `0,${lefts[i]}`,
+              ...(lead > 0 ? [`${lead},${starts[i]}`] : []),
+              // …then week by week (or, a trade made today, flat across).
+              ...(today || l.points.length < 2 ? [`100,${y(lastValue(l))}`] : l.points.map((p) => `${x(p.day)},${y(p.value)}`)),
+            ].join(" ");
+            return (
+              <g key={i} {...pickOut(i)} className="cursor-pointer">
+                {/* A wider band along it, unseen, so it's easy to point at. */}
+                <polyline points={points} fill="none" stroke="transparent" strokeWidth={12} vectorEffect="non-scaling-stroke" pointerEvents="stroke" />
+                <polyline
+                  points={points}
+                  fill="none"
+                  stroke={l.color}
+                  strokeWidth={lit === i ? 2.75 : 1.5}
+                  vectorEffect="non-scaling-stroke"
+                  className={`transition-opacity ${fade(i)}`}
+                />
+              </g>
+            );
+          })}
         </svg>
         {/* Where each pick became a player. */}
         {dots.map((d) => (
           <span
             key={`dot-${d.i}`}
-            className="absolute h-[5px] w-[5px] -translate-x-1/2 -translate-y-1/2 rounded-full ring-1 ring-[var(--page)]"
+            className={`absolute h-[5px] w-[5px] -translate-x-1/2 -translate-y-1/2 rounded-full ring-1 ring-[var(--page)] transition-opacity ${fade(d.i)}`}
             style={{ left: `${d.left}%`, top: `${d.top}%`, background: d.color }}
             title={`Drafted: ${d.name}`}
           />
         ))}
         {/* Each line's value when traded, by its start; a drafted pick's value now, by its end. */}
         {lines.map((l, i) => (
-          <span key={`then-${i}`} className={`${inside} left-1`} style={{ top: `${startAt[i]}%`, color: l.color }} title="When traded">
+          <span key={`then-${i}`} {...pickOut(i)} className={`${inside} left-1 cursor-pointer transition-opacity ${fade(i)}`} style={{ top: `${startAt[i]}%`, color: l.color }} title="When traded">
             {grade(firstValue(l))}
           </span>
         ))}
         {[...endAt].map(([i, at]) => (
-          <span key={`now-${i}`} className={`${inside} right-1`} style={{ top: `${at}%`, color: lines[i].color }} title={`${lines[i].asset.became!.name} now`}>
+          <span key={`now-${i}`} {...pickOut(i)} className={`${inside} right-1 cursor-pointer transition-opacity ${fade(i)}`} style={{ top: `${at}%`, color: lines[i].color }} title={`${lines[i].asset.became!.name} now`}>
             <Shown value={lines[i].asset.now} />
           </span>
         ))}
@@ -241,11 +273,11 @@ function TradeChart({ trade, colorOf }: { trade: AnalyzedTrade; colorOf: (side: 
         </div>
         {lines.map((l, i) =>
           l.asset.became ? (
-            <span key={i} className={`${label} left-1.5 font-semibold`} style={{ top: `${rights[i]}%`, color: l.color }} title={`${l.asset.label} became ${l.asset.became.name}`}>
+            <span key={i} {...pickOut(i)} className={`${label} left-1.5 cursor-pointer font-semibold transition-opacity ${fade(i)}`} style={{ top: `${rights[i]}%`, color: l.color }} title={`${l.asset.label} became ${l.asset.became.name}`}>
               {l.asset.became.name}
             </span>
           ) : (
-            <span key={i} className={`${label} left-1.5 font-bold tabular-nums text-ink-primary`} style={{ top: `${rights[i]}%` }} title="Now">
+            <span key={i} {...pickOut(i)} className={`${label} left-1.5 cursor-pointer font-bold tabular-nums text-ink-primary transition-opacity ${fade(i)}`} style={{ top: `${rights[i]}%` }} title="Now">
               <Shown value={l.asset.now} />
             </span>
           )
