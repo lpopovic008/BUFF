@@ -1030,14 +1030,17 @@ export default function DashboardPage() {
           its back, angled in toward the middle (turned on their outer edge, so however wide they are that edge stays on
           the screen), and the starters list, its foot level with the Red Zone's (--rz-foot). The Red Zone stands at the
           left as a column of its own, as wide as the starters list (see redZoneStage). */}
-      {/* The graphs from the screen's left edge (the Red Zone's column, while it's up) right up to the starters list. */}
+      {/* The graphs from the screen's left edge (the Red Zone's column, while it's up) right up to the starters list —
+          in front of the live games' fields on the floor, as the Red Zone is: they run on behind the columns, seen
+          through them, their writing over them. Nothing between the columns stops a tap or a drag from reaching what's
+          behind (the map, the floor). */}
       <div
         data-floor
-        className={`flex flex-row items-start pr-4 pt-2 transition-[padding] duration-500 [perspective:2200px] ${redZoneUp ? "pl-[18rem] lg:pl-[20rem]" : ""}`}
+        className={`pointer-events-none relative z-[5] flex flex-row items-start pr-4 pt-2 transition-[padding] duration-500 [perspective:2200px] ${redZoneUp ? "pl-[18rem] lg:pl-[20rem]" : ""}`}
       >
         <div
           data-floor
-          className="sticky top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] flex min-w-0 flex-1 origin-left flex-col [rotate:y_4deg]"
+          className="pointer-events-auto sticky top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] flex min-w-0 flex-1 origin-left flex-col [rotate:y_4deg]"
           style={{ height: graphsBack ? `calc(${COLUMN_TO_HORIZON})` : 0 }}
         >
           {/* Faintly reflected in the floor (past the column's foot, so it isn't clipped to it). */}
@@ -1052,7 +1055,7 @@ export default function DashboardPage() {
             right down to the floor, reflected in it — just what meets the floor, mirrored, as it scrolls — and up behind
             the see-through ticker and header, scrolled up under them. */}
         {/* Its foot level with the Red Zone's, so the two are reflected in the floor from the same line. */}
-        <div className="sticky top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] h-[calc(var(--room-h,100vh)-var(--header-h,0px)-var(--ticker-h,0px)-0.625rem-var(--rz-foot,0px))] w-64 shrink-0 lg:w-72">
+        <div className="pointer-events-auto sticky top-[calc(var(--header-h,0px)+var(--ticker-h,0px)+0.625rem)] h-[calc(var(--room-h,100vh)-var(--header-h,0px)-var(--ticker-h,0px)-0.625rem-var(--rz-foot,0px))] w-64 shrink-0 lg:w-72">
           {/* Its scrollbar hidden (its reflection's copy has none, so they'd not line up), a thin thumb up as it scrolls;
               scrolled by the page, so its reflection moves with it exactly (see useListScroll). */}
           <div
@@ -1071,8 +1074,7 @@ export default function DashboardPage() {
       ) : null}
       {/* Its reflection: what's at its foot, in the floor. */}
       <FloorReflection source={startersList} className="pb-16" style={{ paddingTop: `calc(${UNDER_TICKER})` }} />
-      {/* The games being played, a field each, on the floor between the Red Zone and the starters list — behind them
-          both, hidden where they stand. */}
+      {/* The games being played, a field each, on the floor between the Red Zone and the starters list. */}
       {stand && fieldsFloor ? (
         <FloorFields
           games={shownFieldGames}
@@ -1081,7 +1083,6 @@ export default function DashboardPage() {
           share={stand.projector.share}
           floor={fieldsFloor}
           tilt={floorTilt}
-          shown={{ left: redZoneUp ? fieldsFloor.left : 0, right: fieldsFloor.right }}
           replay={fieldReplay}
           onReplayed={replayed}
         />
