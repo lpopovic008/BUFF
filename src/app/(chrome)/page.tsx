@@ -1071,7 +1071,8 @@ export default function DashboardPage() {
       ) : null}
       {/* Its reflection: what's at its foot, in the floor. */}
       <FloorReflection source={startersList} className="pb-16" style={{ paddingTop: `calc(${UNDER_TICKER})` }} />
-      {/* The games being played, a field each, on the floor between the Red Zone and the starters list. */}
+      {/* The games being played, a field each, on the floor between the Red Zone and the starters list — behind them
+          both, hidden where they stand. */}
       {stand && fieldsFloor ? (
         <FloorFields
           games={shownFieldGames}
@@ -1080,6 +1081,7 @@ export default function DashboardPage() {
           share={stand.projector.share}
           floor={fieldsFloor}
           tilt={floorTilt}
+          shown={{ left: redZoneUp ? fieldsFloor.left : 0, right: fieldsFloor.right }}
           replay={fieldReplay}
           onReplayed={replayed}
         />

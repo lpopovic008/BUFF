@@ -196,6 +196,7 @@ export function FloorFields({
   replay = null,
   onReplayed,
   tilt: tiltStore,
+  shown,
 }: {
   /** The games being played, in order. */
   games: NFLGame[];
@@ -220,6 +221,9 @@ export function FloorFields({
   /** How far the floor's laid back, eased here to suit how many fields there are (from tablet width up) — for what
    * draws the floor to follow. */
   tilt?: FloorTiltStore;
+  /** Where across the screen they show (px from its left): what's out past these is behind something standing on the
+   * floor (from tablet width up, the columns at its sides) — hidden. */
+  shown?: { left: number; right: number };
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const fields = useRef(new Map<string, FieldState>());
@@ -1120,5 +1124,12 @@ export function FloorFields({
     };
   }, []);
 
-  return <canvas ref={ref} aria-hidden className="pointer-events-none fixed left-0 top-0 z-[4]" style={{ width, height }} />;
+  return (
+    <canvas
+      ref={ref}
+      aria-hidden
+      className="pointer-events-none fixed left-0 top-0 z-[4]"
+      style={{ width, height, clipPath: shown ? `inset(0 ${Math.max(0, width - shown.right)}px 0 ${Math.max(0, shown.left)}px)` : undefined }}
+    />
+  );
 }
