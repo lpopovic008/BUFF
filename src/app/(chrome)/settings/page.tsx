@@ -17,6 +17,7 @@ import { ExportSection } from "./ExportSection";
 import { RedZoneSection } from "./RedZoneSection";
 import { ScoresSection } from "./ScoresSection";
 import { SupportSection } from "./SupportSection";
+import { NotificationsSection } from "./NotificationsSection";
 import { TitleWithHistory } from "@/components/HistoryButtons";
 import { PlateCard } from "@/components/ui/PlateCard";
 
@@ -110,6 +111,13 @@ export default function SettingsPage() {
           <Section title="Scores">
             <ScoresSection />
           </Section>
+
+          {/* (Push notifications are the app's: a web browser here has none.) */}
+          {native ? (
+            <Section title="Notifications">
+              <NotificationsSection />
+            </Section>
+          ) : null}
 
           <Section title="Red Zone">
             <RedZoneSection />

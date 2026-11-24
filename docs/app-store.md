@@ -54,14 +54,15 @@ In the Supabase dashboard for this project:
 3. Then set the `APPLE_SIGN_IN` variable to `1` (step 4). Until it is, the app offers email sign-in only: the App
    Store requires Sign in with Apple wherever Google sign-in is offered.
 
-## 6. Account deletion (Supabase function)
+## 6. The Supabase functions (account deletion, other sites, notifications)
 
-Apple requires that an account made in an app can be deleted in it. The app's **Settings → Account → Delete
-account** uses a Supabase Edge Function:
+The app runs three small functions on Supabase (`supabase/functions/`): `delete-account` (Apple requires that an
+account made in the app can be deleted in it: Settings → Account → Delete account), `league-sites` (leagues on other
+sites, see docs/league-sites.md) and `notify` (push notifications, step 9). A workflow deploys them all:
 
-1. Supabase → **Edge Functions → Deploy a new function → Via Editor**.
-2. Name it `delete-account`, paste in all of `supabase/functions/delete-account/index.ts`, and deploy. Leave
-   **Verify JWT** on.
+1. Make a Supabase access token at <https://supabase.com/dashboard/account/tokens> and add it to GitHub as the secret
+   `SUPABASE_ACCESS_TOKEN`.
+2. GitHub → **Actions → Deploy Supabase functions → Run workflow**. Run it again whenever they change.
 
 ## 7. Build and upload
 
@@ -114,6 +115,28 @@ commissioner's weekly write-up.
 > Sign in to keep it all in sync between your phone, iPad and the web.
 
 **Keywords** (100 characters): `fantasy football,sleeper,espn fantasy,yahoo fantasy,dynasty,trade,league,commissioner,live scores`
+
+## 9. Push notifications
+
+The app can notify each person about their Sleeper leagues: their starters scoring (touchdowns, field goals,
+turnovers), lineup problems before kickoff (out, bye, questionable), matchup results and close games late, and trades.
+Each is switched on in the app, under Settings → Notifications, and needs the person signed in. Setting up:
+
+1. **Apple**: at <https://developer.apple.com/account/resources/identifiers/list>, open the App ID
+   `com.lukapopovic.commish`, tick **Push Notifications** and save. Then **Keys → +**, name it `Push`, tick **Apple Push
+   Notifications service (APNs)**, register it and download the `.p8` (once only). Note its **Key ID**.
+2. **Supabase → Edge Functions → Secrets**: add
+   - `APNS_KEY` — the whole text of that `.p8`
+   - `APNS_KEY_ID` — its Key ID
+   - `APPLE_TEAM_ID` — your Team ID
+   - `NOTIFY_SECRET` — a long random string you make up (a password generator's fine)
+3. **Supabase → SQL Editor**: run `supabase/push.sql`, having first put the same random string into its
+   `vault.create_secret(...)` line and taken the `--` off the front of that line. That makes the tables and runs the
+   `notify` function every minute.
+4. Deploy the functions (step 6) and build the app again (step 7).
+
+`notify` sends nothing in the offseason, and each notification once. Leagues on ESPN, Yahoo, MyFantasyLeague and
+Fleaflicker aren't watched for notifications yet.
 
 ## What the app leaves out
 

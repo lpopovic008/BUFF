@@ -1,19 +1,27 @@
 "use client";
 
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { finishAppSignIn } from "@/lib/auth";
+import { startPush } from "@/lib/push";
 import { isNativeApp, openExternal } from "@/lib/native";
 
 /**
  * In the app on an iPhone or iPad (see lib/native): the app's own link (a sign-in coming back from its Safari sheet)
- * taken in, and every link to another site opened in a Safari sheet over the app — never in the app's own view in
- * place of it, where there'd be no way back. Nothing in a browser.
+ * taken in; every link to another site opened in a Safari sheet over the app — never in the app's own view in place
+ * of it, where there'd be no way back; and push notifications kept registered, a tapped one's page opened (see
+ * lib/push). Nothing in a browser.
  */
 export function NativeBridge() {
+  const router = useRouter();
   useEffect(() => {
     if (!isNativeApp()) return;
     let stop: (() => void) | null = null;
+    let stopPush: (() => void) | null = null;
     let gone = false;
+    startPush((path) => router.push(path))
+      .then((s) => (gone ? s() : (stopPush = s)))
+      .catch(() => {});
     import("@capacitor/app").then(({ App }) =>
       App.addListener("appUrlOpen", ({ url }) => void finishAppSignIn(url)).then((handle) => {
         if (gone) handle.remove();
@@ -33,8 +41,9 @@ export function NativeBridge() {
     return () => {
       gone = true;
       stop?.();
+      stopPush?.();
       document.removeEventListener("click", onClick, true);
     };
-  }, []);
+  }, [router]);
   return null;
 }

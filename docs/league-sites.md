@@ -23,6 +23,8 @@ pages.
 
 The function's code is `supabase/functions/league-sites/index.ts`. It runs on this app's Supabase project.
 
+The **Deploy Supabase functions** workflow deploys it (see docs/app-store.md, step 6). Or, by hand:
+
 1. In the Supabase dashboard, open **Edge Functions → Deploy a new function → Via Editor**.
 2. Name it `league-sites`, paste in the whole of `supabase/functions/league-sites/index.ts`, and deploy it.
 3. In the function's **Details** (or settings), turn **Verify JWT** (Enforce JWT verification) **off**. The app calls

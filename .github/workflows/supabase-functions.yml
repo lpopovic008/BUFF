@@ -1,0 +1,30 @@
+name: Deploy Supabase functions
+
+# Deploys the app's Supabase Edge Functions (supabase/functions) to its project — instead of pasting each into the
+# dashboard. Run by hand: Actions → "Deploy Supabase functions" → Run workflow. Needs the SUPABASE_ACCESS_TOKEN secret:
+# a personal access token from https://supabase.com/dashboard/account/tokens (see docs/app-store.md).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROJECT: uybcjhzfwidbetnzfxwu
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Deploy
+        run: |
+          test -n "$SUPABASE_ACCESS_TOKEN" || { echo "::error::The SUPABASE_ACCESS_TOKEN secret is needed (see docs/app-store.md)"; exit 1; }
+          # Called with the app's publishable key, or by the schedule with its own secret: no user's token to verify.
+          supabase functions deploy league-sites --project-ref "$PROJECT" --no-verify-jwt
+          supabase functions deploy notify --project-ref "$PROJECT" --no-verify-jwt
+          # Called by a signed-in user, with their token.
+          supabase functions deploy delete-account --project-ref "$PROJECT"

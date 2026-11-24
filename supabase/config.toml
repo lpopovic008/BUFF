@@ -1,0 +1,15 @@
+# The Supabase CLI's settings for this project — just enough for deploying its Edge Functions
+# (see .github/workflows/supabase-functions.yml). Everything else is set in the Supabase dashboard.
+project_id = "uybcjhzfwidbetnzfxwu"
+
+# Called with the app's publishable key: no user's token to verify.
+[functions.league-sites]
+verify_jwt = false
+
+# Called by the schedule (pg_cron), with its own secret.
+[functions.notify]
+verify_jwt = false
+
+# Called by a signed-in user, with their token.
+[functions.delete-account]
+verify_jwt = true

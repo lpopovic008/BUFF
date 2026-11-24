@@ -35,6 +35,14 @@ export default function PrivacyPage() {
         </p>
       </PlateCard>
 
+      <PlateCard title="Notifications (in the app)">
+        <p>
+          If you turn on notifications, your device&rsquo;s notification token (Apple&rsquo;s address for sending to it) and
+          which kinds you chose are kept with your account, so the app&rsquo;s server can tell you about your leagues.
+          Turning them off, or deleting your account, removes them.
+        </p>
+      </PlateCard>
+
       <PlateCard title="What's fetched from where">
         <p>
           League data comes from the sites your leagues are on — Sleeper, ESPN, Yahoo, MyFantasyLeague, Fleaflicker — asked
