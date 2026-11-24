@@ -10,7 +10,7 @@
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const ALLOWED_ORIGINS = [/^https:\/\/lpopovic008\.github\.io$/, /^http:\/\/localhost(:\d+)?$/, /^capacitor:\/\/localhost$/];
+const ALLOWED_ORIGINS = [/^https:\/\/(www\.)?commish\.win$/, /^https:\/\/lpopovic008\.github\.io$/, /^http:\/\/localhost(:\d+)?$/, /^capacitor:\/\/localhost$/];
 /** The site's own domain, once it has one (the SITE_ORIGIN secret, e.g. "https://commish.app"): its pages may too. */
 const SITE_ORIGIN = (Deno.env.get("SITE_ORIGIN") ?? "").replace(/\/+$/, "");
 

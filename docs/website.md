@@ -7,7 +7,7 @@ visitors on to it by itself. Each step below is done once, in a web browser.
 ## 1. Buy a domain
 
 Any registrar works. Cloudflare (<https://dash.cloudflare.com> → Domain Registration → Register Domains) sells at cost,
-about $10 a year for a `.com` and about $14 for a `.app`. Namecheap and Porkbun are fine too. Below, `example.com`
+about $10 a year for a `.com` and about $14 for a `.app`. Namecheap and Porkbun are fine too. Below, `commish.win`
 stands for yours.
 
 ## 2. Point it at GitHub Pages (the registrar's DNS settings)
@@ -31,24 +31,24 @@ site's HTTPS certificate):
 
 1. Optional but worth it: GitHub (your profile) → **Settings → Pages → Add a domain** to verify it's yours, so no one
    else can ever point it at their own site.
-2. The repository → **Settings → Pages → Custom domain**: enter `example.com`, **Save**, and wait for the DNS check to
+2. The repository → **Settings → Pages → Custom domain**: enter `commish.win`, **Save**, and wait for the DNS check to
    pass (minutes, sometimes an hour). Then tick **Enforce HTTPS**.
-3. The repository → **Settings → Secrets and variables → Actions → Variables**: add `SITE_DOMAIN` = `example.com`.
+3. The repository → **Settings → Secrets and variables → Actions → Variables**: add `SITE_DOMAIN` = `commish.win`.
 4. **Actions → Deploy to GitHub Pages → Run workflow** (or push anything) to rebuild the site for its new address.
 
 ## 4. Sign-in and the site's other services
 
 These only allow the addresses they're told about, so each needs the new one:
 
-- **Supabase** → Authentication → URL Configuration: set **Site URL** to `https://example.com`, and add
-  `https://example.com/**` to the Redirect URLs (keep the github.io one until you're sure).
-- **Supabase** → Edge Functions → Secrets: add `SITE_ORIGIN` = `https://example.com` (for leagues on other sites, and
+- **Supabase** → Authentication → URL Configuration: set **Site URL** to `https://commish.win`, and add
+  `https://commish.win/**` to the Redirect URLs (keep the github.io one until you're sure).
+- **Supabase** → Edge Functions → Secrets: add `SITE_ORIGIN` = `https://commish.win` (for leagues on other sites, and
   account deletion).
 - **Google Docs** (if you use Save to Doc): Google Cloud Console → APIs & Services → Credentials → the OAuth client →
-  add `https://example.com` to Authorized JavaScript origins and `https://example.com/auth-callback` to Authorized
+  add `https://commish.win` to Authorized JavaScript origins and `https://commish.win/auth-callback` to Authorized
   redirect URIs.
 - **Yahoo** (if set up, see docs/league-sites.md): in the Yahoo app's settings, change the Redirect URI to
-  `https://example.com/settings/yahoo`.
+  `https://commish.win/settings/yahoo`.
 
 ## 5. Search engines
 
