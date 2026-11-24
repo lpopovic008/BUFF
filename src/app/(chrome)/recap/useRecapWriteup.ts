@@ -184,6 +184,10 @@ export function useRecapWriteup(leagueId: string | null, week: number | null) {
   // boxes (see resolveHouseStyleState and RecapEditor's onSwitchToNewFormat).
   const [freshModel, setFreshModel] = useState<RecapModel | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  // Which league's week the write-up held here is ("league:week") — until another's has loaded in its place, the
+  // last one's still held a moment after the league or week's changed, and mustn't be taken (or saved) for it.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const isLoaded = loadedFor !== null && loadedFor === `${leagueId}:${week}`;
   const [error, setError] = useState<string | null>(null);
 
   const [money, setMoney] = useState<LeagueMoney | null>(null);
@@ -246,6 +250,7 @@ export function useRecapWriteup(leagueId: string | null, week: number | null) {
     let cancelled = false;
 
     (async () => {
+      setLoadedFor(null);
       setRecapData(null);
       setHeader(null);
       setModel(null);
@@ -320,6 +325,7 @@ export function useRecapWriteup(leagueId: string | null, week: number | null) {
             setFreshModel(null);
           }
           setSavedAt(saved ? saved.savedAt : null);
+          setLoadedFor(`${leagueId}:${week}`);
           return;
         }
 
@@ -404,6 +410,7 @@ export function useRecapWriteup(leagueId: string | null, week: number | null) {
           setFreshModel(null);
         }
         setSavedAt(saved ? saved.savedAt : null);
+        setLoadedFor(`${leagueId}:${week}`);
       } catch {
         if (!cancelled) setError("Couldn't reach Sleeper's API. Check your connection and try again.");
       }
@@ -572,8 +579,9 @@ export function useRecapWriteup(leagueId: string | null, week: number | null) {
     // Gates auto-save (see useRecapActions) — same condition as the loading
     // guard just below, so a week switch's brief model=null/plainBody=""
     // reset never gets mistaken for a real edit and auto-saved over
-    // whatever this week already had.
-    loaded: Boolean(leagueId) && !error && week !== null && !!header && (isPreseason || !!recapData),
+    // whatever this week already had; nor the last league's (or week's)
+    // write-up, still held a moment after switching, saved as the new one's.
+    loaded: isLoaded && !error,
     // What's saved changed under the editor (synced in from another device) and was merged with what's typed here:
     // shown here, as merged.
     onMerged: (saved) => {
@@ -614,7 +622,7 @@ export function useRecapWriteup(leagueId: string | null, week: number | null) {
   }, [recapData, allTime]);
 
   // Loaded: the week's own data (or the preseason's header) in.
-  const ready = Boolean(leagueId) && !error && week !== null && !!header && (isPreseason || !!recapData);
+  const ready = isLoaded && !error;
   /** Everything the editor (see RecapEditor) takes. */
   const editorProps = {
     model,
