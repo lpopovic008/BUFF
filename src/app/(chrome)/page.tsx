@@ -38,6 +38,7 @@ import { kickoffBlockLabel } from "@/lib/game-map";
 import { topFacing } from "@/lib/auto-graphs";
 import { setHeaderWeek } from "@/lib/header-week";
 import { getHomeView, saveHomeView, TrackedLeague, visibleLeagues } from "@/lib/localStore";
+import { TABLET_UP } from "@/lib/layout";
 
 interface LoadedLeague {
   tracked: TrackedLeague;
@@ -50,8 +51,8 @@ const NFL_WEEKS = 18;
 /** How many players' graphs can be up at once, in place of the map. */
 const MAX_GRAPHS = 4;
 
-// From tablet width up, where the map and the Red Zone share a column the screen's height.
-const DESKTOP = "(min-width: 768px)";
+// From tablet width up (see TABLET_UP), where the map and the Red Zone share a column the screen's height.
+const DESKTOP = TABLET_UP;
 // The Red Zone, up: how far it floats over the floor (a couple of px), and how tall it is at first: a play of three
 // players, under its header (on a tablet or wider, on fewer lines). (It rises once the floor's slid away from under
 // it, see FloorCameraControls.)

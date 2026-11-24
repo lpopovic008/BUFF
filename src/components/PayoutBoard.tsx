@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { BOARD_TILT, BlockFace, blockFaces, BoardProjector, boardProjector } from "@/lib/board-3d";
 import { formatMoney as money } from "@/lib/payout-plan";
+import { TABLET_UP } from "@/lib/layout";
 
 // The payouts grid as a board seen at the dashboard map's opening angle:
 // managers down it (the first at the back), weeks across, then the season's
@@ -102,7 +103,7 @@ function Cube({ faces, paper }: { faces: BlockFace[]; paper: string }) {
 
 /** Desktop, and the viewer hasn't asked for less motion. */
 function animationsOn(): boolean {
-  return window.matchMedia("(min-width: 768px)").matches && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  return window.matchMedia(TABLET_UP).matches && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 const clamp01 = (t: number) => Math.min(1, Math.max(0, t));

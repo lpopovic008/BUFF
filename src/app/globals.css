@@ -113,6 +113,13 @@
   --kickoff-6: #ffa726;
 }
 
+/* "md" — the full layout, a header across the top instead of a tab bar along the bottom — from 744px: every iPad
+   (the mini, the narrowest, is 744 across held upright) as well as every computer. Only a phone has the phone's.
+   (See also TABLET_UP in src/lib/layout.ts, the same width for script.) */
+@theme {
+  --breakpoint-md: 46.5rem;
+}
+
 @theme inline {
   --color-page: var(--page);
   --color-surface: var(--surface);

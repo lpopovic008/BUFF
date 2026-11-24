@@ -36,7 +36,8 @@ function PlayoffPicture({ monitor, row }: { monitor: TradeMonitor; row: number }
           <li
             key={s.rosterId}
             title={line}
-            className={`grid grid-cols-[1.25rem_minmax(0,1fr)_auto_auto_4.75rem] items-center gap-x-2 text-xs ${i === monitor.playoffTeams - 1 ? "border-b border-ink-primary" : ""}`}
+            // (Its points left out where the column's narrow — a tablet's — leaving its name room.)
+            className={`grid grid-cols-[1.25rem_minmax(0,1fr)_auto_4.75rem] items-center gap-x-2 text-xs lg:grid-cols-[1.25rem_minmax(0,1fr)_auto_auto_4.75rem] ${i === monitor.playoffTeams - 1 ? "border-b border-ink-primary" : ""}`}
             style={{ height: row }}
           >
             <span className="text-right font-bold tabular-nums text-ink-muted">{t.rank}</span>
@@ -44,8 +45,8 @@ function PlayoffPicture({ monitor, row }: { monitor: TradeMonitor; row: number }
               {t.name}
               {t.mine ? <span className="ml-1.5 text-[0.625rem] font-bold uppercase text-ink-muted">You</span> : null}
             </span>
-            <span className="text-right tabular-nums text-ink-secondary">{formatRecord(t.wins, t.losses, t.ties)}</span>
-            <span className="w-14 text-right tabular-nums text-ink-secondary">{Math.round(t.pointsFor)} PF</span>
+            <span className="whitespace-nowrap text-right tabular-nums text-ink-secondary">{formatRecord(t.wins, t.losses, t.ties)}</span>
+            <span className="hidden w-14 text-right tabular-nums text-ink-secondary lg:inline">{Math.round(t.pointsFor)} PF</span>
             <span className="justify-self-end">
               <StatusChip standing={s} />
             </span>
@@ -61,12 +62,15 @@ function Positions({ monitor, row }: { monitor: TradeMonitor; row: number }) {
   const byId = new Map(monitor.teams.map((t) => [t.rosterId, t]));
   const sorted = [...monitor.needs].sort((a, b) => (byId.get(a.rosterId)!.mine ? -1 : byId.get(b.rosterId)!.mine ? 1 : byId.get(a.rosterId)!.rank - byId.get(b.rosterId)!.rank));
   const n = monitor.teams.length;
-  const cols = "grid grid-cols-[minmax(0,1fr)_repeat(4,2.75rem)] items-center gap-x-1 text-xs";
+  // (Each position's column narrower on a tablet, where the column's narrow, leaving the names room.)
+  const cols = "grid grid-cols-[minmax(0,1fr)_repeat(4,2rem)] items-center gap-x-1 text-xs lg:grid-cols-[minmax(0,1fr)_repeat(4,2.75rem)]";
   return (
     <div className="flex flex-col">
       {/* Its name, and each position over its column, on the one ruled line. */}
       <div className={`${cols} border-b border-ink-primary/60 pb-1 font-bold uppercase tracking-wide`}>
-        <span className="text-ink-primary">Positional needs</span>
+        <span className="min-w-0 truncate text-ink-primary" title="Positional needs">
+          Positional needs
+        </span>
         {MONITOR_POSITIONS.map((p) => (
           <span key={p} className={`text-center text-[0.6875rem] ${POSITION_TEXT_COLOR[p] ?? ""}`}>
             {p}

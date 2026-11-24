@@ -396,16 +396,17 @@ function TradeCard({ trade, leagueName, height }: { trade: AnalyzedTrade; league
                 </span>
               ) : null}
             </div>
-            <div className="ml-auto flex shrink-0 items-baseline gap-2">
+            {/* (A little smaller where its side's narrow — a tablet's middle column — and never over the other side's.) */}
+            <div className="ml-auto flex min-w-0 flex-wrap items-baseline justify-end gap-x-1.5 lg:gap-x-2">
               <span className="text-xs" style={{ color: colorOf(side) }}>
                 Total
               </span>
-              <span className="text-lg tabular-nums text-ink-muted">{grade(side.then + side.added)}</span>
+              <span className="text-base tabular-nums text-ink-muted lg:text-lg">{grade(side.then + side.added)}</span>
               <span className="text-ink-muted">→</span>
-              <span className="text-2xl font-bold tabular-nums" style={{ color: colorOf(side) }}>
+              <span className="text-xl font-bold tabular-nums lg:text-2xl" style={{ color: colorOf(side) }}>
                 {grade(side.now + side.added)}
               </span>
-              <span className="text-lg">
+              <span className="text-base lg:text-lg">
                 <Change from={side.then + side.added} to={side.now + side.added} />
               </span>
             </div>

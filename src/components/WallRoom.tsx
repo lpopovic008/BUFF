@@ -9,9 +9,10 @@ import { LineupNumbers, PlayerCareer } from "@/components/PlayerCareer";
 import { useListScroll } from "@/hooks/useListScroll";
 import { HORIZON_SHARE, WALL_SHARE } from "@/lib/grid-room";
 import { ResolvedPlayer } from "@/lib/players";
+import { TABLET_UP } from "@/lib/layout";
 
-// From laptop width up, three columns stand in the room; narrower, one.
-const WIDE = "(min-width: 1280px)";
+// From tablet width up (see TABLET_UP), three columns stand in the room; narrower, one.
+const WIDE = TABLET_UP;
 const onWideChange = (listener: () => void) => {
   const query = window.matchMedia(WIDE);
   query.addEventListener("change", listener);

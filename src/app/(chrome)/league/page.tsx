@@ -30,13 +30,13 @@ import { setHeaderWeek } from "@/lib/header-week";
 import { setHeaderBare, useBackStep, useHeaderSlot } from "@/lib/header-slot";
 import { visibleLeagues } from "@/lib/localStore";
 import type { ResolvedPlayer } from "@/lib/players";
+import { TABLET_UP } from "@/lib/layout";
 
 /** The NFL regular season's weeks, all of which the header's week picker offers. */
 const NFL_WEEKS = 18;
 
-// From laptop width up (wide enough for a lineup between two columns), three columns stand in the room; narrower,
-// the phone's scene.
-const DESKTOP = "(min-width: 1280px)";
+// From tablet width up (see TABLET_UP), three columns stand in the room; narrower, the phone's scene.
+const DESKTOP = TABLET_UP;
 const onDesktopChange = (listener: () => void) => {
   const query = window.matchMedia(DESKTOP);
   query.addEventListener("change", listener);
