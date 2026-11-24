@@ -11,9 +11,11 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const ALLOWED_ORIGINS = [/^https:\/\/lpopovic008\.github\.io$/, /^http:\/\/localhost(:\d+)?$/, /^capacitor:\/\/localhost$/];
+/** The site's own domain, once it has one (the SITE_ORIGIN secret, e.g. "https://commish.app"): its pages may too. */
+const SITE_ORIGIN = (Deno.env.get("SITE_ORIGIN") ?? "").replace(/\/+$/, "");
 
 function cors(origin: string | null): Record<string, string> {
-  const ok = origin && ALLOWED_ORIGINS.some((o) => o.test(origin));
+  const ok = origin && (ALLOWED_ORIGINS.some((o) => o.test(origin)) || (SITE_ORIGIN !== "" && origin === SITE_ORIGIN));
   return {
     "Access-Control-Allow-Origin": ok ? origin : "https://lpopovic008.github.io",
     "Access-Control-Allow-Methods": "POST, OPTIONS",

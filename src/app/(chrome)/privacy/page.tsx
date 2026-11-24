@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { PlateCard } from "@/components/ui/PlateCard";
 
-export const metadata: Metadata = { title: "Privacy — Commi$h" };
+export const metadata: Metadata = { title: "Privacy" };
 
 /** What the app keeps, where, and what's sent where — the policy the App Store listing links to. */
 export default function PrivacyPage() {

@@ -1,7 +1,7 @@
 "use client";
 
+import { Welcome } from "@/components/Welcome";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import type { MappedGame } from "@/components/GameMap";
 import { FloorProjection, FloorProjectionTags } from "@/components/FloorProjector";
@@ -79,7 +79,7 @@ const onDesktopChange = (listener: () => void) => {
 };
 
 export default function DashboardPage() {
-  const { config, loaded } = useConfig();
+  const { config, loaded, refresh } = useConfig();
   const desktop = useSyncExternalStore(onDesktopChange, () => window.matchMedia(DESKTOP).matches, () => false);
   // The room fits the screen: the page itself never scrolls (nothing but the starters list and the Red Zone's plays do).
   useEffect(() => {
@@ -736,22 +736,8 @@ export default function DashboardPage() {
     );
   }
 
-  if (config.leagues.length === 0) {
-    return (
-      <Card className="flex flex-col items-center gap-3 p-12 text-center">
-        <h1 className="text-xl font-semibold text-ink-primary">No leagues tracked yet</h1>
-        <p className="max-w-md text-sm text-ink-secondary">
-          Connect your Sleeper username to pull in every league you play in this season.
-        </p>
-        <Link
-          href="/settings"
-          className="mt-2 bg-series-1 px-4 py-2 text-sm font-medium text-white transition-transform hover:opacity-90 active:scale-95"
-        >
-          Go to Settings
-        </Link>
-      </Card>
-    );
-  }
+  // Before any league's been added: what the site is, and where to start.
+  if (config.leagues.length === 0) return <Welcome onReady={refresh} />;
 
   // Each league's matchup and standings, shared by the league boxes and the phone ticker.
   const leagueCards: TickerLeague[] = leagues.map(({ tracked }, i) => {

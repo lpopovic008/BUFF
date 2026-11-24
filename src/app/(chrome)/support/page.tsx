@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PlateCard } from "@/components/ui/PlateCard";
 
-export const metadata: Metadata = { title: "Support — Commi$h" };
+export const metadata: Metadata = { title: "Support" };
 
 /** Help getting started, and how to reach the developer — the support page the App Store listing links to. */
 export default function SupportPage() {

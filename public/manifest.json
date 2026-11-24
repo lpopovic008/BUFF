@@ -1,7 +1,7 @@
 {
   "name": "Commi$h — Fantasy League HQ",
   "short_name": "Commi$h",
-  "description": "Dashboard for tracking Sleeper fantasy leagues, commissioner recaps, and career stats.",
+  "description": "Every fantasy football league you play in, on one screen: live scoring, standings, trades, values and the commissioner's write-up.",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",

@@ -5,6 +5,7 @@ import { AutoSupabaseSync } from "@/components/AutoSupabaseSync";
 import { NativeBridge } from "@/components/NativeBridge";
 import { STORAGE_MIGRATION_SCRIPT } from "@/lib/storage-migration";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 const inconsolata = Inconsolata({
@@ -13,9 +14,20 @@ const inconsolata = Inconsolata({
   subsets: ["latin"],
 });
 
+// What search engines and a shared link's preview say about the site (each page can name itself: "Values — Commi$h").
 export const metadata: Metadata = {
-  title: "Commi$h — Fantasy League HQ",
-  description: "Dashboard for tracking Sleeper fantasy leagues, commissioner recaps, and career stats.",
+  title: { default: "Commi$h — Fantasy League HQ", template: "%s — Commi$h" },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    title: "Commi$h — Fantasy League HQ",
+    description: SITE_DESCRIPTION,
+    url: `${SITE_URL}/`,
+    images: [{ url: `${SITE_URL}/og.png`, width: 1200, height: 630, alt: "Commi$h" }],
+  },
+  twitter: { card: "summary_large_image", title: "Commi$h — Fantasy League HQ", description: SITE_DESCRIPTION, images: [`${SITE_URL}/og.png`] },
 };
 
 export const viewport: Viewport = {
