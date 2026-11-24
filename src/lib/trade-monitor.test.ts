@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { afterTrade, evenUps, futurePicks, MonitorPlayer, MonitorTeam, playoffPicture, positionalNeeds, sellCandidates, startersByPosition, tradePartners, tradeTargets, weighTrade } from "./trade-monitor";
+import { afterMoves, afterTrade, evenUps, futurePicks, MonitorPlayer, MonitorTeam, playoffPicture, positionalNeeds, sellCandidates, startersByPosition, tradePartners, tradeTargets, weighTrade, weighTrades } from "./trade-monitor";
 
 const team = (rosterId: number, wins: number, losses: number, players: string[] = []): MonitorTeam => ({
   rosterId,
@@ -131,6 +131,49 @@ test("afterTrade moves the pieces between the two rosters only", () => {
   const teams = [team(1, 0, 0, ["a", "b"]), team(2, 0, 0, ["c"]), team(3, 0, 0, ["d"])];
   const after = afterTrade(teams, 1, 2, ["a"], ["c"]);
   assert.deepEqual(after.map((t) => t.players), [["b", "c"], ["a"], ["d"]]);
+});
+
+test("weighTrades weighs a trade among three as its two-team swaps, each with its own added value", () => {
+  // 0 sends a star to 1 for three lesser pieces; 1 sends 2 a piece; 2 sends 0 a piece.
+  const moves = [
+    { value: 9000, from: 0, to: 1 },
+    { value: 4000, from: 1, to: 0 },
+    { value: 3000, from: 1, to: 0 },
+    { value: 2500, from: 1, to: 0 },
+    { value: 5000, from: 1, to: 2 },
+    { value: 5100, from: 2, to: 0 },
+  ];
+  const [a, b, c] = weighTrades(3, moves);
+  const ab = weighTrade([9000], [4000, 3000, 2500]);
+  // 0 and 1's swap alone carries the star's added value; the others are one piece for nothing, due none.
+  assert.equal(a.added, ab.give.added);
+  assert.equal(b.added, 0);
+  assert.equal(a.gives, ab.give.total);
+  assert.equal(a.gets, ab.get.total + 5100);
+  assert.equal(b.gets, ab.give.total);
+  assert.equal(b.gives, ab.get.total + 5000);
+  assert.equal(c.gets, 5000);
+  assert.equal(c.gives, 5100);
+  assert.equal(c.fair, true);
+  // Two sides are weighTrade's one swap.
+  const [left, right] = weighTrades(2, [
+    { value: 5000, from: 0, to: 1 },
+    { value: 7000, from: 1, to: 0 },
+  ]);
+  const one = weighTrade([5000], [7000]);
+  assert.equal(left.net, one.margin);
+  assert.equal(right.net, -one.margin);
+  assert.equal(left.fair, one.fair);
+});
+
+test("afterMoves moves each piece from its roster to its new one", () => {
+  const teams = [team(1, 0, 0, ["a", "b"]), team(2, 0, 0, ["c"]), team(3, 0, 0, ["d"])];
+  const after = afterMoves(teams, [
+    { id: "a", from: 1, to: 2 },
+    { id: "c", from: 2, to: 3 },
+    { id: "d", from: 3, to: 1 },
+  ]);
+  assert.deepEqual(after.map((t) => t.players), [["b", "d"], ["a"], ["c"]]);
 });
 
 test("evenUps finds the pieces that bring a trade back toward even, the nearest first", () => {

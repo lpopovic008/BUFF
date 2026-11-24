@@ -331,15 +331,69 @@ export function weighTrade(give: number[], get: number[]): TradeVerdict {
   return { give: g, get: r, margin, shownMargin, fair };
 }
 
+/** A piece changing hands in a trade among any number of sides: its value, and the sides (by place) it goes from and to. */
+export interface TradeMove {
+  value: number;
+  from: number;
+  to: number;
+}
+
+/** One side of a trade among any number, weighed: what it gives and gets in all, KTC's added value and all. */
+export interface SideTally {
+  /** What it gives, each part counted with the added value it's due in its own two-team swap. */
+  gives: number;
+  /** What it gets, the same way. */
+  gets: number;
+  /** The added value its own pieces are due, over all its swaps (see weighTrade). */
+  added: number;
+  /** What it gets less what it gives: ahead when it's over 0. */
+  net: number;
+  /** The same in whole grades, as its totals are shown. */
+  shownNet: number;
+  fair: boolean;
+}
+
+/**
+ * A trade among any number of sides, weighed as KTC weighs a two-team trade, one pair of sides at a time: what each
+ * pair sends each other is its own swap (see weighTrade), its added value given in it alone, and each side's tally is
+ * what it gives and gets over all its swaps. Two sides are the one swap, weighed just as weighTrade weighs it. A side
+ * is fair when what it gets and gives are within FAIR_SHARE of each other, as they're shown.
+ */
+export function weighTrades(sides: number, moves: TradeMove[]): SideTally[] {
+  const tally = Array.from({ length: sides }, () => ({ gives: 0, gets: 0, added: 0 }));
+  for (let a = 0; a < sides; a++) {
+    for (let b = a + 1; b < sides; b++) {
+      const aToB = moves.filter((m) => m.from === a && m.to === b).map((m) => m.value);
+      const bToA = moves.filter((m) => m.from === b && m.to === a).map((m) => m.value);
+      if (aToB.length + bToA.length === 0) continue;
+      const swap = weighTrade(aToB, bToA);
+      tally[a].gives += swap.give.total;
+      tally[a].gets += swap.get.total;
+      tally[a].added += swap.give.added;
+      tally[b].gives += swap.get.total;
+      tally[b].gets += swap.give.total;
+      tally[b].added += swap.get.added;
+    }
+  }
+  return tally.map((t) => {
+    const [shownGives, shownGets] = [shownGrade(valueGrade(t.gives)), shownGrade(valueGrade(t.gets))];
+    const shownNet = shownGets - shownGives;
+    return { ...t, net: t.gets - t.gives, shownNet, fair: Math.abs(shownNet) <= FAIR_SHARE * Math.max(shownGives, shownGets) + 1e-9 };
+  });
+}
+
+/** The league's teams after players change hands: each moves from the roster `from` to the roster `to`. */
+export function afterMoves(teams: MonitorTeam[], moves: { id: string; from: number; to: number }[]): MonitorTeam[] {
+  return teams.map((t) => {
+    const out = new Set(moves.filter((m) => m.from === t.rosterId).map((m) => m.id));
+    const coming = moves.filter((m) => m.to === t.rosterId).map((m) => m.id);
+    return out.size + coming.length === 0 ? t : { ...t, players: [...t.players.filter((id) => !out.has(id)), ...coming] };
+  });
+}
+
 /** The league's teams after a trade: what `mine` gives goes to `theirs`, and what it gets comes over. */
 export function afterTrade(teams: MonitorTeam[], mine: number, theirs: number, give: string[], get: string[]): MonitorTeam[] {
-  return teams.map((t) =>
-    t.rosterId === mine
-      ? { ...t, players: [...t.players.filter((id) => !give.includes(id)), ...get] }
-      : t.rosterId === theirs
-        ? { ...t, players: [...t.players.filter((id) => !get.includes(id)), ...give] }
-        : t
-  );
+  return afterMoves(teams, [...give.map((id) => ({ id, from: mine, to: theirs })), ...get.map((id) => ({ id, from: theirs, to: mine }))]);
 }
 
 /** A piece that would bring a trade closer to even, and the trade weighed with it in. */

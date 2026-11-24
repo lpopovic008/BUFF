@@ -7,7 +7,7 @@ import { TradeMonitor } from "@/hooks/useTradeMonitor";
 import { ordinal } from "@/lib/format";
 import { shownGrade, valueGrade } from "@/lib/player-values";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
-import { afterTrade, evenUps, MONITOR_POSITIONS, MonitorPlayer, positionalNeeds, weighTrade } from "@/lib/trade-monitor";
+import { afterMoves, evenUps, MONITOR_POSITIONS, MonitorPlayer, positionalNeeds, weighTrade, weighTrades } from "@/lib/trade-monitor";
 
 /** A piece a team could trade: a player, or a future draft pick — and whose it is. */
 interface Piece {
@@ -111,6 +111,13 @@ function PieceSearch({ pool, label, onAdd }: { pool: Piece[]; label: string; onA
   );
 }
 
+/** Where a side's piece goes, among the trade's other sides (by their keys), shown with three sides or more. */
+interface Destination {
+  to: number;
+  options: { key: number; name: string }[];
+  onMove: (to: number) => void;
+}
+
 /** One side of the trade: what it gives, a way out for each piece, KTC's added value it's due, and a search to add more. */
 function Side({
   team,
@@ -120,6 +127,7 @@ function Side({
   added,
   ownerName,
   showOwner,
+  destination,
   onAdd,
   onRemove,
   onOpen,
@@ -129,11 +137,13 @@ function Side({
   pieces: Piece[];
   pool: Piece[];
   label: string;
-  /** KTC's added value this side's due on top of its pieces (see weighTrade), shown as a line of its own. */
+  /** KTC's added value this side's due on top of its pieces (see weighTrades), shown as a line of its own. */
   added: number;
   ownerName: (rosterId: number) => string;
   /** Whose each piece is, under it — with no team picked for the side. */
   showOwner: boolean;
+  /** Where each piece goes, picked under it — in a trade among three or more. */
+  destination: ((p: Piece) => Destination) | null;
   onAdd: (id: string) => void;
   onRemove: (id: string) => void;
   onOpen: (p: MonitorPlayer) => void;
@@ -148,26 +158,46 @@ function Side({
         </div>
       </div>
       <ul className="flex flex-col">
-        {pieces.map((p) => (
-          <li key={p.id} className="flex items-center gap-1.5 py-1">
-            {p.player ? <PlayerHeadshot playerId={p.id} size={22} /> : <span className="h-[1.375rem] w-[1.375rem] shrink-0 rounded-full border-2 border-ink-muted" aria-hidden />}
-            <span className="flex min-w-0 flex-1 flex-col leading-tight">
-              {p.player ? (
-                <button type="button" onClick={() => onOpen(p.player!)} className="min-w-0 truncate text-left text-xs font-bold text-ink-primary hover:underline">
-                  {p.label}
-                </button>
-              ) : (
-                <span className="min-w-0 truncate text-xs font-bold text-ink-primary">{p.label}</span>
-              )}
-              {showOwner ? <span className="truncate text-[0.625rem] uppercase text-ink-muted">{ownerName(p.owner)}</span> : null}
-            </span>
-            {p.player ? <span className={`shrink-0 text-[0.625rem] font-semibold uppercase ${POSITION_TEXT_COLOR[p.position] ?? "text-ink-muted"}`}>{p.position}</span> : null}
-            <span className="w-6 shrink-0 text-right text-xs font-extrabold tabular-nums text-ink-primary">{p.value != null ? grade(p.value) : "–"}</span>
-            <button type="button" onClick={() => onRemove(p.id)} aria-label={`Take ${p.label} out`} className="flex h-5 w-4 shrink-0 items-center justify-center text-sm text-ink-muted hover:text-ink-primary">
-              ×
-            </button>
-          </li>
-        ))}
+        {pieces.map((p) => {
+          const dest = destination?.(p);
+          return (
+            <li key={p.id} className="flex items-center gap-1.5 py-1">
+              {p.player ? <PlayerHeadshot playerId={p.id} size={22} /> : <span className="h-[1.375rem] w-[1.375rem] shrink-0 rounded-full border-2 border-ink-muted" aria-hidden />}
+              <span className="flex min-w-0 flex-1 flex-col leading-tight">
+                {p.player ? (
+                  <button type="button" onClick={() => onOpen(p.player!)} className="min-w-0 truncate text-left text-xs font-bold text-ink-primary hover:underline">
+                    {p.label}
+                  </button>
+                ) : (
+                  <span className="min-w-0 truncate text-xs font-bold text-ink-primary">{p.label}</span>
+                )}
+                {showOwner ? <span className="truncate text-[0.625rem] uppercase text-ink-muted">{ownerName(p.owner)}</span> : null}
+                {dest ? (
+                  <label className="flex min-w-0 items-baseline gap-1 text-[0.625rem] uppercase text-ink-muted">
+                    <span aria-hidden>→</span>
+                    <select
+                      value={dest.to}
+                      onChange={(e) => dest.onMove(Number(e.target.value))}
+                      aria-label={`Where ${p.label} goes`}
+                      className="min-w-0 truncate bg-transparent font-bold uppercase text-ink-secondary outline-none hover:text-ink-primary"
+                    >
+                      {dest.options.map((o) => (
+                        <option key={o.key} value={o.key}>
+                          {o.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+              </span>
+              {p.player ? <span className={`shrink-0 text-[0.625rem] font-semibold uppercase ${POSITION_TEXT_COLOR[p.position] ?? "text-ink-muted"}`}>{p.position}</span> : null}
+              <span className="w-6 shrink-0 text-right text-xs font-extrabold tabular-nums text-ink-primary">{p.value != null ? grade(p.value) : "–"}</span>
+              <button type="button" onClick={() => onRemove(p.id)} aria-label={`Take ${p.label} out`} className="flex h-5 w-4 shrink-0 items-center justify-center text-sm text-ink-muted hover:text-ink-primary">
+                ×
+              </button>
+            </li>
+          );
+        })}
         {/* KTC's adjustment, as its calculator shows it: a line under the pieces, for fewer, better ones. */}
         {added > 0 ? (
           <li className="flex items-center gap-1.5 py-1" title="KTC's value adjustment: fewer, better pieces are worth more than the plain sum">
@@ -184,14 +214,25 @@ function Side({
   );
 }
 
+/** A side of the trade: its team (none picked, anyone's), and what it gives — each piece and where it goes (a side's key). */
+interface SideState {
+  key: number;
+  team: number | null;
+  gives: { id: string; to: number }[];
+}
+
+/** The most sides a trade can have. */
+const MOST_SIDES = 4;
+
 /**
- * A trade between any two sides in the league, weighed the way KTC's calculator weighs one: what each gives —
+ * A trade among two or more sides in the league, weighed the way KTC's calculator weighs one: what each gives —
  * players and future picks — each side's value with the added value fewer, better pieces are due, and who comes out
- * ahead (or that it's fair). A team picked for each side narrows what it can give to that team's own; with only the
- * right side's picked, the left's is yours. With no teams picked, anyone in the league can go on either side, found
- * by name. With both sides' teams known, what it'd do to both rosters' ranks at each position, and what would even it
- * out. Cleared at the top right. In a room with a floor for it (see TradeCalcFloorContext), what's in it stands on
- * the floor too.
+ * ahead (or that it's fair). With three or more, each piece goes to the side picked under it, and the trade's weighed
+ * one pair of sides at a time, as two-team swaps (see weighTrades). A team picked for a side narrows what it can give
+ * to that team's own; with only the others' picked, the first side's is yours. With no teams picked, anyone in the
+ * league can go on any side, found by name. With every side's team known, what it'd do to their rosters' ranks at
+ * each position, and, between two, what would even it out. Cleared at the top right. In a room with a floor for it
+ * (see TradeCalcFloorContext), what's in it stands on the floor too.
  */
 export function TradeCalculator({
   monitor,
@@ -200,18 +241,26 @@ export function TradeCalculator({
 }: {
   monitor: TradeMonitor;
   onOpen: (p: MonitorPlayer) => void;
-  /** The two sides one over the other (a column of its own), not side by side: the first team's over the second's. */
+  /** The sides one over the other (a column of its own), not side by side: the first team's over the next's. */
   stacked?: boolean;
 }) {
   const mine = monitor.teams.find((t) => t.mine);
-  const [leftTeam, setLeftTeam] = useState<number | null>(null);
-  const [rightTeam, setRightTeam] = useState<number | null>(null);
-  const [left, setLeft] = useState<string[]>([]);
-  const [right, setRight] = useState<string[]>([]);
+  const nextKey = useRef(2);
+  const [sides, setSides] = useState<SideState[]>([
+    { key: 0, team: null, gives: [] },
+    { key: 1, team: null, gives: [] },
+  ]);
   const teamName = (rosterId: number) => monitor.teams.find((t) => t.rosterId === rosterId)?.name ?? `Team ${rosterId}`;
-  // With only the right side's team picked, the left's is yours.
-  const leftOwner = leftTeam ?? (rightTeam !== null ? (mine?.rosterId ?? null) : null);
-  const rightOwner = rightTeam;
+  // Each side's team: its own, or for the first, with only the others' picked, yours (where you're on none of them).
+  const ownersOf = (list: SideState[]) => {
+    const others = list.slice(1).map((s) => s.team);
+    const yoursFirst = list[0].team === null && others.some((t) => t !== null) && mine && !others.includes(mine.rosterId) ? mine.rosterId : null;
+    return list.map((s, i) => (i === 0 ? (s.team ?? yoursFirst) : s.team));
+  };
+  const owners = ownersOf(sides);
+  const many = sides.length > 2;
+  // Where a piece goes: where it was sent, if that side's still in it; else the next side round.
+  const toOf = (list: SideState[], i: number, to: number) => (list.some((s, j) => j !== i && s.key === to) ? to : list[(i + 1) % list.length].key);
 
   // Every team's pieces, most valuable first: its players and its picks.
   const all = useMemo(() => {
@@ -235,126 +284,176 @@ export function TradeCalculator({
     return out.sort((a, b) => (b.value ?? -1) - (a.value ?? -1));
   }, [monitor]);
   const byId = useMemo(() => new Map(all.map((p) => [p.id, p])), [all]);
-  const piecesIn = (ids: string[]) => ids.flatMap((id) => (byId.has(id) ? [byId.get(id)!] : []));
-  const [leftPieces, rightPieces] = [piecesIn(left), piecesIn(right)];
-  // What a side can still add: its team's, where it's known; else anyone's not the other side's team — and nothing
+  const piecesOf = (side: SideState) => side.gives.flatMap((g) => (byId.has(g.id) ? [byId.get(g.id)!] : []));
+  // What a side can still add: its team's, where it's known; else anyone's not another side's team — and nothing
   // already in the trade.
-  const chosen = new Set([...left, ...right]);
-  const poolFor = (owner: number | null, other: number | null) => all.filter((p) => !chosen.has(p.id) && (owner !== null ? p.owner === owner : p.owner !== other));
-
-  // A side's team picked: anything of another team's taken off it.
-  const pickTeam = (side: "left" | "right", rosterId: number | null) => {
-    const nextLeft = side === "left" ? rosterId : leftTeam;
-    const nextRight = side === "right" ? rosterId : rightTeam;
-    const nextLeftOwner = nextLeft ?? (nextRight !== null ? (mine?.rosterId ?? null) : null);
-    if (side === "left") setLeftTeam(rosterId);
-    else setRightTeam(rosterId);
-    setLeft((ids) => (nextLeftOwner === null ? ids : ids.filter((id) => byId.get(id)?.owner === nextLeftOwner)));
-    setRight((ids) => (nextRight === null ? ids : ids.filter((id) => byId.get(id)?.owner === nextRight)));
+  const chosen = new Set(sides.flatMap((s) => s.gives.map((g) => g.id)));
+  const poolFor = (i: number) => {
+    const owner = owners[i];
+    const taken = owners.filter((o, j) => j !== i && o !== null);
+    return all.filter((p) => !chosen.has(p.id) && (owner !== null ? p.owner === owner : !taken.includes(p.owner)));
   };
+
+  const update = (change: (list: SideState[]) => SideState[]) =>
+    setSides((list) => {
+      const next = change(list);
+      // Whatever's not its side's team's any more taken off it, and each piece sent somewhere that's still in it.
+      const known = ownersOf(next);
+      return next.map((s, i) => ({
+        ...s,
+        gives: s.gives.filter((g) => known[i] === null || byId.get(g.id)?.owner === known[i]).map((g) => ({ ...g, to: toOf(next, i, g.to) })),
+      }));
+    });
+  const pickTeam = (i: number, rosterId: number | null) => update((list) => list.map((s, j) => (j === i ? { ...s, team: rosterId } : s)));
+  const addPiece = (i: number, id: string) => update((list) => list.map((s, j) => (j === i ? { ...s, gives: [...s.gives, { id, to: list[(i + 1) % list.length].key }] } : s)));
+  const removePiece = (i: number, id: string) => update((list) => list.map((s, j) => (j === i ? { ...s, gives: s.gives.filter((g) => g.id !== id) } : s)));
+  const movePiece = (i: number, id: string, to: number) => update((list) => list.map((s, j) => (j === i ? { ...s, gives: s.gives.map((g) => (g.id === id ? { ...g, to } : g)) } : s)));
+  const addSide = () => update((list) => [...list, { key: nextKey.current++, team: null, gives: [] }]);
+  const removeSide = (i: number) => update((list) => list.filter((_, j) => j !== i));
   const clear = () => {
-    setLeftTeam(null);
-    setRightTeam(null);
-    setLeft([]);
-    setRight([]);
+    nextKey.current = 2;
+    setSides([
+      { key: 0, team: null, gives: [] },
+      { key: 1, team: null, gives: [] },
+    ]);
   };
 
-  const sideName = (owner: number | null, fallback: string) => (owner === null ? fallback : owner === mine?.rosterId ? "You" : teamName(owner));
-  const [leftName, rightName] = [sideName(leftOwner, "Side A"), sideName(rightOwner, "Side B")];
+  const sideName = (i: number) => (owners[i] === null ? `Side ${"ABCD"[i]}` : owners[i] === mine?.rosterId ? "You" : teamName(owners[i]!));
+  const names = sides.map((_, i) => sideName(i));
+  const nameOfKey = (key: number) => names[sides.findIndex((s) => s.key === key)];
+  const gives = (name: string) => `${name} ${name === "You" ? "give" : "gives"}`;
+  const any = chosen.size > 0;
+  const fresh = !any && sides.length === 2 && sides.every((s) => s.team === null);
 
   // What's in it, on the room's floor where there's one.
   const toFloor = useContext(TradeCalcFloorContext);
-  const floorKey = `${leftName}|${rightName}|${left.join(",")}|${right.join(",")}`;
+  const floorKey = JSON.stringify([names, sides.map((s) => s.gives)]);
   useEffect(() => {
     if (!toFloor) return;
-    const of = (pieces: Piece[]) => pieces.map((p) => ({ id: p.id, label: p.label, position: p.position, value: p.value }));
-    toFloor(left.length + right.length > 0 ? { give: of(leftPieces), get: of(rightPieces), titles: [`${leftName} ${leftName === "You" ? "give" : "gives"}`, `${rightName} ${rightName === "You" ? "give" : "gives"}`] } : null);
+    toFloor(
+      any
+        ? {
+            sides: sides.map((s, i) => ({
+              title: gives(names[i]),
+              pieces: piecesOf(s).map((p, k) => ({ id: p.id, label: p.label, position: p.position, value: p.value, to: many ? nameOfKey(s.gives[k].to) : undefined })),
+            })),
+          }
+        : null
+    );
     // (What's in it is the key's: it says when that changes.)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toFloor, floorKey]);
   useEffect(() => (toFloor ? () => toFloor(null) : undefined), [toFloor]);
 
   const value = (id: string) => byId.get(id)?.value ?? 0;
-  // Weighed from the left side's: what it gives, and what it gets (the right's).
+  const indexOfKey = (key: number) => sides.findIndex((s) => s.key === key);
+  // Every side weighed, one pair of sides at a time (see weighTrades).
+  const tallies = weighTrades(
+    sides.length,
+    sides.flatMap((s, i) => s.gives.map((g) => ({ value: value(g.id), from: i, to: indexOfKey(g.to) })))
+  );
+  // Between two, as before: the first side's view of it.
+  const [left, right] = [sides[0].gives.map((g) => g.id), sides[1].gives.map((g) => g.id)];
   const verdict = weighTrade(left.map(value), right.map(value));
-  const any = left.length + right.length > 0;
   const total = verdict.give.total + verdict.get.total;
-  const known = leftOwner !== null && rightOwner !== null;
+  const known = owners.every((o) => o !== null);
+  const ownersKey = owners.join(",");
   const ranks = useMemo(() => {
     if (!known || !any) return null;
+    const moves = sides.flatMap((s, i) => s.gives.map((g) => ({ id: g.id, from: owners[i]!, to: owners[indexOfKey(g.to)]! })));
     const before = positionalNeeds(monitor.teams, monitor.players, monitor.starters);
-    const after = positionalNeeds(afterTrade(monitor.teams, leftOwner!, rightOwner!, left, right), monitor.players, monitor.starters);
+    const after = positionalNeeds(afterMoves(monitor.teams, moves), monitor.players, monitor.starters);
     const at = (needs: typeof before, rosterId: number) => needs.find((n) => n.rosterId === rosterId)!.positions;
-    return [leftOwner!, rightOwner!].map((rosterId) => ({ rosterId, was: at(before, rosterId), will: at(after, rosterId) }));
-  }, [known, any, monitor, leftOwner, rightOwner, left, right]);
-  // Ahead, pieces of the left side's would even it; behind, pieces of the right's — with both teams known.
+    return owners.map((rosterId) => ({ rosterId: rosterId!, was: at(before, rosterId!), will: at(after, rosterId!) }));
+    // (The sides and their owners are the key's.)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [known, any, monitor, floorKey, ownersKey]);
+  // Between two: ahead, pieces of the first side's would even it; behind, pieces of the second's — with both teams known.
   const ahead = verdict.margin > 0;
   const balancers =
-    known && !verdict.fair && left.length > 0 && right.length > 0
+    !many && known && !verdict.fair && left.length > 0 && right.length > 0
       ? evenUps(
           left.map(value),
           right.map(value),
-          poolFor(ahead ? leftOwner : rightOwner, null).map((p) => ({ id: p.id, value: p.value })),
+          poolFor(ahead ? 0 : 1).map((p) => ({ id: p.id, value: p.value })),
           ahead ? "give" : "get"
         )
       : [];
+  const [leftName, rightName] = names;
   const winner = verdict.margin > 0 ? leftName : rightName;
-  const teamOptions = (
-    <>
-      {monitor.teams.map((t) => (
-        <option key={t.rosterId} value={t.rosterId}>
-          {t.mine ? `${t.name} (you)` : t.name}
-        </option>
-      ))}
-    </>
-  );
+  const pickedElsewhere = (i: number) => new Set(sides.filter((_, j) => j !== i).map((s) => s.team));
+  const teamOptions = (i: number) =>
+    monitor.teams.map((t) => (
+      <option key={t.rosterId} value={t.rosterId} disabled={pickedElsewhere(i).has(t.rosterId)}>
+        {t.mine ? `${t.name} (you)` : t.name}
+      </option>
+    ));
+  const youWord = (name: string, verb: string) => (name === "You" ? verb : `${verb}s`);
 
   return (
     <div className="@container flex flex-col gap-2">
       <div className="flex items-baseline justify-between border-b border-ink-primary/60 pb-1 text-xs font-bold uppercase tracking-wide text-ink-primary">
         <span>Trade calculator</span>
-        <button type="button" onClick={clear} disabled={!any && leftTeam === null && rightTeam === null} className="text-[0.6875rem] font-bold uppercase tracking-wide text-ink-muted hover:text-ink-primary disabled:opacity-40">
+        <button type="button" onClick={clear} disabled={fresh} className="text-[0.6875rem] font-bold uppercase tracking-wide text-ink-muted hover:text-ink-primary disabled:opacity-40">
           Clear
         </button>
       </div>
-      <div className={stacked ? "flex flex-col gap-4" : "grid grid-cols-2 gap-3"}>
-        <Side
-          team={
-            <select aria-label="Left side's team" value={leftTeam ?? ""} onChange={(e) => pickTeam("left", e.target.value === "" ? null : Number(e.target.value))} className={SELECT}>
-              <option value="">{rightTeam !== null && mine ? `${mine.name} (you)` : "Any team"}</option>
-              {teamOptions}
-            </select>
-          }
-          pieces={leftPieces}
-          pool={poolFor(leftOwner, rightOwner)}
-          label={`Add to what ${leftName} ${leftName === "You" ? "give" : "gives"}`}
-          added={verdict.give.added}
-          ownerName={teamName}
-          showOwner={leftOwner === null}
-          onAdd={(id) => setLeft((ids) => [...ids, id])}
-          onRemove={(id) => setLeft((ids) => ids.filter((x) => x !== id))}
-          onOpen={onOpen}
-        />
-        <Side
-          team={
-            <select aria-label="Right side's team" value={rightTeam ?? ""} onChange={(e) => pickTeam("right", e.target.value === "" ? null : Number(e.target.value))} className={SELECT}>
-              <option value="">Any team</option>
-              {teamOptions}
-            </select>
-          }
-          pieces={rightPieces}
-          pool={poolFor(rightOwner, leftOwner)}
-          label={`Add to what ${rightName} ${rightName === "You" ? "give" : "gives"}`}
-          added={verdict.get.added}
-          ownerName={teamName}
-          showOwner={rightOwner === null}
-          onAdd={(id) => setRight((ids) => [...ids, id])}
-          onRemove={(id) => setRight((ids) => ids.filter((x) => x !== id))}
-          onOpen={onOpen}
-        />
+      {/* Three or more: two to a row where there's room, else one over the other. */}
+      <div className={stacked ? "flex flex-col gap-4" : many ? "grid grid-cols-1 gap-4 @md:grid-cols-2 @md:gap-3" : "grid grid-cols-2 gap-3"}>
+        {sides.map((side, i) => (
+          <Side
+            key={side.key}
+            team={
+              <div className="flex min-w-0 items-end gap-1">
+                <select
+                  aria-label={`Side ${"ABCD"[i]}'s team`}
+                  value={side.team ?? ""}
+                  onChange={(e) => pickTeam(i, e.target.value === "" ? null : Number(e.target.value))}
+                  className={SELECT}
+                >
+                  <option value="">{i === 0 && owners[0] !== null && side.team === null && mine ? `${mine.name} (you)` : "Any team"}</option>
+                  {teamOptions(i)}
+                </select>
+                {many ? (
+                  <button
+                    type="button"
+                    onClick={() => removeSide(i)}
+                    aria-label={`Take ${names[i]} out of the trade`}
+                    className="flex h-6 w-4 shrink-0 items-center justify-center text-sm text-ink-muted hover:text-ink-primary"
+                  >
+                    ×
+                  </button>
+                ) : null}
+              </div>
+            }
+            pieces={piecesOf(side)}
+            pool={poolFor(i)}
+            label={`Add to what ${gives(names[i])}`}
+            added={tallies[i].added}
+            ownerName={teamName}
+            showOwner={owners[i] === null}
+            destination={
+              many
+                ? (p) => ({
+                    to: side.gives.find((g) => g.id === p.id)!.to,
+                    options: sides.flatMap((s, j) => (j === i ? [] : [{ key: s.key, name: names[j] }])),
+                    onMove: (to) => movePiece(i, p.id, to),
+                  })
+                : null
+            }
+            onAdd={(id) => addPiece(i, id)}
+            onRemove={(id) => removePiece(i, id)}
+            onOpen={onOpen}
+          />
+        ))}
       </div>
+      {sides.length < Math.min(MOST_SIDES, monitor.teams.length) ? (
+        <button type="button" onClick={addSide} className="self-start text-[0.6875rem] font-bold uppercase tracking-wide text-ink-muted hover:text-ink-primary">
+          + Add a team
+        </button>
+      ) : null}
 
-      {any ? (
+      {any && !many ? (
         <div className="flex flex-col gap-2 pt-1">
           {/* Who comes out ahead: each side's total (added value and all), a bar split between them, and the verdict. */}
           <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
@@ -370,10 +469,10 @@ export function TradeCalculator({
               verdict.fair ? "text-ink-primary" : winner === "You" ? "text-status-good" : leftName === "You" || rightName === "You" ? "text-status-critical" : "text-ink-primary"
             }`}
           >
-            {verdict.fair ? "Fair" : `${winner} ${winner === "You" ? "win" : "wins"} by ${Math.abs(verdict.shownMargin)}`}
+            {verdict.fair ? "Fair" : `${winner} ${youWord(winner, "win")} by ${Math.abs(verdict.shownMargin)}`}
           </span>
 
-          {/* What would even it out: ahead, pieces of the left side's to add; behind, pieces of the right's to ask for. */}
+          {/* What would even it out: ahead, pieces of the first side's to add; behind, pieces of the second's to ask for. */}
           {balancers.length > 0 ? (
             <div className="flex flex-col gap-0.5">
               <span className="text-[0.625rem] font-bold uppercase tracking-wide text-ink-muted">{`Add from ${ahead ? leftName : rightName} to even it out`}</span>
@@ -382,11 +481,7 @@ export function TradeCalculator({
                   const p = byId.get(b.id)!;
                   return (
                     <li key={b.id}>
-                      <button
-                        type="button"
-                        onClick={() => (ahead ? setLeft((ids) => [...ids, b.id]) : setRight((ids) => [...ids, b.id]))}
-                        className="flex items-baseline gap-1 text-xs hover:underline"
-                      >
+                      <button type="button" onClick={() => addPiece(ahead ? 0 : 1, b.id)} className="flex items-baseline gap-1 text-xs hover:underline">
                         <span className="font-bold text-ink-primary">{p.label}</span>
                         <span className="tabular-nums text-ink-muted">{p.value != null ? grade(p.value) : ""}</span>
                         <span className={`text-[0.625rem] font-bold uppercase ${b.verdict.fair ? "text-ink-primary" : "text-ink-muted"}`}>{b.verdict.fair ? "→ fair" : ""}</span>
@@ -397,29 +492,56 @@ export function TradeCalculator({
               </ul>
             </div>
           ) : null}
+        </div>
+      ) : null}
 
-          {/* What it does to both rosters: each team's rank at each position, where it'd change. */}
-          {ranks ? (
-            <div className={stacked ? "flex flex-col gap-1" : "grid grid-cols-2 gap-3"}>
-              {ranks.map(({ rosterId, was, will }) => (
-                <div key={rosterId} className="flex min-w-0 flex-wrap items-baseline gap-x-2 text-[0.6875rem]">
-                  {/* One over the other, each named. */}
-                  {stacked ? <span className="w-full truncate text-[0.625rem] font-bold uppercase tracking-wide text-ink-muted">{teamName(rosterId)}</span> : null}
-                  {MONITOR_POSITIONS.map((p) => {
-                    const change = was[p].rank - will[p].rank;
-                    return (
-                      <span key={p} className="whitespace-nowrap tabular-nums" title={`${p} rank among the league's ${monitor.teams.length} teams`}>
-                        <span className={`font-semibold ${POSITION_TEXT_COLOR[p] ?? ""}`}>{p}</span>{" "}
-                        <span className={`font-extrabold ${change > 0 ? "text-status-good" : change < 0 ? "text-status-critical" : "text-ink-secondary"}`}>
-                          {change === 0 ? `#${will[p].rank}` : `#${was[p].rank}→${will[p].rank}`}
-                        </span>
-                      </span>
-                    );
-                  })}
-                </div>
-              ))}
+      {/* Among three or more: each side's take — what it gets for what it gives, over all its swaps, and how it comes out. */}
+      {any && many ? (
+        <ul className="flex flex-col gap-1 pt-1">
+          {sides.map((side, i) => {
+            const t = tallies[i];
+            const name = names[i];
+            const you = name === "You";
+            return (
+              <li key={side.key} className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-baseline gap-x-3 text-xs">
+                <span className="truncate font-bold uppercase text-ink-primary">{name}</span>
+                <span className="tabular-nums text-ink-muted">
+                  {youWord(name, "give")} <span className="font-extrabold text-ink-primary">{grade(t.gives)}</span> · {youWord(name, "get")}{" "}
+                  <span className="font-extrabold text-ink-primary">{grade(t.gets)}</span>
+                </span>
+                <span
+                  className={`w-16 text-right font-extrabold uppercase tabular-nums ${
+                    t.fair ? "text-ink-primary" : t.net > 0 ? (you ? "text-status-good" : "text-ink-primary") : you ? "text-status-critical" : "text-ink-secondary"
+                  }`}
+                >
+                  {t.fair ? "Fair" : t.shownNet > 0 ? `+${t.shownNet}` : `−${Math.abs(t.shownNet)}`}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+
+      {/* What it does to every roster: each team's rank at each position, where it'd change. */}
+      {ranks ? (
+        <div className={stacked || many ? "flex flex-col gap-1" : "grid grid-cols-2 gap-3"}>
+          {ranks.map(({ rosterId, was, will }) => (
+            <div key={rosterId} className="flex min-w-0 flex-wrap items-baseline gap-x-2 text-[0.6875rem]">
+              {/* One over the other, each named. */}
+              {stacked || many ? <span className="w-full truncate text-[0.625rem] font-bold uppercase tracking-wide text-ink-muted">{teamName(rosterId)}</span> : null}
+              {MONITOR_POSITIONS.map((p) => {
+                const change = was[p].rank - will[p].rank;
+                return (
+                  <span key={p} className="whitespace-nowrap tabular-nums" title={`${p} rank among the league's ${monitor.teams.length} teams`}>
+                    <span className={`font-semibold ${POSITION_TEXT_COLOR[p] ?? ""}`}>{p}</span>{" "}
+                    <span className={`font-extrabold ${change > 0 ? "text-status-good" : change < 0 ? "text-status-critical" : "text-ink-secondary"}`}>
+                      {change === 0 ? `#${will[p].rank}` : `#${was[p].rank}→${will[p].rank}`}
+                    </span>
+                  </span>
+                );
+              })}
             </div>
-          ) : null}
+          ))}
         </div>
       ) : null}
     </div>
