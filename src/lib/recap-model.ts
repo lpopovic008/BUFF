@@ -196,6 +196,12 @@ export interface RecapModel {
   layout?: RecapSectionKey[];
   /** Whether a section's Detail box renders on screen — see isDetailShown. Purely a UI affordance (the "+"/"–" button in SectionBox's corner); never affects the flattened text, which includes a Detail line whenever it has content regardless of whether the box happens to be open. */
   detailShown: Partial<Record<RecapSectionKey, boolean>>;
+  /**
+   * The text each added section (see EXTRA_SECTIONS) was last written from the league's data with — so one that still
+   * reads just that hasn't been typed in, and takes the league's newer text (see withLeagueData); one that doesn't has,
+   * and is kept.
+   */
+  extraDraft?: Partial<Record<ExtraSectionKey, string>>;
 }
 
 export interface MoreMatchupText {
@@ -203,6 +209,66 @@ export interface MoreMatchupText {
   resultDetail: string;
   lines: string;
   detail: string;
+}
+
+/**
+ * The fields worked out from the league's own data alone — results, standings, records, next week's previews — which
+ * the editor only ever shows, never lets be typed in.
+ */
+export const LEAGUE_FIELDS = [
+  "bowlResult",
+  "honorableResult",
+  "highScorer",
+  "winners",
+  "lastWeek",
+  "standings",
+  "records",
+  "upcomingWeek",
+  "upcomingBowlLines",
+  "upcomingHonorableLines",
+] as const satisfies readonly (keyof RecapModel)[];
+
+/** Two texts the same but for their numbers (points, records, money): the same words, written from older data. */
+const sameButNumbers = (a: string, b: string) => {
+  const words = (t: string) => t.replace(/[-+$]?\d[\d,.]*/g, "#").replace(/\s+/g, " ").trim();
+  return words(a) === words(b);
+};
+
+/**
+ * A saved write-up brought up to date with the league's data as it is now (`fresh`, the write-up worked out from it
+ * afresh): everything typed in it kept — its title, every Detail, the AI recap, Commish Notes, any added section
+ * that's been written in, which sections it has and in what order — and everything worked out from the league taken
+ * new: its results, standings, records and previews (LEAGUE_FIELDS, and the same of each Matchup of the Week past the
+ * second), and the text of each added section not typed in (see extraDraft; for one saved before that was kept, one
+ * that differs from the league's newer text only in its numbers).
+ */
+export function withLeagueData(saved: RecapModel, fresh: RecapModel): RecapModel {
+  const out: RecapModel = { ...saved };
+  for (const f of LEAGUE_FIELDS) (out as unknown as Record<string, unknown>)[f] = fresh[f];
+
+  const more: RecapModel["more"] = { ...saved.more };
+  for (const n of MORE_MATCHUPS) {
+    const league = fresh.more?.[n];
+    if (!league) continue;
+    const typed = saved.more?.[n];
+    more[n] = { result: league.result, lines: league.lines, resultDetail: typed?.resultDetail ?? "", detail: typed?.detail ?? "" };
+  }
+  out.more = more;
+
+  const extra: RecapModel["extra"] = { ...fresh.extra, ...saved.extra };
+  for (const key of Object.keys(fresh.extra) as ExtraSectionKey[]) {
+    // (Commish Notes are only ever the commish's own.)
+    if (key === "commishNotes") continue;
+    const typed = saved.extra?.[key];
+    const league = fresh.extra[key] ?? "";
+    if (typed === undefined) continue;
+    const from = saved.extraDraft?.[key];
+    const untouched = from !== undefined ? typed === from : sameButNumbers(typed, league);
+    if (untouched) extra[key] = league;
+  }
+  out.extra = extra;
+  out.extraDraft = { ...fresh.extra };
+  return out;
 }
 
 /** Whether a section should be shown — the one place both the text flattener and the UI check, so "excluded" always means the same thing everywhere. */

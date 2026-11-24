@@ -21,6 +21,7 @@ import {
   MORE_MATCHUPS,
   MoreMatchup,
   MoreMatchupText,
+  withLeagueData,
 } from "@/lib/recap-model";
 import {
   formatBowlResultLine,
@@ -107,8 +108,10 @@ function suggestPicks(picks: RecapBowlPicks, layout: RecapSectionKey[], ranked: 
 
 /**
  * Where a freshly-computed house-style model meets whatever was last saved.
- * A saved recap always wins outright (a save is a deliberate checkpoint) —
- * preferring its own structured `model` when one exists, falling back to
+ * What's typed in a saved recap always wins (see withLeagueData) — its title,
+ * Details, AI recap, notes, sections — while what's worked out from the
+ * league (results, standings, records, previews) is always the league's as
+ * it is now. Its own structured `model` when one exists, falling back to
  * recovering one from its flat `body` (see parseRecapModel) for a recap
  * saved before the header boxes existed. When that recovery can't confirm
  * the shape, the flat body is kept as a single plain box rather than risking
@@ -128,11 +131,11 @@ function resolveHouseStyleState(
   // starts from this week's data rather than blank.
   // So is the text of the Matchups of the Week past the second.
   if (saved.model) {
-    const model = { ...EMPTY_RECAP_MODEL, ...saved.model, extra: { ...fresh.extra, ...saved.model.extra }, more: { ...fresh.more, ...saved.model.more } };
+    const model = withLeagueData({ ...EMPTY_RECAP_MODEL, ...saved.model, extra: { ...fresh.extra, ...saved.model.extra }, more: { ...fresh.more, ...saved.model.more } }, fresh);
     return { model, plainBody: "", fresh };
   }
   const parsed = parseRecapModel(saved.body);
-  return parsed ? { model: parsed, plainBody: "", fresh } : { model: null, plainBody: saved.body, fresh };
+  return parsed ? { model: withLeagueData(parsed, fresh), plainBody: "", fresh } : { model: null, plainBody: saved.body, fresh };
 }
 
 async function fetchTeamNames(leagueId: string): Promise<Record<number, string>> {
@@ -574,7 +577,8 @@ export function useRecapWriteup(leagueId: string | null, week: number | null) {
     // What's saved changed under the editor (synced in from another device) and was merged with what's typed here:
     // shown here, as merged.
     onMerged: (saved) => {
-      if (saved.model) setModel({ ...EMPTY_RECAP_MODEL, ...saved.model });
+      // (What's worked out from the league, the league's as it is now — whatever the other copy had of it.)
+      if (saved.model) setModel(freshModel ? withLeagueData({ ...EMPTY_RECAP_MODEL, ...saved.model }, freshModel) : { ...EMPTY_RECAP_MODEL, ...saved.model });
       else setPlainBody(saved.body);
     },
     writeupDocId: money?.profile.writeupDocId,
