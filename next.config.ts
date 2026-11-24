@@ -5,7 +5,9 @@ import type { NextConfig } from "next";
 // for local `next dev`/`next build`, which stay at the site root. The path is
 // the repo's own name (GITHUB_REPOSITORY is "owner/repo" in Actions), so
 // renaming the repo moves the site with it, no edit needed here.
-const isGithubActionsBuild = process.env.GITHUB_ACTIONS === "true";
+// The iOS app's build (see .github/workflows/ios.yml) runs in Actions too, but its pages are served from the app
+// itself, at its root: no basePath for it.
+const isGithubActionsBuild = process.env.GITHUB_ACTIONS === "true" && process.env.CAPACITOR_BUILD !== "1";
 const repoName = process.env.GITHUB_REPOSITORY?.split("/")[1] ?? "BUFF";
 const repoBasePath = `/${repoName}`;
 

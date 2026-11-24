@@ -1,0 +1,119 @@
+name: iOS build to TestFlight
+
+# Builds the iPhone and iPad app on a Mac in GitHub's cloud (no Mac of our own needed) and uploads it to App Store
+# Connect, where it shows up in TestFlight and can be submitted for review. Run by hand: Actions → "iOS build to
+# TestFlight" → Run workflow. See docs/app-store.md for the one-time setup it needs: an App Store Connect API key
+# (APP_STORE_CONNECT_KEY_ID, APP_STORE_CONNECT_ISSUER_ID, APP_STORE_CONNECT_KEY secrets) and the team id
+# (APPLE_TEAM_ID variable). Signing is Xcode's automatic, cloud-managed signing, done with that key: no certificates
+# or profiles to keep here.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version shown on the App Store (1.0, 1.1, …)"
+        required: true
+        default: "1.0"
+      upload:
+        description: "Upload to App Store Connect (off: just check it builds)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # The newest Xcode the runner has: the App Store only takes builds made with a recent iOS SDK.
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - run: npm ci
+
+      - name: Build the pages the app shows
+        run: npm run build
+        env:
+          # Served from the app itself, at its root (see next.config.ts).
+          CAPACITOR_BUILD: "1"
+          NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
+          NEXT_PUBLIC_API_BASE_URL: ${{ vars.API_BASE_URL }}
+          NEXT_PUBLIC_APPLE_SIGN_IN: ${{ vars.APPLE_SIGN_IN }}
+          NEXT_PUBLIC_SUPABASE_URL: "https://uybcjhzfwidbetnzfxwu.supabase.co"
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_5LsoA6Lo0Jo1L8baoil5gw_j0b5WOey"
+
+      - name: Copy them into the iOS project
+        run: npx cap sync ios
+
+      - name: App Store Connect key
+        env:
+          KEY: ${{ secrets.APP_STORE_CONNECT_KEY }}
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+        run: |
+          test -n "$KEY" && test -n "$KEY_ID" || { echo "::error::APP_STORE_CONNECT_KEY and APP_STORE_CONNECT_KEY_ID secrets are needed (see docs/app-store.md)"; exit 1; }
+          mkdir -p "$RUNNER_TEMP/keys"
+          printf '%s\n' "$KEY" > "$RUNNER_TEMP/keys/AuthKey_$KEY_ID.p8"
+
+      # Built unsigned here; signed as it's exported below, with a distribution certificate Apple keeps for the team
+      # (cloud-managed: there's none to keep in this repo's secrets).
+      - name: Archive
+        env:
+          TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+        run: |
+          test -n "$TEAM_ID" || { echo "::error::The APPLE_TEAM_ID variable is needed (see docs/app-store.md)"; exit 1; }
+          xcodebuild -version
+          xcodebuild archive \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            MARKETING_VERSION="${{ inputs.version }}" \
+            CURRENT_PROJECT_VERSION="${{ github.run_number }}"
+
+      - name: Sign and upload to App Store Connect
+        if: ${{ inputs.upload }}
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+        run: |
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>teamID</key><string>$TEAM_ID</string>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict>
+          </plist>
+          PLIST
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey_$KEY_ID.p8" \
+            -authenticationKeyID "$KEY_ID" \
+            -authenticationKeyIssuerID "$ISSUER_ID"
+          echo "Uploaded build ${{ inputs.version }} (${{ github.run_number }}): it shows in App Store Connect → TestFlight once Apple's processed it." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Forget the key
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/keys"
