@@ -214,14 +214,15 @@ export function ClockIcon(props: IconProps) {
   );
 }
 
-/** The commissioner's walkie-talkie, in outline: antenna and knob up top, speaker grille, push-to-talk button on the side. */
+/** The commissioner's walkie-talkie, in outline, as in the app's logo: antenna and knob up top, a screen, the speaker's lines, push-to-talk button on the side. */
 export function WalkieTalkieIcon(props: IconProps) {
   return (
     <svg {...base(props)} strokeWidth={props.strokeWidth ?? 1.5}>
       <rect x="6" y="6.5" width="8" height="11.5" rx="1.5" />
       <path d="M8.5 6.5V2.5" />
       <path d="M12 6.5V5" />
-      <path d="M8.5 10h3M8.5 12h3M8.5 14h3" />
+      <rect x="7.75" y="8.25" width="4.5" height="3" rx="0.5" />
+      <path d="M8.5 13.75h3M8.5 15.75h3" />
       <path d="M4 9.5v3" />
     </svg>
   );

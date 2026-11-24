@@ -11,22 +11,29 @@ import { WeekPicker, weekLabel } from "@/components/WeekPicker";
 import { setHeaderSlot, takeBackStep, useHeaderBare } from "@/lib/header-slot";
 import { ChevronLeftIcon } from "@/components/ui/Icon";
 
-/** The app's walkie-talkie on its own, no tile — flat, in the text's color, its speaker grille cut through. */
+/**
+ * The app's walkie-talkie on its own, no tile — in outline, in the text's color: antennas, push-to-talk button, a
+ * screen up top and the speaker's lines below. Drawn on the app icon's own 1024 grid (public/icons), with its lines
+ * thicker and one speaker line fewer so it holds up at the header's size.
+ */
 function Logo({ className }: { className?: string }) {
   return (
-    <svg viewBox="26 12 41 76" className={className} fill="currentColor" aria-hidden>
-      <defs>
-        <mask id="logo-grille">
-          <rect x="26" y="12" width="41" height="76" fill="white" />
-          {[49, 58, 67].map((y) => (
-            <rect key={y} x="39" y={y} width="20" height="5" rx="2.5" fill="black" />
-          ))}
-        </mask>
-      </defs>
-      <rect x="39" y="12" width="7" height="26" rx="3.5" />
-      <rect x="54" y="25" width="6" height="12" rx="3" />
-      <rect x="26" y="47" width="6" height="17" rx="3" />
-      <rect x="31" y="33" width="36" height="55" rx="8" mask="url(#logo-grille)" />
+    <svg
+      viewBox="290 108 442 804"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={44}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <rect x="368" y="352" width="340" height="536" rx="56" />
+      <path d="M436 352V166a35 35 0 0 1 70 0v186" />
+      <path d="M590 352v-64a29 29 0 0 1 58 0v64" />
+      <path d="M368 494h-26a28 28 0 0 0-28 28v92a28 28 0 0 0 28 28h26" />
+      <rect x="428" y="412" width="220" height="160" rx="20" />
+      <path d="M452 652h172M452 728h172M452 804h172" />
     </svg>
   );
 }
