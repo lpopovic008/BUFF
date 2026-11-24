@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
+import Link from "next/link";
 import { Capacitor } from "@capacitor/core";
 import { supabase, supabaseConfigured } from "@/lib/supabase";
 import { SUGGESTION_MAX, supportLinks } from "@/lib/support";
@@ -83,6 +84,15 @@ export function SupportSection() {
           </ul>
         </div>
       ) : null}
+
+      <div className="flex gap-4 border-t border-grid pt-3 text-xs text-ink-muted">
+        <Link href="/support" className="underline decoration-dotted hover:text-ink-secondary">
+          Support
+        </Link>
+        <Link href="/privacy" className="underline decoration-dotted hover:text-ink-secondary">
+          Privacy
+        </Link>
+      </div>
     </div>
   );
 }

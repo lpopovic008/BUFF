@@ -1,5 +1,6 @@
 "use client";
 
+import { useIsNativeApp } from "@/lib/native";
 import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
@@ -27,6 +28,7 @@ function RecapContent() {
   const weekParam = searchParams.get("week");
   const week = weekParam !== null ? Number(weekParam) : null;
   const { isPreseason, header, model, recapData, money, error, actions, googleClientId, editorProps, contentsProps } = useRecapWriteup(leagueId, week);
+  const native = useIsNativeApp();
 
   // The header's "Week N" picks the week's write-up (the preseason one too).
   useEffect(() => {
@@ -89,7 +91,7 @@ function RecapContent() {
                 onCopySplit={actions.handleCopySplitGraphic}
                 onCopySplitPart={actions.handleCopySplitPart}
               />
-              {money?.profile.writeupDocId && googleClientId ? (
+              {money?.profile.writeupDocId && googleClientId && !native ? (
                 // Typing directly into the Doc already leaves a plain-text copy
                 // there, so Save to Doc stands in for Copy Text here.
                 <IconButton
@@ -120,7 +122,7 @@ function RecapContent() {
             ) : (
               <span>Not saved yet</span>
             )}
-            {money?.profile.writeupDocId && !googleClientId ? (
+            {money?.profile.writeupDocId && !googleClientId && !native ? (
               <a href="/settings" className="underline decoration-dotted hover:text-ink-secondary">
                 Connect Google Docs in Settings to save write-ups there
               </a>

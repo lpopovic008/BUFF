@@ -1,5 +1,6 @@
 "use client";
 
+import { useIsNativeApp } from "@/lib/native";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { IconButton } from "@/components/ui/IconButton";
 import { ChevronUpIcon, ChevronDownIcon, EyeIcon, EyeOffIcon, TrashIcon, WalkieTalkieIcon, ExternalLinkIcon, PlusCircleIcon } from "@/components/ui/Icon";
@@ -34,6 +35,7 @@ function useLogins() {
  */
 export function LeaguesSection({ config, defaultSeason, onChange }: { config: AppConfig; defaultSeason: string; onChange: () => void }) {
   const logins = JSON.parse(useLogins()) as ReturnType<typeof getLogins>;
+  const native = useIsNativeApp();
   const hasEspn = config.leagues.some((l) => siteOf(l.leagueId) === "espn");
   const hasYahoo = config.leagues.some((l) => siteOf(l.leagueId) === "yahoo");
 
@@ -47,7 +49,8 @@ export function LeaguesSection({ config, defaultSeason, onChange }: { config: Ap
       <div className="flex flex-col gap-2">
         <h3 className="text-xs font-bold uppercase tracking-wide text-ink-muted">ESPN, Yahoo, MFL or Fleaflicker</h3>
         <AddByLink season={config.season || defaultSeason} onAdded={onChange} />
-        {relayConfigured ? <YahooSignIn signedIn={Boolean(logins.yahoo)} /> : null}
+        {/* (Yahoo sends you back to the website once you've signed in: there, not in the app.) */}
+        {relayConfigured && !native ? <YahooSignIn signedIn={Boolean(logins.yahoo)} /> : null}
         {hasEspn ? <EspnLogin saved={Boolean(logins.espn)} /> : null}
         {hasYahoo && !relayConfigured ? <p className="text-xs text-ink-muted">Yahoo leagues need the app&rsquo;s league-sites function set up (see docs/league-sites.md).</p> : null}
       </div>

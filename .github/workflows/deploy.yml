@@ -40,6 +40,9 @@ jobs:
           # Actions variable configured; the button stays disabled in the
           # meantime.
           NEXT_PUBLIC_API_BASE_URL: ${{ vars.API_BASE_URL }}
+          # "1" once Sign in with Apple is set up in Supabase (see docs/app-store.md): shows its button. Unset, it's
+          # left out, rather than offered and failing.
+          NEXT_PUBLIC_APPLE_SIGN_IN: ${{ vars.APPLE_SIGN_IN }}
           # Supabase project for accounts + cross-device sync (see
           # src/lib/supabase.ts, docs/architecture.md). Committed directly,
           # not gated on a repo variable — this is the publishable key, the

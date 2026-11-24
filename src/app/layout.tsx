@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inconsolata } from "next/font/google";
 import { AutoSync } from "@/components/AutoSync";
 import { AutoSupabaseSync } from "@/components/AutoSupabaseSync";
+import { NativeBridge } from "@/components/NativeBridge";
 import { STORAGE_MIGRATION_SCRIPT } from "@/lib/storage-migration";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
@@ -58,6 +59,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full bg-page">
         <AutoSync />
         <AutoSupabaseSync />
+        <NativeBridge />
         {children}
       </body>
     </html>

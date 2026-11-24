@@ -1,5 +1,6 @@
 "use client";
 
+import { useIsNativeApp } from "@/lib/native";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { CheckIcon, ChevronDownIcon, ChevronLeftIcon, CopyIcon, UploadIcon } from "@/components/ui/Icon";
@@ -96,7 +97,9 @@ function PanelBody({ leagueId, currentWeek, top, bottom, left, width, className 
   const week = picked ?? (currentWeek === null ? null : recapWeekFor(currentWeek, today));
   const { ready, error, actions, editorProps, contentsProps, money, googleClientId } = useRecapWriteup(leagueId, week);
   // The write-up's to be saved to a Google Doc (one's set up for it, and Google Docs connected), not copied as text.
-  const toDoc = !!money?.profile.writeupDocId && !!googleClientId;
+  // (Google's sign-in for Docs only works in a web browser: in the app, the plain text's copied instead.)
+  const native = useIsNativeApp();
+  const toDoc = !!money?.profile.writeupDocId && !!googleClientId && !native;
   const exportError =
     actions.graphicStatus === "error" && actions.graphicError
       ? `Copy graphic failed: ${actions.graphicError}`

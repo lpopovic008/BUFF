@@ -1,5 +1,6 @@
 "use client";
 
+import { useIsNativeApp } from "@/lib/native";
 import { useEffect, useRef } from "react";
 import { Card } from "@/components/ui/Card";
 import { IconButton } from "@/components/ui/IconButton";
@@ -21,6 +22,7 @@ import { PlateCard } from "@/components/ui/PlateCard";
 
 export default function SettingsPage() {
   const { config, loaded, refresh } = useConfig();
+  const native = useIsNativeApp();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Commissioner marks come straight from each league's site (Sleeper's is_owner, and the like elsewhere), re-checked
@@ -113,9 +115,12 @@ export default function SettingsPage() {
             <RedZoneSection />
           </Section>
 
-          <Section title="Google Docs">
-            <GoogleDocsSection config={config} onChange={refresh} />
-          </Section>
+          {/* (Google's sign-in for Docs only works in a web browser, not in the app.) */}
+          {native ? null : (
+            <Section title="Google Docs">
+              <GoogleDocsSection config={config} onChange={refresh} />
+            </Section>
+          )}
 
           <Section title="Suggest an improvement">
             <SupportSection />
