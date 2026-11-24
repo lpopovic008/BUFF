@@ -82,8 +82,8 @@ In App Store Connect → your app → the version under **iOS App**:
   iPhone or iPad, the iOS Simulator isn't available without a Mac, so borrow one of those devices, or ask a TestFlight
   tester who has one.
 - **Description, keywords, promotional text**: see below.
-- **Support URL**: `https://lpopovic008.github.io/BUFF/support`
-- **Privacy Policy URL**: `https://lpopovic008.github.io/BUFF/privacy`
+- **Support URL**: `https://commish.win/support`
+- **Privacy Policy URL**: `https://commish.win/privacy`
 - **App Privacy** (the "nutrition label"): Data collected → Contact Info → Email Address, and User Content → Other
   User Content; both linked to the user, for App Functionality, not used for tracking.
 - **Age rating**: no objectionable content; answer "No" to gambling. (The app tracks a league's own buy-ins and

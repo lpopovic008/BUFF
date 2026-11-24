@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PlateCard } from "@/components/ui/PlateCard";
+import { SITE_EMAIL } from "@/lib/site";
 
 export const metadata: Metadata = { title: "Privacy" };
 
@@ -62,7 +63,13 @@ export default function PrivacyPage() {
       </PlateCard>
 
       <PlateCard title="Questions">
-        <p>Send them from Settings → Suggest an improvement, or see the Support page.</p>
+        <p>
+          Email{" "}
+          <a href={`mailto:${SITE_EMAIL}`} className="underline">
+            {SITE_EMAIL}
+          </a>
+          , or send them from Settings → Suggest an improvement.
+        </p>
       </PlateCard>
     </article>
   );

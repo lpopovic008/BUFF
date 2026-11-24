@@ -5,3 +5,5 @@ export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://lpopovic00
 export const SITE_NAME = "Commi$h";
 export const SITE_DESCRIPTION =
   "Every fantasy football league you play in, on one screen — Sleeper, ESPN, Yahoo, MyFantasyLeague and Fleaflicker. Live scoring and plays, standings, trades, player values, and the commissioner's weekly write-up.";
+/** Where people can write to the developer: forwarded by the domain's Email Routing (see docs/website.md). */
+export const SITE_EMAIL = "contact@commish.win";

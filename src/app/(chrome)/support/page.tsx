@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PlateCard } from "@/components/ui/PlateCard";
+import { SITE_EMAIL } from "@/lib/site";
 
 export const metadata: Metadata = { title: "Support" };
 
@@ -28,7 +29,11 @@ export default function SupportPage() {
 
       <PlateCard title="Something wrong, or an idea?">
         <p>
-          Send it from Settings → Suggest an improvement — it goes straight to the developer. Privacy questions too: see{" "}
+          Send it from Settings → Suggest an improvement — it goes straight to the developer. For a reply, email{" "}
+          <a href={`mailto:${SITE_EMAIL}`} className="underline">
+            {SITE_EMAIL}
+          </a>
+          . Privacy questions too: see{" "}
           <Link href="/privacy" className="underline">
             Privacy
           </Link>
