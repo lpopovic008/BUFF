@@ -75,8 +75,11 @@ Run it again for each new build. The build number goes up by itself; raise the v
 
 In App Store Connect → your app → the version under **iOS App**:
 
-- **Screenshots**: iPhone 6.9" (1320 × 2868) and iPad 13" (2064 × 2752). Drafts made from sample data are in
-  `docs/app-store/screenshots/`. Screenshots of your own leagues, taken in the TestFlight build, will look better.
+- **Screenshots**: iPhone 6.9" (1320 × 2868) and iPad 13" (2064 × 2752) — exactly what an iPhone 16/17 Pro Max and a
+  13" iPad Pro save when you take a screenshot (side button + volume up) in the TestFlight build. Take 3 to 5 of
+  each with your own leagues showing: Home during a game, the League page, a trade, a write-up, Values. On a smaller
+  iPhone or iPad, the iOS Simulator isn't available without a Mac, so borrow one of those devices, or ask a TestFlight
+  tester who has one.
 - **Description, keywords, promotional text**: see below.
 - **Support URL**: `https://lpopovic008.github.io/BUFF/support`
 - **Privacy Policy URL**: `https://lpopovic008.github.io/BUFF/privacy`
