@@ -21,6 +21,7 @@ import { loadLeagueMoney } from "../src/lib/league-money";
 import { computeWeekRecap } from "../src/lib/league-data";
 import { formatCommishRecap, findWeekTopStarters } from "../src/lib/format-recap";
 import { formatBowlResultLine, formatUpcomingBowlBlock, formatUpcomingHonorableBlock } from "../src/lib/bowl-narrative";
+import { matchupTitle } from "../src/lib/recap-model";
 import { standingsThroughWeek, summarizeWeek } from "../src/lib/payouts";
 import { resolvePlayers } from "../src/lib/players";
 import { COMMISH_SLEEPER_USERNAME, defaultSeason } from "../src/lib/app-defaults";
@@ -103,8 +104,8 @@ async function main() {
         data,
         ledger: money.ledger,
         playerNames,
-        bowlResultLine: formatBowlResultLine("👑", null, {}, data.games),
-        honorableResultLine: formatBowlResultLine("🏆", null, {}, data.games),
+        bowlResultLine: formatBowlResultLine(matchupTitle(1, false).emoji, null, {}, data.games),
+        honorableResultLine: formatBowlResultLine(matchupTitle(2, false).emoji, null, {}, data.games),
         upcomingBowlLines: formatUpcomingBowlBlock(null, week + 1, {}, data.standingsAfter),
         upcomingHonorableLines: formatUpcomingHonorableBlock(null, week + 1, {}),
       });

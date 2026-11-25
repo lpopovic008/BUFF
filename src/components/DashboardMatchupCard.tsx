@@ -10,12 +10,16 @@ export type { TeamStanding };
  * they sit on a map-tag plate (a highlighted block), which flips light and
  * dark between themes.
  */
-const TONE_CLASS = { good: "text-status-good", mid: "text-series-4", bad: "text-status-critical" } as const;
+// Good, middling and bad marks — the middling one a lemon yellow of its own (see --tone-mid), apart from the amber of a
+// team's standing by its name (STANDING_CLASS).
+const TONE_CLASS = { good: "text-status-good", mid: "text-[var(--tone-mid)]", bad: "text-status-critical" } as const;
 const ON_TAG_TONE_CLASS = {
   good: "text-[var(--on-tag-good)]",
-  mid: "text-[var(--on-tag-mid)]",
+  mid: "text-[var(--on-tag-tone-mid)]",
   bad: "text-[var(--on-tag-bad)]",
 } as const;
+/** A team's place in the standings, by its name: amber, on the page and on a plate. */
+const STANDING_CLASS = { page: "text-series-4", tag: "text-[var(--on-tag-mid)]" } as const;
 const toneClass = (onTag: boolean) => (onTag ? ON_TAG_TONE_CLASS : TONE_CLASS);
 /** Secondary text (records, PF/PA labels): bold, a step down from the name — secondary ink on the page, the plate's ink dimmed on a plate. */
 const mutedClass = (onTag: boolean) => (onTag ? "font-semibold text-[var(--map-tag-ink)] opacity-80" : "font-semibold text-ink-secondary");
@@ -90,7 +94,7 @@ export function TeamNameLabel({
     ) : (
       <span className={`${className} ${nameStyle}`}>{name}</span>
     );
-  const rankEl = rank != null ? <span className={`shrink-0 text-xs font-bold tabular-nums ${toneClass(onTag).mid}`}>{rank}</span> : null;
+  const rankEl = rank != null ? <span className={`shrink-0 text-xs font-bold tabular-nums ${onTag ? STANDING_CLASS.tag : STANDING_CLASS.page}`}>{rank}</span> : null;
   const recordEl = record ? (
     <span className={`shrink-0 text-xs tabular-nums ${mutedClass(onTag)}`}>({formatRecord(record.wins, record.losses, record.ties)})</span>
   ) : null;

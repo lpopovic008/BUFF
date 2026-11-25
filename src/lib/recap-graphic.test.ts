@@ -43,6 +43,6 @@ test("a section taller than an image gets an image to itself", () => {
   assert.ok(cuts.includes(300) && cuts.includes(1700));
 });
 
-test("the cap is a phone screen's 9:16 at the graphic's width", () => {
-  assert.equal(MAX_PART_HEIGHT, 1920);
+test("the cap is 4:5 at the graphic's width, so each image holds fewer sections and shows bigger", () => {
+  assert.equal(MAX_PART_HEIGHT, 1350);
 });

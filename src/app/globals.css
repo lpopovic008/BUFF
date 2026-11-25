@@ -32,6 +32,10 @@
   --on-tag-good: #3fcf3f;
   --on-tag-mid: #f5b324;
   --on-tag-bad: #ff7070;
+  /* A middling mark's own color (PF and PA ranks in the middle third): a lemon yellow, apart from the amber of a team's
+     standing by its name — on the page, and on a plate. */
+  --tone-mid: #8a7d00;
+  --on-tag-tone-mid: #e3d04f;
 
   --series-1: #2a78d6; /* blue */
   --series-2: #eb6834; /* orange */
@@ -89,6 +93,8 @@
   --on-tag-good: #087808;
   --on-tag-mid: #8f5e00;
   --on-tag-bad: #b32424;
+  --tone-mid: #e3d04f;
+  --on-tag-tone-mid: #6f6400;
 
   --series-1: #3987e5;
   --series-2: #d95926;

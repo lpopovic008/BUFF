@@ -22,6 +22,7 @@ import {
   MoreMatchup,
   MoreMatchupText,
   withLeagueData,
+  isSectionIncluded,
 } from "@/lib/recap-model";
 import {
   formatBowlResultLine,
@@ -393,8 +394,8 @@ export function useRecapWriteup(leagueId: string | null, week: number | null) {
               data,
               ledger: leagueMoney.ledger,
               playerNames,
-              bowlResultLine: formatBowlResultLine("👑", resultPick.bowlOfWeek, names, data.games),
-              honorableResultLine: formatBowlResultLine("🏆", resultPick.honorableBowl, names, data.games),
+              bowlResultLine: formatBowlResultLine(matchupTitle(1, false).emoji, resultPick.bowlOfWeek, names, data.games),
+              honorableResultLine: formatBowlResultLine(matchupTitle(2, false).emoji, resultPick.honorableBowl, names, data.games),
               upcomingBowlLines: formatUpcomingBowlBlock(upcoming.bowlOfWeek, week + 1, names, data.standingsAfter),
               upcomingHonorableLines: formatUpcomingHonorableBlock(upcoming.honorableBowl, week + 1, names),
             }),
@@ -553,6 +554,11 @@ export function useRecapWriteup(leagueId: string | null, week: number | null) {
       }
     }
   };
+  // A section left out of the write-up (or put back in), from its row in the contents.
+  const toggleSection = (key: RecapSectionKey) => {
+    if (!model) return;
+    setModel({ ...model, include: { ...model.include, [key]: !isSectionIncluded(model, key) } });
+  };
   const removeSection = (key: RecapSectionKey) => {
     if (!model) return;
     changeLayout(recapLayout(model).filter((k) => k !== key));
@@ -659,6 +665,7 @@ export function useRecapWriteup(leagueId: string | null, week: number | null) {
         onMove: moveSection,
         onRemove: removeSection,
         onAdd: addSection,
+        onToggleIncluded: toggleSection,
       }
     : null;
   return { isPreseason, header, model, recapData, money, error, ready, actions, googleClientId, editorProps, contentsProps };

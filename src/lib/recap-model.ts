@@ -10,21 +10,52 @@
 // code deciding what's relevant for a given week; the same structure covers
 // the preseason write-up and every regular week identically.
 
+/**
+ * Every section's emoji — chosen here alone, for the editor, its contents, the copied text and the graphic alike: the
+ * written recap a mic, last week's Bowl of the Week the trophy (#2 silver, the rest a medal), the high scorer on fire,
+ * the week's winners paid, the results charted, the money standings a bag of it, the season's standings a clipboard,
+ * next week's Matchup of the Week a football (#2 crossed swords, the rest "VS").
+ */
+export const SECTION_EMOJI = {
+  aiRecap: "🎙️",
+  bowl: "🏆",
+  honorable: "🥈",
+  moreResult: "🏅",
+  highScorer: "🔥",
+  winners: "💸",
+  lastWeek: "📊",
+  standings: "💰",
+  records: "📋",
+  upcomingBowl: "🏈",
+  upcomingHonorable: "⚔️",
+  moreUpcoming: "🆚",
+} as const;
+
 // The header/anchor lines that appear verbatim in the flattened text — shared
 // between the joiner and the parser (and the editor's on-screen labels) so
 // they can never drift out of sync with each other.
 export const RECAP_HEADERS = {
-  aiRecap: "✨ AI Recap:",
-  winners: "🤑 Winners this week who will receive commission:",
-  lastWeek: "🗓️Last week Results:",
-  standings: "💰 Updated Standings:",
-  records: "📋 Season Standings:",
-  upcomingBowl: "🥇 Matchup of the Week:",
-  upcomingHonorable: "🥈 Matchup of the Week #2:",
+  aiRecap: `${SECTION_EMOJI.aiRecap} AI Recap:`,
+  winners: `${SECTION_EMOJI.winners} Winners this week who will receive commission:`,
+  lastWeek: `${SECTION_EMOJI.lastWeek} Last week Results:`,
+  standings: `${SECTION_EMOJI.standings} Updated Standings:`,
+  records: `${SECTION_EMOJI.records} Season Standings:`,
+  upcomingBowl: `${SECTION_EMOJI.upcomingBowl} Matchup of the Week:`,
+  upcomingHonorable: `${SECTION_EMOJI.upcomingHonorable} Matchup of the Week #2:`,
 } as const;
 
-/** #2's header before it was renamed — still read from text saved back then (see parseRecapModel). */
-const LEGACY_UPCOMING_HONORABLE = "🥈Honorable Mention:";
+/** The headers text was saved with before (other emoji; #2's old name) — still read back (see parseRecapModel). */
+const LEGACY_HEADERS: Record<keyof typeof RECAP_HEADERS, readonly string[]> = {
+  aiRecap: ["✨ AI Recap:"],
+  winners: ["🤑 Winners this week who will receive commission:"],
+  lastWeek: ["🗓️Last week Results:"],
+  standings: [],
+  records: [],
+  upcomingBowl: ["🥇 Matchup of the Week:"],
+  upcomingHonorable: ["🥈 Matchup of the Week #2:", "🥈Honorable Mention:"],
+};
+/** Whether a line is section `key`'s header, as written now or before. */
+const isHeader = (line: string | undefined, key: keyof typeof RECAP_HEADERS) => line === RECAP_HEADERS[key] || LEGACY_HEADERS[key].includes(line ?? "");
 
 export const WHO_WILL_PREVAIL = "WHO WILL PREVAIL?!";
 export const GOOD_LUCK_TO_ALL = "Good Luck to All!";
@@ -42,13 +73,13 @@ export function upcomingWeekLabel(week: number): string {
  */
 export const EXTRA_SECTIONS = {
   playerOfWeek: { emoji: "⭐", label: "Player of the Week" },
-  lowScorer: { emoji: "📉", label: "Low Scorer" },
+  lowScorer: { emoji: "🧊", label: "Low Scorer" },
   closestGame: { emoji: "😬", label: "Nail-Biter" },
   blowout: { emoji: "💥", label: "Blowout of the Week" },
   luck: { emoji: "🍀", label: "Lucky & Unlucky" },
-  movers: { emoji: "🧗", label: "Standings Movers" },
-  transactions: { emoji: "🔄", label: "Waivers & Trades" },
-  commishNotes: { emoji: "📝", label: "Commish Notes" },
+  movers: { emoji: "🎢", label: "Standings Movers" },
+  transactions: { emoji: "🤝", label: "Waivers & Trades" },
+  commishNotes: { emoji: "📢", label: "Commish Notes" },
 } as const;
 
 export type ExtraSectionKey = keyof typeof EXTRA_SECTIONS;
@@ -59,37 +90,37 @@ export function isExtraSection(key: string): key is ExtraSectionKey {
 
 /** Every section the write-up/graphic can show, the house style's own in the order they appear by default — the single source of truth the include/exclude checkboxes (and the graphic's own section toggles) are built from, so the two can never drift apart. */
 export const RECAP_SECTIONS = [
-  { key: "aiRecap", label: "✨ AI Recap" },
-  { key: "bowl", label: "👑 Bowl of the Week" },
-  { key: "honorable", label: "🏆 Bowl of the Week #2" },
-  { key: "highScorer", label: "📈 High Scorer" },
-  { key: "winners", label: "🤑 Winners Podium" },
-  { key: "lastWeek", label: "🗓️ Last Week Results" },
-  { key: "standings", label: "💰 Updated Standings" },
-  { key: "records", label: "📋 Season Standings" },
-  { key: "upcomingBowl", label: "🥇 Matchup of the Week" },
-  { key: "upcomingHonorable", label: "🥈 Matchup of the Week #2" },
+  { key: "aiRecap", label: `${SECTION_EMOJI.aiRecap} AI Recap` },
+  { key: "bowl", label: `${SECTION_EMOJI.bowl} Bowl of the Week` },
+  { key: "honorable", label: `${SECTION_EMOJI.honorable} Bowl of the Week #2` },
+  { key: "highScorer", label: `${SECTION_EMOJI.highScorer} High Scorer` },
+  { key: "winners", label: `${SECTION_EMOJI.winners} Winners Podium` },
+  { key: "lastWeek", label: `${SECTION_EMOJI.lastWeek} Last Week Results` },
+  { key: "standings", label: `${SECTION_EMOJI.standings} Updated Standings` },
+  { key: "records", label: `${SECTION_EMOJI.records} Season Standings` },
+  { key: "upcomingBowl", label: `${SECTION_EMOJI.upcomingBowl} Matchup of the Week` },
+  { key: "upcomingHonorable", label: `${SECTION_EMOJI.upcomingHonorable} Matchup of the Week #2` },
   // The results, then the previews, of Matchups of the Week past the second (see MORE_MATCHUPS).
-  { key: "matchup3", label: "🏅 Bowl of the Week #3" },
-  { key: "matchup4", label: "🏅 Bowl of the Week #4" },
-  { key: "matchup5", label: "🏅 Bowl of the Week #5" },
-  { key: "matchup6", label: "🏅 Bowl of the Week #6" },
-  { key: "matchup7", label: "🏅 Bowl of the Week #7" },
-  { key: "matchup8", label: "🏅 Bowl of the Week #8" },
-  { key: "upcomingMatchup3", label: "🏈 Matchup of the Week #3" },
-  { key: "upcomingMatchup4", label: "🏈 Matchup of the Week #4" },
-  { key: "upcomingMatchup5", label: "🏈 Matchup of the Week #5" },
-  { key: "upcomingMatchup6", label: "🏈 Matchup of the Week #6" },
-  { key: "upcomingMatchup7", label: "🏈 Matchup of the Week #7" },
-  { key: "upcomingMatchup8", label: "🏈 Matchup of the Week #8" },
-  { key: "playerOfWeek", label: "⭐ Player of the Week" },
-  { key: "lowScorer", label: "📉 Low Scorer" },
-  { key: "closestGame", label: "😬 Nail-Biter" },
-  { key: "blowout", label: "💥 Blowout of the Week" },
-  { key: "luck", label: "🍀 Lucky & Unlucky" },
-  { key: "movers", label: "🧗 Standings Movers" },
-  { key: "transactions", label: "🔄 Waivers & Trades" },
-  { key: "commishNotes", label: "📝 Commish Notes" },
+  { key: "matchup3", label: `${SECTION_EMOJI.moreResult} Bowl of the Week #3` },
+  { key: "matchup4", label: `${SECTION_EMOJI.moreResult} Bowl of the Week #4` },
+  { key: "matchup5", label: `${SECTION_EMOJI.moreResult} Bowl of the Week #5` },
+  { key: "matchup6", label: `${SECTION_EMOJI.moreResult} Bowl of the Week #6` },
+  { key: "matchup7", label: `${SECTION_EMOJI.moreResult} Bowl of the Week #7` },
+  { key: "matchup8", label: `${SECTION_EMOJI.moreResult} Bowl of the Week #8` },
+  { key: "upcomingMatchup3", label: `${SECTION_EMOJI.moreUpcoming} Matchup of the Week #3` },
+  { key: "upcomingMatchup4", label: `${SECTION_EMOJI.moreUpcoming} Matchup of the Week #4` },
+  { key: "upcomingMatchup5", label: `${SECTION_EMOJI.moreUpcoming} Matchup of the Week #5` },
+  { key: "upcomingMatchup6", label: `${SECTION_EMOJI.moreUpcoming} Matchup of the Week #6` },
+  { key: "upcomingMatchup7", label: `${SECTION_EMOJI.moreUpcoming} Matchup of the Week #7` },
+  { key: "upcomingMatchup8", label: `${SECTION_EMOJI.moreUpcoming} Matchup of the Week #8` },
+  { key: "playerOfWeek", label: `${EXTRA_SECTIONS.playerOfWeek.emoji} Player of the Week` },
+  { key: "lowScorer", label: `${EXTRA_SECTIONS.lowScorer.emoji} Low Scorer` },
+  { key: "closestGame", label: `${EXTRA_SECTIONS.closestGame.emoji} Nail-Biter` },
+  { key: "blowout", label: `${EXTRA_SECTIONS.blowout.emoji} Blowout of the Week` },
+  { key: "luck", label: `${EXTRA_SECTIONS.luck.emoji} Lucky & Unlucky` },
+  { key: "movers", label: `${EXTRA_SECTIONS.movers.emoji} Standings Movers` },
+  { key: "transactions", label: `${EXTRA_SECTIONS.transactions.emoji} Waivers & Trades` },
+  { key: "commishNotes", label: `${EXTRA_SECTIONS.commishNotes.emoji} Commish Notes` },
 ] as const;
 
 export type RecapSectionKey = (typeof RECAP_SECTIONS)[number]["key"];
@@ -122,8 +153,28 @@ export function isUpcomingSection(key: RecapSectionKey): boolean {
 /** A Matchup of the Week's name on screen and in the text: "Bowl of the Week #2" for a result, "Matchup of the Week #2" for a preview. */
 export function matchupTitle(n: number, upcoming: boolean): { emoji: string; label: string } {
   const suffix = n === 1 ? "" : ` #${n}`;
-  if (upcoming) return { emoji: n === 2 ? "🥈" : "🏈", label: `Matchup of the Week${suffix}` };
-  return { emoji: n === 1 ? "👑" : n === 2 ? "🏆" : "🏅", label: `Bowl of the Week${suffix}` };
+  if (upcoming) return { emoji: n === 1 ? SECTION_EMOJI.upcomingBowl : n === 2 ? SECTION_EMOJI.upcomingHonorable : SECTION_EMOJI.moreUpcoming, label: `Matchup of the Week${suffix}` };
+  return { emoji: n === 1 ? SECTION_EMOJI.bowl : n === 2 ? SECTION_EMOJI.honorable : SECTION_EMOJI.moreResult, label: `Bowl of the Week${suffix}` };
+}
+
+/** The sections with a title of their own to rename (the Matchups of the Week go by their bowls' names instead). */
+export type TitledSection = "aiRecap" | "highScorer" | "winners" | "lastWeek" | "standings" | "records" | ExtraSectionKey;
+
+/** Each such section's own title, as the editor and the graphic head it. */
+const SECTION_LABEL: Record<Exclude<TitledSection, ExtraSectionKey>, string> = {
+  aiRecap: "AI Recap",
+  highScorer: "High Scorer",
+  winners: "Winners",
+  lastWeek: "Last Week",
+  standings: "Standings",
+  records: "Season Standings",
+};
+
+/** A section's emoji and its title: the one it's been given in this write-up (see RecapModel.titles), or its own. */
+export function sectionTitle(model: Pick<RecapModel, "titles"> | null, key: TitledSection): { emoji: string; label: string } {
+  const own = isExtraSection(key) ? EXTRA_SECTIONS[key] : { emoji: SECTION_EMOJI[key], label: SECTION_LABEL[key] };
+  const given = model?.titles?.[key]?.trim();
+  return { emoji: own.emoji, label: given || own.label };
 }
 
 /** The house style's own sections, in their own order — the layout of every recap until the commish changes it. */
@@ -190,6 +241,8 @@ export interface RecapModel {
   include: Partial<Record<RecapSectionKey, boolean>>;
   /** The added sections' text (see EXTRA_SECTIONS), by section. */
   extra: Partial<Record<ExtraSectionKey, string>>;
+  /** The titles given to sections in this write-up, in place of their own (see sectionTitle). */
+  titles?: Partial<Record<TitledSection, string>>;
   /** Matchups of the Week past the second (see MORE_MATCHUPS), by number: how last week's pick turned out, and next week's preview — each with its Detail. */
   more?: Partial<Record<MoreMatchup, MoreMatchupText>>;
   /** Which sections this recap has, in order (see recapLayout) — the house style's own when absent, as on every recap saved before sections could be added, removed and moved. New weeks start from the league's last layout (see localStore's getRecapLayout). */
@@ -337,8 +390,14 @@ export const EMPTY_RECAP_MODEL: RecapModel = {
 };
 
 /** An added section's header line in the flattened text: "⭐ Player of the Week:". */
-export function extraSectionHeader(key: ExtraSectionKey): string {
-  return `${EXTRA_SECTIONS[key].emoji} ${EXTRA_SECTIONS[key].label}:`;
+export function extraSectionHeader(key: ExtraSectionKey, model: Pick<RecapModel, "titles"> | null = null): string {
+  const { emoji, label } = sectionTitle(model, key);
+  return `${emoji} ${label}:`;
+}
+
+/** A section's header line in the text: its house-style line — or, retitled, its emoji and the title it was given. */
+function headerLine(model: RecapModel, key: keyof typeof RECAP_HEADERS & TitledSection): string {
+  return model.titles?.[key]?.trim() ? `${SECTION_EMOJI[key]} ${model.titles[key]!.trim()}:` : RECAP_HEADERS[key];
 }
 
 /** Flattens a model into the exact literal text that gets saved, copied, and posted — an excluded section (see `include`) is left out entirely, header and all. The one place that knows this layout — the parser below mirrors it exactly for a fully-included recap, the only shape older saved text can be in. */
@@ -358,14 +417,14 @@ export function joinRecapModel(model: RecapModel): string {
     if (isExtraSection(key)) {
       const text = (model.extra?.[key] ?? "").trim();
       if (!text) continue;
-      lines.push(extraSectionHeader(key), ...text.split("\n"), "");
+      lines.push(extraSectionHeader(key, model), ...text.split("\n"), "");
       last = key;
       continue;
     }
     switch (key) {
       case "aiRecap":
         if (!model.aiRecap.trim()) continue;
-        lines.push(RECAP_HEADERS.aiRecap, model.aiRecap);
+        lines.push(headerLine(model, "aiRecap"), model.aiRecap);
         if (model.aiRecapDetail) lines.push("", model.aiRecapDetail);
         lines.push("");
         break;
@@ -388,7 +447,7 @@ export function joinRecapModel(model: RecapModel): string {
           standings: [model.standings, model.standingsDetail],
           records: [model.records, model.recordsDetail],
         }[key];
-        lines.push(RECAP_HEADERS[key], ...list.split("\n"));
+        lines.push(headerLine(model, key), ...list.split("\n"));
         if (detail) lines.push("", detail);
         lines.push("");
         break;
@@ -483,7 +542,7 @@ export function parseRecapModel(body: string): RecapModel | null {
   // on any recap where the commish never clicked "Generate with AI" — unlike
   // every other header below, its absence is not a parse failure.
   let aiRecap = "";
-  if (lines[i] === RECAP_HEADERS.aiRecap) {
+  if (isHeader(lines[i], "aiRecap")) {
     i++;
     const aiRecapBlock = readBlockUntilBlank(lines, i);
     aiRecap = aiRecapBlock.block.join("\n");
@@ -502,22 +561,22 @@ export function parseRecapModel(body: string): RecapModel | null {
   if (highScorer.block.length === 0) return null;
   i = highScorer.next;
 
-  if (lines[i] !== RECAP_HEADERS.winners) return null;
+  if (!isHeader(lines[i], "winners")) return null;
   i++;
   const winners = readBlockUntilBlank(lines, i);
   i = winners.next;
 
-  if (lines[i] !== RECAP_HEADERS.lastWeek) return null;
+  if (!isHeader(lines[i], "lastWeek")) return null;
   i++;
   const lastWeek = readBlockUntilBlank(lines, i);
   i = lastWeek.next;
 
-  if (lines[i] !== RECAP_HEADERS.standings) return null;
+  if (!isHeader(lines[i], "standings")) return null;
   i++;
   const standings = readBlockUntilBlank(lines, i);
   i = standings.next;
 
-  if (lines[i] !== RECAP_HEADERS.records) return null;
+  if (!isHeader(lines[i], "records")) return null;
   i++;
   const records = readBlockUntilBlank(lines, i);
   i = records.next;
@@ -529,14 +588,14 @@ export function parseRecapModel(body: string): RecapModel | null {
   if (lines[i] !== "") return null;
   i++;
 
-  if (lines[i] !== RECAP_HEADERS.upcomingBowl) return null;
+  if (!isHeader(lines[i], "upcomingBowl")) return null;
   i++;
   const upcomingBowl = splitOnTrailingMarker(lines, i, WHO_WILL_PREVAIL);
   if (!upcomingBowl) return null;
   i = upcomingBowl.next;
   if (lines[i] === "") i++;
 
-  if (lines[i] !== RECAP_HEADERS.upcomingHonorable && lines[i] !== LEGACY_UPCOMING_HONORABLE) return null;
+  if (!isHeader(lines[i], "upcomingHonorable")) return null;
   i++;
   const upcomingHonorable = splitOnTrailingMarker(lines, i, GOOD_LUCK_TO_ALL);
   if (!upcomingHonorable) return null;

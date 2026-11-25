@@ -914,14 +914,14 @@ function DesktopRoom({ rooms, leagues, index, week, currentWeek, userId, onPick,
       {/* The floor's buttons at the front of the room between the columns, and the panel one brings up there. */}
       {room ? (
         <>
-          {/* The write-ups: the whole middle column, from under the header down to the screen's bottom. */}
+          {/* The write-ups: the whole middle column on the back wall, from under the header down to the horizon. */}
           {middleBox ? (
             <WriteupsPanel
               open={writeups}
               leagueId={leagueId}
               currentWeek={currentWeek}
               top={underHeader}
-              bottom={room.height - 12}
+              bottom={room.height * share - PANEL_GAP_PX}
               left={middleBox.left}
               width={middleBox.width}
               onClose={close}

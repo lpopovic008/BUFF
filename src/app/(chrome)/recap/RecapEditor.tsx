@@ -95,6 +95,7 @@ export function RecapEditor({
   onRemoveSection,
   onAddSection,
   room = false,
+  controls = true,
   only,
 }: {
   model: RecapModel | null;
@@ -122,6 +123,8 @@ export function RecapEditor({
   onAddSection?: (key: RecapSectionKey) => void;
   /** In the League Room's write-ups panel (see RecapSectionsEditor's `room`). */
   room?: boolean;
+  /** Each section's own buttons (see RecapSectionsEditor's `controls`). */
+  controls?: boolean;
   /** Just one part of it (see RecapSectionsEditor's `only`). */
   only?: string;
 }) {
@@ -172,6 +175,7 @@ export function RecapEditor({
       onRemoveSection={onRemoveSection}
       onAddSection={onAddSection}
       room={room}
+      controls={controls}
       only={only}
     />
   );

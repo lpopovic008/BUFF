@@ -1,7 +1,7 @@
 import { WeekRecapData, MatchupGame } from "./league-data";
 import { PayoutLedger, summarizeWeek, standingsThroughWeek } from "./payouts";
 import { formatPoints, ordinal } from "./format";
-import { ExtraSectionKey, RecapModel, RecapSectionKey, joinRecapModel } from "./recap-model";
+import { ExtraSectionKey, RecapModel, RecapSectionKey, SECTION_EMOJI, joinRecapModel } from "./recap-model";
 
 /** The high-scoring team's own top-scoring starters — who "led the scoring" for that team this week, richest first. */
 export function findWeekTopStarters(
@@ -157,10 +157,10 @@ export function buildWeeklyRecapModel({
     const hs = summary.highScorer;
     const leaders = findWeekTopStarters(hs.rosterId, data.games, 3);
     const leaderNames = leaders.map((l) => playerNames[l.playerId] ?? "[player]");
-    highScorer = `📈 ${hs.name} outperformed the league this week! He scored a whopping ${formatPoints(hs.points)}! The team was led by ${joinLeaderNames(leaderNames)}! Congrats to ${hs.name}!`;
+    highScorer = `${SECTION_EMOJI.highScorer} ${hs.name} outperformed the league this week! He scored a whopping ${formatPoints(hs.points)}! The team was led by ${joinLeaderNames(leaderNames)}! Congrats to ${hs.name}!`;
   } else {
     highScorer =
-      "📈 [highest scoring team] outperformed the league this week! He scored a whopping [points of the highest scoring team]! The team was led by [player], [player] and [player]! Congrats to [highest scoring team]!";
+      `${SECTION_EMOJI.highScorer} [highest scoring team] outperformed the league this week! He scored a whopping [points of the highest scoring team]! The team was led by [player], [player] and [player]! Congrats to [highest scoring team]!`;
   }
 
   const winners: string[] = [];
@@ -261,12 +261,12 @@ export function buildPreseasonRecapModel({
     title: `🚨📋 ${leagueName} — ${season} Preseason`,
     aiRecap: "",
     aiRecapDetail: "",
-    bowlResult: "👑 [team] won the [bowl game name]! Congrats to [team]!",
+    bowlResult: `${SECTION_EMOJI.bowl} [team] won the [bowl game name]! Congrats to [team]!`,
     bowlDetail: details.bowlResult,
-    honorableResult: "🏆 [team] won the [bowl game name]! Congrats to [team]!",
+    honorableResult: `${SECTION_EMOJI.honorable} [team] won the [bowl game name]! Congrats to [team]!`,
     honorableDetail: details.honorableResult,
     highScorer:
-      "📈 [highest scoring team] outperformed the league this week! He scored a whopping [points of the highest scoring team]! The team was led by [player], [player] and [player]! Congrats to [highest scoring team]!",
+      `${SECTION_EMOJI.highScorer} [highest scoring team] outperformed the league this week! He scored a whopping [points of the highest scoring team]! The team was led by [player], [player] and [player]! Congrats to [highest scoring team]!`,
     highScorerDetail: details.highScorer,
     winners: [
       "🔹[highest scoring team]",

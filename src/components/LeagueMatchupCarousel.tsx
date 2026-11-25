@@ -1191,7 +1191,6 @@ export function MatchupList({
                           pointsRanks={standings.get(t.rosterId)?.pointsRanks}
                           leagueSize={standings.size}
                           sizeClass="text-[0.6875rem] leading-none"
-                          rankClass="text-series-4"
                         />
                         <span className="text-[0.6875rem] leading-none tabular-nums text-ink-primary opacity-70" title="Projected">
                           {total !== undefined ? formatPoints(total) : ""}

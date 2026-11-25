@@ -22,7 +22,6 @@
 import {
   RecapModel,
   RecapSectionKey,
-  EXTRA_SECTIONS,
   isExtraSection,
   isSectionIncluded,
   isUpcomingSection,
@@ -33,6 +32,7 @@ import {
   matchupNumber,
   matchupTitle,
   MoreMatchup,
+  sectionTitle,
 } from "./recap-model";
 
 const WIDTH = 1080;
@@ -597,31 +597,6 @@ interface SectionTitle {
   emoji: string;
   label: string;
 }
-
-/**
- * Section-card titles used only by the graphic itself — shorter, and with a
- * more literal emoji, than the write-up's own RECAP_HEADERS text.
- * RECAP_HEADERS stays exactly as saved recaps already have it (it's the
- * literal line recap-model.ts's parser matches on to read an archived
- * write-up back into structured fields), so these are graphic-only and
- * never touch the flattened text that gets saved/copied/posted. Emoji and
- * label are kept separate (see sectionHeader) so the emoji can be drawn
- * with a plain fillStyle — a CanvasGradient fillStyle applied across an
- * emoji glyph can make it render tinted instead of its native color.
- */
-const GRAPHIC_SECTION_TITLE: Record<
-  "aiRecap" | "highScorer" | "winners" | "lastWeek" | "standings" | "records" | "upcomingBowl" | "upcomingHonorable",
-  SectionTitle
-> = {
-  aiRecap: { emoji: "✨", label: "AI Recap" },
-  highScorer: { emoji: "🏆", label: "High Scorer" },
-  winners: { emoji: "💵", label: "Winners" },
-  lastWeek: { emoji: "📊", label: "Last Week" },
-  standings: { emoji: "💰", label: "Standings" },
-  records: { emoji: "📋", label: "Season Standings" },
-  upcomingBowl: { emoji: "🏈", label: "Matchup of the Week" },
-  upcomingHonorable: { emoji: "🥈", label: "Matchup of the Week #2" },
-};
 
 /** Gold / silver / bronze, each a light-metal-light sweep for a shiny highlight rather than a flat tint. */
 const RANK_METAL: Record<1 | 2 | 3, [string, string, string]> = {
@@ -1460,12 +1435,12 @@ function runLayout(
       if (key === upcomingDrawn) l.upcomingTitle(upcomingWeekLabel(model.upcomingWeek));
       if (isExtraSection(key)) {
         // An added section: its text in a card under its header, like the AI Recap.
-        l.aiRecapCard(EXTRA_SECTIONS[key], model.extra?.[key] ?? "");
+        l.aiRecapCard(sectionTitle(model, key), model.extra?.[key] ?? "");
         continue;
       }
       switch (key) {
         case "aiRecap":
-          l.aiRecapCard(GRAPHIC_SECTION_TITLE.aiRecap, model.aiRecap, model.aiRecapDetail);
+          l.aiRecapCard(sectionTitle(model, "aiRecap"), model.aiRecap, model.aiRecapDetail);
           break;
         case "bowl":
           l.decidedMatchup(matchups.bowl ?? PLACEHOLDER_MATCHUP, model.bowlDetail);
@@ -1475,18 +1450,18 @@ function runLayout(
           break;
         case "highScorer":
           l.highScorerPodium(
-            GRAPHIC_SECTION_TITLE.highScorer,
+            sectionTitle(model, "highScorer"),
             matchups.highScorer ?? {
               ...PLACEHOLDER_HIGH_SCORER,
               // The header's own trophy emoji already covers this — strip the
               // leading "📈 " format-recap.ts bakes into the saved sentence text.
-              sentence: model.highScorer.replace(/^📈\s*/, ""),
+              sentence: model.highScorer.replace(/^(?:\p{Extended_Pictographic}\uFE0F?)+\s*/u, ""),
               detail: model.highScorerDetail,
             }
           );
           break;
         case "winners":
-          l.winnersRow(GRAPHIC_SECTION_TITLE.winners, winnerRows, model.winnersDetail);
+          l.winnersRow(sectionTitle(model, "winners"), winnerRows, model.winnersDetail);
           break;
         case "lastWeek": {
           const lastWeekRows = matchups.lastWeek ?? parseScoreboardRows(model.lastWeek);
@@ -1499,29 +1474,29 @@ function runLayout(
             lastWeekRows.map((r) => r.name),
             `400 18px ${FONT_STACK}`
           );
-          l.lastWeekTable(GRAPHIC_SECTION_TITLE.lastWeek, lastWeekRows, barFloorPx, model.lastWeekDetail);
+          l.lastWeekTable(sectionTitle(model, "lastWeek"), lastWeekRows, barFloorPx, model.lastWeekDetail);
           break;
         }
         case "standings":
           l.standingsCashStacks(
-            GRAPHIC_SECTION_TITLE.standings,
+            sectionTitle(model, "standings"),
             matchups.standings ?? standingsRowsFromModel(model, matchups.avatarByName),
             model.standingsDetail
           );
           break;
         case "records":
           l.recordsStandings(
-            GRAPHIC_SECTION_TITLE.records,
+            sectionTitle(model, "records"),
             matchups.records ?? recordsRowsFromModel(model, matchups.avatarByName),
             model.recordsDetail
           );
           break;
         case "upcomingBowl":
-          l.previewMatchup(GRAPHIC_SECTION_TITLE.upcomingBowl, matchups.upcoming ?? PLACEHOLDER_PREVIEW, model.upcomingBowlDetail, WHO_WILL_PREVAIL);
+          l.previewMatchup(matchupTitle(1, true), matchups.upcoming ?? PLACEHOLDER_PREVIEW, model.upcomingBowlDetail, WHO_WILL_PREVAIL);
           break;
         case "upcomingHonorable":
           l.previewMatchup(
-            GRAPHIC_SECTION_TITLE.upcomingHonorable,
+            matchupTitle(2, true),
             matchups.upcomingHonorable ?? PLACEHOLDER_PREVIEW,
             model.upcomingHonorableDetail,
             GOOD_LUCK_TO_ALL
@@ -1681,11 +1656,11 @@ export async function drawRecapGraphic(
 }
 
 /**
- * The tallest a single image of the split can be: a phone screen's 9:16, so
- * every piece shows in full inline in a group chat instead of being cropped
- * or collapsed behind "tap to view" (iMessage collapses very tall images).
+ * The tallest a single image of the split can be: 4:5, the tallest a group chat shows an image at nearly the chat's
+ * full width — so each piece holds fewer sections and shows bigger, easier to read, rather than shrunk to fit a tall
+ * one (and never collapsed behind "tap to view", as iMessage does a very tall image).
  */
-export const MAX_PART_HEIGHT = Math.round((WIDTH * 16) / 9);
+export const MAX_PART_HEIGHT = Math.round((WIDTH * 5) / 4);
 
 /** Greedy cut points no more than `maxHeight` apart, cutting only at section boundaries; a single section taller than `maxHeight` gets an image to itself. */
 function greedyCuts(candidates: number[], totalHeight: number, maxHeight: number): number[] {

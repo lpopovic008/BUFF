@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { createContext, useContext, useLayoutEffect, useRef, useState } from "react";
 import "./recap-neon.css";
 import {
   RecapModel,
   RECAP_SECTIONS,
   RecapSectionKey,
-  EXTRA_SECTIONS,
   ExtraSectionKey,
   isExtraSection,
   isUpcomingSection,
@@ -22,6 +21,8 @@ import {
   MoreMatchup,
   resultMatchupKey,
   upcomingMatchupKey,
+  sectionTitle,
+  TitledSection,
 } from "@/lib/recap-model";
 import { BowlMatchupResult } from "@/lib/bowl-narrative";
 import { BowlGamePick, pickAt, RecapBowlPicks } from "@/lib/localStore";
@@ -103,6 +104,33 @@ function DetailField({ value, onChange, placeholder = "Add a detail…" }: { val
       rows={2}
       className="rn-detail-textarea"
     />
+  );
+}
+
+/** A textarea as tall as what's written in it — a line more for every line typed, a line less for every one taken out. */
+function GrowingTextarea({ value, onChange, placeholder, className }: { value: string; onChange: (v: string) => void; placeholder: string; className: string }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+  return <textarea ref={ref} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={1} className={className} />;
+}
+
+/** In the League Room, a section's own Details: a grey line under what it shows, growing with what's written in it. */
+function RoomDetails({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return <GrowingTextarea value={value} onChange={onChange} placeholder="Add details…" className="rn-room-details" />;
+}
+
+/** In the League Room, a section's title: its emoji, and its name in bigger, bolder type — to rename it, typed over. */
+function RoomTitle({ emoji, value, placeholder, onChange }: { emoji: string; value: string; placeholder: string; onChange: (v: string) => void }) {
+  return (
+    <div className="rn-room-title">
+      <span aria-hidden>{emoji}</span>
+      <input type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} aria-label="Section title" />
+    </div>
   );
 }
 
@@ -456,25 +484,12 @@ function AiRecapBody({
   );
 }
 
-// Matches SECTION_TINT's old per-section variety, but every card in this
-// theme shares the same translucent-white surface (see recap-graphic.ts's
-// COLOR.card) — the graphic doesn't tint cards per section, so neither does
-// this.
-export const SECTION_TITLE: Record<"aiRecap" | "highScorer" | "winners" | "lastWeek" | "standings" | "records" | ExtraSectionKey, { emoji: string; label: string }> = {
-  aiRecap: { emoji: "✨", label: "AI Recap" },
-  highScorer: { emoji: "🏆", label: "High Scorer" },
-  winners: { emoji: "💵", label: "Winners" },
-  lastWeek: { emoji: "📊", label: "Last Week" },
-  standings: { emoji: "💰", label: "Standings" },
-  records: { emoji: "📋", label: "Season Standings" },
-  ...EXTRA_SECTIONS,
-};
-
-/** Every section by name, for picking one to add — a Matchup of the Week's result ("Bowl of the Week #2") told apart from its preview ("Matchup of the Week #2"). */
-export function sectionName(key: RecapSectionKey): { emoji: string; label: string } {
+/** Every section by name — the one it's been given in `model`, if any (see sectionTitle) — a Matchup of the Week's
+ * result ("Bowl of the Week #2") told apart from its preview ("Matchup of the Week #2"). */
+export function sectionName(key: RecapSectionKey, model: RecapModel | null = null): { emoji: string; label: string } {
   const n = matchupNumber(key);
   if (n !== null) return matchupTitle(n, isUpcomingSection(key));
-  return SECTION_TITLE[key as keyof typeof SECTION_TITLE];
+  return sectionTitle(model, key as TitledSection);
 }
 
 /** The sections a recap doesn't have that it could: every one but the Matchups of the Week past the league's number of games. */
@@ -522,6 +537,13 @@ function TextLines({ value, pairs = false }: { value: string; pairs?: boolean })
   return <p className="rn-text">{shown.join("\n")}</p>;
 }
 
+/**
+ * How the sections are laid out: in the League Room (`room`), each its title, what it shows and its Details line one
+ * under another, the Details always there to write in; and whether each has its own buttons (`controls`: leave it out,
+ * take it out) — not where the contents beside it has them.
+ */
+const SectionMode = createContext({ room: false, controls: true });
+
 /** Every section's shared shell: a translucent card matching the graphic's own, an include/exclude checkbox pinned to the top-right corner (unchecked greys the whole box out and leaves it out of both the copied text and the graphic), and a "+"/"–" button pinned to the bottom-right that shows or hides `detail`. `poster` switches to the wider-padded gradient-tinted card the two decided/preview matchups use in the graphic. */
 function SectionBox({
   section,
@@ -553,6 +575,7 @@ function SectionBox({
   onDropTeams?: (rosterIds: number[]) => void;
 }) {
   const [over, setOver] = useState(false);
+  const { room, controls } = useContext(SectionMode);
   const drop = onDropTeams
     ? {
         onDragOver: (e: React.DragEvent) => {
@@ -579,19 +602,22 @@ function SectionBox({
       className={`rn-card ${poster ? "rn-poster-card" : ""} ${included ? "" : "rn-excluded"} ${over ? "rn-drop-over" : ""}`}
       {...drop}
     >
-      <label
-        className="rn-include-toggle-wrap"
-        title={included ? "Included — click to leave this out" : "Excluded — click to include it"}
-      >
-        <input type="checkbox" checked={included} onChange={onToggleIncluded} className="rn-include-toggle" />
-      </label>
+      {controls ? (
+        <label
+          className="rn-include-toggle-wrap"
+          title={included ? "Included — click to leave this out" : "Excluded — click to include it"}
+        >
+          <input type="checkbox" checked={included} onChange={onToggleIncluded} className="rn-include-toggle" />
+        </label>
+      ) : null}
       <div className="rn-card-body" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {header}
         {/* What it shows (laid out as part of the body, except in the League Room, where it fills the box: see .rn-room). */}
         <div className="rn-card-main">{children}</div>
-        {detail && detailShown ? detail : null}
+        {/* Its Details — in the League Room always there, a line to write in. */}
+        {detail && (detailShown || room) ? detail : null}
       </div>
-      {detail && onToggleDetail ? (
+      {detail && onToggleDetail && !room ? (
         <button
           type="button"
           onClick={onToggleDetail}
@@ -602,7 +628,7 @@ function SectionBox({
           {detailShown ? "–" : "+"}
         </button>
       ) : null}
-      {onRemove ? (
+      {onRemove && controls ? (
         <button type="button" onClick={onRemove} title="Remove this section" aria-label="Remove this section" className="rn-detail-toggle rn-remove-section">
           ×
         </button>
@@ -637,6 +663,7 @@ export function RecapSectionsEditor({
   onRemoveSection,
   onAddSection,
   room = false,
+  controls = true,
   only,
 }: {
   model: RecapModel;
@@ -662,6 +689,8 @@ export function RecapSectionsEditor({
    * another, and a section to add at the bottom on any screen (there's no contents down the side there).
    */
   room?: boolean;
+  /** Each section's own buttons — to leave it out, to take it out — for where there's no contents beside it to do it. */
+  controls?: boolean;
   /**
    * Just one part of it (on a phone in the League Room, picked on the floor): the title ("title"), one section (its
    * key), or the section to add ("add") — none, all of it.
@@ -679,6 +708,24 @@ export function RecapSectionsEditor({
   const toggleDetail = (key: RecapSectionKey) =>
     onChange({ ...model, detailShown: { ...model.detailShown, [key]: !isDetailShown(model, key) } });
   const live: LiveWeekData = { recapData, ledger, week, teams };
+  // A section's title: in the League Room, its name to type over (a blank one goes back to its own, see sectionTitle);
+  // elsewhere, its header as the graphic draws it.
+  const head = (key: TitledSection) => {
+    const { emoji, label } = sectionTitle(model, key);
+    return text ? (
+      <RoomTitle
+        emoji={emoji}
+        value={model.titles?.[key] ?? label}
+        placeholder={sectionTitle(null, key).label}
+        onChange={(v) => onChange({ ...model, titles: { ...model.titles, [key]: v } })}
+      />
+    ) : (
+      <SectionHeader emoji={emoji} label={label} />
+    );
+  };
+  // Its Details: in the League Room, the grey line under it; elsewhere, the box behind its "+".
+  const details = (value: string, onDetail: (v: string) => void) =>
+    text ? <RoomDetails value={value} onChange={onDetail} /> : <DetailField value={value} onChange={onDetail} />;
 
   // A Matchup of the Week's Detail, wherever it's kept: a field of its own for the first two, `more` for the rest.
   const matchupDetail = (key: RecapSectionKey): string => {
@@ -706,15 +753,24 @@ export function RecapSectionsEditor({
         included={included(key)}
         onToggleIncluded={() => toggleIncluded(key)}
         header={
-          <BowlNameInput
-            value={pickAt(matchups.resultPicks, n).name}
-            placeholder={`Name the ${matchupTitle(n, false).label}…`}
-            onRename={(name) => matchups.onRenameResult(n, name)}
-          />
+          text ? (
+            <RoomTitle
+              emoji={matchupTitle(n, false).emoji}
+              value={pickAt(matchups.resultPicks, n).name}
+              placeholder={`Name the ${matchupTitle(n, false).label}…`}
+              onChange={(name) => matchups.onRenameResult(n, name)}
+            />
+          ) : (
+            <BowlNameInput
+              value={pickAt(matchups.resultPicks, n).name}
+              placeholder={`Name the ${matchupTitle(n, false).label}…`}
+              onRename={(name) => matchups.onRenameResult(n, name)}
+            />
+          )
         }
         detailShown={detailShown(key)}
         onToggleDetail={() => toggleDetail(key)}
-        detail={<DetailField value={matchupDetail(key)} onChange={(v) => setMatchupDetail(key, v)} />}
+        detail={details(matchupDetail(key), (v) => setMatchupDetail(key, v))}
       >
         {text ? (
           <TextLines value={n === 1 ? model.bowlResult : n === 2 ? model.honorableResult : (model.more?.[n as MoreMatchup]?.result ?? "")} />
@@ -739,18 +795,27 @@ export function RecapSectionsEditor({
         onToggleIncluded={() => toggleIncluded(key)}
         onDropTeams={matchups.onSetUpcomingTeams ? (ids) => matchups.onSetUpcomingTeams!(n, ids) : undefined}
         header={
-          <>
-            <SectionHeader emoji={emoji} label={label} />
-            <BowlNameInput
+          text ? (
+            <RoomTitle
+              emoji={emoji}
               value={pickAt(matchups.upcomingPicks, n).name}
               placeholder={`Name next week's ${label}…`}
-              onRename={(name) => matchups.onRenameUpcoming(n, name)}
+              onChange={(name) => matchups.onRenameUpcoming(n, name)}
             />
-          </>
+          ) : (
+            <>
+              <SectionHeader emoji={emoji} label={label} />
+              <BowlNameInput
+                value={pickAt(matchups.upcomingPicks, n).name}
+                placeholder={`Name next week's ${label}…`}
+                onRename={(name) => matchups.onRenameUpcoming(n, name)}
+              />
+            </>
+          )
         }
         detailShown={detailShown(key)}
         onToggleDetail={() => toggleDetail(key)}
-        detail={<DetailField value={matchupDetail(key)} onChange={(v) => setMatchupDetail(key, v)} />}
+        detail={details(matchupDetail(key), (v) => setMatchupDetail(key, v))}
       >
         <PreviewMatchupBody
           pick={pickAt(matchups.upcomingPicks, n)}
@@ -772,10 +837,10 @@ export function RecapSectionsEditor({
         section="aiRecap"
         included={included("aiRecap")}
         onToggleIncluded={() => toggleIncluded("aiRecap")}
-        header={<SectionHeader emoji={SECTION_TITLE.aiRecap.emoji} label={SECTION_TITLE.aiRecap.label} />}
+        header={head("aiRecap")}
         detailShown={detailShown("aiRecap")}
         onToggleDetail={() => toggleDetail("aiRecap")}
-        detail={<DetailField value={model.aiRecapDetail} onChange={(v) => set("aiRecapDetail", v)} />}
+        detail={details(model.aiRecapDetail, (v) => set("aiRecapDetail", v))}
       >
         <AiRecapBody
           value={model.aiRecap}
@@ -795,10 +860,10 @@ export function RecapSectionsEditor({
         section="highScorer"
         included={included("highScorer")}
         onToggleIncluded={() => toggleIncluded("highScorer")}
-        header={<SectionHeader emoji="🏆" label="High Scorer" />}
+        header={head("highScorer")}
         detailShown={detailShown("highScorer")}
         onToggleDetail={() => toggleDetail("highScorer")}
-        detail={<DetailField value={model.highScorerDetail} onChange={(v) => set("highScorerDetail", v)} />}
+        detail={details(model.highScorerDetail, (v) => set("highScorerDetail", v))}
       >
         {text ? (
           <TextLines value={model.highScorer} />
@@ -816,10 +881,10 @@ export function RecapSectionsEditor({
         section="winners"
         included={included("winners")}
         onToggleIncluded={() => toggleIncluded("winners")}
-        header={<SectionHeader emoji={SECTION_TITLE.winners.emoji} label={SECTION_TITLE.winners.label} />}
+        header={head("winners")}
         detailShown={detailShown("winners")}
         onToggleDetail={() => toggleDetail("winners")}
-        detail={<DetailField value={model.winnersDetail} onChange={(v) => set("winnersDetail", v)} />}
+        detail={details(model.winnersDetail, (v) => set("winnersDetail", v))}
       >
         {text ? <TextLines value={model.winners} /> : <WinnersBody {...live} />}
       </SectionBox>
@@ -830,10 +895,10 @@ export function RecapSectionsEditor({
         section="lastWeek"
         included={included("lastWeek")}
         onToggleIncluded={() => toggleIncluded("lastWeek")}
-        header={<SectionHeader emoji={SECTION_TITLE.lastWeek.emoji} label={SECTION_TITLE.lastWeek.label} />}
+        header={head("lastWeek")}
         detailShown={detailShown("lastWeek")}
         onToggleDetail={() => toggleDetail("lastWeek")}
-        detail={<DetailField value={model.lastWeekDetail} onChange={(v) => set("lastWeekDetail", v)} />}
+        detail={details(model.lastWeekDetail, (v) => set("lastWeekDetail", v))}
       >
         {text ? <TextLines value={model.lastWeek} pairs /> : <LastWeekBody {...live} />}
       </SectionBox>
@@ -844,10 +909,10 @@ export function RecapSectionsEditor({
         section="standings"
         included={included("standings")}
         onToggleIncluded={() => toggleIncluded("standings")}
-        header={<SectionHeader emoji={SECTION_TITLE.standings.emoji} label={SECTION_TITLE.standings.label} />}
+        header={head("standings")}
         detailShown={detailShown("standings")}
         onToggleDetail={() => toggleDetail("standings")}
-        detail={<DetailField value={model.standingsDetail} onChange={(v) => set("standingsDetail", v)} />}
+        detail={details(model.standingsDetail, (v) => set("standingsDetail", v))}
       >
         {text ? <TextLines value={model.standings} /> : <StandingsBody {...live} />}
       </SectionBox>
@@ -858,10 +923,10 @@ export function RecapSectionsEditor({
         section="records"
         included={included("records")}
         onToggleIncluded={() => toggleIncluded("records")}
-        header={<SectionHeader emoji={SECTION_TITLE.records.emoji} label={SECTION_TITLE.records.label} />}
+        header={head("records")}
         detailShown={detailShown("records")}
         onToggleDetail={() => toggleDetail("records")}
-        detail={<DetailField value={model.recordsDetail} onChange={(v) => set("recordsDetail", v)} />}
+        detail={details(model.recordsDetail, (v) => set("recordsDetail", v))}
       >
         {text ? <TextLines value={model.records} /> : <RecordsStandingsBody recapData={recapData} teams={teams} />}
       </SectionBox>
@@ -873,14 +938,13 @@ export function RecapSectionsEditor({
     const n = matchupNumber(key);
     if (n !== null && n > 2) return isUpcomingSection(key) ? previewCard(n) : resultCard(n);
     if (!isExtraSection(key)) return cards[key];
-    const { emoji, label } = EXTRA_SECTIONS[key];
     return (
       <SectionBox
         section={key}
         onRemove={onRemoveSection ? () => onRemoveSection(key) : undefined}
         included={included(key)}
         onToggleIncluded={() => toggleIncluded(key)}
-        header={<SectionHeader emoji={emoji} label={label} />}
+        header={head(key)}
       >
         <ExtraBody section={key} value={model.extra?.[key] ?? ""} onChange={(v) => onChange({ ...model, extra: { ...model.extra, [key]: v } })} />
       </SectionBox>
@@ -891,6 +955,7 @@ export function RecapSectionsEditor({
   const missing = addableSections(layout, maxMatchups);
 
   return (
+    <SectionMode.Provider value={{ room: text, controls }}>
     <div className={text ? "recap-text" : "recap-neon app-theme"}>
       {only === undefined ? <span className="rn-badge">Commi$h</span> : null}
       {only === undefined || only === "title" ? (
@@ -937,7 +1002,7 @@ export function RecapSectionsEditor({
                 <optgroup key={group.label} label={group.label}>
                   {group.keys.map((k) => (
                     <option key={k} value={k}>
-                      {sectionName(k).emoji} {sectionName(k).label}
+                      {sectionName(k, model).emoji} {sectionName(k, model).label}
                     </option>
                   ))}
                 </optgroup>
@@ -947,6 +1012,7 @@ export function RecapSectionsEditor({
         </label>
       ) : null}
     </div>
+    </SectionMode.Provider>
   );
 }
 

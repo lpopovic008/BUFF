@@ -294,7 +294,13 @@ function PanelBody({ leagueId, currentWeek, top, bottom, left, width, className 
                 ) : !ready ? (
                   <p className="text-sm text-ink-secondary">Loading the write-up…</p>
                 ) : (
-                  <RecapEditor {...editorProps} room only={folders && folderList[shownFolder] ? folderList[shownFolder].key : undefined} />
+                  <RecapEditor
+                    {...editorProps}
+                    room
+                    // (Each section's buttons are its row's in the contents beside it, where there is one.)
+                    controls={!contentsSlot}
+                    only={folders && folderList[shownFolder] ? folderList[shownFolder].key : undefined}
+                  />
                 )}
               </div>
             </div>
@@ -302,7 +308,7 @@ function PanelBody({ leagueId, currentWeek, top, bottom, left, width, className 
           </div>
         </section>
       </div>
-      {contentsSlot && contentsProps && ready ? createPortal(<RecapContents {...contentsProps} scroller={list} />, contentsSlot) : null}
+      {contentsSlot && contentsProps && ready ? createPortal(<RecapContents {...contentsProps} room scroller={list} />, contentsSlot) : null}
       {/* On a phone, its parts as tabs standing on the floor, the one shown jumped up. */}
       {folders && ready && !error && folderList.length > 0 ? (
         <div className={`transition-opacity ease-out ${up ? "opacity-100" : "pointer-events-none opacity-0"}`} style={{ transitionDuration: `${RISE_MS}ms` }}>

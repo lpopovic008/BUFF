@@ -2,6 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   DEFAULT_LAYOUT,
+  extraSectionHeader,
+  matchupTitle,
+  RECAP_HEADERS,
+  sectionTitle,
   DETAIL_FIELD,
   EMPTY_RECAP_MODEL,
   isDetailShown,
@@ -41,7 +45,7 @@ test("joinRecapModel produces the documented section order and blank-line spacin
   assert.equal(lines[0], "🚨📋 Week 4 Recap");
   assert.equal(lines[1], "");
   assert.equal(lines[2], "👑 The Sharks won THE BIJAN BOWL! Congrats to The Sharks!");
-  assert.ok(text.includes("🤑 Winners this week who will receive commission:"));
+  assert.ok(text.includes(RECAP_HEADERS.winners));
   assert.ok(text.includes("UPCOMING WEEK 5:"));
   assert.ok(text.includes("WHO WILL PREVAIL?!"));
   assert.ok(text.endsWith("Good Luck to All!"));
@@ -79,7 +83,7 @@ test("parseRecapModel returns null for text that doesn't start with the title em
 
 test("parseRecapModel returns null when a required header line is missing", () => {
   const text = joinRecapModel(sampleModel()).replace(
-    "🤑 Winners this week who will receive commission:",
+    RECAP_HEADERS.winners,
     "🤑 Something else entirely:"
   );
   assert.equal(parseRecapModel(text), null);
@@ -155,20 +159,20 @@ test("joinRecapModel follows the recap's own layout, added sections under their 
   );
   const lines = text.split("\n");
   // Records first, then the added section; an empty one (the notes) is left out; then the bowl.
-  assert.equal(lines.indexOf("📋 Season Standings:"), 2);
-  const star = lines.indexOf("⭐ Player of the Week:");
+  assert.equal(lines.indexOf(RECAP_HEADERS.records), 2);
+  const star = lines.indexOf(extraSectionHeader("playerOfWeek"));
   assert.ok(star > 2);
   assert.equal(lines[star + 1], "Ja'Marr Chase put up 41.20 for The Sharks!");
   assert.ok(!text.includes("Commish Notes"));
   assert.ok(lines.indexOf("👑 The Sharks won THE BIJAN BOWL! Congrats to The Sharks!") > star);
   // Sections left out of the layout are gone, and the upcoming heading comes before the one preview left.
-  assert.ok(!text.includes("🤑 Winners"));
-  assert.ok(lines.indexOf("UPCOMING WEEK 5:") < lines.indexOf("🥈 Matchup of the Week #2:"));
+  assert.ok(!text.includes(RECAP_HEADERS.winners));
+  assert.ok(lines.indexOf("UPCOMING WEEK 5:") < lines.indexOf(RECAP_HEADERS.upcomingHonorable));
   assert.equal(lines.at(-1), "Good Luck to All!");
 });
 
 test("parseRecapModel still reads text saved when the second matchup was the Honorable Mention", () => {
-  const text = joinRecapModel(sampleModel()).replace("🥈 Matchup of the Week #2:", "🥈Honorable Mention:");
+  const text = joinRecapModel(sampleModel()).replace(RECAP_HEADERS.upcomingHonorable, "🥈Honorable Mention:");
   assert.equal(parseRecapModel(text)?.upcomingHonorableLines, sampleModel().upcomingHonorableLines);
 });
 
@@ -181,7 +185,25 @@ test("joinRecapModel writes a third Matchup of the Week's result and preview", (
   );
   const lines = text.split("\n");
   assert.ok(lines.includes("🏅 The Eels won THE TIDE BOWL!"));
-  const header = lines.indexOf("🏈 Matchup of the Week #3:");
+  const header = lines.indexOf(`${matchupTitle(3, true).emoji} Matchup of the Week #3:`);
   assert.ok(header > lines.indexOf("UPCOMING WEEK 5:"));
   assert.equal(lines[header + 2], "The Eels vs The Crabs");
+});
+
+test("parseRecapModel still reads text saved under the headers' old emoji", () => {
+  const text = joinRecapModel(sampleModel())
+    .replace(RECAP_HEADERS.winners, "🤑 Winners this week who will receive commission:")
+    .replace(RECAP_HEADERS.lastWeek, "🗓️Last week Results:")
+    .replace(RECAP_HEADERS.upcomingBowl, "🥇 Matchup of the Week:");
+  assert.deepEqual(parseRecapModel(text), sampleModel());
+});
+
+test("a section retitled in the write-up goes by its new title, in the text and everywhere else", () => {
+  const model = sampleModel({ titles: { winners: "Payday", records: "  " } });
+  assert.deepEqual(sectionTitle(model, "winners"), { emoji: sectionTitle(null, "winners").emoji, label: "Payday" });
+  // A blank title is no title: its own.
+  assert.equal(sectionTitle(model, "records").label, "Season Standings");
+  const lines = joinRecapModel(model).split("\n");
+  assert.ok(lines.includes(`${sectionTitle(null, "winners").emoji} Payday:`));
+  assert.ok(lines.includes(RECAP_HEADERS.records));
 });

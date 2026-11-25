@@ -28,7 +28,7 @@ export function recapContents(model: RecapModel, resultPicks: RecapBowlPicks | n
     if (isUpcomingSection(key) && !entries.some((e) => e.key === "upcoming")) {
       entries.push({ key: "upcoming", label: `Upcoming week ${model.upcomingWeek}`, included: true });
     }
-    const named = sectionName(key);
+    const named = sectionName(key, model);
     // A Bowl of the Week by the name it was given, once it has one.
     const n = matchupNumber(key);
     const picked = n !== null && !isUpcomingSection(key) ? pickAt(resultPicks, n).name.trim() : "";
@@ -87,6 +87,8 @@ export function RecapContents({
   onMove,
   onRemove,
   onAdd,
+  onToggleIncluded,
+  room = false,
   scroller = null,
 }: {
   entries: Entry[];
@@ -97,6 +99,13 @@ export function RecapContents({
   onMove?: (key: RecapSectionKey, by: -1 | 1) => void;
   onRemove?: (key: RecapSectionKey) => void;
   onAdd?: (key: RecapSectionKey) => void;
+  /** Leaves a section out of the write-up, or puts it back — in the League Room (`room`), where its own box has no button for it. */
+  onToggleIncluded?: (key: RecapSectionKey) => void;
+  /**
+   * In the League Room (by its write-ups, on the back wall): see-through, in the room's smaller type, each section's
+   * row with its box to leave it out.
+   */
+  room?: boolean;
   /** What the write-up's scrolled in, when it isn't the page (the League Room's write-ups panel). */
   scroller?: HTMLElement | null;
 }) {
@@ -150,9 +159,7 @@ export function RecapContents({
     window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - topOffset(), behavior: reduced ? "auto" : "smooth" });
   };
 
-  return (
-    <div className="flex flex-col gap-2">
-    <PlateCard title="Contents" bodyClassName="p-2">
+  const list = (
       <nav aria-label="Recap sections">
         <ul className="flex flex-col">
           {entries.map((entry) => {
@@ -167,7 +174,7 @@ export function RecapContents({
                   onClick={() => jump(entry.key)}
                   aria-current={isActive ? "location" : undefined}
                   title={entry.included ? undefined : "Left out of the write-up"}
-                  className={`flex min-w-0 flex-1 items-baseline gap-2 px-2 py-1.5 text-left text-sm transition-colors ${
+                  className={`flex min-w-0 flex-1 items-baseline gap-2 px-2 text-left transition-colors ${room ? "py-1 text-xs" : "py-1.5 text-sm"} ${
                     entry.nested ? "pl-6" : ""
                   } ${
                     isActive
@@ -180,6 +187,17 @@ export function RecapContents({
                 </button>
                 {entry.section && onMove && onRemove ? (
                   <span className="flex shrink-0 items-center">
+                    {room && onToggleIncluded ? (
+                      <label className="flex h-6 w-6 shrink-0 items-center justify-center" title={entry.included ? `Leave ${entry.label} out` : `Put ${entry.label} back in`}>
+                        <input
+                          type="checkbox"
+                          checked={entry.included}
+                          onChange={() => onToggleIncluded(entry.section!)}
+                          aria-label={entry.included ? `Leave ${entry.label} out` : `Put ${entry.label} back in`}
+                          className="h-3.5 w-3.5 accent-[var(--ink-primary)]"
+                        />
+                      </label>
+                    ) : null}
                     <RowButton label={`Move ${entry.label} up`} onClick={() => onMove(entry.section!, -1)} disabled={at <= 0}>
                       ↑
                     </RowButton>
@@ -196,11 +214,24 @@ export function RecapContents({
           })}
         </ul>
       </nav>
-    </PlateCard>
+  );
+  return (
+    <div className="flex flex-col gap-2">
+    {room ? (
+      // See-through, as everything on the back wall is: just its heading over the list.
+      <section className="flex flex-col gap-1">
+        <h2 className="border-b border-border pb-1 text-xs font-bold uppercase tracking-wide text-ink-primary">Contents</h2>
+        {list}
+      </section>
+    ) : (
+      <PlateCard title="Contents" bodyClassName="p-2">
+        {list}
+      </PlateCard>
+    )}
     {/* Under the contents: a section to add — the rest of this week's and every week's after. */}
     {onAdd && toAdd.length > 0 ? (
       adding ? (
-        <div className="flex flex-col border border-border bg-surface-raised p-2">
+        <div className={`flex flex-col border border-border p-2 ${room ? "" : "bg-surface-raised"}`}>
           <div className="flex items-center justify-between px-2 pb-1">
             <span className="text-[0.6875rem] font-semibold uppercase tracking-wider text-ink-muted">Add a section</span>
             <RowButton label="Close" onClick={() => setAdding(false)}>
@@ -226,7 +257,7 @@ export function RecapContents({
                             onAdd(key);
                             setAdding(false);
                           }}
-                          className="flex w-full items-baseline gap-2 px-2 py-1.5 text-left text-sm text-ink-secondary transition-colors hover:bg-page hover:text-ink-primary"
+                          className={`flex w-full items-baseline gap-2 px-2 text-left text-ink-secondary transition-colors hover:text-ink-primary ${room ? "py-1 text-xs" : "py-1.5 text-sm hover:bg-page"}`}
                         >
                           <span aria-hidden className="w-5 shrink-0 text-center">{emoji}</span>
                           <span className="min-w-0 truncate">{label}</span>
@@ -243,7 +274,7 @@ export function RecapContents({
         <button
           type="button"
           onClick={() => setAdding(true)}
-          className="bg-[var(--map-tag)] px-3 py-2 text-sm font-semibold text-[var(--map-tag-ink)] hover:opacity-90"
+          className={room ? "border border-ink-primary px-3 py-1.5 text-xs font-semibold text-ink-primary hover:bg-[var(--map-tag)] hover:text-[var(--map-tag-ink)]" : "bg-[var(--map-tag)] px-3 py-2 text-sm font-semibold text-[var(--map-tag-ink)] hover:opacity-90"}
         >
           + Add section
         </button>

@@ -892,7 +892,52 @@
 .recap-text .rn-card {
   position: relative;
   border-top: 1px solid var(--border);
-  padding: 6px 4.25rem 6px 0;
+  padding: 8px 0;
+}
+/* Room for its own buttons at the top right, where it has them. */
+.recap-text .rn-card:has(> .rn-include-toggle-wrap) {
+  padding-right: 4.25rem;
+}
+/* A section's title: its emoji and its name, bigger and bolder than what it shows — typed over to rename it. */
+.recap-text .rn-room-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+.recap-text .rn-room-title input {
+  flex: 1;
+  border-color: transparent;
+  padding: 1px 4px;
+  margin-left: -4px;
+  font-weight: 800;
+}
+.recap-text .rn-room-title input:hover {
+  border-color: var(--border);
+}
+.recap-text .rn-room-title input::placeholder {
+  color: var(--ink-muted);
+  font-weight: 700;
+}
+/* Its Details: a smaller grey line under what it shows, as tall as what's written in it. */
+.recap-text .rn-room-details {
+  display: block;
+  resize: none;
+  overflow: hidden;
+  border-color: transparent;
+  padding: 1px 4px;
+  margin-left: -4px;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--ink-secondary);
+}
+.recap-text .rn-room-details:hover {
+  border-color: var(--border);
+}
+.recap-text .rn-room-details::placeholder {
+  color: var(--ink-muted);
 }
 .recap-text .rn-card.rn-excluded .rn-card-body {
   opacity: 0.4;
