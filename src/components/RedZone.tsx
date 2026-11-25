@@ -142,9 +142,9 @@ function PlayerLine({
         <span className="h-[1.125rem] w-[1.125rem] shrink-0 rounded-full border border-border bg-page" aria-hidden />
       )}
       <span className="flex min-w-0 flex-1 flex-col leading-tight">
-        <span className="flex min-h-[1.125rem] items-center gap-x-2">
+        <span className="flex min-h-4 items-center gap-x-2">
           <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-1.5">
-            <span data-rz-name className="min-w-0 break-words text-[0.8125rem] font-bold leading-tight text-ink-primary">
+            <span data-rz-name className="min-w-0 break-words text-[0.8125rem] font-bold leading-[1.1] text-ink-primary">
               {line.name}
             </span>
             {/* His position, after his name. */}
@@ -164,7 +164,7 @@ function PlayerLine({
           <LinePoints line={line} mine={!!starter} at={at} scoring={starter?.leagueIds[0] ? scoringByLeague.get(starter.leagueIds[0]) : undefined} />
         </span>
         {summary.length > 0 ? (
-          <span className="whitespace-nowrap text-[0.6875rem] leading-tight tabular-nums text-ink-muted">
+          <span className="whitespace-nowrap text-[0.6875rem] leading-none tabular-nums text-ink-muted">
             {summary.map((part, i) => (
               <span key={i} className={part.tone === "good" ? "font-semibold text-status-good" : part.tone === "bad" ? "font-semibold text-status-critical" : undefined}>
                 {part.text}
@@ -172,7 +172,7 @@ function PlayerLine({
             ))}
           </span>
         ) : (
-          <span className="text-[0.6875rem] leading-tight" aria-hidden>
+          <span className="text-[0.6875rem] leading-none" aria-hidden>
             {"\u00a0"}
           </span>
         )}
