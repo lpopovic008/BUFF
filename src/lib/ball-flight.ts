@@ -481,6 +481,24 @@ export function flightFor(scene: PlayScene, place: (scene: PlayScene) => FieldPl
   return { legs, marks, length: t, settled, end, labels, kickoff: scene.kind === "kickoff" };
 }
 
+/**
+ * Where the next play's snapped from once this one's over (x), and the team with the ball then — the last of what's
+ * acted out (the play as it stands, once a review's reversed it). On from the line by what was gained (none on an
+ * incompletion); where the ball ended up on a turnover, a punt (a touchback, the receiving team's 20), a fumble, a
+ * flag walked off. None after a score, a try, a field goal or a kickoff: what comes next isn't snapped there.
+ */
+export function nextSnap(scene: PlayScene, place: (scene: PlayScene) => FieldPlace, flight: Flight): { x: number; team: string } | null {
+  let s = scene;
+  for (let k = 0; s.after && k < 4; k++) s = s.after;
+  if (s.kind === "kickoff" || s.kind === "fieldGoal" || s.kind === "extraPoint" || s.conversion || s.touchdown || s.safety) return null;
+  const { dir, los } = place(s);
+  const team = flight.legs[flight.legs.length - 1]?.team ?? s.offense;
+  const onField = (x: number) => Math.max(1, Math.min(99, x));
+  if (s.kind === "punt" && s.kickResult === "TOUCHBACK") return { x: dir > 0 ? 80 : 20, team };
+  if (team !== s.offense || s.kind === "punt" || s.fumble || (s.penalty && !s.penalty.declined && s.penalty.yards)) return { x: onField(flight.end), team };
+  return { x: onField(los + dir * (s.kind === "incomplete" || s.kind === "spike" ? 0 : s.yards)), team };
+}
+
 const yds = (n: number) => `${Math.abs(n)} yard${Math.abs(n) === 1 ? "" : "s"}`;
 
 /** What a play was, in a few words: "12 yard pass", "Pick six", "45 yard field goal · good", "Flag · False Start". */

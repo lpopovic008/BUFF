@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { ballAt, FieldPlace, Flight, flightFor, HOLD_S } from "./ball-flight";
+import { ballAt, FieldPlace, Flight, flightFor, HOLD_S, nextSnap } from "./ball-flight";
 import { GamePlay } from "./play-by-play";
 import { PlayScene, sceneFor } from "./play-scene";
 
@@ -218,4 +218,25 @@ test("a field goal: just past the posts, then straight down", () => {
     assert.equal(down.to[2], 0);
     assert.ok(down.to[0] > 110 && down.to[0] < 113, text);
   }
+});
+
+test("nextSnap: where the next play's snapped once this one's over, and who has the ball", () => {
+  // KC driving left to right from its own 30 (x 30).
+  const place = (): FieldPlace => ({ dir: 1, los: 30 });
+  const after = (text: string, over: Partial<GamePlay> = {}) => {
+    const scene = sceneFor(play(text, over), teams)!;
+    return nextSnap(scene, place, flightFor(scene, place, 3));
+  };
+  // A gain: on from the line by what was gained; a loss, back.
+  assert.deepEqual(after("P.Mahomes pass short right to T.Kelce to KC 42 for 12 yards (T.Bernard).", { yards: 12 }), { x: 42, team: "KC" });
+  assert.deepEqual(after("I.Pacheco up the middle to KC 27 for -3 yards (E.Oliver).", { yards: -3 }), { x: 27, team: "KC" });
+  // An incompletion: where it was.
+  assert.deepEqual(after("P.Mahomes pass incomplete deep left to X.Worthy."), { x: 30, team: "KC" });
+  // Picked off: the other side's ball, where he was brought down.
+  const pick = after("P.Mahomes pass short middle intended for T.Kelce INTERCEPTED by T.Bernard at KC 45. T.Bernard to KC 40 for 5 yards (T.Kelce).", { turnover: true });
+  assert.equal(pick?.team, "BUF");
+  // Punted into the end zone: a touchback, at the receiving team's 20.
+  assert.deepEqual(after("M.Araiza punts 52 yards to BUF 18, Center-J.Winchester. Touchback."), { x: 80, team: "BUF" });
+  // A score: the try (or a kickoff) is next, not a snap.
+  assert.equal(after("P.Mahomes pass short right to T.Kelce for 70 yards, TOUCHDOWN.", { yards: 70, scoring: true }), null);
 });

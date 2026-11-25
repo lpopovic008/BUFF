@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { BallLeg, ballAt, FieldMark, FieldPlace, Flight, flightFor, Point } from "@/lib/ball-flight";
+import { BallLeg, ballAt, FieldMark, FieldPlace, Flight, flightFor, nextSnap, Point } from "@/lib/ball-flight";
 import { FIELD_WIDE, FieldFloor, FieldSpot, layFields, layFocused, MOST_FIELDS } from "@/lib/field-layout";
 import { FLOOR_TILT, floorAt, floorPoint, floorScale } from "@/lib/grid-room";
 import { FloorTiltStore, tiltFor } from "@/lib/floor-tilt";
@@ -63,6 +63,8 @@ const SPIRAL_RAD_S = 14;
 const TUMBLE_ROLL_RAD_S = 5;
 /** How quickly a field eases to where it's laid (ms), and fades on or off the floor. */
 const EASE_MS = 140;
+/** How quickly the line of scrimmage moves up to where the next play's snapped from (ms): slow enough to watch go. */
+const LINE_EASE_MS = 380;
 /** Plays waiting their turn on a field, at most. */
 const QUEUE = 3;
 /** How far a swipe goes before it moves the fields (px). */
@@ -79,12 +81,14 @@ interface Situation {
 }
 
 /** A play sent down a field: its ball's flight, the team with the ball as it's snapped, where it's snapped from (x),
- * and how far that team had to go for a first down. */
+ * how far that team had to go for a first down, and where the next play's snapped from once it's over, and by whom
+ * (see nextSnap). */
 interface FieldPlay {
   flight: Flight;
   offense: string;
   los: number;
   distance: number | null;
+  next: { x: number; team: string } | null;
 }
 
 /** A game's field as it's drawn: where it lies now (easing to where it's laid), its line, its plays. */
@@ -98,6 +102,9 @@ interface FieldState {
   situation: Situation;
   /** Its line of scrimmage as drawn (x), easing to where it is. */
   los: number | null;
+  /** The play on's line to gain gone: the line of scrimmage moved up past it once the ball was down (or the ball
+   * changed hands) — not drawn again till the next play's on. */
+  gainGone: boolean;
   /** The play going on (when it started, and whether it's been told it's done moving), those waiting, and the last
    * one sent down it — acted out again when the field's tapped. */
   playing: (FieldPlay & { start: number; told: boolean; replay?: number }) | null;
@@ -125,6 +132,10 @@ const distanceOf = (downDistance: string | null) => {
 const dirOf = (game: NFLGame, team: string | null): 1 | -1 => (team === game.homeTeam ? -1 : 1);
 /** Where a team with `toGo` yards to the end zone has the ball (x, from the left goal line). */
 const spotOf = (dir: 1 | -1, toGo: number) => (dir > 0 ? 100 - toGo : toGo);
+
+/** The play on, once its ball's done moving: where the next play's snapped from, and who has the ball (see nextSnap). */
+const settledNext = (f: FieldState, now: number) =>
+  f.playing && (now - f.playing.start) / 1000 > f.playing.flight.settled ? f.playing.next : null;
 
 /** A team's highlight, as the starters list tints its side of a game's header (see .team-bar): its color, lifted
  * toward white by `lift` (0–1, on a dark page), as `rgba` at `alpha` — the page's ink, for a team it doesn't know. */
@@ -287,7 +298,7 @@ export function FloorFields({
       let state = fields.current.get(game.id);
       if (!state) {
         const awaitingKickoff = !reduced && game.state === "pre" && Date.now() < Date.parse(game.kickoff);
-        state = { game, spot: null, alpha: 0, target: null, lastPlayId: lastPlay?.id ?? null, situation: situationOf(game), los: null, playing: null, waiting: [], last: null, awaitingKickoff, flyover: null };
+        state = { game, spot: null, alpha: 0, target: null, lastPlayId: lastPlay?.id ?? null, situation: situationOf(game), los: null, gainGone: false, playing: null, waiting: [], last: null, awaitingKickoff, flyover: null };
         fields.current.set(game.id, state);
       }
       const before = state.situation;
@@ -312,11 +323,13 @@ export function FloorFields({
       // How far they had to go for a first down: the line's word for it — or, the scoreboard's latest play not saying,
       // where the game stood just before it.
       const distance = scene.toGo ?? (scene.offense === before.possession ? before.distance : null);
-      state.waiting.push({ flight: flightFor(scene, place, seed), offense: scene.offense, los: place(scene).los, distance });
+      const flight = flightFor(scene, place, seed);
+      state.waiting.push({ flight, offense: scene.offense, los: place(scene).los, distance, next: nextSnap(scene, place, flight) });
       while (state.waiting.length > QUEUE) state.waiting.shift();
       if (!state.playing) {
         const next = state.waiting.shift()!;
         state.playing = { ...next, start: now, told: false };
+        state.gainGone = false;
         state.last = next;
       }
     }
@@ -345,8 +358,10 @@ export function FloorFields({
       return { dir, los: s.toGoal !== null && s.kind !== "kickoff" ? spotOf(dir, s.toGoal) : (nowLos ?? 50) };
     };
     const seed = [...play.id].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 1e6, 7);
-    const sent: FieldPlay = { flight: flightFor(scene, place, seed), offense: scene.offense, los: place(scene).los, distance: scene.toGo };
+    const flight = flightFor(scene, place, seed);
+    const sent: FieldPlay = { flight, offense: scene.offense, los: place(scene).los, distance: scene.toGo, next: nextSnap(scene, place, flight) };
     state.playing = { ...sent, start: performance.now(), told: false, replay: key };
+    state.gainGone = false;
     if (room.current.focused && front.current !== game.id) {
       frontBefore.current = front.current;
       front.current = game.id;
@@ -414,6 +429,7 @@ export function FloorFields({
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const colors = css();
       const k = 1 - Math.exp(-dt / EASE_MS);
+      const kLine = 1 - Math.exp(-dt / LINE_EASE_MS);
       let moving = false;
 
       // The floor laid back to suit how many fields there are (from tablet width up), the fields laid out again on it.
@@ -464,16 +480,28 @@ export function FloorFields({
             }
             const next = f.waiting.shift();
             f.playing = next ? { ...next, start: now, told: false } : null;
-            if (next) f.last = next;
+            if (next) {
+              f.last = next;
+              f.gainGone = false;
+            }
           }
         }
         if (f.playing) moving = true;
         const { possession, toGo } = f.situation;
-        // (None while a kickoff's on.)
-        const lineTo = f.playing ? (f.playing.flight.kickoff ? null : f.playing.los) : possession && toGo !== null ? spotOf(dirOf(f.game, possession), toGo) : null;
+        // Where the play on was snapped — moving up, once the ball's down, to where the next is (see nextSnap); with
+        // none on, where the game stands (or, the scoreboard not saying, where the last play left it). None while a
+        // kickoff's on.
+        const after = settledNext(f, now);
+        const lineTo = f.playing
+          ? f.playing.flight.kickoff
+            ? null
+            : (after?.x ?? f.playing.los)
+          : possession && toGo !== null
+            ? spotOf(dirOf(f.game, possession), toGo)
+            : (f.last?.next?.x ?? null);
         if (lineTo === null) f.los = null;
         else {
-          f.los = f.los === null ? lineTo : f.los + (lineTo - f.los) * k;
+          f.los = f.los === null ? lineTo : f.los + (lineTo - f.los) * kLine;
           if (Math.abs(f.los - lineTo) > 0.05) moving = true;
           else f.los = lineTo;
         }
@@ -579,11 +607,21 @@ export function FloorFields({
         // The line of scrimmage, sideline to sideline, and the line to gain for a first down; the team with the ball's
         // logo standing behind it, reflected in the field.
         if (f.los !== null) {
-          const team = f.playing ? f.playing.offense : f.situation.possession;
+          // Once the ball's down, the team that has it now behind the line, as it moves up to the next snap.
+          const after = settledNext(f, now);
+          const team = after ? after.team : f.playing ? f.playing.offense : f.situation.possession;
           const dir = dirOf(f.game, team);
-          const distance = f.playing ? f.playing.distance : f.situation.distance;
           const lineWide = Math.max(1.5, Math.min(3, yardPx(0) * 0.35));
-          const gain = distance !== null ? f.los + dir * distance : null;
+          // The line to gain: the play on's, where it was when the ball was snapped — gone for good as the line of
+          // scrimmage reaches it (a first down), or as the ball changes hands, till the next play's on. With none on,
+          // the scoreboard's.
+          let gain: number | null = null;
+          if (f.playing) {
+            const playDir = dirOf(f.game, f.playing.offense);
+            gain = f.playing.distance !== null ? f.playing.los + playDir * f.playing.distance : null;
+            if (gain !== null && ((after && after.team !== f.playing.offense) || playDir * (f.los - gain) >= 0)) f.gainGone = true;
+          } else if (f.situation.distance !== null) gain = f.los + dir * f.situation.distance;
+          if (f.gainGone) gain = null;
           if (gain !== null && gain > 0 && gain < 100) {
             ctx.globalAlpha = alpha;
             ctx.strokeStyle = FIRST_DOWN;
