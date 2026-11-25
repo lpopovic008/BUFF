@@ -69,9 +69,9 @@ function deltaClass(delta: number): string {
 /** The player's game total through a play, on the app's highlight plate — or, on a marked play, its mark's (see playMarks). */
 function TotalChip({ total, mark }: { total: number; mark?: PlayMark }) {
   return (
-    // The same size as the player's name, and exactly as tall as their photo.
+    // The same size as the player's name, and as tall as its line, which it sits at the end of.
     <span
-      className="flex h-[1.125rem] items-center bg-[var(--map-tag)] px-1.5 text-[0.8125rem] font-bold leading-none tabular-nums text-[var(--map-tag-ink)]"
+      className="flex h-4 items-center bg-[var(--map-tag)] px-1 text-[0.8125rem] font-bold leading-none tabular-nums text-[var(--map-tag-ink)]"
       style={mark ? { background: mark.color, color: mark.ink } : undefined}
     >
       {total.toFixed(2)}
@@ -132,7 +132,10 @@ function PlayerLine({
   // Their game as it stood once this play was over — the numbers it moved in green (for the better) or red.
   const summary = statParts(line.position, line.stats ?? undefined, line.did);
   return (
-    <li className="flex items-center gap-2">
+    // His photo by his name's line; on it, his name and position (and in full, the leagues you start him in), what the
+    // play was worth to him and his total at its end; always on a line of its own under it, his game's stat line (kept,
+    // empty, for someone without one, so every player's the same height).
+    <li className="flex items-start gap-2">
       {defense && line.team ? (
         <span className="flex h-[1.125rem] w-[1.125rem] shrink-0 items-center justify-center rounded-full bg-page">
           <TeamLogo team={line.team} side={13} />
@@ -142,26 +145,30 @@ function PlayerLine({
       ) : (
         <span className="h-[1.125rem] w-[1.125rem] shrink-0 rounded-full border border-border bg-page" aria-hidden />
       )}
-      <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-1.5 leading-tight">
-        <span data-rz-name className="min-w-0 break-words text-[0.8125rem] font-bold leading-tight text-ink-primary">
-          {line.name}
+      <span className="flex min-w-0 flex-1 flex-col leading-tight">
+        <span className="flex min-h-[1.125rem] items-center gap-x-2">
+          <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-1.5">
+            <span data-rz-name className="min-w-0 break-words text-[0.8125rem] font-bold leading-tight text-ink-primary">
+              {line.name}
+            </span>
+            {/* His position, after his name. */}
+            {line.position ? (
+              <span className={`shrink-0 text-[0.625rem] font-semibold uppercase ${POSITION_TEXT_COLOR[line.position] ?? "text-ink-muted"}`}>
+                {line.position}
+              </span>
+            ) : null}
+            {leagues && starter && starter.leagueIds.length > 0 ? (
+              <span className="flex shrink-0 items-center gap-0.5 self-center">
+                {starter.leagueIds.map((id) => (
+                  <LeagueMark key={id} league={legendByLeagueId.get(id)} className="h-3 w-3" />
+                ))}
+              </span>
+            ) : null}
+          </span>
+          <LinePoints line={line} mine={!!starter} at={at} mark={mark} scoring={starter?.leagueIds[0] ? scoringByLeague.get(starter.leagueIds[0]) : undefined} />
         </span>
-        {/* His position, after his name. */}
-        {line.position ? (
-          <span className={`shrink-0 text-[0.625rem] font-semibold uppercase ${POSITION_TEXT_COLOR[line.position] ?? "text-ink-muted"}`}>
-            {line.position}
-          </span>
-        ) : null}
-        {leagues && starter && starter.leagueIds.length > 0 ? (
-          <span className="flex shrink-0 items-center gap-0.5 self-center">
-            {starter.leagueIds.map((id) => (
-              <LeagueMark key={id} league={legendByLeagueId.get(id)} className="h-3 w-3" />
-            ))}
-          </span>
-        ) : null}
-        {/* On phones the stat line always gets a line of its own (kept, empty, for someone without one), so every player is the same height. */}
         {summary.length > 0 ? (
-          <span className="whitespace-nowrap text-[0.6875rem] leading-tight tabular-nums text-ink-muted max-md:basis-full">
+          <span className="whitespace-nowrap text-[0.6875rem] leading-tight tabular-nums text-ink-muted">
             {summary.map((part, i) => (
               <span key={i} className={part.tone === "good" ? "font-semibold text-status-good" : part.tone === "bad" ? "font-semibold text-status-critical" : undefined}>
                 {part.text}
@@ -169,12 +176,11 @@ function PlayerLine({
             ))}
           </span>
         ) : (
-          <span className="hidden text-[0.6875rem] leading-tight max-md:block max-md:basis-full" aria-hidden>
+          <span className="text-[0.6875rem] leading-tight" aria-hidden>
             {"\u00a0"}
           </span>
         )}
       </span>
-      <LinePoints line={line} mine={!!starter} at={at} mark={mark} scoring={starter?.leagueIds[0] ? scoringByLeague.get(starter.leagueIds[0]) : undefined} />
     </li>
   );
 }
