@@ -19,6 +19,8 @@ import { useFullPlays } from "@/hooks/useFullPlays";
 import { nflLogoSize, nflLogoUrl } from "@/lib/nfl-logos";
 import { POSITION_TEXT_COLOR } from "@/lib/position-colors";
 import { inWindow, PLAY_PAGE as PAGE, PlayWindow, windowAround } from "@/lib/play-window";
+import { sceneFor } from "@/lib/play-scene";
+import { playLabel } from "@/lib/ball-flight";
 
 function TeamLogo({ team, side = 16 }: { team: string; side?: number }) {
   return (
@@ -64,11 +66,14 @@ function deltaClass(delta: number): string {
   return delta > 0 ? "text-status-good" : delta < 0 ? "text-status-critical" : "text-ink-muted";
 }
 
-/** The player's game total through a play, on the app's highlight plate. */
-function TotalChip({ total }: { total: number }) {
+/** The player's game total through a play, on the app's highlight plate — or, on a marked play, its mark's (see playMarks). */
+function TotalChip({ total, mark }: { total: number; mark?: PlayMark }) {
   return (
     // The same size as the player's name, and exactly as tall as their photo.
-    <span className="flex h-[1.125rem] items-center bg-[var(--map-tag)] px-1.5 text-[0.8125rem] font-bold leading-none tabular-nums text-[var(--map-tag-ink)]">
+    <span
+      className="flex h-[1.125rem] items-center bg-[var(--map-tag)] px-1.5 text-[0.8125rem] font-bold leading-none tabular-nums text-[var(--map-tag-ink)]"
+      style={mark ? { background: mark.color, color: mark.ink } : undefined}
+    >
       {total.toFixed(2)}
     </span>
   );
@@ -79,7 +84,7 @@ function TotalChip({ total }: { total: number }) {
  * down, for your starters), then their PPR total for the game through this
  * play, highlighted.
  */
-function LinePoints({ line, mine, at, scoring }: { line: PlayLine; mine: boolean; at: number; scoring?: Record<string, number> }) {
+function LinePoints({ line, mine, at, scoring, mark }: { line: PlayLine; mine: boolean; at: number; scoring?: Record<string, number>; mark?: PlayMark }) {
   const { delta, total } = linePoints(line, scoring);
   if (delta === null || total === null) return null;
   return (
@@ -94,7 +99,7 @@ function LinePoints({ line, mine, at, scoring }: { line: PlayLine; mine: boolean
       >
         {formatPlayPoints(delta)}
       </span>
-      <TotalChip total={total} />
+      <TotalChip total={total} mark={mark} />
     </span>
   );
 }
@@ -110,8 +115,11 @@ function PlayerLine({
   legendByLeagueId,
   at,
   leagues = true,
+  mark,
 }: {
   line: PlayLine;
+  /** The play's mark (see playMarks): their total's plate in its color. */
+  mark?: PlayMark;
   /** Whether the leagues you start him in are marked by his name (in full, not with simple descriptions). */
   leagues?: boolean;
   /** Set when they're one of your starters. */
@@ -166,7 +174,7 @@ function PlayerLine({
           </span>
         )}
       </span>
-      <LinePoints line={line} mine={!!starter} at={at} scoring={starter?.leagueIds[0] ? scoringByLeague.get(starter.leagueIds[0]) : undefined} />
+      <LinePoints line={line} mine={!!starter} at={at} mark={mark} scoring={starter?.leagueIds[0] ? scoringByLeague.get(starter.leagueIds[0]) : undefined} />
     </li>
   );
 }
@@ -181,47 +189,41 @@ function scoreLabel(type: string, text: string): string {
   return "PTS";
 }
 
-/** One of a play's marks: its abbreviation, and the color it's drawn in. */
+/** One of a play's marks: its abbreviation, the color it's drawn in, and the color of what's written on that. */
 interface PlayMark {
   label: string;
   /** Its color, a CSS color. */
   color: string;
+  ink: string;
 }
+
+const ON_GOOD = { color: "var(--status-good)", ink: "#ffffff" };
+const ON_BAD = { color: "var(--status-critical)", ink: "#ffffff" };
 
 /**
  * Each play's marks, abbreviated: a score (TD/FG/SAF/2PT, green), a turnover
  * (TO — green when it's your defense taking the ball away, red when your
- * player gave it up), a red-zone snap (RZ, red), a long gain (+21, in ink).
+ * player gave it up), a red-zone snap (RZ, red), an explosive play — a gain of 20 or more (+21, amber: the plain plate
+ * is already the ink's).
  */
 function playMarks(entry: FeedEntry): PlayMark[] {
   const { play, players } = entry;
   const defense = players.length > 0 && players.every((p) => p.position === "DEF");
   const marks: PlayMark[] = [];
-  if (play.scoring) marks.push({ label: scoreLabel(play.type, play.text), color: "var(--status-good)" });
-  if (play.turnover) marks.push({ label: "TO", color: defense ? "var(--status-good)" : "var(--status-critical)" });
-  if (play.redZone && !play.scoring) marks.push({ label: "RZ", color: "var(--status-critical)" });
-  if (play.yards >= 20 && !play.scoring) marks.push({ label: `+${play.yards}`, color: "var(--ink-primary)" });
+  if (play.scoring) marks.push({ label: scoreLabel(play.type, play.text), ...ON_GOOD });
+  if (play.turnover) marks.push({ label: "TO", ...(defense ? ON_GOOD : ON_BAD) });
+  if (play.redZone && !play.scoring) marks.push({ label: "RZ", ...ON_BAD });
+  if (play.yards >= 20 && !play.scoring) marks.push({ label: `+${play.yards}`, color: "var(--status-warning)", ink: "#111111" });
   return marks;
 }
 
-/** How wide a play's faceshots are (px, see PlayerLine) — and so its mark's wash. */
+/** How wide a play's faceshots are (px, see PlayerLine). */
 const FACE_PX = 18;
 
-/**
- * A marked play's wash down the left of its row, in its first mark's color: from the row's left edge, fading out to
- * nothing across the width of its faceshots — behind them, so their colors stay their own. The marks' abbreviations
- * are only read out, for now.
- */
-function MarkColumn({ marks }: { marks: PlayMark[] }) {
-  if (marks.length === 0) return null;
-  return (
-    <span
-      className="pointer-events-none absolute inset-y-0 left-0 -z-10"
-      style={{ width: FACE_PX, background: `linear-gradient(to right, ${marks[0].color}, transparent)` }}
-    >
-      <span className="sr-only">{marks.map((m) => m.label).join(", ")}</span>
-    </span>
-  );
+/** The whole play in a few words — "42 yard pass", "Incomplete pass" (see playLabel) — or, failing that, ESPN's name for it. */
+function playSummary(entry: FeedEntry): string {
+  const scene = sceneFor(entry.play, [entry.game.homeTeam, entry.game.awayTeam]);
+  return scene ? playLabel(scene) : entry.play.type;
 }
 
 /** The time of day a play happened, e.g. "1:42 PM". */
@@ -277,8 +279,10 @@ interface FeedRowProps {
 /**
  * One play: when it happened and the matchup along the top, with the snap
  * across from them — the down and distance, where on the field, the quarter
- * and clock; then a line for each person in it; then ESPN's description, led
- * by the team with the ball. A play
+ * and clock; then a line for each person in it, a marked play's totals on its
+ * mark's color (see playMarks); then, in full, ESPN's description, led by the
+ * team with the ball — with simple descriptions, the whole play in a few words
+ * ("42 yard pass"). A play
  * that arrives while you watch slides in and washes its row in the theme's
  * ink — green for a good one for you.
  */
@@ -298,11 +302,13 @@ const FeedRow = memo(function FeedRow({ entry, starterById, legendByLeagueId, ar
   const spot = yardLineLabel(play, defense);
   // The game's score once the play was over — ESPN's, or for its latest play the scoreboard's.
   const score = play.score ?? (latest && game.state !== "pre" ? { home: game.homeScore, away: game.awayScore } : null);
+  // A marked play (a score, a turnover, a red-zone snap, an explosive gain): everyone's total on its first mark's plate.
+  const marks = playMarks(entry);
+  const summary = full ? null : playSummary(entry);
   return (
     <li
       data-play={`${game.id}-${play.id}`}
-      // Its own stacking context, so a marked play's wash lies behind its faceshots (see MarkColumn).
-      className={`relative isolate flex flex-col gap-1 py-2 pr-1 ${
+      className={`relative flex flex-col gap-1 py-2 pr-1 ${
         spotlit ? "bg-[color-mix(in_srgb,var(--ink-primary)_8%,var(--surface-raised))] outline outline-1 -outline-offset-1 outline-ink-primary" : ""
       }`}
       style={{
@@ -313,7 +319,7 @@ const FeedRow = memo(function FeedRow({ entry, starterById, legendByLeagueId, ar
         ["--rz-flash" as string]: good ? "var(--status-good)" : "var(--ink-primary)",
       }}
     >
-      <MarkColumn marks={playMarks(entry)} />
+      {marks.length > 0 ? <span className="sr-only">{marks.map((m) => m.label).join(", ")}</span> : null}
       {/* Too narrow for it all on a line (a column of its own), the snap goes under the rest, still at the right. */}
       <span className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[0.6875rem] leading-none">
         <span className="flex min-w-0 items-center gap-1.5 whitespace-nowrap">
@@ -363,9 +369,16 @@ const FeedRow = memo(function FeedRow({ entry, starterById, legendByLeagueId, ar
               legendByLeagueId={legendByLeagueId}
               at={play.at ?? 0}
               leagues={full}
+              mark={marks[0]}
             />
           ))}
         </ul>
+      ) : null}
+      {/* With simple descriptions, the whole play in a few words under everyone in it, lined up with their names. */}
+      {summary ? (
+        <span className="text-[0.6875rem] font-semibold leading-tight text-ink-secondary" style={{ paddingLeft: `calc(${FACE_PX / 16}rem + 0.5rem)` }}>
+          {summary}
+        </span>
       ) : null}
       {/* What happened, in full: led by the team with the ball, ESPN's own description. */}
       {full ? (
