@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { HomeIcon, LeagueRoomIcon, SwapIcon, TrendIcon, UserIcon } from "@/components/ui/Icon";
+import { LeagueRoomIcon, SwapIcon, TrendIcon, UserIcon } from "@/components/ui/Icon";
 
 /** The app's pages, in order, and whether each is the one at `pathname` — the phone's tab bar and the header's tabs alike. */
 export function appPages(pathname: string) {
@@ -11,9 +11,8 @@ export function appPages(pathname: string) {
   return [
     { href: "/settings", label: "Profile & settings", icon: UserIcon, active: at("/settings") },
     { href: "/league", label: "League", icon: LeagueRoomIcon, active: at("/league") || at("/team") },
-    { href: "/", label: "Home", icon: HomeIcon, active: pathname === "/" },
     { href: "/values", label: "Values", icon: TrendIcon, active: at("/values") },
-    { href: "/monitor", label: "Trade Monitor", icon: SwapIcon, active: at("/monitor") },
+    { href: "/monitor", label: "Trades", icon: SwapIcon, active: at("/monitor") },
   ];
 }
 
@@ -28,7 +27,8 @@ const iconClass = (active: boolean) => `flex items-center justify-center p-1.5 $
 
 /**
  * On a phone, the app's pages along the bottom of the screen: Profile & settings,
- * League, Home, Values and the Trade Monitor — wider, the header has them (see NavBar).
+ * League, Values and Trades — wider, the header has them (see NavBar). Home is the
+ * header's logo.
  * It publishes its height as --tabbar-h, so the page leaves room for it under its end.
  */
 export function TabBar() {

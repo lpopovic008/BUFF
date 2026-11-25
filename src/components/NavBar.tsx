@@ -14,14 +14,16 @@ import { ChevronLeftIcon } from "@/components/ui/Icon";
 /**
  * The app's walkie-talkie on its own, no tile — in outline, in the text's color: antennas, push-to-talk button, a
  * screen up top and the speaker's lines below. Drawn on the app icon's own 1024 grid (public/icons), with its lines
- * thicker and one speaker line fewer so it holds up at the header's size.
+ * thicker and one speaker line fewer so it holds up at the header's size. `filled` (you're home): the radio solid in
+ * the text's color, its screen and speaker lines cut out of it in the page's.
  */
-function Logo({ className }: { className?: string }) {
+function Logo({ className, filled = false }: { className?: string; filled?: boolean }) {
+  const cut = filled ? "var(--page)" : "currentColor";
   return (
     <svg
       viewBox="290 108 442 804"
       className={className}
-      fill="none"
+      fill={filled ? "currentColor" : "none"}
       stroke="currentColor"
       strokeWidth={44}
       strokeLinecap="round"
@@ -32,8 +34,8 @@ function Logo({ className }: { className?: string }) {
       <path d="M436 352V166a35 35 0 0 1 70 0v186" />
       <path d="M590 352v-64a29 29 0 0 1 58 0v64" />
       <path d="M368 494h-26a28 28 0 0 0-28 28v92a28 28 0 0 0 28 28h26" />
-      <rect x="428" y="412" width="220" height="160" rx="20" />
-      <path d="M452 652h172M452 728h172M452 804h172" />
+      <rect x="428" y="412" width="220" height="160" rx="20" fill="none" stroke={cut} />
+      <path d="M452 652h172M452 728h172M452 804h172" fill="none" stroke={cut} />
     </svg>
   );
 }
@@ -55,8 +57,11 @@ export function NavBar() {
   // A page showing a week of its own (the league page) makes the header's week its picker.
   const pickable = useHeaderWeek();
   const ref = useRef<HTMLElement>(null);
-  // From tablet width up, the app's pages: Profile as an icon by your record, the rest as text tabs by the wordmark.
-  const [profile, ...tabs] = appPages(usePathname());
+  // From tablet width up, the app's pages: Profile as an icon by your record, the rest as text tabs by the logo — the
+  // logo itself home, filled in while you're there.
+  const pathname = usePathname();
+  const [profile, ...tabs] = appPages(pathname);
+  const home = pathname === "/";
   // A page that's taken the header over (see header-slot.ts).
   const bare = useHeaderBare();
   const router = useRouter();
@@ -102,15 +107,15 @@ export function NavBar() {
             title="Commi$h"
             className="flex h-7 w-7 items-center justify-center justify-self-end text-ink-primary transition-transform active:scale-90 sm:h-9 sm:w-9"
           >
-            <Logo className="block h-7 sm:h-9" />
+            <Logo className="block h-7 sm:h-9" filled={home} />
           </Link>
         </div>
       ) : (
       <>
       {/* The week centered — unless one side's too wide for that (the page tabs beside a long week, on a tablet), then just clear of it. */}
       <div className="relative grid grid-cols-[minmax(max-content,1fr)_auto_minmax(max-content,1fr)] items-center gap-2 px-4 py-2 sm:gap-3 sm:px-6 sm:py-3 md:px-1">
-        {/* The app's icon, home — and from tablet width up the pages as text tabs, the one you're on lit like a map
-            tag. (Back and forward sit just under the header: see HistoryButtons.) */}
+        {/* The app's icon, home (filled in while you're there) — and from tablet width up the other pages as text tabs,
+            the one you're on lit like a map tag. (Back and forward sit just under the header: see HistoryButtons.) */}
         <div className="flex min-w-0 items-center gap-2 justify-self-start sm:gap-3 md:gap-0">
           {/* On a phone, centred in a box as wide as your record on the right (a copy of it, unseen), so the two sit
               mirrored, each centred as far in from its edge. From tablet width up, in a box the size of the profile
@@ -119,6 +124,7 @@ export function NavBar() {
             href="/"
             aria-label="Commi$h — home"
             title="Commi$h"
+            aria-current={home ? "page" : undefined}
             className="shrink-0 text-ink-primary transition-transform active:scale-90 max-md:grid max-md:place-items-center md:ml-1 md:mr-0.5 md:flex md:h-9 md:w-9 md:items-center md:justify-center lg:ml-3 lg:mr-2.5"
           >
             {record ? (
@@ -126,7 +132,7 @@ export function NavBar() {
                 {record}
               </span>
             ) : null}
-            <Logo className="block h-7 [grid-area:1/1] sm:h-9" />
+            <Logo className="block h-7 [grid-area:1/1] sm:h-9" filled={home} />
           </Link>
           <nav aria-label="Pages" className="flex items-center gap-1 max-md:hidden lg:gap-2">
             {tabs.map((tab) => (

@@ -202,7 +202,7 @@ export default function MonitorPage() {
     <TradeCalcFloorContext.Provider value={setCalcFloor}>
       <TradeFloorContext.Provider value={setFloorMove}>
         <PlayerPathFloorContext.Provider value={setPath}>
-          <WallRoom title="Trade Monitor" card={card} onCloseCard={() => setCard(null)} floor={floor} floorShare={wide ? WIDE_FLOOR_SHARE : undefined}>
+          <WallRoom title="Trades" card={card} onCloseCard={() => setCard(null)} floor={floor} floorShare={wide ? WIDE_FLOOR_SHARE : undefined}>
             {picked ? (
               <LeagueMonitor
                 key={picked.leagueId}
@@ -229,7 +229,7 @@ export default function MonitorPage() {
                 </RoomColumn>
               </>
             ) : (
-              <RoomColumn label="Trade Monitor" className="flex-1">
+              <RoomColumn label="Trades" className="flex-1">
                 {waiting}
               </RoomColumn>
             )}
@@ -331,7 +331,7 @@ function LeagueMonitor({
         );
         return (
           <RoomColumn
-            label="Trade Monitor"
+            label="Trades"
             className="flex-1"
             stage
             head={
